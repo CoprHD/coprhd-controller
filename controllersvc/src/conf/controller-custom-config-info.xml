@@ -1039,7 +1039,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="isilon" value="{system_access_zone},{user_access_zone},/ifs/sos/"/>                    
+                <entry key="isilon" value="{system_access_zone},{user_access_zone}"/>                    
             </map>
         </property>
         <property name="constraints">

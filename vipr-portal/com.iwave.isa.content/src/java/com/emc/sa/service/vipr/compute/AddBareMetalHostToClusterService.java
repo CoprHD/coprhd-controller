@@ -74,6 +74,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         if (cluster == null) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.no.cluster.exists"));
         }
+        acquireClusterLock(cluster);
 
         if (hostNames == null || hostNames.isEmpty()) {
             preCheckErrors.append(
@@ -130,7 +131,8 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         // e.g. the blades can be from multiple UCS clusters
 
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 
@@ -140,7 +142,9 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
-
+        for (Host host : hosts) {
+            acquireHostLock(host, cluster);
+        }
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,

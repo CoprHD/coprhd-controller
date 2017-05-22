@@ -270,9 +270,25 @@ public class VMwareSupport {
      *            true to enable storage io control or false to disable storage io control
      */
     public void setStorageIOControl(Datastore datastore, Boolean enabled) {
+        setStorageIOControl(datastore, enabled, false);
+    }
+
+    /**
+     * Sets the storage IO control for the given datastore
+     * 
+     * @param datastore
+     *            the datastore to set the storage io control on
+     * @param enabled
+     *            true to enable storage io control or false to disable storage io control
+     * @param failIfErrorDuringEnable
+     *            true to fail the operation of enabling storage I/O if storage I/O is not supported
+     */
+    public void setStorageIOControl(Datastore datastore, Boolean enabled, Boolean failIfErrorDuringEnable) {
         if (enabled != null && datastore != null) {
             if (datastore.getCapability() != null && datastore.getCapability().storageIORMSupported) {
                 execute(new SetStorageIOControl(datastore, enabled));
+            } else if (enabled && failIfErrorDuringEnable) {
+                ExecutionUtils.fail("failTask.SetStorageIOControl", new Object[] {}, datastore.getName());
             } else {
                 logWarn("vmware.support.storage.io.control.not.supported", datastore.getName());
             }
@@ -371,16 +387,23 @@ public class VMwareSupport {
         enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
 
+        HostSystem mountedHost = getHostMountedDatastore(hosts, datastore);
+        if (mountedHost == null) {
+            throw new IllegalStateException("Datastore is not mounted by any hosts");
+        }
+
         executeOnHosts(hosts, new HostSystemCallback() {
             @Override
             public void exec(HostSystem host) {
-                unmountVmfsDatastore(host, datastore);
+                if (VMwareUtils.isDatastoreMountedOnHost(datastore, host)) {
+                    unmountVmfsDatastore(host, datastore);
+                }
             }
         });
 
         final Map<HostSystem, List<HostScsiDisk>> hostDisks = buildHostDiskMap(hosts, datastore);
 
-        execute(new DeleteDatastore(hosts.get(0), datastore));
+        execute(new DeleteDatastore(mountedHost, datastore));
 
         if (detachLuns) {
             executeOnHosts(hosts, new HostSystemCallback() {
@@ -392,6 +415,22 @@ public class VMwareSupport {
             });
         }
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
+    }
+
+    /**
+     * Returns a host that has this datastore mounted on it
+     * 
+     * @param hosts list of hosts
+     * @param datastore the datastore
+     * @return host that has this datastore mounted on it, or null if none of the hosts have this datastore mounted
+     */
+    private HostSystem getHostMountedDatastore(List<HostSystem> hosts, Datastore datastore) {
+        for (HostSystem host : hosts) {
+            if (VMwareUtils.isDatastoreMountedOnHost(datastore, host)) {
+                return host;
+            }
+        }
+        return null;
     }
 
     private Map<HostSystem, List<HostScsiDisk>> buildHostDiskMap(List<HostSystem> hosts, Datastore datastore) {
@@ -780,8 +819,8 @@ public class VMwareSupport {
             if (volume != null) {
                 // VBDU: Check to ensure the correct datastore tag is in the volume returned
                 String tagValue = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
-                if (!tagValue.equalsIgnoreCase(datastore.getName())) {
-                    logError("vmware.support.datastore.doesntmatchvolume", datastore.getName());
+                if (tagValue == null || !tagValue.equalsIgnoreCase(datastore.getName())) {
+                    logError("vmware.support.datastore.doesntmatchvolume", volume.getName(), datastore.getName());
                     return null;
                 }
 
@@ -835,7 +874,9 @@ public class VMwareSupport {
         executeOnHosts(hosts, new HostSystemCallback() {
             @Override
             public void exec(HostSystem host) {
-                unmountVmfsDatastore(host, datastore);
+                if (VMwareUtils.isDatastoreMountedOnHost(datastore, host)) {
+                    unmountVmfsDatastore(host, datastore);
+                }
             }
         });
     }

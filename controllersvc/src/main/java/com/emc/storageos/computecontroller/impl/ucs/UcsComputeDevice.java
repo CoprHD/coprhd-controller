@@ -73,6 +73,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -580,16 +581,17 @@ public class UcsComputeDevice implements ComputeDevice {
                 + callSimpleReadOnlyMethodOnMO(pulledManagedObject, "assocState"));
 
         Calendar timeOutTime = Calendar.getInstance();
-        timeOutTime.add(Calendar.SECOND, getDeviceOperationTimeOut());
+        int deviceOperationTimeout = getDeviceOperationTimeOut();
+        timeOutTime.add(Calendar.SECOND, deviceOperationTimeout);
 
         do {
             if (Calendar.getInstance().after(timeOutTime)) {
 
                 LOGGER.warn("Time out occured waiting for operation to finish on the LsServer : " + managedObjectDn
-                        + "Waited for " + getDeviceOperationTimeOut() + "seconds...");
+                        + "Waited for " + deviceOperationTimeout + "seconds...");
                 throw ComputeSystemControllerException.exceptions.timeoutWaitingForMOTerminalState(
                         callSimpleReadOnlyMethodOnMO(pulledManagedObject, "dn"),
-                        callSimpleReadOnlyMethodOnMO(pulledManagedObject, "operState"), getDeviceOperationTimeOut());
+                        callSimpleReadOnlyMethodOnMO(pulledManagedObject, "operState"), deviceOperationTimeout);
 
             }
 
@@ -688,7 +690,7 @@ public class UcsComputeDevice implements ComputeDevice {
     private void validateNewServiceProfile(ComputeSystem cs, UCSServiceProfile serviceProfile, Host newHost){
         Collection<URI> allHostUris = _dbClient.queryByType(Host.class, true);
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-                Arrays.asList("uuid","label", "computeElement", "registrationStatus", "inactive"), getFullyImplementedCollection(allHostUris));
+                Arrays.asList("uuid","label", "computeElement", "registrationStatus", "inactive"), ControllerUtils.getFullyImplementedCollection(allHostUris));
         for (Host host: hosts) {
             if (host.getUuid()!=null && host.getUuid().equals(serviceProfile.getUuid()) && !host.getId().equals(newHost.getId()) && (host.getInactive()!=true)){
                 LOGGER.error("Newly created service profile :"+ serviceProfile.getLabel() + " shares same uuid "+ serviceProfile.getUuid() +" as existing active host: " + host.getLabel());
@@ -699,17 +701,6 @@ public class UcsComputeDevice implements ComputeDevice {
 
     }
 
-    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
-        // Convert objects (like URIQueryResultList) that only implement iterator to
-        // fully implemented Collection
-        Collection<T> collectionOut = new ArrayList<>();
-        Iterator<T> iter = collectionIn.iterator();
-        while (iter.hasNext()) {
-            collectionOut.add(iter.next());
-        }
-        return collectionOut;
-    }
- 
 
     /**
      * Modify the LsServer to have a no boot policy
@@ -778,6 +769,7 @@ public class UcsComputeDevice implements ComputeDevice {
                      ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                      if (computeElement!=null){
                          computeElement.setAvailable(true);
+                         computeElement.setUuid(null);
                          _dbClient.updateObject(computeElement);
                      }
                      host.setComputeElement(NullColumnValueGetter.getNullURI());
@@ -1161,7 +1153,7 @@ public class UcsComputeDevice implements ComputeDevice {
           unbindHostFromComputeElement(cs,host);
           deleteServiceProfile(cs,host);
        }catch (ClientGeneralException e){
-           LOGGER.warn("Unable to deactivate host : ", e);
+           LOGGER.error("Unable to deactivate host : ", e);
            throw e;
        }catch (Exception ex) {
             LOGGER.error("Error while deactivating host {} check stacktrace", host.getLabel(), ex);
@@ -1206,7 +1198,7 @@ public class UcsComputeDevice implements ComputeDevice {
                 StringBuilder errorMessage = new StringBuilder();
                 LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
                      cs.getUsername(), cs.getPassword(), spDn, errorMessage);
-                LOGGER.debug("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
+                LOGGER.info("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
                 ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                         computeElement.getLabel(), ComputeBlade.class);
                 if (computeBlade == null){
@@ -1215,7 +1207,8 @@ public class UcsComputeDevice implements ComputeDevice {
                     // Release the computeElement back into the pool as soon as we have unbound it from the service profile
                     if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
                          computeElement.setAvailable(true);
-                         _dbClient.persistObject(computeElement);
+                         computeElement.setUuid(null);
+                         _dbClient.updateObject(computeElement);
                     }
                 }
 
@@ -1258,7 +1251,8 @@ public class UcsComputeDevice implements ComputeDevice {
                 StringBuilder errorMessage = new StringBuilder();
                 ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),spDn, errorMessage);
                 host.setServiceProfile(NullColumnValueGetter.getNullURI());
-                _dbClient.persistObject(host);
+                host.setComputeElement(NullColumnValueGetter.getNullURI());
+                _dbClient.updateObject(host);
                 if (serviceProfile!=null){
                     _dbClient.markForDeletion(serviceProfile);
                 }
@@ -1325,5 +1319,27 @@ public class UcsComputeDevice implements ComputeDevice {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
+    /**
+     * initialize timeout defaults for UCS operations.
+     */
+    public void initializeDefaults() {
+        int deviceTimeout = -1;
+        int pollfrequency = -1;
+        try {
+            deviceTimeout = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+                    "controller_ucs_communication_timeout"));
+            pollfrequency = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+                    "controller_ucs_device_operation_pollfrequency"));
+        } catch (Exception e) {
+            LOGGER.warn(
+                    "Exception while retriving ucs device operation timeout or poll frequency values from coordinator.",
+                    e);
+        }
+        if(deviceTimeout > -1) {
+            deviceOperationTimeOut = deviceTimeout;
+        }
+        if(pollfrequency > -1) {
+            deviceOperationPollFrequency = pollfrequency;
+        }
+    }
 }
-

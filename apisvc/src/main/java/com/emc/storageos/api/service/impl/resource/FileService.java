@@ -864,16 +864,21 @@ public class FileService extends TaskResourceService {
                 throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(user.getName());
             }
         }
-
+        // check for bypassDnsCheck flag. If null then set to false
+        Boolean dnsCheck = param.getBypassDnsCheck();
+        if (dnsCheck == null) {
+            dnsCheck = false;
+        }
         FileShareExport export = new FileShareExport(param.getEndpoints(), param.getSecurityType(), param.getPermissions(),
                 rootUserMapping, param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
-                subDirectory, param.getComments());
+                subDirectory, param.getComments(), dnsCheck);
 
         _log.info(String.format(
                 "FileShareExport --- FileShare id: %1$s, Clients: %2$s, StoragePort: %3$s, SecurityType: %4$s, " +
-                        "Permissions: %5$s, Root user mapping: %6$s, Protocol: %7$s, path: %8$s, mountPath: %9$s, SubDirectory: %10$s",
+                        "Permissions: %5$s, Root user mapping: %6$s, Protocol: %7$s, path: %8$s, mountPath: %9$s, SubDirectory: %10$s ,byPassDnsCheck: %11$s",
                 id, export.getClients(), sport.getPortName(), export.getSecurityType(), export.getPermissions(),
-                export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(), export.getSubDirectory()));
+                export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(), export.getSubDirectory(),
+                export.getBypassDnsCheck()));
 
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM);
@@ -1164,7 +1169,7 @@ public class FileService extends TaskResourceService {
      *            the URN of a ViPR File system
      * @param shareName
      *            file system share name
-     * @brief List file system SMB shares
+     * @brief Show specified share
      * @return List of file system shares.
      */
     @GET
@@ -1292,7 +1297,7 @@ public class FileService extends TaskResourceService {
      *            File system expansion parameters
      * @param id
      *            the URN of a ViPR File system
-     * @brief Expand file system
+     * @brief Update file system properties
      * @return Task resource representation
      * @throws InternalException
      */
@@ -1674,7 +1679,7 @@ public class FileService extends TaskResourceService {
                         .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
         }
-     // Verify the higher level replication policies assigned
+        // Verify the higher level replication policies assigned
         if (param.getForceDelete() && param.getDeleteType() != null && param.getDeleteType().equalsIgnoreCase("FULL")) {
             if (FilePolicyServiceUtils.vPoolHasReplicationPolicy(_dbClient, fs.getVirtualPool())
                     || FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, fs.getProject().getURI(), fs.getVirtualPool())) {
@@ -2099,6 +2104,12 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
+        // check for bypassDnsCheck flag. If null then set to false
+        if (param.getBypassDnsCheck() == null) {
+
+            param.setBypassDnsCheck(false);
+        }
+
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())
@@ -2148,6 +2159,7 @@ public class FileService extends TaskResourceService {
     }
 
     /**
+     * Delete FS Export Rules
      * 
      * Existing file system exports may have their list of export rules deleted.
      * 
@@ -2159,10 +2171,10 @@ public class FileService extends TaskResourceService {
      *            All Dirs within a filesystem
      * @param unmountExport
      *            Whether to unmount an export when deleting the rule
+     * @brief Delete the export rules for a file system
      * @return Task resource representation
      * @throws InternalException
      */
-
     @DELETE
     @Path("/{id}/export")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -2225,6 +2237,18 @@ public class FileService extends TaskResourceService {
         return toTask(fs, task, op);
     }
 
+    /**
+     * Get FS Export Rules
+     * 
+     * @param id
+     *            the URN of a ViPR fileSystem
+     * @param subDir
+     *            sub-directory within a filesystem
+     * @param allDirs
+     *            All Dirs within a filesystem
+     * @brief Show export rules for a file system
+     * @return ExportRules
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/export")
@@ -2249,6 +2273,8 @@ public class FileService extends TaskResourceService {
     }
 
     /**
+     * Update Share ACL
+     * 
      * API to update ACLs of an existing share
      * 
      * @param id
@@ -2257,10 +2283,10 @@ public class FileService extends TaskResourceService {
      *            name of the share
      * @param param
      *            request payload object of type <code>com.emc.storageos.model.file.CifsShareACLUpdateParams</code>
+     * @brief Change the ACLs for a specified file share
      * @return TaskResponse
      * @throws InternalException
      */
-
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -2317,7 +2343,17 @@ public class FileService extends TaskResourceService {
 
         return toTask(fs, task, op);
     }
-
+    
+    /**
+     * Get File Share ACLs
+     * 
+     * @param id
+     *            the file system URI
+     * @param shareName
+     *            name of the share
+     * @brief Show the ACLs for a file share
+     * @return ShareACLs
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/shares/{shareName}/acl")
@@ -2349,7 +2385,17 @@ public class FileService extends TaskResourceService {
         return acls;
 
     }
-
+    
+    /**
+     * Delete File Share ACL
+     * 
+     * @param id
+     *            the file system URI
+     * @param shareName
+     *            name of the share
+     * @brief Delete an ACL for a file share
+     * @return TaskResponse
+     */
     @DELETE
     @Path("/{id}/shares/{shareName}/acl")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -2398,6 +2444,7 @@ public class FileService extends TaskResourceService {
      *            all directory within a fileSystem
      * @param subDir
      *            sub-directory within a fileSystem
+     * @brief List the ACLs for a file system
      * @return list of ACLs for file system.
      * @throws InternalException
      */
@@ -2512,6 +2559,7 @@ public class FileService extends TaskResourceService {
      *            the URN of a ViPR fileSystem
      * @param subDir
      *            sub-directory within a fileSystem
+     * @brief Delete an ACL for a file system
      * @return Task resource representation
      */
     @DELETE
@@ -2562,6 +2610,17 @@ public class FileService extends TaskResourceService {
         return toTask(fs, task, op);
     }
 
+    /**
+     * Change File System Virtual Pool
+     * 
+     * @param id
+     *          the URN of a ViPR fileSystem
+     * @param param
+     * 			File System Virtual Pool Change parameter
+     * @brief Change a file systems virtual pool
+     * @desc Add the file system to a different virtual pool.
+     * @return TaskResponse
+     */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -2678,7 +2737,19 @@ public class FileService extends TaskResourceService {
         }
         return fileSystemTask;
     }
-
+    
+    /**
+     * Create Continuous Copies
+     * 
+     * @param id
+     *          the URN of a ViPR fileSystem
+     * @param param
+     * 			File Replication Create parameter
+     * @brief Define continuous copies
+     * @return TaskResponse
+     * @throws InternalException
+     * @throws APIException
+     */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -2796,6 +2867,18 @@ public class FileService extends TaskResourceService {
         return taskList.getTaskList().get(0);
     }
 
+    /**
+     * Deactivate Continuous Copies
+     * 
+     * @param id
+     *          the URN of a ViPR fileSystem
+     * @param param
+     * 			File System Delete parameter
+     * @brief Delete continuous copies
+     * @return TaskResponse
+     * @throws InternalException
+     * @throws APIException
+     */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -3060,7 +3143,7 @@ public class FileService extends TaskResourceService {
      *            File system RPO update parameters
      * @param id
      *            the URN of a ViPR File system
-     * @brief update file system replication RPO
+     * @brief Update file system replication RPO
      * @return Task resource representation
      * @throws InternalException
      */
@@ -3616,6 +3699,7 @@ public class FileService extends TaskResourceService {
      *            The URN of a file policy schedule
      * @param timeout
      *            Time limit in seconds to get the output .Default is 30 seconds
+     * @brief Get snapshots related to the specified policy
      * @return List of snapshots created by a file policy
      */
     @GET
@@ -4111,7 +4195,7 @@ public class FileService extends TaskResourceService {
      *            the URN of a ViPR File system
      * @param param
      *            File system mount parameters
-     * @brief mount a FS
+     * @brief Mount a file system
      * @return Task resource representation
      * @throws InternalException
      */
@@ -4203,7 +4287,7 @@ public class FileService extends TaskResourceService {
      *            the URN of the fs
      * @param param
      *            FileSystemUnmountParam
-     * @brief unmount fs
+     * @brief Unmount a file system
      * @return Task resource representation
      * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
      */

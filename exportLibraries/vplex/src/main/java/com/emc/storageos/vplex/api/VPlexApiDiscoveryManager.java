@@ -17,6 +17,7 @@ import java.util.Set;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.sun.jersey.api.client.ClientResponse;
@@ -1569,12 +1570,11 @@ public class VPlexApiDiscoveryManager {
      * Returns a cached List of VPlexInitiatorInfo objects for the cluster.
      * 
      * @param clusterName indicates which VPlex cluster to check
+     * @param fetchFromArray {@link Boolean} if true passed, Fetch the initiator information from array and updates the local cache
      * @return a List of VPlexInitiatorInfos for the given cluster
      */
-    synchronized List<VPlexInitiatorInfo> getInitiatorInfoForCluster(String clusterName) {
-        if (!_vplexClusterInitiatorInfoCache.containsKey(clusterName) ||
-                _vplexClusterInitiatorInfoCache.get(clusterName) == null ||
-                _vplexClusterInitiatorInfoCache.get(clusterName).isEmpty()) {
+    synchronized List<VPlexInitiatorInfo> getInitiatorInfoForCluster(String clusterName, Boolean fetchFromArray) {
+        if (fetchFromArray || CollectionUtils.isEmpty(_vplexClusterInitiatorInfoCache.get(clusterName))) {
             long start = System.currentTimeMillis();
             s_logger.info("refreshing VPlexInitiatorInfo cache for cluster " + clusterName);
 
@@ -2067,7 +2067,7 @@ public class VPlexApiDiscoveryManager {
                                 VPlexStorageViewInfo.class);
 
                 if (includeInitiatorDetails) {
-                    Map<String, String> initInfoMap = getInitiatorNameToWwnMap(clusterName);
+                    Map<String, String> initInfoMap = getInitiatorNameToWwnMap(clusterName, true);
                     for (VPlexStorageViewInfo sv : storageViews) {
                             // update storage views with wwpn info
                         for (String initName : sv.getInitiators()) {
@@ -2708,9 +2708,16 @@ public class VPlexApiDiscoveryManager {
 
         // Now find the context paths for the logical units that
         // correspond to the volumes to be forgotten.
-        Set<String> logUnitsPaths = findLogicalUnits(systemVolumesMap);
+        Map<String, Set<String>> notFoundSystemVolumesMap = new HashMap<String, Set<String>>();
+        Set<String> logUnitsPaths = findLogicalUnits(systemVolumesMap, notFoundSystemVolumesMap);
+        
+        // If we don't find any of the logical units to forget throw
+        // an exception.
+        if (logUnitsPaths.isEmpty()) {
+            throw VPlexApiException.exceptions.logicalUnitsNotFoundForVolumes(systemVolumesMap.toString());
+        }
 
-        // Now tell the VPLEX to forget these logical units.
+        // Now tell the VPLEX to forget these logical units that were found.
         try {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
                     VPlexApiConstants.URI_FORGET_LOG_UNIT);
@@ -2744,6 +2751,12 @@ public class VPlexApiDiscoveryManager {
                     throw new Exception(errorMsg);
                 }
             }
+            
+            // If we successfully forgot some volumes, but others were not found, then
+            // throw an exception identifying those that were not found.
+            if (!notFoundSystemVolumesMap.isEmpty()) {
+                throw VPlexApiException.exceptions.logicalUnitsNotFoundForVolumes(notFoundSystemVolumesMap.toString());
+            }
             s_logger.info("Successfully forgot logical units");
         } catch (Exception e) {
             s_logger.error("Exception forgetting logical units: %s", e.getMessage(), e);
@@ -2757,12 +2770,15 @@ public class VPlexApiDiscoveryManager {
      * 
      * @param systemVolumesMap A map of storage volume WWNs key'd by storage
      *            system.
+     * @param notFoundSystemVolumesMap OUT param holds info about logical units not found.
      * 
      * @return The context paths of the passed volumes.
      */
-    private Set<String> findLogicalUnits(Map<String, Set<String>> systemVolumesMap) {
-
+    private Set<String> findLogicalUnits(Map<String, Set<String>> systemVolumesMap,
+            Map<String, Set<String>> notFoundSystemVolumesMap) {
+        
         Set<String> logicalUnitPaths = new HashSet<String>();
+        Map<String, Set<String>> foundSystemVolumesMap = new HashMap<>();        
         // Get the cluster info.
         List<VPlexClusterInfo> clusterInfoList = getClusterInfoLite();
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
@@ -2815,6 +2831,16 @@ public class VPlexApiDiscoveryManager {
                                 // Add the logical unit context path
                                 // to the list.
                                 logicalUnitPaths.add(logUnitInfo.getPath());
+                                
+                                // Add the volume to the found volumes map.
+                                if (foundSystemVolumesMap.containsKey(systemGuid)) {
+                                    Set<String> foundVolumes = foundSystemVolumesMap.get(systemGuid);
+                                    foundVolumes.add(logUnitWWN);
+                                } else {
+                                    Set<String> foundVolumes = new HashSet<>();
+                                    foundVolumes.add(logUnitWWN);
+                                    foundSystemVolumesMap.put(systemGuid, foundVolumes);
+                                }
                             }
                         }
                         break;
@@ -2822,7 +2848,27 @@ public class VPlexApiDiscoveryManager {
                 }
             }
         }
-
+        
+        // Use the found volumes map to determine those that where not found
+        // and populate the not found volumes map with the volumes for each
+        // system for which the corresponding logical unit was not found.
+        for (Entry<String, Set<String>> entry : systemVolumesMap.entrySet()) {
+            String systemGuid = entry.getKey();
+            Set<String> volumes = entry.getValue();
+            Set<String> notFoundVolumes = new HashSet<>(volumes);
+            if (foundSystemVolumesMap.containsKey(systemGuid)) {
+                Set<String> foundVolumes = foundSystemVolumesMap.get(systemGuid);
+                notFoundVolumes.removeAll(foundVolumes);
+                if (!notFoundVolumes.isEmpty()) {
+                    notFoundSystemVolumesMap.put(systemGuid, notFoundVolumes);
+                }
+            } else {
+                // We did not find logical units for any of the volumes
+                // for this system.
+                notFoundSystemVolumesMap.put(systemGuid, notFoundVolumes);
+            }
+        }
+        
         return logicalUnitPaths;
     }
 
@@ -3274,12 +3320,13 @@ public class VPlexApiDiscoveryManager {
      * Returns a map of Initiator WWN to Initiator Name
      * 
      * @param clusterName VPlex cluster ID
+     * @param fetchFromArray {@link Boolean} if true passed, Fetch the initiator information from array and updates the local cache
      * @return map of Initiator WWN to Initiator Name
      */
-    Map<String, String> getInitiatorWwnToNameMap(String clusterName) {
+    Map<String, String> getInitiatorWwnToNameMap(String clusterName, boolean fetchFromArray) {
         Map<String, String> result = new HashMap<String, String>();
 
-        List<VPlexInitiatorInfo> initiatorInfoList = getInitiatorInfoForCluster(clusterName);
+        List<VPlexInitiatorInfo> initiatorInfoList = getInitiatorInfoForCluster(clusterName, fetchFromArray);
 
         for (VPlexInitiatorInfo initiatorInfo : initiatorInfoList) {
             if (initiatorInfo.getName() != null
@@ -3294,13 +3341,14 @@ public class VPlexApiDiscoveryManager {
      * Returns a map of Initiator Name to Initiator WWN
      * 
      * @param clusterName VPlex cluster ID
+     * @param fetchFromArray {@link Boolean} if true passed, Fetch the initiator information from array and updates the local cache
      * @return map of Initiator Name to Initiator WWN
      */
-    Map<String, String> getInitiatorNameToWwnMap(String clusterName) {
+    Map<String, String> getInitiatorNameToWwnMap(String clusterName, boolean fetchFromArray) {
         Map<String, String> result = new HashMap<String, String>();
 
         List<VPlexInitiatorInfo> initiatorInfoList;
-        initiatorInfoList = getInitiatorInfoForCluster(clusterName);
+        initiatorInfoList = getInitiatorInfoForCluster(clusterName, fetchFromArray);
 
         for (VPlexInitiatorInfo initiatorInfo : initiatorInfoList) {
             if (initiatorInfo.getName() != null

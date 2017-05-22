@@ -50,16 +50,20 @@
     #{field 'assignPolicy.vpool'}
       #{Form.selectOneControlGroup field:field, options:projectVpoolOptions, select:assignPolicy.vpool, cssClass:'span3' /}
     #{/field} 
-     #{field 'assignPolicy.projects', noLabel:noLabel}
+     #{field 'assignPolicy.unassignedProjects', noLabel:noLabel}
          #{Form.selectManyControlGroup field:field, options:projectOptions /}
      #{/field}
     </div>
     
     <div id="vpoolFields">
-     #{field 'assignPolicy.virtualPools', noLabel:noLabel}
+     #{field 'assignPolicy.unassignedVirtualPools', noLabel:noLabel}
          #{Form.selectManyControlGroup field:field, options:vPoolOptions /}
      #{/field}
     </div>
+    <div id="fileUnAssignInfo" class="row" style="padding-top:20px; padding-bottom:0px;">
+            <div class="col-xs-3"></div>    
+            <div class="pull-left col-sm-6" >&{'unAassignPolicy.AppliedAtFileInfo'}</div>
+     </div>
 	    
     <div ng-init="policyId='${assignPolicy.id}'" id="replicationFields" ng-controller="filePolicyUnassignCtrl">
         <div class="row" style="padding-top:20px; padding-bottom:0px;">
@@ -120,15 +124,22 @@
 				} else if (assignAt == 'vpool') {
 					$('#vpoolFields').show();
 					$('#projectFields').hide();
-				} else if (assignAt == 'file_system') {
-					$('#vpoolFields').hide();
-					$('#projectFields').hide();
-				}
+				} 
 				
 				if(policyType == 'file_snapshot') {
 					$('#replicationFields').hide();
 				} else if (policyType == 'file_replication') {
 					$('#replicationFields').show();
+				}
+				
+			   if (assignAt == 'file_system') {
+					$('#vpoolFields').hide();
+					$('#projectFields').hide();
+					$('#fileUnAssignInfo').show();	
+					$('#replicationFields').hide();
+				} else {
+					$('#fileUnAssignInfo').hide();
+					
 				}
 				
 			}

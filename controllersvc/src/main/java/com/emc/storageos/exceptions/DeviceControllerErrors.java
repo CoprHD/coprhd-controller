@@ -263,6 +263,9 @@ public interface DeviceControllerErrors {
     public ServiceError unableToUpdateFileSystem(final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError cannotMultiExportVolumesWithHostIOLimit(final String storageGroupNames, final String volumeURIs);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)

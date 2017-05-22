@@ -823,7 +823,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
                 initiatorToComputeResourceMap, matchingMasks,
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
-        
+
         /**
          * COP-28674: During Vblock boot volume export, if existing masking views are found then check for existing volumes
          * If found throw exception. This condition is valid only for boot volume vblock export.
@@ -853,6 +853,26 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         } else {
             _log.info("VBlock Boot volume Export Validation : Skipping");
+        }
+
+        /**
+         * To support multiple export for VMAX3 volumes with Host IO Limit, same Storage Group and
+         * Port Group should be used to create a new masking view. Re-using same storage group will
+         * lead to problems as it could have additional volumes. Also reusing a child storage group
+         * in a masking view to another masking view is not supported.
+         */
+        if (storage.checkIfVmax3() && ExportUtils.checkIfvPoolHasHostIOLimitSet(_dbClient, volumeMap)) {
+            _log.info("Volumes have Host IO Limit set in virtual pools. Validating for multiple export..");
+            Map<String, List<URI>> storageGroupToVolumes =
+                    getDevice().groupVolumesByStorageGroupWithHostIOLimit(storage, volumeMap.keySet());
+            if (!storageGroupToVolumes.isEmpty()) {
+                ExportOrchestrationTask completer = new ExportOrchestrationTask(exportGroup.getId(), token);
+                ServiceError serviceError = DeviceControllerException.errors.cannotMultiExportVolumesWithHostIOLimit(
+                        Joiner.on(",").join(storageGroupToVolumes.keySet()),
+                        Joiner.on(",").join(storageGroupToVolumes.values()));
+                completer.error(_dbClient, serviceError);
+                return false;
+            }
         }
 
         findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);

@@ -89,10 +89,13 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
         logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdout(), result.getStderr(),
                 result.getExitValue());
 
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
+        final String parsedOut = AnsibleHelper.parseOut(result.getStdout());
+        if (!StringUtils.isEmpty(parsedOut)) {
+            ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId() + "Execution Output:" + parsedOut);
 
-        return new CustomServicesTaskResult(AnsibleHelper.parseOut(result.getStdout()), result.getStderr(), result.getExitValue(),
-                null);
+            return new CustomServicesScriptTaskResult(parsedOut, result.getStdout(), result.getStderr(), result.getExitValue());             
+        }
+        return new CustomServicesScriptTaskResult(result.getStdout(), result.getStdout(), result.getStderr(), result.getExitValue());
     }
 
 
@@ -102,9 +105,11 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
         if (inputType == null) {
             return null;
         }
+        logger.info("user:{} password:{}",AnsibleHelper.getOptions(
+                CustomServicesConstants.REMOTE_USER, input), decrypt(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_PASSWORD, input)));
 
         final SSHCommandExecutor executor = new SSHCommandExecutor(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input), 22, AnsibleHelper.getOptions(
-                CustomServicesConstants.REMOTE_USER, input), AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_PASSWORD, input));
+                CustomServicesConstants.REMOTE_USER, input), decrypt(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_PASSWORD, input)));
         executor.setCommandTimeout((int)timeout);
         final Command command = new RemoteCommand(extraVars, input, primitive);
         command.setCommandExecutor(executor);

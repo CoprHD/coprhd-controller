@@ -10,6 +10,7 @@ var routes = {
   ServiceCatalog_edit: #{jsAction @catalog.EditCatalog.edit() /},
   ServiceCatalog_showService: #{jsAction @catalog.Services.showForm(':serviceId') /},
   ServiceCatalog_createService: #{jsAction @catalog.EditCatalog.createService(':parentId', ':fromId') /},
+  ServiceCatalog_createServiceFromBase: #{jsAction @catalog.EditCatalog.createServiceFromBase(':baseService') /},
   ServiceCatalog_editService: #{jsAction @catalog.EditCatalog.editService(':serviceId', ':fromId') /},
   ServiceCatalog_copyService: #{jsAction @catalog.EditCatalog.copyService(':serviceId', ':fromId') /},
   ServiceCatalog_deleteService: #{jsAction @catalog.EditCatalog.deleteService(':serviceId') /},

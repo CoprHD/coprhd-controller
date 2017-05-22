@@ -27,13 +27,13 @@
 										<collapse id="{{stepData.id}}_{{input.name}}_collapsible" title-key={{input.name}} icon="error-icon"
 												  ng-class="{'required':input.required && stepData.type==='vipr',
 												  'input-error-icon':alert.error.errorSteps[stepData.id].errorInputGroups[inputGroupName].errorInputs[input.name].errorMessages}">
-											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.type">
+											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.type" ng-if="!(inputGroupName == 'ansible_options' && input.name == 'host_file')">
 												<select-one auto-default options="getUserInputTypeOption(input.required)" ng-change="setWorkflowModified('true')"></select-one>
 											</control-group>
-											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.friendlyName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti' || input.type=='InputFromUserMulti'">
+											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.friendlyName' ng-if="(inputGroupName == 'ansible_options' && input.name == 'host_file') || input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti' || input.type=='InputFromUserMulti'">
 												<input-text ng-change="setWorkflowModified('true')"></input-text>
 											</control-group>
-											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.description' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti' || input.type=='InputFromUserMulti'">
+											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.description' ng-if="(inputGroupName == 'ansible_options' && input.name == 'host_file') || input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti' || input.type=='InputFromUserMulti'">
 												<input-text ng-change="setWorkflowModified('true')"></input-text>
 											</control-group>
 											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.required" ng-if="stepData.type!=='vipr'" >
@@ -48,13 +48,13 @@
 											<control-group class="col-xs-12" label-width="12" width="12" label-key="input.assetOption" v-field="input.value" ng-if="input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" >
 												<select-one options="AssetOptionTypes" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 											</control-group>
-											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.defaultValue" ng-if="input.type=='InputFromUser'">
+											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.defaultValue" ng-if="input.type=='InputFromUser' && !(inputGroupName == 'ansible_options' && input.name == 'host_file')">
 												<input-text ng-change="setWorkflowModified('true')"></input-text>
 											</control-group>
-											<control-group class="col-xs-12" label-width="12" width="12" label-key="input.userOptions" v-field="input.defaultValue" help-key="input.userOptions.description" ng-if="input.type=='InputFromUserMulti'">
+											<control-group class="col-xs-12" label-width="12" width="12" label-key="input.userOptions" v-field="input.defaultValue" help-key="input.userOptions.description" ng-if="input.type=='InputFromUserMulti' && !(inputGroupName == 'ansible_options' && input.name == 'host_file')">
 												<input-text ng-change="setWorkflowModified('true')"></input-text>
 											</control-group>
-											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.inputFieldType' ng-if="input.type=='InputFromUser'">
+											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.inputFieldType' ng-if="input.type=='InputFromUser' && !(inputGroupName == 'ansible_options' && input.name == 'host_file')">
 												<select-one options="InputFieldOption" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 											</control-group>
 											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.tableName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle' || input.type=='FromOtherStepInput' || input.type=='FromOtherStepOutput'">

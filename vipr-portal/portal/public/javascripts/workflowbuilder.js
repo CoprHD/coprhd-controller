@@ -5,6 +5,7 @@ var shellNodeType = "script";
 var localAnsibleNodeType = "ansible"
 var restAPINodeType = "rest"
 var viprRestAPINodeType = "vipr";
+var remoteAnsibleNodeType = "remote_ansible"
 
 angular.module("portalApp").controller('builderController', function($scope, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
     $rootScope.$on("addWorkflowTab", function(event, id, name){
@@ -37,8 +38,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     var jstreeContainer = $element.find('#jstree_demo');
 
-    var fileNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType, workflowNodeType]
-    var primitiveNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType]
+    var fileNodeTypes = [shellNodeType, localAnsibleNodeType, remoteAnsibleNodeType, restAPINodeType, workflowNodeType]
+    var primitiveNodeTypes = [shellNodeType, localAnsibleNodeType, remoteAnsibleNodeType, restAPINodeType]
     var viprLib = "viprLib";
     var myLib = "myLib";
 
@@ -77,7 +78,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "FOLDER": {
                     "icon": "builder-jstree-icon builder-folder-icon",
-                    "valid_children": ["Workflow","FOLDER", "script", "ansible", "rest"]
+                    "valid_children": ["Workflow","FOLDER", "script", "ansible", "rest", "remote_ansible"]
                 },
                 "Workflow": {
                     "icon": "builder-jstree-icon builder-jstree-workflow-icon",
@@ -91,6 +92,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "ansible": {
                     "icon": "builder-jstree-icon builder-jstree-ansible-icon",
+                    "valid_children": [],
+                    "li_attr": {"class": "draggable-card"}
+                },
+                "remote_ansible": {
+                    "icon": "builder-jstree-icon builder-jstree-remote-ansible-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
@@ -148,38 +154,122 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     // jstree actions
     //TODO: do error handling on all actions
     jstreeContainer.on("rename_node.jstree", renameDir);
-    jstreeContainer.on("delete_node.jstree", deleteDir);
     jstreeContainer.on("select_node.jstree", selectDir);
     jstreeContainer.on("hover_node.jstree", hoverDir);
     jstreeContainer.on("dehover_node.jstree", dehoverDir);
 
+    function displaySuccessMessage(successMessage) {
+    	var alertsDiv = $("#wfAlertsDiv");
+    	var successAlert = alertsDiv.find("#alerts_success");
+    	if(!successAlert.length) {
+    	    // if it doesn't exist, create
+    	    var successAlertHTML = `
+    	    <p id="alerts_success" class="alert alert-success">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <span class="message"></span>
+            </p>
+    	    `;
+    	    alertsDiv.append(successAlertHTML);
+    	    successAlert = $("#alerts_success");
+    	}
+
+    	successAlert.find("span").html(successMessage);
+        successAlert.show();
+    };
+
+    function displayErrorMessage(errorMessage) {
+    	var alertsDiv = $("#wfAlertsDiv");
+    	var errorAlert = alertsDiv.find("#alerts_error");
+    	if(!errorAlert.length) {
+    	    // if it doesn't exist, create
+    	    var errorAlertHTML = `
+    	    <p id="alerts_error" class="alert alert-danger">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <span class="message"></span>
+            </p>
+    	    `;
+    	    alertsDiv.append(errorAlertHTML);
+    	    errorAlert = $("#alerts_error");
+    	}
+
+    	errorAlert.find("span").html(errorMessage);
+        errorAlert.show();
+    };
+
     function createDir(event, data) {
         if (folderNodeType === data.node.type) {
-            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).then(function (resp) {
-                data.instance.set_id(data.node, resp.data.id);
+            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).success(function(resp) {
+                data.instance.set_id(data.node, resp.id);
+                displaySuccessMessage(translate("node.create.success"));
+            })
+            .error(function (error){
+                deleteNodeFromJSTreeAndDisplayErrorMsg(data.node, error.details);
             });
         }
         else {
-            $http.get(routes.Workflow_create({"workflowName": data.node.text,"dirID": data.node.parent})).then(function (resp) {
-                data.instance.set_id(data.node, resp.data.id);
+            $http.get(routes.Workflow_create({"workflowName": data.node.text,"dirID": data.node.parent})).success(function(resp) {
+                data.instance.set_id(data.node, resp.id);
+                displaySuccessMessage(translate("node.create.success"));
+            })
+            .error(function (error){
+                deleteNodeFromJSTreeAndDisplayErrorMsg(data.node, error.details);
             });
         }
     };
 
-    function deleteDir(event, data) {
-        if (folderNodeType === data.node.type) {
-            $http.get(routes.WF_directory_delete({"id": data.node.id}));
-        }
-        else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
-        	$http.get(routes.Primitive_delete({"primitiveId": data.node.id, "dirID": data.parent}));
-        }
-        else {
-            $http.get(routes.Workflow_delete({"workflowID": data.node.id, "dirID": data.parent}));
-        }
+    function deleteNodeFromJSTreeAndDisplayErrorMsg(selectedNode, errorMsg) {
+        jstreeContainer.jstree(true).delete_node(selectedNode);
+        displayErrorMessage(errorMsg);
+    }
+
+    function deleteNodeFromJSTreeAndDisplaySuccessMsg(jstreeRef, selectedNode) {
+        jstreeRef.delete_node(selectedNode);
 
         // By default select "My Library"
         jstreeContainer.jstree("select_node", myLib);
+
+        displaySuccessMessage(translate("node.delete.success"));
+    }
+
+    $scope.deleteNode = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected('full',true);
+        if(!sel.length) { return false; }
+        var nodeId = sel[0].id;
+        var nodeType = sel[0].type;
+        var nodeParent = sel[0].parent;
+        if (folderNodeType === nodeType) {
+            $http.get(routes.WF_directory_delete({"id": nodeId})).success(function() {
+                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
+            })
+            .error(function (error){
+                displayErrorMessage(error.details);
+            });
+        }
+        else if($.inArray(nodeType, primitiveNodeTypes) > -1) {
+        	$http.get(routes.Primitive_delete({"primitiveId": nodeId, "dirID": nodeParent})).success(function() {
+                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
+            })
+            .error(function (error){
+                displayErrorMessage(error.details);
+            });
+        }
+        else {
+            $http.get(routes.Workflow_delete({"workflowID": nodeId, "dirID": nodeParent})).success(function() {
+                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
+            })
+            .error(function (error){
+                displayErrorMessage(error.details);
+            });
+        }
+
     };
+
+    function revertRename(node, oldText, errorMessage) {
+        jstreeContainer.jstree('set_text', node , oldText );
+        displayErrorMessage(errorMessage);
+        addMoreOptions(node.id, node.type, node.parent);
+    }
 
     function renameDir(event, data) {
         // Identifying if node is not saved to DB yet and creating it.
@@ -188,19 +278,38 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             addMoreOptions(data.node.parent, folderNodeType, "");
         }
         else {
-            if (folderNodeType === data.node.type) {
-                $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
-            }
-            else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
-                $http.get(routes.Primitive_edit_name({"primitiveID": data.node.id, "newName": data.text}));
-            }
-            else if (workflowNodeType === data.node.type){
-                $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
+            // if Old text is not equal to new text, then rename
+            if (data.old !== data.text) {
+                if (folderNodeType === data.node.type) {
+                    $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text})).success(function() {
+                        displaySuccessMessage(translate("node.rename.success"));
+                    })
+                    .error(function (error){
+                        revertRename(data.node, data.old, error.details)
+                    });
+                }
+                else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
+                    $http.get(routes.Primitive_edit_name({"primitiveID": data.node.id, "newName": data.text})).success(function() {
+                        displaySuccessMessage(translate("node.rename.success"));
+                    })
+                    .error(function (error){
+                        revertRename(data.node, data.old, error.details)
+                    });
+                }
+                else if (workflowNodeType === data.node.type){
+                    $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text})).success(function() {
+                        displaySuccessMessage(translate("node.rename.success"));
+                    })
+                    .error(function (error){
+                        revertRename(data.node, data.old, error.details)
+                    });
+                }
             }
 
             addMoreOptions(data.node.id, data.node.type, data.node.parent);
         }
     };
+
 
     var optionsHTML = `
     <div id="treeMoreOptionsSel" class="btn-group treeMoreOptions">
@@ -347,6 +456,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $('#localAnsiblePrimitiveDialog').modal('show');
     }
 
+    $scope.openRemoteAnsibleModal = function(){
+        var scope = angular.element($('#remoteAnsibleModal')).scope();
+        scope.populateModal(false);
+        $('#remoteAnsiblePrimitiveDialog').modal('show');
+    }
+
     $scope.openRestAPIModal = function(){
             var scope = angular.element($('#restAPIModal')).scope();
             scope.populateModal(false);
@@ -380,6 +495,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             scope.populateModal(true, sel.id, sel.type);
             $('#localAnsiblePrimitiveDialog').modal('show');
         }
+        else if(remoteAnsibleNodeType === sel.type){
+            //open script modal
+            var scope = angular.element($('#remoteAnsibleModal')).scope();
+            scope.populateModal(true, sel.id, sel.type);
+            $('#remoteAnsiblePrimitiveDialog').modal('show');
+        }
         else if(restAPINodeType === sel.type){
             //open script modal
             var scope = angular.element($('#restAPIModal')).scope();
@@ -389,13 +510,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         else{
             ref.edit(sel.id);
         }
-    };
-
-    $scope.deleteNode = function() {
-        var ref = jstreeContainer.jstree(true),
-            sel = ref.get_selected();
-        if(!sel.length) { return false; }
-        ref.delete_node(sel);
     };
 
     $scope.openWorkflow = function() {
@@ -894,7 +1008,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         return getStepIconClass(stepType);
     }
 
-	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
+	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "remoteAnsibleNodeType":remoteAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
     function getStepIconClass(stepType){
         var stepIconClass = "builder-step-icon";
         if(stepType != null) {
@@ -904,6 +1018,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     break;
                 case draggableNodeTypes.localAnsibleNodeType:
                     stepIconClass = "builder-ansible-icon";
+                    break;
+                case draggableNodeTypes.remoteAnsibleNodeType:
+                    stepIconClass = "builder-remote-ansible-icon";
                     break;
                 case draggableNodeTypes.workflowNodeType:
                     stepIconClass = "builder-workflow-icon";

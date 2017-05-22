@@ -9,6 +9,7 @@
 #{createShellPrimitive /}
 #{createLocalAnsiblePrimitive/}
 #{createRestAPIPrimitive/}
+#{createRemoteAnsiblePrimitive/}
 #{importWorkflow/}
 
 <style>
@@ -71,7 +72,7 @@
                 <div style="font-size: 20px;padding: 15px;">
                     Workflow &amp; Operation Library
                 </div>
-                <div>#{alerts/}</div>
+                <div id="wfAlertsDiv">#{alerts/}</div>
                 <div class="input-group">
                     <input style="float:left;width:300px;"  class="search-input form-control" placeholder="Search..."></input>
                     <span class="input-group-btn">
@@ -83,6 +84,7 @@
                                 <li class="dropdown-header">&{'wfBuilder.menu.operations'}</li>
                                 <li><a href="#" ng-click="openShellScriptModal();">&{'wfBuilder.menu.addShellScript'}</a></li>
                                 <li><a href="#" ng-click="openLocalAnsibleModal();">&{'wfBuilder.menu.addLocalAnsible'}</a></li>
+                                <li><a href="#" ng-click="openRemoteAnsibleModal();">&{'wfBuilder.menu.addRemoteAnsible'}</a></li>
                                 <li><a href="#" ng-click="openRestAPIModal();">&{'wfBuilder.menu.addRestAPI'}</a></li>
                                 <li role="separator" class="divider"></li>
                                 <li><a href="#" ng-click="addWorkflow();">&{'wfBuilder.menu.addWorkflow'}</a></li>

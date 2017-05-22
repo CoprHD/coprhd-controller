@@ -199,7 +199,7 @@ public class DisasterRecoveryUtils {
         if(!Play.mode.isDev()) {
             PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
             if (propInfo != null) {
-                final String isCustomEnableProp = propInfo.getProperty("custom_service_available");
+                final String isCustomEnableProp = propInfo.getProperty("custom_services_available");
                 if(isCustomEnableProp != null) {
                     final boolean isEnable = Boolean.valueOf(isCustomEnableProp);
                     return isEnable;

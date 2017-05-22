@@ -100,6 +100,8 @@ public class AnsibleCommandLine {
 
     public AnsibleCommandLine setIsRemoteAnsible(final boolean isRemoteAnsible) {
         this.isRemoteAnsible = isRemoteAnsible;
+
+	return this;
     }
 
     public AnsibleCommandLine setChrootCmd(final String chrootcmd) {

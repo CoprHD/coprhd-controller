@@ -24,6 +24,9 @@ import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.valid.EnumType;
 
+import java.net.URI;
+import java.util.List;
+
 /**
  * DB model to represent an custom services workflow document
  */
@@ -52,7 +55,7 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
         INVALID,
         PUBLISHED
     }
-    
+
     @Name(DESCRIPTION)
     public String getDescription() {
         return description;
@@ -95,11 +98,26 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
     @IndexByKey
     @Name(PRIMITIVES)
     public StringSet getPrimitives() {
+        if (primitives == null) {
+            primitives = new StringSet();
+        }
         return primitives;
     }
     
     public void setPrimitives(final StringSet primitives) {
         this.primitives = primitives;
         setChanged(PRIMITIVES);
+    }
+
+    public void addPrimitives(final List<URI> primitives) {
+        for (URI primitiveUri : primitives) {
+            getPrimitives().add(primitiveUri.toString());
+        }
+    }
+
+    public void removePrimitives(final List<URI> primitives) {
+        for (URI primitiveUri : primitives) {
+            getPrimitives().remove(primitiveUri.toString());
+        }
     }
 }

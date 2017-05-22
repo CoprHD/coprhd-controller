@@ -879,6 +879,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.modified = state;
     }
 
+    $scope.isInventoryFile = function(step, inputGroupName, input) {
+        return step.type == 'ansible' && inputGroupName == 'ansible_options' && input.name == 'inventory_file'
+    }
+
     function buildJSON() {
         var blocks = []
         diagramContainer.find(" .item,  .item-start-end").each(function(idx, elem) {

@@ -87,7 +87,7 @@ public class FileMirrorScheduler implements Scheduler {
      */
     @Override
     public List getRecommendationsForResources(VirtualArray varray, Project project, VirtualPool vpool,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         List<FileRecommendation> recommendations = null;
@@ -180,7 +180,7 @@ public class FileMirrorScheduler implements Scheduler {
         } else {
             // Get the recommendation for source from vpool!!!
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool,
-                    new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), capabilities);
+                    new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), capabilities);
             // Remove the source storage system from capabilities list
             // otherwise, try to find the remote pools from the same source system!!!
             if (capabilities.getFileProtectionSourceStorageDevice() != null) {
@@ -285,7 +285,7 @@ public class FileMirrorScheduler implements Scheduler {
         } else {
             // Get the recommendation for source from vpool!!!
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool,
-                    new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), capabilities);
+                    new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), capabilities);
         }
 
         // process the each recommendations for targets
@@ -373,7 +373,7 @@ public class FileMirrorScheduler implements Scheduler {
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams, VpoolUse vPoolUse,
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }

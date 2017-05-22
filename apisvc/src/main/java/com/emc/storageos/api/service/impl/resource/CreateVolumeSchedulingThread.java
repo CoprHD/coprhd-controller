@@ -52,10 +52,10 @@ class CreateVolumeSchedulingThread implements Runnable {
     private ArrayList<String> requestedTypes;
     private VolumeCreate param;
     private BlockServiceApi blockServiceImpl;
-    private Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams;
+    private Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams;
 
     public CreateVolumeSchedulingThread(BlockService blockService, VirtualArray varray, Project project,
-            VirtualPool vpool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool vpool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities, TaskList taskList, String task,
             BlockConsistencyGroup consistencyGroup, ArrayList<String> requestedTypes,
             VolumeCreate param, BlockServiceApi blockServiceImpl) {

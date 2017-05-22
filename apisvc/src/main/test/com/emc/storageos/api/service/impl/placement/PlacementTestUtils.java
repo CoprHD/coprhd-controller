@@ -39,7 +39,6 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.util.SizeUtil;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
@@ -282,7 +281,7 @@ public class PlacementTestUtils {
         PlacementManager placementManager = setupSchedulers(dbClient, coordinator);
         
         return placementManager.getRecommendationsForVirtualPool(varray, project, vpool,
-                new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), capabilities);
+                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), capabilities);
     }
     
     public static StorageSystem createStorageSystem(DbClient dbClient, 

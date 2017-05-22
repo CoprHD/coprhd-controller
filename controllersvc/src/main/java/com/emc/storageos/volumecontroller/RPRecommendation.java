@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -16,7 +15,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.util.SizeUtil;
 
 /*
@@ -42,7 +40,6 @@ public class RPRecommendation extends Recommendation {
 	//Size in Bytes of each resource
 	private Long size;
 	private String rpCopyName;
-	private Map<VolumeTopologyRole, URI> performanceParams;
 		 	 
 	public VPlexRecommendation getVirtualVolumeRecommendation() {
 		return virtualVolumeRecommendation;
@@ -119,14 +116,6 @@ public class RPRecommendation extends Recommendation {
         this.rpCopyName = rpCopyName;
     }
     
-    public Map<VolumeTopologyRole, URI> getPerformanceParams() {
-        return performanceParams;
-    }
-
-    public void setPerformanceParams(Map<VolumeTopologyRole, URI> performanceParams) {
-        this.performanceParams = performanceParams;
-    }    
-		
 	/**
 	 * Returns true of the specified internal site is already part of this recommendation.
 	 * 

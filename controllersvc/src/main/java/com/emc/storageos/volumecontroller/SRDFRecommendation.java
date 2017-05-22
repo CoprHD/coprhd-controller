@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 
 /**
  * Recommendation for a placement is a storage pool and its storage device.
@@ -26,8 +25,6 @@ public class SRDFRecommendation extends Recommendation {
         private String copyMode;
         // The volume descriptors are kept here to pass up to SRDFTargetRecommendations
         private List<VolumeDescriptor> descriptors;
-        // The performance parameters for the copy, if any.
-        private Map<VolumeTopologyRole, URI> performanceParams;
 
         public URI getTargetStorageDevice() {
             return targetDevice;
@@ -68,14 +65,6 @@ public class SRDFRecommendation extends Recommendation {
         public void setDescriptors(List<VolumeDescriptor> descriptors) {
             this.descriptors = descriptors;
         }
-
-        public Map<VolumeTopologyRole, URI> getPerformanceParams() {
-            return performanceParams;
-        }
-
-        public void setPerformanceParams(Map<VolumeTopologyRole, URI> performanceParams) {
-            this.performanceParams = performanceParams;
-        }        
     }
 
     // Source
@@ -107,5 +96,4 @@ public class SRDFRecommendation extends Recommendation {
     public URI getVpoolChangeVpool() {
         return _vpoolChangeVpool;
     }
-
 }

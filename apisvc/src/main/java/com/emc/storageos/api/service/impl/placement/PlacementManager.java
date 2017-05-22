@@ -96,7 +96,7 @@ public class PlacementManager {
         Map<VpoolUse, List<Recommendation>> currentRecommendations = new HashMap<VpoolUse, List<Recommendation>>();
         Scheduler scheduler = getBlockServiceImpl(vPool);
         List<Recommendation> recommendations = scheduler.getRecommendationsForVpool(vArray, project, vPool,
-                new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), VpoolUse.ROOT,
+                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), VpoolUse.ROOT,
                 capabilities, currentRecommendations);
         return recommendations;
     }
@@ -111,7 +111,7 @@ public class PlacementManager {
      * @return Map of VpoolUse to List of Recommendations for that use.
      */
     public Map<VpoolUse, List<Recommendation>> getRecommendationsForVirtualPool(VirtualArray virtualArray,
-            Project project, VirtualPool virtualPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Project project, VirtualPool virtualPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities) {
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         

@@ -81,7 +81,7 @@ public interface BlockServiceApi {
      * @throws InternalException
      */
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray, VirtualPool vpool,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList, String task, 
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
@@ -94,16 +94,17 @@ public interface BlockServiceApi {
      * @param varray -- VirtualArray object
      * @param vpool -- VirtualPool object
      * @param performanceParamsURI The URI of a PerformanceParams to associate with the primary source volume, or null.
+     * @param copyPerformanceParams The performance parameters for any copies, or null.
      * @param recommendations -- List of Recommendations describing StoragePools to be used
      * @param taskList -- A TaskList to which tasks can be added
      * @param task-- The String task identifier for the overall operation
      * @param vpoolCapabilities -- A virtualPoolCapabilityValuesWrapper containing volume creation parameters
      * @return List of VolumeDescriptors including the Volumes that were generated
      */
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size,
-            Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, 
-            List<Recommendation> recommendations, TaskList taskList, String task, 
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities);
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI,
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities);
 
     /**
      * Delete the passed volumes for the passed system.

@@ -1114,7 +1114,8 @@ public class VolumeService extends TaskResourceService {
         _log.debug("Block Service API call for : Create New Volume ");
         TaskList passedTaskist = createTaskList(requestedSize, project, varray, vpool, capabilities, name, task, volumeCount);
         // TBD Heg
-        return api.createVolumes(volumeCreate, project, varray, vpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+        return api.createVolumes(volumeCreate, project, varray, vpool, 
+                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(),
                 recommendationsMap, passedTaskist, task, capabilities);
     }
 

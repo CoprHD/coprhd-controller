@@ -18,7 +18,7 @@ import java.util.Map;
 
 public interface Scheduler {
     List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams, 
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams, 
             VirtualPoolCapabilityValuesWrapper capabilities);
     
     /**
@@ -42,6 +42,7 @@ public interface Scheduler {
      * @param vArray -- Virtual Array
      * @param project -- Project
      * @param vPool -- Virtual Pool
+     * @param performanceParams -- The performance parameters.
      * @param vPoolUse -- Use of Virtual Pool (i.e. whether this Virtual Pool is nested inside
      *    the ROOT virtual pool, e.g. a VPLEX_HA or SRDF_COPY virtual pool within the outer ROOT.)
      * @param capabilities -- the capabilites needed
@@ -52,7 +53,7 @@ public interface Scheduler {
      * The Recommendations may be any subclass of Recommendation.
      */
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities, 
             Map<VpoolUse, List<Recommendation>> currentRecommendations);
 }

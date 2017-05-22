@@ -96,7 +96,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood, VirtualPool cos,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams, 
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams, 
             Map<VpoolUse, List<Recommendation>> volRecommendations, TaskList taskList, String task, 
             VirtualPoolCapabilityValuesWrapper cosCapabilities) throws ControllerException {
 
@@ -921,10 +921,10 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
     }
 
     @Override
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size,
-            Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI,
-            List<Recommendation> recommendations, TaskList taskList, String task, 
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, 
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Not currently called from AbstractBlockServiceApiImpl.createVolumesAndDescriptors
         throw DeviceControllerException.exceptions.operationNotSupported();
     }

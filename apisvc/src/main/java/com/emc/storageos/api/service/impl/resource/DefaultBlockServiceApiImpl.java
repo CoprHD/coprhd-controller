@@ -22,7 +22,6 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
@@ -98,7 +97,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood, VirtualPool cos,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
         
@@ -106,18 +105,21 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
         
         // Get the performance parameters for the source volume.
+        // There should only be one set of performance parameters for
+        // the source in the map, which is keyed by the source site
+        // varray URI.
         URI performanceParamsURI = null;
-        List<Map<VolumeTopologyRole, URI>> sourcePerformanceParams = performanceParams.get(VolumeTopologySite.SOURCE);
-        if (!CollectionUtils.isEmpty(sourcePerformanceParams)) {
+        Map<URI, Map<VolumeTopologyRole, URI>> sourcePerformanceParamsMap = performanceParams.get(VolumeTopologySite.SOURCE);
+        if (sourcePerformanceParamsMap != null && !sourcePerformanceParamsMap.isEmpty()) {
             // Always one for the source site.
             performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(
-                    sourcePerformanceParams.get(0), VolumeTopologyRole.PRIMARY, _dbClient);
+                    sourcePerformanceParamsMap.values().iterator().next(), VolumeTopologyRole.PRIMARY, _dbClient);
         }
 
         List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(
                 existingDescriptors, param.getName(), size, project, neighborhood, cos, 
-                performanceParamsURI, recommendationMap.get(VpoolUse.ROOT), taskList, task,
-                cosCapabilities);
+                performanceParamsURI, performanceParams.get(VolumeTopologySite.COPY),
+                recommendationMap.get(VpoolUse.ROOT), taskList, task, cosCapabilities);
         List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
         
         //Check for special characters in volume names
@@ -168,8 +170,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel,
             Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, 
-            List<Recommendation> recommendations, TaskList taskList, String task,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Prepare the Bourne Volumes to be created and associated
         // with the actual storage system volumes created. Also create
         // a BlockTaskList containing the list of task resources to be

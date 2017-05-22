@@ -1084,7 +1084,7 @@ public class FileStorageScheduler implements Scheduler {
 
     @Override
     public List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities) {
         return placeFileShare(vArray, vPool, capabilities, project, null);
     }
@@ -1211,7 +1211,7 @@ public class FileStorageScheduler implements Scheduler {
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities,
             Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         throw DeviceControllerException.exceptions.operationNotSupported();

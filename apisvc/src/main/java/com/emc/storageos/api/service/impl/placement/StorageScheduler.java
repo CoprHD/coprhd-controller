@@ -161,7 +161,7 @@ public class StorageScheduler implements Scheduler {
      */
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project,
-            VirtualPool cos, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool cos, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
@@ -1881,7 +1881,7 @@ public class StorageScheduler implements Scheduler {
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities,
             Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // Initially we're only going to return one recommendation set.

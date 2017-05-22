@@ -449,7 +449,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray, VirtualPool vpool,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws ControllerException,
             InternalException {
@@ -1926,9 +1926,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     @Override
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
-            VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, List<Recommendation> recommendations, TaskList taskList, String task,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, 
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         BlockServiceApi api = null;
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         for (Recommendation recommendation : recommendations) {
@@ -1943,8 +1944,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 s_logger.error(message);
                 throw WorkflowException.exceptions.workflowConstructionError(message);
             }
-            volumeDescriptors.addAll(api.createVolumesAndDescriptors(descriptors, name, size, project,
-                    varray, vpool, performanceParamsURI, recommendations, taskList, task, vpoolCapabilities));
+            volumeDescriptors.addAll(api.createVolumesAndDescriptors(
+                    descriptors, name, size, project, varray, vpool, performanceParamsURI, copyPerformanceParams,
+                    recommendations, taskList, task, vpoolCapabilities));
         }
         return volumeDescriptors;
     }

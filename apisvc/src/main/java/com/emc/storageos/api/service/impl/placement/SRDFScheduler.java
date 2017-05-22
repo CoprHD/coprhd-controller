@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -187,7 +186,7 @@ public class SRDFScheduler implements Scheduler {
      */
     @Override
     public List<Recommendation> getRecommendationsForResources(final VirtualArray varray, final Project project,
-            final VirtualPool vpool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            final VirtualPool vpool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             final VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
@@ -291,7 +290,7 @@ public class SRDFScheduler implements Scheduler {
      */
     private List<Recommendation> scheduleStorageSourcePoolConstraint(final VirtualArray varray,
             final Project project, final VirtualPool vpool,
-            final Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            final Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             final VirtualPoolCapabilityValuesWrapper capabilities,
             final List<StoragePool> candidatePools, final Volume vpoolChangeVolume,
             final URI consistencyGroupUri) {
@@ -355,10 +354,11 @@ public class SRDFScheduler implements Scheduler {
         // Get the performance parameters for the source, if any.
         Map<VolumeTopologyRole, URI> sourceParams = null;
         if (performanceParams != null) {
-            List<Map<VolumeTopologyRole, URI>> sourceParamsList = performanceParams.get(VolumeTopologySite.SOURCE);
-            if (!CollectionUtils.isEmpty(sourceParamsList)) {
-                // There should always only be a single entry in the source list.
-                sourceParams = sourceParamsList.get(0);
+            Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = performanceParams.get(VolumeTopologySite.SOURCE);
+            if (sourceParamsMap != null && !sourceParamsMap.isEmpty()) {
+                // There should only be one set of performance parameters for the source
+                // in the map, which is keyed by the source site varray URI.
+                sourceParams = sourceParamsMap.values().iterator().next();
             }
         }
 
@@ -500,10 +500,6 @@ public class SRDFScheduler implements Scheduler {
                         target.setTargetPool(destinationPool.getId());
                         target.setTargetStorageDevice(destinationPool.getStorageDevice());
                         
-                        // Store the copy performance parameters used when matching the target
-                        // storage pool in this virtual array in the target recommendation.
-                        target.setPerformanceParams(varrayCopyPerformanceParamsMap.get(targetVarray1));
-
                         // Set the copy mode
                         Map<URI, VpoolRemoteCopyProtectionSettings> settingsMap = VirtualPool
                                 .getRemoteProtectionSettings(vpool, _dbClient);
@@ -1285,7 +1281,7 @@ public class SRDFScheduler implements Scheduler {
      * @return A list of matching storage pools and varray mapping
      */
     private Map<VirtualArray, List<StoragePool>> getMatchingPools(final List<VirtualArray> varrays, final VirtualPool vpool,
-            final Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            final Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             final VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap,
             Map<VirtualArray, Map<VolumeTopologyRole, URI>> varrayCopyPerformanceParamsMap) {
         Map<VirtualArray, List<StoragePool>> varrayStoragePoolMap = new HashMap<VirtualArray, List<StoragePool>>();
@@ -1293,20 +1289,22 @@ public class SRDFScheduler implements Scheduler {
                 .getRemoteProtectionSettings(vpool, _dbClient);
 
         // Get the performance parameters for the copies, if any.
-        List<Map<VolumeTopologyRole, URI>> copyParamsList = null;
+        Map<URI, Map<VolumeTopologyRole, URI>> copyParamsMap = null;
         if (performanceParams != null) {
-            copyParamsList = performanceParams.get(VolumeTopologySite.COPY);
+            copyParamsMap = performanceParams.get(VolumeTopologySite.COPY);
         }
         
-        int copyCount = 0;
         for (VirtualArray varray : varrays) {
             // Get the performance parameters for the copy, if any.
             Map<VolumeTopologyRole, URI> copyParams = null;
-            if (!CollectionUtils.isEmpty(copyParamsList)) {
-                copyParams = copyParamsList.get(copyCount++);
-            }
-            if (copyParams != null) {
-                varrayCopyPerformanceParamsMap.put(varray, copyParams);
+            if (copyParamsMap != null && !copyParamsMap.isEmpty()) {
+                for (URI copyParamsVarrayURI : copyParamsMap.keySet()) {
+                    if (varray.getId().equals(copyParamsVarrayURI)) {
+                        copyParams = copyParamsMap.get(copyParamsVarrayURI);
+                        varrayCopyPerformanceParamsMap.put(varray, copyParams);
+                        break;
+                    }
+                }
             }
             
             // If there was no vpool specified with the target settings, use the base vpool for this
@@ -1339,7 +1337,7 @@ public class SRDFScheduler implements Scheduler {
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, 
-            VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities,
             Map<VpoolUse, List<Recommendation>> currentRecommendations) {
        List<Recommendation> recommendations;

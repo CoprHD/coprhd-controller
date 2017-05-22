@@ -76,7 +76,6 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -90,7 +89,6 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
@@ -211,7 +209,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         } else {
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, changeVpoolVolume.getVirtualArray());
             recommendations = getBlockScheduler().getRecommendationsForResources(varray, project, newVpool,
-                    new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), capabilities);
+                    new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), capabilities);
         }
 
         return recommendations;
@@ -1017,7 +1015,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // TBD Heg
             List<VolumeDescriptor> vplexVolumeDescriptors = vplexBlockServiceApiImpl
                     .createVPlexVolumeDescriptors(volumeCreateParam, project, varray, vpool, 
-                            new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+                            new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(),
                             vplexRecommendations, task, capabilities, capabilities.getBlockConsistencyGroup(),
                             taskList, volumes, createTask);
             // Set the compute resource into the VPLEX volume descriptors for RP source
@@ -1676,7 +1674,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray, VirtualPool vpool,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams, 
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams, 
             Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
         List<Recommendation> recommendations = recommendationMap.get(VpoolUse.ROOT);
@@ -2086,7 +2084,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
         // TBD Heg
-        createVolumes(param, project, varray, newVpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+        createVolumes(param, project, varray, newVpool, new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(),
                 recommendationMap, taskList, taskId, capabilities);
     }
 
@@ -3372,7 +3370,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
         // TBD Heg
-        createVolumes(param, project, varray, newVpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+        createVolumes(param, project, varray, newVpool, new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(),
                 recommendationMap, taskList, taskId, capabilities);
     }
 
@@ -3630,7 +3628,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         TaskList taskList = new TaskList();
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
-        return this.createVolumes(param, project, journalVarray, journalVpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+        return this.createVolumes(param, project, journalVarray, journalVpool,
+                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(),
                 recommendationMap, taskList, task, capabilities);
     }
 
@@ -3912,8 +3911,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     @Override
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size,
-            Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, List<Recommendation> recommendations,
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI,
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // This method is not used for RP
         return null;

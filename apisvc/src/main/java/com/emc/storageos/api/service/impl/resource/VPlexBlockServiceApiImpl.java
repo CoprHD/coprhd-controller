@@ -277,7 +277,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray vArray, VirtualPool vPool,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities) throws InternalException {
         List<Recommendation> volRecommendations = recommendationMap.get(VpoolUse.ROOT);
@@ -314,23 +314,28 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     param.setName(name);
                 } else {
                     // Get the performance parameters for the copy.
-                    SRDFRecommendation srdfRecommendation = (SRDFRecommendation)((SRDFCopyRecommendation)srdfCopyRecommendation).getRecommendation();
-                    SRDFRecommendation.Target target = srdfRecommendation.getVirtualArrayTargetMap().get(srdfCopyRecommendation.getVirtualArray());
-                    Map<VolumeTopologyRole, URI> copyPerformanceParams = target.getPerformanceParams();
                     URI performanceParamsURI = null;
-                    if (copyPerformanceParams != null) {
-                        performanceParamsURI = copyPerformanceParams.get(VolumeTopologyRole.PRIMARY);
+                    Map<VolumeTopologyRole, URI> copyParams = null;
+                    Map<URI, Map<VolumeTopologyRole, URI>> copyParamsMap = null;
+                    if (performanceParams != null) {
+                        copyParamsMap = performanceParams.get(VolumeTopologySite.COPY);
+                        if (copyParamsMap != null && !copyParamsMap.isEmpty()) {
+                            copyParams = copyParamsMap.get(srdfCopyRecommendation.getVirtualArray());
+                            if (copyParams != null) {
+                                performanceParamsURI = copyParams.get(VolumeTopologyRole.PRIMARY);
+                            }
+                        }
                     }
-                    
+                   
                     // Override the source capabilities with the copy vpool and performance parameters
                     // so that the capabilities reflect the same values used to place the copy volume.
                     // In this way the descriptor and prepared volume reflect what was place.
                     VirtualPoolCapabilityValuesWrapper copyCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                            srdfCopyRecommendation.getVirtualPool(), copyPerformanceParams, VolumeTopologyRole.PRIMARY, vPoolCapabilities, _dbClient);
+                            srdfCopyRecommendation.getVirtualPool(), copyParams, VolumeTopologyRole.PRIMARY, vPoolCapabilities, _dbClient);
                     
                     srdfCopyDescriptors = super.createVolumesAndDescriptors(srdfCopyDescriptors,
                             param.getName() + "_srdf_copy", vPoolCapabilities.getSize(), project,
-                            vArray, vPool, performanceParamsURI, copyRecommendations,
+                            vArray, vPool, performanceParamsURI, copyParamsMap, copyRecommendations,
                             taskList, task, copyCapabilities);
                 }
                 for (VolumeDescriptor desc : srdfCopyDescriptors) {
@@ -367,9 +372,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     }
 
     @Override
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
-            VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, List<Recommendation> recommendations, TaskList taskList, 
-            String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI,
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Not currently called from AbstractBlockServiceApiImpl.createVolumesAndDescriptors
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
@@ -405,7 +411,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @return
      */
     public List<VolumeDescriptor> createVPlexVolumeDescriptors(VolumeCreate param, Project project, final VirtualArray vArray,
-            final VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParamsMap, 
+            final VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap, 
             List<Recommendation> recommendations, String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
             URI blockConsistencyGroupURI, TaskList taskList, List<URI> allVolumes, boolean createTask) {
         s_logger.info("Request to create {} VPlex virtual volume(s)",
@@ -468,16 +474,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // Get the performance parameters for these volumes.
         Map<VolumeTopologyRole, URI> performanceParams = null;
         if (!srdfCopy) {
-            List<Map<VolumeTopologyRole, URI>> sourceParamsList = performanceParamsMap.get(VolumeTopologySite.SOURCE);
-            if (!sourceParamsList.isEmpty()) {
-                performanceParams = sourceParamsList.get(0);
+            Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = performanceParamsMap.get(VolumeTopologySite.SOURCE);
+            // There should only be one set of performance parameters for the source
+            // in the map, which is keyed by the source site varray URI.
+            if (sourceParamsMap != null && !sourceParamsMap.isEmpty()) {
+                performanceParams = sourceParamsMap.values().iterator().next();
             }
         } else {
-            // The performance parameters for the SRDF copy are stored in the target.
-            SRDFCopyRecommendation srdfCopyRecommendation = (SRDFCopyRecommendation)recommendations.get(0).getRecommendation();         
-            SRDFRecommendation srdfRecommendation = (SRDFRecommendation) srdfCopyRecommendation.getRecommendation();
-            SRDFRecommendation.Target target = srdfRecommendation.getVirtualArrayTargetMap().get(srdfCopyRecommendation.getVirtualArray());
-            performanceParams = target.getPerformanceParams();
+            // The performance parameters for the SRDF copy are those with the same varray as the target.
+            Map<URI, Map<VolumeTopologyRole, URI>> copyParamsMap = performanceParamsMap.get(VolumeTopologySite.COPY);
+            if (copyParamsMap != null && !copyParamsMap.isEmpty()) {
+                performanceParams = copyParamsMap.get(vArray);
+            }
         }
 
         // Prepare Bourne volumes to represent the backend volumes for the
@@ -525,7 +533,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
             List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(
                     vplexRecommendations, project, vplexProject, vPool, performanceParamsURI,
-                    volumeLabel, varrayCount, size, backendCG, backendCapabilities, createTask, task);
+                    performanceParamsMap.get(VolumeTopologySite.COPY), volumeLabel, varrayCount,
+                    size, backendCG, backendCapabilities, createTask, task);
             descriptors.addAll(varrayDescriptors);
             List<URI> varrayURIs = VolumeDescriptor.getVolumeURIs(varrayDescriptors);
             allVolumes.addAll(varrayURIs);
@@ -1870,7 +1879,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         // TBD Heg Migration
         List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(varray, requestedVPlexSystems,
-                null, vpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), false, null, null,
+                null, vpool, new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), false, null, null,
                 cosWrapper, targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
@@ -2008,7 +2017,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // TBD Heg Migration
         if (recommendations == null || recommendations.isEmpty()) {
             recommendations = getBlockScheduler().scheduleStorage(varray, requestedVPlexSystems, null, vpool,
-                    new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), false, null, null,
+                    new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), false, null, null,
                     capabilities, targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
@@ -2863,7 +2872,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 backendVolumeToPerformanceParamsMap.put(backendVolume, PerformanceParamsUtils.getPerformanceParamsIdForRole(
                         performanceParamsMap, VolumeTopologyRole.HA_MIRROR, _dbClient));
                 beCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                        beMirrorVpool, PerformanceParamsUtils.transformPerformanceParams(param.getPerformanceParams()),
+                        beMirrorVpool, PerformanceParamsUtils.transformPerformanceParams(performanceParamsMap),
                                 VolumeTopologyRole.HA_MIRROR, capabilities, _dbClient);
                 backendvolumeToCapabilitiesMap.put(backendVolume, beCapabilities);
             }
@@ -3982,6 +3991,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param vplexProject -- private project of the Vplex
      * @param rootVpool -- top level Virtual Pool (VpoolUse.ROOT)
      * @param performanceParamsURI The URI of a PerformanceParams instance.
+     * @param copyPerformanceParams The copy performance parameters.
      * @param varrayCount -- instance count of the varray being provisioned
      * @param size -- size of each volume
      * @param backendCG -- the CG to be used on the backend Storage Systems
@@ -3992,8 +4002,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     private List<VolumeDescriptor> makeBackendVolumeDescriptors(List<VPlexRecommendation> recommendations,
             Project project, Project vplexProject, VirtualPool rootVpool, URI performanceParamsURI, 
-            String volumeLabel, int varrayCount, long size, BlockConsistencyGroup backendCG,
-            VirtualPoolCapabilityValuesWrapper vPoolCapabilities, boolean createTask, String task) {
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, String volumeLabel, int varrayCount,
+            long size, BlockConsistencyGroup backendCG, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
+            boolean createTask, String task) {
         VPlexRecommendation firstRecommendation = recommendations.get(0);
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
         URI varrayId = firstRecommendation.getVirtualArray();
@@ -4030,8 +4041,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             TaskList taskList = new TaskList();
             descriptors =
                     super.createVolumesAndDescriptors(descriptors, newVolumeLabel, size, project,
-                            varray, vpool, performanceParamsURI, childRecommendations, taskList,
-                            task, vPoolCapabilities);
+                            varray, vpool, performanceParamsURI, copyPerformanceParams, childRecommendations,
+                            taskList, task, vPoolCapabilities);
             VolumeDescriptor.Type[] types;
             if (srdfTarget) {
                 types = new VolumeDescriptor.Type[] {

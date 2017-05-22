@@ -13,8 +13,11 @@ import javax.xml.bind.annotation.XmlElement;
  * Specifies the performance parameters for volumes in the volume topology.
  */
 public class BlockPerformanceParamsMap {
+    
+    // The varray of the copy when the parameters are applied to a RDF/RP copy.
+    private URI varray;
 
-    // The performance parameters to use for the source volume.
+    // The performance parameters map.
     private List<BlockPerformanceParamsMapEntry> performanceParams;
 
     /**
@@ -39,6 +42,20 @@ public class BlockPerformanceParamsMap {
 
     public void setParams(List<BlockPerformanceParamsMapEntry> performanceParams) {
         this.performanceParams = performanceParams;
+    }
+
+    /**
+     * The varray of the copy when the parameters are applied to a RDF/RP copy.
+     * 
+     * @return The varray URI.
+     */
+    @XmlElement(name = "varray", required = true)
+    public URI getVirtualArray() {
+        return varray;
+    }
+
+    public void setVirtualArray(URI varray) {
+        this.varray = varray;
     }
 
     /*

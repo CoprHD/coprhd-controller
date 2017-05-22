@@ -5,10 +5,12 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
@@ -34,45 +36,59 @@ public class PerformanceParamsUtils {
      * 
      * @return A Map specifying the performance parameters.
      */
-    public static Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> transformPerformanceParams(VolumeCreatePerformanceParams performanceParams) {
-        Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
+    public static Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> transformPerformanceParams(
+            VolumeCreatePerformanceParams performanceParams) {
+        Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
         if (performanceParams != null) {
             // Translate the source site performance parameters.
-            List<Map<VolumeTopologyRole, URI>> sourceParamsList = new ArrayList<>();
-            sourceParamsList.add(transformPerformanceParams(performanceParams.getSourceParams()));
-            performanceParamsMap.put(VolumeTopologySite.SOURCE, sourceParamsList);
+            performanceParamsMap.put(VolumeTopologySite.SOURCE, 
+                    transformPerformanceParams(Arrays.asList(performanceParams.getSourceParams())));
 
             // Translate the copy site performance parameters.
-            List<Map<VolumeTopologyRole, URI>> copyParamsList = new ArrayList<>();
-            for (BlockPerformanceParamsMap copyParams : performanceParams.getCopyParams()) {
-                copyParamsList.add(transformPerformanceParams(copyParams));
-            }
-            performanceParamsMap.put(VolumeTopologySite.COPY, copyParamsList);
+            performanceParamsMap.put(VolumeTopologySite.COPY, 
+                    transformPerformanceParams(performanceParams.getCopyParams()));
         } else {
-            performanceParamsMap.put(VolumeTopologySite.SOURCE, new ArrayList<Map<VolumeTopologyRole, URI>>());
-            performanceParamsMap.put(VolumeTopologySite.COPY, new ArrayList<Map<VolumeTopologyRole, URI>>());
+            performanceParamsMap.put(VolumeTopologySite.SOURCE, new HashMap<>());
+            performanceParamsMap.put(VolumeTopologySite.COPY, new HashMap<>());
         }
         return performanceParamsMap;
     }
 
     /**
-     * Transform the performance params client model map to a java.util.map.
+     * Transform the performance params client model maps to java.util.map.
      * 
-     * @param performanceParams The performance params map for a volume create request or null.
+     * @param performanceParams The performance params for a volume create request or null.
+     * 
+     * @return A Map specifying the performance parameters.
+     */
+    public static Map<URI, Map<VolumeTopologyRole, URI>> transformPerformanceParams(List<BlockPerformanceParamsMap> performanceParamsMapList) {
+        Map<URI, Map<VolumeTopologyRole, URI>> resultMap = new HashMap<>();
+        if (!CollectionUtils.isEmpty(performanceParamsMapList)) {
+            for (BlockPerformanceParamsMap performanceParamsMap : performanceParamsMapList) {
+                resultMap.put(performanceParamsMap.getVirtualArray(), transformPerformanceParams(performanceParamsMap));
+            }
+        }
+        return resultMap;
+    }
+    
+    /**
+     * Transform the performance params client model maps to java.util.map.
+     * 
+     * @param performanceParams The performance params for a volume create request or null.
      * 
      * @return A Map specifying the performance parameters.
      */
     public static Map<VolumeTopologyRole, URI> transformPerformanceParams(BlockPerformanceParamsMap performanceParamsMap) {
-        Map<VolumeTopologyRole, URI> result = new HashMap<>();
+        Map<VolumeTopologyRole, URI> resultMap = new HashMap<>();
         if (performanceParamsMap != null) {
             for (VolumeTopologyRole role : VolumeTopologyRole.values()) {
                 URI performanceParamsURI = performanceParamsMap.findPerformanceParamsForRole(role.toString());
                 if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
-                    result.put(role,  performanceParamsURI);
+                    resultMap.put(role,  performanceParamsURI);
                 }
             }
         }
-        return result;
+        return resultMap;
     }    
 
     /**

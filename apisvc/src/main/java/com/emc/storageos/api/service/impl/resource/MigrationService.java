@@ -66,7 +66,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
 import com.emc.storageos.vplexcontroller.VPlexController;
@@ -181,7 +180,7 @@ public class MigrationService extends TaskResourceService {
         cosWrapper.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         List<Recommendation> recommendations = vplexScheduler.scheduleStorage(
                 migrationTargetVarray, requestedVPlexSystems, migrateParam.getTgtStorageSystem(), migrationTgtCos,
-                new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), false, null, null, cosWrapper,
+                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), false, null, null, cosWrapper,
                 migrationTgtProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
 
         if (recommendations.isEmpty()) {

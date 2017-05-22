@@ -85,14 +85,14 @@ public class VPlexScheduler implements Scheduler {
      */
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities) {
         return getRecommendationsForResources(vArray, project, vPool, performanceParams, capabilities,
                 new HashMap<VpoolUse, List <Recommendation>>());
     }
 
     public List<Recommendation> getRecommendationsForResources(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
 
         _log.info("Getting recommendations for VPlex volume placement");
@@ -386,7 +386,7 @@ public class VPlexScheduler implements Scheduler {
      *         recommended resource placement resources.
      */
     public List<Recommendation> scheduleStorage(VirtualArray srcVarray, Set<URI> requestedVPlexSystems, URI srcStorageSystem,
-            VirtualPool srcVpool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool srcVpool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             boolean isHARequest, VirtualArray requestedHaVarray, VirtualPool haVpool,
             VirtualPoolCapabilityValuesWrapper capabilities, Project project, VpoolUse vpoolUse,
             Map<VpoolUse, List<Recommendation>> currentRecommendations) {
@@ -421,7 +421,7 @@ public class VPlexScheduler implements Scheduler {
      *         recommended resource placement.
      */
     private List<Recommendation> scheduleStorageForLocalVPLEXVolume(VirtualArray varray, Set<URI> requestedVPlexSystems,
-            URI storageSystem, VirtualPool vpool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            URI storageSystem, VirtualPool vpool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities, Project project, VpoolUse vPoolUse, Map<VpoolUse,
             List<Recommendation>> currentRecommendations) {
 
@@ -501,7 +501,7 @@ public class VPlexScheduler implements Scheduler {
      */
     private List<Recommendation> scheduleStorageForDistributedVPLEXVolume(VirtualArray srcVarray,
             Set<URI> requestedVPlexSystems, URI srcStorageSystem, VirtualPool srcVpool,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualArray haVarray, VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper capabilities,
             Project project, VpoolUse srcVpoolUse, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
 
@@ -710,14 +710,14 @@ public class VPlexScheduler implements Scheduler {
      */
     private VirtualPoolCapabilityValuesWrapper overideSourceCapabilitiesForHaPlacement(
             VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper srcCapabilities,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams) {
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams) {
         
         // Get the performance parameters for the source volume.
         Map<VolumeTopologyRole, URI> sourceParams = null;
-        List<Map<VolumeTopologyRole, URI>> sourceParamList = performanceParams.get(VolumeTopologySite.SOURCE);
-        if (!CollectionUtils.isEmpty(sourceParamList)) {
+        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamMap = performanceParams.get(VolumeTopologySite.SOURCE);
+        if (sourceParamMap != null && !sourceParamMap.isEmpty()) {
             // There is only one source volume in a volume topology.
-            sourceParams = sourceParamList.get(0);
+            sourceParams = sourceParamMap.values().iterator().next();
         }
         
         VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
@@ -1200,7 +1200,7 @@ public class VPlexScheduler implements Scheduler {
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
             VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse,
             List<Recommendation>> currentRecommendations) {
         _log.info("Getting recommendations for VPlex volume placement");

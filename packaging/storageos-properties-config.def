@@ -3281,9 +3281,9 @@
         value : "TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA",
     },
     {
-        key : "custom_service_available",
-        label : "Custom Service Available to this Deployment",
-        description : "Custom Service Available to this Deployment",
+        key : "custom_services_available",
+        label : "Custom Services Available to this Deployment",
+        description : "Custom Services Available to this Deployment",
         type : "boolean",
         userConfigurable : true,
         userMutable : true,

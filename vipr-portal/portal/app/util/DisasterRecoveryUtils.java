@@ -195,7 +195,7 @@ public class DisasterRecoveryUtils {
         return siteCheck.getIsMultiSite();
     }
 
-    public static boolean isCustomService() {
+    public static boolean isCustomServicesEnabled() {
         if(!Play.mode.isDev()) {
             PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
             if (propInfo != null) {

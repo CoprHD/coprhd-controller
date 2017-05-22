@@ -395,8 +395,8 @@ public class DisasterRecovery extends ViprResourceController {
         return DisasterRecoveryUtils.hasActiveDegradedSite();
     }
 
-    public static boolean isCustomService() {
-        return DisasterRecoveryUtils.isCustomService();
+    public static boolean isCustomServicesEnabled() {
+        return DisasterRecoveryUtils.isCustomServicesEnabled();
     }
     
     private static void itemsJson(List<String> uuids) {

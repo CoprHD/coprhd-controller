@@ -178,7 +178,7 @@ public class Exec {
         String userName = System.getProperty("user.name");
         if (userName.equals("root")) {
             // Root user does not need SUDO.
-            return exec(timeout, maskFilter, args);
+            return exec(file, timeout, maskFilter, env, args);
         }
         List<String> tmpList = new ArrayList(Arrays.asList(args));
         tmpList.add(0, "sudo");

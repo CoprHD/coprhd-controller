@@ -69,6 +69,12 @@ public final class CustomServicesConstants {
     public static final String CHROOT_ORDER_DIR_PATH = "/CS";
     public static final String CHROOT_CMD = "/usr/bin/chroot";
     public static final String CHROOT_DIR = "/opt/storageos/customroot";
+    public static final String CHMOD_CMD = "/usr/bin/chmod";
+    public static final String SOFTLINK_CMD = "/usr/bin/ln";
+    public static final String UNLINK_CMD = "/usr/bin/unlink";
+    public static final String SUDO_CMD = "sudo";
+    public static final String CHMOD_OPTION = "777";
+    public static final String SOFTLINK_OPTION = "-s";
     public static final String EXTRA_VARS = "--extra-vars";
     public static final String UNTAR = "tar";
     public static final String UNTAR_OPTION = "-zxvf";

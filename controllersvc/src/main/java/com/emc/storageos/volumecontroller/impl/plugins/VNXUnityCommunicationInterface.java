@@ -807,7 +807,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 // should not be picked for provisioning.
                 VirtualNAS vNas = findvNasByNativeId(system, nasServer.getId());
                 if (vNas != null) {
-                    vNas.setNasState(VirtualNasState.FAILOVER_TARGET.name());
+                    vNas.setNasState(VirtualNasState.UNKNOWN.name());
                     existingVirtualNas.add(vNas);
                 }
                 continue;

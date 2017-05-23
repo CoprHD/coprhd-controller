@@ -25,11 +25,11 @@ public class StatsCleanupMigration extends BaseCustomMigrationCallback {
 		try {
 			dbClient.getLocalContext()
 			        .getKeyspace().prepareQuery(doType.getCf()).setConsistencyLevel(ConsistencyLevel.CL_ALL)
-			        .withCql(String.format("TRUNCATE TABLE %s", doType.getCf().getName()))
+			        .withCql(String.format("TRUNCATE TABLE %s", "Stats"))
 			        .execute();
 			dbClient.getLocalContext()
 					.getKeyspace().prepareQuery(doType.getCf())
-			        .withCql(String.format("ALTER TABLE %s WITH compaction = {'class': 'SizeTieredCompactionStrategy'}", doType.getCf().getName()))
+			        .withCql(String.format("ALTER TABLE %s WITH compaction = {'class': 'SizeTieredCompactionStrategy'}", "Stats"))
 			        .execute();
 		} catch (Exception e) {
 			log.error("Failed to cleanup stats CF {}", e);

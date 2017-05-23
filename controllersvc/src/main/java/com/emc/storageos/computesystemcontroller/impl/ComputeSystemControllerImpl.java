@@ -133,6 +133,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String DETACH_VCENTER_STORAGE_WF_NAME = "DETACH_VCENTER_STORAGE_WORKFLOW";
     private static final String DETACH_VCENTER_DATACENTER_STORAGE_WF_NAME = "DETACH_VCENTER_DATACENTER_STORAGE_WORKFLOW";
 
+    private static final String RESCAN_HOST_STORAGE_STEP = "RescanHostStorageStep";
+
     private static final String DELETE_EXPORT_GROUP_STEP = "DeleteExportGroupStep";
     private static final String UPDATE_EXPORT_GROUP_STEP = "UpdateExportGroupStep";
     private static final String UPDATE_FILESHARE_EXPORT_STEP = "UpdateFileshareExportStep";
@@ -902,6 +904,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             newWaitFor = addStepsForRemoveHostFromExport(workflow, newWaitFor, hostIds, export.getId());
         }
 
+        if (isVcenter && !NullColumnValueGetter.isNullURI(vcenterDataCenter)) {
+            newWaitFor = this.rescanHostStorage(hostIds, vcenterDataCenter, newWaitFor, workflow);
+        }
+
         return newWaitFor;
     }
 
@@ -1469,6 +1475,52 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     /**
+     * Creates a workflow method to rescan HBAs for an ESX host
+     * 
+     * @param hostId the host id
+     * @param vcenter the vcenter id
+     * @param vcenterDatacenter the vcenter datacenter id
+     * @return workflow method
+     */
+    public Workflow.Method rescanHostStorageMethod(URI hostId, URI vcenter, URI vcenterDatacenter) {
+        return new Workflow.Method("rescanHostStorage", hostId, vcenter, vcenterDatacenter);
+    }
+
+    /**
+     * Rescans HBAs and storage system for an ESX host
+     * 
+     * @param hostId the host id
+     * @param vCenterId the vcenter id
+     * @param vcenterDatacenter the vcenter datacenter id
+     * @param stepId the workflow step
+     */
+    public void rescanHostStorage(URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+
+        try {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+            VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+            HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+
+            if (hostSystem == null) {
+                _log.info("Not able to find host " + esxHost.getLabel() + " in vCenter. Unable to refresh HBAs");
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+
+            HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+            storageAPI.refreshStorage();
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error(ex.getMessage(), ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
+    }
+
+    /**
      * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
      * virtual machines running on the given ESXi host.
      *
@@ -1985,6 +2037,37 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
         return waitFor;
+    }
+
+    /**
+     * Creates workflow steps for rescanning HBAs and host storage for a list of ESX hosts
+     * 
+     * @param hostIds list of host ids
+     * @param virtualDataCenter the virtual datacenter id that the hosts belong to
+     * @param waitFor the step to wait on for this workflow step
+     * @param workflow the workflow
+     * @return the step id
+     */
+    private String rescanHostStorage(List<URI> hostIds, URI virtualDataCenter, String waitFor,
+            Workflow workflow) {
+        String newWaitFor = waitFor;
+        for (URI hostId : hostIds) {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            if (esxHost != null) {
+                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
+                if (vcenterDataCenter != null) {
+                    URI vCenterId = vcenterDataCenter.getVcenter();
+                    newWaitFor = workflow.createStep(RESCAN_HOST_STORAGE_STEP,
+                            String.format("Refreshing HBAs for host %s", esxHost.forDisplay()), newWaitFor,
+                            esxHost.getId(), esxHost.getId().toString(),
+                            this.getClass(),
+                            rescanHostStorageMethod(esxHost.getId(), vCenterId,
+                                    vcenterDataCenter.getId()),
+                            rollbackMethodNullMethod(), null);
+                }
+            }
+        }
+        return newWaitFor;
     }
 
     /**

@@ -3291,7 +3291,7 @@
         advanced : true,
         tag : "Other",
         reconfigRequired : false,
-        rebootRequired : true,
+        rebootRequired : false,
         controlNodeOnly : true,
         value : "false",
     },

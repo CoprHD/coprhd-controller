@@ -87,7 +87,7 @@ public class CustomServicesService extends ViPRService {
 
     private int code;
 
-    protected String decrypt(String value) {
+    protected String decrypt(final String value) {
         if (StringUtils.isNotBlank(value)) {
             try {
                 return getEncryptionProvider().decrypt(Base64.decodeBase64(value));
@@ -331,9 +331,11 @@ public class CustomServicesService extends ViPRService {
                     case FROM_USER_MULTI:
                     case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
-                          String param = params.get(friendlyName).toString();
+                           final String param;
                             if (value.getInputFieldType().equals("password")) {
                                 param = decrypt(params.get(friendlyName).toString());
+                            } else {
+                                param = params.get(friendlyName).toString();
                             }
                             if (StringUtils.isEmpty(value.getTableName())) {
                                 inputs.put(name, Arrays.asList(param.replace("\"", "")));

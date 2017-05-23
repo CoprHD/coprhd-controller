@@ -36,6 +36,7 @@ import com.emc.storageos.model.file.FileSystemExportList;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemMountParam;
 import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.model.file.FileSystemReduceParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemUnmountParam;
@@ -205,6 +206,21 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> expand(URI id, FileSystemExpandParam input) {
         return postTask(input, getIdUrl() + "/expand", id);
+    }
+    
+    /**
+     * Begins reduce the given file system by ID.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/reduce</tt>
+     * 
+     * @param id
+     *            the ID of the file system to reduce.
+     * @param input
+     *            the reduce configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> reduce(URI id, FileSystemReduceParam input) {
+        return postTask(input, getIdUrl() + "/reduce", id);
     }
 
     /**

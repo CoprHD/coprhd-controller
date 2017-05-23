@@ -13,7 +13,7 @@
 # For an example of /root/reset.sh, look at lglw1045.
 reset_simulator() {
     if [ "${SIM}" = "1" ]; then
-	ssh ${HW_SIMULATOR_IP} /root/reset.sh
+	/usr/bin/sshpass -p ${HW_SIMULATOR_DEFAULT_PASSWORD} ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${HW_SIMULATOR_IP} /root/reset.sh
     else
 	echo "No simulator set, not resetting simulator"
     fi
@@ -84,6 +84,10 @@ retrieve_preexistingconfig() {
 #
 # But maybe we crawl before we run.
 report_results() {
+    if [ "${REPORT}" != "1" ]; then
+	return;
+    fi
+
     testname=${1}
     failure_scenario=${2}
     branch=`git rev-parse --abbrev-ref HEAD`
@@ -91,7 +95,10 @@ report_results() {
     ss=${SS}
 
     if [ "${SS}" = "vplex" ]; then
-	ss="${SS} ${VPLEX_MODE}"
+	    ss="${SS} ${VPLEX_MODE}"
+    fi
+    if [ "${SS}" = "srdf" ]; then
+        ss="${SS} ${SRDF_MODE}"
     fi
 
     simulator="Hardware"
@@ -111,10 +118,8 @@ report_results() {
 
     echo -e "${result}\n$(cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE})" > ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
-    if [ "${REPORT}" = "1" ]; then
-	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${RESULTS_SET_FILE}" > /dev/null 2> /dev/null
-	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat > ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
-    fi
+    cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${RESULTS_SET_FILE}" > /dev/null 2> /dev/null
+    cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat > ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
 }
 
 # Helper method to increment the failure counts
@@ -163,7 +168,7 @@ get_masking_view_name() {
         fi
     fi
 
-    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
+    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" -o "$SS" = "srdf" ]; then
 	masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
     elif [ "$SS" = "xio" ]; then
         masking_view_name=$host_name
@@ -324,7 +329,7 @@ arrayhelper_volume_mask_operation() {
     pattern=$4
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $device_id $pattern
 	 ;;
     vnx)
@@ -357,7 +362,7 @@ arrayhelper_initiator_mask_operation() {
     pattern=$4
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $pwwn $pattern
 	 ;;
     vnx)
@@ -389,7 +394,7 @@ arrayhelper_delete_volume() {
     device_id=$3
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $device_id
 	 ;;
     vnx)
@@ -423,7 +428,7 @@ arrayhelper_delete_export_mask() {
     ig_name=$5
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $masking_view_name $sg_name $ig_name
 	 ;;
     *)
@@ -443,7 +448,7 @@ arrayhelper_delete_mask() {
     pattern=$3
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $pattern
 	 ;;
     vnx)
@@ -476,7 +481,7 @@ arrayhelper_verify_export() {
     return_status=0
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $masking_view_name $*
          return_status=$?
 	 ;;
@@ -946,19 +951,19 @@ setup_provider() {
     fi
 
     if [ "${storage_password}" = "" ]; then
-	echo "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
+	echo "storage_password is not set.  Cannot make a valid ${tools_file} file without a storage_password"
 	exit;
     fi
 
     sstype=${SS}
-    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "srdf" ]; then
 	sstype="vmax"
     fi
 
     # create the yml file to be used for array tooling
     touch $tools_file
     storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
-    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
+    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | head -n 1`
     storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
     storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
     storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`

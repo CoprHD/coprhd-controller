@@ -106,10 +106,10 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
             return null;
         }
         logger.debug("user:{} password:{}",AnsibleHelper.getOptions(
-                CustomServicesConstants.REMOTE_USER, input), decrypt(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_PASSWORD, input)));
+                CustomServicesConstants.REMOTE_USER, input), AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_PASSWORD, input));
 
         final SSHCommandExecutor executor = new SSHCommandExecutor(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input), 22, AnsibleHelper.getOptions(
-                CustomServicesConstants.REMOTE_USER, input), decrypt(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_PASSWORD, input)));
+                CustomServicesConstants.REMOTE_USER, input), AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_PASSWORD, input));
         executor.setCommandTimeout((int)timeout);
         final Command command = new RemoteCommand(extraVars, input, primitive);
         command.setCommandExecutor(executor);

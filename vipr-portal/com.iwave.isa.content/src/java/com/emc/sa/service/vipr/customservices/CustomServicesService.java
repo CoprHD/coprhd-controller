@@ -33,15 +33,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.inject.Inject;
 import javax.xml.bind.annotation.XmlElement;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import com.emc.sa.catalog.primitives.CustomServicesViprPrimitiveDAO;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
@@ -54,6 +55,7 @@ import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
@@ -84,6 +86,17 @@ public class CustomServicesService extends ViPRService {
     private CustomServicesViprPrimitiveDAO customServicesViprDao;
 
     private int code;
+
+    protected String decrypt(String value) {
+        if (StringUtils.isNotBlank(value)) {
+            try {
+                return getEncryptionProvider().decrypt(Base64.decodeBase64(value));
+            } catch (RuntimeException e) {
+                throw new IllegalStateException(String.format("Failed to decrypt value: %s", e.getMessage()), e);
+            }
+        }
+        return value;
+    }
 
     private static Field getField(Class<?> clazz, final String name) {
         Field field = null;
@@ -318,12 +331,15 @@ public class CustomServicesService extends ViPRService {
                     case FROM_USER_MULTI:
                     case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
-                            if (StringUtils.isEmpty(value.getTableName())) {
-                                inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "")));
-                            } else {
-                                inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "").split(",")));
+                          String param = params.get(friendlyName).toString();
+                            if (value.getInputFieldType().equals("password")) {
+                                param = decrypt(params.get(friendlyName).toString());
                             }
-
+                            if (StringUtils.isEmpty(value.getTableName())) {
+                                inputs.put(name, Arrays.asList(param.replace("\"", "")));
+                            } else {
+                                inputs.put(name, Arrays.asList(param.replace("\"", "").split(",")));
+                            }
                         } else {
                             if (value.getDefaultValue() != null) {
                                 inputs.put(name, Arrays.asList(value.getDefaultValue()));

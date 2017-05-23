@@ -758,7 +758,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             } else {
                                 errorMessage.append(String.format("Mask %s has existing volumes %s", mask.forDisplay(),
                                         Joiner.on(", ").join(mask.getExistingVolumes().keySet())));
-                        }// selva
+                        }
                         
                     }
                 }
@@ -858,9 +858,13 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         _log.info(String.format("A subset of volumes will be removed from mask %s: %s. ",
                                 mask.getMaskName(), Joiner.on(",").join(volumesToRemove)));
                         List<? extends BlockObject> boList = BlockObject.fetchAll(_dbClient, volumesToRemove);
-                        errorMessage.append(String.format("A subset of volumes will be removed from mask %s: %s. ",
-                                mask.getMaskName(), Joiner.on(", ").join(
-                                        Collections2.transform(boList, CommonTransformerFunctions.fctnDataObjectToForDisplay()))));
+                        if (mask.hasAnyExistingInitiators()) {
+                            errorMessage.append(String.format(
+                                    "A subset of volumes will be removed from mask %s: %s. This will affect the %s initiators",
+                                    mask.getMaskName(), Joiner.on(", ").join(
+                                            Collections2.transform(boList, CommonTransformerFunctions.fctnDataObjectToForDisplay())),
+                                    mask.getExistingInitiators()));
+                        }
                         List<URI> maskInitiatorURIs = Lists
                                 .newArrayList(Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null),
                                         CommonTransformerFunctions.fctnDataObjectToID()));
@@ -871,7 +875,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
                     }
                 }
-
             }
 
             if (errorMessage != null && !errorMessage.toString().isEmpty()) {

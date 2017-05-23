@@ -718,25 +718,26 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.getInputOptions=function(id){
-        var parents = [];
-        var inputs = [];
-        parents=getAllParents(id,parents);
-        for (var i = 0; i < parents.length; i++) {
-            var parent=parents[i];
-            inputs = inputs.concat(STEP_INPUT_MAP[parent]);
-        }
-        return inputs;
+        return STEP_INPUT_MAP[id];
     }
 
     $scope.getOutputOptions=function(id){
+        return STEP_OUTPUT_MAP[id];
+    }
+
+    $scope.getParentOptions=function(id){
         var parents = [];
-        var outputs = [];
         parents=getAllParents(id,parents);
-        for (var i = 0; i < parents.length; i++) {
-            var parent=parents[i];
-            outputs = outputs.concat(STEP_OUTPUT_MAP[parent]);
+        return parents;
+    }
+
+    function findWithAttr(array, attr, value) {
+        for(var i = 0; i < array.length; i += 1) {
+            if(array[i][attr] === value) {
+                return i;
+            }
         }
-        return outputs;
+        return -1;
     }
 
     function getAllParents(id,result){
@@ -745,11 +746,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
         var parents = RELATIONSHIP_MAP[id];
         if (null != parents) {
-            for (var i = 0; i < parents.length; i++) {
-                var parent=parents[i];
-                var index = result.indexOf(parent);
+            for(var parent in parents) {
+                var index = findWithAttr(result,"id",parent);
                 if( index == -1){
-                    result.push(parent);
+                    result.push({id:parent,name:parents[parent]});
                     result=getAllParents(parent,result);
                 }
             }
@@ -758,15 +758,17 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     function addRelation(source,target,sourceData) {
+        if(source=='Start'||target=='End'){
+            return;
+        }
         var parents = RELATIONSHIP_MAP[target];
         if (null != parents) {
-            var index = parents.indexOf(source);
-            if( index == -1){
-                parents.push(source);
+            if(!parents.hasOwnProperty(source)) {
+                parents[source]=sourceData.friendlyName;
             }
         } else {
-            parents = [];
-            parents.push(source);
+            parents = {};
+            parents[source]=sourceData.friendlyName;
         }
         RELATIONSHIP_MAP[target]=parents;
 
@@ -781,9 +783,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                             if(inparams.hasOwnProperty(inputparam)) {
                                 var inparam_name = inparams[inputparam].name;
                                 var stepidconcate = sourceData.id + "." + inparam_name;
-                                var stepnameconcate = sourceData.friendlyName + " " + inparam_name
-                                //prevents duplicates by using key
-                                inputParamsList.push({id:stepidconcate, name:stepnameconcate});
+                                inputParamsList.push({id:stepidconcate, name:inparam_name});
                             }
                         }
                     }
@@ -800,8 +800,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 if(outparams.hasOwnProperty(outputparam)) {
                     var outparam_name = outparams[outputparam].name;
                     var stepidconcate = sourceData.id + "." + outparam_name;
-                    var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-                    outputParamsList.push({id:stepidconcate, name:stepnameconcate});
+                    outputParamsList.push({id:stepidconcate, name:outparam_name});
                 }
             }
 
@@ -822,10 +821,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         if (null != parents) {
             var count = 0;
             if(sourceData.next.defaultStep != target && sourceData.next.failedStep != target){
-                var index = parents.indexOf(source);
-                if( index > -1){
-                    parents.splice(index,1);
-                    if (parents.length == 0){
+                if(parents.hasOwnProperty(source)) {
+                    delete parents[source];
+                    if (jQuery.isEmptyObject(parents)){
                         delete RELATIONSHIP_MAP[target];
                         delete STEP_INPUT_MAP[source];
                         delete STEP_OUTPUT_MAP[source];

@@ -540,9 +540,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var INPUT_TYPE_OPTIONS = ['Disabled'];
     var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project','assetType.vipr.host'];
 
+    var RELATIONSHIP_MAP = {};
+    var STEP_INPUT_MAP = {};
+    var STEP_OUTPUT_MAP = {};
+
     $scope.workflowData = {};
-    $scope.stepInputOptions = {};
-    $scope.stepOutputOptions = {};
     var DEFAULT_OUTPUT_PARAMS = ["operation_output","operation_error","operation_returncode"];
 
     $scope.modified = false;
@@ -715,16 +717,122 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     }
 
-    $scope.getInputOptions=function(){
-        return Object.keys($scope.stepInputOptions).map(function(key) {
-               return $scope.stepInputOptions[key];
-           });
+    $scope.getInputOptions=function(id){
+        var parents = [];
+        var inputs = [];
+        parents=getAllParents(id,parents);
+        for (var i = 0; i < parents.length; i++) {
+            var parent=parents[i];
+            inputs = inputs.concat(STEP_INPUT_MAP[parent]);
+        }
+        return inputs;
     }
 
-    $scope.getOutputOptions=function(){
-        return Object.keys($scope.stepOutputOptions).map(function(key) {
-               return $scope.stepOutputOptions[key];
-           });
+    $scope.getOutputOptions=function(id){
+        var parents = [];
+        var outputs = [];
+        parents=getAllParents(id,parents);
+        for (var i = 0; i < parents.length; i++) {
+            var parent=parents[i];
+            outputs = outputs.concat(STEP_OUTPUT_MAP[parent]);
+        }
+        return outputs;
+    }
+
+    function getAllParents(id,result){
+        if (null == result){
+            var result = [];
+        }
+        var parents = RELATIONSHIP_MAP[id];
+        if (null != parents) {
+            for (var i = 0; i < parents.length; i++) {
+                var parent=parents[i];
+                var index = result.indexOf(parent);
+                if( index == -1){
+                    result.push(parent);
+                    result=getAllParents(parent,result);
+                }
+            }
+        }
+        return result;
+    }
+
+    function addRelation(source,target,sourceData) {
+        var parents = RELATIONSHIP_MAP[target];
+        if (null != parents) {
+            var index = parents.indexOf(source);
+            if( index == -1){
+                parents.push(source);
+            }
+        } else {
+            parents = [];
+            parents.push(source);
+        }
+        RELATIONSHIP_MAP[target]=parents;
+
+        var inputParamsList = STEP_INPUT_MAP[source];
+        if (null == inputParamsList)  {
+            inputParamsList = [];
+            if("inputGroups" in sourceData) {
+                for(var inputGroupEntry in sourceData.inputGroups) {
+                    if(sourceData.inputGroups.hasOwnProperty(inputGroupEntry)) {
+                        var inparams = sourceData.inputGroups[inputGroupEntry].inputGroup;
+                        for(var inputparam in inparams) {
+                            if(inparams.hasOwnProperty(inputparam)) {
+                                var inparam_name = inparams[inputparam].name;
+                                var stepidconcate = sourceData.id + "." + inparam_name;
+                                var stepnameconcate = sourceData.friendlyName + " " + inparam_name
+                                //prevents duplicates by using key
+                                inputParamsList.push({id:stepidconcate, name:stepnameconcate});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        STEP_INPUT_MAP[source]=inputParamsList;
+
+        var outputParamsList = STEP_OUTPUT_MAP[source];
+        if (null == outputParamsList)  {
+            outputParamsList = [];
+            var outparams = sourceData.output;
+            for(var outputparam in outparams) {
+                if(outparams.hasOwnProperty(outputparam)) {
+                    var outparam_name = outparams[outputparam].name;
+                    var stepidconcate = sourceData.id + "." + outparam_name;
+                    var stepnameconcate = sourceData.friendlyName + " " + outparam_name
+                    outputParamsList.push({id:stepidconcate, name:stepnameconcate});
+                }
+            }
+
+            for(var outputparam in DEFAULT_OUTPUT_PARAMS) {
+                if(DEFAULT_OUTPUT_PARAMS.hasOwnProperty(outputparam)) {
+                    var outparam_name = DEFAULT_OUTPUT_PARAMS[outputparam];
+                    var stepidconcate = sourceData.id + "." + outparam_name;
+                    var stepnameconcate = sourceData.friendlyName + " " + outparam_name
+                    outputParamsList.push({id:stepidconcate, name:stepnameconcate});
+                }
+            }
+        }
+        STEP_OUTPUT_MAP[source]=outputParamsList;
+    }
+
+    function removeRelation(source,target,sourceData) {
+        var parents = RELATIONSHIP_MAP[target];
+        if (null != parents) {
+            var count = 0;
+            if(sourceData.next.defaultStep != target && sourceData.next.failedStep != target){
+                var index = parents.indexOf(source);
+                if( index > -1){
+                    parents.splice(index,1);
+                    if (parents.length == 0){
+                        delete RELATIONSHIP_MAP[target];
+                        delete STEP_INPUT_MAP[source];
+                        delete STEP_OUTPUT_MAP[source];
+                    }
+                }
+            }
+        }
     }
 
     function setBindings() {
@@ -745,43 +853,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             }
             // Populate array for input and output from previous steps
 
-            if (sourceData.id !== 'Start' && sourceData.id !== 'End' ){
-                if("inputGroups" in sourceData) {
-                    for(var inputGroupEntry in sourceData.inputGroups) {
-                        if(sourceData.inputGroups.hasOwnProperty(inputGroupEntry)) {
-                            var inparams = sourceData.inputGroups[inputGroupEntry].inputGroup;
-                            for(var inputparam in inparams) {
-                                if(inparams.hasOwnProperty(inputparam)) {
-                                    var inparam_name = inparams[inputparam].name;
-                                    var stepidconcate = sourceData.id + "." + inparam_name;
-                                    var stepnameconcate = sourceData.friendlyName + " " + inparam_name
-                                    //prevents duplicates by using key
-                                    $scope.stepInputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
-                                }
-                            }
-                        }
-                    }
-                }
-                var outparams = sourceData.output;
-                for(var outputparam in outparams) {
-                    if(outparams.hasOwnProperty(outputparam)) {
-                        var outparam_name = outparams[outputparam].name;
-                        var stepidconcate = sourceData.id + "." + outparam_name;
-                        var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-                        $scope.stepOutputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
-                    }
-                }
-
-                for(var outputparam in DEFAULT_OUTPUT_PARAMS) {
-                    if(DEFAULT_OUTPUT_PARAMS.hasOwnProperty(outputparam)) {
-                        var outparam_name = DEFAULT_OUTPUT_PARAMS[outputparam];
-                        var stepidconcate = sourceData.id + "." + outparam_name;
-                        var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-                        $scope.stepOutputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
-                    }
-                }
-            }
             sourceData.next=sourceNext;
+            addRelation(sourceData.id,connection.targetId,sourceData)
             $scope.modified = true;
             $scope.$apply();
         });
@@ -801,23 +874,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 delete sourceData.next.failedStep;
             }
             sourceData.next=sourceNext;
-            // Remove source data after unbind array for input and output from previous steps
-            if (!sourceData.next.hasOwnProperty("defaultStep") && !sourceData.next.hasOwnProperty("failedStep")){
-                 for (var k in $scope.stepInputOptions){
-                    if ($scope.stepInputOptions.hasOwnProperty(k)) {
-                        if (k.startsWith(sourceData.id + ".")) {
-                            delete $scope.stepInputOptions[k];
-                        }
-                    }
-                }
-                 for (var k in $scope.stepOutputOptions){
-                    if ($scope.stepOutputOptions.hasOwnProperty(k)) {
-                        if (k.startsWith(sourceData.id + ".")) {
-                            delete $scope.stepOutputOptions[k];
-                        }
-                    }
-                }
-            }
+            removeRelation(sourceData.id,connection.targetId,sourceData)
             $scope.modified = true;
             $scope.$apply();
         });

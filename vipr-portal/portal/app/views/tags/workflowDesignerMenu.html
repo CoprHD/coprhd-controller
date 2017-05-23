@@ -40,10 +40,10 @@
 												<boolean-checkbox v-default-value="false" ng-change="setWorkflowModified('true')"></boolean-checkbox>
 											</control-group>
 											<control-group class="col-xs-12" label-width="12" width="12" label-key ="input.stepInput" v-field="input.value" ng-if="input.type=='FromOtherStepInput'"  >
-												<select-one options="getInputOptions()" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
+												<select-one options="getInputOptions(stepData.id)" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 											</control-group>
 											<control-group class="col-xs-12" label-width="12" width="12" label-key="input.stepOutput" v-field="input.value" ng-if="input.type=='FromOtherStepOutput'" >
-												<select-one options="getOutputOptions()" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
+												<select-one options="getOutputOptions(stepData.id)" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 											</control-group>
 											<control-group class="col-xs-12" label-width="12" width="12" label-key="input.assetOption" v-field="input.value" ng-if="input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" >
 												<select-one options="AssetOptionTypes" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>

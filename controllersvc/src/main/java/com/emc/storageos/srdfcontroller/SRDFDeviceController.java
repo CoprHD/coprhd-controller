@@ -1193,10 +1193,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             getRemoteMirrorDevice().doDetachLink(system, sourceURI, targetURI, onGroup, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
+            if (!completer.isCompleted()) {
                 completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
             }
             return false;
         }

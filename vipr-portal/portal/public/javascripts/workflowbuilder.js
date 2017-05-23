@@ -808,8 +808,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 if(DEFAULT_OUTPUT_PARAMS.hasOwnProperty(outputparam)) {
                     var outparam_name = DEFAULT_OUTPUT_PARAMS[outputparam];
                     var stepidconcate = sourceData.id + "." + outparam_name;
-                    var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-                    outputParamsList.push({id:stepidconcate, name:stepnameconcate});
+                    outputParamsList.push({id:stepidconcate, name:outparam_name});
                 }
             }
         }

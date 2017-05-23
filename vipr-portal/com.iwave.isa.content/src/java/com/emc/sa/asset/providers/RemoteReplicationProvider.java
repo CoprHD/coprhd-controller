@@ -18,6 +18,7 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
+import com.emc.sa.asset.AssetOptionsUtils;
 import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
@@ -362,7 +363,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             for (NamedRelatedResourceRep groupInSet : groupsInSet) {
                 options.addAll(createNamedResourceOptions(getPairsInGroup(ctx,groupInSet.getId())));
             }
-
+            AssetOptionsUtils.sortOptionsByLabel(options);
             return options;
         }
 
@@ -374,6 +375,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
                         listRelatedRemoteReplicationPairs(v.getId()).getRemoteReplicationPairs();
                 options.addAll(createNamedResourceOptions(pairs));
             }
+            AssetOptionsUtils.sortOptionsByLabel(options);
             return options;
         }
 

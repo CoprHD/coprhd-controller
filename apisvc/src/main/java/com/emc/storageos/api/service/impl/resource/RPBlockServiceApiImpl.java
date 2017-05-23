@@ -410,11 +410,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 _log.info("Create RP Source Volume...");
                             }
 
-                            // Create the source
+                            // Create the source. Note that we don't know the role for the VPLEX volume. Pass
+                            // null and the VPLEX implementation will use the proper performance parameters for
+                            // the primary and HA sides.
+                            boolean isVplex = VirtualPool.vPoolSpecifiesHighAvailability(sourceRec.getVirtualPool());
                             sourceVolume = createRecoverPointVolume(sourceRec, newVolumeLabel, project, srcCapabilities, consistencyGroup,
                                     param, protectionSystemURI, Volume.PersonalityTypes.SOURCE, rsetName, preCreatedVolume, null, taskList,
                                     task, sourceCopyName, descriptors, changeVpoolVolume, isChangeVpool, isSrcAndHaSwapped, true,
-                                    performanceParams, VolumeTopologySite.SOURCE, null);
+                                    performanceParams, VolumeTopologySite.SOURCE, (isVplex ? null : VolumeTopologyRole.PRIMARY));
                         } else {
                             if (metroPointEnabled) {
                                 _log.info("Upgrade to MetroPoint operation...");
@@ -500,11 +503,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             String targetVolumeName = new StringBuilder(newVolumeLabel)
                                     .append(VOLUME_TYPE_TARGET + targetVirtualArray.getLabel()).toString();
 
-                            // Create the target
+                            // Create the target. Note that we don't know the role for the VPLEX volume. Pass
+                            // null and the VPLEX implementation will use the proper performance parameters for
+                            // the primary and HA sides.
+                            boolean isVplex = VirtualPool.vPoolSpecifiesHighAvailability(targetRec.getVirtualPool());
                             Volume targetVolume = createRecoverPointVolume(targetRec, targetVolumeName, project, copyOfCapabilities,
                                     consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.TARGET, rsetName, null,
                                     sourceVolume, taskList, task, targetRec.getRpCopyName(), descriptors, null, false, false, false,
-                                    performanceParams, VolumeTopologySite.COPY, null);
+                                    performanceParams, VolumeTopologySite.COPY, (isVplex ? null : VolumeTopologyRole.PRIMARY));
 
                             volumeInfoBuffer.append(logVolumeInfo(targetVolume));
                             volumeURIs.add(targetVolume.getId());
@@ -545,11 +551,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 String standbyTargetVolumeName = new StringBuilder(newVolumeLabel)
                                         .append(VOLUME_TYPE_TARGET + standyTargetVirtualArray.getLabel()).toString();
 
-                                // Create the standby target
+                                // Create the standby target. Note that we don't know the role for the VPLEX volume. Pass
+                                // null and the VPLEX implementation will use the proper performance parameters for
+                                // the primary and HA sides.
+                                boolean isVplex = VirtualPool.vPoolSpecifiesHighAvailability(standbyTargetRec.getVirtualPool());
                                 Volume standbyTargetVolume = createRecoverPointVolume(standbyTargetRec, standbyTargetVolumeName, project,
                                         copyOfCapabilities, consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.TARGET,
                                         rsetName, null, sourceVolume, taskList, task, standbyTargetRec.getRpCopyName(), descriptors, null,
-                                        false, false, false, performanceParams, VolumeTopologySite.COPY, null);
+                                        false, false, false, performanceParams, VolumeTopologySite.COPY, (isVplex ? null : VolumeTopologyRole.PRIMARY));
                                 volumeInfoBuffer.append(logVolumeInfo(standbyTargetVolume));
                                 volumeURIs.add(standbyTargetVolume.getId());
                             }

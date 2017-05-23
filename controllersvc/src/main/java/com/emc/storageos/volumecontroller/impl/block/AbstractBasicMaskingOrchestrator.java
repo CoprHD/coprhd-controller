@@ -704,7 +704,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 initiator.getInitiatorPort()));
                         
                             // We cannot remove initiator if there are existing volumes in the mask.
-                            if (!mask.hasAnyExistingVolumes()) {
+                        if (!isValidationNeeded || !mask.hasAnyExistingVolumes()) {
                                 
                                 /**
                                  * If user asked to remove Host from Cluster
@@ -758,7 +758,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             } else {
                                 errorMessage.append(String.format("Mask %s has existing volumes %s", mask.forDisplay(),
                                         Joiner.on(", ").join(mask.getExistingVolumes().keySet())));
-                            }
+                        }// selva
                         
                     }
                 }

@@ -69,7 +69,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             "types": {
                 "#": {
                     "max_children": 1,
-                    "max_depth": 4,
+                    "max_depth": -1,
                     "valid_children": ["root"]
                 },
                 "root": {

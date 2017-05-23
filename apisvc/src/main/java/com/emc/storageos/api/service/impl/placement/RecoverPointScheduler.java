@@ -344,18 +344,10 @@ public class RecoverPointScheduler implements Scheduler {
                 haVarray = vplexScheduler.getHaVirtualArray(container.getSrcVarray(), project, container.getSrcVpool());
                 haVpool = vplexScheduler.getHaVirtualPool(container.getSrcVarray(), project, container.getSrcVpool());
                 
-                // Need to override the capabilities for HA to ensure capabilities reflect the
-                // HA virtual pool and HA performance parameters. We need to take into account 
-                // whether or not the HA site is being protected for a VPLEX distributed RP 
-                // source volume. In this case the primary/ha varrays and vpools are swapped and
-                // the HA side would be the primary side and we want the primary performance 
-                // parameters rather than the HA.
-                VolumeTopologyRole role = VolumeTopologyRole.HA;
-                if (VirtualPool.isRPVPlexProtectHASide(vpool)) {
-                    role = VolumeTopologyRole.PRIMARY;
-                }
+                // Note that for MP there is no swap when getting the source candidate pools,
+                // so the HA role should be used.
                 VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                        haVpool, sourceParams, role, capabilities, dbClient);
+                        haVpool, sourceParams, VolumeTopologyRole.HA, capabilities, dbClient);
 
                 // Get the candidate source pools for the distributed cluster. The 2 null params are ignored in the pool matching
                 // because they are used to build the HA recommendations, which will not be done if MetroPoint is enabled.
@@ -1498,18 +1490,10 @@ public class RecoverPointScheduler implements Scheduler {
                         if (isChangeVpool) {
                             secondaryPoolsRecommendation.add(changeVpoolStandbyRecommendation);
                         } else {
-                            // Need to override the capabilities for HA to ensure capabilities reflect the
-                            // HA virtual pool and HA performance parameters. We need to take into account 
-                            // whether or not the HA site is being protected for a VPLEX distributed RP 
-                            // source volume. In this case the primary/ha varrays and vpools are swapped and
-                            // the HA side would be the primary side and we want the primary performance 
-                            // parameters rather than the HA.
-                            VolumeTopologyRole role = VolumeTopologyRole.HA;
-                            if (VirtualPool.isRPVPlexProtectHASide(vpool)) {
-                                role = VolumeTopologyRole.PRIMARY;
-                            }
+                            // Note that for MP there is no swap when getting the source candidate pools,
+                            // so the HA role should be used.
                             VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                                    haVpool, sourceParams, role, capabilities, dbClient);
+                                    haVpool, sourceParams, VolumeTopologyRole.HA, capabilities, dbClient);
                             secondaryPoolsRecommendation = getRecommendedPools(rpProtectionRecommendation, haVarray, haVpool, null, null,
                                     haCapabilities, RPHelper.TARGET, null);// TBD Heg TARGET????? Is this not the standby side of source?
                         }

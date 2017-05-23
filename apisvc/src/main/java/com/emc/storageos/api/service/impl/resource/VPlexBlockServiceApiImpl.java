@@ -501,20 +501,33 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<VPlexRecommendation> vplexRecommendations = varrayRecommendationsMap.get(varrayId);
             
             // If a role is passed this means we must be creating a VPLEX journal volume.
-            // In this case, the role will be either JOURNAL or STANDBY_JOURNAL. Otherwise,
-            // this is a VPLEX source or target volume and we need to determine the role
-            // based on whether these are the primary or HA recommendations for the volume.
+            // In this case, the performance parameter role will be either JOURNAL or 
+            // STANDBY_JOURNAL. Otherwise, this is a VPLEX source or target volume and we 
+            // need to determine the role based on whether these are the primary or HA 
+            // recommendations for the volume.
             VolumeTopologyRole role = topologyRole;
             if (role == null) {
                 role = VolumeTopologyRole.PRIMARY;
-                if (!varrayId.equals(vArray.getId().toString())) {
-                    // This is the HA varray, so we need the performance parameters for that role.
+                if (VirtualPool.isRPVPlexProtectHASide(vPool)) {
+                    // In this case the RP implementation has swapped primary
+                    // and HA, so we need to swap roles.
+                    if (varrayId.equals(vArray.getId().toString())) {
+                        // In a swapped situation the passed varray is the HA varray and if the
+                        // recommendation varray is the passed varray, we want the HA role.
+                        // Otherwise, the recommendation is for the primary side.
+                        role = VolumeTopologyRole.HA;
+                    }
+                } else if (!varrayId.equals(vArray.getId().toString())) {
+                    // Without swap, passed varray is the primary side varray, so if the 
+                    // recommendation varray is not the passed varray, then we want the HA role.
                     role = VolumeTopologyRole.HA;
                 }
             }
+            
+            // Now get the performance parameters for that role.
             URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(performanceParams, role, _dbClient);
             
-            // The capabilities are initialized for the primary source volume using the
+            // The capabilities are initialized for the primary source site volume using the
             // primary source volume vpool and performance parameters in the BlockService.
             // These are the capabilities that are passed around when placing the volume
             // and preparing the ViPR volumes and descriptors. We need to override these
@@ -522,14 +535,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // volume at the passed site, playing the specified role. This was done
             // when the volume was placed in the schedulers and must be done here
             // when preparing the ViPR volume so that it reflects the same values
-            // that were used when the volume was placed.
+            // that were used when the volume was placed. Note again, we need to account
+            // for whether or not RP swapped the roles. If the roles are swapped, the
+            // passed capabilities reflect the HA vpool and performance parameters, and we
+            // would need to update them when preparing the primary volume. If they are 
+            // not swapped, then the passed capabilities reflect the primary and we need
+            // to update them when preparing the HA volume.
             VirtualPoolCapabilityValuesWrapper backendCapabilities = vPoolCapabilities;
-            if (topologySite != VolumeTopologySite.SOURCE || role != VolumeTopologyRole.PRIMARY) {
-                if (role == VolumeTopologyRole.HA) {
+            if (topologySite != VolumeTopologySite.SOURCE || 
+                    (VirtualPool.isRPVPlexProtectHASide(vPool) ? role != VolumeTopologyRole.HA : role != VolumeTopologyRole.PRIMARY)) {
+                if (role == (VirtualPool.isRPVPlexProtectHASide(vPool) ? VolumeTopologyRole.PRIMARY : VolumeTopologyRole.HA)) {
                     // Make sure to get the HA vpool, not the passed vpool.
-                    VirtualPool haVpool = vplexRecommendations.get(0).getVirtualPool();
+                    VirtualPool beVpool = vplexRecommendations.get(0).getVirtualPool();
                     backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                            haVpool, performanceParams, role, vPoolCapabilities, _dbClient);
+                            beVpool, performanceParams, role, vPoolCapabilities, _dbClient);
                 } else {
                     backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
                             vPool, performanceParams, role, vPoolCapabilities, _dbClient);                    

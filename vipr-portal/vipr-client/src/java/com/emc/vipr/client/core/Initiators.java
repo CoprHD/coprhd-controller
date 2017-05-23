@@ -105,9 +105,10 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * @param associatedId the ID of the associated initiator
      * @return a task for monitoring the progress of the initiator association
      */
-    public Task<InitiatorRestRep> associate(URI id, URI associatedId) {
-        return putTask(id, PathConstants.ASSOCIATE_INITIATOR_URL, associatedId);
+     public InitiatorRestRep associate(URI id, URI associatedId) {
+    	 return client.put(InitiatorRestRep.class, PathConstants.ASSOCIATE_INITIATOR_URL, id, associatedId);
     }
+
 
     /**
      * Dissociate a initiators to another initiator
@@ -117,9 +118,10 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * @param id The ID of the initiator.
      * @return a task for monitoring the progress of the initiator dissociation
      */
-    public Task<InitiatorRestRep> dissociate(URI id) {
-        return putTask(id, PathConstants.DISSOCIATE_INITIATOR_URL);
+     public InitiatorRestRep dissociate(URI id) {
+        return client.put(InitiatorRestRep.class, getIdUrl() + "/dissociate", id);
     }
+
 
     /**
      * Updates an initiator.

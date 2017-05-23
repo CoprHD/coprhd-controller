@@ -600,11 +600,9 @@ public class UCSMServiceImpl implements UCSMService {
                     }
                 }
                 String errorDescription = null;
-                String errorCode = null;
 
                 if (namedTemplateOut != null) {
                     errorDescription = namedTemplateOut.getErrorDescr();
-                    errorCode = namedTemplateOut.getErrorCode();
                 }
                 if (errorDescription !=null){
                    log.error("Error received from UCS: "+ errorDescription);
@@ -691,7 +689,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         unbindSPFromSPTConfigConfMo.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        LsServer pushedObject = pushLsServer(computeSession, factory, unbindSPFromSPTConfigConfMo);
+        LsServer pushedObject = pushLsServer(computeSession, factory, unbindSPFromSPTConfigConfMo, errorMessage);
         String pushedObjectTemplateName = null;
         if (pushedObject!=null) { 
             pushedObjectTemplateName = pushedObject.getSrcTemplName();
@@ -759,13 +757,11 @@ public class UCSMServiceImpl implements UCSMService {
 
         List<com.emc.cloud.platform.ucs.out.model.ConfigConfig> configConfigs = new ArrayList<>();
         String errorDescription = null;
-        String errorCode = null;
 
         if (configConfMoOut != null) {
             configConfigs = getSubElements(configConfMoOut.getContent(),
                     com.emc.cloud.platform.ucs.out.model.ConfigConfig.class);
             errorDescription = configConfMoOut.getErrorDescr();
-            errorCode = configConfMoOut.getErrorCode();
         }
      
         if (errorDescription !=null){

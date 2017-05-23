@@ -817,11 +817,16 @@ public class UcsComputeDevice implements ComputeDevice {
                 // systems.
                 InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_063);
                 if (serviceProfile == null || ASSOC_STATE_UNASSOCIATED.equals(serviceProfile.getAssocState())) {
-                    LOGGER.info("SP {} AssocState is marked unassociated or null. Bind ServiceProfileToBlade failed. ConfigState: {} , ConfigQualifer: {}", spDn,serviceProfile.getConfigState(), serviceProfile.getConfigQualifier());
+                    String additionalInfo = null;
+                    if (serviceProfile!=null){
+                       additionalInfo = "\n \t Additional info from UCS: \n \t ConfigState: "+ serviceProfile.getConfigState() + " ConfigQualifier:" + serviceProfile.getConfigQualifier();
+                    }
+
+                    LOGGER.info("SP {} AssocState is marked unassociated or null. Bind ServiceProfileToBlade failed. ConfigState: {} , ConfigQualifer: {}", 
+                                spDn,(serviceProfile == null ? "" :serviceProfile.getConfigState()) ,(serviceProfile == null ? "" :  serviceProfile.getConfigQualifier()));
                     throw new RuntimeException("Failed to bind service profile "+ spDn +" to blade "+ computeElement.getLabel()+ " picked from compute virtual pool."
                             + "\n \t ServiceProfile state is " + (serviceProfile == null ? "null" : serviceProfile.getAssocState())
-                            + "\n \t " + errorMessage.toString()
-                            + "\n \t Additional info from UCS: \n \t ConfigState: "+ serviceProfile.getConfigState() + " ConfigQualifier:" + serviceProfile.getConfigQualifier());
+                            + "\n \t " + errorMessage.toString() + additionalInfo);
                 }
 
                 // Test mechanism to invoke a failure. No-op on production

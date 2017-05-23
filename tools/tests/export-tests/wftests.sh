@@ -927,7 +927,7 @@ xio_setup() {
     run cos create block ${VPOOL_BASE}	\
         --description Base true \
         --protocols FC 			                \
-        --numpaths 1				            \
+        --numpaths 2				            \
         --provisionType 'Thin'			        \
         --max_snapshots 10                      \
         --multiVolumeConsistency        \
@@ -937,7 +937,7 @@ xio_setup() {
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 2				            \
+	--numpaths 4				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
         --multiVolumeConsistency        \

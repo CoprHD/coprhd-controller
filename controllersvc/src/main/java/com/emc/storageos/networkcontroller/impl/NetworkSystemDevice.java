@@ -257,7 +257,7 @@ public interface NetworkSystemDevice {
     /**
      * For Brocade Network systems, this method returns nothing. 
      * For Cisco Network systems, routed networks are calculated based on the "show ivr vsan-topology" CLI command. 
-     * For every switch that is in the topology map, all the networks on that switch are routable to each other. 
+     * For every switch that is returned by the topology map, all the networks on those switches are routable to each other. 
      * In addition, all the networks on that switch are routable to all the other networks for other switches that show up on that list. 
      * The command "show ivr vsan-topology" lists all the IVR enabled switches connected to each other. 
      * @param networkSystem

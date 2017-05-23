@@ -289,7 +289,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         List<URI> allVolumes = new ArrayList<URI>();
         List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool, 
-                performanceParams, volRecommendations, task, vPoolCapabilities,
+                performanceParams, VolumeTopologySite.SOURCE, null, volRecommendations, task, vPoolCapabilities,
                 vPoolCapabilities.getBlockConsistencyGroup(), taskList, allVolumes, true);
         for (VolumeDescriptor desc : descriptors) {
             s_logger.info("Vplex Root Descriptors: " + desc.toString());
@@ -309,8 +309,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     // Do not pass in the consistency group for vplex volumes fronting targets
                     // as we will eventually put them in the target CG.
                     srdfCopyDescriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
-                            performanceParams, copyRecommendations, task, vPoolCapabilities, null,
-                            taskList, allVolumes, true);
+                            performanceParams, VolumeTopologySite.COPY, null, copyRecommendations, task,
+                            vPoolCapabilities, null, taskList, allVolumes, true);
                     param.setName(name);
                 } else {
                     // Get the performance parameters for the copy.
@@ -412,8 +412,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     public List<VolumeDescriptor> createVPlexVolumeDescriptors(VolumeCreate param, Project project, final VirtualArray vArray,
             final VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap, 
-            List<Recommendation> recommendations, String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
-            URI blockConsistencyGroupURI, TaskList taskList, List<URI> allVolumes, boolean createTask) {
+            VolumeTopologySite topologySite, VolumeTopologyRole topologyRole, List<Recommendation> recommendations, String task,
+            VirtualPoolCapabilityValuesWrapper vPoolCapabilities, URI blockConsistencyGroupURI, TaskList taskList,
+            List<URI> allVolumes, boolean createTask) {
         s_logger.info("Request to create {} VPlex virtual volume(s)",
                 vPoolCapabilities.getResourceCount());
 
@@ -473,18 +474,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         
         // Get the performance parameters for these volumes.
         Map<VolumeTopologyRole, URI> performanceParams = null;
-        if (!srdfCopy) {
-            Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = performanceParamsMap.get(VolumeTopologySite.SOURCE);
-            // There should only be one set of performance parameters for the source
-            // in the map, which is keyed by the source site varray URI.
-            if (sourceParamsMap != null && !sourceParamsMap.isEmpty()) {
-                performanceParams = sourceParamsMap.values().iterator().next();
-            }
-        } else {
-            // The performance parameters for the SRDF copy are those with the same varray as the target.
-            Map<URI, Map<VolumeTopologyRole, URI>> copyParamsMap = performanceParamsMap.get(VolumeTopologySite.COPY);
-            if (copyParamsMap != null && !copyParamsMap.isEmpty()) {
-                performanceParams = copyParamsMap.get(vArray);
+        Map<URI, Map<VolumeTopologyRole, URI>> siteParamsMap = performanceParamsMap.get(topologySite);
+        if (siteParamsMap != null && !siteParamsMap.isEmpty()) {
+            if (topologySite == VolumeTopologySite.SOURCE) {
+                // There should only be one set of performance parameters for the source
+                // in the map, which is keyed by the source site varray URI. Since varray
+                // is required when specifying the performance params, even for the source
+                // params, we could also just get the entry in the map for the passed varray.
+                performanceParams = siteParamsMap.values().iterator().next();
+            } else {
+                // The performance parameters for the copy are those with the same varray as the target.
+                performanceParams = siteParamsMap.get(vArray);
             }
         }
 
@@ -500,34 +500,40 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             String varrayId = varrayIter.next();
             List<VPlexRecommendation> vplexRecommendations = varrayRecommendationsMap.get(varrayId);
             
-            // Determine the performance parameters for these backend volumes based on
-            // where these are the primary or HA recommendations.
-            VolumeTopologyRole role = VolumeTopologyRole.PRIMARY;
-            if (!varrayId.equals(vArray.getId().toString())) {
-                // This is the HA varray, so we need the performance parameters for that role.
-                role = VolumeTopologyRole.HA;
+            // If a role is passed this means we must be creating a VPLEX journal volume.
+            // In this case, the role will be either JOURNAL or STANDBY_JOURNAL. Otherwise,
+            // this is a VPLEX source or target volume and we need to determine the role
+            // based on whether these are the primary or HA recommendations for the volume.
+            VolumeTopologyRole role = topologyRole;
+            if (role == null) {
+                role = VolumeTopologyRole.PRIMARY;
+                if (!varrayId.equals(vArray.getId().toString())) {
+                    // This is the HA varray, so we need the performance parameters for that role.
+                    role = VolumeTopologyRole.HA;
+                }
             }
             URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(performanceParams, role, _dbClient);
             
-            // If the VPLEX volume is an SRDF copy, then we need to override the 
-            // source site capabilities to make sure they take into account the 
-            // copy vpool and the copy performance parameters. Otherwise, for 
-            // the HA recommendations we need to override the primary side 
-            // capabilities to make sure they take into account the HA vpool and
-            // the HA performance parameters. This was done when the volumes were
-            // placed and we want to make sure the prepared volumes and descriptors
-            // reflect this as well. Note that an SRDF copy cannot be distributed
-            // so HA does not apply in this case.
+            // The capabilities are initialized for the primary source volume using the
+            // primary source volume vpool and performance parameters in the BlockService.
+            // These are the capabilities that are passed around when placing the volume
+            // and preparing the ViPR volumes and descriptors. We need to override these
+            // capabilities to reflect the vpool and performance parameters of the
+            // volume at the passed site, playing the specified role. This was done
+            // when the volume was placed in the schedulers and must be done here
+            // when preparing the ViPR volume so that it reflects the same values
+            // that were used when the volume was placed.
             VirtualPoolCapabilityValuesWrapper backendCapabilities = vPoolCapabilities;
-            if (srdfCopy) {
-                backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                        vPool, performanceParams, VolumeTopologyRole.PRIMARY, vPoolCapabilities, _dbClient);
-            } else if (role == VolumeTopologyRole.HA) {
-                // Note there it not an embedded child recommendation for the VPLEX 
-                // recommendations on the HA side of distributed volumes.
-                VirtualPool haVpool = vplexRecommendations.get(0).getVirtualPool();
-                backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                        haVpool, performanceParams, VolumeTopologyRole.HA, vPoolCapabilities, _dbClient);
+            if (topologySite != VolumeTopologySite.SOURCE || role != VolumeTopologyRole.PRIMARY) {
+                if (role == VolumeTopologyRole.HA) {
+                    // Make sure to get the HA vpool, not the passed vpool.
+                    VirtualPool haVpool = vplexRecommendations.get(0).getVirtualPool();
+                    backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                            haVpool, performanceParams, role, vPoolCapabilities, _dbClient);
+                } else {
+                    backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                            vPool, performanceParams, role, vPoolCapabilities, _dbClient);                    
+                }
             }
 
             s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
@@ -554,9 +560,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         
         // Associate the same performance parameters for the VPLEX volume as the
         // primary backend volume similar to how the same vpool is associated with
-        // the VPLEX volume and primary backend volume.
+        // the VPLEX volume and primary backend volume. Note however, that if a 
+        // topology role is passed, then this is a VPLEX journal or standby journal
+        // and the VPLEX volume should reflect those used for the journal backend volume.
         URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(
-                performanceParams, VolumeTopologyRole.PRIMARY, _dbClient);
+                performanceParams, topologyRole != null ? topologyRole : VolumeTopologyRole.PRIMARY, _dbClient);
         
         for (int i = 0; i < vPoolCapabilities.getResourceCount(); i++) {
             // Compute the volume label based on the label of the underlying volume

@@ -309,7 +309,7 @@
           "baseService": "NasExpandFileSystem"
         },
         {
-          "image": "icon_NASstorage_expand.png",
+          "image": "icon_NASstorage_reduce.png",
           "baseService": "NasReduceFileSystem"
         },
         {

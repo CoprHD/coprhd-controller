@@ -1220,6 +1220,40 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     @Override
+    public DriverTask suspend(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "-resumeReplicationLink-", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        List<String> nativeIds = new ArrayList<>();
+        for (RemoteReplicationPair pair : replicationPairs) {
+            pair.setReplicationState("suspended");
+            nativeIds.add(pair.getNativeId());
+        }
+        String msg = String.format("%s: %s --- suspend replication pairs %s.", driverName, "suspend", nativeIds);
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
+    public DriverTask resume(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "-resumeReplicationLink-", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        List<String> nativeIds = new ArrayList<>();
+        for (RemoteReplicationPair pair : replicationPairs) {
+            pair.setReplicationState("active");
+            nativeIds.add(pair.getNativeId());
+        }
+        String msg = String.format("%s: %s --- resumed replication pairs %s.", driverName, "resume", nativeIds);
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
     public DriverTask failover(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "-failoverReplicationLink-", UUID.randomUUID().toString());

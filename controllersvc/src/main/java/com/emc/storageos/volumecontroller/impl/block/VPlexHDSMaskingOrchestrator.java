@@ -225,7 +225,9 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             portGroups.add(portGroup);
             _log.info(String.format("Port Group %d: %s", i, portNames.toString()));
             // Reinitialize the context in the allocator; we want redundancy within PG
-            allocator.getContext().reinitialize();
+            if (allocator.getContext() != null) {
+                allocator.getContext().reinitialize();
+            }
         }
         return portGroups;
     }

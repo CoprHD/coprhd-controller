@@ -4143,7 +4143,7 @@ rpmp_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -7266,11 +7266,24 @@ sbsdk_remote_replication_tests()
                     --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}::SYNCHRONOUS"
 
     #Execute remote replication link operations
+
+    echo "**** Suspend replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup suspend ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Resume replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup resume ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
     echo "**** Failover replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup failover ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
     echo "**** Failback replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup failback ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Suspend replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset suspend ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Resume replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset resume ${SBSDK_DRIVER_REPLICATION_SET1}
 
     echo "**** Failover replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset failover ${SBSDK_DRIVER_REPLICATION_SET1}

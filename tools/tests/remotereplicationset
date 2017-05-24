@@ -33,12 +33,33 @@ def remotereplicationset_failover(args):
     else:
         print 'Failed to failover remote replication set.'
 
+def remotereplicationset_suspend(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_suspend(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Suspended remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to suspend remote replication set.'
+
+def remotereplicationset_resume(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_resume(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Resumed remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to resume remote replication set.'
+
 def remotereplicationset_failback(args):
     bourne.connect(args.ip)
 
     replicationset_uri = bourne.replicationset_query(args.replicationset_name)
     print 'Replication set uri: ' + replicationset_uri
-
     s = bourne.replicationset_failback(replicationset_uri)
     if (s['state'] == 'ready'):
         print 'Failed back remote replication set with id ' + s['resource']['id']
@@ -62,13 +83,9 @@ parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', d
 # remote replication set list
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 
-# remotereplicationset failover
-failover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-failover.add_argument('replicationset_name', help = 'The name of the replication group.')
-
-# remotereplicationset failback
-failback = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-failback.add_argument('replicationset_name', help = 'The name of the replication group.')
+# remotereplicationset operations
+operation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+operation.add_argument('replicationset_name', help = 'The name of the replication group.')
 
 #----------------------------------------------------------------------
 # Main script
@@ -87,10 +104,16 @@ try:
         args = list.parse_args()
         remotereplicationset_list(args)
     elif (cmd == "failover"):
-        args = failover.parse_args()
+        args = operation.parse_args()
         remotereplicationset_failover(args)
+    elif (cmd == "suspend"):
+        args = operation.parse_args()
+        remotereplicationset_suspend(args)
+    elif (cmd == "resume"):
+        args = operation.parse_args()
+        remotereplicationset_resume(args)
     elif (cmd == "failback"):
-        args = failback.parse_args()
+        args = operation.parse_args()
         remotereplicationset_failback(args)
     else:
         parser.print_help()

@@ -86,12 +86,12 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
 
     @Override
     public void suspend(RemoteReplicationElement replicationElement, String opId) {
-
+        exec("suspend", replicationElement, opId);
     }
 
     @Override
     public void resume(RemoteReplicationElement replicationElement, String opId) {
-
+        exec("resume", replicationElement, opId);
     }
 
     @Override

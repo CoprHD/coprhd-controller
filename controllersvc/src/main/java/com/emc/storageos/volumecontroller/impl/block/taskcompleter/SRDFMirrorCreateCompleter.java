@@ -24,6 +24,15 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.utils.SRDFOperationContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.List;
+
+import static com.emc.storageos.volumecontroller.impl.utils.SRDFOperationContext.SRDFOperationType.CHANGE_VPOOL_ON_SOURCE;
+import static java.util.Arrays.asList;
 
 public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
     private static final Logger log = LoggerFactory.getLogger(SRDFMirrorCreateCompleter.class);
@@ -72,8 +81,10 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
                     // updating source volume with changed VPool
                     source = dbClient.queryObject(Volume.class, target.getSrdfParent().getURI());
                     if (null != vpoolChangeURI) {
+                        URI previousVPool = source.getVirtualPool();
                         source.setVirtualPool(vpoolChangeURI);
-                        dbClient.persistObject(source);
+                        dbClient.updateObject(source);
+                        SRDFOperationContext.insertContextOperation(this, CHANGE_VPOOL_ON_SOURCE, previousVPool, vpoolChangeURI);
                     }
                     // Pin the target System with the source CG, which helps to identify this system is
                     // a target R2 for CG.

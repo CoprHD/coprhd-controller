@@ -47,6 +47,8 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
         ACL.ALL })
 public class RemoteReplicationManagementService extends TaskResourceService {
 
+    private static final String MULTI_PAIR_VMAX_ERR_MSG = "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request";
+    private static final String UNSUPPORTTED_CONTEXT_VMAX_ERR_MSG = "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.";
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationManagementService.class);
     public static final String SERVICE_TYPE = "remote_replication_management";
 
@@ -128,14 +130,10 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
+        precheckVmaxPair(rrPair, operationContext, operationParam);
+
         switch (operationContext) {
             case RR_PAIR:
-                if (isVmaxPair(rrPair) && operationParam.getIds().size() > 1) {
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request.",
-                            operationContext.toString()));
-                }
-
                 String taskID = UUID.randomUUID().toString();
                 for (URI rrPairURI : operationParam.getIds()) {
                     TaskResourceRep rrPairTaskResourceRep = rrPairService.splitRemoteReplicationPairLink(rrPairURI, taskID);
@@ -149,12 +147,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 break;
 
             case RR_GROUP:
-                if (isVmaxPair(rrPair)) {
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays operations with context %s are not supported. Use %s or %s/%s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG, OperationContext.RR_SET_CG));
-                }
-
                 URI groupURI = rrPair.getReplicationGroup();
                 RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
                 task =  rrGroupService.splitRemoteReplicationGroupLink(rrGroup.getId());
@@ -162,12 +154,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 break;
 
             case RR_SET:
-                if (isVmaxPair(rrPair)) {
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays operations with context %s are not supported. Use %s or %s/%s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG, OperationContext.RR_SET_CG));
-                }
-
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
                 task =  rrSetService.splitRemoteReplicationSetLink(rrSet.getId());
@@ -246,14 +232,10 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
+        precheckVmaxPair(rrPair, operationContext, operationParam);
+
         switch (operationContext) {
             case RR_PAIR:
-                if (isVmaxPair(rrPair) && operationParam.getIds().size() > 1) {
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request.",
-                            operationContext.toString()));
-                }
-
                 String taskID = UUID.randomUUID().toString();
                 for (URI rrPairURI : operationParam.getIds()) {
                     TaskResourceRep rrPairTaskResourceRep = rrPairService.suspendRemoteReplicationPairLink(rrPairURI, taskID);
@@ -267,14 +249,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 break;
 
             case RR_GROUP:
-                // For VMAX we do not support group context. We align with current support for SRDF operations --- single volume or CG.
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays operations with context %s are not supported. Use %s or %s/%s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG, OperationContext.RR_SET_CG));
-                }
-
                 URI groupURI = rrPair.getReplicationGroup();
                 RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
                 task =  rrGroupService.suspendRemoteReplicationGroupLink(rrGroup.getId());
@@ -282,14 +256,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 break;
 
             case RR_SET:
-                // For VMAX we do not support group context. We align with current support for SRDF operations --- single volume or CG.
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays operations with context %s are not supported. Use %s or %s/%s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG, OperationContext.RR_SET_CG));
-                }
-
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
                 task =  rrSetService.suspendRemoteReplicationSetLink(rrSet.getId());
@@ -317,18 +283,10 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
+        precheckVmaxPair(rrPair, operationContext, operationParam);
+
         switch (operationContext) {
             case RR_PAIR:
-                // for individual pairs send one request for each pair
-                // call pair service for each pair and add task to the taskList, return task list.
-                // For VMAX pairs we support RR_PAIR operations only on a single pair at a time.
-                if (isVmaxPair(rrPair) && operationParam.getIds().size() > 1) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request.",
-                            operationContext.toString()));
-                }
-
                 String taskID = UUID.randomUUID().toString();
                 for (URI rrPairURI : operationParam.getIds()) {
                     TaskResourceRep rrPairTaskResourceRep = rrPairService.resumeRemoteReplicationPairLink(rrPairURI, taskID);
@@ -342,14 +300,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 break;
 
             case RR_GROUP:
-                // For VMAX we do not support group context. We align with current support for SRDF operations --- single volume or CG.
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays operations with context %s are not supported. Use %s or %s/%s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG, OperationContext.RR_SET_CG));
-                }
-
                 URI groupURI = rrPair.getReplicationGroup();
                 RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
                 task =  rrGroupService.resumeRemoteReplicationGroupLink(rrGroup.getId());
@@ -357,14 +307,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 break;
 
             case RR_SET:
-                // For VMAX we do not support group context. We align with current support for SRDF operations --- single volume or CG.
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays operations with context %s are not supported. Use %s or %s/%s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG, OperationContext.RR_SET_CG));
-                }
-
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
                 task =  rrSetService.resumeRemoteReplicationSetLink(rrSet.getId());
@@ -392,43 +334,23 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
+        precheckVmaxPair(rrPair, operationContext, operationParam);
+
         switch (operationContext) {
             case RR_PAIR:
-                // for individual pairs send one request for each pair
-                // call pair service for each pair and add task to the taskList, return task list.
-                // For VMAX pairs we support RR_PAIR operations only on a single pair at a time.
-                if (isVmaxPair(rrPair) && operationParam.getIds().size() > 1) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request",
-                            operationContext.toString()));
-                }
-
                 String taskID = UUID.randomUUID().toString();
                 for (URI rrPairURI : operationParam.getIds()) {
                     TaskResourceRep rrPairTaskResourceRep = rrPairService.failbackRemoteReplicationPairLink(rrPairURI, taskID);
                     taskList.addTask(rrPairTaskResourceRep);
                 }
                 break;
+
             case RR_SET_CG:
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
-                }
             case RR_GROUP_CG:
                 taskList =  rrPairService.failbackRemoteReplicationCGLink(operationParam.getIds());
                 break;
-            case RR_GROUP:
-                // For VMAX we do not support group context. We align with current support for SRDF operations --- single volume or CG.
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
-                }
 
+            case RR_GROUP:
                 URI groupURI = rrPair.getReplicationGroup();
                 RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
                 task =  rrGroupService.failbackRemoteReplicationGroupLink(rrGroup.getId());
@@ -436,14 +358,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 break;
 
             case RR_SET:
-                // For VMAX we do not support group context. We align with current support for SRDF operations --- single volume or CG.
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
-                }
-
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
                 task =  rrSetService.failbackRemoteReplicationSetLink(rrSet.getId());
@@ -470,43 +384,24 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskResourceRep task = null;
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
+
+        precheckVmaxPair(rrPair, operationContext, operationParam);
+
         switch (operationContext) {
             case RR_PAIR:
-                // for individual pairs send one request for each pair
-                // call pair service for each pair and add task to the taskList, return task list.
-                // For VMAX pairs we support RR_PAIR operations only on a single pair at a time.
-                if (isVmaxPair(rrPair) && operationParam.getIds().size() > 1) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request",
-                            operationContext.toString()));
-                }
-
                 String taskID = UUID.randomUUID().toString();
                 for (URI rrPairURI : operationParam.getIds()) {
                     TaskResourceRep rrPairTaskResourceRep = rrPairService.failoverRemoteReplicationPairLink(rrPairURI, taskID);
                     taskList.addTask(rrPairTaskResourceRep);
                 }
                 break;
+
             case RR_SET_CG:
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
-                }
             case RR_GROUP_CG:
                 taskList =  rrPairService.failoverRemoteReplicationCGLink(operationParam.getIds());
                 break;
-            case RR_GROUP:
-                // For VMAX we do not support group context. We align with current support for SRDF operations --- single volume or CG.
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
-                }
 
+            case RR_GROUP:
                 URI groupURI = rrPair.getReplicationGroup();
                 RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
                 task =  rrGroupService.failoverRemoteReplicationGroupLink(rrGroup.getId());
@@ -514,14 +409,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 break;
 
             case RR_SET:
-                // For VMAX we do not support set context. We align with current support for SRDF operations --- single volume or CG.
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
-                }
-
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
                 task =  rrSetService.failoverRemoteReplicationSetLink(rrSet.getId());
@@ -548,43 +435,24 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskResourceRep task = null;
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
+
+        precheckVmaxPair(rrPair, operationContext, operationParam);
+
         switch (operationContext) {
             case RR_PAIR:
-                // for individual pairs send one request for each pair
-                // call pair service for each pair and add task to the taskList, return task list.
-                // For VMAX pairs we support RR_PAIR operations only on a single pair at a time.
-                if (isVmaxPair(rrPair) && operationParam.getIds().size() > 1) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request",
-                            operationContext.toString()));
-                }
-
                 String taskID = UUID.randomUUID().toString();
                 for (URI rrPairURI : operationParam.getIds()) {
                     TaskResourceRep rrPairTaskResourceRep = rrPairService.swapRemoteReplicationPairLink(rrPairURI, taskID);
                     taskList.addTask(rrPairTaskResourceRep);
                 }
                 break;
+
             case RR_SET_CG:
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
-                }
             case RR_GROUP_CG:
                 taskList =  rrPairService.swapRemoteReplicationCGLink(operationParam.getIds());
                 break;
-            case RR_GROUP:
-                // For VMAX we do not support group context. We align with current support for SRDF operations --- single volume or CG.
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
-                }
 
+            case RR_GROUP:
                 URI groupURI = rrPair.getReplicationGroup();
                 RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
                 task =  rrGroupService.swapRemoteReplicationGroupLink(rrGroup.getId());
@@ -592,14 +460,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 break;
 
             case RR_SET:
-                // For VMAX we do not support set context. We align with current support for SRDF operations --- single volume or CG.
-                if (isVmaxPair(rrPair)) {
-                    // Bad request
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.",
-                            operationContext.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
-                }
-
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
                 task =  rrSetService.swapRemoteReplicationSetLink(rrSet.getId());
@@ -618,6 +478,20 @@ public class RemoteReplicationManagementService extends TaskResourceService {
             if (_dbClient.queryObject(id) == null) {
                 throw APIException.badRequests.invalidURI(id);
             }
+        }
+    }
+
+    private void precheckVmaxPair(RemoteReplicationPair pair, OperationContext context, RemoteReplicationOperationParam operationParam) {
+        if (!isVmaxPair(pair)) {
+            return;
+        }
+        if (context == OperationContext.RR_PAIR && operationParam.getIds().size() > 1) {
+            throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(MULTI_PAIR_VMAX_ERR_MSG,
+                     context.toString()));
+        }
+        if (context == OperationContext.RR_GROUP || context == OperationContext.RR_SET_CG || context == OperationContext.RR_SET) {
+            throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(UNSUPPORTTED_CONTEXT_VMAX_ERR_MSG,
+                            context.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
         }
     }
 

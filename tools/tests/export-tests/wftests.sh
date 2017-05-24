@@ -2500,7 +2500,7 @@ test_7() {
       # Verify the zone names, as we know them, are on the switch
       zone2=`get_zone_name ${HOST1} ${H1PI2}`
       if [[ -z $zone2 ]]; then
-        echo -e "\e[91mERROR\e[0m: Could not find a ViPR zone corresponding to host ${HOST1} and initiator ${H1PI2}"
+        echo -e "\e[91mERROR\e[0m: Could not find a ViPR zone corresponding to host ${HOST1} and initiator ${H1PI2}. COP-30518 has been created to track this issue"
         incr_fail_count
       else
         verify_zone ${zone2} ${FC_ZONE_A} exists  

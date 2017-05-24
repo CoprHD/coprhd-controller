@@ -214,40 +214,42 @@ extend_datastore() {
 }
 
 extend_datastore_with_new_volume_for_host() {
-    # tenant volname datastorename project vcenter datacenter host multipathpolicy
+    # tenant project varray pool volname datastorename vcenter datacenter host multipathpolicy
     tenant_arg=$1
-    volname_arg=$2
-    datastorename_arg=$3
-    multipathpolicy_arg=$8
-    catalog_failure=$9
+    volname_arg=$5
+    datastorename_arg=$6
+    multipathpolicy_arg=${10}
+    catalog_failure=${11}
 
-    volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
+    project_id=`project list --tenant ${tenant_arg} | grep "${2} " | awk '{print $4}'`   
+    virtualarray_id=`neighborhood list | grep "${3} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${4} " | awk '{print $3}'`
+ 
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${7} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
+    host_id=`hosts list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
 
-    vcenter_id=`vcenter list ${tenant_arg} | grep "${5} " | awk '{print $5}'`
-    datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
-    host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
-
-    echo "=== catalog order ExtendDatastorewithNewVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter"
-    catalog order ExtendDatastorewithNewVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter
+    catalog order ExtendDatastorewithNewVolume ${tenant_arg} project=${project_id},name=${volname_arg},size=1,virtualArray=${virtualarray_id},virtualPool=${virtualpool_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter --failOnError true
     return $?
 }
 
 extend_datastore_with_new_volume() {
-    # tenant volname datastorename project vcenter datacenter cluster multipathpolicy
+    # tenant project varray pool volname datastorename vcenter datacenter cluster multipathpolicy
     tenant_arg=$1
-    volname_arg=$2
-    datastorename_arg=$3   
-    multipathpolicy_arg=$8
-    catalog_failure=$9
+    volname_arg=$5
+    datastorename_arg=$6
+    multipathpolicy_arg=${10}
+    catalog_failure=${11}
 
-    volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
- 
-    vcenter_id=`vcenter list ${tenant_arg} | grep "${5} " | awk '{print $5}'`
-    datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
-    cluster_id=`cluster list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
+    project_id=`project list --tenant ${tenant_arg} | grep "${2} " | awk '{print $4}'`
+    virtualarray_id=`neighborhood list | grep "${3} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${4} " | awk '{print $3}'`
+
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${7} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
+    cluster_id=`cluster list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
     
-    echo "=== catalog order ExtendDatastorewithNewVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter"
-    catalog order ExtendDatastorewithNewVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter
+    catalog order ExtendDatastorewithNewVolume ${tenant_arg} project=${project_id},name=${volname_arg},size=1,virtualArray=${virtualarray_id},virtualPool=${virtualpool_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter --failOnError true
     return $?
 }
 
@@ -2830,8 +2832,9 @@ test_extend_datastore_with_new_volume() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
 
     catalog_failure_injections="extend_vmfs_datastore"
-    common_failure_injections="failure_082_set_resource_tag"
-            
+    common_failure_injections="failure_082_set_resource_tag&5 \
+                               failure_004_final_step_in_workflow_complete"
+        
     item=${RANDOM}
     mkdir -p results/${item}
 
@@ -2858,7 +2861,6 @@ test_extend_datastore_with_new_volume() {
         reset_counts
 
         new_extent="extent-${RANDOM}"
-        create_volume_for_vmware_for_host ${TENANT} ${new_extent} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
 
         if [ "${failure}" != "${HAPPY_PATH_TEST_INJECTION}" ]; then
             # Turn on failure at a specific point
@@ -2866,7 +2868,12 @@ test_extend_datastore_with_new_volume() {
             set_artificial_failure ${failure}
 
             # Request an extend order with new volume
-            fail extend_datastore_with_new_volume_for_host ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default" ${failure}
+            fail extend_datastore_with_new_volume_for_host ${TENANT} ${PROJECT} ${NH} ${VPOOL_BASE} ${new_extent} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default" ${failure}
+
+            # This failure is only on the datastore tag. The datastore will still have the extent created for it
+            if [ "$failure" = "failure_082_set_resource_tag&5" ]; then
+                expected_lun_count=`expr $expected_lun_count + 1`
+            fi
 
             # Wait for Vcenter to update.
             sleep 10
@@ -2875,7 +2882,6 @@ test_extend_datastore_with_new_volume() {
             if [ $? -ne 0 ]; then
                 echo "Datastore LUN count verification failed (1)"
                 expected_lun_count=`expr $expected_lun_count + 1`
-                continue
             fi
 
             verify_failures ${failure}
@@ -2890,15 +2896,32 @@ test_extend_datastore_with_new_volume() {
 
         # Rerun the expand operation
         set_artificial_failure none
-        run extend_datastore_with_new_volume_for_host ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default"
 
-        # Increase expected LUN count
-        expected_lun_count=`expr $expected_lun_count + 1`
+        if [ "${failure}" = "extend_vmfs_datastore" ]; then
+            runcmd extend_datastore_for_host ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default"
+        elif [ ! "${failure}" = "failure_082_set_resource_tag&5" ]; then
+            runcmd extend_datastore_with_new_volume_for_host ${TENANT} ${PROJECT} ${NH} ${VPOOL_BASE} ${new_extent} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default"
+        fi
+
+        if [ ! "${failure}" = "failure_082_set_resource_tag&5" ]; then
+            expected_lun_count=`expr $expected_lun_count + 1`
+        fi
+
         # Verify the datastore LUN count has increased by 1
         verify_datastore_lun_count ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} ${expected_lun_count}
         if [ $? -ne 0 ]; then
             echo "Datastore LUN count verification failed (2)"
             expected_lun_count=`expr $expected_lun_count - 1`
+        fi
+
+        # If failing during add datastore tag, add the tag here so that delete datastore will be successful
+        # vipr:vmfsDatastore-urn:storageos:Host:dafe219c-b70a-4d60-a41f-00d10361d3fb:vdc1=testds1-20461
+        if [ "${failure}" = "failure_082_set_resource_tag&5" ]; then
+            echo "Setting tag"
+            volume_id=`volume list ${PROJECT} | grep "${new_extent} " | awk '{print $7}'`
+            host_id=`hosts list ${TENANT} | grep "${VCENTER_HOST} " | awk '{print $4}'`
+            tag="vipr:vmfsDatastore-${host_id}=${datastore1}"
+            add_tag "volume" ${volume_id} ${tag}
         fi
 
         # Report results

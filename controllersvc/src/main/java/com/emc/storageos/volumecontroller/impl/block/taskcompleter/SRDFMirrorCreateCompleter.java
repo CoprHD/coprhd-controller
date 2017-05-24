@@ -4,13 +4,12 @@
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
+import static com.emc.storageos.volumecontroller.impl.utils.SRDFOperationContext.SRDFOperationType.CHANGE_VPOOL_ON_SOURCE;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,18 +20,11 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.utils.SRDFOperationContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.List;
-
-import static com.emc.storageos.volumecontroller.impl.utils.SRDFOperationContext.SRDFOperationType.CHANGE_VPOOL_ON_SOURCE;
-import static java.util.Arrays.asList;
 
 public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
     private static final Logger log = LoggerFactory.getLogger(SRDFMirrorCreateCompleter.class);

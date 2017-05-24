@@ -578,6 +578,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
 
+        // SRDF integration logic
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
+        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
+                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.SUSPEND_REMOTE_REPLICATION_PAIR_LINK);
+            return taskList.getTaskList().get(0);
+        }
+
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
@@ -1006,18 +1015,25 @@ public class RemoteReplicationPairService extends TaskResourceService {
         }
         copy.setCopyID(targetElement.getURI());
         CopiesParam param = new CopiesParam();
-        param.getCopies().add(copy);
         URI sourceVolumeURI = sourceElement.getURI();
         switch (operationType) {
             case FAILOVER_REMOTE_REPLICATION_PAIR_LINK:
+                param.getCopies().add(copy);
                 taskList = blockService.failoverProtection(sourceVolumeURI, param);
                 break;
 
             case FAILBACK_REMOTE_REPLICATION_PAIR_LINK:
+                param.getCopies().add(copy);
                 taskList = blockService.failoverCancel(sourceVolumeURI, param);
                 break;
             case SWAP_REMOTE_REPLICATION_PAIR_LINK:
+                param.getCopies().add(copy);
                 taskList = blockService.swap(sourceVolumeURI, param);
+                break;
+            case SUSPEND_REMOTE_REPLICATION_PAIR_LINK:
+                copy.setSync("false"); // srdf does suspend for sync == false, split otherwise
+                param.getCopies().add(copy);
+                taskList = blockService.pauseContinuousCopies(sourceVolumeURI, param);
                 break;
             default:
                 throw APIException.badRequests.operationNotSupportedForSystemType(operationType.toString(), StorageSystem.Type.vmax.toString());

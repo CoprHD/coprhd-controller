@@ -49,8 +49,6 @@ import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
-import com.emc.storageos.db.client.model.Stat;
-import com.emc.storageos.db.client.model.StatTimeSeries;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -76,7 +74,6 @@ import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
-import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -411,7 +408,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         doDeleteExportRulesFromDB(true, null, args); // Delete Export Rules from DB
                         doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                     }
-                    generateZeroStatisticsRecord(fsObj);
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else if (!result.getCommandPending()
                         && FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(deleteType)) {
@@ -459,7 +455,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         cifsSharesMap.clear();
                     }
                     fsObj.setInactive(true);
-                    generateZeroStatisticsRecord(fsObj);
 
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else if (!result.getCommandPending()
@@ -562,35 +557,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 dir.setInactive(true);
                 _dbClient.updateObject(dir);
             }
-        }
-    }
-
-    /**
-     * Generate zero statistics record.
-     * 
-     * @param fsObj
-     *            the file share object
-     */
-    private void generateZeroStatisticsRecord(FileShare fsObj) {
-        try {
-            Stat zeroStatRecord = new Stat();
-            zeroStatRecord.setTimeInMillis(System.currentTimeMillis());
-            zeroStatRecord.setTimeCollected(System.currentTimeMillis());
-            zeroStatRecord.setServiceType(Constants._File);
-            zeroStatRecord.setAllocatedCapacity(0);
-            zeroStatRecord.setProvisionedCapacity(0);
-            zeroStatRecord.setBandwidthIn(0);
-            zeroStatRecord.setBandwidthOut(0);
-            zeroStatRecord.setNativeGuid(fsObj.getNativeGuid());
-            zeroStatRecord.setSnapshotCapacity(0);
-            zeroStatRecord.setSnapshotCount(0);
-            zeroStatRecord.setResourceId(fsObj.getId());
-            zeroStatRecord.setVirtualPool(fsObj.getVirtualPool());
-            zeroStatRecord.setProject(fsObj.getProject().getURI());
-            zeroStatRecord.setTenant(fsObj.getTenant().getURI());
-            _dbClient.insertTimeSeries(StatTimeSeries.class, zeroStatRecord);
-        } catch (Exception e) {
-            _log.error("Zero Stat Record Creation failed for FileShare : {}", fsObj.getId(), e);
         }
     }
 

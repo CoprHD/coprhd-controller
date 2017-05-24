@@ -101,6 +101,6 @@ public interface CustomServicesPrimitiveDAO<Primitive extends CustomServicesPrim
      * Given a rest representation import a primitive to the database
      * @param operation The rest representation of a primitive
      */
-    public void importPrimitive(final CustomServicesPrimitiveRestRep operation);
+    public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation);
 
 }

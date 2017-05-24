@@ -196,9 +196,8 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     }
     
     @Override
-    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
-        final CustomServicesDBAnsiblePrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation);
-        client.save(primitive);
+    public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        return CustomServicesDBHelper.importDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation, client);
     }
     
     @Override
@@ -211,17 +210,18 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
         
         ArgValidator.checkFieldForValueFromEnum(method, CustomServicesConstants.METHOD, EnumSet.allOf(CustomServicesConstants.RestMethods.class));
         
-        final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder().putAll(param.getAttributes());
-        
+        final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder();
+ 
         if( !StringUtils.isEmpty(param.getAttributes().get(CustomServicesConstants.BODY))) {
             switch(method) {
                 case GET:
                     throw APIException.badRequests.invalidParameterValueWithExpected(CustomServicesConstants.BODY, param.getAttributes().get(CustomServicesConstants.BODY), "");
                 default:
             }
-        } else {
+        } else if (!param.getAttributes().containsKey(CustomServicesConstants.BODY)) {
             builder.put(CustomServicesConstants.BODY, StringUtils.EMPTY);
         }
+        builder.putAll(param.getAttributes());
         return CustomServicesDBHelper.createAttributes(ATTRIBUTES, builder.build());
     }
     

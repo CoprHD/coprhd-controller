@@ -160,6 +160,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/systemd/system/syncntp.service \
     $(ETCDIR)/systemd/system/ipchecktool.service \
     $(ETCDIR)/systemd/system/storageos-installer.service \
+    $(ETCDIR)/customservices/ansible_log.py \
     $(ETCDIR)/systemd/system/ipsec.service
 
 
@@ -281,6 +282,13 @@ $(ETCDIR)/genconfig.d/%: genconfig.d/%
 	@$(RM) $(@)
 	@$(MKDIR) $(@D)
 	$(ATSIGN)$(CP) -d $(<) $(@)
+	$(ATSIGN)$(CHMOD) 755 $(@)
+
+$(ETCDIR)/customservices/%: customservices/%
+	@echo "sed etc/$(<)"
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
 	$(ATSIGN)$(CHMOD) 755 $(@)
 
 $(ETCDIR)/%: %

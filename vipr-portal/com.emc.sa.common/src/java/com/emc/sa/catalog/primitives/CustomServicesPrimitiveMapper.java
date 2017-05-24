@@ -167,7 +167,7 @@ public final class CustomServicesPrimitiveMapper extends DbObjectMapper {
         InputParameterRestRep restRep = new InputParameterRestRep();
         restRep.setName(param.getName());
         restRep.setRequired(param.getRequired());
-        restRep.setType(param.getType().name());
+        restRep.setFieldType(param.getType().name());
 
         return restRep;
     }

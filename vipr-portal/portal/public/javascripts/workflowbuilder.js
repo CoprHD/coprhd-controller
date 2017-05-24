@@ -5,6 +5,7 @@ var shellNodeType = "script";
 var localAnsibleNodeType = "ansible"
 var restAPINodeType = "rest"
 var viprRestAPINodeType = "vipr";
+var remoteAnsibleNodeType = "remote_ansible"
 
 angular.module("portalApp").controller('builderController', function($scope, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
     $rootScope.$on("addWorkflowTab", function(event, id, name){
@@ -37,8 +38,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     var jstreeContainer = $element.find('#jstree_demo');
 
-    var fileNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType, workflowNodeType]
-    var primitiveNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType]
+    var fileNodeTypes = [shellNodeType, localAnsibleNodeType, remoteAnsibleNodeType, restAPINodeType, workflowNodeType]
+    var primitiveNodeTypes = [shellNodeType, localAnsibleNodeType, remoteAnsibleNodeType, restAPINodeType]
     var viprLib = "viprLib";
     var myLib = "myLib";
 
@@ -68,7 +69,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             "types": {
                 "#": {
                     "max_children": 1,
-                    "max_depth": 4,
+                    "max_depth": -1,
                     "valid_children": ["root"]
                 },
                 "root": {
@@ -77,7 +78,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "FOLDER": {
                     "icon": "builder-jstree-icon builder-folder-icon",
-                    "valid_children": ["Workflow","FOLDER", "script", "ansible", "rest"]
+                    "valid_children": ["Workflow","FOLDER", "script", "ansible", "rest", "remote_ansible"]
                 },
                 "Workflow": {
                     "icon": "builder-jstree-icon builder-jstree-workflow-icon",
@@ -91,6 +92,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "ansible": {
                     "icon": "builder-jstree-icon builder-jstree-ansible-icon",
+                    "valid_children": [],
+                    "li_attr": {"class": "draggable-card"}
+                },
+                "remote_ansible": {
+                    "icon": "builder-jstree-icon builder-jstree-remote-ansible-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
@@ -148,38 +154,122 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     // jstree actions
     //TODO: do error handling on all actions
     jstreeContainer.on("rename_node.jstree", renameDir);
-    jstreeContainer.on("delete_node.jstree", deleteDir);
     jstreeContainer.on("select_node.jstree", selectDir);
     jstreeContainer.on("hover_node.jstree", hoverDir);
     jstreeContainer.on("dehover_node.jstree", dehoverDir);
 
+    function displaySuccessMessage(successMessage) {
+    	var alertsDiv = $("#wfAlertsDiv");
+    	var successAlert = alertsDiv.find("#alerts_success");
+    	if(!successAlert.length) {
+    	    // if it doesn't exist, create
+    	    var successAlertHTML = `
+    	    <p id="alerts_success" class="alert alert-success">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <span class="message"></span>
+            </p>
+    	    `;
+    	    alertsDiv.append(successAlertHTML);
+    	    successAlert = $("#alerts_success");
+    	}
+
+    	successAlert.find("span").html(successMessage);
+        successAlert.show();
+    };
+
+    function displayErrorMessage(errorMessage) {
+    	var alertsDiv = $("#wfAlertsDiv");
+    	var errorAlert = alertsDiv.find("#alerts_error");
+    	if(!errorAlert.length) {
+    	    // if it doesn't exist, create
+    	    var errorAlertHTML = `
+    	    <p id="alerts_error" class="alert alert-danger">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <span class="message"></span>
+            </p>
+    	    `;
+    	    alertsDiv.append(errorAlertHTML);
+    	    errorAlert = $("#alerts_error");
+    	}
+
+    	errorAlert.find("span").html(errorMessage);
+        errorAlert.show();
+    };
+
     function createDir(event, data) {
         if (folderNodeType === data.node.type) {
-            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).then(function (resp) {
-                data.instance.set_id(data.node, resp.data.id);
+            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).success(function(resp) {
+                data.instance.set_id(data.node, resp.id);
+                displaySuccessMessage(translate("node.create.success"));
+            })
+            .error(function (error){
+                deleteNodeFromJSTreeAndDisplayErrorMsg(data.node, error.details);
             });
         }
         else {
-            $http.get(routes.Workflow_create({"workflowName": data.node.text,"dirID": data.node.parent})).then(function (resp) {
-                data.instance.set_id(data.node, resp.data.id);
+            $http.get(routes.Workflow_create({"workflowName": data.node.text,"dirID": data.node.parent})).success(function(resp) {
+                data.instance.set_id(data.node, resp.id);
+                displaySuccessMessage(translate("node.create.success"));
+            })
+            .error(function (error){
+                deleteNodeFromJSTreeAndDisplayErrorMsg(data.node, error.details);
             });
         }
     };
 
-    function deleteDir(event, data) {
-        if (folderNodeType === data.node.type) {
-            $http.get(routes.WF_directory_delete({"id": data.node.id}));
-        }
-        else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
-        	$http.get(routes.Primitive_delete({"primitiveId": data.node.id, "dirID": data.parent}));
-        }
-        else {
-            $http.get(routes.Workflow_delete({"workflowID": data.node.id, "dirID": data.parent}));
-        }
+    function deleteNodeFromJSTreeAndDisplayErrorMsg(selectedNode, errorMsg) {
+        jstreeContainer.jstree(true).delete_node(selectedNode);
+        displayErrorMessage(errorMsg);
+    }
+
+    function deleteNodeFromJSTreeAndDisplaySuccessMsg(jstreeRef, selectedNode) {
+        jstreeRef.delete_node(selectedNode);
 
         // By default select "My Library"
         jstreeContainer.jstree("select_node", myLib);
+
+        displaySuccessMessage(translate("node.delete.success"));
+    }
+
+    $scope.deleteNode = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected('full',true);
+        if(!sel.length) { return false; }
+        var nodeId = sel[0].id;
+        var nodeType = sel[0].type;
+        var nodeParent = sel[0].parent;
+        if (folderNodeType === nodeType) {
+            $http.get(routes.WF_directory_delete({"id": nodeId})).success(function() {
+                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
+            })
+            .error(function (error){
+                displayErrorMessage(error.details);
+            });
+        }
+        else if($.inArray(nodeType, primitiveNodeTypes) > -1) {
+        	$http.get(routes.Primitive_delete({"primitiveId": nodeId, "dirID": nodeParent})).success(function() {
+                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
+            })
+            .error(function (error){
+                displayErrorMessage(error.details);
+            });
+        }
+        else {
+            $http.get(routes.Workflow_delete({"workflowID": nodeId, "dirID": nodeParent})).success(function() {
+                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
+            })
+            .error(function (error){
+                displayErrorMessage(error.details);
+            });
+        }
+
     };
+
+    function revertRename(node, oldText, errorMessage) {
+        jstreeContainer.jstree('set_text', node , oldText );
+        displayErrorMessage(errorMessage);
+        addMoreOptions(node.id, node.type, node.parent);
+    }
 
     function renameDir(event, data) {
         // Identifying if node is not saved to DB yet and creating it.
@@ -188,19 +278,38 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             addMoreOptions(data.node.parent, folderNodeType, "");
         }
         else {
-            if (folderNodeType === data.node.type) {
-                $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
-            }
-            else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
-                $http.get(routes.Primitive_edit_name({"primitiveID": data.node.id, "newName": data.text}));
-            }
-            else if (workflowNodeType === data.node.type){
-                $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
+            // if Old text is not equal to new text, then rename
+            if (data.old !== data.text) {
+                if (folderNodeType === data.node.type) {
+                    $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text})).success(function() {
+                        displaySuccessMessage(translate("node.rename.success"));
+                    })
+                    .error(function (error){
+                        revertRename(data.node, data.old, error.details)
+                    });
+                }
+                else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
+                    $http.get(routes.Primitive_edit_name({"primitiveID": data.node.id, "newName": data.text})).success(function() {
+                        displaySuccessMessage(translate("node.rename.success"));
+                    })
+                    .error(function (error){
+                        revertRename(data.node, data.old, error.details)
+                    });
+                }
+                else if (workflowNodeType === data.node.type){
+                    $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text})).success(function() {
+                        displaySuccessMessage(translate("node.rename.success"));
+                    })
+                    .error(function (error){
+                        revertRename(data.node, data.old, error.details)
+                    });
+                }
             }
 
             addMoreOptions(data.node.id, data.node.type, data.node.parent);
         }
     };
+
 
     var optionsHTML = `
     <div id="treeMoreOptionsSel" class="btn-group treeMoreOptions">
@@ -347,6 +456,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $('#localAnsiblePrimitiveDialog').modal('show');
     }
 
+    $scope.openRemoteAnsibleModal = function(){
+        var scope = angular.element($('#remoteAnsibleModal')).scope();
+        scope.populateModal(false);
+        $('#remoteAnsiblePrimitiveDialog').modal('show');
+    }
+
     $scope.openRestAPIModal = function(){
             var scope = angular.element($('#restAPIModal')).scope();
             scope.populateModal(false);
@@ -380,6 +495,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             scope.populateModal(true, sel.id, sel.type);
             $('#localAnsiblePrimitiveDialog').modal('show');
         }
+        else if(remoteAnsibleNodeType === sel.type){
+            //open script modal
+            var scope = angular.element($('#remoteAnsibleModal')).scope();
+            scope.populateModal(true, sel.id, sel.type);
+            $('#remoteAnsiblePrimitiveDialog').modal('show');
+        }
         else if(restAPINodeType === sel.type){
             //open script modal
             var scope = angular.element($('#restAPIModal')).scope();
@@ -389,13 +510,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         else{
             ref.edit(sel.id);
         }
-    };
-
-    $scope.deleteNode = function() {
-        var ref = jstreeContainer.jstree(true),
-            sel = ref.get_selected();
-        if(!sel.length) { return false; }
-        ref.delete_node(sel);
     };
 
     $scope.openWorkflow = function() {
@@ -421,14 +535,16 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var sbSite = $element.find('#sb-site');
     var jspInstance;
 
-    var INPUT_FIELD_OPTIONS = ['number','boolean','text','password'];
-    var INPUT_TYPE_OPTIONS_REQUIRED = ['AssetOptionMulti','AssetOptionSingle','InputFromUser','InputFromUserMulti','FromOtherStepOutput','FromOtherStepInput'];
+    var INPUT_FIELD_OPTIONS = ['text','number','boolean','password'];
+    var INPUT_TYPE_OPTIONS_REQUIRED = ['InputFromUser','AssetOptionMulti','AssetOptionSingle','InputFromUserMulti','FromOtherStepOutput','FromOtherStepInput'];
     var INPUT_TYPE_OPTIONS = ['Disabled'];
     var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project','assetType.vipr.host'];
 
+    var RELATIONSHIP_MAP = {};
+    var STEP_INPUT_MAP = {};
+    var STEP_OUTPUT_MAP = {};
+
     $scope.workflowData = {};
-    $scope.stepInputOptions = {};
-    $scope.stepOutputOptions = {};
     var DEFAULT_OUTPUT_PARAMS = ["operation_output","operation_error","operation_returncode"];
 
     $scope.modified = false;
@@ -601,12 +717,118 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     }
 
-    $scope.getInputOptions=function(){
-        return Object.values($scope.stepInputOptions);
+    $scope.getInputOptions=function(id){
+        return STEP_INPUT_MAP[id];
     }
 
-    $scope.getOutputOptions=function(){
-        return Object.values($scope.stepOutputOptions);
+    $scope.getOutputOptions=function(id){
+        return STEP_OUTPUT_MAP[id];
+    }
+
+    $scope.getParentOptions=function(id){
+        var parents = [];
+        parents=getAllParents(id,parents);
+        return parents;
+    }
+
+    function findWithAttr(array, attr, value) {
+        for(var i = 0; i < array.length; i += 1) {
+            if(array[i][attr] === value) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function getAllParents(id,result){
+        if (null == result){
+            result = [];
+        }
+        var parents = RELATIONSHIP_MAP[id];
+        if (null != parents) {
+            for(var parent in parents) {
+                if (parents.hasOwnProperty(parent)) {
+                    var index = findWithAttr(result,"id",parent);
+                    if( index === -1){
+                        result.push({id:parent,name:parents[parent]});
+                        result=getAllParents(parent,result);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    function addRelation(source,target,sourceData) {
+        if(source === 'Start'||target === 'End'){
+            return;
+        }
+        var parents = RELATIONSHIP_MAP[target];
+        if (null != parents) {
+            if(!parents.hasOwnProperty(source)) {
+                parents[source]=sourceData.friendlyName;
+            }
+        } else {
+            parents = {};
+            parents[source]=sourceData.friendlyName;
+        }
+        RELATIONSHIP_MAP[target]=parents;
+
+        var inputParamsList = STEP_INPUT_MAP[source];
+        if (null == inputParamsList)  {
+            inputParamsList = [];
+            if("inputGroups" in sourceData) {
+                for(var inputGroupEntry in sourceData.inputGroups) {
+                    if(sourceData.inputGroups.hasOwnProperty(inputGroupEntry)) {
+                        var inparams = sourceData.inputGroups[inputGroupEntry].inputGroup;
+                        for(var inputparam in inparams) {
+                            if(inparams.hasOwnProperty(inputparam)) {
+                                var inparam_name = inparams[inputparam].name;
+                                var stepidconcate = sourceData.id + "." + inparam_name;
+                                inputParamsList.push({id:stepidconcate, name:inparam_name});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        STEP_INPUT_MAP[source]=inputParamsList;
+
+        var outputParamsList = STEP_OUTPUT_MAP[source];
+        if (null == outputParamsList)  {
+            outputParamsList = [];
+            var outparams = sourceData.output;
+            for(var outputparam in outparams) {
+                if(outparams.hasOwnProperty(outputparam)) {
+                    var outparam_name = outparams[outputparam].name;
+                    var stepidconcate = sourceData.id + "." + outparam_name;
+                    outputParamsList.push({id:stepidconcate, name:outparam_name});
+                }
+            }
+
+            for(var outputparam in DEFAULT_OUTPUT_PARAMS) {
+                if(DEFAULT_OUTPUT_PARAMS.hasOwnProperty(outputparam)) {
+                    var outparam_name = DEFAULT_OUTPUT_PARAMS[outputparam];
+                    var stepidconcate = sourceData.id + "." + outparam_name;
+                    outputParamsList.push({id:stepidconcate, name:outparam_name});
+                }
+            }
+        }
+        STEP_OUTPUT_MAP[source]=outputParamsList;
+    }
+
+    function removeRelation(source,target,sourceData) {
+        var parents = RELATIONSHIP_MAP[target];
+        if (null != parents) {
+            if(sourceData.next.defaultStep !== target && sourceData.next.failedStep !== target && parents.hasOwnProperty(source)) {
+                delete parents[source];
+                if (jQuery.isEmptyObject(parents)){
+                    delete RELATIONSHIP_MAP[target];
+                    delete STEP_INPUT_MAP[source];
+                    delete STEP_OUTPUT_MAP[source];
+                }
+            }
+        }
     }
 
     function setBindings() {
@@ -627,43 +849,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             }
             // Populate array for input and output from previous steps
 
-            if (sourceData.id !== 'Start' && sourceData.id !== 'End' ){
-                if("inputGroups" in sourceData) {
-                    for(var inputGroupEntry in sourceData.inputGroups) {
-                        if(sourceData.inputGroups.hasOwnProperty(inputGroupEntry)) {
-                            var inparams = sourceData.inputGroups[inputGroupEntry].inputGroup;
-                            for(var inputparam in inparams) {
-                                if(inparams.hasOwnProperty(inputparam)) {
-                                    var inparam_name = inparams[inputparam].name;
-                                    var stepidconcate = sourceData.id + "." + inparam_name;
-                                    var stepnameconcate = sourceData.friendlyName + " " + inparam_name
-                                    //prevents duplicates by using key
-                                    $scope.stepInputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
-                                }
-                            }
-                        }
-                    }
-                }
-                var outparams = sourceData.output;
-                for(var outputparam in outparams) {
-                    if(outparams.hasOwnProperty(outputparam)) {
-                        var outparam_name = outparams[outputparam].name;
-                        var stepidconcate = sourceData.id + "." + outparam_name;
-                        var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-                        $scope.stepOutputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
-                    }
-                }
-
-                for(var outputparam in DEFAULT_OUTPUT_PARAMS) {
-                    if(DEFAULT_OUTPUT_PARAMS.hasOwnProperty(outputparam)) {
-                        var outparam_name = DEFAULT_OUTPUT_PARAMS[outputparam];
-                        var stepidconcate = sourceData.id + "." + outparam_name;
-                        var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-                        $scope.stepOutputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
-                    }
-                }
-            }
             sourceData.next=sourceNext;
+            addRelation(sourceData.id,connection.targetId,sourceData)
             $scope.modified = true;
             $scope.$apply();
         });
@@ -683,23 +870,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 delete sourceData.next.failedStep;
             }
             sourceData.next=sourceNext;
-            // Remove source data after unbind array for input and output from previous steps
-            if (!sourceData.next.hasOwnProperty("defaultStep") && !sourceData.next.hasOwnProperty("failedStep")){
-                 for (var k in $scope.stepInputOptions){
-                    if ($scope.stepInputOptions.hasOwnProperty(k)) {
-                        if (k.startsWith(sourceData.id + ".")) {
-                            delete $scope.stepInputOptions[k];
-                        }
-                    }
-                }
-                 for (var k in $scope.stepOutputOptions){
-                    if ($scope.stepOutputOptions.hasOwnProperty(k)) {
-                        if (k.startsWith(sourceData.id + ".")) {
-                            delete $scope.stepOutputOptions[k];
-                        }
-                    }
-                }
-            }
+            removeRelation(sourceData.id,connection.targetId,sourceData)
             $scope.modified = true;
             $scope.$apply();
         });
@@ -761,6 +932,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.modified = state;
     }
 
+    $scope.isInventoryFile = function(step, inputGroupName, input) {
+        return step.type == 'ansible' && inputGroupName == 'ansible_options' && input.name == 'inventory_file'
+    }
+
     function buildJSON() {
         var blocks = []
         diagramContainer.find(" .item,  .item-start-end").each(function(idx, elem) {
@@ -786,9 +961,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 $scope.modified = false;
             });
         },
-        function(){
+        function(resp){
             $scope.showAlert = true;
             $scope.alert = {status : "INVALID", error : {errorMessage : "An unexpected error occurred while saving the workflow."}};
+            if (resp.data.details){
+                $scope.alert.error.details = resp.data.details;
+            }
             $scope.workflowData.state = 'INVALID';
         });
     }
@@ -802,18 +980,18 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowData.state = 'VALIDATING';
         delete $scope.alert;
         $http.post(routes.Workflow_validate({workflowId : $scope.workflowData.id})).then(function (resp) {
+            $scope.workflowData.state = resp.data.status;
             if (resp.data.status == "INVALID") {
                 $scope.showAlert = true;
                 $scope.alert = resp.data;
-                $scope.workflowData.state = resp.data.status;
                 if ($scope.alert.error) {
                     if (!$scope.alert.error.errorMessage) {
                         $scope.alert.error.errorMessage='Workflow validation failed. There are '+Object.keys(resp.data.error.errorSteps).length+' steps with errors.';
                     }
                 }
             } else {
-                var url = routes.ServiceCatalog_showService({serviceId: $scope.workflowData.id});
-                window.location.href = url;
+                $scope.showAlert = true;
+                $scope.alert = {status : "SUCCESS",success : {successMessage : "Workflow Validated Successfully."}};
             }
         },
         function(){
@@ -823,10 +1001,19 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         });
     }
 
+    $scope.testWorkflow = function() {
+        $scope.workflowData.state = 'TESTING';
+        delete $scope.alert;
+        var url = routes.ServiceCatalog_showService({serviceId: $scope.workflowData.id});
+        window.location.href = url;
+    }
+
     $scope.publishorkflow = function() {
         $scope.workflowData.state = 'PUBLISHING';
         $http.post(routes.Workflow_publish({workflowId : $scope.workflowData.id})).then(function (resp) {
-            updateWorkflowData(resp);
+            //redirect automatically on success
+            var url = routes.ServiceCatalog_createServiceFromBase({baseService: resp.data.name});
+            window.location.href = url;
         });
     }
 
@@ -843,6 +1030,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $scope.closeMenu();
         }
         jspInstance.remove(diagramContainer.find('#' + stepId+'-wrapper'));
+        $scope.modified = true;
     }
 
     $scope.select = function(stepId) {
@@ -877,7 +1065,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         return getStepIconClass(stepType);
     }
 
-	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
+	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "remoteAnsibleNodeType":remoteAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
     function getStepIconClass(stepType){
         var stepIconClass = "builder-step-icon";
         if(stepType != null) {
@@ -887,6 +1075,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     break;
                 case draggableNodeTypes.localAnsibleNodeType:
                     stepIconClass = "builder-ansible-icon";
+                    break;
+                case draggableNodeTypes.remoteAnsibleNodeType:
+                    stepIconClass = "builder-remote-ansible-icon";
                     break;
                 case draggableNodeTypes.workflowNodeType:
                     stepIconClass = "builder-workflow-icon";

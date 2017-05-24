@@ -21,14 +21,17 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class RemoteAnsibleExecutor implements MakeCustomServicesExecutor {
     private final static String TYPE = CustomServicesConstants.REMOTE_ANSIBLE_PRIMTIVE_TYPE;
-
+    @Autowired
+    private DbClient dbClient;
     @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
-        return new CustomServicesRemoteAnsibleExecution(input, step);
+        return new CustomServicesRemoteAnsibleExecution(input, step, dbClient);
     }
 
     @Override public String getType() {

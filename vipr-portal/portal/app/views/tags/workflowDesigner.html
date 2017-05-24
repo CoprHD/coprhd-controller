@@ -7,18 +7,23 @@
                 'glyphicon-refresh rotate':workflowData.state == 'SAVING'}" class="glyphicon "></span>
                 Save
             </button>
-            <button ng-disabled="modified || workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED'" id="Validate" type="button" class="btn btn-default" value="Validate" ng-click="validateWorkflow();" />
+            <button ng-disabled="modified || workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED'|| workflowData.state == 'TESTING'" id="Validate" type="button" class="btn btn-default" value="Validate" ng-click="validateWorkflow();" />
                 <span ng-class="{'failure-icon button-icon':workflowData.state == 'INVALID',
-                'glyphicon-ok-sign success-icon':workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED',
+                'glyphicon-ok-sign success-icon':workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED'|| workflowData.state == 'TESTING',
                 'glyphicon-refresh rotate':workflowData.state == 'VALIDATING'}" class="glyphicon"></span>
                 Validate
             </button>
-            <button ng-disabled="modified || workflowData.state != 'VALID'" id="Publish" type="button" class="btn btn-default" value="Publish" ng-click="publishorkflow();" />
+            <button ng-disabled="modified || workflowData.state != 'VALID'" id="Test" type="button" class="btn btn-default" value="Test" ng-click="testWorkflow();" />
+                <span ng-class="{'glyphicon-ok-sign success-icon':workflowData.state == 'PUBLISHED',
+                'glyphicon-refresh rotate':workflowData.state == 'TESTING'}" class="glyphicon"></span>
+                Test
+            </button>
+            <button ng-if="workflowData.state !== 'PUBLISHED'" ng-disabled="modified || workflowData.state != 'VALID'" id="Publish" type="button" class="btn btn-default" value="Publish" ng-click="publishorkflow();" />
                 <span ng-class="{'glyphicon-ok-sign success-icon':workflowData.state == 'PUBLISHED',
                 'glyphicon-refresh rotate':workflowData.state == 'PUBLISHING'}" class="glyphicon"></span>
                 Publish
             </button>
-            <button ng-disabled="workflowData.state != 'PUBLISHED'" id="Unpublish" type="button" class="btn btn-default" value="Unpublish" ng-click="unpublishWorkflow();" />
+            <button ng-if="workflowData.state === 'PUBLISHED'" id="Unpublish" type="button" class="btn btn-default" value="Unpublish" ng-click="unpublishWorkflow();" />
                 <span ng-class="{'glyphicon-refresh rotate':workflowData.state == 'UNPUBLISHING'}" class="glyphicon"></span>
                 Unpublish
             </button>
@@ -26,14 +31,20 @@
     </div>
     <div class="message-bar">
         <div class="message-bar-success" ng-if="alert.status=='SUCCESS' && showAlert">
-            <span class="glyphicon glyphicon-ok-sign" style="padding-right: 10px;"></span>
             <a class="glyphicon glyphicon-remove message-bar-closebtn" ng-click="closeAlert()"></a>
-            Success Message!
+            <span class="message-bar-icon glyphicon glyphicon-ok-sign" style="padding-right: 10px;"></span>
+            <div style="display:table-cell">
+                <div>{{alert.success.successMessage}}</div>
+                <div>{{alert.success.details}}</div>
+            </div>
         </div>
         <div class="message-bar-failure" ng-if="alert.status=='INVALID' && showAlert">
-            <span class="message-bar-icon message-failure-icon" style="padding-right: 10px;"></span>
             <a class="glyphicon glyphicon-remove message-bar-closebtn" ng-click="closeAlert()"></a>
-            {{alert.error.errorMessage}}
+            <span class="message-bar-icon message-failure-icon" style="padding-right: 10px;"></span>
+            <div style="display:table-cell">
+                <div>{{alert.error.errorMessage}}</div>
+                <div>{{alert.error.details}}</div>
+            </div>
         </div>
     </div>
     <div class="builder-container">

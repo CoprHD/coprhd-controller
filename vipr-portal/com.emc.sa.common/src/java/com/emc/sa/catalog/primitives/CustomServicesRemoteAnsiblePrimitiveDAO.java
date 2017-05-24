@@ -58,17 +58,13 @@ public class CustomServicesRemoteAnsiblePrimitiveDAO implements CustomServicesPr
             .add(CustomServicesConstants.ANSIBLE_BIN)
             .build();
             
-    private static final ImmutableMap<String, List<InputParameter>> STATIC_INPUT = ImmutableMap.<String, List<InputParameter>>builder()
-            .put(CustomServicesConstants.CONNECTION_DETAILS, ImmutableList.<InputParameter>builder()
+    private static final ImmutableMap<String, List<InputParameter>> CONNECTION_DETAILS_INPUT_GROUP = 
+            ImmutableMap.<String, List<InputParameter>>of(
+            CustomServicesConstants.CONNECTION_DETAILS, ImmutableList.<InputParameter>builder()
                     .add(new BasicInputParameter.StringParameter(CustomServicesConstants.REMOTE_NODE, true, null))
                     .add(new BasicInputParameter.StringParameter(CustomServicesConstants.REMOTE_USER, true, null))
-                    .build())
-            .put(CustomServicesConstants.ANSIBLE_OPTIONS, ImmutableList.<InputParameter>builder()
-                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_HOST_FILE, true, null))
-                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_USER, true, null))
-                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_COMMAND_LINE, true, null))
-                    .build())
-            .build();
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.REMOTE_PASSWORD, true, null))
+                    .build());
     
     private static final Function<CustomServicesDBRemoteAnsiblePrimitive, CustomServicesRemoteAnsiblePrimitive> MAPPER = 
             new Function<CustomServicesDBRemoteAnsiblePrimitive, CustomServicesRemoteAnsiblePrimitive>() {
@@ -76,7 +72,8 @@ public class CustomServicesRemoteAnsiblePrimitiveDAO implements CustomServicesPr
         public CustomServicesRemoteAnsiblePrimitive apply(final CustomServicesDBRemoteAnsiblePrimitive primitive) {
             final Map<String, List<InputParameter>> input = ImmutableMap.<String, List<InputParameter>>builder()
                     .putAll(CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput()))
-                    .putAll(STATIC_INPUT)
+                    .putAll(CustomServicesConstants.ANSIBLE_OPTIONS_INPUT_GROUP)
+                    .putAll(CONNECTION_DETAILS_INPUT_GROUP)
                     .build();
             final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
             final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
@@ -143,9 +140,8 @@ public class CustomServicesRemoteAnsiblePrimitiveDAO implements CustomServicesPr
     }
 
     @Override
-    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
-        final CustomServicesDBRemoteAnsiblePrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBRemoteAnsiblePrimitive.class, operation);
-        client.save(primitive);
+    public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        return CustomServicesDBHelper.importDBPrimitive(CustomServicesDBRemoteAnsiblePrimitive.class, operation, client);
     }
     
     @Override

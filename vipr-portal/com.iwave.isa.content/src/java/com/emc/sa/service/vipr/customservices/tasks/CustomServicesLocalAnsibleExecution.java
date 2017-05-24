@@ -23,10 +23,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -58,6 +60,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
     private final Step step;
     private final Map<String, List<String>> input;
     private final String orderDir;
+    private final String chrootOrderDir;
     private final long timeout;
     private final DbClient dbClient;
 
@@ -73,6 +76,9 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         this.dbClient = dbClient;
         provideDetailArgs(step.getId());
         this.orderDir = orderDir;
+        final String folderUniqueStep = step.getId().replace("-", "");
+        this.chrootOrderDir = String.format("%s%s/%s/", CustomServicesConstants.CHROOT_ORDER_DIR_PATH,
+                ExecutionUtils.currentContext().getOrder().getOrderNumber(),folderUniqueStep);
     }
 
     @Override
@@ -80,6 +86,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
 
         ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId());
         final URI scriptid = step.getOperation();
+        final List<String> fileSoftLink = new ArrayList<String>();
+        final List<String> fileAbsolutePath = new ArrayList<String>();
 
         final Exec.Result result;
         try {
@@ -109,7 +117,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             final byte[] ansibleArchive = Base64.decodeBase64(ansiblePackageId.getResource());
 
             // uncompress Ansible archive to orderDir
-            uncompressArchive(ansibleArchive);
+            // Supply two list that will hold file name and absolute path for soft links
+            uncompressArchive(ansibleArchive, fileSoftLink, fileAbsolutePath);
 
             final String hostFileFromStep = AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input);
 
@@ -138,8 +147,31 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             AnsibleHelper.writeResourceToFile(inventoryResourceBytes, inventoryFileName);
 
             final String user = ExecutionUtils.currentContext().getOrder().getSubmittedByUserId();
-            result = executeLocal(inventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", orderDir, playbook), user);
 
+            final String chrootInventoryFileName = String.format("%s%s", chrootOrderDir,
+                    URIUtil.parseUUIDFromURI(URI.create(hostFileFromStep)).replace("-", ""));
+
+            // Soft link all files from ansible tar
+            final Exec.Result softlinkResult = Exec.exec(new File(CustomServicesConstants.CHROOT_DIR),timeout,null,new HashMap<String,String>(), softLinkCmd(fileAbsolutePath));
+            if (softlinkResult == null) {
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Local Ansible execution Failed");
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Softlinking failed for scripts");
+            }
+
+            // Make sure we have all permission for soft link files
+            final Exec.Result chmodResult = Exec.exec(new File(CustomServicesConstants.CHROOT_DIR),timeout,null,new HashMap<String,String>(), chmodCmd(fileSoftLink));
+            if (chmodResult == null) {
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Local Ansible execution Failed");
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("chmod command failed for scripts");
+            }
+
+            result = executeLocal(chrootInventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", chrootOrderDir, playbook), user);
+
+            // unlink all ansible package files for cleanup
+            for(final String filename: fileSoftLink) {
+                final String[] unlinkFiles = unlinkCmd(filename);
+                Exec.exec(timeout, unlinkFiles);
+            }
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
@@ -158,7 +190,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
-    private void uncompressArchive(final byte[] ansibleArchive) {
+    private void uncompressArchive(final byte[] ansibleArchive, final List<String> fileList, final List<String> pathList) {
         try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(
                 new GzipCompressorInputStream(new ByteArrayInputStream(
                         ansibleArchive)))) {
@@ -175,6 +207,9 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                     try (final OutputStream out = new FileOutputStream(curTarget)) {
                         IOUtils.copy(tarIn, out);
                     }
+                    // Add file name and file path for softlinks
+                    fileList.add(curTarget.getName());
+                    pathList.add(curTarget.getAbsolutePath().replaceFirst(CustomServicesConstants.CHROOT_DIR + "/", ""));
                 }
                 entry = tarIn.getNextTarEntry();
             }
@@ -188,6 +223,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
     private Exec.Result executeLocal(final String ips, final String extraVars, final String playbook, final String user) {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.ANSIBLE_LOCAL_BIN, playbook);
         final String[] cmds = cmd.setHostFile(ips).setUser(user)
+                .setChrootCmd(CustomServicesConstants.CHROOT_CMD)
                 .setLimit(null)
                 .setTags(null)
                 .setExtraVars(extraVars)
@@ -197,6 +233,45 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         final Map<String,String> environment = new HashMap<String,String>();
         environment.put("ANSIBLE_HOST_KEY_CHECKING", "false");
 
-        return Exec.exec(new File(orderDir), timeout, null, environment, cmds);
+        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
+    }
+
+    private String[] softLinkCmd(final List <String> fileAbsolutePath) {
+        final ImmutableList.Builder<String> builder = ImmutableList.builder();
+
+        // ln -s with full path
+        builder.add(CustomServicesConstants.SUDO_CMD);
+        builder.add(CustomServicesConstants.SOFTLINK_CMD);
+        builder.add(CustomServicesConstants.SOFTLINK_OPTION);
+        // Add all files with absolute path
+        for(final String absoluteDir: fileAbsolutePath) {
+            builder.add(absoluteDir);
+        }
+
+        // Added the chroot path
+        builder.add(CustomServicesConstants.CHROOT_DIR);
+
+        final ImmutableList<String> cmdList = builder.build();
+        return cmdList.toArray(new String[cmdList.size()]);
+    }
+
+    private String[] chmodCmd(final List <String> fileList) {
+        final ImmutableList.Builder<String> builder = ImmutableList.builder();
+
+        builder.add(CustomServicesConstants.SUDO_CMD);
+        builder.add(CustomServicesConstants.CHMOD_CMD);
+        builder.add(CustomServicesConstants.CHMOD_OPTION);
+        // Add all files for chmod 777
+        for(final String filename: fileList) {
+            builder.add(filename);
+        }
+
+        final ImmutableList<String> cmdList = builder.build();
+        return cmdList.toArray(new String[cmdList.size()]);
+    }
+
+    private String[] unlinkCmd(String filename) {
+        final String orderFile = CustomServicesConstants.CHROOT_DIR + "/" + filename;
+        return new String[] { "/usr/bin/unlink", orderFile};
     }
 }

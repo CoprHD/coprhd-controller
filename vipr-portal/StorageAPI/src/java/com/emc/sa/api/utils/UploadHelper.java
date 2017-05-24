@@ -17,6 +17,7 @@
 package com.emc.sa.api.utils;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -40,5 +41,18 @@ public final class UploadHelper {
         } catch (final IOException e) {
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("failed to read octet stream", e);
         }
+    }
+    
+    public static final byte[] read(final int length, final DataInputStream dis) throws IOException {
+        byte[] bytes = new byte[length];
+        int offset = 0;
+        while( offset < length) {
+            int nRead = dis.read(bytes, offset, length - offset);
+            if( nRead <= 0 ) {
+                throw new IOException("unexpected end of stream");
+            }
+            offset += nRead;
+        }
+        return bytes;
     }
 }

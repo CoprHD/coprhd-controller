@@ -24,6 +24,9 @@ import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.valid.EnumType;
 
+import java.net.URI;
+import java.util.List;
+
 /**
  * DB model to represent an custom services workflow document
  */
@@ -34,7 +37,7 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
 
     public static final String ID_PREFIX = "urn:storageos:CustomServicesWorkflow:";
 
-    public static final String NAME = "name";
+    public static final String NAME = "label";
     public static final String DESCRIPTION = "description";
     public static final String STEPS = "steps";
     public static final String STATE = "state";
@@ -52,19 +55,6 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
         INVALID,
         PUBLISHED
     }
-
-
-    @Name(NAME)
-    @AlternateId("CustomServicesWorkflowNameIndex")
-    public String getName() {
-        return name;
-    }
-
-    public void setName(final String name) {
-        this.name = name;
-        setChanged(NAME);
-    }
-    
 
     @Name(DESCRIPTION)
     public String getDescription() {
@@ -108,11 +98,26 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
     @IndexByKey
     @Name(PRIMITIVES)
     public StringSet getPrimitives() {
+        if (primitives == null) {
+            primitives = new StringSet();
+        }
         return primitives;
     }
     
     public void setPrimitives(final StringSet primitives) {
         this.primitives = primitives;
         setChanged(PRIMITIVES);
+    }
+
+    public void addPrimitives(final List<URI> primitives) {
+        for (URI primitiveUri : primitives) {
+            getPrimitives().add(primitiveUri.toString());
+        }
+    }
+
+    public void removePrimitives(final List<URI> primitives) {
+        for (URI primitiveUri : primitives) {
+            getPrimitives().remove(primitiveUri.toString());
+        }
     }
 }

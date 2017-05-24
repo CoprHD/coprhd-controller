@@ -484,13 +484,20 @@ cleanup_rdfg() {
     RDFG=`/opt/storageos/bin/dbutils list RemoteDirectorGroup | grep -A10 "label = $PROJECT" | grep "sourceGroupId =" | tail -n1 | awk -F" " '{print $NF}'`
 
     # Determine device pairs present in the group
-    PAIRS=`$SYMCLI/symrdf -sid $SID -rdfg $RDFG list -offline | grep -E "^([0-9A-F]+\s){2}" | awk -F' ' '{print $1,$2}'`
+    PAIRS=`$SYMCLI/symrdf -sid $SID -rdfg $RDFG list -offline 2> /dev/null | grep -E "^([0-9A-F]+\s){2}" | awk -F' ' '{print $1,$2}' 2> /dev/null`
     IFS=$'\n'
     TMP_DEVICE_FILE="/tmp/devices-${RANDOM}"
     cat /dev/null > $TMP_DEVICE_FILE
     for p in $PAIRS; do
         echo $p >> $TMP_DEVICE_FILE
     done
+
+    if [ `cat $TMP_DEVICE_FILE | wc -l` -eq 0 ]
+    then
+        echo "$SID:$RDFG is empty"
+        exit
+    fi
+
     echo "=== Removing device pairs in $TMP_DEVICE_FILE from $SID:$RDFG"
 
     # Suspend

@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
@@ -133,6 +134,7 @@ import com.emc.storageos.model.file.FileSystemExportList;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemMountParam;
 import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.model.file.FileSystemReduceParam;
 import com.emc.storageos.model.file.FileSystemReplicationSettings;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
@@ -1287,6 +1289,86 @@ public class FileService extends TaskResourceService {
 
         return toTask(fs, task, op);
     }
+    
+    /**
+     * Reduce file system quota -- supported only on Isilon
+     * 
+     * @param id - the URN of a ViPR File system
+     * @param param - File system reduction parameters
+     * @return Task resource representation
+     * @throws InternalException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/reduce")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep reduce(@PathParam("id") URI id, FileSystemReduceParam param)
+            throws InternalException {
+        _log.info(String.format(
+                "FileShareReduce --- FileShare id: %1$s, New Quota: %2$s", id, param.getNewSize()));
+        // check file system
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        if(!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
+        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "Reduction of filesystem quota is supported only on Isilon");
+        }
+
+        Long newFSsize = SizeUtil.translateSize(param.getNewSize());
+        long quotaFsSize = newFSsize - fs.getCapacity();
+        final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
+        
+        if (newFSsize <= 0) {
+            throw APIException.badRequests.parameterMustBeGreaterThan("new_size", 0);
+        } else {
+        	if(quotaFsSize < MIN_EXPAND_SIZE) {
+                List<QuotaDirectory> quotaDirs = queryDBQuotaDirectories(fs);
+                if (null != quotaDirs && !quotaDirs.isEmpty()){
+                	long qdsize = 0;
+                    // we will check sub quotas of filesystem 
+                	//that new size should not be less than any of the sub quota. 
+                    for (QuotaDirectory quotaDir : quotaDirs) {
+                    	qdsize = newFSsize - quotaDir.getSize();
+                    	
+                        if (qdsize < MIN_EXPAND_SIZE) {
+                        	String msg = String
+                                    .format("filesystem is reduced to a size lesser than sub quota. Quota Path: %s, current capacity: %d",
+                                            quotaDir.getPath(), quotaDir.getSize());
+                        	throw APIException.badRequests.reduceFileSystemNotSupported(id, msg);
+                        }
+                    }
+                }
+        	} else {
+        		throw APIException.badRequests.parameterMustBeLessThan("new_size", fs.getCapacity());
+        	}
+        }
+
+        String task = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.REDUCE_FILE_SYSTEM);
+        op.setDescription("Filesystem reduce quota");
+
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        try {
+            fileServiceApi.reduceFileShareQuota(fs, newFSsize, task);
+        } catch (InternalException e) {
+            if (_log.isErrorEnabled()) {
+                _log.error("Reduce File Quota error", e);
+            }
+
+            fs = _dbClient.queryObject(FileShare.class, fs.getId());
+            op = fs.getOpStatus().get(task);
+            op.error(e);
+            fs.getOpStatus().updateTaskStatus(task, op);
+            _dbClient.updateObject(fs);
+            throw e;
+        }
+
+        return toTask(fs, task, op);
+    }
 
     /**
      * Expand file system.
@@ -1548,11 +1630,12 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskResourceRep snapshot(@PathParam("id") URI id, FileSystemSnapshotParam param) throws InternalException {
-        String task = UUID.randomUUID().toString();
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        
 
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (vpool == null) {
@@ -1581,6 +1664,7 @@ public class FileService extends TaskResourceService {
         fs.setOpStatus(new OpStatusMap());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT);
+        String task = UUID.randomUUID().toString();
         snap.getOpStatus().createTaskStatus(task, op);
         fs.getOpStatus().createTaskStatus(task, op);
         _dbClient.createObject(snap);

@@ -1783,7 +1783,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         } finally {
             if (storageSystem != null) {
                 try {
-                    cleanupDiscovery(storageSystem);
                     // set detailed message
                     storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
                     _dbClient.updateObject(storageSystem);

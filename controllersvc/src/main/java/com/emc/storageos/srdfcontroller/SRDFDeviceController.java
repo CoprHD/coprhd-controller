@@ -22,14 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
@@ -37,6 +36,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockRetryException;
@@ -1193,7 +1193,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             getRemoteMirrorDevice().doDetachLink(system, sourceURI, targetURI, onGroup, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (!completer.isCompleted()) {
+            if (completer != null && !completer.isCompleted()) {
                 completer.error(dbClient, error);
             }
             return false;
@@ -1586,7 +1586,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             log.info("OpId: {}", opId);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (!completer.isCompleted()) {
+            if (completer != null && !completer.isCompleted()) {
                 completer.error(dbClient, error);
              } else {
                  log.debug("Task has been marked as completed.  Not performing any error handling.");
@@ -1919,7 +1919,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             getRemoteMirrorDevice().doCreateCgPairs(system, sourceURIs, targetURIs, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_079);
 
-            if (!completer.isCompleted()) {
+            if (completer != null && !completer.isCompleted()) {
                 completer.ready(dbClient);
             }
         } catch (Exception e) {

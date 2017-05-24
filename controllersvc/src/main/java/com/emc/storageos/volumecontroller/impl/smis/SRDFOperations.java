@@ -526,6 +526,15 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
+    /**
+     * Cleans up the passed in source and target SRDF CG objects. If it is a vpool change operation,
+     * then we should just clean up types and requestedTypes.
+     * 
+     * @param sourceCG SRDF source CG
+     * @param targetCG SRDF target CG
+     * @param storageId Storage system URI
+     * @param isVpoolChange If the operation is due to vpool change
+     */
     private void cleanUpSourceAndTargetCGs(BlockConsistencyGroup sourceCG, BlockConsistencyGroup targetCG, URI storageId,
             boolean isVpoolChange) {
         if (null != targetCG) {

@@ -6,8 +6,6 @@ package com.emc.sa.asset.providers;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,18 +16,11 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
-import com.emc.sa.asset.AssetOptionsUtils;
 import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
@@ -44,9 +35,9 @@ import com.google.common.collect.Lists;
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
-    private final static String RR_GROUP = "Remote Replication Group";
+    private final static String RR_PAIR = "Remote Replication Pair";
     private final static String CONSISTENCY_GROUP = "Consistency Group";
-    private final static String RR_SET = "Remote Replication Set";
+    private final static String NO_GROUP = "None";
 
     RemoteReplicationSets setClient = null;
 
@@ -301,43 +292,33 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     }
 
     /**
-     * Return menu options for all groupings of pairs
+     * Return menu options for groupings of pairs (either CG or Pair)
      *
      * @return list of asset options for catalog service order form
      */
-    @Asset("remoteReplicationPairGrouping")
-    public List<AssetOption> getRemoteReplicationPairGrouping(AssetOptionsContext ctx) {
+    @Asset("remoteReplicationCgOrPair")
+    public List<AssetOption> getRemoteReplicationCgOrPair(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
-        options.add(new AssetOption(RR_GROUP,RR_GROUP));
         options.add(new AssetOption(CONSISTENCY_GROUP,CONSISTENCY_GROUP));
-        options.add(new AssetOption(RR_SET,RR_SET));
+        options.add(new AssetOption(RR_PAIR,RR_PAIR));
         return options;
     }
 
     /**
-     * Return menu options for all groupings of pairs
+     * Return menu options for all RR groups in Set
      *
      * @return list of asset options for catalog service order form
      */
-    @Asset("remoteReplicationPairGroup")
-    @AssetDependencies({"remoteReplicationPairGrouping",
-        "remoteReplicationSetsForArrayType"})
-    public List<AssetOption> getRemoteReplicationPairGroup(AssetOptionsContext ctx,
-            String groupType, URI rrSet) {
-
-        if (groupType.equals(RR_GROUP)) {
-            return createNamedResourceOptions(setClient.getGroupsForSet(rrSet).
-                    getRemoteReplicationGroups());
-        }
-        if (groupType.equals(CONSISTENCY_GROUP)) {
-            return createNamedResourceOptions(api(ctx).remoteReplicationSets().
-                    listRemoteReplicationSetCGs(rrSet).getConsistencyGroupList());
-        }
-        if (groupType.equals(RR_SET)) {
-            return new ArrayList<>(Arrays.asList(new AssetOption(rrSet,"(all pairs and groups in set)")));
-        }
-
-        return Collections.emptyList();
+    @Asset("remoteReplicationGroupForSet")
+    @AssetDependencies({"remoteReplicationSetsForArrayType"})
+    public List<AssetOption> getRemoteReplicationGroupForSet(AssetOptionsContext ctx,
+            URI rrSet) {
+        List<NamedRelatedResourceRep> groups = setClient.getGroupsForSet(rrSet).
+                getRemoteReplicationGroups();
+        List<AssetOption>  options = new ArrayList<>();
+        options.add(new AssetOption(NO_GROUP,NO_GROUP));
+        options.addAll(createNamedResourceOptions(groups));
+        return options;
     }
 
     /**
@@ -345,51 +326,33 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      *
      * @return list of asset options for catalog service order form
      */
-    @Asset("remoteReplicationPair")
-    @AssetDependencies({"remoteReplicationPairGroup","remoteReplicationSetsForArrayType"})
+    @Asset("remoteReplicationPairsOrCGs")
+    @AssetDependencies({"remoteReplicationSetsForArrayType","remoteReplicationGroupForSet","remoteReplicationCgOrPair"})
     public List<AssetOption> getRemoteReplicationPair(AssetOptionsContext ctx,
-            URI groupId, URI setId) {
-        List<AssetOption> options = Lists.newArrayList();
-
-        if (URIUtil.isType(groupId, RemoteReplicationSet.class)) {
-            // add pairs in set
-            List<NamedRelatedResourceRep> pairsInSet = api(ctx).remoteReplicationSets().
-                    listRemoteReplicationPairs(setId).getRemoteReplicationPairs();
-            options.addAll(createNamedResourceOptions(pairsInSet));
-
-            // add pairs in groups that are in set
-            List<NamedRelatedResourceRep> groupsInSet = api(ctx).remoteReplicationSets().
-                    getGroupsForSet(setId).getRemoteReplicationGroups();
-            for (NamedRelatedResourceRep groupInSet : groupsInSet) {
-                options.addAll(createNamedResourceOptions(getPairsInGroup(ctx,groupInSet.getId())));
+            URI setId, String groupId, String cgOrPairs) {
+        if (CONSISTENCY_GROUP.equals(cgOrPairs)) {
+            if(NO_GROUP.equals(groupId)) {
+                // get CGs in set
+                return createNamedResourceOptions(api(ctx).remoteReplicationSets().
+                        listRemoteReplicationSetCGs(setId).getConsistencyGroupList());
+            } else {
+                // get CGs in specified group
+                return createNamedResourceOptions(api(ctx).remoteReplicationGroups().
+                        listConsistencyGroups(groupId).getConsistencyGroupList());
             }
-            AssetOptionsUtils.sortOptionsByLabel(options);
-            return options;
         }
-
-        if (URIUtil.isType(groupId, BlockConsistencyGroup.class)) {
-            BlockConsistencyGroupRestRep cg =
-                    api(ctx).blockConsistencyGroups().get(groupId);
-            for(RelatedResourceRep v : cg.getVolumes()) {
-                List<NamedRelatedResourceRep> pairs = api(ctx).remoteReplicationPairs().
-                        listRelatedRemoteReplicationPairs(v.getId()).getRemoteReplicationPairs();
-                options.addAll(createNamedResourceOptions(pairs));
+        if (RR_PAIR.equals(cgOrPairs)) {
+            if(NO_GROUP.equals(groupId)) {
+                // get pairs in set (that aren't in any groups)
+                return createNamedResourceOptions(api(ctx).remoteReplicationSets().
+                        listRemoteReplicationPairs(setId).getRemoteReplicationPairs());
+            } else {
+                // get pairs in the selected group
+                return createNamedResourceOptions(api(ctx).remoteReplicationGroups().
+                        listRemoteReplicationPairsNotInCg(groupId).getRemoteReplicationPairs());
             }
-            AssetOptionsUtils.sortOptionsByLabel(options);
-            return options;
         }
-
-        if (URIUtil.isType(groupId, RemoteReplicationGroup.class)) {
-            return createNamedResourceOptions(getPairsInGroup(ctx,groupId));
-        }
-
-        throw new IllegalStateException("Invalid Grouping option selected.  Failed to get Remote Replication Groups, " +
-                "Consistency Groups, or Remote Replication Pairs from database");
-    }
-
-    private List<NamedRelatedResourceRep> getPairsInGroup(AssetOptionsContext ctx, URI groupId) {
-        return api(ctx).remoteReplicationGroups().
-                listRemoteReplicationPairs(groupId.toString()).getRemoteReplicationPairs();
+        throw new IllegalStateException("Select either Consistency Groups or Pairs");
     }
 
     /*

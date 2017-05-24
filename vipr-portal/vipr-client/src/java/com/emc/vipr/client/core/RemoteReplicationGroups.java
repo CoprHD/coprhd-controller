@@ -7,6 +7,7 @@ package com.emc.vipr.client.core;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
@@ -51,11 +52,21 @@ public class RemoteReplicationGroups {
                 PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/" + uuid + "/pairs");
     }
 
+    public RemoteReplicationPairList listRemoteReplicationPairsNotInCg(String uuid) {
+        return client.get(RemoteReplicationPairList.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/" + uuid + "/pairs-not-in-cg");
+    }
+
     public TaskResourceRep createRemoteReplicationGroup(RemoteReplicationGroupCreateParams params) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL +
                 "/create-group");
         TaskResourceRep task = client.postURI(TaskResourceRep.class, params, uriBuilder.build());
         task = TaskUtil.waitForTask(client, task, 0);
         return task;
+    }
+
+    public BlockConsistencyGroupList listConsistencyGroups(String groupId) {
+            return client.get(BlockConsistencyGroupList.class,
+                    PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/" + groupId + "/consistency-groups");
     }
 }

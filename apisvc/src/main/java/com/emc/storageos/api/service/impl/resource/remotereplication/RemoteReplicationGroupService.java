@@ -12,9 +12,11 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Map.Entry;
@@ -41,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
+import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -50,19 +53,24 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupList;
+import com.emc.storageos.model.block.NamedRelatedBlockConsistencyGroupRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
-import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -260,6 +268,62 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     }
 
     /**
+     * Get remote replication groups for a given consistency group.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{groupId}/consistency-groups")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public BlockConsistencyGroupList getConsistencyGroups(@PathParam("groupId") URI groupId) {
+        ArgValidator.checkUri(groupId);
+        ArgValidator.checkFieldUriType(groupId, RemoteReplicationGroup.class, "id");
+
+        // get ids of pairs in group
+        RemoteReplicationPairList pairsInGroup = getGroupPairs(groupId,true);
+        List<URI> pairIds = new ArrayList<>();
+        for (NamedRelatedResourceRep pair : pairsInGroup.getRemoteReplicationPairs()) {
+            pairIds.add(pair.getId());
+        }
+        // get ids of all source volumes in each pair
+        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, pairIds);
+        List<URI> srcVolIds = new ArrayList<>();
+        for (RemoteReplicationPair pair : rrPairs) {
+            srcVolIds.add(pair.getSourceElement().getURI());
+        }
+        // map vols by CG
+        List<Volume> srcVols = _dbClient.queryObject(Volume.class, srcVolIds);
+        Map<URI,List<URI>> cgToVolMap = new HashMap<>();
+        for (Volume vol : srcVols) {
+            if (vol.hasConsistencyGroup()) {
+                if (!cgToVolMap.containsKey(vol.getConsistencyGroup())) {
+                    cgToVolMap.put(vol.getConsistencyGroup(),new ArrayList<URI>());
+                }
+                cgToVolMap.get(vol.getConsistencyGroup()).add(vol.getId());
+            }
+        }
+        // return CGs if RR grp has all vols in that CG
+        BlockConsistencyGroupList result = new BlockConsistencyGroupList();
+        List<BlockConsistencyGroup> cgs =
+                _dbClient.queryObject(BlockConsistencyGroup.class, cgToVolMap.keySet());
+        consistencyGroupLoop:
+            for (BlockConsistencyGroup cg : cgs) {
+                List<Volume> volsInCg = BlockConsistencyGroupUtils.getActiveVolumesInCG(cg, _dbClient, null);
+                if (volsInCg.size() != cgToVolMap.get(cg.getId()).size()) {
+                    continue; // number of vols doesn't match
+                }
+                for (Volume volInCg : volsInCg) {
+                    if (!cgToVolMap.get(cg.getId()).contains(volInCg.getId()));
+                    continue consistencyGroupLoop; // IDs of vols don't match
+                }
+                // vols match, return this CG
+                RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), cg.getId()));
+                result.getConsistencyGroupList().add(
+                        new NamedRelatedBlockConsistencyGroupRep(cg.getId(), selfLink, cg.getLabel(), null));
+            }
+        return result;
+    }
+
+    /**
      * Get information about the remote replication group with the passed id.
      *
      * @param id the URN of remote replication group.
@@ -290,14 +354,40 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     public RemoteReplicationPairList getRemoteReplicationPairs(@PathParam("id") URI id) {
         _log.info("Called: get" +
                 "RemoteReplicationPairs() for replication group {}", id);
-        ArgValidator.checkFieldUriType(id, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class, "id");
-        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id, RemoteReplicationPair.class, "replicationGroup");
+        return getGroupPairs(id,true);
+    }
+
+    /**
+     * Get remote replication pairs in the remote replication group but not CG
+     * @return pairs in the group but not in a consistency group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/pairs-not-in-cg")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationPairList getRemoteReplicationPairsNotInCg(@PathParam("id") URI id) {
+        _log.info("Called: get" +
+                "getRemoteReplicationPairsNotInCg() for replication group {}", id);
+        return getGroupPairs(id,false);
+    }
+
+    /*
+     * Get pairs in group.  Flag includes pairs in a CG
+     */
+    private  RemoteReplicationPairList getGroupPairs(URI id, boolean includePairsInCg){
+        ArgValidator.checkFieldUriType(id,
+                com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class,
+                "id");
+        List<RemoteReplicationPair> rrPairs =
+                CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id,
+                        RemoteReplicationPair.class, "replicationGroup");
+        _log.info("Found pairs: {}", rrPairs);
         RemoteReplicationPairList rrPairList = new RemoteReplicationPairList();
-        if (rrPairs != null) {
-            _log.info("Found pairs: {}", rrPairs);
-            Iterator<RemoteReplicationPair> iter = rrPairs.iterator();
-            while (iter.hasNext()) {
-                rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(iter.next()));
+        Iterator<RemoteReplicationPair> iter = rrPairs.iterator();
+        while ((iter != null) && iter.hasNext()) {
+            RemoteReplicationPair rrPair = iter.next();
+            if(includePairsInCg || !rrPair.isInCG(_dbClient)) {
+                rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(rrPair));
             }
         }
         return rrPairList;

@@ -43,10 +43,6 @@ import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.constraint.impl.LabelConstraintImpl;
-import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystemType;
@@ -310,10 +306,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
         RemoteReplicationSet rrSet = queryResource(id);
 
-        PrefixConstraint constraint = new LabelConstraintImpl(rrSet.getLabel(),
-                TypeMap.getDoType(BlockConsistencyGroup.class).getColumnField("label"));
-        URIQueryResultList uris = new URIQueryResultList();
-        _dbClient.queryByConstraint(constraint, uris); //.queryByType(BlockConsistencyGroup.class, true);
+        List<URI> uris = _dbClient.queryByType(BlockConsistencyGroup.class, true);
 
         BlockConsistencyGroupList result = new BlockConsistencyGroupList();
         for (URI uri : uris) {
@@ -391,7 +384,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             _log.info("Found total pairs: {}", rrPairs.size());
             int size = 0;
             for (RemoteReplicationPair rrPair : rrPairs) {
-                if(rrPair.getReplicationGroup() == null) {
+                if((rrPair.getReplicationGroup() == null) && !rrPair.isInCG(_dbClient)) {
                     // return only pairs directly in replication set
                     rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(rrPair));
                     size++;

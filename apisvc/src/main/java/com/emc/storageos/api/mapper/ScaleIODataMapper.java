@@ -14,6 +14,7 @@ import com.emc.storageos.model.collectdata.ScaleIOSDSDataRestRep;
 import com.emc.storageos.model.collectdata.ScaleIOSDSIPDataRestRep;
 import com.emc.storageos.model.collectdata.ScaleIOStoragePoolDataRestRep;
 import com.emc.storageos.model.collectdata.ScaleIOSystemDataRestRep;
+import com.emc.storageos.model.collectdata.ScaleIOVolumeDataRestRep;
 import com.emc.storageos.model.collectdata.SlavesDataRestRep;
 import com.emc.storageos.model.collectdata.TieBreakersDataRestRep;
 import com.emc.storageos.scaleio.api.restapi.response.Master;
@@ -25,6 +26,7 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDC;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.scaleio.api.restapi.response.Slaves;
 import com.emc.storageos.scaleio.api.restapi.response.TieBreakers;
 import java.util.Arrays;
@@ -64,6 +66,15 @@ public class ScaleIODataMapper {
             return null;
         }
         ScaleIODeviceDataRestRep to = new ScaleIODeviceDataRestRep();
+        map(from, to);
+        return to;
+    }
+
+    public static ScaleIOVolumeDataRestRep map(ScaleIOVolume from) {
+        if (from == null) {
+            return null;
+        }
+        ScaleIOVolumeDataRestRep to = new ScaleIOVolumeDataRestRep();
         map(from, to);
         return to;
     }
@@ -288,6 +299,19 @@ public class ScaleIODataMapper {
         to.setId(from.getId());
         to.setName(from.getName());
         to.setDeviceCurrentPathName(from.getDeviceCurrentPathName());
+        to.setStoragePoolId(from.getStoragePoolId());
+    }
+
+    private static void map(ScaleIOVolume from, ScaleIOVolumeDataRestRep to) {
+        if (from == null) {
+            return;
+        }
+
+        to.setId(from.getId());
+        to.setName(from.getName());
+        to.setSizeInKb(from.getSizeInKb());
+        to.setVtreeId(from.getVtreeId());
+        to.setVolumeType(from.getVolumeType());
         to.setStoragePoolId(from.getStoragePoolId());
     }
 

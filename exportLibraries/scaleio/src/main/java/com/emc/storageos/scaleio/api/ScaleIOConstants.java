@@ -91,8 +91,12 @@ public class ScaleIOConstants {
         return String.format("/api/instances/StoragePool::%1$s/relationships/Statistics", poolId);
     }
 
-    public static String getSdsDeviceURI(String protectionDomainId) {
-        return String.format("/api/instances/Sds::%1$s/relationships/Device", protectionDomainId);
+    public static String getSdsDeviceURI(String sdsID) {
+        return String.format("/api/instances/Sds::%1$s/relationships/Device", sdsID);
+    }
+
+    public static String getSdcVolumeURI(String sdcID) {
+        return String.format("/api/instances/Sdc::%1$s/relationships/Volume", sdcID);
     }
 
     public static String getVolumeURI(String volId) {

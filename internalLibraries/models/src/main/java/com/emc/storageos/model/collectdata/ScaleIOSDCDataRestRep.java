@@ -4,6 +4,11 @@
  */
 package com.emc.storageos.model.collectdata;
 
+import java.util.List;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+
 public class ScaleIOSDCDataRestRep {
 
     private String id;
@@ -11,6 +16,7 @@ public class ScaleIOSDCDataRestRep {
     private String sdcIp;
     private String sdcGuid;
     private String mdmConnectionState;
+    private List<ScaleIOVolumeDataRestRep> volumes;
 
     public String getId() {
         return id;
@@ -50,6 +56,16 @@ public class ScaleIOSDCDataRestRep {
 
     public void setMdmConnectionState(String mdmConnectionState) {
         this.mdmConnectionState = mdmConnectionState;
+    }
+
+    @XmlElementWrapper(name = "volumeList")
+    @XmlElement(name = "volume")
+    public List<ScaleIOVolumeDataRestRep> getVolumes() {
+        return volumes;
+    }
+
+    public void setVolumes(List<ScaleIOVolumeDataRestRep> volumes) {
+        this.volumes = volumes;
     }
 
 }

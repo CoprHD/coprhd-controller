@@ -512,6 +512,18 @@ public class ScaleIORestClient extends StandardRestClient {
     }
 
     /**
+     * Get the SDC Volumes
+     *
+     * @param sdcId The SDC ID
+     * @return The details of the Volume
+     * @throws Exception
+     */
+    public List<ScaleIOVolume> getSdcVolumes(String sdcId) throws JSONException {
+        ClientResponse response = get(URI.create(ScaleIOConstants.getSdcVolumeURI(sdcId)));
+        return getResponseObjects(ScaleIOVolume.class, response);
+    }
+
+    /**
      * Get the system ID
      * 
      * @return The System ID

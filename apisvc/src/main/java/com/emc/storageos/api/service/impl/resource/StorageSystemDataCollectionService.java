@@ -7,8 +7,10 @@ package com.emc.storageos.api.service.impl.resource;
 import com.emc.storageos.api.mapper.ScaleIODataMapper;
 import com.emc.storageos.model.collectdata.ScaleIOCollectDataParam;
 import com.emc.storageos.model.collectdata.ScaleIODeviceDataRestRep;
+import com.emc.storageos.model.collectdata.ScaleIOSDCDataRestRep;
 import com.emc.storageos.model.collectdata.ScaleIOSDSDataRestRep;
 import com.emc.storageos.model.collectdata.ScaleIOSystemDataRestRep;
+import com.emc.storageos.model.collectdata.ScaleIOVolumeDataRestRep;
 import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
@@ -16,9 +18,11 @@ import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIODevice;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOFaultSet;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOProtectionDomain;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDC;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -127,7 +131,25 @@ public class StorageSystemDataCollectionService {
             sio.setSdsList(scaleIOSDSDataRestReps);
 
             //collect and map SDC data
-            sio.setSdcList(ScaleIODataMapper.mapSdcList(client.queryAllSDC()));
+            List<ScaleIOSDC> allSDC = client.queryAllSDC();
+            List<ScaleIOSDCDataRestRep> scaleIOSDCDataRestReps = new ArrayList<ScaleIOSDCDataRestRep>();
+            for (ScaleIOSDC sdc : allSDC) {
+                ScaleIOSDCDataRestRep sdcData = ScaleIODataMapper.map(sdc);
+                // map device data
+                List<ScaleIOVolume> volumes = client.getSdcVolumes(sdc.getId());
+                List<ScaleIOVolumeDataRestRep> scaleIOVolumeDataRestReps = new ArrayList<ScaleIOVolumeDataRestRep>();
+                if (null != volumes) {
+                    for (ScaleIOVolume volume : volumes) {
+                        ScaleIOVolumeDataRestRep scaleIOVolumeDataRestRep = ScaleIODataMapper.map(volume);
+                        // map storagepool data
+                        scaleIOVolumeDataRestRep.setStoragePool(ScaleIODataMapper.map(spMap.get(volume.getStoragePoolId())));
+                        scaleIOVolumeDataRestReps.add(scaleIOVolumeDataRestRep);
+                    }
+                    sdcData.setVolumes(scaleIOVolumeDataRestReps);
+                }
+                scaleIOSDCDataRestReps.add(sdcData);
+            }
+            sio.setSdcList(scaleIOSDCDataRestReps);
 
         } catch(ScaleIOException e){
             log.error(String.format("Exception was encountered in the ScaleIO client when connecting to instance %s",

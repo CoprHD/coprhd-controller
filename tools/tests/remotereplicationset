@@ -33,6 +33,17 @@ def remotereplicationset_failover(args):
     else:
         print 'Failed to failover remote replication set.'
 
+def remotereplicationset_suspend(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_suspend(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Suspended remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to suspend remote replication set.'
+
 def remotereplicationset_resume(args):
     bourne.connect(args.ip)
 
@@ -76,10 +87,6 @@ list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 operation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 operation.add_argument('replicationset_name', help = 'The name of the replication group.')
 
-# remotereplicationset failback
-failback = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-failback.add_argument('replicationset_name', help = 'The name of the replication group.')
-
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -99,15 +106,15 @@ try:
     elif (cmd == "failover"):
         args = operation.parse_args()
         remotereplicationset_failover(args)
-<<<<<<< HEAD
+    elif (cmd == "suspend"):
+        args = operation.parse_args()
+        remotereplicationset_suspend(args)
     elif (cmd == "resume"):
         args = operation.parse_args()
         remotereplicationset_resume(args)
-=======
     elif (cmd == "failback"):
-        args = failback.parse_args()
+        args = operation.parse_args()
         remotereplicationset_failback(args)
->>>>>>> origin/feature-COP-23235-sdk-supportForRemoteReplication
     else:
         parser.print_help()
 

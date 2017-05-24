@@ -548,13 +548,14 @@ public enum OperationTypeEnum {
     SUSPEND_REMOTE_REPLICATION_PAIR_LINK("SUSPEND REMOTE REPLICATION PAIR LINK", "SuspendRemoteReplicationPairLinkFailed", "suspend remote replication pair link"),
     RESUME_REMOTE_REPLICATION_PAIR_LINK("RESUME REMOTE REPLICATION PAIR LINK", "ResumeRemoteReplicationPairLinkFailed", "resume remote replication pair link"),
     SWAP_REMOTE_REPLICATION_PAIR_LINK("SWAP REMOTE REPLICATION PAIR LINK", "SwapRemoteReplicationPairLinkFailed", "swap remote replication pair link"),
-    SWAP_REMOTE_REPLICATION_CG_LINK("SWAP REMOTE REPLICATION CG LINK", "SwapRemoteReplicationCGLinkFailed", "swap remote replication cg link"),
     //
     FAILOVER_REMOTE_REPLICATION_CG_LINK("FAILOVER REMOTE REPLICATION CG LINK", "FailoverRemoteReplicationCGLinkFailed", "failover remote replication cg link"),
     ESTABLISH_REMOTE_REPLICATION_CG_LINK("ESTABLISH REMOTE REPLICATION CG LINK", "EstablishRemoteReplicationCGLinkFailed", "establish remote replication cg link"),
     FAILBACK_REMOTE_REPLICATION_CG_LINK("FAILBACK REMOTE REPLICATION CG LINK", "FailbackRemoteReplicationCGLinkFailed", "failback remote replication cg link"),
     SPLIT_REMOTE_REPLICATION_CG_LINK("SPLIT REMOTE REPLICATION CG LINK", "SplitRemoteReplicationCGLinkFailed", "split remote replication cg link"),
+    SUSPEND_REMOTE_REPLICATION_CG_LINK("SUSPEND REMOTE REPLICATION CG LINK", "SuspendRemoteReplicationCGLinkFailed", "suspend remote replication cg link"),
     RESUME_REMOTE_REPLICATION_CG_LINK("RESUME REMOTE REPLICATION CG LINK", "ResumeRemoteReplicationCGLinkFailed", "resume remote replication cg link"),
+    SWAP_REMOTE_REPLICATION_CG_LINK("SWAP REMOTE REPLICATION CG LINK", "SwapRemoteReplicationCGLinkFailed", "swap remote replication cg link"),
     //
     
     /* Filesystem Mount Operations*/

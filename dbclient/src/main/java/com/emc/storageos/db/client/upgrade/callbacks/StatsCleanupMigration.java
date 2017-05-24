@@ -23,14 +23,14 @@ public class StatsCleanupMigration extends BaseCustomMigrationCallback {
 		TimeSeriesType<Stat> doType = TypeMap.getTimeSeriesType(StatTimeSeries.class);
 		
 		try {
-			dbClient.getLocalContext()
-			        .getKeyspace().prepareQuery(doType.getCf()).setConsistencyLevel(ConsistencyLevel.CL_ALL)
-			        .withCql(String.format("TRUNCATE TABLE %s", "Stats"))
-			        .execute();
-			dbClient.getLocalContext()
-					.getKeyspace().prepareQuery(doType.getCf())
-			        .withCql(String.format("ALTER TABLE %s WITH compaction = {'class': 'SizeTieredCompactionStrategy'}", "Stats"))
-			        .execute();
+			dbClient.getLocalContext().getKeyspace().prepareQuery(doType.getCf())
+					.setConsistencyLevel(ConsistencyLevel.CL_QUORUM)
+					.withCql(String.format("TRUNCATE TABLE \"%s\"", doType.getCf().getName())).execute();
+			dbClient.getLocalContext().getKeyspace().prepareQuery(doType.getCf())
+					.withCql(String.format(
+							"ALTER TABLE \"%s\" WITH compaction = {'class': 'SizeTieredCompactionStrategy'}",
+							doType.getCf().getName()))
+					.execute();
 		} catch (Exception e) {
 			log.error("Failed to cleanup stats CF {}", e);
 			throw new MigrationCallbackException("Failed to cleanup stats CF", e);

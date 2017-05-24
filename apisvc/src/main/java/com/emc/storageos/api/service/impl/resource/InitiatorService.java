@@ -231,8 +231,7 @@ public class InitiatorService extends TaskResourceService {
 	//internal method to check initiator association
     private void checkForInitialAssocaition(Initiator initiator, Initiator pairInitiator) {
 		if (initiator.getAssociatedInitiator() != null || pairInitiator.getAssociatedInitiator() != null) {
-			throw APIException.badRequests.invalidParameterInitatorAlreadyPaired(initiator.getInitiatorPort(),
-					pairInitiator.getInitiatorPort());
+		throw APIException.badRequests.invalidParameterInitatorAlreadyPaired(initiator.getInitiatorPort(),pairInitiator.getInitiatorPort());
 		}
 	}
 

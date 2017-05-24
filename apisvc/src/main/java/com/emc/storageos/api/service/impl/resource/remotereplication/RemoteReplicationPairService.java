@@ -995,9 +995,6 @@ public class RemoteReplicationPairService extends TaskResourceService {
             case FAILBACK_REMOTE_REPLICATION_CG_LINK:
                 taskList = blockConsistencyGroupService.failoverCancel(cgURI, param);
                 break;
-            case SWAP_REMOTE_REPLICATION_PAIR_LINK:
-                taskList = blockService.swap(cgURI, param);
-                break;
             case SWAP_REMOTE_REPLICATION_CG_LINK:
                 taskList = blockConsistencyGroupService.swap(cgURI, param);
                 break;
@@ -1050,7 +1047,6 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 param.getCopies().add(copy);
                 taskList = blockService.failoverProtection(sourceVolumeURI, param);
                 break;
-
             case FAILBACK_REMOTE_REPLICATION_PAIR_LINK:
                 param.getCopies().add(copy);
                 taskList = blockService.failoverCancel(sourceVolumeURI, param);
@@ -1059,11 +1055,26 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 param.getCopies().add(copy);
                 taskList = blockService.swap(sourceVolumeURI, param);
                 break;
+            case RESUME_REMOTE_REPLICATION_PAIR_LINK:
+                param.getCopies().add(copy);
+                taskList = blockService.resumeContinuousCopies(sourceVolumeURI, param);
+                break;
             case SUSPEND_REMOTE_REPLICATION_PAIR_LINK:
-                copy.setSync("false"); // srdf does suspend for sync == false, split otherwise
+                copy.setSync("false"); // srdf does suspend for sync == false, split otherwise,
+                                       // when called pauseContinuousCopies()
                 param.getCopies().add(copy);
                 taskList = blockService.pauseContinuousCopies(sourceVolumeURI, param);
                 break;
+            case ESTABLISH_REMOTE_REPLICATION_PAIR_LINK:
+                param.getCopies().add(copy);
+                taskList = blockService.startContinuousCopies(sourceVolumeURI, param);
+                break;
+            case SPLIT_REMOTE_REPLICATION_PAIR_LINK:
+                copy.setSync("true"); // srdf does split for sync == true when called pauseContinuousCopies()
+                param.getCopies().add(copy);
+                taskList = blockService.pauseContinuousCopies(sourceVolumeURI, param);
+                break;
+
             default:
                 throw APIException.badRequests.operationNotSupportedForSystemType(operationType.toString(), StorageSystem.Type.vmax.toString());
         }

@@ -96,7 +96,7 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
 
     @Override
     public void split(RemoteReplicationElement replicationElement, String opId) {
-
+        exec("split", replicationElement, opId);
     }
 
     @Override

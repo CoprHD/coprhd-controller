@@ -938,6 +938,8 @@ public class HDSExportOperations implements ExportMaskOperations {
                         taskCompleter.error(dbClient, serviceError);
                         return;
                     }
+                } else {
+                    log.info("All the volumes are already part of the HSDs.");
                 }
                 taskCompleter.ready(dbClient);
             }

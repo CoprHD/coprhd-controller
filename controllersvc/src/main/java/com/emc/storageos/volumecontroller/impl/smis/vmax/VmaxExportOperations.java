@@ -56,7 +56,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -2407,6 +2406,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.addToUserCreatedInitiators(initiatorsToAddToUserAddedAndInitiatorList);
 
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAddToExisting);
+                    mask.removeFromExistingInitiators(initiatorsToRemoveFromExistingList);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     mask.getStoragePorts().addAll(storagePortsToAdd);

@@ -2048,6 +2048,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     mask.addToUserCreatedInitiators(initiatorsToAddToUserAddedAndInitiatorList);
 
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAddToExisting);
+                    mask.removeFromExistingInitiators(initiatorsToRemoveFromExistingList);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     ExportMaskUtils.sanitizeExportMaskContainers(dbClient, mask);

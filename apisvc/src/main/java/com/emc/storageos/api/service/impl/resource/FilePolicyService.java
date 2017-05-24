@@ -1159,8 +1159,10 @@ public class FilePolicyService extends TaskResourceService {
                 }
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
                         targetVArrays);
+
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
                         vPool.getId());
+
             } else {
                 errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName() + ". ");
                 return false;

@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
@@ -107,12 +106,12 @@ public class FilePolicyServiceUtils {
             if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
                 if (hour > 12) {
                     period = " PM";
-                    hour-=12;
+                    hour -= 12;
                     scheduleTime.append(hour);
                     scheduleTime.append(":");
-                    if(minute == 0){
+                    if (minute == 0) {
                         scheduleTime.append("00");
-                    } else{
+                    } else {
                         scheduleTime.append(minute);
                     }
                     scheduleTime.append(period);
@@ -434,8 +433,10 @@ public class FilePolicyServiceUtils {
                     }
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
                             targetVArrys);
+
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
                             vPool.getId());
+
                 } else {
                     errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
                     return false;
@@ -665,7 +666,7 @@ public class FilePolicyServiceUtils {
             dbClient.updateObject(task);
         }
     }
-    
+
     /**
      * Resets the filesystem relation due to replication policy assigned at higher level
      * Only to be used when delete FS is FULL type

@@ -72,6 +72,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
@@ -189,6 +190,7 @@ public class FileService extends TaskResourceService {
     protected static final String PROTOCOL_CIFS = "CIFS";
     private static final Long MINUTES_PER_HOUR = 60L;
     private static final Long HOURS_PER_DAY = 24L;
+    protected static final String SEPARATOR = "::";
 
     @Override
     public String getServiceType() {
@@ -4430,8 +4432,40 @@ public class FileService extends TaskResourceService {
         } else {
             targetVArrys.add(sourceVarray.getId().toString());
         }
+        URI targetvPool = null;
+        // Get the existing topologies for the policy
+        for (String strTopology : filePolicy.getReplicationTopologies()) {
+            FileReplicationTopology dbTopology = _dbClient.queryObject(FileReplicationTopology.class,
+                    URI.create(strTopology));
+            Set<String> dbTargetVArrys = new HashSet<String>();
+            if (sourceVarray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
+                dbTargetVArrys.addAll(dbTopology.getTargetVArrays());
+                if (dbTargetVArrys.containsAll(targetVArrys)) {
+                    // find a target virtual pool
+                    // Target virtual pool is required only for policies
+                    // which are created from older release remote replication vpool
+                    for (String targetVarray : targetVArrys) {
+                        if (dbTopology.getTargetVAVPool() != null && !dbTopology.getTargetVAVPool().isEmpty()) {
+                            String[] vavPool = dbTopology.getTargetVAVPool().split(SEPARATOR);
+                            if (vavPool != null && vavPool.length > 1 && targetVarray.equalsIgnoreCase(vavPool[0])) {
+                                String strvPool = vavPool[1];
+                                VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, URI.create(strvPool));
+                                if (vPool != null && !vPool.getInactive()) {
+                                    targetvPool = vPool.getId();
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
         capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS, targetVArrys);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
+        if (targetvPool != null) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, targetvPool);
+        } else {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
+        }
 
         FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
 

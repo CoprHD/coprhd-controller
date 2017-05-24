@@ -204,7 +204,7 @@ public class ClusterService extends TaskResourceService {
      * reference and initiators belonging to hosts in this cluster. Volumes are left intact.
      *
      * @param id the URN of a ViPR Cluster
-     * @brief Detach storage from Cluster
+     * @brief Detach storage from cluster
      * @return OK if detaching completed successfully
      * @throws DatabaseException when a DB error occurs
      */
@@ -332,7 +332,7 @@ public class ClusterService extends TaskResourceService {
      * Updates the shared export groups of the give cluster [Deprecated]
      *
      * @param id the URN of a ViPR cluster
-     *
+     * @brief Update shared export export groups
      * @return the representation of the updated cluster.
      */
     @POST
@@ -490,6 +490,7 @@ public class ClusterService extends TaskResourceService {
      * Gets the UnManagedVolumes exposed to a Cluster.
      *
      * @param id the URI of a ViPR Cluster
+     * @brief List unmanaged volumes exposed to a cluster
      * @return a list of UnManagedVolumes exposed to this host
      * @throws DatabaseException when a database error occurs
      */
@@ -518,6 +519,7 @@ public class ClusterService extends TaskResourceService {
      * Gets the UnManagedExportMasks found for a Cluster.
      *
      * @param id the URI of a ViPR Cluster
+     * @brief List unmanaged export masks for a cluster
      * @return a list of UnManagedExportMasks found for the Cluster
      * @throws DatabaseException when a database error occurs
      */
@@ -564,7 +566,7 @@ public class ClusterService extends TaskResourceService {
      * List the vblock hosts of a cluster.
      *
      * @param id the URN of a ViPR cluster
-     *
+     * @brief List vblock hosts for a cluster
      * @return The list of vblock hosts in the cluster.
      * @throws DatabaseException when a DB error occurs.
      */
@@ -590,6 +592,7 @@ public class ClusterService extends TaskResourceService {
      *            field because, objects for which this field is null will not be returned by
      *            this function.
      *
+     * @brief List Vblock hosts for a cluster
      * @return a list of children of tenant for the given class
      */
     private <T extends DataObject> List<NamedElementQueryResultList.NamedElement> getVblockHostsFromCluster(URI id) {

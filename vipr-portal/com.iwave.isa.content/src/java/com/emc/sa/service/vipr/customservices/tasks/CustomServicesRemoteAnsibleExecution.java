@@ -20,16 +20,19 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRemoteAnsiblePrimitive;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
-import com.emc.storageos.primitives.CustomServicesPrimitive;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.iwave.ext.command.Command;
+import com.iwave.ext.command.CommandOutput;
+import com.iwave.utility.ssh.SSHCommandExecutor;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -38,13 +41,11 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesRemoteAnsibleExecution.class);
     private final CustomServicesWorkflowDocument.Step step;
     private final Map<String, List<String>> input;
-    private  String orderDir;
     private final long timeout;
+    private final DbClient dbClient;
 
-    @Autowired
-    private DbClient dbClient;
 
-    public CustomServicesRemoteAnsibleExecution(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
+    public CustomServicesRemoteAnsibleExecution(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step,final DbClient dbClient) {
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -52,6 +53,7 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
         } else {
             this.timeout = step.getAttributes().getTimeout();
         }
+        this.dbClient = dbClient;
         provideDetailArgs(step.getId());
     }
 
@@ -60,9 +62,17 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
 
         ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId());
 
-        final Exec.Result result;
+        final CommandOutput result;
         try {
-            result = executeRemoteCmd(AnsibleHelper.makeExtraArg(input, step));
+            final CustomServicesDBRemoteAnsiblePrimitive primitive = dbClient.queryObject(CustomServicesDBRemoteAnsiblePrimitive.class,
+                    step.getOperation());
+            if (null == primitive) {
+                logger.error("Error retrieving the ansible primitive from DB. {} not found in DB", step.getOperation());
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "\"Error retrieving the Remote Ansible primitive from DB.");
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(step.getOperation() + " not found in DB");
+            }
+
+            result = executeRemoteCmd(AnsibleHelper.makeExtraArg(input, step), primitive);
 
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
@@ -76,37 +86,53 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Remote Ansible execution Failed");
         }
 
-        logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
+        logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdout(), result.getStderr(),
                 result.getExitValue());
 
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
+        final String parsedOut = AnsibleHelper.parseOut(result.getStdout());
+        if (!StringUtils.isEmpty(parsedOut)) {
+            ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId() + "Execution Output:" + parsedOut);
 
-        return new CustomServicesTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(),
-                null);
+            return new CustomServicesScriptTaskResult(parsedOut, result.getStdout(), result.getStderr(), result.getExitValue());             
+        }
+        return new CustomServicesScriptTaskResult(result.getStdout(), result.getStdout(), result.getStderr(), result.getExitValue());
     }
 
 
     // Execute Ansible playbook on remote node. Playbook is also in remote node
-    private Exec.Result executeRemoteCmd(final String extraVars) {
+    private CommandOutput executeRemoteCmd(final String extraVars, final CustomServicesDBRemoteAnsiblePrimitive primitive) {
         final Map<String, CustomServicesWorkflowDocument.InputGroup> inputType = step.getInputGroups();
         if (inputType == null) {
             return null;
         }
+        logger.debug("user:{} password:{}",AnsibleHelper.getOptions(
+                CustomServicesConstants.REMOTE_USER, input), AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_PASSWORD, input));
 
-        final AnsibleCommandLine cmd = new AnsibleCommandLine(
-                AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_BIN, input),
-                AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_PLAYBOOK, input));
+        final SSHCommandExecutor executor = new SSHCommandExecutor(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input), 22, AnsibleHelper.getOptions(
+                CustomServicesConstants.REMOTE_USER, input), AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_PASSWORD, input));
+        executor.setCommandTimeout((int)timeout);
+        final Command command = new RemoteCommand(extraVars, input, primitive);
+        command.setCommandExecutor(executor);
+        command.execute();
 
-        final String[] cmds = cmd.setSsh(CustomServicesConstants.SHELL_LOCAL_BIN)
-                .setUserAndIp(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_USER, input),
-                        AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input))
-                .setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))
-                .setUser(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_USER, input))
-                .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
-                .setExtraVars(extraVars)
-                .build();
+        return command.getOutput();
+    }
 
-        return Exec.exec(timeout, cmds);
+    public static final class RemoteCommand extends Command {
+        public RemoteCommand(final String extraVars, final Map<String, List<String>> input, final CustomServicesDBRemoteAnsiblePrimitive primitive) {
+
+            final AnsibleCommandLine cmd = new AnsibleCommandLine( primitive.getAttributes().get(CustomServicesConstants.ANSIBLE_BIN),
+                    primitive.getAttributes().get(CustomServicesConstants.ANSIBLE_PLAYBOOK));
+
+            final String[] cmds = cmd.setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))
+                    .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
+                    .setIsRemoteAnsible(true)
+                    .setExtraVars(extraVars)
+                    .build();
+
+            final String cmdToRun = StringUtils.join(cmds, ' ');
+            logger.info("cmd is:{}", cmdToRun);
+            setCommand(cmdToRun);
+        }
     }
 }
-

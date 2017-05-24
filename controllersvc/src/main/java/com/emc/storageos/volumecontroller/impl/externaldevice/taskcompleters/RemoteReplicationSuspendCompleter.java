@@ -21,15 +21,14 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 
-public class RemoteReplicationResumeCompleter extends TaskCompleter {
-
-    private static final Logger log = LoggerFactory.getLogger(RemoteReplicationResumeCompleter.class);
+public class RemoteReplicationSuspendCompleter extends TaskCompleter {
+    private static final Logger log = LoggerFactory.getLogger(RemoteReplicationSuspendCompleter.class);
 
     private DbClient dbClient;
     private RemoteReplicationSet.ElementType elementType;
     private URI elementURI;
 
-    public RemoteReplicationResumeCompleter(RemoteReplicationElement remoteReplicationElement, String opId) {
+    public RemoteReplicationSuspendCompleter(RemoteReplicationElement remoteReplicationElement, String opId) {
         elementType = remoteReplicationElement.getType();
         elementURI = remoteReplicationElement.getElementUri();
 

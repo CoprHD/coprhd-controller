@@ -7267,17 +7267,23 @@ sbsdk_remote_replication_tests()
 
     #Execute remote replication link operations
 
+    echo "**** Suspend replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup suspend ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
     echo "**** Resume replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup resume ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
     echo "**** Failover replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup failover ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
-    echo "**** Resume replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
-    run remotereplicationset resume ${SBSDK_DRIVER_REPLICATION_SET1}
-
     echo "**** Failback replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup failback ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Suspend replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset suspend ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Resume replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset resume ${SBSDK_DRIVER_REPLICATION_SET1}
 
     echo "**** Failover replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset failover ${SBSDK_DRIVER_REPLICATION_SET1}

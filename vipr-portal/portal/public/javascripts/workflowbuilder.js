@@ -742,15 +742,17 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     function getAllParents(id,result){
         if (null == result){
-            var result = [];
+            result = [];
         }
         var parents = RELATIONSHIP_MAP[id];
         if (null != parents) {
             for(var parent in parents) {
-                var index = findWithAttr(result,"id",parent);
-                if( index == -1){
-                    result.push({id:parent,name:parents[parent]});
-                    result=getAllParents(parent,result);
+                if (parents.hasOwnProperty(parent)) {
+                    var index = findWithAttr(result,"id",parent);
+                    if( index === -1){
+                        result.push({id:parent,name:parents[parent]});
+                        result=getAllParents(parent,result);
+                    }
                 }
             }
         }
@@ -758,7 +760,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     function addRelation(source,target,sourceData) {
-        if(source=='Start'||target=='End'){
+        if(source === 'Start'||target === 'End'){
             return;
         }
         var parents = RELATIONSHIP_MAP[target];
@@ -818,15 +820,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     function removeRelation(source,target,sourceData) {
         var parents = RELATIONSHIP_MAP[target];
         if (null != parents) {
-            var count = 0;
-            if(sourceData.next.defaultStep != target && sourceData.next.failedStep != target){
-                if(parents.hasOwnProperty(source)) {
-                    delete parents[source];
-                    if (jQuery.isEmptyObject(parents)){
-                        delete RELATIONSHIP_MAP[target];
-                        delete STEP_INPUT_MAP[source];
-                        delete STEP_OUTPUT_MAP[source];
-                    }
+            if(sourceData.next.defaultStep !== target && sourceData.next.failedStep !== target && parents.hasOwnProperty(source)) {
+                delete parents[source];
+                if (jQuery.isEmptyObject(parents)){
+                    delete RELATIONSHIP_MAP[target];
+                    delete STEP_INPUT_MAP[source];
+                    delete STEP_OUTPUT_MAP[source];
                 }
             }
         }

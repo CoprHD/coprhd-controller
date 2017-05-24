@@ -39,7 +39,7 @@
 											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.required" ng-if="stepData.type!=='vipr'" >
 												<boolean-checkbox v-default-value="false" ng-change="setWorkflowModified('true')"></boolean-checkbox>
 											</control-group>
-											<control-group class="col-xs-12" label-width="12" width="12" label-key ="input.step" v-field="input.step" ng-if="input.type=='FromOtherStepInput' || input.type=='FromOtherStepOutput'"  >
+											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.step" ng-if="input.type=='FromOtherStepInput' || input.type=='FromOtherStepOutput'"  >
 												<select-one options="getParentOptions(stepData.id)" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 											</control-group>
 											<control-group class="col-xs-12" label-width="12" width="12" label-key ="input.stepInput" v-field="input.value" ng-if="input.type=='FromOtherStepInput'"  >

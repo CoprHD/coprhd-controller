@@ -1,19 +1,18 @@
 /**
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.scaleio.api.restapi.response;
+package com.emc.storageos.model.collectdata;
 
 import java.util.Arrays;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 /**
  * Master attributes
  * 
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Master {
-    private String port;
+
+public class MasterDataRestRep {
+	private String port;
     private String id;
     private String versionInfo;
     private String[] ips;
@@ -103,9 +102,4 @@ public class Master {
         this.managementIPs = Arrays.copyOf(managementIPs,managementIPs.length);
     }
 
-    @Override
-    public String toString()
-    {
-        return "ClassPojo [port = "+port+", id = "+id+", versionInfo = "+versionInfo+", ips = "+ips+", name = "+name+", role = "+role+", managementIPs = "+managementIPs+"]";
-    }
 }

@@ -2070,10 +2070,11 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                              getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);
              for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
             	 Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
-            	 for (Network routedNetwork : routedNetworks) {     
-            		 if (networkSystemNetwork.getRoutedNetworks() == null) {
-            			 networkSystemNetwork.setRoutedNetworks(new StringSet());
-            		 }
+            	 //clear and re-populate the routed networks for each network. 
+            	 //This will ensure that any network changes are updated.
+            	 networkSystemNetwork.setRoutedNetworks(new StringSet());
+            	            	 
+            	 for (Network routedNetwork : routedNetworks) {                 		
             		 _log.info(String.format("Network %s can route to Network %s", networkSystemNetwork.getLabel(), routedNetwork.getLabel()));
             		 networkSystemNetwork.getRoutedNetworks().add(routedNetwork.getId().toString());
             		 
@@ -2087,7 +2088,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             	 _dbClient.updateObject(networkSystemNetwork);
             	 _dbClient.updateObject(routedNetworks);
              }
-         
         } catch (Exception ex) {
             _log.error("Cannot determine routable networks for networks on  " + networkSystem.getLabel() + " : " + ex.getLocalizedMessage());
             throw ex;

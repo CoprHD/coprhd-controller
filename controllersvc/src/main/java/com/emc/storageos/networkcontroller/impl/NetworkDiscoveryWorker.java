@@ -504,6 +504,10 @@ public class NetworkDiscoveryWorker {
                 		   isNetworkConnectedToRoutableSwitch = true;;
                 	   }                	   
                    }
+                   
+                   //It is not uncommon to have a VSAN/network that spans two switches and those switches can be both IVR or both non-IVR or a mix of IVR and non-IVR.
+                   //In the case of one IVR and one non-IVR switch for a network, do not zero/null the routedNetwork. It is possible to route from that VSAN on the IVR switch
+                   //to another switch that supports routing. 
                    if (!isNetworkConnectedToRoutableSwitch) {
                 	   _log.info("Updating routedNetwork to null for {}", networkSystemNetwork.getLabel());
                 	   networkSystemNetwork.setRoutedNetworks(null);

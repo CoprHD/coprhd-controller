@@ -634,7 +634,7 @@ public class NetworkDeviceController implements NetworkController {
         // Lock to prevent concurrent operations on the same VSAN / FABRIC.
         InterProcessLock fabricLock = NetworkFabricLocker.lockFabric(fabricId, _coordinator);
         try {
-            // Get the file device reference for the type of file device managed
+            // Get the network system reference for the type of network system managed
             // by the controller.
             NetworkSystemDevice networkDevice = getDevice(networkSytem.getSystemType());
             if (networkDevice == null) {

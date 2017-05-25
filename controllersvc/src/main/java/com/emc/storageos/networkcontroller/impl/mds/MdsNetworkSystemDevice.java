@@ -606,7 +606,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
             for (Zone zone : zonesToBeDeleted) {            	
                 String zoneName = zone.getName();
-                _log.info("Removing zone: " + zoneName + " zoneset: " + activeZoneset.getName() +  "vsan: " + vsanId);
+                _log.info("Removing zone: " + zoneName + " from zoneset: " + activeZoneset.getName() +  " in vsan: " + vsanId);
                 try {
                 	dialog.zonesetMember(zone.getName(), true);
                     removedZoneNames.put(zoneName, SUCCESS);
@@ -615,7 +615,21 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                     handleZonesStrategyException(ex, activateZones);
                 }
             }
-            _log.info("going back to config prompt");
+            _log.info("Going to config prompt to delete the zones");
+            dialog.exitToConfig();
+            for (Zone zone : zonesToBeDeleted) {            	
+                String zoneName = zone.getName();
+                _log.info("Removing zone: " + zoneName + " vsan: " + vsanId);
+                try {
+                	dialog.zoneNameVsan(zone.getName(), vsanId, true);
+                    //removedZoneNames.put(zoneName, SUCCESS);
+                } catch (Exception ex) {
+                    //removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
+                    handleZonesStrategyException(ex, activateZones);
+                }
+            }
+            _log.info("Going back to config prompt");
+            
             dialog.exitToConfig();
             if (activateZones) {
                 dialog.zonesetActivate(activeZoneset.getName(), vsanId, ((remainingZones[0] == 0) ? true : false));

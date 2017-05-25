@@ -38,6 +38,7 @@ import com.emc.sa.service.linux.tasks.FindPowerPathEntriesForMountPoint;
 import com.emc.sa.service.linux.tasks.FindPowerPathEntryForVolume;
 import com.emc.sa.service.linux.tasks.FormatVolume;
 import com.emc.sa.service.linux.tasks.GetDirectoryContents;
+import com.emc.sa.service.linux.tasks.GetDirectoryContentsNoFail;
 import com.emc.sa.service.linux.tasks.GetMountedFilesystem;
 import com.emc.sa.service.linux.tasks.GetMultipathBlockDevices;
 import com.emc.sa.service.linux.tasks.GetMultipathPrimaryPartitionDeviceParentDmName;
@@ -578,12 +579,7 @@ public class LinuxSupport {
     }
 
     public void checkDirectoryDoesNotExist(String path) {
-        boolean isEmpty = true;
-        try {
-            isEmpty = execute(new GetDirectoryContents(path)).isEmpty();
-        } catch (Exception e) {
-            logInfo("linux.support.directory.does.not.exist", path);
-        }
+        boolean isEmpty = execute(new GetDirectoryContentsNoFail(path)).isEmpty();
 
         if (!isEmpty) {
             ExecutionUtils.fail("failTask.LinuxSupport.checkDirectoryDoesNotExist", path, path);

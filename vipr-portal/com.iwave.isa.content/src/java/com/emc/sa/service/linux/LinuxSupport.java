@@ -538,4 +538,19 @@ public class LinuxSupport {
         return StringUtils.substringBeforeLast(device, "/") + "/" + multipathEntry.getName();
     }
 
+    public void checkDirectoryDoesNotExist(String path) {
+        boolean isEmpty = true;
+        try {
+            isEmpty = execute(new GetDirectoryContents(path)).isEmpty();
+        } catch (Exception e) {
+            logInfo("linux.support.directory.does.not.exist", path);
+        }
+
+        if (!isEmpty) {
+            ExecutionUtils.fail("failTask.LinuxSupport.checkDirectoryDoesNotExist", path, path);
+        } else {
+            logInfo("linux.support.directory.is.empty", path);
+        }
+    }
+
 }

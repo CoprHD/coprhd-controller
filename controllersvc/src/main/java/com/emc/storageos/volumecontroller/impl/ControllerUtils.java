@@ -993,20 +993,9 @@ public class ControllerUtils {
                 uriQueryResultList);
         Iterator<BlockSnapshot> snapIterator = dbClient.queryIterativeObjects(BlockSnapshot.class,
                 uriQueryResultList);
-
-        s_logger.info("**** looking at replicationGroupInstance: " + replicationGroupInstance);
-        s_logger.info("**** looking at storage URI: " + storage);
-
-        s_logger.info("**** about to iterate results: ");
         while (snapIterator.hasNext()) {
             BlockSnapshot snapshot = snapIterator.next();
-            s_logger.info("**** looking at snapshot: " + snapshot);
-            if (snapshot != null) {
-                s_logger.info("**** snapshot storage controller: " + snapshot.getStorageController());
-                s_logger.info("**** snapshot storage controller repl instance: " + snapshot.getReplicationGroupInstance());
-            }
             if (snapshot != null && !snapshot.getInactive() && storage.equals(snapshot.getStorageController())) {
-                s_logger.info("**** adding snapshot: " + snapshot.forDisplay());
                 snapshots.add(snapshot);
             }
         }
@@ -1336,15 +1325,9 @@ public class ControllerUtils {
      * @return the copy mode from snapshot group
      */
     public static String getCopyModeFromSnapshotGroup(String snapGroupName, URI storage,  DbClient dbClient) {
-       List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(snapGroupName, storage, dbClient);
-       BlockSnapshot snapshot = snapshots.get(0);
-       if (snapshot != null) {
-           return snapshot.getCopyMode();
-       }
-       s_logger.warn(
-               String.format("No snapshots found of snap group name %s on storage controller %s, returning null copy mode", 
-                       snapGroupName, storage));
-       return null;
+       List<BlockSnapshot> snapshots =  getSnapshotsPartOfReplicationGroup(snapGroupName, storage, dbClient);
+       return snapshots.get(0).getCopyMode();
+       
     }
 
     /**

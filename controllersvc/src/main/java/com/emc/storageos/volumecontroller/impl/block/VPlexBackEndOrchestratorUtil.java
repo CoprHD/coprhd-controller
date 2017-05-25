@@ -144,7 +144,7 @@ public class VPlexBackEndOrchestratorUtil {
      * @param coordinator the system coordinator client
      * @param portWwnToClusterMap a map of port wwns to VPLEX cluster
      * @param errorMessages an error message builder
-     * @return true if the given ExportMask can be used
+     * @return
      */
     public static boolean validateExportMask(URI varrayURI,
             Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks,
@@ -173,7 +173,7 @@ public class VPlexBackEndOrchestratorUtil {
             if (portsInDirector < directorMinPortCount) {
                 if (mask.getCreatedBySystem()) {    // ViPR created
                     String msg = String.format(
-                            "ExportMask %s disqualified because it only has %d back-end ports from %s (requires two). \n",
+                            "ExportMask %s disqualified because it only has %d back-end ports from %s (requires two). ",
                             mask.getMaskName(), portsInDirector, director);
                     _log.info(msg);
                     if (errorMessages != null) {
@@ -186,7 +186,7 @@ public class VPlexBackEndOrchestratorUtil {
                     passed = false;
                 } else {    // non ViPR created
                     String msg = String.format(
-                            "ExportMask %s only has %d back-end ports from %s (should have at least two). \n",
+                            "ExportMask %s only has %d back-end ports from %s (should have at least two). ",
                             mask.getMaskName(), portsInDirector, director);
                     _log.info(msg);
                     if (errorMessages != null) {
@@ -216,7 +216,7 @@ public class VPlexBackEndOrchestratorUtil {
 
         if (usablePorts.size() < 2) {
             String msg = String.format("ExportMask %s disqualified because it has less than two usable target ports;"
-                    + " usable ports: %s \n", mask.getMaskName(), usablePorts.toString());
+                    + " usable ports: %s", mask.getMaskName(), usablePorts.toString());
             _log.warn(msg);
             if (errorMessages != null) {
                 errorMessages.append(msg);
@@ -225,7 +225,7 @@ public class VPlexBackEndOrchestratorUtil {
         }
         else if (usablePorts.size() < 4) {  // This is a warning
             String msg = String.format("Warning: ExportMask %s has only %d usable target ports (best practice is at least four);"
-                    + " usable ports: %s \n", mask.getMaskName(), usablePorts.size(), usablePorts.toString());
+                    + " usable ports: %s", mask.getMaskName(), usablePorts.size(), usablePorts.toString());
             _log.warn(msg);
             if (errorMessages != null) {
                 errorMessages.append(msg);
@@ -241,7 +241,7 @@ public class VPlexBackEndOrchestratorUtil {
             }
         }
         if (clusters.size() > 1) {
-            String msg = String.format("ExportMask %s disqualified because it contains wwns from both VPLEX clusters. \n",
+            String msg = String.format("ExportMask %s disqualified because it contains wwns from both Vplex clusters",
                     mask.getMaskName());
             _log.warn(msg);
             if (errorMessages != null) {
@@ -252,7 +252,7 @@ public class VPlexBackEndOrchestratorUtil {
 
         // Rule 4. The ExportMask name should not have NO_VIPR in it.
         if (mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
-            String msg = String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it. \n",
+            String msg = String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
                     mask.getMaskName(), ExportUtils.NO_VIPR);
             _log.warn(msg);
             if (errorMessages != null) {
@@ -284,7 +284,7 @@ public class VPlexBackEndOrchestratorUtil {
                 virtualArrayName = virtualArray.getLabel();
             }
             String msg = String.format("Validation of ExportMask %s failed; the mask has ports which are not in varray %s;\n" +
-                    " \tPorts not in varray: %s \n", mask.getMaskName(), virtualArrayName, portsNotInVarray);
+                    " \tPorts not in varray: %s", mask.getMaskName(), virtualArrayName, portsNotInVarray);
             _log.warn(msg);
             if (errorMessages != null) {
                 errorMessages.append(msg);
@@ -300,7 +300,7 @@ public class VPlexBackEndOrchestratorUtil {
             _log.info(String.format("Validation of ExportMask %s passed; it has %d volumes",
                     mask.getMaskName(), volumeCount));
         } else {
-            if (null!=invalidMasks) {
+            if(null!=invalidMasks) {
                 invalidMasks.add(mask.getId());
             }
         }

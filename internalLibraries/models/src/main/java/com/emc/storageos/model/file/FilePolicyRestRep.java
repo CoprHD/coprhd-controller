@@ -6,6 +6,7 @@ package com.emc.storageos.model.file;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 
@@ -17,6 +18,7 @@ import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
  */
 
 @XmlRootElement
+@XmlType(namespace = "file_snapshot_policy", name = "file_policy")
 public class FilePolicyRestRep extends SchedulePolicyRestRep {
 
     // Type of the policy

@@ -135,6 +135,7 @@ TaskService
 DisasterRecoveryService
 CustomServicesPrimitiveService
 CustomServicesWorkflowService
+StorageSystemDataCollectionService
 
 =API Differences
 Block Services

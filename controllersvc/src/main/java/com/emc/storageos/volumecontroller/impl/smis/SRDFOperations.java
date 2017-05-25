@@ -200,6 +200,8 @@ public class SRDFOperations implements SmisConstants {
                 helper.invokeMethodSynchronously(systemWithCg, srcRepSvcPath,
                         SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
                         new SmisSRDFCreateMirrorJob(null, systemWithCg.getId(), completer));
+
+                completer.ready(dbClient);
             }
 
         } catch (WBEMException wbeme) {
@@ -280,6 +282,8 @@ public class SRDFOperations implements SmisConstants {
             helper.invokeMethodSynchronously(sourceSystem, srcRepSvcPath,
                     SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
                     new SmisSRDFCreateMirrorJob(null, sourceSystem.getId(), completer));
+
+            completer.ready(dbClient);
         } catch (WBEMException wbeme) {
             log.error("SMI-S error resynching mirror for {}", sourceURI, wbeme);
             if (verifyGroupSynchronizationCreatedinArray(srcCGPath, tgtCGPath, sourceSystem)) {
@@ -330,73 +334,71 @@ public class SRDFOperations implements SmisConstants {
      * @param nonEmptyRDFGroup indicates whether to pass CONSISTENCY_EXEMPT flag or not
      *            CONSISTENCY_EXEMPT does not need to be set if the RDF group is empty
      *            CONSISTENCY_EXEMPT should only be specified if the devices in the RDF group are in ASYNC mode
-     * @param formatvolumeflagNeeded           
+     * @param formatVolumeFlagNeeded
      * @return the replication setting data instance
      */
-    private CIMInstance getReplicationSettingDataInstance(final StorageSystem sourceSystem, int modeValue, boolean nonEmptyRDFGroup, boolean formatVolumeFlagNeeded) {
+    private CIMInstance getReplicationSettingDataInstance(final StorageSystem sourceSystem, int modeValue,
+                                                          boolean nonEmptyRDFGroup,
+                                                          boolean formatVolumeFlagNeeded) throws Exception {
         CIMInstance modifiedInstance = null;
-        try {
-            CIMObjectPath replicationSettingCapabilities = cimPath
-                    .getReplicationServiceCapabilitiesPath(sourceSystem);
-            int replicationType = Mode.ASYNCHRONOUS.getMode() == modeValue ? ASYNC_MIRROR_REMOTE_REPLICATION_TYPE
-                    : SYNC_MIRROR_REMOTE_REPLICATION_TYPE;
-            CIMArgument[] inArgs = helper.getReplicationSettingDataInstance(replicationType);
-            CIMArgument[] outArgs = new CIMArgument[5];
-            helper.invokeMethod(sourceSystem, replicationSettingCapabilities,
-                    "GetDefaultReplicationSettingData", inArgs, outArgs);
-            for (CIMArgument<?> outArg : outArgs) {
-                if (null == outArg) {
-                    continue;
-                }
-                if (outArg.getName().equalsIgnoreCase(DEFAULT_INSTANCE)) {
-                    CIMInstance repInstance = (CIMInstance) outArg.getValue();
-                    if (null != repInstance) {
-                        List<CIMProperty<?>> propList = new ArrayList<CIMProperty<?>>();
-                        if (Mode.ASYNCHRONOUS.getMode() == modeValue && nonEmptyRDFGroup) {
-                            CIMProperty<?> existingProp = repInstance.getProperty(EMC_CONSISTENCY_EXEMPT);
-                            CIMProperty<?> prop = null;
-                            if (existingProp == null) {
-                                // ConsistencyExempt property is now part of the smi-s standard. Available in providers 8.0+ (VMAX3 arrays)
-                                // EMCConsistencyExempt property in ReplicationSettingData is removed
-                                existingProp = repInstance.getProperty(CONSISTENCY_EXEMPT);
-                                prop = new CIMProperty<Object>(CONSISTENCY_EXEMPT,
-                                        existingProp.getDataType(), true);
-                            } else {
-                                prop = new CIMProperty<Object>(EMC_CONSISTENCY_EXEMPT,
-                                        existingProp.getDataType(), true);
-                            }
-                            propList.add(prop);
+        CIMObjectPath replicationSettingCapabilities = cimPath
+                .getReplicationServiceCapabilitiesPath(sourceSystem);
+        int replicationType = Mode.ASYNCHRONOUS.getMode() == modeValue ? ASYNC_MIRROR_REMOTE_REPLICATION_TYPE
+                : SYNC_MIRROR_REMOTE_REPLICATION_TYPE;
+        CIMArgument[] inArgs = helper.getReplicationSettingDataInstance(replicationType);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        helper.invokeMethod(sourceSystem, replicationSettingCapabilities,
+                "GetDefaultReplicationSettingData", inArgs, outArgs);
+        for (CIMArgument<?> outArg : outArgs) {
+            if (null == outArg) {
+                continue;
+            }
+            if (outArg.getName().equalsIgnoreCase(DEFAULT_INSTANCE)) {
+                CIMInstance repInstance = (CIMInstance) outArg.getValue();
+                if (null != repInstance) {
+                    List<CIMProperty<?>> propList = new ArrayList<CIMProperty<?>>();
+                    if (Mode.ASYNCHRONOUS.getMode() == modeValue && nonEmptyRDFGroup) {
+                        CIMProperty<?> existingProp = repInstance.getProperty(EMC_CONSISTENCY_EXEMPT);
+                        CIMProperty<?> prop = null;
+                        if (existingProp == null) {
+                            // ConsistencyExempt property is now part of the smi-s standard. Available in providers 8.0+ (VMAX3 arrays)
+                            // EMCConsistencyExempt property in ReplicationSettingData is removed
+                            existingProp = repInstance.getProperty(CONSISTENCY_EXEMPT);
+                            prop = new CIMProperty<Object>(CONSISTENCY_EXEMPT,
+                                    existingProp.getDataType(), true);
+                        } else {
+                            prop = new CIMProperty<Object>(EMC_CONSISTENCY_EXEMPT,
+                                    existingProp.getDataType(), true);
                         }
-                        //Use force flag only if the RDF Group is not empty AND if the source volume doesn't have any data on it.
-                        //Through ViPR only if its change virtual pool operation, the source volume will have data, hence 
-                        //formatVolumeFlagNeeded flag will be set to false only during ChangeVirtualPool
-                        log.info("NonEmptyRDFGroup : {}, formatFlagNeeded {} ",nonEmptyRDFGroup, formatVolumeFlagNeeded);
-                        if (nonEmptyRDFGroup && Mode.ACTIVE.getMode() == modeValue && formatVolumeFlagNeeded) {
-                             log.info("Adding format flag to replication Group Instance...");
-                            // NOTE: Format flag will wipe out the data.
-                            // he FORMAT property is not available as part of the default Replication Instance.
-                            // We will be on our own adding this property..
-                            CIMProperty<?> formatData = new CIMProperty<Object>(FORMAT, BOOLEAN_T, true);
-                            List<CIMProperty<?>> dupPropList = new ArrayList<CIMProperty<?>>();
-                            dupPropList.addAll(Arrays.asList(repInstance.getProperties()));
-                            dupPropList.add(formatData);
-                            CIMInstance duplicateRepInstance = new CIMInstance(repInstance.getObjectPath(),
-                                    dupPropList.toArray(new CIMProperty<?>[] {}));
-                            repInstance = duplicateRepInstance;// Re-assigning
-                        }
-
-                        // Set target supplier to Implementation Decides so that the supplied targets can be used
-                        CIMProperty<?> targetElementSupplier = new CIMProperty<Object>(TARGET_ELEMENT_SUPPLIER,
-                                UINT16_T, new UnsignedInteger16(IMPLEMENTATION_DECIDES));
-                        propList.add(targetElementSupplier);
-
-                        modifiedInstance = repInstance.deriveInstance(propList.toArray(new CIMProperty<?>[] {}));
-                        break;
+                        propList.add(prop);
                     }
+                    //Use force flag only if the RDF Group is not empty AND if the source volume doesn't have any data on it.
+                    //Through ViPR only if its change virtual pool operation, the source volume will have data, hence
+                    //formatVolumeFlagNeeded flag will be set to false only during ChangeVirtualPool
+                    log.info("NonEmptyRDFGroup : {}, formatFlagNeeded {} ",nonEmptyRDFGroup, formatVolumeFlagNeeded);
+                    if (nonEmptyRDFGroup && Mode.ACTIVE.getMode() == modeValue && formatVolumeFlagNeeded) {
+                        log.info("Adding format flag to replication Group Instance...");
+                        // NOTE: Format flag will wipe out the data.
+                        // he FORMAT property is not available as part of the default Replication Instance.
+                        // We will be on our own adding this property..
+                        CIMProperty<?> formatData = new CIMProperty<Object>(FORMAT, BOOLEAN_T, true);
+                        List<CIMProperty<?>> dupPropList = new ArrayList<CIMProperty<?>>();
+                        dupPropList.addAll(Arrays.asList(repInstance.getProperties()));
+                        dupPropList.add(formatData);
+                        CIMInstance duplicateRepInstance = new CIMInstance(repInstance.getObjectPath(),
+                                dupPropList.toArray(new CIMProperty<?>[] {}));
+                        repInstance = duplicateRepInstance;// Re-assigning
+                    }
+
+                    // Set target supplier to Implementation Decides so that the supplied targets can be used
+                    CIMProperty<?> targetElementSupplier = new CIMProperty<Object>(TARGET_ELEMENT_SUPPLIER,
+                            UINT16_T, new UnsignedInteger16(IMPLEMENTATION_DECIDES));
+                    propList.add(targetElementSupplier);
+
+                    modifiedInstance = repInstance.deriveInstance(propList.toArray(new CIMProperty<?>[] {}));
+                    break;
                 }
             }
-        } catch (Exception e) {
-            log.error("Error retrieving Replication Setting Data Instance ", e);
         }
         return modifiedInstance;
     }
@@ -716,40 +718,29 @@ public class SRDFOperations implements SmisConstants {
 
     @SuppressWarnings("rawtypes")
     public void createSRDFVolumePair(final StorageSystem sourceSystem, final URI sourceURI,
-            final URI targetURI, final TaskCompleter completer) {
-        try {
-            Volume source = dbClient.queryObject(Volume.class, sourceURI);
-            Volume target = dbClient.queryObject(Volume.class, targetURI);
-            RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
-            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, target.getStorageController());
-            int modeValue = Mode.valueOf(target.getSrdfCopyMode()).getMode();
-            CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(sourceSystem);
-            CIMObjectPath srcVolumePath = cimPath.getVolumePath(sourceSystem, source.getNativeId());
-            CIMObjectPath tgtVolumePath = cimPath.getVolumePath(targetSystem, target.getNativeId());
-            CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(sourceSystem,
-                    group);
-            boolean emptyRDFGroup = group.getVolumes() == null || group.getVolumes().isEmpty();
-            boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null;
-            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue, !emptyRDFGroup, formatVolumeFlagNeeded);
-            CIMArgument[] inArgs = helper.getCreateElementReplicaForSRDFInputArguments(
-                    srcVolumePath, tgtVolumePath, repCollectionPath, modeValue,
-                    replicationSettingDataInstance);
-            CIMArgument[] outArgs = new CIMArgument[5];
-            helper.invokeMethodSynchronously(sourceSystem, srcRepSvcPath,
-                    SmisConstants.CREATE_ELEMENT_REPLICA, inArgs, outArgs,
-                    new SmisSRDFCreateMirrorJob(null, sourceSystem.getId(), completer));
-        } catch (WBEMException wbeme) {
-            log.error("SMI-S error creating mirror for {}", sourceURI, wbeme);
-            ServiceError error = SmisException.errors.jobFailed(wbeme.getMessage());
-            WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
-            completer.error(dbClient, error);
+            final URI targetURI, final TaskCompleter completer) throws Exception {
+        Volume source = dbClient.queryObject(Volume.class, sourceURI);
+        Volume target = dbClient.queryObject(Volume.class, targetURI);
+        RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
+        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, target.getStorageController());
+        int modeValue = Mode.valueOf(target.getSrdfCopyMode()).getMode();
+        CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(sourceSystem);
+        CIMObjectPath srcVolumePath = cimPath.getVolumePath(sourceSystem, source.getNativeId());
+        CIMObjectPath tgtVolumePath = cimPath.getVolumePath(targetSystem, target.getNativeId());
+        CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(sourceSystem,
+                group);
+        boolean emptyRDFGroup = group.getVolumes() == null || group.getVolumes().isEmpty();
+        boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null;
+        CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue, !emptyRDFGroup, formatVolumeFlagNeeded);
+        CIMArgument[] inArgs = helper.getCreateElementReplicaForSRDFInputArguments(
+                srcVolumePath, tgtVolumePath, repCollectionPath, modeValue,
+                replicationSettingDataInstance);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        helper.invokeMethodSynchronously(sourceSystem, srcRepSvcPath,
+                SmisConstants.CREATE_ELEMENT_REPLICA, inArgs, outArgs,
+                new SmisSRDFCreateMirrorJob(null, sourceSystem.getId(), completer));
 
-        } catch (Exception e) {
-            log.error("Error creating mirror for {}", sourceURI, e);
-            ServiceError error = SmisException.errors.jobFailed(e.getMessage());
-            WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
-            completer.error(dbClient, error);
-        }
+        completer.ready(dbClient);
     }
 
     public void createListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, boolean addWaitForCopyState,
@@ -795,6 +786,8 @@ public class SRDFOperations implements SmisConstants {
             helper.invokeMethodSynchronously(system, srcRepSvcPath,
                     SmisConstants.CREATE_LIST_REPLICA, inArgs, outArgs,
                     new SmisSRDFCreateMirrorJob(null, system.getId(), completer));
+
+            completer.ready(dbClient);
         } catch (WBEMException wbeme) {
             log.error("SMI-S error creating mirrors for {}", Joiner.on(',').join(sources), wbeme);
             ServiceError error = SmisException.errors.jobFailed(wbeme.getMessage());

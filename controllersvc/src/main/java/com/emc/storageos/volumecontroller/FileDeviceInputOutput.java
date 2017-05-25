@@ -56,6 +56,7 @@ public class FileDeviceInputOutput {
     private String _opType;
     private boolean isFile;
     private boolean _forceDelete;
+    private boolean bypassDnsCheck;
     private long newFSSize;
     private VirtualPool vPool;
     private String opId;
@@ -1120,6 +1121,14 @@ public class FileDeviceInputOutput {
 
     public void setVarray(VirtualArray varray) {
         this.varray = varray;
+    }
+
+    public boolean getBypassDnsCheck() {
+        return bypassDnsCheck;
+    }
+
+    public void setBypassDnsCheck(boolean bypassDnsCheck) {
+        this.bypassDnsCheck = bypassDnsCheck;
     }
 
 }

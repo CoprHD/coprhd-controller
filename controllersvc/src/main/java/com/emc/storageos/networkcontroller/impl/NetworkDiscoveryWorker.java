@@ -491,6 +491,28 @@ public class NetworkDiscoveryWorker {
         StringSet routedNetworks = null;
         Network routedNetwork = null;
 
+        if (!this.getDevice().isCapableOfRouting(networkSystem)) {
+        	_log.info("NetworkSystem {} does not support routing across VSANs, skipping routed networks update/discovery", networkSystem.getLabel());
+        	
+        	//Clear out the routedNetworks entries, if filled, for non-IVR Cisco switches. This can happen in upgrade scenarios.
+           URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                            getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);
+
+           for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
+                   Network networkSystemNetwork = dbClient.queryObject(Network.class, networkSystemNetworkUri);
+                   _log.info("Updating routedNetwork to null for {}", networkSystemNetwork.getLabel());
+                   networkSystemNetwork.setRoutedNetworks(null);
+                   dbClient.updateObject(networkSystemNetwork);
+           }
+           
+           //Update the connected varray assignments
+           _log.info("Updating connected network and varray assignments");
+           for (Network network : DataObjectUtils.toMap(getCurrentTransportZones()).values()) {
+               NetworkAssociationHelper.setNetworkConnectedVirtualArrays(network, false, dbClient);
+           }
+           return;
+        }
         // get the current networks from the database
         Map<URI, Network> allNetworks = DataObjectUtils.toMap(getCurrentTransportZones());
         for (Network network : updatedNetworks) {

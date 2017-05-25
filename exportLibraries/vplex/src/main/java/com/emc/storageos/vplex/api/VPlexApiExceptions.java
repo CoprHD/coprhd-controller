@@ -217,11 +217,11 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException couldNotGenerateArrayExportMask(
-            final String vplexName, final String arrayName, final String vplexCluster);
+            final String vplexName, final String arrayName, final String vplexCluster, final String details);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException couldNotFindValidArrayExportMask(
-            final String vplexName, final String arrayName, final String vplexCluster);
+            final String vplexName, final String arrayName, final String vplexCluster, final String details);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException unexpectedBlockCountFormat(final String blockCount);
@@ -860,4 +860,7 @@ public interface VPlexApiExceptions {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource,
             final String vplexClusterName);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException logicalUnitsNotFoundForVolumes(final String volumeInfo);    
 }

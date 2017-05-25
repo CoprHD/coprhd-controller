@@ -54,9 +54,12 @@ import com.emc.storageos.coordinator.client.model.StorageDriversInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.storageos.model.storagedriver.StorageDriverList;
 import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -114,6 +117,7 @@ public class StorageDriverService {
     private static final int MAX_DISPLAY_STRING_LENGTH = 50;
     private static final String STORAGE_DRIVER_OPERATION_lOCK = "storagedriveroperation";
     private static final int LOCK_WAIT_TIME_SEC = 5; // 5 seconds
+    private static final OrderStatus[] BLOCKING_STATES = new OrderStatus[] {OrderStatus.EXECUTING, OrderStatus.PENDING};
 
     @Autowired
     private AuditLogManager auditMgr;
@@ -719,22 +723,42 @@ public class StorageDriverService {
 
         if (!drUtil.isActiveSite()) {
             throw APIException.internalServerErrors
-                    .installDriverPrecheckFailed("This operation is not allowed on standby site");
+                    .driverOperationEnvPrecheckFailed("This operation is not allowed on standby site");
         }
 
         for (Site site : drUtil.listSites()) {
             SiteState siteState = site.getState();
             if (!siteState.equals(SiteState.ACTIVE) && !siteState.equals(SiteState.STANDBY_SYNCED)) {
-                throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                throw APIException.internalServerErrors.driverOperationEnvPrecheckFailed(
                         String.format("Site %s is in %s state,not active or synced", site.getName(), siteState));
             }
 
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 throw APIException.internalServerErrors
-                        .installDriverPrecheckFailed(String.format("Currently site %s is not stable", site.getName()));
+                        .driverOperationEnvPrecheckFailed(String.format("Currently site %s is not stable", site.getName()));
             }
         }
+
+        // Reject request if there's any ongoing or queued order. This is a short-term solution
+        // for sky-walker to prevent storage driver operations from disturbing order execution.
+        // For long-term consideration, we need to implement a serialization mechanism among
+        // driver operations and order executions to avoid impact on each other.
+        if (hasOngoingQueuedOrders()) {
+            throw APIException.internalServerErrors.driverOperationEnvPrecheckFailed(
+                    "There are ongoing or queued orders now, please wait until these orders complete");
+        }
+    }
+
+    private boolean hasOngoingQueuedOrders() {
+        URIQueryResultList result = new URIQueryResultList();
+        for (OrderStatus status : BLOCKING_STATES) {
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getOrderStatusConstraint(status.toString()), result);
+            if (result.iterator().hasNext()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     protected InterProcessLock getStorageDriverOperationLock() {

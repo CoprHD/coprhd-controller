@@ -20,6 +20,7 @@
         -->
     	<property name="cipherSuite" value="TLS_RSA_WITH_AES_128_CBC_SHA"/>
     	<property name="clientToNodeEncrypted" value="${dbclient_encrypt}"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
     
     <bean id="geodbclientcontext" class="com.emc.storageos.db.client.impl.DbClientContext">
@@ -35,6 +36,7 @@
         -->
     	<property name="cipherSuite" value="TLS_RSA_WITH_AES_128_CBC_SHA"/>
     	<property name="clientToNodeEncrypted" value="${dbclient_encrypt}"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
     
     <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl" init-method="start">
@@ -46,6 +48,7 @@
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
 
     <bean id ="vdcUtilInitializer" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
@@ -65,5 +68,9 @@
 
     <bean id="serviceRunsDuringMigration" class="java.lang.Boolean">
         <constructor-arg type="java.lang.String" value="false" />
+    </bean>
+
+    <bean id="PerformanceLoggingInSeconds" class="java.lang.Integer" >
+        <constructor-arg value="1800" />
     </bean>
 </beans>

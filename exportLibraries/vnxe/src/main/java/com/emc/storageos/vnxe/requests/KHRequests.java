@@ -54,6 +54,8 @@ public class KHRequests<T> {
     private static final String GET_REQUEST = "GET";
     private static final String POST_REQUEST = "POST";
     private static final String DELETE_REQUEST = "DELETE";
+    private static final String CONNECTION = "Connection";
+    private static final String CLOSE = "close";
 
     public KHRequests(KHClient client) {
         _client = client;
@@ -95,6 +97,7 @@ public class KHRequests<T> {
             _logger.debug("EMC-CSRF-TOKEN is:: " + _client.getEmcCsrfToken());
             builder.header(EMC_CSRF_HEADER, _client.getEmcCsrfToken());
         }
+        builder.header(CONNECTION, CLOSE);
         Set<NewCookie> cookies = null;
         if (!_requestCookies.isEmpty()) {
             cookies = _requestCookies;
@@ -191,7 +194,7 @@ public class KHRequests<T> {
         } catch (JSONException e) {
             _logger.error(String.format("unexpected data returned: %s from: %s", resString, _url), e);
             throw VNXeException.exceptions.unexpectedDataError(resString, e);
-        }
+        } 
         return returnedObjects;
     }
 
@@ -244,7 +247,7 @@ public class KHRequests<T> {
         } catch (JSONException e) {
             _logger.error(String.format("unexpected data returned: %s from: %s", resString, _url), e);
             throw VNXeException.exceptions.unexpectedDataError("unexpected data returned:" + objectString, e);
-        }
+        } 
         return returnedObject;
     }
 
@@ -344,7 +347,7 @@ public class KHRequests<T> {
         } catch (IOException e) {
             _logger.error(String.format("unexpected data returned: %s from: %s", resString, _url), e);
             throw VNXeException.exceptions.unexpectedDataError("unexpected data returned:" + resString, e);
-        }
+        } 
         if (job != null) {
             _logger.info("submitted the job: " + job.getId());
         } else {
@@ -391,7 +394,7 @@ public class KHRequests<T> {
         } catch (JSONException e) {
             _logger.error(String.format("unexpected data returned: %s from: %s", resString, _url), e);
             throw VNXeException.exceptions.unexpectedDataError(String.format("unexpected data returned: %s", objectString), e);
-        }
+        } 
         return returnedObject;
     }
 
@@ -587,7 +590,7 @@ public class KHRequests<T> {
         } catch (IOException e) {
             _logger.error(String.format("unexpected data returned: %s from: %s ", resString, _url), e);
             throw VNXeException.exceptions.unexpectedDataError(String.format("unexpected data returned: %s", resString), e);
-        }
+        } 
         if (job != null) {
             _logger.info("submitted the deleting file system job: {} ", job.getId());
         }

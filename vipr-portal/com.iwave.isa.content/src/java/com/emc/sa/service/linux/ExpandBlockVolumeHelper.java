@@ -5,6 +5,7 @@
 package com.emc.sa.service.linux;
 
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.logWarn;
 
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +14,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.linux.LinuxSystemCLI;
@@ -50,9 +52,15 @@ public class ExpandBlockVolumeHelper {
         linuxSupport.removeVolumeMountPointTag(volume);
         ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_REMOVE_TAG);
 
-        logInfo("expand.block.volume.resize.volume", volume.getName(), newSizeInGB.toString());
-        linuxSupport.resizeVolume(volume, newSizeInGB);
-        ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_VOLUME_RESIZE);
+        // Skip the expand if the current volume capacity is larger than the requested expand size
+        if (BlockStorageUtils.isVolumeExpanded(volume, newSizeInGB)) {
+            logWarn("linux.expand.skip", volume.getId(), BlockStorageUtils.getCapacity(volume));
+        } else {
+            logInfo("expand.block.volume.resize.volume", volume.getName(), newSizeInGB.toString());
+            linuxSupport.resizeVolume(volume, newSizeInGB);
+            ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_VOLUME_RESIZE);
+        }
+
         linuxSupport.refreshStorage(Collections.singletonList(volume), usePowerPath);
 
         logInfo("expand.block.volume.find.parent", mountPoint.getDevice());

@@ -2038,6 +2038,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     HashSet<Integer> exportIds = new HashSet<>();
                     // Ignore Export with multiple paths
                     if (exp.getPaths().size() > 1) {
+                        _log.info("Discovered Isilon Export: {} has multiple paths so ingnoring it", exp.toString());
                         continue;
                     }
                     String path = exp.getPaths().get(0);

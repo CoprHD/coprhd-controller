@@ -23,7 +23,7 @@
         #{Form.fileUploadControlGroup field:field/}
      #{/field}
      #{Form.buttonBar}
-        <button type="submit" class="btn btn-primary btn-large" onclick="if (!confirm('&{'storageDrivers.upgrade.confirm'}')){return false;}">#{icon 'ok-sign'/} &{'storageDrivers.installButton'}</button>
+        <button type="submit" class="btn btn-primary btn-large" onclick="if (!confirm('&{'storageDrivers.operation.confirm'}')){return false;}">#{icon 'ok-sign'/} &{'storageDrivers.installButton'}</button>
         #{Form.button name:'button.cancel', icon:'trash', href:@list()/}
      #{/Form.buttonBar}
 #{/form}

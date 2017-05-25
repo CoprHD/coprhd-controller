@@ -408,6 +408,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
 
+        _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
+        // VMAX SRDF integration logic
+        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
+                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_CG_LINK);
+            return taskList;
+        }
+
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
 
@@ -447,6 +456,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
 
+        // SRDF integration logic
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
+        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
+                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_PAIR_LINK);
+            return taskList.getTaskList().get(0);
+        }
+
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
@@ -483,6 +501,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
         Volume sourceElement = _dbClient.queryObject(Volume.class, sourceElementURI);
         URI cgURI = sourceElement.getConsistencyGroup();
         BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+
+        _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
+        // VMAX SRDF integration logic
+        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
+                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_PAIR_LINK);
+            return taskList;
+        }
 
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
@@ -528,6 +555,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
 
+        // SRDF integration logic
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
+        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
+                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_PAIR_LINK);
+            return taskList.getTaskList().get(0);
+        }
+
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
@@ -568,6 +604,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
 
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
+
+        _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
+        // VMAX SRDF integration logic
+        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
+                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.SUSPEND_REMOTE_REPLICATION_CG_LINK);
+            return taskList;
+        }
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
@@ -657,6 +702,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
 
+        _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
+        // VMAX SRDF integration logic
+        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
+                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.RESUME_REMOTE_REPLICATION_CG_LINK);
+            return taskList;
+        }
+
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(),
@@ -695,6 +749,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
         _log.info("Called: resumeRemoteReplicationPairLink() with id {} and task {}", id, taskId);
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
+
+        // SRDF integration logic
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
+        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
+                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.RESUME_REMOTE_REPLICATION_PAIR_LINK);
+            return taskList.getTaskList().get(0);
+        }
 
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
@@ -984,19 +1047,56 @@ public class RemoteReplicationPairService extends TaskResourceService {
         String type = BlockSnapshot.TechnologyType.SRDF.toString();
         Copy copy = new Copy();
         copy.setType(type);
-        copy.setCopyID(targetVolume.getVirtualArray());
+        //copy.setCopyID(targetVolume.getVirtualArray());
         CopiesParam param = new CopiesParam();
-        param.getCopies().add(copy);
+        //param.getCopies().add(copy);
         URI cgURI = sourceVolume.getConsistencyGroup();
         switch (operationType) {
             case FAILOVER_REMOTE_REPLICATION_CG_LINK:
+                copy.setCopyID(targetVolume.getVirtualArray());
+                param.getCopies().add(copy);
                 taskList = blockConsistencyGroupService.failoverProtection(cgURI, param);
                 break;
             case FAILBACK_REMOTE_REPLICATION_CG_LINK:
+                copy.setCopyID(targetVolume.getVirtualArray());
+                param.getCopies().add(copy);
                 taskList = blockConsistencyGroupService.failoverCancel(cgURI, param);
                 break;
             case SWAP_REMOTE_REPLICATION_CG_LINK:
+                copy.setCopyID(targetVolume.getVirtualArray());
+                param.getCopies().add(copy);
                 taskList = blockConsistencyGroupService.swap(cgURI, param);
+                break;
+            case RESUME_REMOTE_REPLICATION_CG_LINK:
+                copy.setCopyID(targetVolume.getId());
+                param.getCopies().add(copy);
+                // Specific to srdf implementation of resume for cg: block service will handle volume in cg by executing
+                // operation for complete cg.
+                taskList = blockService.resumeContinuousCopies(sourceVolume.getId(), param);
+                break;
+            case SUSPEND_REMOTE_REPLICATION_CG_LINK:
+                copy.setCopyID(targetVolume.getId());
+                copy.setSync("false"); // srdf does suspend for sync == false, split otherwise,
+                // when called pauseContinuousCopies()
+                param.getCopies().add(copy);
+                // Specific to srdf implementation of suspend for cg: block service will handle volume in cg by executing
+                // operation for complete cg.
+                taskList = blockService.pauseContinuousCopies(sourceVolume.getId(), param);
+                break;
+            case ESTABLISH_REMOTE_REPLICATION_CG_LINK:
+                copy.setCopyID(targetVolume.getId());
+                param.getCopies().add(copy);
+                // Specific to srdf implementation of establish for cg: block service will handle volume in cg by executing
+                // operation for complete cg.
+                taskList = blockService.startContinuousCopies(sourceVolume.getId(), param);
+                break;
+            case SPLIT_REMOTE_REPLICATION_CG_LINK:
+                copy.setCopyID(targetVolume.getId());
+                copy.setSync("true"); // srdf does split for sync == true when called pauseContinuousCopies()
+                param.getCopies().add(copy);
+                // Specific to srdf implementation of split for cg: block service will handle volume in cg by executing
+                // operation for complete cg.
+                taskList = blockService.pauseContinuousCopies(sourceVolume.getId(), param);
                 break;
             default:
                 throw APIException.badRequests.operationNotSupportedForSystemType(operationType.toString(), StorageSystem.Type.vmax.toString());

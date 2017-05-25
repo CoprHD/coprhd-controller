@@ -12,6 +12,13 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import com.netflix.astyanax.model.ConsistencyLevel;
 
+/**
+ * This migration handler is for COP-30611. It will do two things. 
+ * 
+ * 1. Truncate stats CF with DB consistency level as ALL (suggested by datastax)
+ * 2. Change compaction strategy to SizeTieredCompactionStrategy.
+ *
+ */
 public class StatsCleanupMigration extends BaseCustomMigrationCallback {
 	private static final Logger log = LoggerFactory.getLogger(StatsCleanupMigration.class);
 	
@@ -24,7 +31,7 @@ public class StatsCleanupMigration extends BaseCustomMigrationCallback {
 		
 		try {
 			dbClient.getLocalContext().getKeyspace().prepareQuery(doType.getCf())
-					.setConsistencyLevel(ConsistencyLevel.CL_QUORUM)
+					.setConsistencyLevel(ConsistencyLevel.CL_ALL)
 					.withCql(String.format("TRUNCATE TABLE \"%s\"", doType.getCf().getName())).execute();
 			dbClient.getLocalContext().getKeyspace().prepareQuery(doType.getCf())
 					.withCql(String.format(

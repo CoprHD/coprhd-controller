@@ -1995,8 +1995,16 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	@Override
 	public void determineRoutedNetworks(NetworkSystem networkSystem) throws NetworkDeviceControllerException {		
 		MDSDialog dialog = null;
-					
+			
+		/* Example output "show ivr vsan-topology"
+		 * 	AFID  SWITCH WWN                 Active   Cfg. VSANS
+		 * 	-----------------------------------------------------------
+		 * 	1  20:00:00:0d:ec:dc:86:40 *   yes      no  1,3,11,99,200
+		 * 	1  20:00:00:2a:6a:33:13:10     yes      no  1-3,10,78,99,200
+		 */
+		
 		// 1. Build a map of switchWWN to NetworkSystem for all the discovered NetworkSystems
+		
 		Map<String, NetworkSystem> switchWWNToNetworkSystemMap = new HashMap<String, NetworkSystem>();
 		for (URI discoveredNetworkSystemUri : NetworkUtil.getDiscoveredNetworkSystems(_dbClient)) {
 			try {

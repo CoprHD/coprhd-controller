@@ -101,6 +101,7 @@ public class UnmountBlockVolumeHelper {
         linux.ensureVolumesAreMounted(volumes);
         findRelatedVolumes();
         linux.verifyVolumeMount(volumes, usePowerPath);
+        linux.verifyVolumeFilesystemMount(volumes, usePowerPath);
     }
 
     /**

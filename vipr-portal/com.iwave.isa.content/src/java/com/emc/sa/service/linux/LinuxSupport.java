@@ -38,6 +38,7 @@ import com.emc.sa.service.linux.tasks.FindPowerPathEntriesForMountPoint;
 import com.emc.sa.service.linux.tasks.FindPowerPathEntryForVolume;
 import com.emc.sa.service.linux.tasks.FormatVolume;
 import com.emc.sa.service.linux.tasks.GetDirectoryContents;
+import com.emc.sa.service.linux.tasks.GetMountedFilesystem;
 import com.emc.sa.service.linux.tasks.GetMultipathBlockDevices;
 import com.emc.sa.service.linux.tasks.GetMultipathPrimaryPartitionDeviceParentDmName;
 import com.emc.sa.service.linux.tasks.GetPowerpathBlockDevices;
@@ -285,7 +286,8 @@ public class LinuxSupport {
     }
 
     /**
-     * Verifies that the volumes are mounted on the expected paths on the host. If validation fails, the order is marked as failed.
+     * Checks fstab to verify that the volumes are mounted on the expected paths on the host. If validation fails, the order is marked as
+     * failed.
      * 
      * @param volumes list of volumes to verify
      * @param usePowerPath true if using powerpath, otherwise false for multipath
@@ -297,7 +299,8 @@ public class LinuxSupport {
     }
 
     /**
-     * Verifies that the volume is mounted on the expected path on the host. If validation fails, the order is marked as failed.
+     * Checks fstab to verify that the volume is mounted on the expected path on the host. If validation fails, the order is marked as
+     * failed.
      * 
      * @param volume the volume to verify
      * @param mountPointPath the path where the volume should be mounted
@@ -318,8 +321,44 @@ public class LinuxSupport {
         }
     }
 
+    /**
+     * Check the current mounted filesystems on the host to verify that the volume is mounted on the correct path
+     * 
+     * @param volumes list of volumes
+     * @param usePowerPath if true, using powerpath, else using multipath
+     */
+    public void verifyVolumeFilesystemMount(List<VolumeSpec> volumes, boolean usePowerPath) {
+        for (VolumeSpec volume : volumes) {
+            verifyVolumeFilesystemMount(volume.viprVolume, volume.mountPoint.getPath(), usePowerPath);
+        }
+    }
+
+    /**
+     * Checks the current mounted filesystems on the host to verify that the volume is mounted on the correct path
+     * 
+     * @param volume volume to verify
+     * @param mountPointPath the path to verify
+     * @param usePowerPath
+     */
+    public void verifyVolumeFilesystemMount(BlockObjectRestRep volume, String mountPointPath, boolean usePowerPath) {
+        String device = getDevice(volume, usePowerPath);
+        String partitionDevice = getPrimaryPartitionDevice(volume, mountPointPath, device, usePowerPath);
+        String mountedDevice = getMountedFilesystem(mountPointPath);
+
+        if (mountedDevice == null) {
+            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.noMountFound", mountPointPath, mountPointPath);
+        } else if (StringUtils.equalsIgnoreCase(partitionDevice, mountedDevice)) {
+            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.devicesDoNotMatch", new Object[] {}, partitionDevice, mountPointPath,
+                    mountedDevice);
+        }
+    }
+
     public MountPoint findMountPoint(BlockObjectRestRep volume) {
         return LinuxUtils.getMountPoint(targetSystem.getHostId(), getMountPoints(), volume);
+    }
+
+    public String getMountedFilesystem(String path) {
+        return execute(new GetMountedFilesystem(path));
     }
 
     public Map<String, MountPoint> getMountPoints() {

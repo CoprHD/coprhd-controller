@@ -33,6 +33,10 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_START_END_NOT_DEFINED = "Start or End Step not defined";
     public static final String ERROR_MSG_WORKFLOW_STEP_NULL = "Workflow Step is null";
     public static final String ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_DEFINED = "Next step not defined for the step";
+    public static final String ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_ALLOWED_FOR_END = "Next step not allowed for the End step";
+    public static final String ERROR_MSG_WORKFLOW_STEP_NOT_FOUND = "Next step not found for the step";
+    public static final String ERROR_MSG_WORKFLOW_CYCLE_EXISTS = "Cycles a.k.a loops are not allowed in workflow";
+    public static final String ERROR_MSG_WORKFLOW_FAILURE_PATH_NOT_ALLOWED_FOR_START = "Failure path not allowed for the Start step";
     public static final String ERROR_MSG_WORKFLOW_START_END_CONNECTED = "Start is connected to End.";
     public static final String ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED = "Previous step not defined for the step";
     public static final String ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED = "InputType is not defined";

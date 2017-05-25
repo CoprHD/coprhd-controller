@@ -45,10 +45,17 @@ import com.google.common.collect.Sets;
 public class ValidationHelper {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ValidationHelper.class);
+    final Map<String, List<String>> wfAdjList = new HashMap<String, List<String>>();
     final private Set<String> childSteps = new HashSet<>();
     final private Set<String> uniqueFriendlyInputNames = new HashSet<>();
     final private ImmutableMap<String, Step> stepsHash;
     final private String EMPTY_STRING = "";
+    final private Map<String, Set<String>> descendent = new HashMap();
+    final private Map<String, String> nodeTraverseMap = new HashMap();
+    final private String NODE_NOT_VISITED = "not visited";
+    final private String NODE_VISITED = "visited";
+    final private String NODE_IN_PATH = "to be visited";
+    boolean foundCycle = false;
 
     public ValidationHelper(final CustomServicesWorkflowDocument wfDocument) {
         final List<Step> steps = wfDocument.getSteps();
@@ -108,42 +115,27 @@ public class ValidationHelper {
 
         for (final Step step : stepsHash.values()) {
             final String errorString = validateCurrentStep(step);
-            boolean addErrorStep = false;
 
             final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
 
             if (StringUtils.isNotBlank(errorString)) {
-                if (errorSteps.containsKey(step.getId())) {
-                    final List<String> errorMsgs = errorStep.getErrorMessages();
-                    errorMsgs.add(errorString);
-                } else {
-                    errorStep.setErrorMessages(new ArrayList<>(Arrays.asList(errorString)));
-                }
-                addErrorStep = true;
-            }
-
-            logger.debug("Validate step input");
-
-            final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup = validateStepInput(step);
-            if (!errorInputGroup.isEmpty()) {
-                errorStep.setInputGroups(errorInputGroup);
-                addErrorStep = true;
-            }
-
-            if (addErrorStep) {
+                errorStep.setErrorMessages(new ArrayList<>(Arrays.asList(errorString)));
                 errorSteps.put(step.getId(), errorStep);
             }
-
         }
-        if (MapUtils.isNotEmpty(addErrorStepsWithoutParent(errorSteps))) {
+
+        addErrorStepsWithoutParent(errorSteps);
+
+        validateStepInputs(errorSteps);
+
+        if (MapUtils.isNotEmpty(errorSteps)) {
             workflowError.setErrorSteps(errorSteps);
         }
         return workflowError;
     }
 
     // For the steps which does not have parent, add the error to response
-    private Map<String, CustomServicesValidationResponse.ErrorStep>
-            addErrorStepsWithoutParent(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
+    private void addErrorStepsWithoutParent(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
         final Set<String> stepWithoutParent = Sets.difference(stepsHash.keySet(), childSteps);
         for (final String stepId : stepWithoutParent) {
             if (errorSteps.containsKey(stepId)) {
@@ -162,17 +154,115 @@ public class ValidationHelper {
             }
 
         }
-        return errorSteps;
+
+        if (CollectionUtils.isEmpty(stepWithoutParent)) {
+            validateCycle(errorSteps);
+        }
+    }
+
+    private void validateCycle(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
+        String backEdgeNode = EMPTY_STRING;
+        for (String step : wfAdjList.keySet()) {
+            nodeTraverseMap.put(step, NODE_NOT_VISITED);
+        }
+
+        for (String step : wfAdjList.keySet()) {
+            if (nodeTraverseMap.get(step).equals(NODE_NOT_VISITED)) {
+                backEdgeNode = DFSTraverse(step);
+            }
+            if (foundCycle) {
+                break;
+            }
+        }
+
+        if (foundCycle) {
+            String error = String.format("%s - Back edge to %s results in cycle", CustomServicesConstants.ERROR_MSG_WORKFLOW_CYCLE_EXISTS,
+                    stepsHash.get(backEdgeNode).getFriendlyName());
+            if (errorSteps.containsKey(backEdgeNode)) {
+                final List<String> errorMsgs = errorSteps.get(backEdgeNode).getErrorMessages();
+                if (CollectionUtils.isNotEmpty(errorMsgs)) {
+                    errorMsgs.add(error);
+                } else {
+                    errorSteps.get(backEdgeNode).setErrorMessages(
+                            new ArrayList<>(Arrays.asList(error)));
+                }
+            } else {
+                final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
+                errorStep.setErrorMessages(
+                        new ArrayList<>(Arrays.asList(error)));
+                errorSteps.put(backEdgeNode, errorStep);
+            }
+        }
+
+    }
+
+    private String DFSTraverse(final String node) {
+
+        nodeTraverseMap.put(node, NODE_IN_PATH);
+        if (wfAdjList.get(node) == null) {
+            return EMPTY_STRING;
+        }
+
+        for (String child : wfAdjList.get(node)) {
+
+            if (node.equals(StepType.END)) {
+                continue;
+            }
+
+            if (wfAdjList.get(child) == null) {
+                continue;
+            }
+
+            if (nodeTraverseMap.get(child).equals(NODE_IN_PATH)) {
+                // back edge
+                foundCycle = true;
+                return node;
+            }
+            if (nodeTraverseMap.get(child).equals(NODE_NOT_VISITED)) {
+                String errorNode = DFSTraverse(child);
+                if (foundCycle) {
+                    return errorNode;
+                }
+            }
+            if (!foundCycle) {
+                List<String> cChildren = wfAdjList.get(child);
+                if (cChildren != null) {
+                    Set<String> cSet = new HashSet<>(cChildren);
+                    cSet.addAll(wfAdjList.get(node));
+                    if (descendent.get(child) != null) {
+                        cSet.addAll(descendent.get(child));
+                    }
+
+                    if (descendent.get(node) != null) {
+                        cSet.addAll(descendent.get(node));
+                    }
+                    cSet.remove("");
+                    descendent.put(node, cSet);
+                }
+            }
+        }
+        nodeTraverseMap.put(node, NODE_VISITED);
+        return EMPTY_STRING;
     }
 
     private String validateCurrentStep(final Step step) {
-        String errorString = EMPTY_STRING;
+        String errorString;
+
+        List<String> adjacentNodes = new ArrayList();
+        wfAdjList.put(step.getId(), adjacentNodes);
+
         if (step == null || StringUtils.isBlank(step.getId())) {
             return CustomServicesConstants.ERROR_MSG_WORKFLOW_STEP_NULL;
         }
+        errorString = validateStartEndStep(step);
+        if (StringUtils.isNotBlank(errorString)) {
+            return errorString;
+        }
+
         if (step.getId().equals(StepType.END.toString())) {
             return errorString;
         }
+
         if (step.getNext() == null) {
             return CustomServicesConstants.ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_DEFINED;
         } else {
@@ -186,14 +276,58 @@ public class ValidationHelper {
                 if (step.getId().equals(StepType.START.toString()) && step.getNext().getDefaultStep().equals(StepType.END.toString())) {
                     errorString = CustomServicesConstants.ERROR_MSG_WORKFLOW_START_END_CONNECTED;
                 }
-                childSteps.add(step.getNext().getDefaultStep());
+                if (stepsHash.keySet().contains(step.getNext().getDefaultStep())) {
+                    childSteps.add(step.getNext().getDefaultStep());
+                    adjacentNodes.add(step.getNext().getDefaultStep());
+                } else {
+                    errorString = CustomServicesConstants.ERROR_MSG_WORKFLOW_STEP_NOT_FOUND;
+                }
+                //
             }
             if (StringUtils.isNotBlank(step.getNext().getFailedStep())) {
-                childSteps.add(step.getNext().getFailedStep());
+                if (stepsHash.keySet().contains(step.getNext().getFailedStep())) {
+                    childSteps.add(step.getNext().getFailedStep());
+                    adjacentNodes.add(step.getNext().getFailedStep());
+                } else {
+                    errorString = CustomServicesConstants.ERROR_MSG_WORKFLOW_STEP_NOT_FOUND;
+                }
+
+            }
+            return errorString;
+        }
+    }
+
+    private String validateStartEndStep(final Step step) {
+
+        if (StringUtils.isNotBlank(step.getId()) && step.getNext() != null) {
+            if (step.getId().equals(StepType.END.toString()) && (StringUtils.isNotBlank(step.getNext().getDefaultStep())
+                    || StringUtils.isNotBlank(step.getNext().getFailedStep()))) {
+                return CustomServicesConstants.ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_ALLOWED_FOR_END;
             }
 
+            if (step.getId().equals(StepType.START.toString())
+                    && (StringUtils.isBlank(step.getNext().getDefaultStep()) || StringUtils.isNotBlank(step.getNext().getFailedStep()))) {
+                childSteps.add(step.getNext().getFailedStep());
+                return CustomServicesConstants.ERROR_MSG_WORKFLOW_FAILURE_PATH_NOT_ALLOWED_FOR_START;
+            }
         }
-        return errorString;
+
+        return EMPTY_STRING;
+    }
+
+    private void validateStepInputs(Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
+        for (final Step step : stepsHash.values()) {
+            final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
+            final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup = validateStepInput(step);
+            if (!errorInputGroup.isEmpty()) {
+                if (errorSteps.containsKey(step.getId())) {
+                    errorSteps.get(step.getId()).setInputGroups(errorInputGroup);
+                } else {
+                    errorStep.setInputGroups(errorInputGroup);
+                    errorSteps.put(step.getId(), errorStep);
+                }
+            }
+        }
     }
 
     private Map<String, CustomServicesValidationResponse.ErrorInputGroup> validateStepInput(final Step step) {

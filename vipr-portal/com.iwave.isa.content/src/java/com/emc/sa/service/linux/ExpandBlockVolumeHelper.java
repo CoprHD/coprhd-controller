@@ -42,6 +42,7 @@ public class ExpandBlockVolumeHelper {
         usePowerPath = linuxSupport.checkForMultipathingSoftware();
         mountPoint = linuxSupport.findMountPoint(volume);
         linuxSupport.verifyVolumeMount(volume, mountPoint.getPath(), usePowerPath);
+        linuxSupport.verifyVolumeFilesystemMount(volume, mountPoint.getPath(), usePowerPath);
     }
 
     public void expandVolume(BlockObjectRestRep volume, Double newSizeInGB) {

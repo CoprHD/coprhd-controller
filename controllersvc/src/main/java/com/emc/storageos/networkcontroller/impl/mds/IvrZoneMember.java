@@ -49,7 +49,7 @@ public class IvrZoneMember implements Serializable {
     public boolean equals(Object obj) {
         if (obj instanceof IvrZoneMember) {
             IvrZoneMember zoneMember = (IvrZoneMember) obj;
-            return zoneMember != null && pwwn != null && 
+            return zoneMember != null && getPwwn() != null && 
                     getPwwn().equalsIgnoreCase(zoneMember.getPwwn()); 
         }
         return false;
@@ -58,7 +58,7 @@ public class IvrZoneMember implements Serializable {
     public boolean contains(Object obj) {
     	if (obj instanceof IvrZoneMember) {
     		IvrZoneMember zoneMember = (IvrZoneMember)obj;
-    		 return zoneMember != null && pwwn != null && 
+    		 return zoneMember != null && getPwwn() != null && 
                      getPwwn().equalsIgnoreCase(zoneMember.getPwwn());
     	}
     	return false;

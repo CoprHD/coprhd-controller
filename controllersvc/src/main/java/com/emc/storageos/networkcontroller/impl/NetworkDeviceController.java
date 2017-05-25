@@ -525,7 +525,7 @@ public class NetworkDeviceController implements NetworkController {
             throws ControllerException {
         // Group the fabric infos together based on which devices should zone them.
         Map<URI, NetworkSystem> networkSystemId2NetworkSystem = new HashMap<URI, NetworkSystem>();
-        Map<URI, List<NetworkFCZoneInfo>> networkSystemId2NetworkFabricInfos = new HashMap<URI, List<NetworkFCZoneInfo>>();
+        Map<URI, List<NetworkFCZoneInfo>> networkSystemId2NetworkFabricInfos = new HashMap<>(); 
         for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
             URI networkSystemId = fabricInfo.getNetworkDeviceId();
             URI altNetworkSystemId = fabricInfo.getAltNetworkDeviceId();

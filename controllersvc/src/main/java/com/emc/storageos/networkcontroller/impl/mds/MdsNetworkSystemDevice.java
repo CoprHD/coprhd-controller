@@ -621,10 +621,8 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                 String zoneName = zone.getName();
                 _log.info("Removing zone: " + zoneName + " vsan: " + vsanId);
                 try {
-                	dialog.zoneNameVsan(zone.getName(), vsanId, true);
-                    //removedZoneNames.put(zoneName, SUCCESS);
-                } catch (Exception ex) {
-                    //removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
+                	dialog.zoneNameVsan(zone.getName(), vsanId, true);                    
+                } catch (Exception ex) {                    
                     handleZonesStrategyException(ex, activateZones);
                 }
             }
@@ -2026,7 +2024,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             dialog = setUpDialog(networkSystem);
             String currentNetworkSytemWWN = dialog.showSwitchWwn();
          
-            Map<String, Set<Integer>> switchWWNToVsans = new HashMap<String, Set<Integer>>();            
+            Map<String, Set<Integer>> switchWWNToVsans = new HashMap<>();            
              List<IvrVsanConfiguration> ivrVsansList = dialog.showIvrVsanTopology();
              for (IvrVsanConfiguration ivrVsan : ivrVsansList) {
                  Set<Integer> vsans = new HashSet<Integer>();

@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.resource.BlockService.ProtectionOp;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -48,10 +49,17 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 public class RemoteReplicationManagementService extends TaskResourceService {
 
     private static final String MULTI_PAIR_VMAX_ERR_MSG = "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request";
-    private static final String UNSUPPORTTED_CONTEXT_VMAX_ERR_MSG = "For VMAX arrays, operations with context %s are not supported. Use %s or %s context.";
+    private static final String UNSUPPORTTED_CONTEXT_VMAX_ERR_MSG = "For VMAX arrays, operations with context %s are not supported. Use %s, %s or %s context";
+    private static final String UNSUPPORTTED_VMAX_CG_OP_ERR_MSG = "For VMAX arrays, operation %s with context % is not supported";
+    private static final Set<ProtectionOp> SUPPORTED_VMAX_CG_OPS = new HashSet<>();
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationManagementService.class);
     public static final String SERVICE_TYPE = "remote_replication_management";
 
+    static {
+        SUPPORTED_VMAX_CG_OPS.add(ProtectionOp.FAILOVER);
+        SUPPORTED_VMAX_CG_OPS.add(ProtectionOp.FAILBACK);
+        SUPPORTED_VMAX_CG_OPS.add(ProtectionOp.SWAP);
+    }
 
     // remote replication service api implementations
     private RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi;
@@ -130,7 +138,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
-        precheckVmaxPair(rrPair, operationContext, operationParam);
+        precheckVmaxOperation(rrPair, operationContext, operationParam, ProtectionOp.SPLIT);
 
         switch (operationContext) {
             case RR_PAIR:
@@ -232,7 +240,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
-        precheckVmaxPair(rrPair, operationContext, operationParam);
+        precheckVmaxOperation(rrPair, operationContext, operationParam, ProtectionOp.SUSPEND);
 
         switch (operationContext) {
             case RR_PAIR:
@@ -283,7 +291,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
-        precheckVmaxPair(rrPair, operationContext, operationParam);
+        precheckVmaxOperation(rrPair, operationContext, operationParam, ProtectionOp.RESUME);
 
         switch (operationContext) {
             case RR_PAIR:
@@ -334,7 +342,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
-        precheckVmaxPair(rrPair, operationContext, operationParam);
+        precheckVmaxOperation(rrPair, operationContext, operationParam, ProtectionOp.FAILBACK);
 
         switch (operationContext) {
             case RR_PAIR:
@@ -385,7 +393,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
-        precheckVmaxPair(rrPair, operationContext, operationParam);
+        precheckVmaxOperation(rrPair, operationContext, operationParam, ProtectionOp.FAILOVER);
 
         switch (operationContext) {
             case RR_PAIR:
@@ -436,7 +444,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
-        precheckVmaxPair(rrPair, operationContext, operationParam);
+        precheckVmaxOperation(rrPair, operationContext, operationParam, ProtectionOp.SWAP);
 
         switch (operationContext) {
             case RR_PAIR:
@@ -481,17 +489,31 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         }
     }
 
-    private void precheckVmaxPair(RemoteReplicationPair pair, OperationContext context, RemoteReplicationOperationParam operationParam) {
+    /**
+     * VMAX pairs precheck rules:
+     *   1. Support RR_PAIR context operations, but only on a single pair at a time;
+     *   2. Not support RR_GROUP or RR_SET context operations;
+     *   3. Support RR_GROUP_CG and RR_SET_CG context, but only failover, failback and swap operations.
+     */
+    private void precheckVmaxOperation(RemoteReplicationPair pair, OperationContext context,
+            RemoteReplicationOperationParam operationParam, ProtectionOp op) {
         if (!isVmaxPair(pair)) {
             return;
         }
-        if (context == OperationContext.RR_PAIR && operationParam.getIds().size() > 1) {
-            throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(MULTI_PAIR_VMAX_ERR_MSG,
-                     context.toString()));
-        }
-        if (context == OperationContext.RR_GROUP || context == OperationContext.RR_SET_CG || context == OperationContext.RR_SET) {
-            throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(UNSUPPORTTED_CONTEXT_VMAX_ERR_MSG,
-                            context.toString(), OperationContext.RR_PAIR, OperationContext.RR_GROUP_CG));
+        if (context == OperationContext.RR_PAIR) {
+            if (operationParam.getIds().size() > 1) {
+                throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(
+                        String.format(MULTI_PAIR_VMAX_ERR_MSG, context.toString()));
+            }
+        } else if (context == OperationContext.RR_GROUP || context == OperationContext.RR_SET) {
+            throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(
+                    String.format(UNSUPPORTTED_CONTEXT_VMAX_ERR_MSG, context.toString(), OperationContext.RR_PAIR,
+                            OperationContext.RR_GROUP_CG, OperationContext.RR_SET_CG));
+        } else if (context == OperationContext.RR_GROUP_CG || context == OperationContext.RR_SET_CG) {
+            if (!SUPPORTED_VMAX_CG_OPS.contains(op)) {
+                throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(
+                        String.format(UNSUPPORTTED_VMAX_CG_OP_ERR_MSG, op.toString(), context.toString()));
+            }
         }
     }
 

@@ -3369,4 +3369,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
         }
     }
+    
+    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+            TaskCompleter completer) {
+        _log.info("{} doExportChangePortGroup START ...", storage.getSerialNumber());
+        _exportMaskOperationsHelper.changePortGroupAddPaths(storage, newMaskURI, oldMaskURI, portGroupURI, completer);
+        _log.info("{} doExportChangePortGroup END ...", storage.getSerialNumber());
+    }
 }

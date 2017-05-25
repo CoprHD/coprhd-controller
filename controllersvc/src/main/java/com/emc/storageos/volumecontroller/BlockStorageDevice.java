@@ -1171,4 +1171,25 @@ public interface BlockStorageDevice {
      * @throws Exception
      */
     public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception;
+    
+    /**
+     * Add paths for chnange port group
+     * 
+     * @param storage - Storage system
+     * @param newMaskURI - New export mask
+     * @param oldMaskURI - Old exportMask
+     * @param portGroupURI - New Port group URI
+     * @param completer - Task completer
+     */
+    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+                TaskCompleter completer);
+    
+    /**
+     * Remove paths for change port group
+     * 
+     * @param storage - Storage system
+     * @param oldMaskURI - Old exportMask
+     * @param completer - Task completer
+     */
+    public void doExportChangePortGroupRemovePaths(StorageSystem storage, URI oldMaskURI, TaskCompleter completer);
 }

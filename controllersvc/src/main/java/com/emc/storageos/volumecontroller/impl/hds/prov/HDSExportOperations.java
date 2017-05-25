@@ -2048,4 +2048,10 @@ public class HDSExportOperations implements ExportMaskOperations {
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+            TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

@@ -5532,4 +5532,28 @@ public class VmaxExportOperations implements ExportMaskOperations {
         _log.info("Reuse port group is " + reusePortGroupEnabled);
         return reusePortGroupEnabled;
     }
+     
+     @Override
+     public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+             TaskCompleter completer) {
+         try {
+             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+             ExportMask newMask = _dbClient.queryObject(ExportMask.class, newMaskURI);
+             ExportMask oldMask = _dbClient.queryObject(ExportMask.class, oldMaskURI);
+             String maskName = oldMask.getMaskName();
+             String storageGroupName = _helper.getStorageGroupForGivenMaskingView(maskName, storage);
+             CIMObjectPath storageGroupPath = _cimPath.getStorageGroupObjectPath(storageGroupName, storage);
+             CIMObjectPath igPath = _helper.getInitiatorGroupForGivenMaskingView(maskName, storage);
+    
+             CIMObjectPath targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroup.getLabel(),
+                     SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+             createMaskingView(storage, newMaskURI, newMask.getMaskName(), storageGroupPath,
+                     new VolumeURIHLU[0], targetPortGroupPath, igPath, completer);
+         
+         } catch (Exception e) {
+             _log.error(String.format("change port group failed %s", oldMaskURI.toString()), e);
+             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+             completer.error(_dbClient, serviceError);
+         }
+     }
 }

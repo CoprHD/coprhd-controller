@@ -7400,4 +7400,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private boolean rpCGExists(BlockConsistencyGroup cg, RecoverPointClient rp, String cgName, URI rpSystemId) {
         return (cg.created() && cg.nameExistsForStorageSystem(rpSystemId, cgName) && rp.doesCgExist(cgName));
     }
+    
+    @Override
+    public void changePortGroupAddPaths(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, URI portGroupURI, String token) throws Exception {
+        // supported only for VMAX.
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void changePortGroupRemovePaths(URI storageSystem, URI exportGroup, URI exportMask, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, URI portGroupURI, String token) throws Exception {
+        // supported only for VMAX.
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

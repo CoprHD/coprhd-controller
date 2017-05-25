@@ -1492,4 +1492,10 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+            TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

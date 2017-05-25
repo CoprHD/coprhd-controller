@@ -140,4 +140,16 @@ public interface ExportMaskOperations {
      */
     public void removePaths(StorageSystem storage, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
             Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter) throws DeviceControllerException;
+    
+    /**
+     * Add paths for change port group
+     * 
+     * @param storage - Storage System
+     * @param newMaskURI - New exportMask URI
+     * @param oldMaskURI - Old ExportMask URI
+     * @param portGroupURI - PortGroup URI
+     * @param completer - TaskCompleter
+     */
+    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+            TaskCompleter completer);
 }

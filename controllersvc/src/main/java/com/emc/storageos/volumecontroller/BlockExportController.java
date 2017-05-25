@@ -101,9 +101,8 @@ public interface BlockExportController extends Controller {
      * @param exportPathParam - export path parameter
      * @param waitForApproval - if removing paths should be pending until resumed by user 
      * @param opId - the taskId
-     * @param isPortGroup - if for port group
      * @throws ControllerException
      */
     public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, URI varray, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPaths,
-            ExportPathParams exportPathParam, boolean waitForApproval, String opId, boolean isPortGroup) throws ControllerException;
+            ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException;
 }

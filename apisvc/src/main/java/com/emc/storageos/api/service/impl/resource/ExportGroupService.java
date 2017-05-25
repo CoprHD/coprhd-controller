@@ -3604,7 +3604,7 @@ public class ExportGroupService extends TaskResourceService {
         Map<URI, List<URI>> removedPaths = convertInitiatorPathParamToMap(param.getRemovedPaths());
         ExportPathParams pathParam = new ExportPathParams(param.getExportPathParameters(), exportGroup);
         exportController.exportGroupPortRebalance(param.getStorageSystem(), id, varray, addedPaths, removedPaths, 
-                pathParam, wait, task, false);
+                pathParam, wait, task);
         return taskRes;
     }
     
@@ -4150,7 +4150,7 @@ public class ExportGroupService extends TaskResourceService {
         Map<URI, List<URI>> removedPaths = convertInitiatorPathParamToMap(param.getRemovedPaths());
         ExportPathParams pathParam = new ExportPathParams(param.getExportPathParameters(), exportGroup);
         exportController.exportGroupPortRebalance(param.getStorageSystem(), id, varray, addedPaths, removedPaths, 
-                pathParam, wait, task, true);
+                pathParam, wait, task);
         return taskRes;
     }
 }

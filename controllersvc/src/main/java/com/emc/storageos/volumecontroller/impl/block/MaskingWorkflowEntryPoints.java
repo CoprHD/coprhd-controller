@@ -700,4 +700,22 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
     }
     
+    public void doExportChangePortGroupAddPaths(URI storageURI, URI exportGroupURI, URI newMaskURI, URI oldMaskURI, 
+            URI portGroupURI, TaskCompleter taskCompleter, String token) {
+        try {
+            WorkflowStepCompleter.stepExecuting(token);
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+            
+            getDevice(storage).doExportChangePortGroupAddPaths(storage, newMaskURI, oldMaskURI, portGroupURI, taskCompleter);
+
+        } catch (final InternalException e) {
+            _log.info("doExportChangePortGroup Encountered an exception", e);
+            taskCompleter.error(_dbClient, e);
+        } catch (final Exception e) {
+            _log.info("doExportChangePortGroup Encountered an exception", e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, serviceError);
+        }
+    }
+    
 }

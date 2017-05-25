@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
  */
 public final class CustomServicesConstants {
     // Validation Error Messages
-    // TODO: The following messages will be revisited when the UI is ready
     public static final String ERROR_MSG_START_END_NOT_DEFINED = "Start or End Step not defined";
     public static final String ERROR_MSG_WORKFLOW_STEP_NULL = "Workflow Step is null";
     public static final String ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_DEFINED = "Next step not defined for the step";
@@ -51,6 +50,13 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE = "No default value for Input Type";
     public static final String ERROR_MSG_NO_INPUTVALUE_FOR_INPUT_TYPE = "No input value for Input Type";
     public static final String ERROR_MSG_DEFAULTVALUE_PASSED_FOR_INPUT_TYPE = "Default value passed for Input Type";
+    public static final String ERROR_MSG_INPUT_FROM_OTHER_STEP_NOT_DEFINED = "Input from other step value is not defined";
+    public static final String ERROR_MSG_STEP_NOT_DEFINED = "Step not defined. Cannot find the step";
+    public static final String ERROR_MSG_STEP_IS_NOT_ANCESTER = "Step is not an ancestor for the current step";
+    public static final String ERROR_MSG_OTHER_STEP_INPUT_GROUP_OR_PARAM_NOT_DEFINED = "Other Step Input group/ param not defined";
+    public static final String ERROR_MSG_INPUT_NOT_DEFINED_IN_OTHER_STEP = "Input not defined in other Step";
+    public static final String ERROR_MSG_OTHER_STEP_OUTPUT_NOT_DEFINED = "Other Step Output not defined";
+    public static final String ERROR_MSG_OUTPUT_NOT_DEFINED_IN_OTHER_STEP = "Output not defined in other Step";
 
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;

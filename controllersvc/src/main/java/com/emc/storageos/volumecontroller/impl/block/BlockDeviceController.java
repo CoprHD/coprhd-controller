@@ -3272,6 +3272,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             }
 
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_086);
+            
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
             getDevice(storageObj.getSystemType()).doDeleteConsistencyGroup(storageObj, consistencyGroup, groupName, keepRGName,

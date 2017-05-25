@@ -1071,12 +1071,19 @@ public class VirtualArrays extends ViprResourceController {
      *            the virtual array ID.
      */
     public static void addStorageSystemsJson(String id) {
-        List<StorageSystemInfo> items = Lists.newArrayList();
-        for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
-            items.add(new StorageSystemInfo(storageSystem));
+        List<StorageSystemInfo> allitems = Lists.newArrayList();
+        Map <String, String> associatedStorage = new HashMap<String, String> ();
+        for (StorageSystemRestRep associatedstorageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(id)) {
+            associatedStorage.put(associatedstorageSystem.getId().toString(), associatedstorageSystem.getName());
         }
-        renderJSON(DataTablesSupport.createJSON(items, params));
+        for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
+            if(associatedStorage.get(storageSystem.getId().toString()) ==  null) {
+                allitems.add(new StorageSystemInfo(storageSystem));
+            }
+        }
+        renderJSON(DataTablesSupport.createJSON(allitems, params));
     }
+
 
     public static void virtualPoolsJson(String id) {
         List<VirtualPoolInfo> items = Lists.newArrayList();

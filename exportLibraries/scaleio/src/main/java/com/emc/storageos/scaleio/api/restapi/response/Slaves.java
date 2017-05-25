@@ -4,106 +4,112 @@
  */
 package com.emc.storageos.scaleio.api.restapi.response;
 
-import java.util.List;
-
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
-import com.emc.storageos.scaleio.api.ParsePattern;
-import com.emc.storageos.scaleio.api.ScaleIOConstants;
+import java.util.Arrays;
 
 /**
  * Slaves attributes
  * 
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class Slaves {
 	private String port;
 	private String id;
 	private String versionInfo;
 	private String status;
 	private String[] ips;
-	private String name;	
-	private String role;	
+	private String name;
+	private String role;
 	private String[] managementIPs;
-	
+
 	public String getPort ()
 	{
-	    return port;
+		return port;
 	}
-	
+
 	public void setPort (String port)
 	{
-	    this.port = port;
+		this.port = port;
 	}
-	
+
 	public String getId ()
 	{
-	    return id;
+		return id;
 	}
-	
+
 	public void setId (String id)
 	{
-	    this.id = id;
+		this.id = id;
 	}
-	
+
 	public String getVersionInfo ()
 	{
-	    return versionInfo;
+		return versionInfo;
 	}
-	
+
 	public void setVersionInfo (String versionInfo)
 	{
-	    this.versionInfo = versionInfo;
+		this.versionInfo = versionInfo;
 	}
-	
+
 	public String getStatus ()
 	{
-	    return status;
+		return status;
 	}
-	
+
 	public void setStatus (String status)
 	{
-	    this.status = status;
+		this.status = status;
 	}
-	
+
 	public String[] getIps ()
 	{
-	    return ips;
+		if(null == ips){
+			return null;
+		}
+		return Arrays.copyOf(ips,ips.length);
 	}
-	
+
 	public void setIps (String[] ips)
 	{
-	    this.ips = ips;
+		if(null == ips){
+			return;
+		}
+		this.ips = Arrays.copyOf(ips,ips.length);
 	}
-	
+
 	public String getName ()
 	{
-	    return name;
+		return name;
 	}
-	
+
 	public void setName (String name)
 	{
-	    this.name = name;
+		this.name = name;
 	}
-	
+
 	public String getRole ()
 	{
-	    return role;
+		return role;
 	}
-	
+
 	public void setRole (String role)
 	{
-	    this.role = role;
+		this.role = role;
 	}
-	
+
 	public String[] getManagementIPs ()
 	{
-	    return managementIPs;
+		if(null == managementIPs){
+			return null;
+		}
+		return Arrays.copyOf(managementIPs,managementIPs.length);
 	}
-	
+
 	public void setManagementIPs (String[] managementIPs)
 	{
-	    this.managementIPs = managementIPs;
+		if(null == managementIPs){
+			return;
+		}
+		this.managementIPs = Arrays.copyOf(managementIPs,managementIPs.length);
 	}
 	
 	@Override

@@ -446,7 +446,12 @@ public class OrderManagerImpl implements OrderManager {
                 return serviceField;
             }
         }
-        return null;
+
+        log.info(String.format("Unexpected service field value found: %s", serviceFieldName));
+        ServiceField field = new ServiceField();
+        field.setName(serviceFieldName);
+        field.setLabel(serviceFieldName);
+        return field;
     }
 
     private OrderParameter findOrderParameter(String serviceFieldName, List<OrderParameter> orderParameters) {

@@ -5,9 +5,11 @@
 
 package com.emc.storageos.api.service.impl.resource;
 
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
@@ -337,6 +339,29 @@ public class ArgValidator {
         if (!isValidIPV4(ip) && !isValidIPV6(ip)) {
             throw APIException.badRequests.invalidParameterInvalidIP(fieldName, ip);
         }
+    }
+    
+    /**
+     * Validates that a named field contains a valid InetAddress
+     * 
+     * @param ip
+     * @param fieldName
+     */
+    public static void checkFieldValidInetAddress(final String ip, final String fieldName) {
+        checkFieldNotEmpty(ip, fieldName);
+        if (!validateInetAddress(ip)) {
+            throw APIException.badRequests.invalidParameterInvalidIP(fieldName, ip);
+        }
+    }
+
+    private static boolean validateInetAddress(final String address) {
+        try {
+            InetAddress.getByName(address);
+        } catch (UnknownHostException e) {
+            return false;
+        }
+        return true;
+
     }
 
     /**

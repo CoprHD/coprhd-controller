@@ -1966,6 +1966,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                                     .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s does not qualify for consideration for re-use due to storage ports mismatch with varray.",
                                             mask.getMaskName()));
                         }
+                    } else {
+                        _log.info(String
+                                .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s does not qualify for consideration for re-use due to compute resource mismatch.",
+                                        mask.getMaskName()));
                     }
                 } else if (maskHasInitiatorsBasedOnExportType(exportGroup, mask, initiator, portsForComputeResource) ||
                         maskHasInitiatorsBasedOnExportType(exportGroup, mask, allExportMaskURIs, portsForComputeResource, partialMasks)) {

@@ -823,7 +823,7 @@ public class DataCollectionJobScheduler {
             // check for any pending tasks; if there are any, they're orphaned and should be cleaned up
             // look for tasks older than one hour; this will exclude the discovery job currently being scheduled
             Calendar oneHourAgo = Calendar.getInstance();
-            oneHourAgo.setTime(Date.from(LocalDateTime.now().minusHours(1).atZone(ZoneId.systemDefault()).toInstant()));
+            oneHourAgo.setTime(Date.from(LocalDateTime.now().minusDays(1).atZone(ZoneId.systemDefault()).toInstant()));
             if (ControllerServiceImpl.DISCOVERY.equalsIgnoreCase(type)) {
                 TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
                         oneHourAgo);

@@ -385,6 +385,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_PRECHECK_FAILED)
     public InternalServerErrorException installDriverPrecheckFailed(String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DRIVER_OPERATION_ENV_PRECHECK_FAILED)
+    public InternalServerErrorException driverOperationEnvPrecheckFailed(String errMsg);
+
     @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_FAILED)
     public InternalServerErrorException installDriverFailed(String errMsg);
 
@@ -399,4 +402,7 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_UPGRADE_DRIVER_FAILED)
     public InternalServerErrorException upgradeDriverFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
+    public InternalServerErrorException cannotFindTaskForWorkflow(String wfLabel, String wfId, String orchTaskId);
 }

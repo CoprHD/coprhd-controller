@@ -938,8 +938,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, poolURI);
             MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, volumeCompleters, opId);
 
-            Volume volume = volumes.get(0);
-            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             WorkflowStepCompleter.stepExecuting(completer.getOpId());
             getDevice(storageSystem.getSystemType()).doModifyVolumes(storageSystem,
                     storagePool, opId, volumes, completer);
@@ -1011,7 +1009,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, poolURI);
             MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, volumeCompleters, opId);
 
-            Volume volume = volumes.get(0);
             WorkflowStepCompleter.stepExecuting(completer.getOpId());
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_005);
             getDevice(storageSystem.getSystemType()).doCreateVolumes(storageSystem,
@@ -1078,16 +1075,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     }
                 }
                 // clearing targets explicitly, during vpool change if target volume creation failed for same reason,
-                // then we need to clear srdfTargets field for source
+                // then we need to clear srdfTargets and personality fields for source
                 if (null != volume.getSrdfTargets()) {
                     _log.info("Clearing targets for existing source");
                     volume.getSrdfTargets().clear();
                     _dbClient.updateObject(volume);
                 }
-                // for change Virtual Pool, if failed, clear targets for source
+                // for change Virtual Pool, if failed, clear targets and personality field for source and also
                 if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
                     URI sourceUri = volume.getSrdfParent().getURI();
                     Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceUri);
+                    sourceVolume.setPersonality(NullColumnValueGetter.getNullStr());
                     if (null != sourceVolume.getSrdfTargets()) {
                         sourceVolume.getSrdfTargets().clear();
                         _dbClient.updateObject(sourceVolume);
@@ -1717,6 +1715,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             } else {
                 // expand as regular volume
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_080);
                 getDevice(storageObj.getSystemType()).doExpandVolume(storageObj, poolObj,
                         volumeObj, size, completer);
             }
@@ -1833,6 +1832,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 entryLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
                 exitLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
                 VolumeDeleteCompleter volumeCompleter = new VolumeDeleteCompleter(volumeURI, opId);
+                // Do not notify workflow if a child (single volume) completer gives status.  The MultiVolumeTaskCompleter will 
+                // take care of that.
+                volumeCompleter.setNotifyWorkflow(false);
                 if (volume.getInactive() == false) {
                     // It is possible that there is a BlockSnaphot instance that references the
                     // same device Volume if a VPLEX virtual volume has been created from the
@@ -3014,20 +3016,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 controller, getDeviceType(controller),
                 this.getClass(),
                 detachMirrorMethod(controller, mirrorList, isCG),
-                null, null);
-
-        return stepId;
-    }
-
-    private String addStepsToRemoveMirrorFromGroup(Workflow workflow,
-            String waitFor, String stepGroup, List<URI> mirrorList) {
-        List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
-        URI controller = mirrors.get(0).getStorageController();
-        String stepId = workflow.createStep(stepGroup,
-                String.format("Remove mirror from DeviceMaskingGroup: %s", mirrorList.get(0)),
-                waitFor, controller, getDeviceType(controller),
-                this.getClass(),
-                removeMirrorFromGroupMethod(controller, mirrorList),
                 null, null);
 
         return stepId;
@@ -4298,21 +4286,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
         return false;
-    }
-
-    /**
-     * Check if a mirror exists in ViPR as an active model and is pending creation on the
-     * storage array.
-     *
-     * @param mirror
-     * @return true if the mirror is pending creation
-     */
-    private boolean isPending(BlockMirror mirror) {
-        return !isInactive(mirror) && isNullOrEmpty(mirror.getSynchronizedInstance());
-    }
-
-    private boolean isInactive(BlockMirror mirror) {
-        return mirror == null || (mirror.getInactive() != null && mirror.getInactive());
     }
 
     @Override

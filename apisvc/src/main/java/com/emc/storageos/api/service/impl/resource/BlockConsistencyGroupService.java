@@ -570,13 +570,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
             // Validate the snapshot request.
             String snapshotName = TimeUtils.formatDateForCurrent(param.getName());
-            blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, getFullCopyManager());
-            // Set the create inactive flag.
-            final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
-                    : param.getCreateInactive();
             // Set the read only flag.
             final Boolean readOnly = param.getReadOnly() == null ? Boolean.FALSE : param.getReadOnly();
-
+            // Set the create inactive flag.
+            final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
+                    : param.getCreateInactive();            
+            
+            blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, readOnly, getFullCopyManager());
+            
             // Prepare and create the snapshots for the group.
             List<URI> snapIdList = new ArrayList<URI>();
             List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
@@ -892,7 +893,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param snapshotId
      *            - Consistency group snapshot URI
      *
-     * @brief Deactivate consistency group snapshot
+     * @brief Deactivate consistency group snapshot session
      * @return TaskResourceRep
      */
     @POST
@@ -2102,7 +2103,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param id the URI of a BlockConsistencyGroup
      * @param param Copy to swap
      *
-     * @brief reversing roles of source and target
+     * @brief Reverse roles of source and target
      * @return TaskList
      *
      * @throws ControllerException
@@ -2227,7 +2228,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param id the URN of a ViPR Source volume
      * @param param Copy to change access mode on
      *
-     * @brief Changes the access mode for a copy.
+     * @brief Change the access mode for a copy.
      * @return TaskList
      *
      * @throws ControllerException
@@ -2279,7 +2280,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param id the URI of the BlockConsistencyGroup.
      * @param param Copy to fail back
      *
-     * @brief fail back to source again
+     * @brief Cancel a failover and return to source
      * @return TaskList
      *
      * @throws ControllerException

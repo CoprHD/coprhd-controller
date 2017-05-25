@@ -48,7 +48,7 @@ public class ExpandBlockVolumeService extends LinuxService {
     public void execute() throws Exception {
     	// Skip the expand if the current volume capacity is larger than the requested expand size
     	if (BlockStorageUtils.isVolumeExpanded(volume, newSizeInGB)) {
-    		logInfo("linux.expand.skip", volumeId, BlockStorageUtils.getCapacity(volume));
+    		logWarn("linux.expand.skip", volumeId, BlockStorageUtils.getCapacity(volume));
     	} else {
     		expandBlockVolumeHelper.expandVolume(volume, newSizeInGB);
     	}

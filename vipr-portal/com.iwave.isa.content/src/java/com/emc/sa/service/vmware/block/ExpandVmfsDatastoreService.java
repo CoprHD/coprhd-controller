@@ -52,7 +52,7 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
     	
     	// Skip the expand if the current volume capacity is larger than the requested expand size
     	if (BlockStorageUtils.isVolumeExpanded(volume, sizeInGb)) {
-    		logInfo("expand.vmfs.datastore.skip", volumeId, BlockStorageUtils.getCapacity(volume));
+    		logWarn("expand.vmfs.datastore.skip", volumeId, BlockStorageUtils.getCapacity(volume));
     	} else {
     		BlockStorageUtils.expandVolume(volumeId, sizeInGb);
     	}

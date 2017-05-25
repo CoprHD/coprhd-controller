@@ -16,8 +16,6 @@
  */
 package com.emc.storageos.model.customservices;
 
-import java.net.URI;
-
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -25,7 +23,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class CustomServicesWorkflowCreateParam {
 
     private CustomServicesWorkflowDocument document;
-    private URI directory;
     
     @XmlElement(name = "document")
     public CustomServicesWorkflowDocument getDocument() {
@@ -34,14 +31,5 @@ public class CustomServicesWorkflowCreateParam {
 
     public void setDocument(CustomServicesWorkflowDocument document) {
         this.document = document;
-    }
-
-    @XmlElement(name = "directory")
-    public URI getDirectory() {
-        return directory;
-    }
-
-    public void setDirectory(URI directory) {
-        this.directory = directory;
     }
 }

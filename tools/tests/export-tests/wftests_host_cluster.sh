@@ -453,6 +453,9 @@ test_host_add_initiator() {
         runcmd export_group update ${project1}/${cluster1_export1} --remVols ${project1}/${volume1}
         runcmd export_group update ${project2}/${cluster1_export2} --remVols ${project2}/${volume2}
         
+        runcmd export_group delete ${project1}/${cluster1_export1}
+        runcmd export_group delete ${project2}/${cluster1_export2}
+        
         snap_db 6 "${cfs[@]}"  
 
         # Validate that nothing was left behind
@@ -781,6 +784,9 @@ test_host_remove_initiator() {
         # Cleanup export groups  
         runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
         runcmd export_group update ${PROJECT}/${exportgroup2} --remVols ${PROJECT}/${volume2}
+        
+        runcmd export_group delete ${PROJECT}/${exportgroup1}
+        runcmd export_group delete ${PROJECT}/${exportgroup2}
         
         # Cleanup everything else
         runcmd cluster delete ${TENANT}/${cluster1}        

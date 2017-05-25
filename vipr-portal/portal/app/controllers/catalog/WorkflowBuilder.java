@@ -1115,35 +1115,31 @@ public class WorkflowBuilder extends Controller {
         return StringUtils.isNotBlank(param) ? Arrays.asList(param.split(",")) : new ArrayList<String>();
     }
 
-    // For each ansible step in workflow this method will add host_file input and set the options to <hostid, hostname>
+    // For each ansible step in workflow this method will look for host_file input and set the options to <hostid, hostname>
     private static void addInventoryFileInputs(final CustomServicesWorkflowDocument.Step step) {
         if (StringUtils.isNotEmpty(step.getType()) && StepType.LOCAL_ANSIBLE.toString().equals(step.getType())) {
-            CustomServicesWorkflowDocument.InputGroup inputGroup = new CustomServicesWorkflowDocument.InputGroup();
-            inputGroup.setInputGroup(new ArrayList<CustomServicesWorkflowDocument.Input>());
-            CustomServicesWorkflowDocument.Input input = new CustomServicesWorkflowDocument.Input();
-            input.setName(CustomServicesConstants.ANSIBLE_HOST_FILE);
-            input.setFriendlyName("Inventory File (" + step.getFriendlyName() + ")");
-            input.setType(CustomServicesConstants.InputType.FROM_USER_MULTI.toString());
-            final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives()
-                    .getPrimitive(step.getOperation());
-            final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives()
-                    .getPrimitiveResourcesByType(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, primitiveRestRep.getResource().getId());
-            if (customServicesPrimitiveResourceList != null
-                    && CollectionUtils.isNotEmpty(customServicesPrimitiveResourceList.getResources())) {
-                final Map<String, String> options = new HashMap<String, String>();
-                for (NamedRelatedResourceRep n : customServicesPrimitiveResourceList.getResources()) {
-                    options.put(n.getId().toString(), n.getName());
-                }
-                Logger.debug("Adding inventory file options {}", options);
-                input.setOptions(options);
-                inputGroup.getInputGroup().add(input);
-                if (step.getInputGroups() == null) {
-                    step.setInputGroups(new HashMap<String, CustomServicesWorkflowDocument.InputGroup>());
-                }
-                // This overrides any existing ansible_options
-                step.getInputGroups().put(CustomServicesConstants.ANSIBLE_OPTIONS, inputGroup);
-            }
+            CustomServicesWorkflowDocument.InputGroup inputGroup = step.getInputGroups().get(CustomServicesConstants.ANSIBLE_OPTIONS);
+            for(final CustomServicesWorkflowDocument.Input input: inputGroup.getInputGroup()) {
+                if(StringUtils.equals(CustomServicesConstants.ANSIBLE_HOST_FILE, input.getName())) {
+                    // Setting type and options for host_file
+                    input.setType(CustomServicesConstants.InputType.FROM_USER_MULTI.toString());
+                    final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives()
+                            .getPrimitive(step.getOperation());
+                    final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives()
+                            .getPrimitiveResourcesByType(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, primitiveRestRep.getResource().getId());
+                    if (customServicesPrimitiveResourceList != null
+                            && CollectionUtils.isNotEmpty(customServicesPrimitiveResourceList.getResources())) {
+                        final Map<String, String> options = new HashMap<String, String>();
+                        for (NamedRelatedResourceRep n : customServicesPrimitiveResourceList.getResources()) {
+                            options.put(n.getId().toString(), n.getName());
+                        }
+                        Logger.debug("Adding inventory file options {}", options);
+                        input.setOptions(options);
+                    }
 
+                    break;
+                }
+            }
         }
     }
 

@@ -251,9 +251,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 .getRESTClient(deviceURI, isilonCluster.getUsername(), isilonCluster.getPassword());
     }
 
-    public Map<String, String> getStorageSystemFileShares(URI storageSystemURI) throws IOException {
+    public Map<String, FileShare> getStorageSystemFileShares(URI storageSystemURI) throws IOException {
 
-        Map<String, String> fileSharesMap = new ConcurrentHashMap<String, String>();
+        Map<String, FileShare> fileSharesMap = new ConcurrentHashMap<String, FileShare>();
 
         URIQueryResultList results = new URIQueryResultList();
         try {
@@ -273,7 +273,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         while (fileSystemItr.hasNext()) {
             FileShare fileShare = fileSystemItr.next();
             if (fileShare != null && !fileShare.getInactive()) {
-                fileSharesMap.put(fileShare.getNativeGuid(), fileShare.getId().toString());
+                fileSharesMap.put(fileShare.getNativeGuid(), fileShare);
             }
         }
         return fileSharesMap;
@@ -308,7 +308,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // compute static load processor code
             computeStaticLoadMetrics(storageSystemId);
 
-            Map<String, String> fileSystemsMap = getStorageSystemFileShares(storageSystemId);
+            Map<String, FileShare> fileSystemsMap = getStorageSystemFileShares(storageSystemId);
             if (fileSystemsMap.isEmpty()) {
                 // No file shares for the storage system,
                 // ignore stats collection for the system!!!
@@ -320,19 +320,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             for (IsilonSmartQuota quota : quotas.getList()) {
                 String fsNativeId = quota.getPath();
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
-                String fsId = fileSystemsMap.get(fsNativeGuid);
-                if (fsId == null || fsId.isEmpty()) {
+                FileShare fs = fileSystemsMap.get(fsNativeGuid);
+                if (fs == null) {
                     // No file shares found for the quota
                     // ignore stats collection for the file system!!!
                     _log.debug("File System does not exists with nativeid {}. Hence ignoring stats collection.", fsNativeGuid);
                     continue;
                 }
-                Stat stat = recorder.addUsageStat(quota, _keyMap, fsId, api);
+                Stat stat = recorder.addUsageStat(quota, _keyMap, fs.getId().toString(), api);
                 fsChanged = false;
                 if (null != stat) {
                     stats.add(stat);
                     // Persists the file system, only if change in used capacity.
-                    FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
+                    FileShare fileSystem = fs;
                     if (fileSystem != null) {
                         if (!fileSystem.getInactive()) {
                             if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
@@ -386,12 +386,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     String fsNativeId = quota.getPath();
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
+                    FileShare fs = fileSystemsMap.get(fsNativeGuid);
+                    if (fs == null) {
+                        // No file shares found for the quota
+                        // ignore stats collection for the file system!!!
+                        _log.debug("File System does not exists with nativeid {}. Hence ignoring stats collection.", fsNativeGuid);
+                        continue;
+                    }
                     Stat stat = recorder.addUsageStat(quota, _keyMap, fsNativeGuid, api);
                     fsChanged = false;
                     if (null != stat) {
                         stats.add(stat);
                         // Persists the file system, only if change in used capacity.
-                        FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
+                        FileShare fileSystem = fs;
                         if (fileSystem != null) {
                             if (!fileSystem.getInactive()) {
                                 if (null != fileSystem.getUsedCapacity() && null != stat.getAllocatedCapacity() &&

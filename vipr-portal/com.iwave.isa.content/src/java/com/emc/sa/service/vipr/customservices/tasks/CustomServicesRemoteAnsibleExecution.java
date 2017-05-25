@@ -76,6 +76,7 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
 
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
+            logger.error("Exception:", e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 

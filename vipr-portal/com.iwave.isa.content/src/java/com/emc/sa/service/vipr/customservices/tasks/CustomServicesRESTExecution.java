@@ -103,6 +103,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             return result;
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesRESTExecution.doneInfo", "Custom Service Task Failed" + e);
+            logger.error("Exception:", e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
     }

@@ -184,6 +184,7 @@ public class CustomServicesService extends ViPRService {
             } catch (final Exception e) {
                 logger.warn(
                         "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:" + e);
+                logger.error("Exception:", e);
                 next = getNext(false, null, step);
             }
             if (next == null) {
@@ -234,7 +235,7 @@ public class CustomServicesService extends ViPRService {
                 Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmd);
             }
         } catch (final Exception e) {
-            logger.error("Failed to cleanup OrderDir directory" + e);
+            logger.error("Failed to cleanup OrderDir directory", e);
         }
     }
 
@@ -332,7 +333,7 @@ public class CustomServicesService extends ViPRService {
                     case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
                            final String param;
-                            if (value.getInputFieldType().equals("password")) {
+                            if (!StringUtils.isEmpty(value.getInputFieldType()) && value.getInputFieldType().equals("password")) {
                                 param = decrypt(params.get(friendlyName).toString());
                             } else {
                                 param = params.get(friendlyName).toString();

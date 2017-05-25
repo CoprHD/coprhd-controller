@@ -103,6 +103,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         } catch (final Exception e) {
             logger.error("CS: Could not execute shell script step:{}. Exception:{}", step.getId(), e);
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Could not execute shell script step"+e);
+            logger.error("Exception:", e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 

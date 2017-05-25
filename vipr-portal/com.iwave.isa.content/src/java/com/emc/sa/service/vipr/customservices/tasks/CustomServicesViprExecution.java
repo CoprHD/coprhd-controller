@@ -179,7 +179,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Failed to Execute REST request" + e.getMessage());
         } catch (final Exception e) {
-            logger.warn("Exception received:{}", e);
+            logger.warn("Exception:", e);
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), e);
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("REST Execution Failed" + e.getMessage());

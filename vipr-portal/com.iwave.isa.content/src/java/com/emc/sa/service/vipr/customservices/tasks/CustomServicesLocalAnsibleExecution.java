@@ -174,6 +174,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             }
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
+            logger.error("Exception:", e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
@@ -215,6 +216,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             }
         } catch (final IOException e) {
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Invalid ansible archive");
+            logger.error("Exception:", e);
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
     }

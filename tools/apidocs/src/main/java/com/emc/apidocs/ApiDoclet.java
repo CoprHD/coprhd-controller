@@ -21,21 +21,15 @@ import com.emc.apidocs.model.ApiDifferences;
 import com.emc.apidocs.model.ApiErrorCode;
 import com.emc.apidocs.model.ApiMethod;
 import com.emc.apidocs.model.ApiService;
-import com.emc.apidocs.processing.MethodProcessor;
-import com.emc.apidocs.processing.PlayRoutesParser;
-import com.emc.apidocs.processing.TemporaryCleanup;
+import com.emc.apidocs.processing.*;
+import com.emc.apidocs.generating.*;
 import com.emc.apidocs.tools.MetaData;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.google.common.collect.Lists;
-import com.sun.javadoc.AnnotationDesc;
-import com.sun.javadoc.AnnotationValue;
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.DocErrorReporter;
-import com.sun.javadoc.FieldDoc;
-import com.sun.javadoc.LanguageVersion;
-import com.sun.javadoc.MethodDoc;
-import com.sun.javadoc.RootDoc;
-import com.sun.javadoc.Tag;
+import com.sun.javadoc.*;
+import org.apache.commons.io.IOUtils;
+import java.io.*;
+import java.util.*;
 
 /**
  * Doclet to process the ViPR API annotations and comments

@@ -347,7 +347,7 @@ public class LinuxSupport {
 
         if (mountedDevice == null) {
             ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.noMountFound", mountPointPath, mountPointPath);
-        } else if (StringUtils.equalsIgnoreCase(partitionDevice, mountedDevice)) {
+        } else if (!StringUtils.equalsIgnoreCase(partitionDevice, mountedDevice)) {
             ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.devicesDoNotMatch", new Object[] {}, partitionDevice, mountPointPath,
                     mountedDevice);
         }

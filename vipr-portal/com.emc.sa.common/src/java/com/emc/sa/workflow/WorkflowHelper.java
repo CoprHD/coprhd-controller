@@ -157,8 +157,6 @@ public final class WorkflowHelper {
             oeWorkflow.removePrimitives(StringSetUtil.stringSetToUriList(oeWorkflow.getPrimitives()));
             oeWorkflow.addPrimitives(StringSetUtil.stringSetToUriList(getPrimitives(document)));
         }
-
-        return oeWorkflow;
     }
 
     public static CustomServicesWorkflow updateState(final CustomServicesWorkflow oeWorkflow, final String state) {

@@ -209,7 +209,10 @@ public final class WorkflowHelper {
                     case VIPR_REST:
                         break;
                     default:
-                        primitives.add(step.getOperation().toString());
+                        if(step.getOperation() != null){
+                            primitives.add(step.getOperation().toString());
+                        }
+
                 }
             }
         }

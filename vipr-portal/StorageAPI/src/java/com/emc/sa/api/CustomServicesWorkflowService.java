@@ -175,7 +175,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                     WorkflowHelper.update(customServicesWorkflow, workflow.getDocument());
 
                     // On update, if there is any change to steps, resetting workflow status to initial state -NONE
-                    if (!currentSteps.equals(customServicesWorkflow.getSteps())) {
+                    if (StringUtils.isNotBlank(currentSteps) && StringUtils.isNotBlank(customServicesWorkflow.getSteps()) && !currentSteps.equals(customServicesWorkflow.getSteps())) {
                         customServicesWorkflow.setState(CustomServicesWorkflowStatus.NONE.toString());
                     }
             }

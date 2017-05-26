@@ -141,7 +141,7 @@ public final class WorkflowHelper {
      * @throws JsonMappingException
      * @throws JsonGenerationException
      */
-    public static CustomServicesWorkflow update(final CustomServicesWorkflow oeWorkflow, final CustomServicesWorkflowDocument document)
+    public static void update(final CustomServicesWorkflow oeWorkflow, final CustomServicesWorkflowDocument document)
             throws JsonGenerationException, JsonMappingException, IOException {
 
         if (document.getDescription() != null) {

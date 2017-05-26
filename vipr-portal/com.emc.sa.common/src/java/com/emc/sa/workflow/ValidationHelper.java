@@ -69,10 +69,8 @@ public class ValidationHelper {
                     builder.put(step.getId(), step);
                 } else {
                     throw APIException.badRequests.requiredParameterMissingOrEmpty("step.id in workflow document");
-
                 }
             }
-
             this.stepsHash = builder.build();
 
         } catch (final APIException ae) {
@@ -80,7 +78,6 @@ public class ValidationHelper {
         } catch (final Exception e) {
             throw new RuntimeException("Failed to build the steps from CustomServicesWorkflow: " + e);
         }
-
     }
 
     private static boolean isInputEmpty(final Map<String, CustomServicesWorkflowDocument.InputGroup> inputGroups,
@@ -136,7 +133,6 @@ public class ValidationHelper {
                 errorSteps.put(step.getId(), errorStep);
             }
         }
-
         addErrorStepsWithoutParent(errorSteps);
 
         validateStepInputs(errorSteps);
@@ -188,7 +184,7 @@ public class ValidationHelper {
             nodeTraverseMap.put(step, NODE_NOT_VISITED);
         }
 
-        // Traverse all nodes to identify any dis-joint forest that might exist that was could have been missed earlier
+        // Traverse all nodes to identify any dis-joint forest that might exist
         for (final String step : wfAdjList.keySet()) {
             if (nodeTraverseMap.get(step).equals(NODE_NOT_VISITED)) {
                 backEdgeNode = graphTraverse(step);
@@ -445,6 +441,27 @@ public class ValidationHelper {
         return errorMessage;
     }
 
+    private String validateOtherStepInput(final Step step, final String attribute) {
+        if (step.getInputGroups() == null
+                || step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS) == null
+                || step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup() == null) {
+            // TODO: currently the input params is only mapped to other steps. this might be changed
+            return CustomServicesConstants.ERROR_MSG_OTHER_STEP_INPUT_GROUP_OR_PARAM_NOT_DEFINED;
+
+        }
+
+        final List<Input> inputs = step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup();
+
+        for (final Input input : inputs) {
+            if (StringUtils.isNotBlank(input.getName()) && input.getName().equals(attribute)) {
+                return EMPTY_STRING;
+            }
+        }
+
+        return String.format("%s %s(%s) - %s", CustomServicesConstants.ERROR_MSG_INPUT_NOT_DEFINED_IN_OTHER_STEP, step.getDescription(),
+                step.getId(), attribute);
+    }
+
     private String checkOtherInputType(final String stepId, final Input input) {
 
         switch (CustomServicesConstants.InputType.fromString(input.getType())) {
@@ -511,27 +528,6 @@ public class ValidationHelper {
                 .filter(entry -> entry.getValue().contains(value))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
-    }
-
-    private String validateOtherStepInput(final Step step, final String attribute) {
-        if (step.getInputGroups() == null
-                || step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS) == null
-                || step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup() == null) {
-            // TODO: currently the input params is only mapped to other steps. this might be changed
-            return CustomServicesConstants.ERROR_MSG_OTHER_STEP_INPUT_GROUP_OR_PARAM_NOT_DEFINED;
-
-        }
-
-        final List<Input> inputs = step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup();
-
-        for (final Input input : inputs) {
-            if (StringUtils.isNotBlank(input.getName()) && input.getName().equals(attribute)) {
-                return EMPTY_STRING;
-            }
-        }
-
-        return String.format("%s %s(%s) - %s", CustomServicesConstants.ERROR_MSG_INPUT_NOT_DEFINED_IN_OTHER_STEP, step.getDescription(),
-                step.getId(), attribute);
     }
 
     private String checkUserInputType(final Input input) {

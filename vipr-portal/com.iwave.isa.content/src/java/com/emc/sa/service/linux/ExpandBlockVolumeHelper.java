@@ -90,10 +90,13 @@ public class ExpandBlockVolumeHelper {
 
         logInfo("expand.block.volume.remounting", linuxSupport.getHostName(), mountPoint.getPath());
         linuxSupport.addToFSTab(mountPoint.getDevice(), mountPoint.getPath(), mountPoint.getFsType(), null);
+        ExecutionUtils.clearRollback();
+
         linuxSupport.mountPath(mountPoint.getPath());
+        ExecutionUtils.clearRollback();
+
         ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_MOUNT);
         linuxSupport.setVolumeMountPointTag(volume, mountPoint.getPath());
-
         ExecutionUtils.clearRollback();
     }
 

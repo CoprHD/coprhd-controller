@@ -5161,6 +5161,8 @@ rest.authType.basicAuth=Basic Auth
 node.delete.success=Deleted successfully
 node.create.success=Created successfully
 node.rename.success=Renamed successfully
+workflow.step.noInputs=No inputs
+workflow.step.noOutputs=No outputs
 
 # Workflow Builder Alerts
 wfBuilder.operation.save.success=Operation saved successfully

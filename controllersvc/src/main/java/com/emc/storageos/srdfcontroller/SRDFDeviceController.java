@@ -1447,7 +1447,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         } catch (Exception e) {
             log.error("Ignoring exception while rolling back SRDF sources: {}", sourceURIs, e);
             // Succeed here, to allow other rollbacks to run
-            cleanUpConsistencyGroups(sourceURIs, targetURIs, systemURI);
+            cleanUpConsistencyGroups(sourceURIs, targetURIs, systemURI, isVpoolChange);
             if (null != completer) {
                 completer.ready(dbClient);
             } else {
@@ -1461,31 +1461,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     /*
      * TODO Move this logic to a utility class and add cleanup for RemoteDirectorGroup
      */
-    private void cleanUpConsistencyGroups(List<URI> sourceURIs, List<URI> targetURIs, URI systemURI) {
+    private void cleanUpConsistencyGroups(List<URI> sourceURIs, List<URI> targetURIs, URI systemURI, boolean isVpoolChange) {
         try {
             Volume srcVol = dbClient.queryObject(Volume.class, sourceURIs.get(0));
             Volume tgtVol = dbClient.queryObject(Volume.class, targetURIs.get(0));
             // Clean up target and source CGs since this is a rollback
             BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, tgtVol.getConsistencyGroup());
             BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, srcVol.getConsistencyGroup());
-            if (null != targetCG) {
-                log.info("Set target {}-->{} as inactive", targetCG.getLabel(), targetCG.getId());
-                targetCG.setInactive(true);
-                dbClient.updateObject(targetCG);
-            }
-
-            if (null != sourceCG) {
-                log.info("Clearing properties of source CG {}-->{}", sourceCG.getLabel(), sourceCG.getId());
-                // Clear the CG types and add the LOCAL types
-
-                if (null != sourceCG.getTypes()) {
-                    sourceCG.getTypes().remove(BlockConsistencyGroup.Types.SRDF.name());
-                    sourceCG.getRequestedTypes().remove(BlockConsistencyGroup.Types.SRDF.name());
-                }
-                // sourceCG.addConsistencyGroupTypes(Types.LOCAL.name());
-
-                BlockConsistencyGroupUtils.cleanUpCGAndUpdate(sourceCG, systemURI, sourceCG.getLabel(), false, dbClient);
-            }
+            SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, systemURI, isVpoolChange, dbClient);
         } catch (Exception e) {
             log.warn("Exception whilst cleaning CGs", e);
         }

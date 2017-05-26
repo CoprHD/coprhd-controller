@@ -445,7 +445,8 @@ public class SRDFOperations implements SmisConstants {
             // Clean up target and source CGs since this is a rollback
             BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, target.getConsistencyGroup());
             BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, source.getConsistencyGroup());
-            cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId(), isVpoolChange);
+            SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId(), isVpoolChange, dbClient);
+            SRDFUtils.cleanupRDG(source, target, dbClient);
 
         }
     }
@@ -490,7 +491,7 @@ public class SRDFOperations implements SmisConstants {
 
             // after volumes are deleted .group gets removed
             if (cgSourceCleanUpRequired || cgTargetCleanUpRequired) {
-                cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId(), isVpoolChange);
+                SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId(), isVpoolChange, dbClient);
             }
 
         } catch (Exception e) {
@@ -500,59 +501,8 @@ public class SRDFOperations implements SmisConstants {
         } finally {
             // update DB objects
             // this step is actually a defensive check, hence even if it fails, remove the volumes, hence its already removed.
-            if (group.getVolumes() != null) {
-                group.getVolumes().remove(source.getNativeGuid());
-                group.getVolumes().remove(target.getNativeGuid());
-            }
-            if (group.getVolumes() == null || group.getVolumes().isEmpty()) {
-                // update below items only when we are removing last pair from Group
-                if (NullColumnValueGetter.isNotNullValue(group.getSourceReplicationGroupName())) {
-                    group.setSourceReplicationGroupName(NullColumnValueGetter.getNullStr());
-                    group.setTargetReplicationGroupName(NullColumnValueGetter.getNullStr());
-                    group.setSupportedCopyMode(SupportedCopyModes.ALL.toString());
-                }
-
-                if (targetSystem.getTargetCgs() != null && !targetSystem.getTargetCgs().isEmpty()) {
-                    URI cgUri = source.getConsistencyGroup();
-                    if (cgUri != null) {
-                        targetSystem.getTargetCgs().remove(cgUri.toString());
-                        dbClient.persistObject(targetSystem);
-                    }
-                }
-            }
-            dbClient.updateAndReindexObject(group);
-
+            SRDFUtils.cleanupRDG(source, target, dbClient);
             completer.ready(dbClient);
-        }
-    }
-
-    /**
-     * Cleans up the passed in source and target SRDF CG objects. If it is a vpool change operation,
-     * then we should just clean up types and requestedTypes.
-     * 
-     * @param sourceCG SRDF source CG
-     * @param targetCG SRDF target CG
-     * @param storageId Storage system URI
-     * @param isVpoolChange If the operation is due to vpool change
-     */
-    private void cleanUpSourceAndTargetCGs(BlockConsistencyGroup sourceCG, BlockConsistencyGroup targetCG, URI storageId,
-            boolean isVpoolChange) {
-        if (null != targetCG) {
-            log.info("Set target {}-->{} as inactive", targetCG.getLabel(), targetCG.getId());
-            targetCG.setInactive(true);
-            dbClient.updateObject(targetCG);
-        }
-
-        if (null != sourceCG) {
-            log.info("Clearing properties of source CG {}-->{}", sourceCG.getLabel(), sourceCG.getId());
-            if (null != sourceCG.getTypes()) {
-                sourceCG.getTypes().remove(Types.SRDF.name());
-                sourceCG.getRequestedTypes().remove(Types.SRDF.name());
-            }
-            if (!isVpoolChange) {
-                BlockConsistencyGroupUtils.cleanUpCG(sourceCG, storageId, sourceCG.getLabel(), false, dbClient);
-            }
-            dbClient.updateObject(sourceCG);
         }
     }
 

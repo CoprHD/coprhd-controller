@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -46,7 +47,9 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
@@ -877,5 +880,71 @@ public class SRDFUtils implements SmisConstants {
             }
         }
         return null;
+    }
+    
+    /**
+     * Cleans up the passed in source and target SRDF CG objects. If it is a vpool change operation,
+     * then we should just clean up the target CG and types, requestedTypes of the source CG.
+     * 
+     * @param sourceCG SRDF source CG
+     * @param targetCG SRDF target CG
+     * @param storageId Storage system URI
+     * @param isVpoolChange If the operation is due to vpool change
+     * @param dbClient Database handle
+     */
+    public static void cleanUpSourceAndTargetCGs(BlockConsistencyGroup sourceCG, BlockConsistencyGroup targetCG, URI storageId,
+            boolean isVpoolChange, DbClient dbClient) {
+        if (null != targetCG) {
+            log.info("Set target {}-->{} as inactive", targetCG.getLabel(), targetCG.getId());
+            dbClient.markForDeletion(targetCG);
+            dbClient.updateObject(targetCG);
+        }
+
+        if (null != sourceCG) {
+            log.info("Clearing properties of source CG {}-->{}", sourceCG.getLabel(), sourceCG.getId());
+            if (null != sourceCG.getTypes()) {
+                sourceCG.getTypes().remove(Types.SRDF.name());
+                sourceCG.getRequestedTypes().remove(Types.SRDF.name());
+            }
+            if (!isVpoolChange) {
+                BlockConsistencyGroupUtils.cleanUpCG(sourceCG, storageId, sourceCG.getLabel(), false, dbClient);
+            }
+            dbClient.updateObject(sourceCG);
+        }
+    }
+    
+    /**
+     * Clean up ViPR remote data group associated with the passed in source and target SRDF CGs
+     * 
+     * @param source Source volume
+     * @param target Target volume
+     * @param dbClient Database handle
+     */
+    public static void cleanupRDG(Volume source, Volume target, DbClient dbClient) {
+    	RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class,
+                target.getSrdfGroup());
+    	StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
+                target.getStorageController());
+    	if (group.getVolumes() != null) {
+            group.getVolumes().remove(source.getNativeGuid());
+            group.getVolumes().remove(target.getNativeGuid());
+        }
+        if (group.getVolumes() == null || group.getVolumes().isEmpty()) {
+            // update below items only when we are removing last pair from Group
+            if (NullColumnValueGetter.isNotNullValue(group.getSourceReplicationGroupName())) {
+                group.setSourceReplicationGroupName(NullColumnValueGetter.getNullStr());
+                group.setTargetReplicationGroupName(NullColumnValueGetter.getNullStr());
+                group.setSupportedCopyMode(SupportedCopyModes.ALL.toString());
+            }
+
+            if (targetSystem.getTargetCgs() != null && !targetSystem.getTargetCgs().isEmpty()) {
+                URI cgUri = source.getConsistencyGroup();
+                if (cgUri != null) {
+                    targetSystem.getTargetCgs().remove(cgUri.toString());
+                    dbClient.updateObject(targetSystem);
+                }
+            }
+        }
+        dbClient.updateObject(group);
     }
 }

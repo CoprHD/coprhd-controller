@@ -1327,12 +1327,12 @@ public class ControllerUtils {
      */
     public static String getCopyModeFromSnapshotGroup(String snapGroupName, URI storage,  DbClient dbClient) {
        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(snapGroupName, storage, dbClient);
-       BlockSnapshot snapshot = snapshots.get(0);
-       if (snapshot != null) {
-           return snapshot.getCopyMode();
-       }
-       s_logger.warn(
-               String.format("No snapshots found of snap group name %s on storage controller %s, returning 'no copy' mode", 
+        if (!CollectionUtils.isEmpty(snapshots)) {
+            BlockSnapshot snapshot = snapshots.get(0);
+            return snapshot.getCopyMode();
+        }
+        s_logger.warn(
+               String.format("No snapshots found for snap group name %s on storage controller %s, returning 'no copy' mode", 
                        snapGroupName, storage));
        return BlockSnapshot.CopyMode.nocopy.name();
     }

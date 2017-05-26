@@ -6861,6 +6861,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 // update any properties that were changed after migration including deviceLabel, nativeGuid, and nativeId.
                 // also, if the updated volume isn't thin-enabled, it is thin-capable, and the target vpool supports thin
                 // provisioning, then a call should be made to the VPLEX to flip the thin-enabled flag on for this volume.
+                URI targetVolumeUri = migration.getTarget();
+                Volume targetVolume = getDataObject(Volume.class, targetVolumeUri, _dbClient);
                 if (updatedVirtualVolumeInfo != null) {
                     _log.info(String.format("New virtual volume is %s", updatedVirtualVolumeInfo.toString()));
 
@@ -6870,8 +6872,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     boolean isThinEnabled = updatedVirtualVolumeInfo.isThinEnabled();
                     if (!isThinEnabled && VPlexApiConstants.TRUE.equalsIgnoreCase(updatedVirtualVolumeInfo.getThinCapable())) {
                         if (verifyVplexSupportsThinProvisioning(vplexSystem)) {
-                            URI targetVolumeUri = migration.getTarget();
-                            Volume targetVolume = getDataObject(Volume.class, targetVolumeUri, _dbClient);
                             if (null != targetVolume) {
                                 _log.info(String.format("migration target Volume is %s", targetVolume.forDisplay()));
                                 VirtualPool targetVirtualPool = getDataObject(VirtualPool.class, targetVolume.getVirtualPool(), _dbClient);
@@ -6904,8 +6904,27 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // be no associated volumes. However, when the second
                     // completes, there will be associated volumes. However,
                     // the migration source could be null.
-                    if (migration.getSource() != null) {
-                        assocVolumes.remove(migration.getSource().toString());
+                    URI sourceVolumeUri = migration.getSource();
+                    if (sourceVolumeUri != null) {
+                        assocVolumes.remove(sourceVolumeUri.toString());
+                        
+                        // Retain any previous RP fields on the new target volume.
+                        Volume sourceVolume = getDataObject(Volume.class, sourceVolumeUri, _dbClient);
+                        if (sourceVolume != null) {
+                            boolean targetUpdated = false;
+                            if (NullColumnValueGetter.isNotNullValue(sourceVolume.getRpCopyName())) {
+                                targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
+                                targetUpdated = true;
+                            }
+    
+                            if (NullColumnValueGetter.isNotNullValue(sourceVolume.getInternalSiteName())) {
+                                targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
+                                targetUpdated = true;
+                            }
+                            if (targetUpdated) {
+                                _dbClient.updateObject(targetVolume);
+                            }
+                        }
                     }
                     assocVolumes.add(migration.getTarget().toString());
                 } else {

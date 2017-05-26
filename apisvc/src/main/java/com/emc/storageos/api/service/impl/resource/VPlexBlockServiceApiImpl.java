@@ -1973,13 +1973,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
 
         // Retain any previous RP fields on the new target volumes
-        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getRpCopyName())) {
-            targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
-        }
+        //if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getRpCopyName())) {
+        //    targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
+        //}
 
-        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getInternalSiteName())) {
-            targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
-        }
+        //if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getInternalSiteName())) {
+        //    targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
+        //}
         targetVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
         _dbClient.updateObject(targetVolume);
 

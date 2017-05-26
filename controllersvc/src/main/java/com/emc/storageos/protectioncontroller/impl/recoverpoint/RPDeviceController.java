@@ -2611,12 +2611,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         }
                     }
                 }
-            } else if (volume.checkPersonality(PersonalityTypes.SOURCE.toString()) && VirtualPool.vPoolSpecifiesMetroPoint(virtualPool)) {
+            } else if (VirtualPool.vPoolSpecifiesMetroPoint(virtualPool)) {
                 // We are dealing with a MetroPoint distributed volume so we need to get 2 export groups, one
                 // export group for each cluster.
                 if (volume.getAssociatedVolumes() != null && volume.getAssociatedVolumes().size() == 2) {
                     for (String associatedVolURI : volume.getAssociatedVolumes()) {
-                        _log.info(String.format("MetroPoint Source Volume [%s] to be removed from RP export group.", volume.getLabel()));
+                        _log.info(String.format("MetroPoint %s Volume [%s] to be removed from RP export group.", volume.getPersonality(), volume.getLabel()));
                         Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolURI));
                         ExportGroup exportGroup = getExportGroup(rpSystem, volume.getId(), associatedVolume.getVirtualArray(),
                                 associatedVolume.getInternalSiteName());

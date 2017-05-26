@@ -5,7 +5,9 @@
 package com.emc.storageos.scaleio.api.restapi.response;
 
 import java.util.List;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ScaleIOSDS {
     private String id;
     private List<IP> ipList;
@@ -13,6 +15,7 @@ public class ScaleIOSDS {
     private String name;
     private String sdsState;
     private String port;
+    private String faultSetId;
 
     public String getId() {
         return id;
@@ -37,6 +40,15 @@ public class ScaleIOSDS {
     public void setProtectionDomainId(String protectionDomainId) {
         this.protectionDomainId = protectionDomainId;
     }
+
+    public String getFaultSetId() {
+        return faultSetId;
+    }
+
+    public void setFaultSetId(String faultSetId) {
+        this.faultSetId = faultSetId;
+    }
+
 
     public String getName() {
         return name;

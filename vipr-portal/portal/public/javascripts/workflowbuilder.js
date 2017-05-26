@@ -402,7 +402,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     function hoverDir(event, data) {
         var nodeId = data.node.id;
         $scope.hoverNodeId = nodeId;
-        console.log(event);
 
         // Do not show again for selected node
         if (showOptions(nodeId, data.node.parents) && $scope.selNodeId !== nodeId) {

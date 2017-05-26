@@ -194,9 +194,14 @@ public class FileUtils {
     }
 
     public static void chown(File file, String owner, String group) {
+        chown(file, owner, group, Exec.DEFAULT_CMD_TIMEOUT);
+    }
+
+    public static void chown(File file, String owner, String group, long timeout) {
         if (file == null || file.exists() == false) {
             return;
         }
+
         String[] cmds = { "/bin/chown", "-R", owner + ":" + group, file.getAbsolutePath() };
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
         if (result.execFailed() || result.getExitValue() != 0) {

@@ -145,7 +145,9 @@ public class RestoreHandler {
             }
 
             tmpDir.renameTo(viprDataDir);
-            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+            //if there are more files in the data dir, chown may take more than 10 seconds to complete,
+            //so set timeout to 1 minute
+            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP,60*1000);
         } finally {
             if (tmpDir.exists()) {
                 FileUtils.deleteQuietly(tmpDir);

@@ -86,10 +86,10 @@ public class HDSExportMaskVolumesValidator extends AbstractHDSValidator {
             }
 
         } catch (Exception ex) {
-            log.error("Unexpected exception validating ExportMask initiators: " + ex.getMessage(), ex);
+            log.error("Unexpected exception validating ExportMask volumes: " + ex.getMessage(), ex);
             if (getValidatorConfig().isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
-                        "Unexpected exception validating ExportMask initiators: " + ex.getMessage());
+                        "Unexpected exception validating ExportMask volumes: " + ex.getMessage());
             }
         }
         return true;

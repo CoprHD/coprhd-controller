@@ -199,7 +199,7 @@ public final class WorkflowHelper {
     private static StringSet getPrimitives(
             final CustomServicesWorkflowDocument document) {
         final StringSet primitives = new StringSet();
-        if(CollectionUtils.isEmpty(document.getSteps())){
+        if (CollectionUtils.isEmpty(document.getSteps())) {
             return primitives;
         }
         for (final Step step : document.getSteps()) {
@@ -209,7 +209,7 @@ public final class WorkflowHelper {
                     case VIPR_REST:
                         break;
                     default:
-                        if(step.getOperation() != null){
+                        if (step.getOperation() != null) {
                             primitives.add(step.getOperation().toString());
                         }
 

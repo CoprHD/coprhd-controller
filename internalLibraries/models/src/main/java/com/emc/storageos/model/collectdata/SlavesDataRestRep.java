@@ -1,65 +1,63 @@
 /**
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.scaleio.api.restapi.response;
+package com.emc.storageos.model.collectdata;
 
 import java.util.Arrays;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 /**
- * Tiebreakers attributes
+ * Slaves attributes
  * 
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class TieBreakers {
+public class SlavesDataRestRep {
 	private String port;
 	private String id;
 	private String versionInfo;
 	private String status;
 	private String[] ips;
-	private String name;
-	private String role;
+	private String name;	
+	private String role;	
 	private String[] managementIPs;
-
+	
 	public String getPort ()
 	{
-		return port;
+	    return port;
 	}
-
+	
 	public void setPort (String port)
 	{
-		this.port = port;
+	    this.port = port;
 	}
-
+	
 	public String getId ()
 	{
-		return id;
+	    return id;
 	}
-
+	
 	public void setId (String id)
 	{
-		this.id = id;
+	    this.id = id;
 	}
-
+	
 	public String getVersionInfo ()
 	{
-		return versionInfo;
+	    return versionInfo;
 	}
-
+	
 	public void setVersionInfo (String versionInfo)
 	{
-		this.versionInfo = versionInfo;
+	    this.versionInfo = versionInfo;
 	}
-
+	
 	public String getStatus ()
 	{
-		return status;
+	    return status;
 	}
-
+	
 	public void setStatus (String status)
 	{
-		this.status = status;
+	    this.status = status;
 	}
 
 	public String[] getIps ()
@@ -114,9 +112,4 @@ public class TieBreakers {
 		this.managementIPs = Arrays.copyOf(managementIPs,managementIPs.length);
 	}
 
-	@Override
-	public String toString()
-	{
-		return "ClassPojo [port = "+port+", id = "+id+", versionInfo = "+versionInfo+", status = "+status+", ips = "+ips+", name = "+name+", role = "+role+", managementIPs = "+managementIPs+"]";
-	}
 }

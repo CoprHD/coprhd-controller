@@ -1,8 +1,8 @@
 /**
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.scaleio.api.restapi.response;
+package com.emc.storageos.model.collectdata;
 
 import java.util.Arrays;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
@@ -12,7 +12,7 @@ import org.codehaus.jackson.annotate.JsonIgnoreProperties;
  * 
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class TieBreakers {
+public class TieBreakersDataRestRep {
 	private String port;
 	private String id;
 	private String versionInfo;
@@ -114,9 +114,4 @@ public class TieBreakers {
 		this.managementIPs = Arrays.copyOf(managementIPs,managementIPs.length);
 	}
 
-	@Override
-	public String toString()
-	{
-		return "ClassPojo [port = "+port+", id = "+id+", versionInfo = "+versionInfo+", status = "+status+", ips = "+ips+", name = "+name+", role = "+role+", managementIPs = "+managementIPs+"]";
-	}
 }

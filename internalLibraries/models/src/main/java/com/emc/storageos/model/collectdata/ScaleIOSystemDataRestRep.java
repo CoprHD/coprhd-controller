@@ -1,23 +1,22 @@
 /**
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.scaleio.api.restapi.response;
+package com.emc.storageos.model.collectdata;
 
 import java.util.Arrays;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
-import com.emc.storageos.scaleio.api.ParsePattern;
-import com.emc.storageos.scaleio.api.ScaleIOConstants;
-
-/**
- * System attributes
- * 
- */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class ScaleIOSystem {
+@XmlRootElement(name = "scaleio_system")
+@XmlAccessorType(XmlAccessType.PROPERTY)
+public class ScaleIOSystemDataRestRep {
+    private List<ScaleIOSDCDataRestRep> sdcList;
+    private List<ScaleIOSDSDataRestRep> sdsList;
     private String mdmMode;
     private String[] primaryMdmActorIpList;
     private String[] secondaryMdmActorIpList;
@@ -27,17 +26,17 @@ public class ScaleIOSystem {
     private String id;
     private String name;
     private String installId;
-    private MdmCluster mdmCluster;
+    private MdmClusterDataRestRep mdmCluster;
 
-    public MdmCluster getMdmCluster() {
-		return mdmCluster;
-	}
+    public MdmClusterDataRestRep getMdmCluster() {
+        return mdmCluster;
+    }
 
-	public void setMdmCluster(MdmCluster mdmCluster) {
-		this.mdmCluster = mdmCluster;
-	}
+    public void setMdmCluster(MdmClusterDataRestRep mdmCluster) {
+        this.mdmCluster = mdmCluster;
+    }
 
-	public String getMdmMode() {
+    public String getMdmMode() {
         return mdmMode;
     }
 
@@ -128,13 +127,28 @@ public class ScaleIOSystem {
     }
 
     public String getVersion() {
-        String result = null;
-        ParsePattern parse = new ParsePattern("EMC ScaleIO Version:\\s+[a-zA-Z](.*?)", ScaleIOConstants.SCALEIO_VERSION);
-        List<String> versions = parse.isMatch(systemVersionName);
-        if (versions != null && !versions.isEmpty()) {
-            result = versions.get(0);
-        }
-        return result;
+        return systemVersionName;
     }
+
+    @XmlElementWrapper(name = "sdsList")
+    @XmlElement(name = "sds")
+    public List<ScaleIOSDSDataRestRep> getSdsList() {
+        return sdsList;
+    }
+
+    public void setSdsList(List<ScaleIOSDSDataRestRep> sdsList) {
+        this.sdsList = sdsList;
+    }
+
+    @XmlElementWrapper(name = "sdcList")
+    @XmlElement(name = "sdc")
+    public List<ScaleIOSDCDataRestRep> getSdcList() {
+        return sdcList;
+    }
+
+    public void setSdcList(List<ScaleIOSDCDataRestRep> sdcList) {
+        this.sdcList = sdcList;
+    }
+
 
 }

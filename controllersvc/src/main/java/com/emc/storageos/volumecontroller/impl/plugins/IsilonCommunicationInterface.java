@@ -2035,16 +2035,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                 for (IsilonExport exp : exports) {
                     _log.info("Discovered fS export {}", exp.toString());
-                    HashSet<Integer> exportIds = new HashSet<Integer>();
-                    for (String path : exp.getPaths()) {
-                        exportIds = allExports.get(path);
-                        if (exportIds == null) {
-                            exportIds = new HashSet<Integer>();
-                        }
-                        exportIds.add(exp.getId());
-                        allExports.put(path, exportIds);
-                        _log.debug("Discovered fS put export Path {} Export id {}", path, exportIds.size() + ":" + exportIds);
+                    HashSet<Integer> exportIds = new HashSet<>();
+                    // Ignore Export with multiple paths
+                    if (exp.getPaths().size() > 1) {
+                        _log.info("Discovered Isilon Export: {} has multiple paths so ingnoring it", exp.toString());
+                        continue;
                     }
+                    String path = exp.getPaths().get(0);
+                    exportIds = allExports.get(path);
+                    if (exportIds == null) {
+                        exportIds = new HashSet<>();
+                    }
+                    exportIds.add(exp.getId());
+                    allExports.put(path, exportIds);
+                    _log.debug("Discovered fS put export Path {} Export id {}", path, exportIds.size() + ":" + exportIds);
                 }
                 resumeToken = isilonExports.getToken();
             } while (resumeToken != null);

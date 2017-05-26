@@ -1,18 +1,22 @@
 /**
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.scaleio.api.restapi.response;
+package com.emc.storageos.model.collectdata;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import java.util.List;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class ScaleIOSDC {
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+
+public class ScaleIOSDCDataRestRep {
+
     private String id;
     private String name;
     private String sdcIp;
     private String sdcGuid;
     private String mdmConnectionState;
+    private List<ScaleIOVolumeDataRestRep> volumes;
 
     public String getId() {
         return id;
@@ -52,6 +56,16 @@ public class ScaleIOSDC {
 
     public void setMdmConnectionState(String mdmConnectionState) {
         this.mdmConnectionState = mdmConnectionState;
+    }
+
+    @XmlElementWrapper(name = "volumeList")
+    @XmlElement(name = "volume")
+    public List<ScaleIOVolumeDataRestRep> getVolumes() {
+        return volumes;
+    }
+
+    public void setVolumes(List<ScaleIOVolumeDataRestRep> volumes) {
+        this.volumes = volumes;
     }
 
 }

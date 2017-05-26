@@ -48,7 +48,7 @@ import com.google.common.collect.Sets;
 public class ValidationHelper {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ValidationHelper.class);
-    final Map<String, List<String>> wfAdjList = new HashMap<String, List<String>>();
+    final private Map<String, List<String>> wfAdjList = new HashMap<String, List<String>>();
     final private Set<String> uniqueFriendlyInputNames = new HashSet<>();
     final private ImmutableMap<String, Step> stepsHash;
     final private String EMPTY_STRING = "";

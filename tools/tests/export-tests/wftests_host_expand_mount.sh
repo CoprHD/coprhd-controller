@@ -83,6 +83,13 @@ test_expand_host_filesystem() {
                 # Verify injected failures were hit
                 verify_failures ${failure}
 
+                if [ ${failure} = "linux_expandVolume_after_mount" ]; then
+                   volume_id=`volume list ${PROJECT} | grep "${volume} " | awk '{print $7}'`
+                   host_id=`hosts list ${TENANT} | grep "${hostname} " | awk '{print $4}'`
+                   volume_tag="vipr:mountPoint-${host_id}=/${volume}"
+                   add_tag "volume" ${volume_id} ${volume_tag}
+                fi
+
                 # Snap DB
                 snap_db 2 "${column_family[@]}"
 

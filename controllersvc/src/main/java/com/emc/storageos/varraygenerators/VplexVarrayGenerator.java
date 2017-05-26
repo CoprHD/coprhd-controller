@@ -17,8 +17,10 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.util.CinderQosUtil;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -78,8 +80,8 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
         buf.setLength(0);
 
         // Look for existing virtual arrays. create new ones if necessary
-        String varray1Name = system.getNativeGuid() + "-Cluster1";
-        String varray2Name = system.getNativeGuid() + "-Cluster2";
+        String varray1Name = makeShortVplexName(system.getNativeGuid()) + "-Cluster1";
+        String varray2Name = makeShortVplexName(system.getNativeGuid()) + "-Cluster2";
         VirtualArray existingVA1 = getVirtualArray(varray1Name);
         VirtualArray existingVA2 = getVirtualArray(varray2Name);
         VirtualArray varray1 = (existingVA1 != null ? existingVA1 : newVirtualArray(varray1Name));
@@ -147,31 +149,115 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
         if (varray2 != null) {
             varrayURIs.add(varray2.getId().toString());
         }
-        // Create local Virtual Pools
+
+        // Create array only virtual pools first.
+        Map<String, VirtualPool> arrayTypeToBasicVolumeVpool = new HashMap<String, VirtualPool>();
         for (VpoolTemplate template : getVpoolTemplates()) {
-            if (template.getAttribute("highAvailability").equals("vplex_local")) {
-                VirtualPool vpool = vpoolGenerator.getVpoolByName(template.getAttribute("label"));
-                if (vpool != null) {
-                    vpool.setDescription("automatically generated");
-                    vpool.addVirtualArrays(varrayURIs);
-                    CinderQosUtil.createOrUpdateQos(vpool, dbClient);
-                    dbClient.updateObject(vpool);
+            if (!template.hasAttribute("highAvailability")) {
+                String name = template.getAttribute("label");
+                VirtualPool vpool = makeVpool(vpoolGenerator, template, name, varrayURIs, null, null);
+                if (template.getSystemType() != null) {
+                    arrayTypeToBasicVolumeVpool.put(template.getSystemType(), vpool);
                 } else {
-                    vpool = vpoolGenerator.makeVpoolFromTemplate("", template);
-                    vpool.setDescription("automatically generated");
-                    vpool.addVirtualArrays(varrayURIs);
-                    CinderQosUtil.createOrUpdateQos(vpool, dbClient);
-                    dbClient.createObject(vpool);
-                }
-                StringBuffer errorMessage = new StringBuffer();
-                // update the implicit pools matching with this VirtualPool.
-                ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, dbClient, coordinator, errorMessage);
-                dbClient.updateObject(vpool);
-                if (errorMessage.length() > 0) {
-                   log.info("Error matching: " + vpool.getLabel() + " " + errorMessage.toString()); 
+                    arrayTypeToBasicVolumeVpool.put("none", vpool);
                 }
             }
         }
-    }
 
+        // Create Vplex local and distributed virtual pools.
+        for (VpoolTemplate template : getVpoolTemplates()) {
+            if (template.getAttribute("highAvailability").equals("vplex_local")) {
+                String name = template.getAttribute("label");
+                makeVpool(vpoolGenerator, template, name, varrayURIs, null, null);
+            } else if (template.getAttribute("highAvailability").equals("vplex_distributed")) {
+                String type = template.getSystemType();
+                type = "none";  // BUG: can't seem to handle HA vpools selecting specific array type
+                String haVpool = null;
+                if (type != null && arrayTypeToBasicVolumeVpool.containsKey(type)) {
+                   VirtualPool highAvailabilityVirtualPool = arrayTypeToBasicVolumeVpool.get(type);; 
+                   haVpool = highAvailabilityVirtualPool.getId().toString();
+                }
+                // varray1 -> varray2
+                Set<String> varray1URIs = new HashSet<String>();
+                varray1URIs.add(varray1.getId().toString());
+                String name = varray1Name + " " + template.getAttribute("label");
+                makeVpool(vpoolGenerator, template, name, varray1URIs, varray2.getId().toString(), haVpool);
+                // varray2-> varray1
+                Set<String> varray2URIs = new HashSet<String>();
+                varray2URIs.add(varray2.getId().toString());
+                name = varray2Name + " " + template.getAttribute("label");
+                makeVpool(vpoolGenerator, template, name, varray2URIs, varray1.getId().toString(), haVpool);
+            }
+        }
+    }
+    
+    /**
+     * Make a virtual pool using the generator.
+     * @param vpoolGenerator -- VpoolGenerator
+     * @param template - VpoolTemplate from the xml file
+     * @param vpoolName - name for this Vpool
+     * @param varrayURIs - set of Varrays that can use this Vpool
+     * @param haVarrayURI - the high availability varray
+     * @param haVpoolURI - the high availability vpool
+     * @return VirtualPool object created or updated
+     */
+    private VirtualPool makeVpool(VpoolGenerator vpoolGenerator, VpoolTemplate template, String vpoolName, Set<String> varrayURIs, 
+            String haVarrayURI, String haVpoolURI) {
+        VirtualPool vpool = vpoolGenerator.getVpoolByName(vpoolName);
+        if (vpool != null) {
+            vpool.setDescription("automatically generated");
+            vpool.addVirtualArrays(varrayURIs);
+            CinderQosUtil.createOrUpdateQos(vpool, dbClient);
+            dbClient.updateObject(vpool);
+        } else {
+            vpool = vpoolGenerator.makeVpoolFromTemplate("", template);
+            vpool.setLabel(vpoolName);
+            vpool.setDescription("automatically generated");
+            vpool.addVirtualArrays(varrayURIs);
+            if (haVarrayURI != null) {
+                if (haVpoolURI == null) {
+                    haVpoolURI = NullColumnValueGetter.getNullStr();
+                }
+                StringMap haVarrayVpoolMap = new StringMap();
+                haVarrayVpoolMap.put(haVarrayURI, haVpoolURI);
+                vpool.setHaVarrayVpoolMap(haVarrayVpoolMap);
+            }
+            CinderQosUtil.createOrUpdateQos(vpool, dbClient);
+            dbClient.createObject(vpool);
+        }
+        StringBuffer errorMessage = new StringBuffer();
+        // update the implicit pools matching with this VirtualPool.
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, dbClient, coordinator, errorMessage);
+        dbClient.updateObject(vpool);
+        if (errorMessage.length() > 0) {
+           log.info("Error matching: " + vpool.getLabel() + " " + errorMessage.toString()); 
+        }
+        return vpool;
+    }
+    
+    /**
+     * Returns a VPLEX name with the last 4 digits of the serial number from each cluster
+     * @param nativeGuid - VPLEX native GUID
+     * @return - shortened VPLEX name
+     */
+    private String makeShortVplexName(String nativeGuid) {
+        String[] parts = nativeGuid.split("[+:]");
+        StringBuilder buf = new StringBuilder();
+        buf.append(parts[0]);
+        if (parts.length > 1) {
+            buf.append("+");
+            int begin = parts[1].length() - 4;
+            begin = (begin < 0) ? 0 : begin;
+            int end = parts[1].length();
+            buf.append(parts[1].substring(begin, end));
+        }
+        if (parts.length > 2) {
+            buf.append(":");
+            int begin = parts[2].length() - 4;
+            begin = (begin < 0) ? 0 : begin;
+            int end = parts[2].length();
+            buf.append(parts[2].substring(begin, end));
+        }
+        return buf.toString();
+    }
 }

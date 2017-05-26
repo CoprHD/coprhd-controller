@@ -18,6 +18,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 
@@ -107,6 +109,24 @@ public class VpoolGenerator {
                 values.addAll(Arrays.asList(valueArray));
             }
             method.invoke(vpool,  values);
+            return;
+        } catch (NoSuchMethodException ex) {
+        } catch (IllegalAccessException ex) {
+        } catch (IllegalArgumentException ex) {
+        } catch (InvocationTargetException ex) {
+        }
+        try {   // StringSetMap
+            methodName = "add" + attribute.substring(0,1).toUpperCase() + attribute.substring(1);
+            Method method = vpoolClass.getMethod(methodName, StringSetMap.class);
+            StringSetMap setMap = new StringSetMap();
+            String[] mapEntry = value.split("=");
+            String[] setEntries = mapEntry[1].split(",,");
+            StringSet set = new StringSet();
+            for (String setEntry : setEntries) {
+                set.add(setEntry);
+            }
+            setMap.put(mapEntry[0], set);
+            method.invoke(vpool,  setMap);
             return;
         } catch (NoSuchMethodException ex) {
         } catch (IllegalAccessException ex) {

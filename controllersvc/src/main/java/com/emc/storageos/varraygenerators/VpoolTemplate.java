@@ -2,6 +2,8 @@ package com.emc.storageos.varraygenerators;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class VpoolTemplate {
     private Map<String, String> attrMap = new HashMap<String, String>();
@@ -25,6 +27,30 @@ public class VpoolTemplate {
             return "";
         }
         return getAttrMap().get(attribute);
+    }
+    
+    /**
+     * Returns true if template has the given attribute define
+     * @param attribute - String name of attribute
+     * @return - true if attribute defined
+     */
+    public boolean hasAttribute(String attribute) {
+        return (getAttrMap().containsKey(attribute));
+    }
+    
+    /**
+     * Returns the system_type, if specified.
+     * @return - String of system type
+     */
+    public String getSystemType() {
+        if (attrMap.containsKey("arrayInfoDetails")) {
+            Pattern pattern = Pattern.compile("system_type=([a-z_]*)");
+            Matcher matcher = pattern.matcher(getAttribute("arrayInfoDetails"));
+            if (matcher.find() && matcher.groupCount() >= 1) {
+                return matcher.group(1);
+            }
+        }
+        return null;
     }
 
 }

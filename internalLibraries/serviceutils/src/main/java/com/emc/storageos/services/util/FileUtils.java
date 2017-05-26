@@ -203,7 +203,7 @@ public class FileUtils {
         }
 
         String[] cmds = { "/bin/chown", "-R", owner + ":" + group, file.getAbsolutePath() };
-        Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+        Exec.Result result = Exec.exec(timeout, cmds);
         if (result.execFailed() || result.getExitValue() != 0) {
             throw new IllegalStateException(String.format("Execute command failed: %s", result));
         }

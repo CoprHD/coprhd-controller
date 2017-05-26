@@ -519,7 +519,7 @@ public class VPlexUtil {
                 }
             }
             if (getExportMaskHosts(dbClient, exportMask, shared).contains(hostURI)
-                    && ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varrayURI)) {
+                    && ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varrayURI, true)) {
                 return exportMask;
             }
         }

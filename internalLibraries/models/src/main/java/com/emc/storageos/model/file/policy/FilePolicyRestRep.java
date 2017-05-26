@@ -10,11 +10,13 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "file_policy")
+@XmlType(namespace = "file_schedule_policy", name = "file_policy")
 public class FilePolicyRestRep extends DataObjectRestRep {
 
     private String type;

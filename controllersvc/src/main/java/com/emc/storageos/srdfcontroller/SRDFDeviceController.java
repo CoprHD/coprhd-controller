@@ -1469,6 +1469,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, tgtVol.getConsistencyGroup());
             BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, srcVol.getConsistencyGroup());
             SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, systemURI, isVpoolChange, dbClient);
+            SRDFUtils.cleanupRDG(srcVol, tgtVol, dbClient);
         } catch (Exception e) {
             log.warn("Exception whilst cleaning CGs", e);
         }

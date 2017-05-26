@@ -897,7 +897,6 @@ public class SRDFUtils implements SmisConstants {
         if (null != targetCG) {
             log.info("Set target {}-->{} as inactive", targetCG.getLabel(), targetCG.getId());
             dbClient.markForDeletion(targetCG);
-            dbClient.updateObject(targetCG);
         }
 
         if (null != sourceCG) {

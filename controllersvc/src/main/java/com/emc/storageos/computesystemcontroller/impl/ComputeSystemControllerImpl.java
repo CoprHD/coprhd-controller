@@ -1454,9 +1454,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             if (datastore != null && VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
                                 _log.info("Datastore " + datastore.getName() + " is already mounted on " + esxHost.getLabel());
                                 objectIterator.remove();
-                            }
-
-                            if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                            } else if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
                                 _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
                                 storageAPI.mountDatastore(datastore);
                                 objectIterator.remove();

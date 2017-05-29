@@ -142,6 +142,11 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileSnapshotPolicyMigration"/>
             </list>
         </entry>
+        <entry key="3.6">
+            <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileReplicationPolicyUpdateTargetPoolMigration"/>
+            </list>
+        </entry>
     </util:map>
     <!--
     Please do NOT modify any content in this file, if you want to add migration callback, please go forward to

@@ -309,6 +309,7 @@ public class InitiatorService extends TaskResourceService {
      * @param id the URN of a ViPR initiator
      * @param sid the pstorage system uri
      * @prereq none
+     * @brief Show the serial number and alias of an initiator
      * @return A reference to an InitiatorRestRep representing the Initiator Alias if Set..
      * @throws Exception When an error occurs querying the VMAX Storage System.
      */
@@ -357,6 +358,7 @@ public class InitiatorService extends TaskResourceService {
      * @param id the URN of a ViPR initiator
      * @param aliasSetParam the parameter containing the storage system and alias attributes
      * @prereq none
+     * @brief Set the serial number and alias on this storage system for an initiator 
      * @return A reference to an InitiatorRestRep representing the Initiator Alias after Set..
      * @throws Exception When an error occurs setting the alias on a VMAX Storage System.
      */

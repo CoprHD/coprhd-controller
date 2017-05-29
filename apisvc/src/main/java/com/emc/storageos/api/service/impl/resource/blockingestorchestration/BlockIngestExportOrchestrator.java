@@ -240,7 +240,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 }
 
                 requestContext.addDataObjectToUpdate(exportMask, unManagedVolume);
-                ExportMaskUtils.updateFCZoneReferences(exportGroup, blockObject, unManagedExportMask.getZoningMap(), initiators,
+                ExportMaskUtils.updateFCZoneReferences(exportGroup, exportMask, blockObject, unManagedExportMask.getZoningMap(), initiators,
                         _dbClient);
 
                 // remove the unmanaged mask from unmanaged volume only if the block object has not been marked as internal

@@ -1089,8 +1089,7 @@ public class NetworkSystemService extends TaskResourceService {
      * @param fabricId The name of the VSAN or fabric as returned by
      *            /vdc/network-systems/{id}/san-fabrics or the WWN of the VSAN or fabric
      * @prereq none
-     * @brief Activate the current active zoneset of the VSA or fabric which effect all
-     *        zoning changes made since the last activation.
+     * @brief Activate all zoning changes made since the last activation
      * @return A task description structure.
      * @throws InternalException
      */

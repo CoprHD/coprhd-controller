@@ -78,7 +78,8 @@ import com.google.common.collect.Lists;
 public class RecoverPointScheduler implements Scheduler {
 
     public static final Logger _log = LoggerFactory.getLogger(RecoverPointScheduler.class);
-    private static final String SCHEDULER_NAME = "rp";
+    private static final String SCHEDULER_NAME = "rp";    
+    private static final int WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS = 5;
 
     @Autowired
     protected PermissionsHelper _permissionsHelper = null;
@@ -105,9 +106,17 @@ public class RecoverPointScheduler implements Scheduler {
     private PlacementStatus secondaryPlacementStatus;
 
     // List of storage systems that require vplex to provide protection
-
     private static List<String> systemsRequiringVplex = new ArrayList<String>
             (Arrays.asList(DiscoveredDataObject.Type.hds.toString()));
+    
+    // Spring injected via api-conf.xml; allows the user to adjust
+    // throttle attempts for concurrent provisioning orders for new CGs
+    // and/or when the vpool specifies journal multiplier.
+    private int maxThrottleAttempts;
+    
+    public void setMaxThrottleAttempts(int maxThrottleAttempts) {
+        this.maxThrottleAttempts = maxThrottleAttempts;
+    }
 
     public void setBlockScheduler(StorageScheduler blockScheduler) {
         this.blockScheduler = blockScheduler;
@@ -207,7 +216,6 @@ public class RecoverPointScheduler implements Scheduler {
         public void setHaVpool(VirtualPool haVpool) {
             this.haVpool = haVpool;
         }
-
     }
 
     /**
@@ -263,6 +271,9 @@ public class RecoverPointScheduler implements Scheduler {
     public List<Recommendation> getRecommendationsForResources(VirtualArray varray, Project project, VirtualPool vpool,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
+        // Check to see if we need to throttle concurrent requests for the same RP CG
+        throttleConncurrentRequests(vpool, capabilities.getBlockConsistencyGroup());
+        
         Volume changeVpoolVolume = null;
         if (capabilities.getChangeVpoolVolume() != null) {            
             changeVpoolVolume = dbClient.queryObject(Volume.class, URI.create(capabilities.getChangeVpoolVolume()));
@@ -567,7 +578,8 @@ public class RecoverPointScheduler implements Scheduler {
                     rpProtectionRecommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
                     
                     // If we made it this far we know that our source virtual pool and associated source virtual array
-                    // has a storage pool with enough capacity for the requested resources and which is accessible to an rp cluster site
+                    // has a storage pool with enough capacity for the requested resources and which is accessible to an rp 
+                    // cluster site
                     rpProtectionRecommendation.setPlacementStepsCompleted(PlacementProgress.IDENTIFIED_SOLUTION_FOR_SOURCE);
                     if (placementStatus.isBestSolutionToDate(rpProtectionRecommendation)) {
                         placementStatus.setLatestInvalidRecommendation(rpProtectionRecommendation);
@@ -1431,7 +1443,7 @@ public class RecoverPointScheduler implements Scheduler {
                                         standbySourcePool.getLabel()));
                                 continue;
                             } else {
-                                // List of concatenated Strings that contain the RP site + associated storage system.
+                                // List of concatenated strings that contain the RP site + associated storage system.
                                 List<String> secondaryAssociatedStorageSystems = getCandidateVisibleStorageSystems(standbySourcePool,
                                         selectedSecondaryProtectionSystem,
                                         haVarray, activeProtectionVarrays, true);
@@ -1446,15 +1458,12 @@ public class RecoverPointScheduler implements Scheduler {
                                     continue;
                                 }
 
-                                Set<String> sortedSecondaryAssociatedStorageSystems = new LinkedHashSet<String>();
-                                Set<String> sameAsPrimary = new HashSet<String>();
-
-                                // Perform a preliminary sorting operation. We want to only consider secondary associated storage systems
-                                // that reference the same storage system as the primary recommendation. Also, want to prefer RP sites
-                                // that are different
-                                String secondarySourceInternalSiteName = "";
+                                Set<String> validSecondaryAssociatedStorageSystems = new LinkedHashSet<String>();
+                                
+                                // Perform a preliminary filter operation as we want to only consider secondary associated storage systems
+                                // that reference the same storage system as the primary recommendation and has a different RP site.
                                 for (String secondaryAssociatedStorageSystem : secondaryAssociatedStorageSystems) {
-                                    secondarySourceInternalSiteName = ProtectionSystem.getAssociatedStorageSystemSiteName(
+                                    String secondarySourceInternalSiteName = ProtectionSystem.getAssociatedStorageSystemSiteName(
                                             secondaryAssociatedStorageSystem);
 
                                     URI secondarySourceStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
@@ -1462,17 +1471,19 @@ public class RecoverPointScheduler implements Scheduler {
                                                     secondaryAssociatedStorageSystem),
                                             dbClient, StorageSystemType.BLOCK);
 
-                                    if (secondaryAssociatedStorageSystem.equals(
-                                            sourceRec.getRpSiteAssociateStorageSystem())) {
-                                        sameAsPrimary.add(secondaryAssociatedStorageSystem);
-                                    } else if (secondarySourceStorageSystemURI.equals(primarySourceStorageSystemURI)
+                                    boolean validForStandbyPlacement = false;
+                                    if (secondarySourceStorageSystemURI.equals(primarySourceStorageSystemURI)
                                             && !secondarySourceInternalSiteName.equals(sourceRec.getInternalSiteName())) {
-                                        sortedSecondaryAssociatedStorageSystems.add(secondaryAssociatedStorageSystem);
-                                    }
+                                        validForStandbyPlacement = true;
+                                        validSecondaryAssociatedStorageSystems.add(secondaryAssociatedStorageSystem);
+                                    } 
+                                    
+                                    _log.info(String.format("RP Placement: associated storage system entry [%s] "
+                                            + "%s valid for standby placement.", 
+                                            secondaryAssociatedStorageSystem, (validForStandbyPlacement ? "" : "NOT")));
                                 }
 
-                                sortedSecondaryAssociatedStorageSystems.addAll(sameAsPrimary);
-                                for (String secondaryAssociatedStorageSystem : sortedSecondaryAssociatedStorageSystems) {
+                                for (String secondaryAssociatedStorageSystem : validSecondaryAssociatedStorageSystems) {
                                     _log.info(String.format("RP Placement : Build MetroPoint Standby Recommendation..."));
                                     RPRecommendation secondaryRpRecommendation = buildSourceRecommendation(
                                             secondaryAssociatedStorageSystem,
@@ -1491,7 +1502,7 @@ public class RecoverPointScheduler implements Scheduler {
                                         _log.info(String.format("RP Placement : Build MetroPoint Standby Journal Recommendation..."));
                                         RPRecommendation standbyJournalRecommendation = buildJournalRecommendation(
                                                 rpProtectionRecommendation,
-                                                secondarySourceInternalSiteName, vpool.getJournalSize(),
+                                                secondaryRpRecommendation.getInternalSiteName(), vpool.getJournalSize(),
                                                 standbyJournalVarray, standbyJournalVpool, primaryProtectionSystem,
                                                 capabilities, totalRequestedResourceCount, vpoolChangeVolume, true);
                                         if (standbyJournalRecommendation == null) {
@@ -1507,7 +1518,6 @@ public class RecoverPointScheduler implements Scheduler {
                                     if (findSolution(rpProtectionRecommendation, secondaryRpRecommendation, haVarray, vpool,
                                             standbyProtectionVarrays, capabilities, satisfiedSourceVolCount, true, sourceRec,
                                             project)) {
-
                                         _log.info("RP Placement : An RP target placement solution has been identified for the "
                                                 + "MetroPoint secondary (standby) cluster.");
                                         secondaryRecommendationSolution = true;
@@ -2052,7 +2062,7 @@ public class RecoverPointScheduler implements Scheduler {
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
 
         // Find the first existing source volume
-        List<Volume> sourceVolumes = RPHelper.getCgSourceVolumes(capabilities.getBlockConsistencyGroup(), dbClient);
+        List<Volume> sourceVolumes = RPHelper.getCgSourceVolumes(cg.getId(), dbClient);
 
         if (sourceVolumes.isEmpty()) {
             _log.info(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
@@ -2091,13 +2101,13 @@ public class RecoverPointScheduler implements Scheduler {
             if (ps.getInactive()) {
                 // If our existing CG has an inactive ProtectionSystem reference, volumes in this CG cannot
                 // be protected so we must fail.
-                throw APIException.badRequests.cgReferencesInvalidProtectionSystem(capabilities.getBlockConsistencyGroup(),
+                throw APIException.badRequests.cgReferencesInvalidProtectionSystem(cg.getId(),
                         sourceVolume.getProtectionController());
             }
         } else {
             // If our existing CG has a null ProtectionSystem reference, volumes in this CG cannot
             // be protected so we must fail.
-            throw APIException.badRequests.cgReferencesInvalidProtectionSystem(capabilities.getBlockConsistencyGroup(),
+            throw APIException.badRequests.cgReferencesInvalidProtectionSystem(cg.getId(),
                     sourceVolume.getProtectionController());
         }
 
@@ -2108,7 +2118,7 @@ public class RecoverPointScheduler implements Scheduler {
         recommendation.setResourceCount(capabilities.getResourceCount());
 
         // Check to see if we need an additional journal for Source
-        Map<Integer, Long> additionalJournalForSource = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg, 
+        Map<Integer, Long> additionalJournalForSource = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg.getId(), 
                 capabilities.getSize(), capabilities.getResourceCount(), sourceVolume.getRpCopyName(), dbClient);
         if (!CollectionUtils.isEmpty(additionalJournalForSource)) {
             // ACTIVE SOURCE JOURNAL Recommendation
@@ -2188,7 +2198,7 @@ public class RecoverPointScheduler implements Scheduler {
             sourceRecommendation.getTargetRecommendations().add(targetRecommendation);
 
             // Check to see if we need an additional journal for Target
-            Map<Integer, Long> additionalJournalForTarget = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg, 
+            Map<Integer, Long> additionalJournalForTarget = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg.getId(), 
                     capabilities.getSize(), capabilities.getResourceCount(), targetVolume.getRpCopyName(), dbClient);
             if (!CollectionUtils.isEmpty(additionalJournalForTarget)) {
                 // TARGET JOURNAL Recommendation
@@ -2919,8 +2929,8 @@ public class RecoverPointScheduler implements Scheduler {
 
     /**
      * Returns a list of recommendations for storage pools that satisfy the request.
-     * The return list is sorted in increasing order by the number of resources of size X that the pool can satisy,
-     * where X is the size of each resource in this request.
+     * The return list is sorted in increasing order by the number of resources of size X 
+     * that the pool can satisfy, where X is the size of each resource in this request.
      *
      * @param rpProtectionRecommendation - RP protection recommendation
      * @param varray - Virtual Array
@@ -4193,7 +4203,7 @@ public class RecoverPointScheduler implements Scheduler {
         }
 
         // Check to make sure the RP site is connected to the varray
-        return (connected && RPHelper.rpInitiatorsInStorageConnectedNework(
+        return (connected && RPHelper.rpInitiatorsInStorageConnectedNetwork(
                 storageSystemURI, protectionSystemURI, siteId, virtualArray.getId(), dbClient));
     }
 
@@ -4463,5 +4473,116 @@ public class RecoverPointScheduler implements Scheduler {
     @Override
     public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
         return (VirtualPool.vPoolSpecifiesProtection(vPool));
+    }
+    
+    /**
+     * This method performs a soft throttle on concurrent incoming RP requests for the same CG 
+     * to allow for proper RP journal provisioning. 
+     * 
+     * Since concurrent requests do not have any context to which request should create the journals,
+     * poor decisions can be made by the RP scheduler. Using a soft lock on the CG to indicate journal 
+     * provisioning is occurring allows time between concurrent requests to ensure correct journal 
+     * decisions will be made.
+     * 
+     * There are two cases where concurrent requests need to wait:
+     * 1. If the CG has not yet been created. Allowing the first request to pass through
+     * and forcing the rest of the concurrent requests to wait briefly is sufficient.
+     * 
+     * 2. If the vpool specifies a journal multiplier policy. Meaning that the user wants
+     * the RP journals to be provisioned dynamically as requests are processed. In this
+     * case all requests will need to be handled sequentially to properly calculate if
+     * new journals are required as each request is provisioned (even if #1 above applies,
+     * of course still need to be sequential).
+     * 
+     * @param vpool RP vpool for the provisioning request
+     * @param cgURI RP CG URI for the provisioning request
+     */
+    private void throttleConncurrentRequests(VirtualPool vpool, URI cgURI) {
+        // Find the CG used in the request
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                   
+        // Check to see if the vpool is using a journal multiplier policy
+        boolean vpoolUsesJournalMultiplier = RPHelper.vpoolHasJournalMultiplier(vpool);
+        
+        // Only throttle requests on new RP CGs or if using a journal multiplier policy
+        if (!cg.created() || vpoolUsesJournalMultiplier) { 
+            if (!cg.created()) {
+                _log.info(String.format("CG [%s] has not been created yet. RP requests may need to wait "
+                        + "briefly if concurrent requests detected.",
+                        cg.getLabel()));
+            } else {
+                _log.info(String.format("Vpool [%s] is using a RP journal multiplier policy. "
+                        + "RP requests may need to be handled sequentially if concurrent requests detected.",
+                        vpool.getLabel()));
+            }
+            
+            // Check to see if the journal provisioning lock has been set on the CG. 
+            //
+            // When the lock is not "0" it indicates that RP journal scheduling/provisioning 
+            // is currently underway for this CG in another request.
+            //
+            // Any new requests coming in for the same CG may need to wait briefly.
+            Long lock = ((cg.getJournalProvisioningLock() != null) ? cg.getJournalProvisioningLock() : 0L);
+            
+            // If the value is > 0 then there must be another provisioning request occurring for this CG
+            if (lock != 0L) {
+                try {
+                    // If the journal policy is a multiplier we need to force ALL requests to go 
+                    // sequentially so that the journal provisioning can be calculated dynamically.
+                    //
+                    // Otherwise, we can allow one request to proceed right away and create the journals.
+                    // The rest of the concurrent requests will wait a short time and then they can 
+                    // all proceed in parallel.
+                    if (vpoolUsesJournalMultiplier) {                    
+                        int waitAttempt = 0;
+                        while (waitAttempt < maxThrottleAttempts) {                      
+                            _log.info(String.format("Concurrent RP requests detected for CG [%s], sleeping for %s seconds. "
+                                    + "Each request will be handled sequentially.", 
+                                    cg.getLabel(), WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS));
+                            Thread.sleep(WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS * 1000);
+                            waitAttempt++;
+                            
+                            // Reload the CG to see if the lock has been updated
+                            cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                          
+                            // Check to see if the lock has changed since last we checked
+                            if (Long.compare(lock, cg.getJournalProvisioningLock()) == 0) {
+                                // Lock has not changed, let this request pass through and update
+                                // the flag to indicate this request is provisioning.
+                                cg.setJournalProvisioningLock(Thread.currentThread().getId());
+                                dbClient.updateObject(cg);
+                                break;
+                            } else {
+                                // Flag has changed, another request is underway, sleep again.                         
+                                _log.info("Another request is underway, sleep again.");
+                                // Update the flag with the latest value
+                                lock = cg.getJournalProvisioningLock();
+                                // Reset the wait attempts
+                                waitAttempt = 0;
+                            }
+                        }   
+                    } else {
+                        _log.info(String.format("Concurrent RP requests detected for CG [%s], sleeping for %s seconds "
+                                + "to allow one request to go through first.", 
+                                cg.getLabel(), WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS));
+                        Thread.sleep(WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS * 1000);
+                        
+                        // In this case, the lock can be safely cleared
+                        cg.setJournalProvisioningLock(0L);
+                        dbClient.updateObject(cg);
+                    }
+                } catch (InterruptedException e) {
+                    _log.error(e.getMessage());
+                }
+            } else {
+                // Set the journal provisioning lock on the CG to indicate a 
+                // provisioning request is underway. This will force other
+                // concurrent requests to wait.
+                cg.setJournalProvisioningLock(System.currentTimeMillis());
+                dbClient.updateObject(cg);
+            }
+            
+            _log.info("RP request proceeding.");
+        }
     }
 }

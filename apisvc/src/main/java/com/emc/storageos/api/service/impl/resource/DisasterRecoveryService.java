@@ -168,6 +168,7 @@ public class DisasterRecoveryService {
      * Or attach a active site for the local standby site when it's first being added.
      * 
      * @param param site detail information
+     * @brief Add standby site
      * @return site response information
      */
     @POST
@@ -317,6 +318,7 @@ public class DisasterRecoveryService {
      * The current site will be demoted from active to standby during the process
      *
      * @param configParam
+     * @brief Sync sites from active site
      * @return
      */
     @PUT
@@ -417,6 +419,7 @@ public class DisasterRecoveryService {
     /**
      * Get all sites including standby and active
      * 
+     * @brief Get all standby and active sites of local VDC
      * @return site list contains all sites with detail information
      */
     @GET
@@ -440,6 +443,7 @@ public class DisasterRecoveryService {
     /**
      * Check if current site is active site
      * 
+     * @brief Check if current site is active
      * @return SiteActive true if current site is active else false
      */
     @GET
@@ -466,6 +470,7 @@ public class DisasterRecoveryService {
      * Get specified site according site UUID
      * 
      * @param uuid site UUID
+     * @brief Get specified site details
      * @return site response with detail information
      */
     @GET
@@ -488,6 +493,7 @@ public class DisasterRecoveryService {
     /**
      * Get local site
      * 
+     * @brief Get local site details
      * @return site response with detail information
      */
     @GET
@@ -508,6 +514,9 @@ public class DisasterRecoveryService {
     }
 
     /**
+     *  Check if Local Site Removed
+     * 
+     * @brief Check if local site is removed
      * @return result that indicates whether local site is removed
      */
     @GET
@@ -556,7 +565,8 @@ public class DisasterRecoveryService {
      * Remove a standby. After successfully done, it stops data replication to this site
      * 
      * @param uuid standby site uuid
-     * @return
+     * @brief Remove a specific standby site
+     * @return Response
      */
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -572,7 +582,8 @@ public class DisasterRecoveryService {
      * Remove multiple standby sites. After successfully done, it stops data replication to those sites
      * 
      * @param idList site uuid list to be removed
-     * @return
+     * @brief Remove a list of standby sites
+     * @return Response
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -662,6 +673,7 @@ public class DisasterRecoveryService {
     /**
      * Get standby site configuration
      * 
+     * @brief Get standby site configuration
      * @return SiteConfigRestRep standby site configuration.
      */
     @GET
@@ -700,6 +712,14 @@ public class DisasterRecoveryService {
         return siteConfigRestRep;
     }
 
+    /**
+     * Check Data Replication If Behind NAT
+     * 
+     * @param checkParam
+     * @param clientIp
+     * @brief Check if behind NAT
+     * @return DRNatCheckResponse
+     */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
@@ -735,6 +755,7 @@ public class DisasterRecoveryService {
      * Pause a standby site that is already sync'ed with the active
      * 
      * @param uuid site UUID
+     * @brief Pause a standby site
      * @return updated standby site representation
      */
     @POST
@@ -752,7 +773,8 @@ public class DisasterRecoveryService {
      * Pause data replication to multiple standby sites.
      *
      * @param idList site uuid list to be removed
-     * @return
+     * @brief Pause data replication to multiple standby sites.
+     * @return Response
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -863,6 +885,7 @@ public class DisasterRecoveryService {
      * Resume data replication for a paused standby site
      * 
      * @param uuid site UUID
+     * @brief Resume data replication for a paused standby site
      * @return updated standby site representation
      */
     @POST
@@ -1000,9 +1023,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Query the latest error message for specific standby site
+     * Query the latest error message & Retry the Last operation for specific standby site
      * 
      * @param uuid site UUID
+     * @brief Query the latest error message & Retry the Last operation for specific standby site
      * @return updated standby site representation
      */
     @POST
@@ -1098,9 +1122,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Retry last operation when in STANDBY_ERROR
+     * Query the latest site error message
      *
      * @param uuid site UUID
+     * @brief Query the latest site error message
      * @return site response with detail information
      */
     @GET
@@ -1128,10 +1153,12 @@ public class DisasterRecoveryService {
     }
 
     /**
+     * Do Site Switchover 
      * This API will do switchover to target new active site according passed in site UUID. After failover, old active site will
      * work as normal standby site and target site will be promoted to active. All site will update properties to trigger reconfig.
      * 
      * @param uuid target new active site UUID
+     * @brief Do site switchover
      * @return return accepted response if operation is successful
      */
     @POST
@@ -1279,10 +1306,13 @@ public class DisasterRecoveryService {
     }
 
     /**
+     * Do Site Fail over
+     * 
      * This API will do failover from standby site. This operation is only allowed when active site is down.
      * After failover, this standby site will be promoted to active site.
      * 
      * @param uuid target new active site UUID
+     * @brief Do site failover
      * @return return accepted response if operation is successful
      */
     @POST
@@ -1422,7 +1452,8 @@ public class DisasterRecoveryService {
      * 
      * @param uuid target site uuid
      * @param siteParam site information
-     * @return
+     * @brief Update Site information
+     * @return Response
      */
     @PUT
     @Path("/{uuid}")
@@ -1494,9 +1525,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Query the details, such as transition timings, for specific standby site
+     * Query the site details, such as transition timings, for specific standby site
      * 
      * @param uuid site UUID
+     * @brief Get site details
      * @return SiteActionsTime with detail information
      */
     @GET

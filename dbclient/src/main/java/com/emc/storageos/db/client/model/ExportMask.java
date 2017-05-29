@@ -919,6 +919,7 @@ public class ExportMask extends DataObject {
                 "ExportMask %s (%s)\n" +
                         "\tInactive            : %s\n" +
                         "\tCreatedBySystem     : %s\n" +
+                        "\tResource            : %s\n" +
                         "\tVolumes             : %s\n" +
                         "\tInitiators          : %s\n" +
                         "\tStoragePorts        : %s\n" +
@@ -931,6 +932,7 @@ public class ExportMask extends DataObject {
                 _id,
                 _inactive,
                 _createdBySystem,
+                getResource(),
                 collectionString(_volumes),
                 collectionString(_initiators),
                 collectionString(_storagePorts),

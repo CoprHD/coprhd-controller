@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
@@ -479,6 +480,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     volumeDescriptors, null, new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_MIRROR });
             _dbClient.markForDeletion(_dbClient.queryObject(Volume.class,
                     VolumeDescriptor.getVolumeURIs(descriptorsForVolumes)));
+            
+            // Delete the corresponding FCZoneReferences
+            for (URI volumeURI : volumeURIs) {
+                List<FCZoneReference> zoneReferences = CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, 
+                        FCZoneReference.class, "volumeUri", volumeURI.toString());
+                for (FCZoneReference zoneReference : zoneReferences) {
+                    if (zoneReference != null) {
+                        _dbClient.markForDeletion(zoneReference);
+                    }
+                }
+            }
 
             // Update the task status for each volume
             for (URI volumeURI : volumeURIs) {
@@ -530,7 +542,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * Perform any database clean up required as a result of removing the mirrors
      * with the passed URIs from the ViPR database.
      *
-     * @param mirroURIs
+     * @param mirrorURIs
      *            The URIs of the mirrors involved in the ViPR only delete.
      */
     protected void cleanupForViPROnlyMirrorDelete(List<URI> mirrorURIs) {
@@ -920,10 +932,19 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // regular volumes (meta extension is not supported)
         // For VNX Unified pool volumes, check that volume new size is within
         // max volume size limit of its storage pool.
-
-        long maxVolumeSize = getMaxVolumeSizeLimit(volume);
-        if (newSizeExceedsMaxVolumeSizeForPool(volume, newSize)) {
-            throw APIException.badRequests.invalidVolumeSize(newSize, maxVolumeSize);
+        long maxVolumeSizeLimitKB = getMaxVolumeSizeLimit(volume);
+        StoragePool storagePool = _permissionsHelper.getObjectById(volume.getPool(), StoragePool.class);
+        if (StoragePool.PoolClassNames.Clar_UnifiedStoragePool.name().equalsIgnoreCase(
+                storagePool.getPoolClassName())) {
+            // COP-30564 : Check only expansion size against maxVolumeSizeLimit, not total volume size after expansion (this is
+            // specific to VNX arrays implementation).
+            Long expansionSize = newSize - volume.getCapacity() > 0 ? newSize - volume.getCapacity() : 0;
+            Long expansionSizeKB = (expansionSize % 1024 == 0) ? expansionSize / 1024 : expansionSize / 1024 + 1;
+            if (expansionSizeKB > maxVolumeSizeLimitKB) {
+                s_logger.info("VNX volume can not be expanded --- expansion size request {} exceeds maximum volume size limit in the pool {} . ",
+                        expansionSizeKB, maxVolumeSizeLimitKB);
+                throw APIException.badRequests.invalidVolumeSize(newSize, maxVolumeSizeLimitKB);
+            }
         }
     }
 
@@ -985,32 +1006,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         return ((isMeta(volume)) && (BlockServiceUtils.hasMirrors(volume)));
     }
 
-    /**
-     * Determines if the new size for a volume expansion exceeds the maximum volume
-     * size for the volume's storage pool.
-     *
-     * @param volume
-     *            A reference to a Volume.
-     * @param newSize
-     *            The desired volume size.
-     *
-     * @return true if the volume exceeds the max volume size, false otherwise.
-     */
-    protected boolean newSizeExceedsMaxVolumeSizeForPool(Volume volume, Long newSize) {
-        StoragePool storagePool = _permissionsHelper.getObjectById(volume.getPool(),
-                StoragePool.class);
-
-        // Only applicable for Clariion unified storage pools.
-
-        if (StoragePool.PoolClassNames.Clar_UnifiedStoragePool.name().equalsIgnoreCase(
-                storagePool.getPoolClassName())) {
-            Long maxVolumeSizeLimit = getMaxVolumeSizeLimit(volume);
-            Long sizeInKB = (newSize % 1024 == 0) ? newSize / 1024 : newSize / 1024 + 1;
-            return sizeInKB > maxVolumeSizeLimit;
-        }
-
-        return false;
-    }
 
     /**
      * Get the maximum volume size for the passed volume's storage pool.
@@ -1968,6 +1963,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             allRPSourceVolumesInCG.remove(volume.getId());
 
             if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
+                    && !VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
                     && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
                 // For an upgrade to MetroPoint (moving from RP+VPLEX vpool to MetroPoint vpool), even though the user
                 // would have chosen 1 volume to update but we need to update ALL the RSets/volumes in the CG.

@@ -165,6 +165,8 @@ public class ExportGroupService extends TaskResourceService {
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
     private static final String PATH_ADJUST_REQUIRE_SUSPEND = "controller_pathadjust_require_suspend";
 
+    private static final String STORAGE_SYSTEM_CLUSTER = "-cluster-";
+
     private static volatile BlockStorageScheduler _blockStorageScheduler;
 
     // From KnownMachineTypes, which is upstream so re-defining here.
@@ -3106,6 +3108,8 @@ public class ExportGroupService extends TaskResourceService {
     }
     
     /**
+     * Paths Adjustment Preview
+     * 
      * This call does a PORT Allocation which is used for a path adjustment preview operation.
      * If the user is satisfied with the ports that are selected, they will invoke the provisioning through a
      * separate API.
@@ -3115,6 +3119,8 @@ public class ExportGroupService extends TaskResourceService {
      *
      * @param id the URN of a ViPR export group to be updated; ports will be allocated in this context
      * @param param -- ExportPortAllocateParam block containing Storage System URI, Varray URI, ExportPathParameters
+     * 
+     * @brief Preview port allocation paths for export
      * @return a PortAllocatePreviewRestRep rest response which contains the new or existing paths that will be provisioned
      * or kept; the removed paths; and any other Export Groups that will be affected.
      * @throws ControllerException
@@ -3162,6 +3168,13 @@ public class ExportGroupService extends TaskResourceService {
         
         // Get the initiators and validate the ExportMasks are usable.
         ExportPathsAdjustmentPreviewRestRep response = new ExportPathsAdjustmentPreviewRestRep();
+        String storageSystem = system.getNativeGuid();
+        if (Type.vplex.equals(Type.valueOf(system.getSystemType()))) {
+            String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(varray, system.getId(), _dbClient);
+            storageSystem = storageSystem + STORAGE_SYSTEM_CLUSTER + vplexCluster;
+        }
+        response.setStorageSystem(storageSystem);
+        
         List<Initiator> initiators = getInitiators(exportGroup);
         StringSetMap existingPathMap = new StringSetMap();
         validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap,
@@ -3500,6 +3513,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param id The export group id
      * @param param The parameters including addedPaths, removedPaths, storage system URI, exportPathParameters, 
      *                  and waitBeforeRemovePaths
+     * @brief Initiate port allocations for export
      * @return The pending task
      * @throws ControllerException
      */

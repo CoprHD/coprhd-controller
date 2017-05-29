@@ -249,7 +249,7 @@ public class FileStorageUtils {
         addAffectedResource(response);
         logInfo("file.storage.task", response.getOpId());
     }
-    
+
     public static void reduceFileSystem(URI fileSystemId, double sizeInGb) {
         String newSize = String.valueOf(DiskSizeConversionUtils.gbToBytes(sizeInGb));
         Task<FileShareRestRep> response = execute(new ReduceFileSystem(fileSystemId, newSize));
@@ -258,9 +258,9 @@ public class FileStorageUtils {
     }
 
     public static String createCifsShare(URI fileSystemId, String shareName, String shareComment,
-            String subDirectory, String directoryAcls, String rootUser) {
+            String subDirectory, String directoryAcls) {
         Task<FileShareRestRep> task = execute(
-                new CreateFileSystemShare(shareName, shareComment, fileSystemId, subDirectory, directoryAcls, rootUser));
+                new CreateFileSystemShare(shareName, shareComment, fileSystemId, subDirectory, directoryAcls));
         addAffectedResource(task);
         String shareId = task.getResourceId().toString();
         addRollback(new DeactivateFileSystemShare(fileSystemId, shareId));

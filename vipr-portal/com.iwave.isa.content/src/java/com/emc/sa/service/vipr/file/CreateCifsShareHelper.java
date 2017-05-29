@@ -8,7 +8,6 @@ import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
 import static com.emc.sa.service.ServiceParams.DIRECTORY_ACLS;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
 import static com.emc.sa.service.ServiceParams.PROJECT;
-import static com.emc.sa.service.ServiceParams.ROOT_USER;
 import static com.emc.sa.service.ServiceParams.SHARE_COMMENT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
@@ -59,9 +58,6 @@ public class CreateCifsShareHelper {
     @Param(value = DIRECTORY_ACLS, required = false)
     protected String directoryAcls;
 
-    @Param(value = ROOT_USER, required = false)
-    protected String rootUser;
-
     protected URI fileSystemId;
 
     public void precheckFileACLs() {
@@ -81,7 +77,7 @@ public class CreateCifsShareHelper {
 
         this.fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, tempAdvisoryLimit,
                 tempSoftLimit, tempGracePeriod);
-        FileStorageUtils.createCifsShare(this.fileSystemId, shareName, shareComment, null, directoryAcls, rootUser);
+        FileStorageUtils.createCifsShare(this.fileSystemId, shareName, shareComment, null, directoryAcls);
         return FileStorageUtils.getFileSystem(this.fileSystemId);
     }
 

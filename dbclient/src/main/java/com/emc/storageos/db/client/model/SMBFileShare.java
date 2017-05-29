@@ -24,7 +24,6 @@ public class SMBFileShare extends AbstractSerializableNestedObject {
     private static final String STORAGE_PORT_NAME = "storagePortName";
     private static final String STORAGE_PORT_NETWORK_ID = "storagePortNetworkId";
     private static final String NETBIOS_NAME = "netbiosName";
-    private static final String ROOT_USER = "rootUser";
     private static final String DIRECTORY_ACLS_OPTIONS = "directoryAclsOptions";
 
     /**
@@ -235,18 +234,6 @@ public class SMBFileShare extends AbstractSerializableNestedObject {
             netbiosName = "";
         }
         setField(NETBIOS_NAME, netbiosName);
-    }
-
-    @XmlElement
-    public String getRootUser() {
-        return getStringField(ROOT_USER);
-    }
-
-    public void setRootUser(String rootUser) {
-        if (rootUser == null) {
-            rootUser = "";
-        }
-        setField(ROOT_USER, rootUser);
     }
 
     @XmlElement

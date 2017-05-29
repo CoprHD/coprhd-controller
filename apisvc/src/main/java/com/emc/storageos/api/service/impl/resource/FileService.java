@@ -1523,9 +1523,6 @@ public class FileService extends TaskResourceService {
         smbShare.setStoragePortNetworkId(sport.getPortNetworkId());
         smbShare.setStoragePortGroup(sport.getPortGroup());
         smbShare.setSubDirPath(isSubDirPath);
-        if (param.getRootUser() != null && !param.getRootUser().isEmpty()) {
-            smbShare.setRootUser(param.getRootUser());
-        }
         if (param.getDirectoryAclsOptions() != null && !param.getDirectoryAclsOptions().isEmpty()) {
             smbShare.setDirectoryAclsOptions(param.getDirectoryAclsOptions());
         }

@@ -112,11 +112,6 @@
 	      items:{
 	          directoryAcls:{
 	            type:"assetType.vipr.fileCIFSDirectoryAcls"
-	          },
-	   
-	          rootUser:{
-	            type:"text",
-	            required: false,
 	          }
 	        }
       }

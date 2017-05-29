@@ -748,9 +748,6 @@ public class FileSnapshotService extends TaskResourceService {
         smbShare.setStoragePortNetworkId(sport.getPortNetworkId());
         smbShare.setStoragePortGroup(sport.getPortGroup());
         smbShare.setSubDirPath(isSubDirPath);
-        if (param.getRootUser() != null && !param.getRootUser().isEmpty()) {
-            smbShare.setRootUser(param.getRootUser());
-        }
         if (param.getDirectoryAclsOptions() != null && !param.getDirectoryAclsOptions().isEmpty()) {
             smbShare.setDirectoryAclsOptions(param.getDirectoryAclsOptions());
         }
@@ -837,7 +834,7 @@ public class FileSnapshotService extends TaskResourceService {
      *            name of the share
      * @param param
      *            request payload object of type <code>com.emc.storageos.model.file.CifsShareACLUpdateParams</code>
-     * @brief Change a snapshot share ACL  
+     * @brief Change a snapshot share ACL
      * @return TaskResponse
      * @throws InternalException
      */
@@ -906,7 +903,7 @@ public class FileSnapshotService extends TaskResourceService {
      *            the file system URI
      * @param shareName
      *            name of the share
-     * @brief List snapshot share ACLs 
+     * @brief List snapshot share ACLs
      * @return
      */
     @GET
@@ -950,7 +947,7 @@ public class FileSnapshotService extends TaskResourceService {
      *            the file system URI
      * @param shareName
      *            name of the share
-     * @brief Delete a snapshot ACL  
+     * @brief Delete a snapshot ACL
      * @return TaskResponse
      */
     @DELETE

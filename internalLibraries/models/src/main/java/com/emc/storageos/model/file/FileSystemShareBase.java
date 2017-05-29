@@ -20,7 +20,6 @@ public class FileSystemShareBase {
     private String permission; // FileSMBShare.Permission.change.name();
     private String subDirectory;
     private String directoryAclsOptions;
-    private String rootUser;
 
     public FileSystemShareBase() {
     }
@@ -124,15 +123,6 @@ public class FileSystemShareBase {
 
     public void setDirectoryAclsOptions(String directoryAclsOptions) {
         this.directoryAclsOptions = directoryAclsOptions;
-    }
-
-    @XmlElement(name = "rootUser")
-    public String getRootUser() {
-        return rootUser;
-    }
-
-    public void setRootUser(String rootUserMapping) {
-        this.rootUser = rootUserMapping;
     }
 
 }

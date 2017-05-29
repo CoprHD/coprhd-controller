@@ -1437,11 +1437,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     storageAPI.getStorageSystem().rescanVmfs();
 
-                    _log.info("Waiting for " + RESCAN_DELAY_MS + " milliseconds before checking for datastores");
+                    _log.info("Waiting for {} milliseconds before checking for datastores", RESCAN_DELAY_MS);
 
                     Thread.sleep(RESCAN_DELAY_MS);
 
-                    _log.info("Looking for datastores for " + blockObjects.size() + " volumes");
+                    _log.info("Looking for datastores for {} volumes", blockObjects.size());
 
                     Map<String, Datastore> wwnDatastores = getWwnDatastoreMap(hostSystem);
 
@@ -1452,10 +1452,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                             Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
                             if (datastore != null && VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
-                                _log.info("Datastore " + datastore.getName() + " is already mounted on " + esxHost.getLabel());
+                                _log.info("Datastore {} is already mounted on {}", datastore.getName(), esxHost.getLabel());
                                 objectIterator.remove();
                             } else if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
-                                _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
+                                _log.info("Mounting datastore {} on host {}", datastore.getName(), esxHost.getLabel());
                                 storageAPI.mountDatastore(datastore);
                                 objectIterator.remove();
                                 // Test mechanism to invoke a failure. No-op on production systems.
@@ -1503,7 +1503,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
 
             if (hostSystem == null) {
-                _log.info("Not able to find host " + esxHost.getLabel() + " in vCenter. Unable to refresh HBAs");
+                _log.info("Not able to find host {} in vCenter. Unable to refresh HBAs", esxHost.getLabel());
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }

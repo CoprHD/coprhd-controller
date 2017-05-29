@@ -354,6 +354,11 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
 
+        // Check for duplicate file system in this project
+        if (param.getLabel() != null && !param.getLabel().isEmpty()) {
+            checkForDuplicateName(param.getLabel(), FileShare.class, id, "project", _dbClient);
+        }
+
         return createFSInternal(param, project, tenant, null);
 
     }

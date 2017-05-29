@@ -159,7 +159,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     private int MAXIMUM_RESCAN_ATTEMPTS = 5;
 
-    private long RESCAN_DELAY_MS = 10 * 1000;
+    private static long RESCAN_DELAY_MS = 10000; // 10 seconds
 
     public void setComputeDeviceController(ComputeDeviceController computeDeviceController) {
         this.computeDeviceController = computeDeviceController;

@@ -89,6 +89,7 @@ public class FilePolicyServiceUtils {
                 errorMsg.append("required parameter schedule_time is missing");
                 return false;
             }
+
             // Convert time from 24 Hours to 12 Hours using SimpleDateFormat class
             String time = policyScheduleparams.getScheduleTime();
             DateFormat sdf24 = new SimpleDateFormat("HH:mm");
@@ -410,8 +411,10 @@ public class FilePolicyServiceUtils {
                     }
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
                             targetVArrys);
+
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
                             vPool.getId());
+
                 } else {
                     errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
                     return false;
@@ -641,7 +644,7 @@ public class FilePolicyServiceUtils {
             dbClient.updateObject(task);
         }
     }
-    
+
     /**
      * Resets the filesystem relation due to replication policy assigned at higher level
      * Only to be used when delete FS is FULL type

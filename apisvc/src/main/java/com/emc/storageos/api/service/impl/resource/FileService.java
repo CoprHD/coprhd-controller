@@ -73,6 +73,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
@@ -191,6 +192,7 @@ public class FileService extends TaskResourceService {
     protected static final String PROTOCOL_CIFS = "CIFS";
     private static final Long MINUTES_PER_HOUR = 60L;
     private static final Long HOURS_PER_DAY = 24L;
+    protected static final String SEPARATOR = "::";
 
     @Override
     public String getServiceType() {
@@ -1289,7 +1291,7 @@ public class FileService extends TaskResourceService {
 
         return toTask(fs, task, op);
     }
-    
+
     /**
      * Reduce file system quota -- supported only on Isilon
      * 
@@ -1311,39 +1313,39 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-        
+
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        if(!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "Reduction of filesystem quota is supported only on Isilon");
+        if (!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
+            throw APIException.badRequests.reduceFileSystemNotSupported(id, "Reduction of filesystem quota is supported only on Isilon");
         }
 
         Long newFSsize = SizeUtil.translateSize(param.getNewSize());
         long quotaFsSize = newFSsize - fs.getCapacity();
         final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
-        
+
         if (newFSsize <= 0) {
             throw APIException.badRequests.parameterMustBeGreaterThan("new_size", 0);
         } else {
-        	if(quotaFsSize < MIN_EXPAND_SIZE) {
+            if (quotaFsSize < MIN_EXPAND_SIZE) {
                 List<QuotaDirectory> quotaDirs = queryDBQuotaDirectories(fs);
-                if (null != quotaDirs && !quotaDirs.isEmpty()){
-                	long qdsize = 0;
-                    // we will check sub quotas of filesystem 
-                	//that new size should not be less than any of the sub quota. 
+                if (null != quotaDirs && !quotaDirs.isEmpty()) {
+                    long qdsize = 0;
+                    // we will check sub quotas of filesystem
+                    // that new size should not be less than any of the sub quota.
                     for (QuotaDirectory quotaDir : quotaDirs) {
-                    	qdsize = newFSsize - quotaDir.getSize();
-                    	
+                        qdsize = newFSsize - quotaDir.getSize();
+
                         if (qdsize < MIN_EXPAND_SIZE) {
-                        	String msg = String
+                            String msg = String
                                     .format("filesystem is reduced to a size lesser than sub quota. Quota Path: %s, current capacity: %d",
                                             quotaDir.getPath(), quotaDir.getSize());
-                        	throw APIException.badRequests.reduceFileSystemNotSupported(id, msg);
+                            throw APIException.badRequests.reduceFileSystemNotSupported(id, msg);
                         }
                     }
                 }
-        	} else {
-        		throw APIException.badRequests.parameterMustBeLessThan("new_size", fs.getCapacity());
-        	}
+            } else {
+                throw APIException.badRequests.parameterMustBeLessThan("new_size", fs.getCapacity());
+            }
         }
 
         String task = UUID.randomUUID().toString();
@@ -1633,9 +1635,8 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-        
+
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        
 
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (vpool == null) {
@@ -2427,7 +2428,7 @@ public class FileService extends TaskResourceService {
 
         return toTask(fs, task, op);
     }
-    
+
     /**
      * Get File Share ACLs
      * 
@@ -2469,7 +2470,7 @@ public class FileService extends TaskResourceService {
         return acls;
 
     }
-    
+
     /**
      * Delete File Share ACL
      * 
@@ -2698,9 +2699,9 @@ public class FileService extends TaskResourceService {
      * Change File System Virtual Pool
      * 
      * @param id
-     *          the URN of a ViPR fileSystem
+     *            the URN of a ViPR fileSystem
      * @param param
-     * 			File System Virtual Pool Change parameter
+     *            File System Virtual Pool Change parameter
      * @brief Change a file systems virtual pool
      * @desc Add the file system to a different virtual pool.
      * @return TaskResponse
@@ -2821,14 +2822,14 @@ public class FileService extends TaskResourceService {
         }
         return fileSystemTask;
     }
-    
+
     /**
      * Create Continuous Copies
      * 
      * @param id
-     *          the URN of a ViPR fileSystem
+     *            the URN of a ViPR fileSystem
      * @param param
-     * 			File Replication Create parameter
+     *            File Replication Create parameter
      * @brief Define continuous copies
      * @return TaskResponse
      * @throws InternalException
@@ -2955,9 +2956,9 @@ public class FileService extends TaskResourceService {
      * Deactivate Continuous Copies
      * 
      * @param id
-     *          the URN of a ViPR fileSystem
+     *            the URN of a ViPR fileSystem
      * @param param
-     * 			File System Delete parameter
+     *            File System Delete parameter
      * @brief Delete continuous copies
      * @return TaskResponse
      * @throws InternalException
@@ -4587,8 +4588,42 @@ public class FileService extends TaskResourceService {
         } else {
             targetVArrys.add(sourceVarray.getId().toString());
         }
+        URI targetvPool = null;
+        // Get the existing topologies for the policy
+        if (filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
+            for (String strTopology : filePolicy.getReplicationTopologies()) {
+                FileReplicationTopology dbTopology = _dbClient.queryObject(FileReplicationTopology.class,
+                        URI.create(strTopology));
+                Set<String> dbTargetVArrys = new HashSet<String>();
+                if (dbTopology != null && sourceVarray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
+                    dbTargetVArrys.addAll(dbTopology.getTargetVArrays());
+                    if (dbTargetVArrys.containsAll(targetVArrys)) {
+                        // find a target virtual pool
+                        // Target virtual pool is required only for policies
+                        // which are created from older release remote replication vpool
+                        for (String targetVarray : targetVArrys) {
+                            if (dbTopology.getTargetVAVPool() != null && !dbTopology.getTargetVAVPool().isEmpty()) {
+                                String[] vavPool = dbTopology.getTargetVAVPool().split(SEPARATOR);
+                                if (vavPool != null && vavPool.length > 1 && targetVarray.equalsIgnoreCase(vavPool[0])) {
+                                    String strvPool = vavPool[1];
+                                    VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, URI.create(strvPool));
+                                    if (vPool != null && !vPool.getInactive()) {
+                                        targetvPool = vPool.getId();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
         capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS, targetVArrys);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
+        if (targetvPool != null) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, targetvPool);
+        } else {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
+        }
 
         FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
 

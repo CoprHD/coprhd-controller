@@ -615,17 +615,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                     handleZonesStrategyException(ex, activateZones);
                 }
             }
-            _log.info("Going to config prompt to delete the zones");
-            dialog.exitToConfig();
-            for (Zone zone : zonesToBeDeleted) {            	
-                String zoneName = zone.getName();
-                _log.info("Removing zone: " + zoneName + " vsan: " + vsanId);
-                try {
-                	dialog.zoneNameVsan(zone.getName(), vsanId, true);                    
-                } catch (Exception ex) {                    
-                    handleZonesStrategyException(ex, activateZones);
-                }
-            }
+ 
             _log.info("Going back to config prompt");
             
             dialog.exitToConfig();

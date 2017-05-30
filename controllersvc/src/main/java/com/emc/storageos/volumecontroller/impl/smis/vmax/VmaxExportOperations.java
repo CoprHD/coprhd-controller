@@ -522,9 +522,16 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
 
                 if (groupName != null) {
+                    _log.info("storage group name : {}", groupName);
                     // delete the CSG explicitly (CTRL-9236)
                     CIMObjectPath storageGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
                             SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+                    // check if the storage group is shared before delete it
+                    if (_helper.checkMaskingGroupShared(storage, storageGroupPath, exportMask.getMaskName())) {
+                        // if the storage group is shared, don't delete the storage group
+                        taskCompleter.ready(_dbClient);
+                        return;
+                    }
                     if (_helper.isCascadedSG(storage, storageGroupPath)) {
                         _helper.deleteMaskingGroup(storage, groupName,
                                 SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);

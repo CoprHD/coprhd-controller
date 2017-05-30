@@ -1041,8 +1041,10 @@ public class BlockDeviceExportController implements BlockExportController {
                                 systemURI, exportGroupURI, varray, mask, maskAdjustedPathMap.get(maskURI), removingPaths, pgURI);
                     }
                 }
-                stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, maskAdjustedPathMap,
-                        maskRemovePathMap, stepId);
+                if (!portGroupChange) {
+                    stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, maskAdjustedPathMap,
+                            maskRemovePathMap, stepId);
+                }
                 
                 stepId = _wfUtils.generateHostRescanWorkflowSteps(workflow, removedPaths, stepId);
             }

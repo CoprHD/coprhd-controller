@@ -183,8 +183,8 @@ public class CustomServicesService extends ViPRService {
                 next = getNext(isSuccess, res, step);
             } catch (final Exception e) {
                 logger.warn(
-                        "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:" + e);
-                logger.error("Exception:", e);
+                        "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:", e);
+
                 next = getNext(false, null, step);
             }
             if (next == null) {
@@ -333,7 +333,7 @@ public class CustomServicesService extends ViPRService {
                     case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
                            final String param;
-                            if (!StringUtils.isEmpty(value.getInputFieldType()) && value.getInputFieldType().equals("password")) {
+                            if (!StringUtils.isEmpty(value.getInputFieldType()) && value.getInputFieldType().toUpperCase().equals(CustomServicesConstants.InputFieldType.PASSWORD)) {
                                 param = decrypt(params.get(friendlyName).toString());
                             } else {
                                 param = params.get(friendlyName).toString();

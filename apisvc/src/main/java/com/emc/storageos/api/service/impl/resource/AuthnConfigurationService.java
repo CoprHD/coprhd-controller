@@ -332,7 +332,17 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private String buildCallbackURL() {
         PropertyInfo props = _coordinator.getPropertyInfo();
-        return String.format("https://%s:4443/oidccb", props.getProperty("network_vip"));
+        String vip = props.getProperty("network_vip");
+
+        String cbIp = hasValidVIP(vip) ? vip : props.getProperty("standalone");
+        return String.format("https://%s:4443/oidccb", cbIp);
+    }
+
+    private boolean hasValidVIP(String vip) {
+        if (vip.equals("0.0.0.0")) {
+            return false;
+        }
+        return true;
     }
 
     /**

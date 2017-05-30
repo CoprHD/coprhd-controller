@@ -25,7 +25,7 @@ public class RemoteReplicationPairService extends ViPRService {
     @Param(ServiceParams.REMOTE_REPLICATION_CG_OR_PAIR)
     protected String remoteReplicationCgOrPair;
 
-    @Param(ServiceParams.REMOTE_REPLICATION_PAIRS_CGS)
+    @Param(value = ServiceParams.REMOTE_REPLICATION_PAIRS_CGS, required = false)
     protected List<String> remoteReplicationPairsOrCGs;
 
     private enum OperationTarget {SET, GROUP, CGS_IN_SET, PAIRS_IN_SET ,CGS_IN_GROUP ,PAIRS_IN_GROUP}

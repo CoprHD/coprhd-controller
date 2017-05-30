@@ -39,11 +39,6 @@ public class ShellScriptPrimitiveForm {
     private boolean newScript; // if true create new resource(delete any existing)
     private String wfDirID; // this is empty for EDIT
 
-    // TODO
-    public void validate() {
-        // check if script is not null
-    }
-
     public String getId() {
         return id;
     }

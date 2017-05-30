@@ -44,12 +44,6 @@ public class RestAPIPrimitiveForm {
     private String inputs; // comma separated list of inputs
     private String outputs; // comma separated list of ouputs
 
-
-    // TODO
-    public void validate() {
-
-    }
-
     public String getId() {
         return id;
     }

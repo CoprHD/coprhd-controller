@@ -159,7 +159,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     // jstree actions
-    //TODO: do error handling on all actions
     jstreeContainer.on("rename_node.jstree", renameDir);
     jstreeContainer.on("select_node.jstree", selectDir);
     jstreeContainer.on("hover_node.jstree", hoverDir);
@@ -372,7 +371,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $('#'+value).show();
         });
 
-        //TODO: check if we can avoid this search on ID
         var generated = jstreeContainer.jstree(true).get_node(nodeId, true);
         $compile(generated.contents())($scope);
     }
@@ -586,8 +584,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             if (resp.status == 200) {
                 $scope.workflowData = resp.data;
                 activateTab(elementid);
-            } else {
-                //TODO: show error for workflow failed to load
             }
         });
     }
@@ -603,7 +599,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             maxScale: 2,
             increment: 0.1,
             duration: 100
-            //TODO add contain: 'invert'
         });
 
         //DOMMouseScroll is needed for firefox
@@ -708,7 +703,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     */
     function dragEndFunc(e) {
         //set ID and text within the step element
-        //TODO: retrieve stepname from step data when API is available
         var randomIdHash = Math.random().toString(36).substring(7);
 
         //compensate x,y for zoom
@@ -968,7 +962,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             } ));
         });
 
-        //TODO: return JSON data so that it can be accessed in Export/SaveWorkflow via this method
         $scope.workflowData.document.steps = blocks;
     }
 

@@ -361,18 +361,19 @@ public class VPlexBackendManager {
      * @param maskSet
      * @param invalidMasks
      * @param mask
+     * @param errorMessages any error message details to include in an Exception response
      */
     private void validateMaskAndPlaceVolumes(StorageSystem array, URI varrayURI,
             Map<URI, ExportMask> maskSet, Set<URI> invalidMasks,
             ExportMask mask, ExportMaskPlacementDescriptor placementDescriptor,
-            Map<URI, Volume> volumeMap, String logMsg) {
+            Map<URI, Volume> volumeMap, String logMsg, StringBuilder errorMessages) {
 
         if (!isOpenStack(array)) {
 
             _log.info(logMsg);
             if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI,
                     _initiatorPortMap, mask, invalidMasks,
-                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _coordinator, _portWwnToClusterMap)) {
+                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _coordinator, _portWwnToClusterMap, errorMessages)) {
                 maskSet.put(mask.getId(), mask);
                 placementDescriptor.placeVolumes(mask.getId(), volumeMap);
             }
@@ -1012,8 +1013,8 @@ public class VPlexBackendManager {
         return clusterName;
     }
 
-    public Map<ExportMask, ExportGroup> generateExportMasks(
-            URI varrayURI, StorageSystem vplex, StorageSystem array, String stepId) {
+    private Map<ExportMask, ExportGroup> generateExportMasks(
+            URI varrayURI, StorageSystem vplex, StorageSystem array, String stepId, StringBuilder errorMessages) {
         // Build the data structures used for analysis and validation.
         buildDataStructures(vplex, array, varrayURI);
 
@@ -1039,7 +1040,7 @@ public class VPlexBackendManager {
         Map<URI, List<StoragePort>> allocatablePorts = getAllocatablePorts(array, _networkMap.keySet(), varrayURI, zonesByNetwork, stepId);
         Map<URI, Map<String, Integer>> switchToPortNumber = getSwitchToMaxPortNumberMap(array);
         Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(allocatablePorts, _networkMap, varrayURI,
-                initiatorGroups.size(), switchToPortNumber, null);
+                initiatorGroups.size(), switchToPortNumber, null, errorMessages);
 
         // Now generate the Masking Views that will be needed.
         Map<URI, String> initiatorSwitchMap = new HashMap<URI, String>();
@@ -1330,7 +1331,7 @@ public class VPlexBackendManager {
                     (mask.getCreatedBySystem() ? "ViPR created" : "Externally created")));
             // No necessary to skip here for Openstack, as cinder backend orchestrator returns the empty set
             if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks,
-                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _coordinator, _portWwnToClusterMap)) {
+                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _coordinator, _portWwnToClusterMap, null)) {
                 if (mask.getCreatedBySystem()) {
                     viprCreatedMasks = true;
                 } else {
@@ -1359,7 +1360,7 @@ public class VPlexBackendManager {
                 }
                 validateMaskAndPlaceVolumes(array, varrayURI, maskSet, invalidMasks, mask,
                         placementDescriptor, volumeMap, String.format("Validating uninitialized ViPR ExportMask %s (%s)",
-                                mask.getMaskName(), mask.getId()));
+                                mask.getMaskName(), mask.getId()), null);
             }
         }
 
@@ -1392,6 +1393,7 @@ public class VPlexBackendManager {
     private void createVPlexBackendExportMasksForVolumes(StorageSystem vplex, StorageSystem array, URI varrayURI,
             ExportMaskPlacementDescriptor placementDescriptor, Set<URI> invalidMasks, Map<URI, Volume> volumes,
             String stepId) throws VPlexApiException {
+        StringBuilder errorMessages = new StringBuilder();
         Map<URI, ExportMask> maskSet = placementDescriptor.getMasks();
 
         if (!invalidMasks.isEmpty()) {
@@ -1401,23 +1403,27 @@ public class VPlexBackendManager {
             _log.info("Did not find any existing export masks");
         }
         _log.info("Attempting to generate ExportMasks...");
-        Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array, stepId);
+        Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array, stepId, errorMessages);
         if (generatedMasks.isEmpty()) {
             _log.info("Unable to generate any ExportMasks");
             throw VPlexApiException.exceptions.couldNotGenerateArrayExportMask(
-                    vplex.getNativeGuid(), array.getNativeGuid(), _cluster);
+                    vplex.getNativeGuid(), array.getNativeGuid(), _cluster, errorMessages.toString());
         }
+
+        // reset error messages because at least one mask was generated.
+        errorMessages = new StringBuilder();
+
         // Validate the generated masks too.
         for (ExportMask mask : generatedMasks.keySet()) {
             validateMaskAndPlaceVolumes(array, varrayURI, maskSet, invalidMasks, mask,
                     placementDescriptor, volumes, String.format("Validating generated ViPR Export Mask %s (%s)",
-                            mask.getMaskName(), mask.getId()));
+                            mask.getMaskName(), mask.getId()), errorMessages);
         }
 
         if (maskSet.isEmpty()) {
             _log.info("Unable to find or create any suitable ExportMasks");
             throw VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
-                    vplex.getNativeGuid(), array.getNativeGuid(), _cluster);
+                    vplex.getNativeGuid(), array.getNativeGuid(), _cluster, errorMessages.toString());
         }
     }
 

@@ -47,7 +47,11 @@ public interface IsilonExceptions {
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public IsilonException expandFsFailedinvalidParameters(final String path,
             final Long hardLimit);
-
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public IsilonException reduceFsFailedinvalidParameters(final String path,
+            final Long hardLimit);
+    
     @DeclareServiceCode(ServiceCode.ISILON_INFO_ERROR)
     public IsilonException unableToGetIsilonClusterInfo(final String msg, final Throwable cause);
 

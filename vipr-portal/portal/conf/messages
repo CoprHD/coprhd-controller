@@ -3246,7 +3246,7 @@ orders.delete.help=Please download orders before deletion. <p>In order to be del
 orders.delete.submitted=Orders deletion submitted successfully.
 orders.delete.status=Deleting orders from %s to %s is in progress: %s of %s orders have been successfully deleted, %s orders failed.
 orders.download=Download Orders
-orders.download.description=Click Confirm to delete the selected (checked) orders.
+orders.download.description=Click Confirm to download the selected (checked) orders.
 orders.download.all=All rows are checked, all <b style="color:red">%s</b> orders will be downloaded.
 orders.download.help=Orders can't be downloaded while a deletion or another download is in progress.
 orders.download.status=Downloading orders from %s to %s is in progress: %s of %s orders have been successfully downloaded, %s orders failed.

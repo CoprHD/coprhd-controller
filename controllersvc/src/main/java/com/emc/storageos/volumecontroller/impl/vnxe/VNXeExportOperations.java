@@ -652,8 +652,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             String opId = taskCompleter.getOpId();
             Set<String> processedCGs = new HashSet<String>();
+            StringMap volsMap = exportMask.getVolumes();
             for (URI volUri : volumes) {
-                if (hostId != null && exportMask.getVolumes().keySet().contains(volUri.toString())) {
+                if (hostId != null && volsMap != null && !volsMap.isEmpty() &&
+                        volsMap.keySet().contains(volUri.toString())) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                     // COP-25254 this method could be called when delete vplex volume created from snapshot. in this case
                     // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot

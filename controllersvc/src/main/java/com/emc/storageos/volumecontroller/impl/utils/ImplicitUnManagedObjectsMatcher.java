@@ -350,6 +350,21 @@ public class ImplicitUnManagedObjectsMatcher {
                 }
             }
 
+            // don't add vplex virtual pools to non vplex volumes
+            if (VirtualPool.vPoolSpecifiesHighAvailability(virtualPool) && (unManagedObject instanceof UnManagedVolume)) {
+                UnManagedVolume unManagedVolume = (UnManagedVolume) unManagedObject;
+                if (null != unManagedVolume.getVolumeCharacterstics()) {
+                    String isVplexVolume = unManagedVolume.getVolumeCharacterstics()
+                            .get(SupportedVolumeCharacterstics.IS_VPLEX_VOLUME.toString());
+                    if (isVplexVolume == null || isVplexVolume.isEmpty() || !TRUE.equals(isVplexVolume)) {
+                        _log.debug(String.format("VPool %s is not added to UnManaged Volume's (%s) supported vPool list "
+                                + "since the vpool has high availability set and the volume is non VPLEX.", 
+                                new Object[] { virtualPool.getId(), unManagedVolume.forDisplay() }));
+                        return false;
+                    }
+                }
+            }
+
             // Verify whether unmanaged volume SRDF properties with the Vpool
             boolean srdfSourceVpool = (null != virtualPool.getProtectionRemoteCopySettings() && !virtualPool
                     .getProtectionRemoteCopySettings().isEmpty());

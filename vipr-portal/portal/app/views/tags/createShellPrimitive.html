@@ -142,6 +142,13 @@ inputOutputTabID = 'inputOutputContent';
     }
 
     $(function() {
+        // Reset data on modal close
+        $('#shellPrimitiveDialog').on('hidden.bs.modal', function(e) {
+            $('#shellScriptPrimitiveForm')[0].reset();
+            // Select first tab
+            $('.scriptTabbable a:first').tab('show')
+        });
+
         //on start hiding finish and back buttons
         $('#finishButton').hide();
         $('#backButton').hide();

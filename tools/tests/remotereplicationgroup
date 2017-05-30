@@ -96,6 +96,18 @@ def remotereplicationgroup_failback(args):
     else:
         print 'Failed to failback remote replication group.'
 
+def remotereplicationgroup_split(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_split(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Split remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to split remote replication group.'
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -172,6 +184,9 @@ try:
     elif (cmd == "failback"):
         args = operation.parse_args()
         remotereplicationgroup_failback(args)
+    elif (cmd == "split"):
+        args = operation.parse_args()
+        remotereplicationgroup_split(args)
     else:
         parser.print_help()
 

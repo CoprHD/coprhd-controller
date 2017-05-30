@@ -4,8 +4,10 @@
  */
 package com.emc.storageos.srdfcontroller;
 
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.TARGET;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Collections2.transform;
@@ -36,7 +38,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockRetryException;
@@ -717,7 +718,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false, vpoolChangeUri != null);
 
-        workflow.createStep(CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP,
+        stepId = workflow.createStep(CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP,
                 CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_DESC, stepId, system.getId(),
                 system.getSystemType(), getClass(), createListMethod, rollbackMethod, null);
 
@@ -739,7 +740,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIs, false);
         String addVolumestoCgStep = workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
-                CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
+                CREATE_SRDF_MIRRORS_STEP_DESC, stepId, system.getId(),
                 system.getSystemType(), getClass(), addMethod, rollbackAddMethod,
                 null);
 
@@ -1447,28 +1448,41 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         } catch (Exception e) {
             log.error("Ignoring exception while rolling back SRDF sources: {}", sourceURIs, e);
             // Succeed here, to allow other rollbacks to run
-            cleanUpConsistencyGroups(sourceURIs, targetURIs, systemURI, isVpoolChange);
-            if (null != completer) {
-                completer.ready(dbClient);
-            } else {
-                WorkflowStepCompleter.stepSucceded(opId);
-            }
+            cleanupCGsOnRollbackError(sourceURIs, targetURIs, systemURI, isVpoolChange);
             return false;
+        } finally {
+            // Always succeed to allow rollback to continue.
+            if (null != completer && !completer.isCompleted()) {
+                completer.ready(dbClient);
+            }
         }
         return true;
     }
 
-    /*
-     * TODO Move this logic to a utility class and add cleanup for RemoteDirectorGroup
+    /**
+     * Cleanup the consistency groups in the event that the SRDF rollback step fails.
+     *
+     * @param sourceURIs    Source volume URIs being rolled back.
+     * @param targetURIs    Target volume URIs being rolled back.
+     * @param systemURI     System URI
+     * @param isVpoolChange True, if operation is for a VPool change.
      */
-    private void cleanUpConsistencyGroups(List<URI> sourceURIs, List<URI> targetURIs, URI systemURI, boolean isVpoolChange) {
+    private void cleanupCGsOnRollbackError(List<URI> sourceURIs, List<URI> targetURIs, URI systemURI, boolean isVpoolChange) {
         try {
             Volume srcVol = dbClient.queryObject(Volume.class, sourceURIs.get(0));
             Volume tgtVol = dbClient.queryObject(Volume.class, targetURIs.get(0));
             // Clean up target and source CGs since this is a rollback
             BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, tgtVol.getConsistencyGroup());
             BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, srcVol.getConsistencyGroup());
-            SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, systemURI, isVpoolChange, dbClient);
+
+            List<Volume> sourceVolumes = queryActiveResourcesByConstraint(dbClient, Volume.class,
+                    getVolumesByConsistencyGroup(sourceCG.getId()));
+
+            log.info("Rolling back {}/{} volumes in CG...", sourceVolumes.size(), sourceURIs.size());
+            if (sourceVolumes.size() == sourceURIs.size()) {
+                log.info("Cleaning up source and target CGs");
+                SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, systemURI, isVpoolChange, dbClient);
+            }
             SRDFUtils.cleanupRDG(srcVol, tgtVol, dbClient);
         } catch (Exception e) {
             log.warn("Exception whilst cleaning CGs", e);
@@ -1756,10 +1770,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         } catch (Exception e) {
             log.warn("Error during rollback for adding sync pairs", e);
         } finally {
-            if (completer != null) {
+            if (completer != null && !completer.isCompleted()) {
                 completer.ready(dbClient);
             }
-            WorkflowStepCompleter.stepSucceded(opId);
         }
         return true;
     }
@@ -1896,7 +1909,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
-            List<URI> combined = new ArrayList<URI>(sourceURIs);
+            List<URI> combined = new ArrayList<>(sourceURIs);
             combined.addAll(targetURIs);
             completer = new SRDFMirrorCreateCompleter(combined, vpoolChangeUri, opId);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_078);
@@ -1915,7 +1928,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
             return false;
         }
-        return false;
+        return true;
     }
 
     /**

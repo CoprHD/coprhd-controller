@@ -9,6 +9,7 @@ import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.SOURCE;
 import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.TARGET;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeGuid;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefresh;
 import static com.google.common.base.Predicates.and;
 import static com.google.common.collect.Collections2.filter;
@@ -409,21 +410,15 @@ public class SRDFOperations implements SmisConstants {
         log.info("START Rolling back SRDF mirror");
         List<Volume> sources = dbClient.queryObject(Volume.class, sourceURIs);
 
-        try {
-            for (Volume source : sources) {
-                StringSet targets = source.getSrdfTargets();
-                for (String targetStr : targets) {
-                    URI targetURI = URI.create(targetStr);
-                    if (!targetURIs.contains(targetURI)) {
-                        continue;
-                    }
-                    Volume target = dbClient.queryObject(Volume.class, targetURI);
-                    rollbackSRDFMirror(system, source, target, isGrouprollback, isVpoolChange);
+        for (Volume source : sources) {
+            StringSet targets = source.getSrdfTargets();
+            for (String targetStr : targets) {
+                URI targetURI = URI.create(targetStr);
+                if (!targetURIs.contains(targetURI)) {
+                    continue;
                 }
-            }
-        } finally {
-            if (null != completer) {
-                completer.ready(dbClient);
+                Volume target = dbClient.queryObject(Volume.class, targetURI);
+                rollbackSRDFMirror(system, source, target, isGrouprollback, isVpoolChange);
             }
         }
     }
@@ -447,7 +442,7 @@ public class SRDFOperations implements SmisConstants {
             BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, source.getConsistencyGroup());
             SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId(), isVpoolChange, dbClient);
             SRDFUtils.cleanupRDG(source, target, dbClient);
-
+            throw e;
         }
     }
 
@@ -512,7 +507,6 @@ public class SRDFOperations implements SmisConstants {
      * @param system
      * @param sourceURIs
      * @param remoteDirectorGroupURI
-     * @param forceAdd
      * @param completer
      */
     public void addVolumePairsToCg(StorageSystem system, List<URI> sourceURIs, URI remoteDirectorGroupURI,
@@ -2233,8 +2227,8 @@ public class SRDFOperations implements SmisConstants {
         String cgName = String.format(CG_NAME_FORMAT, sourceGroup.getLabel(), virtualArray.getLabel());
 
         // Check for existing target group
-        List<BlockConsistencyGroup> groups = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient,
+        List<BlockConsistencyGroup> groups =
+                queryActiveResourcesByConstraint(dbClient,
                         BlockConsistencyGroup.class, PrefixConstraint.Factory
                                 .getFullMatchConstraint(
                                         BlockConsistencyGroup.class, "label",

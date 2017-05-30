@@ -494,18 +494,23 @@ cleanup_rdfg() {
 
     if [ `cat $TMP_DEVICE_FILE | wc -l` -eq 0 ]
     then
-        echo "$SID:$RDFG is empty"
+        echo "=== RDFG $SID:$RDFG is empty.  No cleanup required."
         exit
     fi
 
-    echo "=== Removing device pairs in $TMP_DEVICE_FILE from $SID:$RDFG"
+    echo "=== Removing RDF device pairs in $TMP_DEVICE_FILE from $SID:$RDFG"
 
     # Suspend
-    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE suspend -force -noprompt
+    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE suspend -force -noprompt > /dev/null
+    SUSPEND_OP=$?
     # Disable
-    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE disable -force -noprompt
+    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE disable -force -noprompt > /dev/null
+    DISABLE_OP=$?
     # Delete
-    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE deletepair -noprompt
+    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE deletepair -noprompt > /dev/null
+    DELETE_OP=$?
+
+    echo "=== Finished RDFG cleanup (${SUSPEND_OP}, ${DISABLE_OP}, ${DELETE_OP})"
 }
 
 # Check to see if this is an operational request or a verification of export request

@@ -8,6 +8,7 @@ import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Facto
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getStorageDeviceRemoteGroupsConstraint;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
 import static com.google.common.base.Predicates.and;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Collections2.filter;
@@ -584,7 +585,7 @@ public class SRDFUtils implements SmisConstants {
 
         // Check snapshot sessions also.
         if (!forceAdd) {
-            List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+            List<BlockSnapshotSession> snapSessions = queryActiveResourcesByConstraint(dbClient,
                     BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volumeURI));
             if (!snapSessions.isEmpty()) {
                 log.debug("There are snapshot sessions available on volume {}", volumeURI);
@@ -864,7 +865,7 @@ public class SRDFUtils implements SmisConstants {
      * @return -- URI of target CG if found, null otherwise
      */
     public static URI getTargetVolumeCGFromSourceCG(DbClient dbClient, URI sourceCG) {
-        List<Volume> sourceVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
+        List<Volume> sourceVolumes = queryActiveResourcesByConstraint(dbClient, Volume.class,
                 AlternateIdConstraint.Factory.getBlockObjectsByConsistencyGroup(sourceCG.toString()));
 
         for (Volume sourceVolume : sourceVolumes) {

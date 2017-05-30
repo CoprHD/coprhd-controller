@@ -3455,12 +3455,13 @@ _add_to_cg_srdf() {
                                failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
                                failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete
                                failure_078_SRDFDeviceController.createSrdfCgPairsStep_before_cg_pairs_create \
-                               failure_079_SRDFDeviceController.createSrdfCgPairsStep_after_cg_pairs_create \
                                failure_004:failure_077_SRDFDeviceController.rollbackSRDFLinksStep_after_link_rollback \
                                failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
 
     # Test specific failures (empty or existing)
-    empty_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroupReplica"
+    empty_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroupReplica \
+                              failure_078_SRDFDeviceController.createSrdfCgPairsStep_before_cg_pairs_create \
+                              failure_079_SRDFDeviceController.createSrdfCgPairsStep_after_cg_pairs_create"
     existing_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateListReplica"
 
     failure_injections="${common_failure_injections}"
@@ -3469,12 +3470,10 @@ _add_to_cg_srdf() {
 
     cfs=("Volume BlockConsistencyGroup RemoteDirectorGroup")
     snap_db_esc=" | grep -Ev \"^sourceGroup = null|targetGroup = null\""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateListReplica"
-
-    # run discovery to update RemoteDirectorGroups
-    runcmd storagedevice discover_all
+    #failure_injections="failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
 
     for failure in ${failure_injections}
     do
@@ -3485,7 +3484,11 @@ _add_to_cg_srdf() {
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       # Create a new CG
-      CGNAME=cg${item}
+      CGNAME=ib${item}
+
+      symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
 
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
@@ -3551,7 +3554,14 @@ _add_to_cg_srdf() {
       fi
 
       # Let providers sync up...
+      echo "Sleeping to allow for providers to sync up"
       sleep 60
+
+      # Change the CG name, but re-use the same RDF group.
+      item=${RANDOM}
+      volname=${VOLNAME}-${item}
+      # Create a new CG
+      CGNAME=ib${item}
 
       # Re-create the consistency group
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
@@ -3564,7 +3574,7 @@ _add_to_cg_srdf() {
       fi
 
       # Perform any DB validation in here
-      snap_db 3 "${cfs[@]}" "${snap_db_esc}"
+      #snap_db 3 "${cfs[@]}" "${snap_db_esc}"
 
       runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
       # Remove the volume
@@ -3574,10 +3584,10 @@ _add_to_cg_srdf() {
       runcmd storagedevice discover_all
 
       # Perform any DB validation in here
-      snap_db 4 "${cfs[@]}" "${snap_db_esc}"
+      #snap_db 4 "${cfs[@]}" "${snap_db_esc}"
 
       # Validate nothing was left behind
-      validate_db 3 4 ${cfs}
+      #validate_db 3 4 ${cfs}
 
       if [ "${srdf_cg_test}" = "existing" ]
       then

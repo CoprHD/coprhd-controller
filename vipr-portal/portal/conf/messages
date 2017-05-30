@@ -5163,6 +5163,8 @@ node.create.success=Created successfully
 node.rename.success=Renamed successfully
 workflow.step.noInputs=No inputs
 workflow.step.noOutputs=No outputs
+wfBuilder.library.header=Workflow and Operation Library
+wfBuilder.tab.home.message=Create new workflow in custom library and/or edit
 
 # Workflow Builder Alerts
 wfBuilder.operation.save.success=Operation saved successfully

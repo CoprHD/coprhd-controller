@@ -179,7 +179,9 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
         TaskResourceRep task = null;
         TaskList taskList = new TaskList();
-        RemoteReplicationPair rrPair;
+
+        RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
+        precheckVmaxOperation(rrPair, operationContext, operationParam, ProtectionOp.START);
 
         switch (operationContext) {
             case RR_PAIR:
@@ -196,7 +198,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 taskList =  rrPairService.establishRemoteReplicationCGLink(operationParam.getIds());
                 break;
             case RR_GROUP:
-                rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
                 URI groupURI = rrPair.getReplicationGroup();
                 RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
                 task =  rrGroupService.establishRemoteReplicationGroupLink(rrGroup.getId());
@@ -204,7 +205,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 break;
 
             case RR_SET:
-                rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
                 task =  rrSetService.establishRemoteReplicationSetLink(rrSet.getId());

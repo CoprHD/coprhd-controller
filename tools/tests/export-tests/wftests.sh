@@ -3289,6 +3289,118 @@ test_13() {
     done
 }
 
+# Test 14
+#
+# Test deleting CGs that require deleting the CG on the array, failure, and retry-ability
+#
+# 1. Save off state of DB (1)
+# 2. Create a CG, create two volumes
+# 3. Delete the volumes
+# 4. Set artificial failure to fail delete of CG
+# 5. Shut off failure injection
+# 6. Retry delete CG operation
+# 7. Save off state of DB (2)
+# 8. Compare state (1) and (2)
+#
+test_14() {
+    echot "Test 14 Begins"
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    storage_failure_injections=""
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections="failure_085_VPlexApiDiscoveryManager_find_consistency_group \
+                                    failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete"
+    elif [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete"
+    elif [ "${SS}" = "vmax3" ]
+    then
+      storage_failure_injections="failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete"
+    elif [ "${SS}" = "vnx" ]
+    then
+	storage_failure_injections=""
+    elif [ "${SS}" = "xio" ]
+    then
+	storage_failure_injections=""
+    elif [ "${SS}" = "srdf" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete"
+
+    cfs=("Volume BlockConsistencyGroup")
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 14 with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      
+      # Create a new CG
+      CGNAME=wf-test2-cg-${item}
+      if [ "${SS}" = "srdf" ]
+      then
+          CGNAME=cg${item}
+      fi
+
+      # Check the state of the volume that doesn't exist
+      snap_db 1 "${cfs[@]}"
+
+      # Create the CG
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      # Make sure it fails with additional errors accounted for in the error message
+      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count=2 --consistencyGroup=${CGNAME}
+
+      # Delete one volume
+      runcmd volume delete ${PROJECT}/${volname}-1 --wait
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Delete the other volume
+      fail volume delete ${PROJECT}/${volname}-2 --wait
+
+      # Try to delete the CG.  A failure will occur.
+      fail blockconsistencygroup delete ${CGNAME}
+
+      # Shut off the artifical failure
+      set_artificial_failure none
+
+      # In some failure cases, the volume is not actually deleted.  It would be ideal if the Volume record
+      # persisted if the volume delete operation failed, but for this test case, it's the replication group
+      # that wasn't deleted, so the Volume record goes away and the BlockConsistencyGroup artifact is left
+      # behind.  Best to check to see if the volume is still there.
+      runcmd volume show ${PROJECT}/${volname}-2
+      if [ $? -eq 0 ]
+      then
+	  # Volume remained after failed volume delete.  Delete now.
+	  runcmd volume delete ${PROJECT}/${volname}-2 --vipronly --wait
+      fi
+
+      # Retry the command after removing the artificial failure
+      runcmd blockconsistencygroup delete ${CGNAME}
+
+      # Perform any DB validation in here
+      snap_db 2 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 2 1 ${cfs}
+
+      # Report results
+      report_results test_14 ${failure}
+    done
+}
+
 test_vpool_change_add_srdf() {
     echot "Test VPool Change for Adding SRDF Begins"
 

@@ -334,7 +334,7 @@ public class AuthnConfigurationService extends TaggedResource {
         PropertyInfo props = _coordinator.getPropertyInfo();
         String vip = props.getProperty("network_vip");
 
-        String cbIp = hasValidVIP(vip) ? vip : props.getProperty("standalone");
+        String cbIp = hasValidVIP(vip) ? vip : props.getProperty("network_standalone_ipaddr");
         return String.format("https://%s:4443/oidccb", cbIp);
     }
 

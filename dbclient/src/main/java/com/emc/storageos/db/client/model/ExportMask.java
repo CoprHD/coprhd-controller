@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.util.CollectionUtils;
+
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.collect.Collections2;
@@ -501,6 +503,12 @@ public class ExportMask extends DataObject {
     public void removeFromExistingInitiator(List<Initiator> initiators) {
         for (Initiator ini : initiators) {
             removeFromExistingInitiators(ini.getInitiatorPort());
+        }
+    }
+
+    public void removeFromExistingInitiators(Collection<String> initiatorWWNs) {
+        if (!CollectionUtils.isEmpty(_existingInitiators) && !CollectionUtils.isEmpty(initiatorWWNs)) {
+            _existingInitiators.removeAll(initiatorWWNs);
         }
     }
 

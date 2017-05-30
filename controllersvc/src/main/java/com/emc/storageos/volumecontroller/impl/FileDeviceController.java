@@ -649,6 +649,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     args.setBypassDnsCheck(fileShareExport.getBypassDnsCheck());
                     FileExport fExport = fileShareExport.getFileExport();
                     fExport.setMountPoint(fileShareExport.getMountPath());
+                    fExport.setMountSubDirectory(fileShareExport.isMountSubDirectory());
                     _log.info("FileExport:clients:" + fExport.getClients() + ":portName:" + fExport.getStoragePortName()
                             + ":port:" + fExport.getStoragePort() + ":rootMapping:" + fExport.getRootUserMapping()
                             + ":permissions:" + fExport.getPermissions() + ":protocol:" + fExport.getProtocol()

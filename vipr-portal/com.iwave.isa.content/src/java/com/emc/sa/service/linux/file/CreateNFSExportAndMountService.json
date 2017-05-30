@@ -44,6 +44,12 @@
             }
         },
         
+         mountAllDirectories: {
+			type: "boolean",
+			initialValue: "false",
+			required: false
+		},
+        
         mountList: {
             type: "table",
             items: {

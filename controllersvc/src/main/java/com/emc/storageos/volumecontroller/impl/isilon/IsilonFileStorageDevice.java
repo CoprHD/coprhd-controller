@@ -624,6 +624,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             List<String> securityTypes = new ArrayList<String>(orderedSecTypes);
             IsilonExport newIsilonExport = setIsilonExport(fileExport, permissions, securityTypes, root_user, mountPath,
                     comments);
+            
+            if (fileExport.isMountSubDirectory()) {
+                newIsilonExport.setAllDirs();
+            }
+            StringMap scope = new StringMap();
+            scope.put("systemType", "isilon");
+            String isMapLookupUid = customConfigHandler.getCustomConfigValue(CustomConfigConstants.ISILON_MAP_LOOKUP_UID, scope);
+            if (Boolean.valueOf(isMapLookupUid)) {
+                newIsilonExport.setMap_lookup_uid(Boolean.valueOf(isMapLookupUid));
+            }
+            String isReturn32bitFileIds = customConfigHandler.getCustomConfigValue(CustomConfigConstants.ISILON_RETURN_32BIT_FIELDS, scope);
+            if (Boolean.valueOf(isReturn32bitFileIds)) {
+                newIsilonExport.setReturn_32bit_file_ids(Boolean.valueOf(isReturn32bitFileIds));
+            }
 
             _log.info("IsilonExport:" + fileExport.getClients() + ":" + fileExport.getStoragePortName() + ":"
                     + fileExport.getStoragePort() + ":" + fileExport.getRootUserMapping() + ":"

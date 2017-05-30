@@ -25,6 +25,7 @@ public class FileSystemExportParam {
     private String subDirectory;
     private String mountPoint;
     private String comments;
+    private boolean mountSubDirectory;
     private Boolean bypassDnsCheck;
     private List<String> endpoints;
 
@@ -187,5 +188,15 @@ public class FileSystemExportParam {
     public void setBypassDnsCheck(Boolean bypassDnsCheck) {
         this.bypassDnsCheck = bypassDnsCheck;
     }
+    
+    @XmlElement(name = "all_dirs", required = false)
+    public boolean isMountSubDirectory() {
+        return mountSubDirectory;
+    }
+
+    public void setMountSubDirectory(boolean mountSubDirectory) {
+        this.mountSubDirectory = mountSubDirectory;
+    }
+
 
 }

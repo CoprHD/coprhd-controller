@@ -63,6 +63,8 @@
                 <ref bean="isilonPathCustomization"/>
                 <ref bean="isilonSystemAccessZoneNameSpace"/>
                 <ref bean="isilonUnmanagedFileSystemLocations"/>
+                <ref bean="isilonReturn32BitFileIds"/>
+                <ref bean="isilonMapLookupUid"/>
                 <ref bean="volumeNamingEnabled"/>
                 <ref bean="volumeNamingProvisionNoExport"/>
                 <ref bean="volumeNamingProvisionWithExport"/>
@@ -1046,6 +1048,40 @@
             <list>
                 <ref bean="isilonDirLocationsIllegalCharsConstraint"/>
             </list>
+        </property>
+    </bean>
+    
+    <bean id="isilonReturn32BitFileIds" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="IsilonReturn32BitFileIds"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+				<entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="false"/>
+            </map>
+        </property>
+    </bean>
+
+	<bean id="isilonMapLookupUid" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="IsilonMapLookupUid"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+				<entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="false"/>
+            </map>
         </property>
     </bean>
     

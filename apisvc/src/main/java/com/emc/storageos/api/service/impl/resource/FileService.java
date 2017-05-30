@@ -872,6 +872,8 @@ public class FileService extends TaskResourceService {
         FileShareExport export = new FileShareExport(param.getEndpoints(), param.getSecurityType(), param.getPermissions(),
                 rootUserMapping, param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
                 subDirectory, param.getComments(), dnsCheck);
+        
+        export.setMountSubDirectory(param.isMountSubDirectory());
 
         _log.info(String.format(
                 "FileShareExport --- FileShare id: %1$s, Clients: %2$s, StoragePort: %3$s, SecurityType: %4$s, " +

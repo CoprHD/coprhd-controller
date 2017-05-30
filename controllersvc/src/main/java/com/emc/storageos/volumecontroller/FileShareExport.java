@@ -47,6 +47,7 @@ public class FileShareExport implements Serializable {
     private String _mountPath;
     private String _comments;
     private String _isilonId;
+    private boolean mountSubDirectory;
     private Boolean _bypassDnsCheck;
 
     private static final String SEC_SEPARATOR = ",";
@@ -263,6 +264,15 @@ public class FileShareExport implements Serializable {
     public void setMountPath(String mountPath) {
         this._mountPath = mountPath;
     }
+    
+    public boolean isMountSubDirectory() {
+        return mountSubDirectory;
+    }
+
+    public void setMountSubDirectory(boolean mountSubDirectory) {
+        this.mountSubDirectory = mountSubDirectory;
+    }
+
 
     public FileExport getFileExport() {
 

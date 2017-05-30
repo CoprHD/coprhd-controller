@@ -26,6 +26,12 @@
       required: false
     },
     
+    mountAllDirectories: {
+      type: "boolean",
+      initialValue: "false",
+      required: false
+    },
+    
     exportRule:{
       type:"table",
       items:{

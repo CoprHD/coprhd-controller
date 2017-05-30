@@ -1047,9 +1047,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         String type = BlockSnapshot.TechnologyType.SRDF.toString();
         Copy copy = new Copy();
         copy.setType(type);
-        //copy.setCopyID(targetVolume.getVirtualArray());
         CopiesParam param = new CopiesParam();
-        //param.getCopies().add(copy);
         URI cgURI = sourceVolume.getConsistencyGroup();
         switch (operationType) {
             case FAILOVER_REMOTE_REPLICATION_CG_LINK:

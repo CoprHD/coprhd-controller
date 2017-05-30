@@ -4,31 +4,28 @@
   fields:{
     storageType: {
       type:"assetType.vipr.storageSystemType",
-      lockable: true,
-      required: true
+      lockable: true
     },
-    remoteReplicationSet:{
+    remoteReplicationSet: {
       type:"assetType.vipr.remoteReplicationSetsForArrayType",
-      lockable: true,
-      required: true
+      lockable: true
     },
-    remoteReplicationPairGroup:{
+    remoteReplicationGroup: {
       type:"assetType.vipr.remoteReplicationGroupForSet",
       lockable: true,
-      initialValue: "None",
       omitNone: true,
+      initialValue: "None",
       required: false
     },
-    remoteReplicationPairGrouping:{
+    remoteReplicationCgOrPair: {
       type:"assetType.vipr.remoteReplicationCgOrPair",
       lockable: true,
       required: false
     },
-    remoteReplicationPair:{
+    remoteReplicationPairsOrCGs: {
       type:"assetType.vipr.remoteReplicationPairsOrCGs",
-      lockable: false,
-      select:"many",
-      required: false
+      required: false,
+      select:"many"
     }
   }
 }

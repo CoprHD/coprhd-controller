@@ -35,9 +35,9 @@ import com.google.common.collect.Lists;
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
-    private final static String RR_PAIR = "Remote Replication Pair";
-    private final static String CONSISTENCY_GROUP = "Consistency Group";
-    private final static String NO_GROUP = "None";
+    public final static String RR_PAIR = "Remote Replication Pair";
+    public final static String CONSISTENCY_GROUP = "Consistency Group";
+    public final static String NO_GROUP = "None";
 
     RemoteReplicationSets setClient = null;
 
@@ -50,7 +50,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * @param virtualPoolId  ID of VirtualPool
      * @return  list of asset options for catalog service order form
      */
-    @Asset("remoteReplicationMode")
+    @Asset("remoteReplicationModeForVarrayVpool")
     @AssetDependencies({ "blockVirtualArray", "blockVirtualPool" })
     public List<AssetOption> getRemoteReplicationModes(AssetOptionsContext ctx,
             URI virtualArrayId, URI virtualPoolId) {
@@ -80,9 +80,9 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * @param virtualPoolId  ID of VirtualPool
      * @return  list of asset options for catalog service order form
      */
-    @Asset("remoteReplicationGroup")
+    @Asset("remoteReplicationGroupForVarrayVpool")
     @AssetDependencies({ "blockVirtualArray", "blockVirtualPool" })
-    public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx,
+    public List<AssetOption> getRemoteReplicationGroupForVarrayVpool(AssetOptionsContext ctx,
             URI virtualArrayId, URI virtualPoolId) {
 
         NamedRelatedResourceRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);

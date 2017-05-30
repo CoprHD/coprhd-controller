@@ -45,7 +45,7 @@
         },
 
         consistencyGroup:{
-            type:"assetType.vipr.consistencyGroup",
+            type:"assetType.vipr.consistencyGroupForVarrayVpool",
             required:false
         },
         remoteReplication:{
@@ -53,12 +53,12 @@
      	 collapsed:false,
          items:{
           remoteReplicationMode:{
-            type:"assetType.vipr.remoteReplicationMode",
+            type:"assetType.vipr.remoteReplicationModeForVarrayVpool",
             omitNone:true,
             required:false
           },
           remoteReplicationGroup:{
-            type:"assetType.vipr.remoteReplicationGroup",
+            type:"assetType.vipr.remoteReplicationGroupForVarrayVpool",
             required:false
           }
         }

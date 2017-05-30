@@ -312,8 +312,9 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                     continue; // number of vols doesn't match
                 }
                 for (Volume volInCg : volsInCg) {
-                    if (!cgToVolMap.get(cg.getId()).contains(volInCg.getId()));
-                    continue consistencyGroupLoop; // IDs of vols don't match
+                    if (!cgToVolMap.get(cg.getId()).contains(volInCg.getId())) {
+                        continue consistencyGroupLoop; // IDs of vols don't match
+                    }
                 }
                 // vols match, return this CG
                 RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), cg.getId()));

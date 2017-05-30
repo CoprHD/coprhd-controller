@@ -507,7 +507,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
                 DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
             // delegate to SRDF support
-            TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_PAIR_LINK);
+            TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_CG_LINK);
             return taskList;
         }
 

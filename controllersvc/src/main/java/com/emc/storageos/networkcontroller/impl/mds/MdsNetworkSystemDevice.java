@@ -553,7 +553,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
      */
     private Zone getZoneInFabric(String name, List<Zone> zonesInFabric) {
         for (Zone zone : zonesInFabric) {
-            if (zone.getName().equals(name)) {
+            if (zone.getName().equalsIgnoreCase(name)) {
                 return zone;
             }
         }
@@ -959,7 +959,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
      */
     private IvrZone getIvrZoneInFabric(String name, List<IvrZone> ivrZones) {
         for (IvrZone zone : ivrZones) {
-            if (zone.getName().equals(name)) {
+            if (zone.getName().equalsIgnoreCase(name)) {
                 return zone;
             }
         }

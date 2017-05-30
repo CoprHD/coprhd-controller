@@ -373,7 +373,7 @@ public class PortMetricsProcessor {
         Double portPercentBusy = (portAvgBusy * emaFactor) + ((1 - emaFactor) * portEmaBusy);
         MetricsKeys.putDouble(MetricsKeys.avgPortPercentBusy, portPercentBusy, port.getMetrics());
 
-        // The port metric contains poertPercentBusy if it's over the floor.
+        // The port metric contains portPercentBusy if it's over the floor.
         // If the usage is less than the floor, don't count it in order to make volume component predominate.
         Double portMetricDouble = ((portPercentBusy >= portBusyFloor) ? portPercentBusy : 0.0);
 
@@ -1371,7 +1371,7 @@ public class PortMetricsProcessor {
                 ceiling = DEFAULT_VOLUME_CEILING;
             }
         } catch (Exception e) {
-            _log.debug(e.getMessage());
+            _log.warn(e.getMessage(), e);
         }
         return ceiling;
 
@@ -1396,7 +1396,7 @@ public class PortMetricsProcessor {
                 ceiling = DEFAULT_VOLUME_CEILING;
             }
         } catch (Exception e) {
-            _log.debug(e.getMessage());
+            _log.warn(e.getMessage(), e);
         }
         return ceiling;
     }
@@ -1419,7 +1419,7 @@ public class PortMetricsProcessor {
                 ceiling = DEFAULT_PORT_UTILIZATION_CEILING;
             }
         } catch (Exception e) {
-            _log.debug(e.getMessage());
+            _log.warn(e.getMessage(), e);
         }
         return ceiling;
     }
@@ -1442,7 +1442,7 @@ public class PortMetricsProcessor {
                 floor = DEFAULT_PORT_UTILIZATION_FLOOR;
             }
         } catch (Exception e) {
-            _log.debug(e.getMessage());
+            _log.warn(e.getMessage(), e);
         }
         return floor;
     }
@@ -1465,7 +1465,7 @@ public class PortMetricsProcessor {
                 floor = DEFAULT_CPU_UTILIZATION_FLOOR;
             }
         } catch (Exception e) {
-            _log.debug(e.getMessage());
+            _log.warn(e.getMessage(), e);
         }
         return floor;
     }
@@ -1487,7 +1487,7 @@ public class PortMetricsProcessor {
                 ceiling = DEFAULT_CPU_UTILIZATION_CEILING;
             }
         } catch (Exception e) {
-            _log.debug(e.getMessage());
+            _log.warn(e.getMessage(), e);
         }
         return ceiling;
     }
@@ -1520,7 +1520,7 @@ public class PortMetricsProcessor {
                 minutesToAverage = minutesToAverage * MINUTES_PER_DAY;
             }  // convert days to minutes
         } catch (Exception e) {
-            _log.debug(e.getMessage());
+            _log.warn(e.getMessage(), e);
         }
         return minutesToAverage;
     }
@@ -1542,7 +1542,7 @@ public class PortMetricsProcessor {
                 emaFactor = DEFAULT_EMA_FACTOR;
             }
         } catch (Exception e) {
-            _log.debug(e.getMessage());
+            _log.warn(e.getMessage(), e);
         }
         return emaFactor;
     }
@@ -1565,7 +1565,7 @@ public class PortMetricsProcessor {
                 volumeCoefficient = DEFAULT_VOLUME_COEFFICIENT;
             }
         } catch (Exception e) {
-            _log.debug(e.getMessage());
+            _log.warn(e.getMessage(), e);
         }
         return volumeCoefficient;
     }

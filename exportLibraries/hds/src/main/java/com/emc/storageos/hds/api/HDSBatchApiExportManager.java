@@ -435,8 +435,8 @@ public class HDSBatchApiExportManager {
                         } else {
                             throw HDSException.exceptions
                                     .invalidResponseFromHDS(String
-                                            .format("Not able to delete LunPaths due to invalid response %1$s from server",
-                                                    response.getStatus()));
+                                            .format("Not able to delete LunPaths due to invalid response %1$s from server: Reason - ",
+                                                    hdsException.getServiceCode(), hdsException.getMessage()));
                         }
                     }
                     log.info("Deleted {} LUN paths from system:{}",

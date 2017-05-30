@@ -35,8 +35,8 @@ public class ExpandBlockVolumeService extends LinuxService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        volume = BlockStorageUtils.getVolume(uri(volumeId));
         acquireHostsLock();
+        volume = BlockStorageUtils.getVolume(uri(volumeId));
 
         expandBlockVolumeHelper.precheck(volume);
     }
@@ -44,6 +44,7 @@ public class ExpandBlockVolumeService extends LinuxService {
     @Override
     public void execute() throws Exception {
         expandBlockVolumeHelper.expandVolume(volume, newSizeInGB);
+
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }

@@ -327,13 +327,14 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private String buildClientId() {
         PropertyInfo props = _coordinator.getPropertyInfo();
-        return String.format("https://%s:4443", props.getProperty("network_vip"));
+        String vip = props.getProperty("network_vip");
+        String cbIp = hasValidVIP(vip) ? vip : props.getProperty("network_standalone_ipaddr");
+        return String.format("https://%s:4443", cbIp);
     }
 
     private String buildCallbackURL() {
         PropertyInfo props = _coordinator.getPropertyInfo();
         String vip = props.getProperty("network_vip");
-
         String cbIp = hasValidVIP(vip) ? vip : props.getProperty("network_standalone_ipaddr");
         return String.format("https://%s:4443/oidccb", cbIp);
     }

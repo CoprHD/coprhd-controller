@@ -294,8 +294,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             URI poolUri = volumes.get(0).getPool();
 
             for (Volume volume : volumes) {
-                try {
-                    if (null != XtremIOProvUtils.isVolumeAvailableInArray(client, volume.getLabel(), clusterName)) {
+            	String volumeName = volume.getDeviceLabel() != null ? volume.getDeviceLabel() : volume.getLabel();
+                try {                	
+                    if (null != XtremIOProvUtils.isVolumeAvailableInArray(client, volumeName, clusterName)) {
                         // If the volume is regular volume & in CG
                         // i.e. it's not RP or a backend volume for a RP+VPLEX Target or Journal
                         if (client.isVersion2() && volume.getConsistencyGroup() != null &&
@@ -312,15 +313,15 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                             if (null != xioCG && null != xioCG.getVolList() && !xioCG.getVolList().isEmpty()) {
                                 boolean isVolRemovedFromCG = false;
                                 // Verify if the volumes is part of the CG or not. If Exists always remove from CG
-                                if (checkIfVolumeExistsInCG(xioCG.getVolList(), volume)) {
-                                    _log.info("Removing volume {} from consistency group {}", volume.getDeviceLabel(),
+                                if (checkIfVolumeExistsInCG(xioCG.getVolList(), volumeName)) {
+                                    _log.info("Removing volume {} from consistency group {}", volumeName,
                                             cgName);
                                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_038);
-                                    client.removeVolumeFromConsistencyGroup(volume.getDeviceLabel(), cgName, clusterName);
+                                    client.removeVolumeFromConsistencyGroup(volumeName, cgName, clusterName);
                                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_039);
                                     isVolRemovedFromCG = true;
                                 } else {
-                                    _log.info("Volume {} doesn't exist on CG {}", volume.getDeviceLabel(), cgName);
+                                    _log.info("Volume {} doesn't exist on CG {}", volumeName, cgName);
                                 }
                                 // Perform remove CG only when we removed the volume from CG.
                                 if (isVolRemovedFromCG) {
@@ -351,11 +352,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                             int attempt = 0;
                             while (attempt++ <= MAX_RP_RETRIES) {
                                 try {
-                                    _log.info(String.format("Deleting RecoverPoint volume %s (attempt %s/%s)", volume.getDeviceLabel(),
+                                    _log.info(String.format("Deleting RecoverPoint volume %s (attempt %s/%s)", volumeName,
                                             attempt,
                                             MAX_RP_RETRIES));
                                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_040);
-                                    client.deleteVolume(volume.getDeviceLabel(), clusterName);
+                                    client.deleteVolume(volumeName, clusterName);
                                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_041);
                                     break;
                                 } catch (XtremIOApiException e) {
@@ -369,7 +370,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                             && e.getMessage().contains("cannot_remove_volume_that_is_in_consistency_group")) {
                                         _log.warn(String
                                                 .format("Encountered exception attempting delete RP volume %s.  Waiting %s milliseconds before trying again.  Error: %s",
-                                                        volume.getLabel(), RP_WAIT_FOR_RETRY, e.getMessage()));
+                                                        volumeName, RP_WAIT_FOR_RETRY, e.getMessage()));
                                         try {
                                             Thread.sleep(RP_WAIT_FOR_RETRY);
                                         } catch (InterruptedException e1) {
@@ -382,15 +383,15 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                 }
                             }
                         } else {
-                            _log.info("Deleting the volume {}", volume.getDeviceLabel());
+                            _log.info("Deleting the volume {}", volumeName);
                             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_040);
-                            client.deleteVolume(volume.getDeviceLabel(), clusterName);
+                            client.deleteVolume(volumeName, clusterName);
                             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_041);
                         }
                     }
                 } catch (Exception e) {
-                    _log.error("Error during volume {} delete.", volume.getDeviceLabel(), e);
-                    failedVolumes.put(volume.getDeviceLabel(), ControllerUtils.getMessage(e));
+                    _log.error("Error during volume {} delete.", volumeName, e);
+                    failedVolumes.put(volumeName, ControllerUtils.getMessage(e));
                 }
             }
 
@@ -428,17 +429,17 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
      * If Exists return true, else false.
      *
      * @param volList - CG Volume List
-     * @param volume - Volume to check.
+     * @param volumeName - Volume name to check.
      * @return true if the volume Exists in CG
      *         false if the volume not found in CG.
      */
-    private boolean checkIfVolumeExistsInCG(List<List<Object>> volList, Volume volume) {
+    private boolean checkIfVolumeExistsInCG(List<List<Object>> volList, String volumeName) {
         for (List<Object> vols : volList) {
             if (null != vols.get(1)) {
                 // vols contains 3 volume related elements. The second element is the device
                 // name, which we will use to match against the provided volume's label.
                 String cgVolLabel = vols.get(1).toString();
-                if (cgVolLabel.equalsIgnoreCase(volume.getDeviceLabel())) {
+                if (cgVolLabel.equalsIgnoreCase(volumeName)) {
                     return true;
                 }
             }

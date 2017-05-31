@@ -667,7 +667,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     */
     var passEndpoint = {
         endpoint: ["Image", {
-            src:"/public/img/customServices/YesDark.svg"
+            src:"/public/img/customServices/YesDark.svg",
+            height:'20',
+            width:'20'
         }],
         isSource: true,
         connector: ["Flowchart", {
@@ -680,7 +682,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     var failEndpoint = {
         endpoint: ["Image", {
-            src:"/public/img/customServices/NoDark.svg"
+            src:"/public/img/customServices/NoDark.svg",
+            height:'20',
+            width:'20'
         }],
         isSource: true,
         connector: ["Flowchart", {
@@ -1176,8 +1180,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             "</div>"+
             "<span id='"+stepId+"-error'  class='glyphicon item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
             "<div  class='button-container'>"+
-                "<a class='glyphicon glyphicon-remove button-step-close' ng-click='removeStep(\"" + stepId + "\")'></a>"+
-                "<a class='glyphicon glyphicon-pencil button-step-close' ng-click='select(\"" + stepId + "\")'></a>"+
+                "<a ng-click='removeStep(\"" + stepId + "\")'><div class='builder-removeStep-icon'></div></a>"+
+                "<a class='button-edit-step' ng-click='select(\"" + stepId + "\")'><div class='builder-editStep-icon'></div></a>"+
             "</div>"+
             "<div id='"+stepId+"'  class='item'>"+
                 "<div class='step-type-image " + getStepIconClass(step.type) + "'>"+

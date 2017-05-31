@@ -144,6 +144,8 @@
     top: 0px;
     margin: 0px;
     padding: 7px;
+    max-height: 27px;
+    width: 27px;
 }
 
 .example-item-card-wrapper a:hover {
@@ -344,11 +346,6 @@
     margin-left: 9px;
 }
 
-.button-step-close {
-    margin: 5px;
-    color: #a7a9ac;
-}
-
 .button-container {
     position: absolute;
     right: 0px;
@@ -372,7 +369,7 @@
     background-color: #4794cd;
 }
 
-.highlighted .button-container .glyphicon-pencil{
+.highlighted .button-container .button-edit-step {
 	display: none;
 }
 
@@ -681,6 +678,24 @@ table, th , td {
 
 .builder-step-icon {
     background-image: url(/public/img/customServices/TreeNodeStep.svg) !important;
+}
+
+.builder-editStep-icon {
+    background-image:url(/public/img/customServices/EditStep.svg);
+    width: 13px;
+    height: 13px;
+}
+
+.builder-removeStep-icon {
+    background-image:url(/public/img/customServices/RemoveStep.svg);
+    width: 11px;
+    height: 11px;
+}
+
+.highlighted .builder-removeStep-icon {
+    background-image:url(/public/img/customServices/RemoveStepSelected.svg);
+    width: 11px;
+    height: 11px;
 }
 
 .highlighted .builder-rest-icon {

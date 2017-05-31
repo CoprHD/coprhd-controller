@@ -268,7 +268,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     }
 
     /**
-     * Get remote replication groups for a given consistency group.
+     * Get consistency groups for given remote replication group
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

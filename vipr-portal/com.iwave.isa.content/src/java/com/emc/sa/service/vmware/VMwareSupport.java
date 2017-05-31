@@ -252,11 +252,19 @@ public class VMwareSupport {
 
     }
 
-    public void attachLuns(HostSystem host, ClusterComputeResource cluster, List<URI> volumes) {
+    /**
+     * Attach the given list of luns on the host
+     * 
+     * @param host host to attach luns
+     * @param volumes list of volumes to attach
+     */
+    public void attachLuns(HostSystem host, List<URI> volumes) {
         for (URI volumeId : volumes) {
             BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
             final HostScsiDisk disk = findScsiDisk(host, null, volume);
-            execute(new AttachScsiDisk(host, Collections.singletonList(disk)));
+            if (VMwareUtils.isDiskOff(disk)) {
+                execute(new AttachScsiDisk(host, Collections.singletonList(disk)));
+            }
         }
     }
 

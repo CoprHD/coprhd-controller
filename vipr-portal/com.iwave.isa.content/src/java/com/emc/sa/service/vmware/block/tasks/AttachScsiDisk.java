@@ -12,7 +12,6 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.sa.service.vmware.tasks.RetryableTask;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VMWareException;
-import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.QuiesceDatastoreIOForHAFailed;
 import com.vmware.vim25.ResourceInUse;
@@ -39,9 +38,7 @@ public class AttachScsiDisk extends RetryableTask<Void> {
     @Override
     protected Void tryExecute() {
         for (HostScsiDisk disk : disks) {
-            if (VMwareUtils.isDiskOff(disk)) {
-                new HostStorageAPI(host).attachScsiLun(disk);
-            }
+            new HostStorageAPI(host).attachScsiLun(disk);
         }
         return null;
     }

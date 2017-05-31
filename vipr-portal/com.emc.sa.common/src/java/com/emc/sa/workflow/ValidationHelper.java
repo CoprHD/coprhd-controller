@@ -123,12 +123,24 @@ public class ValidationHelper {
         }
 
         for (final Step step : stepsHash.values()) {
-            final String errorString = validateCurrentStep(step);
+            final List<String> errorList = new ArrayList<>();
+            String errorString = validateCurrentStep(step);
+            boolean addErrorStep = false;
 
             final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
+            if (StringUtils.isNotBlank(errorString)) {
+                errorList.add(errorString);
+                addErrorStep = true;
+            }
+
+            errorString = validateOperationAndType(step);
 
             if (StringUtils.isNotBlank(errorString)) {
-                errorStep.setErrorMessages(new ArrayList<>(Arrays.asList(errorString)));
+                errorList.add(errorString);
+                addErrorStep = true;
+            }
+            if (addErrorStep) {
+                errorStep.setErrorMessages(errorList);
                 errorSteps.put(step.getId(), errorStep);
             }
         }
@@ -197,7 +209,6 @@ public class ValidationHelper {
 
     private boolean graphTraverse(final String node, final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
         boolean foundCycle = false;
-
         nodeTraverseMap.put(node, NODE_IN_PATH);
         if (wfAdjList.get(node) == null) {
             return false;
@@ -219,8 +230,8 @@ public class ValidationHelper {
                     return true;
                 case NODE_NOT_VISITED:
                     foundCycle = graphTraverse(child, errorSteps);
+                default:
             }
-
             if (!foundCycle) {
                 buildDescendantList(child, node);
             } else {
@@ -331,6 +342,34 @@ public class ValidationHelper {
                 adjacentNodes.add(step.getNext().getFailedStep());
                 return CustomServicesConstants.ERROR_MSG_WORKFLOW_FAILURE_PATH_NOT_ALLOWED_FOR_START;
             }
+        }
+
+        return EMPTY_STRING;
+    }
+
+    private String validateOperationAndType(final Step step) {
+
+        if (!(step.getId().equals(StepType.START.toString()) || step.getId().equals(StepType.END.toString()))) {
+            if (step.getOperation() == null) {
+                return CustomServicesConstants.ERROR_MSG_STEP_OPERATION_REQUIRED;
+            }
+
+            if (step.getType() == null) {
+                return CustomServicesConstants.ERROR_MSG_STEP_TYPE_REQUIRED;
+            } else {
+                switch (step.getType()) {
+                    case CustomServicesConstants.VIPR_PRIMITIVE_TYPE:
+                    case CustomServicesConstants.SCRIPT_PRIMITIVE_TYPE:
+                    case CustomServicesConstants.ANSIBLE_PRIMITIVE_TYPE:
+                    case CustomServicesConstants.REST_API_PRIMITIVE_TYPE:
+                    case CustomServicesConstants.REMOTE_ANSIBLE_PRIMTIVE_TYPE:
+                        return EMPTY_STRING;
+                    default:
+                        return CustomServicesConstants.ERROR_MSG_STEP_TYPE_INVALID;
+
+                }
+            }
+
         }
 
         return EMPTY_STRING;

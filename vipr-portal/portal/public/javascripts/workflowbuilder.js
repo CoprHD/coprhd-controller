@@ -1179,7 +1179,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 "<a class='glyphicon glyphicon-remove button-step-close' ng-click='removeStep(\"" + stepId + "\")'></a>"+
                 "<a class='glyphicon glyphicon-pencil button-step-close' ng-click='select(\"" + stepId + "\")'></a>"+
             "</div>"+
-            "<div id='"+stepId+"'  class='item''>"+
+            "<div id='"+stepId+"'  class='item'>"+
                 "<div class='step-type-image " + getStepIconClass(step.type) + "'>"+
                 "</div>"+
                 "<div class='itemText'>"+trimmedStepName+"</div>"+

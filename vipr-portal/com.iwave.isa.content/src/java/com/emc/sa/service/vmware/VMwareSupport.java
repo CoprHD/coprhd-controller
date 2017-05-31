@@ -252,6 +252,14 @@ public class VMwareSupport {
 
     }
 
+    public void attachLuns(HostSystem host, ClusterComputeResource cluster, List<URI> volumes) {
+        for (URI volumeId : volumes) {
+            BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
+            final HostScsiDisk disk = findScsiDisk(host, null, volume);
+            execute(new AttachScsiDisk(host, Collections.singletonList(disk)));
+        }
+    }
+
     public void detachLuns(HostSystem host, List<HostScsiDisk> disks) {
         execute(new DetachLunsFromHost(host, disks));
         addRollback(new AttachScsiDisk(host, disks));

@@ -76,7 +76,6 @@ public class CustomServicesService extends ViPRService {
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
     private Map<String, Object> params;
-    private String oeOrderJson;
 
     @Autowired
     private DbClient dbClient;
@@ -84,8 +83,6 @@ public class CustomServicesService extends ViPRService {
     private CustomServicesExecutors executor;
     @Autowired
     private CustomServicesViprPrimitiveDAO customServicesViprDao;
-
-    private int code;
 
     protected String decrypt(final String value) {
         if (StringUtils.isNotBlank(value)) {
@@ -333,7 +330,8 @@ public class CustomServicesService extends ViPRService {
                     case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
                            final String param;
-                            if (!StringUtils.isEmpty(value.getInputFieldType()) && value.getInputFieldType().toUpperCase().equals(CustomServicesConstants.InputFieldType.PASSWORD)) {
+                            if (!StringUtils.isEmpty(value.getInputFieldType()) && 
+				value.getInputFieldType().toUpperCase().equals(CustomServicesConstants.InputFieldType.PASSWORD)) {
                                 param = decrypt(params.get(friendlyName).toString());
                             } else {
                                 param = params.get(friendlyName).toString();

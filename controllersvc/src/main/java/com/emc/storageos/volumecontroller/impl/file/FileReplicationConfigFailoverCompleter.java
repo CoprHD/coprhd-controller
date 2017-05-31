@@ -29,12 +29,12 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 public class FileReplicationConfigFailoverCompleter extends FileWorkflowCompleter {
     protected static final Logger _log = LoggerFactory.getLogger(FileReplicationConfigFailoverCompleter.class);
     private URI workFlowId;
-    
-    public FileReplicationConfigFailoverCompleter(URI fsUri, String task){
+
+    public FileReplicationConfigFailoverCompleter(URI fsUri, String task) {
         super(fsUri, task);
         _log.info("Creating file replication configuration failover completer for OpId: " + getOpId());
     }
-    
+
     public URI getWorkFlowId() {
         return workFlowId;
     }
@@ -42,7 +42,7 @@ public class FileReplicationConfigFailoverCompleter extends FileWorkflowComplete
     public void setWorkFlowId(URI workFlowId) {
         this.workFlowId = workFlowId;
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         FileShare fileshare = dbClient.queryObject(FileShare.class, getId());
@@ -70,17 +70,18 @@ public class FileReplicationConfigFailoverCompleter extends FileWorkflowComplete
         // Update the task error, if the task failed!!!
         if (numStepsFailed > 0) {
             int successSteps = numSteps - numStepsFailed;
-            _log.error(String.format("failed updating  %s configurations and succeeded %s replication configrations on failover", numStepsFailed,
+            _log.error(String.format("failed updating  %s configurations and succeeded %s replication configrations on failover",
+                    numStepsFailed,
                     successSteps));
             ServiceError serviceError = DeviceControllerException.errors.fileReplicationConfFailoverOperationFailed(
-                    fileshare.getId().toString(), "update", numStepsFailed, successSteps);
+                    fileshare.getName(), numStepsFailed, numSteps);
             setStatus(dbClient, status, serviceError);
         } else {
             setStatus(dbClient, status, coded);
         }
 
     }
-    
+
     private List<WorkflowStep> getWorkFlowSteps(DbClient dbClient) {
         URI workFlowId = getWorkFlowId();
         List<WorkflowStep> workFlowSteps = new ArrayList<WorkflowStep>();

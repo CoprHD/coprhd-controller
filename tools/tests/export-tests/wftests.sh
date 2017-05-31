@@ -3486,7 +3486,10 @@ _add_to_cg_srdf() {
       # Create a new CG
       CGNAME=ib${item}
 
-      symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+      if [ "${SIM}" = "0" ]
+      then
+        symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+      fi
       # run discovery to update RemoteDirectorGroups
       runcmd storagedevice discover_all
 
@@ -3573,21 +3576,12 @@ _add_to_cg_srdf() {
         runcmd storagedevice discover_all
       fi
 
-      # Perform any DB validation in here
-      #snap_db 3 "${cfs[@]}" "${snap_db_esc}"
-
       runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
       # Remove the volume
       runcmd volume delete ${PROJECT}/${volname} --wait
 
       # run discovery to update RemoteDirectorGroups
       runcmd storagedevice discover_all
-
-      # Perform any DB validation in here
-      #snap_db 4 "${cfs[@]}" "${snap_db_esc}"
-
-      # Validate nothing was left behind
-      #validate_db 3 4 ${cfs}
 
       if [ "${srdf_cg_test}" = "existing" ]
       then

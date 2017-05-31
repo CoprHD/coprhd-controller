@@ -315,18 +315,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             WorkflowStepCompleter.stepExecuting(opId);
             completer = new SRDFTaskCompleter(sourceURIs, opId);
             getRemoteMirrorDevice().doUpdateSourceAndTargetPairings(sourceURIs, targetURIs);
-            completer.ready(dbClient);
+            return completeAsReady(completer, opId);
         } catch (Exception e) {
             log.error("Failed to update SRDF pairings", e);
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
-        return true;
     }
 
     protected void createNonCGSRDFVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> sourceDescriptors,
@@ -1140,17 +1133,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             dbClient.persistObject(target);
             log.info("SRDF Devices source {} and target {} converted to non srdf devices", source.getId(), target.getId());
             completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
-            completer.ready(dbClient);
+            return completeAsReady(completer, opId);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
-        return true;
     }
 
     private String reSyncSRDFMirrorSteps(final Workflow workflow, final String waitFor,
@@ -1193,11 +1179,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
             getRemoteMirrorDevice().doDetachLink(system, sourceURI, targetURI, onGroup, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (completer != null && !completer.isCompleted()) {
-                completer.error(dbClient, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1218,13 +1200,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             getRemoteMirrorDevice().doRemoveVolumePair(system, sourceURI, targetURI, rollback,
                     completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1275,13 +1251,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
 
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1332,13 +1302,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
 
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1354,13 +1318,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
             getRemoteMirrorDevice().doResumeLink(system, targetVolume, false, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1381,13 +1339,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFLinkSyncCompleter(Arrays.asList(sourceURI, targetURI), opId);
             getRemoteMirrorDevice().doSyncLink(system, targetVolume, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1412,13 +1364,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
             getRemoteMirrorDevice().doResyncLink(system, sourceURI, targetURI, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1449,14 +1395,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             log.error("Ignoring exception while rolling back SRDF sources: {}", sourceURIs, e);
             // Succeed here, to allow other rollbacks to run
             cleanupCGsOnRollbackError(sourceURIs, targetURIs, systemURI, isVpoolChange);
-            return false;
         } finally {
             // Always succeed to allow rollback to continue.
-            if (null != completer && !completer.isCompleted()) {
-                completer.ready(dbClient);
-            }
+            return completeAsReady(completer, opId);
         }
-        return true;
     }
 
     /**
@@ -1508,18 +1450,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             combined.addAll(targetURIs);
 
             completer = new SRDFMirrorCreateCompleter(combined, vpoolChangeUri, opId);
-            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, addWaitForCopyState, completer);
             log.info("Sources: {}", Joiner.on(',').join(sourceURIs));
             log.info("Targets: {}", Joiner.on(',').join(targetURIs));
             log.info("OpId: {}", opId);
+            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, addWaitForCopyState, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1571,26 +1507,17 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         log.info("START Add srdf volume pair");
         TaskCompleter completer = new SRDFMirrorCreateCompleter(sourceURI, targetURI, vpoolChangeUri, opId);
         try {
+            log.info("Source: {}", sourceURI);
+            log.info("Target: {}", targetURI);
+            log.info("OpId: {}", opId);
+
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_074);
             getRemoteMirrorDevice().doCreateLink(system, sourceURI, targetURI, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_075);
-
-            completer.ready(dbClient);
-
-            log.info("Source: {}", sourceURI);
-            log.info("Target: {}", targetURI);
-            log.info("OpId: {}", opId);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (completer != null && !completer.isCompleted()) {
-                completer.error(dbClient, error);
-             } else {
-                 log.debug("Task has been marked as completed.  Not performing any error handling.");
-             }
-
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1770,11 +1697,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         } catch (Exception e) {
             log.warn("Error during rollback for adding sync pairs", e);
         } finally {
-            if (completer != null && !completer.isCompleted()) {
-                completer.ready(dbClient);
-            }
+            return completeAsReady(completer, opId);
         }
-        return true;
     }
 
     private void rollbackAddSyncVolumePair(StorageSystem system, Volume source, Volume target) {
@@ -1802,13 +1726,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFAddPairToGroupCompleter(sourceURIs, vpoolChangeUri, opId);
             getRemoteMirrorDevice().doAddVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1831,13 +1749,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFLinkPauseCompleter(combined, opId);
             getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, false, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
 
         return true;
@@ -1861,13 +1773,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFLinkPauseCompleter(combined, opId);
             getRemoteMirrorDevice().doSplitLink(system, targetVolume, rollback, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1888,13 +1794,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFRemoveDeviceGroupsCompleter(combined, opId);
             getRemoteMirrorDevice().doRemoveDeviceGroups(system, sourceURI, targetURI, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return false;
     }
@@ -1915,17 +1815,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_078);
             getRemoteMirrorDevice().doCreateCgPairs(system, sourceURIs, targetURIs, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_079);
-
-            if (completer != null && !completer.isCompleted()) {
-                completer.ready(dbClient);
-            }
+            // No code after this point.
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(opId, error);
-            }
+            completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
             return false;
         }
         return true;
@@ -2116,12 +2008,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
         } catch (Exception e) {
             log.error("Failed operation {}", op, e);
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            } else {
-                WorkflowStepCompleter.stepFailed(task, error);
-            }
+            completeAsError(completer, DeviceControllerException.errors.jobFailed(e), task);
         }
     }
 
@@ -2296,10 +2183,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
            
         } catch (Exception e) {
             log.error("Failed SRDF Expand Volume operation ", e);
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
+            completeAsError(completer, DeviceControllerException.errors.jobFailed(e), task);
             throw e;
         }
         return waitFor;
@@ -2440,10 +2324,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             workflow.executePlan(completer, successMessage);
         } catch (Exception e) {
             log.error("Failed SRDF Expand Volume operation ", e);
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
+            completeAsError(completer, DeviceControllerException.errors.jobFailed(e), task);
         }
     }
 
@@ -2583,5 +2464,43 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
             taskCompleter.addConsistencyGroupId(volume.getConsistencyGroup());
         }
+    }
+
+    /**
+     * Convenience method for completing a completer with ready status.
+     *
+     * @param completer TaskCompleter
+     * @param stepId    Step ID
+     * @return          true for success
+     */
+    private boolean completeAsReady(TaskCompleter completer, String stepId) {
+        if (completer != null) {
+            if (!completer.isCompleted()) {
+                completer.ready(dbClient);
+            }
+        } else {
+            log.warn("Encountered a null completer which should not have happened");
+            WorkflowStepCompleter.stepSucceded(stepId);
+        }
+        return true;
+    }
+
+    /**
+     * Convenience method for completing a completer with error status.
+     *
+     * @param completer TaskCompleter
+     * @param stepId    Step ID
+     * @return          false for failure
+     */
+    private boolean completeAsError(TaskCompleter completer, ServiceError error, String stepId) {
+        if (completer != null) {
+            if (!completer.isCompleted()) {
+                completer.error(dbClient, error);
+            }
+        } else {
+            log.warn("Encountered a null completer which should not have happened");
+            WorkflowStepCompleter.stepFailed(stepId, error);
+        }
+        return false;
     }
 }

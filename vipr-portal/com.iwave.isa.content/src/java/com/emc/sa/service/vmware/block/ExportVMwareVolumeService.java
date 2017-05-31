@@ -15,10 +15,7 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.ExportBlockVolumeHelper;
 import com.emc.sa.service.vipr.block.ExportVMwareBlockVolumeHelper;
 import com.emc.sa.service.vmware.VMwareHostService;
-import com.emc.sa.service.vmware.block.tasks.MountDatastore;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.iwave.ext.vmware.VMwareUtils;
-import com.vmware.vim25.mo.Datastore;
 
 @Service("VMware-ExportVolume")
 public class ExportVMwareVolumeService extends VMwareHostService {
@@ -43,23 +40,8 @@ public class ExportVMwareVolumeService extends VMwareHostService {
         setVmfsDatastoreTag(helper.getVolumeIds(), helper.getHostId());
         this.connectAndInitializeHost();
         vmware.refreshStorage(host, cluster);
-        vmware.attachLuns(host, uris(helper.getVolumeIds()));
-        host.getHostStorageSystem().rescanVmfs();
-        mountDatastores(helper.getVolumeIds());
-    }
-
-    private void mountDatastores(List<String> volumeIds) {
-        for (String volumeId : volumeIds) {
-            BlockObjectRestRep volume = BlockStorageUtils.getVolume(uri(volumeId));
-            Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
-
-            for (String datastoreName : datastoreNames) {
-                Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
-                if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, host)) {
-                    execute(new MountDatastore(host, datastore));
-                }
-            }
-        }
+        vmware.attachLuns(host, cluster, uris(helper.getVolumeIds()));
+        vmware.mountDatastores(host, cluster, datacenter.getLabel(), uris(helper.getVolumeIds()));
     }
 
     private void setVmfsDatastoreTag(List<String> volumeIds, URI hostId) {

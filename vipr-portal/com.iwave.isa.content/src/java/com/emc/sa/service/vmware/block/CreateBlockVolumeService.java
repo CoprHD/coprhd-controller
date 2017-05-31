@@ -40,7 +40,7 @@ public class CreateBlockVolumeService extends VMwareHostService {
         super.connectAndInitializeHost();
 
         vmware.refreshStorage(host, cluster);
-        vmware.attachLuns(host, hostService.getVolumes());
+        vmware.attachLuns(host, cluster, hostService.getVolumes());
     }
 
 }

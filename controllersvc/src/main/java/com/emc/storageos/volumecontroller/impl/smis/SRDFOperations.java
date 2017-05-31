@@ -11,6 +11,7 @@ import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBl
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefresh;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.and;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Collections2.transform;
@@ -415,9 +416,11 @@ public class SRDFOperations implements SmisConstants {
             for (String targetStr : targets) {
                 URI targetURI = URI.create(targetStr);
                 if (!targetURIs.contains(targetURI)) {
+                    log.warn(format("Rollback encountered unexpected Target:%s for Source:%s", targetURI, source.getId()));
                     continue;
                 }
                 Volume target = dbClient.queryObject(Volume.class, targetURI);
+                checkNotNull(target, format("Missing Target:%s for Source:%s", targetURI, source.getId()));
                 rollbackSRDFMirror(system, source, target, isGrouprollback, isVpoolChange);
             }
         }
@@ -1750,7 +1753,7 @@ public class SRDFOperations implements SmisConstants {
         }
 
         if (result == null) {
-            log.warn(String.format("Failed to get GroupSynchronized object for Src:%s, Tgt:%s from System:%s",
+            log.warn(format("Failed to get GroupSynchronized object for Src:%s, Tgt:%s from System:%s",
                     sourceGpName, tgtGpName, system.getId()));
         }
         return result;
@@ -2226,7 +2229,7 @@ public class SRDFOperations implements SmisConstants {
 
         // Generate the target BlockConsistencyGroup name
         String CG_NAME_FORMAT = "%s-Target-%s";
-        String cgName = String.format(CG_NAME_FORMAT, sourceGroup.getLabel(), virtualArray.getLabel());
+        String cgName = format(CG_NAME_FORMAT, sourceGroup.getLabel(), virtualArray.getLabel());
 
         // Check for existing target group
         List<BlockConsistencyGroup> groups =
@@ -2299,7 +2302,7 @@ public class SRDFOperations implements SmisConstants {
             CIMInstance volumeInstance = helper.getInstance(storage, volumePath, false, false, null);
             if (volumeInstance != null && volume != null) {
                 String wwn = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME);
-                log.info(String.format("Updating volume %s %s wwn from %s to %s ", volume.getLabel(), volume.getId().toString(),
+                log.info(format("Updating volume %s %s wwn from %s to %s ", volume.getLabel(), volume.getId().toString(),
                         volume.getWWN(),
                         wwn.toUpperCase()));
                 volume.setWWN(wwn.toUpperCase());
@@ -2310,7 +2313,7 @@ public class SRDFOperations implements SmisConstants {
                 // If this volume is managed by RP, RP owns the volume access field.
                 if (!volume.checkForRp()) {
                     String newAccessState = SmisUtils.generateAccessState(accessState, statusDescriptionList);
-                    log.info(String.format(
+                    log.info(format(
                             "Updating volume %s %s access state from %s to %s ", volume.getLabel(), volume.getId().toString(),
                             volume.getAccessState(), newAccessState));
                     volume.setAccessState(newAccessState);

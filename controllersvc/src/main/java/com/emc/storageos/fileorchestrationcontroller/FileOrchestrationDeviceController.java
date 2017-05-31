@@ -1091,7 +1091,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void addStepsToReplicateCIFSShareACLs(URI systemTarget, URI fsURI, String taskId) {
         s_logger.info("Generating steps for Replicating CIFS share ACLs to Target Cluster");
         CifsShareACLUpdateParams params;
-        FileReplicationConfigFailoverCompleter completer = new FileReplicationConfigFailoverCompleter(fsURI, taskId);
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         FileShare targetFileShare = null;
         Workflow workflow = null;
         try {
@@ -1106,7 +1106,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARE_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
-            completer.setWorkFlowId(workflow.getWorkflowURI());
             SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
 
             if (sourceSMBShareMap != null) {
@@ -1227,7 +1226,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      */
     public void addStepsToReplicateNFSExports(URI systemTarget, URI fsURI, StoragePort nfsPort, String taskId) {
         s_logger.info("Generating steps for Replicating NFS exports to Target Cluster");
-        FileReplicationConfigFailoverCompleter completer = new FileReplicationConfigFailoverCompleter(fsURI, taskId);
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
         FileShare targetFileShare = null;
         try {
@@ -1241,7 +1240,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_TO_TARGET_WF_NAME, false, taskId, completer);
-            completer.setWorkFlowId(workflow.getWorkflowURI());
 
             FSExportMap sourceNFSExportMap = sourceFileShare.getFsExports();
             FSExportMap targetNFSExportMap = targetFileShare.getFsExports();
@@ -1327,7 +1325,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      */
     public void addStepsToReplicateNFSExportRules(URI systemTarget, URI fsURI, String taskId) {
         s_logger.info("Generating steps for Replicating NFS export rules to Target Cluster");
-        FileReplicationConfigFailoverCompleter completer = new FileReplicationConfigFailoverCompleter(fsURI, taskId);
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
         FileShare targetFileShare = null;
         try {
@@ -1341,7 +1339,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WF_NAME, false, taskId, completer);
-            completer.setWorkFlowId(workflow.getWorkflowURI());
 
             FSExportMap sourceFSExportMap = sourceFileShare.getFsExports();
             FSExportMap targetFSExportMap = targetFileShare.getFsExports();

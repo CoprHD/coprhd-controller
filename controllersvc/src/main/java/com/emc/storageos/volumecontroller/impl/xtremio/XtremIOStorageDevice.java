@@ -187,19 +187,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     client.createVolume(volume.getLabel(), capacityInMBStr,
                             volumesFolderName, clusterName);
                     createdVolume = client.getVolumeDetails(volume.getLabel(), clusterName);
-                    _log.info("Created volume details {}", createdVolume.toString());
-                    // For version 2, tag the created volume
-                    if (isVersion2) {
-                        client.tagObject(volumesFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), volume.getLabel(), clusterName);
-                        // Do not add RP+VPlex journal or target backing volumes to consistency groups.
-                        // This causes issues with local array snapshots of RP+VPlex volumes.
-                        String cgName = volume.getReplicationGroupInstance();
-                        if (isCG && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
-                                PersonalityTypes.METADATA, PersonalityTypes.TARGET) &&
-                                NullColumnValueGetter.isNotNullValue(cgName)) {
-                            client.addVolumeToConsistencyGroup(volume.getLabel(), cgName, clusterName);
-                        }
-                    }
+                    _log.info("Created volume details {}", createdVolume.toString());                    
 
                     volume.setNativeId(createdVolume.getVolInfo().get(0));
                     volume.setWWN(createdVolume.getVolInfo().get(0));
@@ -217,7 +205,20 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     volume.setProvisionedCapacity(Long.parseLong(createdVolume
                             .getAllocatedCapacity()) * 1024);
                     volume.setAllocatedCapacity(Long.parseLong(createdVolume.getAllocatedCapacity()) * 1024);
-                    dbClient.updateAndReindexObject(volume);
+                    dbClient.updateObject(volume);
+                    
+                    // For version 2, tag the created volume
+                    if (isVersion2) {
+                        client.tagObject(volumesFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), volume.getLabel(), clusterName);
+                        // Do not add RP+VPlex journal or target backing volumes to consistency groups.
+                        // This causes issues with local array snapshots of RP+VPlex volumes.
+                        String cgName = volume.getReplicationGroupInstance();
+                        if (isCG && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
+                                PersonalityTypes.METADATA, PersonalityTypes.TARGET) &&
+                                NullColumnValueGetter.isNotNullValue(cgName)) {
+                            client.addVolumeToConsistencyGroup(volume.getLabel(), cgName, clusterName);
+                        }
+                    }
                 } catch (Exception e) {
                     failedVolumes.put(volume.getLabel(), ControllerUtils.getMessage(e));
                     _log.error("Error during volume create.", e);

@@ -394,7 +394,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getFileCIFSDirectoryAcls(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
         for (FileSMBShare.SMBDirectoryPermissionOption style : FileSMBShare.SMBDirectoryPermissionOption.values()) {
-            options.add(new AssetOption(style.name(), String.format("file.SMB.SMBDirectoryPermissionOption.%s", style.name())));
+            options.add(newAssetOption(style.name(), String.format("file.SMB.SMBDirectoryPermissionOption.%s", style.name())));
         }
         return options;
     }

@@ -1094,6 +1094,9 @@ public class BlockService extends TaskResourceService {
         for (RemoteReplicationPair pair : pairs) {
             if (shouldInGroup ^ (pair.getReplicationGroup() != null)) {
                 throw APIException.badRequests.consistencyGroupContainsDifferentRRVolumes(cGroup.getId());
+            } else if (shouldInGroup && !(pair.getReplicationGroup().equals(params.getRemoteReplicationGroup()))) {
+                // consistency group contains volumes from different rr group
+                throw APIException.badRequests.consistencyGroupContainsVolsInDifferentRRGroup(cGroup.getId());
             }
             if (!pair.getReplicationSet().equals(rrSet)) {
                 throw APIException.badRequests.consistencyGroupContainsVolsInDifferentRRSets(cGroup.getId());

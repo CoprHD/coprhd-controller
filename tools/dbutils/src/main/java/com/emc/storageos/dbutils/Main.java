@@ -78,7 +78,7 @@ public class Main {
      */
     private static void usage() {
         System.out.printf("Usage: %n");
-        System.out.printf("\t%s [%s <n>] [%s] [%s] [%s <criterias>] [%s] <Column Family Name>%n",
+        System.out.printf("\t%s [%s <n>] [%s] [%s] [%s <criterias>] [%s] <Column Family Names>%n",
                 Command.LIST.name().toLowerCase(), LIST_LIMIT, INACTIVE, MODIFICATION_TIME, FILTER, SORT_BY_URI);
         System.out.printf("\t\t%s <n>\t List paginated with a limit of <n>, "
                 + "if <n> is missing, default is 100.%n", LIST_LIMIT);
@@ -86,6 +86,7 @@ public class Main {
         System.out.printf("\t\t%s\t\t Show the latest modified field of each record.%n", MODIFICATION_TIME);
         System.out.printf("\t\t%s <criterias>\t Filter with <criterias>, e.g, -filter resource=\"<resource id>\" -filter pending=true.%n", FILTER);
         System.out.printf("\t\t%s\t List will sort by object's URI ID%n", SORT_BY_URI);
+        System.out.printf("\t\tNote: For <Column Family names>, CF names should be separated by comma if more than one.%n");
         System.out.printf("\t%s [%s] <Column Family Name> <id>%n", Command.QUERY.name().toLowerCase(), MODIFICATION_TIME);
         System.out.printf("\t\t%s\t\t Show the latest modified field of the record.%n", MODIFICATION_TIME);
         System.out.printf("\t%s <%s/%s/%s> <file_prefix> [<YEAR/MONTH/DAY/HOUR>]%n",

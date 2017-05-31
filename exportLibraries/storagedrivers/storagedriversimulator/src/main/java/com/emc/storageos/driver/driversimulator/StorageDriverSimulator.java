@@ -1305,7 +1305,22 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         return task;
     }
 
-
+    @Override
+    public DriverTask split(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "-splitReplicationLink-", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        List<String> nativeIds = new ArrayList<>();
+        for (RemoteReplicationPair pair : replicationPairs) {
+            pair.setReplicationState("split");
+            nativeIds.add(pair.getNativeId());
+        }
+        String msg = String.format("%s: %s --- split replication pairs %s.", driverName, "split", nativeIds);
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
 
     private Map<String, List<String>> processRemoteReplicationAttributes(StorageCapabilities storageCapabilities) {
         Map<String, List<String>> remoteReplicationAttributes = new HashMap<>();

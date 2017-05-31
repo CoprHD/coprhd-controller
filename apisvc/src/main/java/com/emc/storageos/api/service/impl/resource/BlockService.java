@@ -212,6 +212,8 @@ public class BlockService extends TaskResourceService {
         FAILOVER_TEST("failover-test", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST),
         FAILOVER_TEST_CANCEL("failover-test-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST_CANCEL),
         FAILOVER_CANCEL("failover-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_CANCEL),
+        FAILBACK("failback", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILBACK),
+        SPLIT("split", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SPLIT),
         SWAP("swap", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SWAP),
         SYNC("sync", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SYNC),
         START("start", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_START),

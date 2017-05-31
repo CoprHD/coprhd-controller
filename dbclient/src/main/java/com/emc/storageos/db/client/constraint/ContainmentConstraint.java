@@ -881,5 +881,10 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(scheduledEventId, Order.class, field);
         }
 
+        public static ContainmentConstraint getStorageSystemConsistencyGroupConstraint(URI storageSystemId) {
+            DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
+            ColumnField field = doType.getColumnField("storageDevice");
+            return new ContainmentConstraintImpl(storageSystemId, BlockConsistencyGroup.class, field);
+        }
     }
 }

@@ -43,6 +43,8 @@ import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystemType;
@@ -304,23 +306,27 @@ public class RemoteReplicationSetService extends TaskResourceService {
 
         _log.info("Called: getRemoteReplicationSetCGs() with id {}", id);
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
+        BlockConsistencyGroupList result = new BlockConsistencyGroupList();
         RemoteReplicationSet rrSet = queryResource(id);
 
-        List<URI> uris = _dbClient.queryByType(BlockConsistencyGroup.class, true);
+        List<URI> storageSystemsForSet = URIUtil.toURIList(rrSet.getSourceSystems());
+        if (storageSystemsForSet == null) {
+            return result;
+        }
 
-        BlockConsistencyGroupList result = new BlockConsistencyGroupList();
-        for (URI uri : uris) {
+        List<URI> cgs = new ArrayList<>();
+        for(URI storageSystemUri : storageSystemsForSet ) {
+            URIQueryResultList cgsForStorageSystem = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                    getStorageSystemConsistencyGroupConstraint(storageSystemUri),cgsForStorageSystem);
+            Iterator<URI> itr = cgsForStorageSystem.iterator();
+            while (itr.hasNext()) {
+                cgs.add(itr.next());
+            }
+        }
+
+        for (URI uri : cgs) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, uri);
-
-            if ((cg.getStorageController() == null) ||
-                    (!rrSet.getSourceSystems().contains(cg.getStorageController().toString()))) {
-                continue;  // CG system is not a src in the set
-            }
-
-            StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cg.getStorageController());
-            if (!StringUtils.equals(cgSystem.getSystemType(), rrSet.getStorageSystemType())) {
-                continue; // wrong storage type
-            }
 
             Set<String> targetCGSystemsSet = ConsistencyGroupUtils
                     .findAllRRConsistencyGroupSystemsByAlternateLabel(cg.getLabel(), _dbClient);

@@ -57,6 +57,9 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_INPUT_NOT_DEFINED_IN_OTHER_STEP = "Input not defined in other Step";
     public static final String ERROR_MSG_OTHER_STEP_OUTPUT_NOT_DEFINED = "Other Step Output not defined";
     public static final String ERROR_MSG_OUTPUT_NOT_DEFINED_IN_OTHER_STEP = "Output not defined in other Step";
+    public static final String ERROR_MSG_STEP_OPERATION_REQUIRED = "Operation should be defined for step";
+    public static final String ERROR_MSG_STEP_TYPE_REQUIRED = "Type should be defined for step";
+    public static final String ERROR_MSG_STEP_TYPE_INVALID = "Invalid type specified for step";
 
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;

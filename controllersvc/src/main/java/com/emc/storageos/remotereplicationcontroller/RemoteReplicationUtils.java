@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -743,6 +744,18 @@ public class RemoteReplicationUtils {
             isSwapped = true;
         }
         return isSwapped;
+    }
+
+    /**
+     * Checks if remote replication pair contains source/target volumes of VMAX arrray type
+     * @param pair
+     * @param dbClient
+     * @return true/false
+     */
+    static public boolean isVmaxPair(RemoteReplicationPair pair, DbClient dbClient) {
+        String systemType = dbClient.queryObject(Volume.class, pair.getSourceElement()).getSystemType();
+        return systemType.equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
+                systemType.equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString());
     }
 
 }

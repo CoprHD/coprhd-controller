@@ -24,7 +24,6 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.BlockService.ProtectionOp;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
@@ -143,7 +142,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
             case RR_GROUP_CG:
             case RR_SET_CG:
-                taskList =  rrPairService.splitRemoteReplicationCGLink(operationParam.getIds());
+                taskList = rrPairService.splitRemoteReplicationCGLink(operationParam.getIds());
                 break;
 
             case RR_GROUP:
@@ -156,7 +155,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
             case RR_SET:
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
-                task =  rrSetService.splitRemoteReplicationSetLink(rrSet.getId());
+                task = rrSetService.splitRemoteReplicationSetLink(rrSet.getId());
                 taskList.addTask(task);
                 break;
         }
@@ -245,7 +244,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
             case RR_GROUP_CG:
             case RR_SET_CG:
-                taskList =  rrPairService.suspendRemoteReplicationCGLink(operationParam.getIds());
+                taskList = rrPairService.suspendRemoteReplicationCGLink(operationParam.getIds());
                 break;
 
             case RR_GROUP:
@@ -258,7 +257,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
             case RR_SET:
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
-                task =  rrSetService.suspendRemoteReplicationSetLink(rrSet.getId());
+                task = rrSetService.suspendRemoteReplicationSetLink(rrSet.getId());
                 taskList.addTask(task);
                 break;
         }
@@ -296,7 +295,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
             case RR_GROUP_CG:
             case RR_SET_CG:
-                taskList =  rrPairService.resumeRemoteReplicationCGLink(operationParam.getIds());
+                taskList = rrPairService.resumeRemoteReplicationCGLink(operationParam.getIds());
                 break;
 
             case RR_GROUP:
@@ -309,7 +308,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
             case RR_SET:
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
-                task =  rrSetService.resumeRemoteReplicationSetLink(rrSet.getId());
+                task = rrSetService.resumeRemoteReplicationSetLink(rrSet.getId());
                 taskList.addTask(task);
                 break;
         }
@@ -347,7 +346,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
             case RR_SET_CG:
             case RR_GROUP_CG:
-                taskList =  rrPairService.failbackRemoteReplicationCGLink(operationParam.getIds());
+                taskList = rrPairService.failbackRemoteReplicationCGLink(operationParam.getIds());
                 break;
 
             case RR_GROUP:
@@ -360,7 +359,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
             case RR_SET:
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
-                task =  rrSetService.failbackRemoteReplicationSetLink(rrSet.getId());
+                task = rrSetService.failbackRemoteReplicationSetLink(rrSet.getId());
                 taskList.addTask(task);
                 break;
         }
@@ -398,7 +397,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
             case RR_SET_CG:
             case RR_GROUP_CG:
-                taskList =  rrPairService.failoverRemoteReplicationCGLink(operationParam.getIds());
+                taskList = rrPairService.failoverRemoteReplicationCGLink(operationParam.getIds());
                 break;
 
             case RR_GROUP:
@@ -411,7 +410,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
             case RR_SET:
                 URI setURI = rrPair.getReplicationSet();
                 RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
-                task =  rrSetService.failoverRemoteReplicationSetLink(rrSet.getId());
+                task = rrSetService.failoverRemoteReplicationSetLink(rrSet.getId());
                 taskList.addTask(task);
                 break;
         }
@@ -489,7 +488,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
      */
     private void precheckVmaxOperation(RemoteReplicationPair pair, OperationContext context,
             RemoteReplicationOperationParam operationParam, ProtectionOp op) {
-        if (!isVmaxPair(pair)) {
+        if (!RemoteReplicationUtils.isVmaxPair(pair, _dbClient)) {
             return;
         }
         if (context == OperationContext.RR_PAIR) {
@@ -505,11 +504,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         }
     }
 
-    private boolean isVmaxPair(RemoteReplicationPair pair) {
-        String systemType = _dbClient.queryObject(Volume.class, pair.getSourceElement()).getSystemType();
-        return systemType.equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
-                systemType.equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString());
-    }
 
     private Set<URI> getSetPairIdsByRrSet(URI rrSetId) {
         List<RemoteReplicationPair> pairs = RemoteReplicationUtils.findAllRemoteRepliationPairsByRrSet(rrSetId, _dbClient);

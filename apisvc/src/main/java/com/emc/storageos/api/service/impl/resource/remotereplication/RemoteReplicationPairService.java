@@ -212,8 +212,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
         _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
         // VMAX SRDF integration logic
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPairs.get(0), _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_CG_LINK);
             return taskList;
@@ -263,9 +262,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         // If we here, pair is not in CG.
         // SRDF integration logic
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPair, _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_PAIR_LINK);
             return taskList.getTaskList().get(0);
@@ -311,8 +308,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
         // VMAX SRDF integration logic
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPairs.get(0), _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_CG_LINK);
             return taskList;
@@ -363,9 +359,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
 
         // SRDF integration logic
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPair, _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_PAIR_LINK);
             return taskList.getTaskList().get(0);
@@ -410,8 +404,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
         // VMAX SRDF integration logic
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPairs.get(0), _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_CG_LINK);
             return taskList;
@@ -458,8 +451,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         // SRDF integration logic
         Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPair, _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_PAIR_LINK);
             return taskList.getTaskList().get(0);
@@ -504,8 +496,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
         // VMAX SRDF integration logic
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPairs.get(0), _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_CG_LINK);
             return taskList;
@@ -556,9 +547,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationPair rrPair = queryResource(id);
 
         // SRDF integration logic
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPair, _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_PAIR_LINK);
             return taskList.getTaskList().get(0);
@@ -607,8 +596,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
         // VMAX SRDF integration logic
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPairs.get(0), _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.SUSPEND_REMOTE_REPLICATION_CG_LINK);
             return taskList;
@@ -653,9 +641,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationPair rrPair = queryResource(id);
 
         // SRDF integration logic
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPair, _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.SUSPEND_REMOTE_REPLICATION_PAIR_LINK);
             return taskList.getTaskList().get(0);
@@ -704,8 +690,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
         // VMAX SRDF integration logic
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPairs.get(0), _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.RESUME_REMOTE_REPLICATION_CG_LINK);
             return taskList;
@@ -751,9 +736,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationPair rrPair = queryResource(id);
 
         // SRDF integration logic
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPair, _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.RESUME_REMOTE_REPLICATION_PAIR_LINK);
             return taskList.getTaskList().get(0);
@@ -802,8 +785,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
         _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
         // VMAX SRDF integration logic
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceElement.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceElement.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPairs.get(0), _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.SWAP_REMOTE_REPLICATION_CG_LINK);
             return taskList;
@@ -853,9 +835,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SWAP);
 
         // SRDF integration logic
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
-        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(sourceVolume.getSystemType()) ||
-                DiscoveredDataObject.Type.vmax3.toString().equalsIgnoreCase(sourceVolume.getSystemType())) {
+        if (RemoteReplicationUtils.isVmaxPair(rrPair, _dbClient)) {
             // delegate to SRDF support
             TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.SWAP_REMOTE_REPLICATION_PAIR_LINK);
             return taskList.getTaskList().get(0);

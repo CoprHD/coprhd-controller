@@ -57,7 +57,6 @@ public class ValidationHelper {
     final private String NODE_NOT_VISITED = "not visited";
     final private String NODE_VISITED = "visited";
     final private String NODE_IN_PATH = "to be visited";
-    private boolean foundCycle = false;
 
     public ValidationHelper(final CustomServicesWorkflowDocument wfDocument) {
 
@@ -133,9 +132,9 @@ public class ValidationHelper {
                 errorSteps.put(step.getId(), errorStep);
             }
         }
-        addErrorStepsWithoutParent(errorSteps);
+        boolean cycleExists = addErrorStepsWithoutParent(errorSteps);
 
-        validateStepInputs(errorSteps);
+        validateStepInputs(errorSteps, cycleExists);
 
         if (MapUtils.isNotEmpty(errorSteps)) {
             workflowError.setErrorSteps(errorSteps);
@@ -144,7 +143,7 @@ public class ValidationHelper {
     }
 
     // For the steps which does not have parent, add the error to response
-    private void addErrorStepsWithoutParent(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
+    private boolean addErrorStepsWithoutParent(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
 
         final Set<String> childSteps = new HashSet<>();
         // add Start as child by default
@@ -173,12 +172,12 @@ public class ValidationHelper {
         }
 
         if (CollectionUtils.isEmpty(stepWithoutParent)) {
-            validateCycle(errorSteps);
+            return validateCycle(errorSteps);
         }
+        return false;
     }
 
-    private void validateCycle(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
-        String backEdgeNode = EMPTY_STRING;
+    private boolean validateCycle(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
         // initialize all nodes to be not visited before traversing the nodes in the workflow
         for (final String step : wfAdjList.keySet()) {
             nodeTraverseMap.put(step, NODE_NOT_VISITED);
@@ -187,41 +186,21 @@ public class ValidationHelper {
         // Traverse all nodes to identify any dis-joint forest that might exist
         for (final String step : wfAdjList.keySet()) {
             if (nodeTraverseMap.get(step).equals(NODE_NOT_VISITED)) {
-                backEdgeNode = graphTraverse(step);
-            }
-            if (foundCycle) {
-                break;
-            }
-        }
-
-        if (foundCycle) {
-            final String error = StringUtils.isNotBlank(backEdgeNode) ? String.format("%s - directed edge from/to %s results in cycle",
-                    CustomServicesConstants.ERROR_MSG_WORKFLOW_CYCLE_EXISTS,
-                    stepsHash.get(backEdgeNode).getFriendlyName()) : CustomServicesConstants.ERROR_MSG_WORKFLOW_CYCLE_EXISTS;
-
-            if (errorSteps.containsKey(backEdgeNode)) {
-                final List<String> errorMsgs = errorSteps.get(backEdgeNode).getErrorMessages();
-                if (CollectionUtils.isNotEmpty(errorMsgs)) {
-                    errorMsgs.add(error);
-                } else {
-                    errorSteps.get(backEdgeNode).setErrorMessages(
-                            new ArrayList<>(Arrays.asList(error)));
+                if (graphTraverse(step, errorSteps)) {
+                    return true;
                 }
-            } else {
-                final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
-                errorStep.setErrorMessages(
-                        new ArrayList<>(Arrays.asList(error)));
-                errorSteps.put(backEdgeNode, errorStep);
             }
         }
 
+        return false;
     }
 
-    private String graphTraverse(final String node) {
+    private boolean graphTraverse(final String node, final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
+        boolean foundCycle = false;
 
         nodeTraverseMap.put(node, NODE_IN_PATH);
         if (wfAdjList.get(node) == null) {
-            return EMPTY_STRING;
+            return false;
         }
 
         for (final String child : wfAdjList.get(node)) {
@@ -233,37 +212,61 @@ public class ValidationHelper {
             if (wfAdjList.get(child) == null) {
                 continue;
             }
+            switch (nodeTraverseMap.get(child)) {
+                case NODE_IN_PATH:
+                    // back edge
+                    setErrorStepsForCycle(errorSteps, node);
+                    return true;
+                case NODE_NOT_VISITED:
+                    foundCycle = graphTraverse(child, errorSteps);
+            }
 
-            if (nodeTraverseMap.get(child).equals(NODE_IN_PATH)) {
-                // back edge
-                foundCycle = true;
-                return node;
-            }
-            if (nodeTraverseMap.get(child).equals(NODE_NOT_VISITED)) {
-                String errorNode = graphTraverse(child);
-                if (foundCycle) {
-                    return errorNode;
-                }
-            }
             if (!foundCycle) {
-                List<String> cChildren = wfAdjList.get(child);
-                if (cChildren != null) {
-                    Set<String> cSet = new HashSet<>(cChildren);
-                    cSet.addAll(wfAdjList.get(node));
-                    if (descendant.get(child) != null) {
-                        cSet.addAll(descendant.get(child));
-                    }
-
-                    if (descendant.get(node) != null) {
-                        cSet.addAll(descendant.get(node));
-                    }
-                    cSet.remove("");
-                    descendant.put(node, cSet);
-                }
+                buildDescendantList(child, node);
+            } else {
+                break;
             }
         }
         nodeTraverseMap.put(node, NODE_VISITED);
-        return EMPTY_STRING;
+        return foundCycle;
+    }
+
+    private void buildDescendantList(final String child, final String node) {
+        final List<String> cChildren = wfAdjList.get(child);
+        if (cChildren != null) {
+            final Set<String> cSet = new HashSet<>(cChildren);
+            cSet.addAll(wfAdjList.get(node));
+            if (descendant.get(child) != null) {
+                cSet.addAll(descendant.get(child));
+            }
+
+            if (descendant.get(node) != null) {
+                cSet.addAll(descendant.get(node));
+            }
+            cSet.remove("");
+            descendant.put(node, cSet);
+        }
+    }
+
+    private void setErrorStepsForCycle(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps, final String backEdge) {
+        final String error = StringUtils.isNotBlank(backEdge) ? String.format("%s - directed edge from/to %s results in cycle",
+                CustomServicesConstants.ERROR_MSG_WORKFLOW_CYCLE_EXISTS,
+                stepsHash.get(backEdge).getFriendlyName()) : CustomServicesConstants.ERROR_MSG_WORKFLOW_CYCLE_EXISTS;
+
+        if (errorSteps.containsKey(backEdge)) {
+            final List<String> errorMsgs = errorSteps.get(backEdge).getErrorMessages();
+            if (CollectionUtils.isNotEmpty(errorMsgs)) {
+                errorMsgs.add(error);
+            } else {
+                errorSteps.get(backEdge).setErrorMessages(
+                        new ArrayList<>(Arrays.asList(error)));
+            }
+        } else {
+            final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
+            errorStep.setErrorMessages(
+                    new ArrayList<>(Arrays.asList(error)));
+            errorSteps.put(backEdge, errorStep);
+        }
     }
 
     private String validateCurrentStep(final Step step) {
@@ -333,10 +336,10 @@ public class ValidationHelper {
         return EMPTY_STRING;
     }
 
-    private void validateStepInputs(Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
+    private void validateStepInputs(Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps, final boolean cycleExists) {
         for (final Step step : stepsHash.values()) {
             final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
-            final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup = validateStepInput(step);
+            final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup = validateStepInput(step, cycleExists);
             if (!errorInputGroup.isEmpty()) {
                 if (errorSteps.containsKey(step.getId())) {
                     errorSteps.get(step.getId()).setInputGroups(errorInputGroup);
@@ -348,14 +351,14 @@ public class ValidationHelper {
         }
     }
 
-    private Map<String, CustomServicesValidationResponse.ErrorInputGroup> validateStepInput(final Step step) {
+    private Map<String, CustomServicesValidationResponse.ErrorInputGroup> validateStepInput(final Step step, final boolean cycleExists) {
         final Map<String, CustomServicesWorkflowDocument.InputGroup> inputGroups = step.getInputGroups();
         final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup = new HashMap<>();
         if (inputGroups != null) {
             for (final String inputGroupKey : step.getInputGroups().keySet()) {
                 if (!isInputEmpty(inputGroups, inputGroupKey)) {
                     final Map<String, CustomServicesValidationResponse.ErrorInput> errorInputMap = validateInput(step.getId(),
-                            inputGroups.get(inputGroupKey).getInputGroup());
+                            inputGroups.get(inputGroupKey).getInputGroup(), cycleExists);
                     addErrorInputGroup(errorInputMap, errorInputGroup, inputGroupKey);
                 }
             }
@@ -375,7 +378,8 @@ public class ValidationHelper {
         return errorInputGroup;
     }
 
-    private Map<String, CustomServicesValidationResponse.ErrorInput> validateInput(final String stepId, final List<Input> stepInputList) {
+    private Map<String, CustomServicesValidationResponse.ErrorInput> validateInput(final String stepId, final List<Input> stepInputList,
+            final boolean cycleExists) {
         final Map<String, CustomServicesValidationResponse.ErrorInput> errorInputMap = new HashMap<>();
         final Set<String> uniqueInputNames = new HashSet<>();
 
@@ -383,7 +387,7 @@ public class ValidationHelper {
             final CustomServicesValidationResponse.ErrorInput errorInput = new CustomServicesValidationResponse.ErrorInput();
             final List<String> errorMessages = new ArrayList<>();
 
-            final String inputTypeErrorMessage = checkInputType(stepId, input);
+            final String inputTypeErrorMessage = checkInputType(stepId, input, cycleExists);
 
             if (!inputTypeErrorMessage.isEmpty()) {
                 errorMessages.add(inputTypeErrorMessage);
@@ -417,7 +421,7 @@ public class ValidationHelper {
         return errorInputMap;
     }
 
-    private String checkInputType(final String stepId, final Input input) {
+    private String checkInputType(final String stepId, final Input input, final boolean cycleExists) {
         String errorMessage;
         if (StringUtils.isBlank(input.getType())
                 || CustomServicesConstants.InputType.fromString(input.getType()).equals(CustomServicesConstants.InputType.INVALID)) {
@@ -436,7 +440,7 @@ public class ValidationHelper {
             errorMessage = String.format("%s - %s", CustomServicesConstants.ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE,
                     input.getType());
         } else {
-            errorMessage = checkOtherInputType(stepId, input);
+            errorMessage = checkOtherInputType(stepId, input, cycleExists);
         }
         return errorMessage;
     }
@@ -462,7 +466,7 @@ public class ValidationHelper {
                 step.getId(), attribute);
     }
 
-    private String checkOtherInputType(final String stepId, final Input input) {
+    private String checkOtherInputType(final String stepId, final Input input, final boolean cycleExists) {
 
         switch (CustomServicesConstants.InputType.fromString(input.getType())) {
             case ASSET_OPTION_SINGLE:
@@ -479,7 +483,7 @@ public class ValidationHelper {
                 if (input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString()) ||
                         input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_OUTPUT.toString())) {
                     // check valid step input/ output
-                    return checkOtherStepType(stepId, input);
+                    return checkOtherStepType(stepId, input, cycleExists);
 
                 }
 
@@ -488,7 +492,7 @@ public class ValidationHelper {
         return EMPTY_STRING;
     }
 
-    private String checkOtherStepType(final String inputStepId, final Input input) {
+    private String checkOtherStepType(final String inputStepId, final Input input, final boolean cycleExists) {
         String errorMessage = EMPTY_STRING;
         if (StringUtils.isEmpty(input.getValue())) {
             return CustomServicesConstants.ERROR_MSG_INPUT_FROM_OTHER_STEP_NOT_DEFINED;
@@ -502,7 +506,7 @@ public class ValidationHelper {
         if (referredStep == null) {
             return String.format("%s - %s", CustomServicesConstants.ERROR_MSG_STEP_NOT_DEFINED, stepId);
         } else {
-            if (foundCycle) {
+            if (cycleExists) {
                 // if cycle is found the ancestors of a step cannot be determined correctly hence we will pass the following check until the
                 // cycle is resolved
                 return errorMessage;

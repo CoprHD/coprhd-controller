@@ -132,6 +132,14 @@ inputOutputTabID = 'inputOutputRAContent';
     }
 
     $(function() {
+        // Reset data on modal close
+        $('#remoteAnsiblePrimitiveDialog').on('hidden.bs.modal', function(e) {
+            $('#remoteAnsiblePrimitiveForm')[0].reset();
+
+            // Select first tab
+            $('.remoteAnsibleTabbable a:first').tab('show')
+        });
+
         //on start hiding finish and back buttons
         $('#finishButtonRA').hide();
         $('#backButtonRA').hide();

@@ -36,12 +36,6 @@ public class RemoteAnsiblePrimitiveForm {
     private String outputs; // comma separated list of ouputs
     private String wfDirID;
 
-
-    // TODO
-    public void validate() {
-
-    }
-
     public String getId() {
         return id;
     }

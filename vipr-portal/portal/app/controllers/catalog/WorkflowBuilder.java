@@ -247,7 +247,6 @@ public class WorkflowBuilder extends Controller {
         renderJSON(wfDirectoryRestRep);
     }
 
-    // TODO: remove this method and use another means of hardcoding
     private static List<CustomServicesWorkflowDocument.Step> getStartEndSteps() {
         CustomServicesWorkflowDocument.Step start = new CustomServicesWorkflowDocument.Step();
         start.setFriendlyName("Start");
@@ -438,7 +437,6 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void saveShellScriptPrimitive(@Valid final ShellScriptPrimitiveForm shellPrimitive) {
-        shellPrimitive.validate();
         if (StringUtils.isNotEmpty(shellPrimitive.getId())) {
             editShellScriptPrimitive(shellPrimitive);
         } else {
@@ -448,7 +446,6 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void saveRestAPIPrimitive(@Valid final RestAPIPrimitiveForm restAPIPrimitive) {
-        restAPIPrimitive.validate();
         if (StringUtils.isNotEmpty(restAPIPrimitive.getId())) {
             editRestAPIPrimitive(restAPIPrimitive);
         } else {
@@ -458,7 +455,6 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void saveLocalAnsiblePrimitive(@Valid final LocalAnsiblePrimitiveForm localAnsible) {
-        localAnsible.validate();
         if (StringUtils.isNotEmpty(localAnsible.getId())) {
             editLocalAnsiblePrimitive(localAnsible);
         } else {
@@ -468,7 +464,6 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void saveRemoteAnsiblePrimitive(@Valid final RemoteAnsiblePrimitiveForm remoteAnsible) {
-        remoteAnsible.validate();
         if (StringUtils.isNotEmpty(remoteAnsible.getId())) {
             editRemoteAnsiblePrimitive(remoteAnsible);
         } else {

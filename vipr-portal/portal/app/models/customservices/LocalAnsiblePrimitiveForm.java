@@ -43,11 +43,6 @@ public class LocalAnsiblePrimitiveForm {
     // This is comma separated list of updated inventory file names
     private String updatedInventoryFiles;
 
-    // TODO
-    public void validate() {
-
-    }
-
     public String getId() {
         return id;
     }

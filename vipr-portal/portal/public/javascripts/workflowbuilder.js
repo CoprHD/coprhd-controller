@@ -45,6 +45,15 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     initializeJsTree();
 
+    // This is required for IE ('startswith' is not supported)
+    if (!String.prototype.startsWith) {
+      String.prototype.startsWith = function(searchString, position) {
+        position = position || 0;
+        return this.indexOf(searchString, position) === position;
+      };
+    }
+    // --
+
     function initializeJsTree(){
         var to = null;
         var searchElem = $element.find(".search-input");
@@ -52,6 +61,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             if(to) { clearTimeout(to); }
                 to = setTimeout(function() {
                   var searchString = searchElem.val();
+                  jstreeContainer.jstree(true).show_all();
                   jstreeContainer.jstree('search', searchString);
                 }, 250);
         });
@@ -124,10 +134,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             jstreeContainer.find( ".draggable-card" ).draggable({delay: 200,handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
         }).on('search.jstree', function (nodes, str) {
               if (str.nodes.length === 0) {
-                  $('#jstree_demo').css("visibility", "hidden");
-              }
-              else {
-                $('#jstree_demo').css("visibility", "visible");
+                  $('#jstree_demo').jstree(true).hide_all();
               }
         });
     }
@@ -152,7 +159,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     // jstree actions
-    //TODO: do error handling on all actions
     jstreeContainer.on("rename_node.jstree", renameDir);
     jstreeContainer.on("select_node.jstree", selectDir);
     jstreeContainer.on("hover_node.jstree", hoverDir);
@@ -163,12 +169,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     	var successAlert = alertsDiv.find("#alerts_success");
     	if(!successAlert.length) {
     	    // if it doesn't exist, create
-    	    var successAlertHTML = `
-    	    <p id="alerts_success" class="alert alert-success">
-                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-                <span class="message"></span>
-            </p>
-    	    `;
+    	    var successAlertHTML =
+    	    "<p id='alerts_success' class='alert alert-success'>"+
+                "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>×</button>"+
+                "<span class='message'></span>"+
+            "</p>";
     	    alertsDiv.append(successAlertHTML);
     	    successAlert = $("#alerts_success");
     	}
@@ -182,12 +187,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     	var errorAlert = alertsDiv.find("#alerts_error");
     	if(!errorAlert.length) {
     	    // if it doesn't exist, create
-    	    var errorAlertHTML = `
-    	    <p id="alerts_error" class="alert alert-danger">
-                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-                <span class="message"></span>
-            </p>
-    	    `;
+    	    var errorAlertHTML =
+    	    "<p id='alerts_error' class='alert alert-danger'>"+
+                "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>×</button>"+
+                "<span class='message'></span>"+
+            "</p>";
     	    alertsDiv.append(errorAlertHTML);
     	    errorAlert = $("#alerts_error");
     	}
@@ -311,21 +315,20 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     };
 
 
-    var optionsHTML = `
-    <div id="treeMoreOptionsSel" class="btn-group treeMoreOptions">
-       <button id="optionsBtn" type="button" class="btn btn-xs btn-default dropdown-toggle" title="Options" data-toggle="dropdown">
-           <span class="glyphicon"><img src="/public/img/customServices/ThreeDotsMenu.svg" height="20" width="20"></span>
-       </button>
-       <ul class="dropdown-menu dropdown-menu-right" role="menu">
-            <li id="editMenu" style="display:none;"><a  href="#" ng-click="editNode();">${translate('wfBuilder.menu.edit')}</a></li>
-            <li id="editWFMenu" style="display:none;"><a  href="#" ng-click="openWorkflow();">${translate('wfBuilder.menu.edit')}</a></li>
-            <li id="renameMenu" style="display:none;"><a  href="#" ng-click="renameNode();">${translate('wfBuilder.menu.rename')}</a></li>
-            <li id="deleteMenu" style="display:none;"><a  href="#" ng-click="deleteNode();">${translate('wfBuilder.menu.delete')}</a></li>
-            <li id="importExportSeparator" role="separator" class="divider" style="display:none;"></li>
-            <li id="exportMenu" style="display:none;"><a  href="#" ng-click="exportWorkflow();">${translate('wfBuilder.menu.export')}</a></li>
-       </ul>
-    </div>
-    `;
+    var optionsHTML =
+    "<div id='treeMoreOptionsSel' class='btn-group treeMoreOptions'>"+
+       "<button id='optionsBtn' type='button' class='btn btn-xs btn-default dropdown-toggle' title='Options' data-toggle='dropdown'>"+
+           "<span class='glyphicon'><img src='/public/img/customServices/ThreeDotsMenu.svg' height='20' width='20'></span>"+
+       "</button>"+
+       "<ul class='dropdown-menu dropdown-menu-right' role='menu'>"+
+            "<li id='editMenu' style='display:none;'><a  href='#' ng-click='editNode();'>"+translate('wfBuilder.menu.edit')+"</a></li>"+
+            "<li id='editWFMenu' style='display:none;'><a  href='#' ng-click='openWorkflow();'>"+translate('wfBuilder.menu.edit')+"</a></li>"+
+            "<li id='renameMenu' style='display:none;'><a  href='#' ng-click='renameNode();'>"+translate('wfBuilder.menu.rename')+"</a></li>"+
+            "<li id='deleteMenu' style='display:none;'><a  href='#' ng-click='deleteNode();'>"+translate('wfBuilder.menu.delete')+"</a></li>"+
+            "<li id='importExportSeparator' role='separator' class='divider' style='display:none;'></li>"+
+            "<li id='exportMenu' style='display:none;'><a  href='#' ng-click='exportWorkflow();'>"+translate('wfBuilder.menu.export')+"</a></li>"+
+       "</ul>"+
+    "</div>";
 
     var validActionsOnMyLib = ["addWorkflowMenu", "addShellMenu", "addLAMenu", "addRestMenu", "addFolderDivider", "addFolderMenu"]
     var validActionsOnFolder = ["editDivider", "renameMenu", "deleteMenu"]
@@ -368,7 +371,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $('#'+value).show();
         });
 
-        //TODO: check if we can avoid this search on ID
         var generated = jstreeContainer.jstree(true).get_node(nodeId, true);
         $compile(generated.contents())($scope);
     }
@@ -401,13 +403,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
         // Do not show again for selected node
         if (showOptions(nodeId, data.node.parents) && $scope.selNodeId !== nodeId) {
-            var optionsHoverHTML = `
-                <div id="treeMoreOptionsHover" class="btn-group treeMoreOptions">
-                   <button id="optionsHoverBtn" type="button" class="btn btn-xs btn-default" title="Options" ng-click="hoverOptionsClick('${nodeId}');">
-                       <span class="glyphicon"><img src="/public/img/customServices/ThreeDotsMenu.svg" height="20" width="20"></span>
-                   </button>
-                </div>
-            `;
+            var optionsHoverHTML =
+                "<div id='treeMoreOptionsHover' class='btn-group treeMoreOptions'>"+
+                   "<button id='optionsHoverBtn' type='button' class='btn btn-xs btn-default' title='Options' ng-click=\"hoverOptionsClick('" + nodeId + "');\">"+
+                       "<span class='glyphicon'><img src='/public/img/customServices/ThreeDotsMenu.svg' height='20' width='20'></span>"+
+                   "</button>"+
+                "</div>";
 
             $('[id="'+nodeId+'"]').children('a').before(optionsHoverHTML);
             var generated = jstreeContainer.jstree(true).get_node(nodeId, true);
@@ -447,25 +448,41 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.openShellScriptModal = function(){
         var scope = angular.element($('#scriptModal')).scope();
         scope.populateModal(false);
-        $('#shellPrimitiveDialog').modal('show');
+        $('#shellPrimitiveDialog').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
     }
 
     $scope.openLocalAnsibleModal = function(){
         var scope = angular.element($('#localAnsibleModal')).scope();
         scope.populateModal(false);
-        $('#localAnsiblePrimitiveDialog').modal('show');
+        $('#localAnsiblePrimitiveDialog').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
     }
 
     $scope.openRemoteAnsibleModal = function(){
         var scope = angular.element($('#remoteAnsibleModal')).scope();
         scope.populateModal(false);
-        $('#remoteAnsiblePrimitiveDialog').modal('show');
+        $('#remoteAnsiblePrimitiveDialog').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
     }
 
     $scope.openRestAPIModal = function(){
-            var scope = angular.element($('#restAPIModal')).scope();
-            scope.populateModal(false);
-            $('#restAPIPrimitiveDialog').modal('show');
+        var scope = angular.element($('#restAPIModal')).scope();
+        scope.populateModal(false);
+        $('#restAPIPrimitiveDialog').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
     }
 
     // Rename node
@@ -567,8 +584,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             if (resp.status == 200) {
                 $scope.workflowData = resp.data;
                 activateTab(elementid);
-            } else {
-                //TODO: show error for workflow failed to load
             }
         });
     }
@@ -584,7 +599,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             maxScale: 2,
             increment: 0.1,
             duration: 100
-            //TODO add contain: 'invert'
         });
 
         //DOMMouseScroll is needed for firefox
@@ -653,7 +667,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     */
     var passEndpoint = {
         endpoint: ["Image", {
-            src:"/public/img/customServices/YesDark.svg"
+            src:"/public/img/customServices/YesDark.svg",
+            height:'20',
+            width:'20'
         }],
         isSource: true,
         connector: ["Flowchart", {
@@ -666,7 +682,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     var failEndpoint = {
         endpoint: ["Image", {
-            src:"/public/img/customServices/NoDark.svg"
+            src:"/public/img/customServices/NoDark.svg",
+            height:'20',
+            width:'20'
         }],
         isSource: true,
         connector: ["Flowchart", {
@@ -689,7 +707,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     */
     function dragEndFunc(e) {
         //set ID and text within the step element
-        //TODO: retrieve stepname from step data when API is available
         var randomIdHash = Math.random().toString(36).substring(7);
 
         //compensate x,y for zoom
@@ -949,7 +966,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             } ));
         });
 
-        //TODO: return JSON data so that it can be accessed in Export/SaveWorkflow via this method
         $scope.workflowData.document.steps = blocks;
     }
 
@@ -1140,6 +1156,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     }
 
+    $scope.isEmpty = function(obj) {
+        return (obj === undefined || obj === null || Object.keys(obj).length === 0);
+    }
+
     function loadStep(step) {
         if(!step.positionY || !step.positionX){
             return;
@@ -1153,36 +1173,35 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var trimmedStepName = stepName;
         if (stepName.length > 70)
             trimmedStepName = stepName.substring(0,65)+'...';
-        var stepHTML = `
-        <div id="${stepDivID}" class="example-item-card-wrapper" ng-class="{\'highlighted\':(selectedId == '${stepId}' && menuOpen)}">
-            <div ng-if="alert.error.errorSteps.${stepId}" ng-init="checkStepErrorMessage('${stepId}')" ng-class="{'visible':alert.error.errorSteps.${stepId}.visible}" class="custom-error-popover custom-error-step-popover top">
-                <div class="arrow"></div><div ng-repeat="message in alert.error.errorSteps.${stepId}.errorMessages" class="custom-popover-content">{{message}}</div>
-            </div>
-            <span id="${stepId}-error"  class="glyphicon item-card-error-icon failure-icon" ng-if="alert.error.errorSteps.${stepId}" ng-mouseover="hoverErrorIn('${stepId}')" ng-mouseleave="hoverErrorOut('${stepId}')"></span>
-            <div  class="button-container">
-                <a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep('${stepId}')"></a>
-                <a class="glyphicon glyphicon-pencil button-step-close" ng-click="select('${stepId}')"></a>
-            </div>
-            <div id="${stepId}"  class="item">
-                <div class="step-type-image ${getStepIconClass(step.type)}">
-                </div>
-                <div class="itemText">${trimmedStepName}</div>
-            </div>
-        </div>
-        `;
+        var stepHTML =
+        "<div id="+stepDivID+" class='example-item-card-wrapper' ng-class=\"{'highlighted':(selectedId == '" + stepId + "' && menuOpen)}\">"+
+            "<div ng-if='alert.error.errorSteps." + stepId + "' ng-init='checkStepErrorMessage(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
+                "<div class='arrow'></div><div ng-repeat='message in alert.error.errorSteps."+stepId+".errorMessages' class='custom-popover-content'>{{message}}</div>"+
+            "</div>"+
+            "<span id='"+stepId+"-error'  class='glyphicon item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
+            "<div  class='button-container'>"+
+                "<a ng-click='removeStep(\"" + stepId + "\")'><div class='builder-removeStep-icon'></div></a>"+
+                "<a class='button-edit-step' ng-click='select(\"" + stepId + "\")'><div class='builder-editStep-icon'></div></a>"+
+            "</div>"+
+            "<div id='"+stepId+"'  class='item'>"+
+                "<div class='step-type-image " + getStepIconClass(step.type) + "'>"+
+                "</div>"+
+                "<div class='itemText'>"+trimmedStepName+"</div>"+
+            "</div>"+
+        "</div>";
 
         if (stepId === "Start" || stepId === "End"){
-            var stepSEHTML = `
-            <div id="${stepDivID}" class="example-item-card-wrapper">
-            <div ng-if="alert.error.errorSteps.${stepId}" style="bottom: 60px;" ng-init="checkStepErrorMessage('${stepId}')" ng-class="{'visible':alert.error.errorSteps.${stepId}.visible}" class="custom-error-popover custom-error-step-popover top">
-                <div class="arrow"></div><div ng-repeat="message in alert.error.errorSteps.${stepId}.errorMessages" class="custom-popover-content">{{message}}</div>
-            </div>
-            <span id="${stepId}-error"  class="glyphicon glyphicon-remove-sign item-card-error-icon failure-icon" ng-if="alert.error.errorSteps.${stepId}" ng-mouseover="hoverErrorIn('${stepId}')" ng-mouseleave="hoverErrorOut('${stepId}')"></span>
-                <div id="${stepId}"  class="item-start-end" ng-class="{\'highlighted\':selectedId == '${stepId}'}">
-                    <div class="itemTextStartEnd">${stepName}</div>
-                </div>
-            </div>
-            `;
+            var stepSEHTML =
+            "<div id="+stepDivID+" class='example-item-card-wrapper'>"+
+                "<div ng-if='alert.error.errorSteps." + stepId + "' style='bottom: 60px;' ng-init='checkStepErrorMessage(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
+                    "<div class='arrow'></div>"+
+                    "<div ng-repeat='message in alert.error.errorSteps."+stepId+".errorMessages' class='custom-popover-content'>{{message}}</div>"+
+                "</div>"+
+                "<span id='"+stepId+"-error'  class='glyphicon glyphicon-remove-sign item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
+                "<div id='"+stepId+"' class='item-start-end' ng-class=\"{'highlighted':selectedId == '" + stepId + "'}\">"+
+                    "<div class='itemTextStartEnd'>"+stepName+"</div>"+
+                "</div>"+
+            "</div>";
             $(stepSEHTML).appendTo(diagramContainer);
         } else {
             $(stepHTML).appendTo(diagramContainer);

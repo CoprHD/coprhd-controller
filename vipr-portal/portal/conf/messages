@@ -5082,7 +5082,7 @@ localAnsible.ansiblePackageName=Package Name
 localAnsible.name=Name
 localAnsible.description=Description
 localAnsible.ansiblePlaybook=Playbook
-localAnsible.existing=Existing Resource?
+localAnsible.existing=Existing Resource
 restAPI.primitive.add.title=Add REST API
 restAPI.primitive.edit.title=Edit REST API
 restAPIPrimitive.name=Name
@@ -5161,6 +5161,10 @@ rest.authType.basicAuth=Basic Auth
 node.delete.success=Deleted successfully
 node.create.success=Created successfully
 node.rename.success=Renamed successfully
+workflow.step.noInputs=No inputs
+workflow.step.noOutputs=No outputs
+wfBuilder.library.header=Workflow and Operation Library
+wfBuilder.tab.home.message=Create new workflow in custom library and/or edit
 
 # Workflow Builder Alerts
 wfBuilder.operation.save.success=Operation saved successfully

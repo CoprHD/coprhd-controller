@@ -76,7 +76,6 @@ public class CustomServicesService extends ViPRService {
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
     private Map<String, Object> params;
-    private String oeOrderJson;
 
     @Autowired
     private DbClient dbClient;
@@ -84,8 +83,6 @@ public class CustomServicesService extends ViPRService {
     private CustomServicesExecutors executor;
     @Autowired
     private CustomServicesViprPrimitiveDAO customServicesViprDao;
-
-    private int code;
 
     protected String decrypt(final String value) {
         if (StringUtils.isNotBlank(value)) {
@@ -183,7 +180,8 @@ public class CustomServicesService extends ViPRService {
                 next = getNext(isSuccess, res, step);
             } catch (final Exception e) {
                 logger.warn(
-                        "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:" + e);
+                        "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:", e);
+
                 next = getNext(false, null, step);
             }
             if (next == null) {
@@ -234,7 +232,7 @@ public class CustomServicesService extends ViPRService {
                 Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmd);
             }
         } catch (final Exception e) {
-            logger.error("Failed to cleanup OrderDir directory" + e);
+            logger.error("Failed to cleanup OrderDir directory", e);
         }
     }
 
@@ -332,7 +330,8 @@ public class CustomServicesService extends ViPRService {
                     case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
                            final String param;
-                            if (value.getInputFieldType().equals("password")) {
+                            if (!StringUtils.isEmpty(value.getInputFieldType()) && 
+				                value.getInputFieldType().toUpperCase().equals(CustomServicesConstants.InputFieldType.PASSWORD)) {
                                 param = decrypt(params.get(friendlyName).toString());
                             } else {
                                 param = params.get(friendlyName).toString();

@@ -207,7 +207,7 @@ public class ConsistencyGroupUtils {
     /**
      * Find all consistency groups by given alternateLabel, and return their storageControllers
      */
-    public static Set<String> findAllRRConsistencyGrroupSystemsByAlternateLabel(String label, DbClient dbClient) {
+    public static Set<String> findAllRRConsistencyGroupSystemsByAlternateLabel(String label, DbClient dbClient) {
         DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
         AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField("alternateLabel"),
                 label);

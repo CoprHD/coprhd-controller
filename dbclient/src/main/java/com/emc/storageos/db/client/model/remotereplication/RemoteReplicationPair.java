@@ -13,13 +13,10 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.NamedRelationIndex;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
-
-import javax.xml.bind.annotation.XmlTransient;
 
 @Cf("RemoteReplicationPair")
 public class RemoteReplicationPair extends DataObject implements ProjectResource {
@@ -222,5 +219,9 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
     public String toString() {
         return String.format("RR Pair id: %s, Source volume id: %s, target volume id: %s, tenant: %s, project: %s", _id,
                 sourceElement, targetElement, tenant.getName(), project.getName());
+    }
+
+    public void setLabel(String srcVol, String tgtVol) {
+        setLabel(srcVol + " -> " + tgtVol);
     }
 }

@@ -48,6 +48,7 @@ import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
 import com.emc.vipr.client.core.RemoteReplicationGroups;
+import com.emc.vipr.client.core.RemoteReplicationPairs;
 import com.emc.vipr.client.core.RemoteReplicationSets;
 import com.emc.vipr.client.core.SchedulePolicies;
 import com.emc.vipr.client.core.Site;
@@ -272,6 +273,10 @@ public class ViPRCoreClient {
 
     public RemoteReplicationSets remoteReplicationSets() {
         return new RemoteReplicationSets(client);
+    }
+
+    public RemoteReplicationPairs remoteReplicationPairs() {
+        return new RemoteReplicationPairs(client);
     }
 
     public BlockMigrations blockMigrations() {

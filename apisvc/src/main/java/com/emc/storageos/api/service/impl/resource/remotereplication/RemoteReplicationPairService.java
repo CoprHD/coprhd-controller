@@ -62,7 +62,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.svcs.errorhandling.model.StatusCoded;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
@@ -161,10 +160,10 @@ public class RemoteReplicationPairService extends TaskResourceService {
     }
 
     /**
-     * Get remote replication pairs for a given storage element.
+     * Get remote replication pairs for a given storage element (e.g.: a Volume).
      * Returns all pairs where the storage element is source or target element.
      *
-     * @param storageElementURI uri of a storage element
+     * @param storageElementURI uri of a storage element (e.g.: a Volume)
      * @return
      */
     private RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(URI storageElementURI) {
@@ -176,11 +175,13 @@ public class RemoteReplicationPairService extends TaskResourceService {
         ArgValidator.checkEntity(storageElement, storageElementURI, false);
 
         List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
-                queryActiveResourcesByRelation(_dbClient, storageElementURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
+                queryActiveResourcesByRelation(_dbClient, storageElementURI,
+                        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
                         "sourceElement");
 
         List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairsForTarget =
-                queryActiveResourcesByRelation(_dbClient, storageElementURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
+                queryActiveResourcesByRelation(_dbClient, storageElementURI,
+                        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
                         "targetElement");
         rrPairs.addAll(rrPairsForTarget);
         _log.info("Found pairs: {}", rrPairs);

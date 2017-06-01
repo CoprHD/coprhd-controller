@@ -39,13 +39,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.mapper.RemoteReplicationMapper;
+import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -55,6 +56,8 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupList;
+import com.emc.storageos.model.block.NamedRelatedBlockConsistencyGroupRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
@@ -69,8 +72,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
-import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
-import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher;
 
 @Path("/vdc/block/remotereplicationsets")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
@@ -271,11 +272,11 @@ public class RemoteReplicationSetService extends TaskResourceService {
             return result;
         }
         Set<String> targetCGSystemsSet = ConsistencyGroupUtils
-                .findAllRRConsistencyGrroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
+                .findAllRRConsistencyGroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
         Iterator<RemoteReplicationSet> sets = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
+        StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cGroup.getStorageController());
         while (sets.hasNext()) {
             RemoteReplicationSet rrSet = sets.next();
-            StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cGroup.getStorageController());
             if (!StringUtils.equals(cgSystem.getSystemType(), rrSet.getStorageSystemType())) {
                 // Pass ones whose storage system type is not aligned with consistency group
                 continue;
@@ -289,6 +290,53 @@ public class RemoteReplicationSetService extends TaskResourceService {
                 continue;
             }
             result.getRemoteReplicationSets().add(toNamedRelatedResource(rrSet));
+        }
+        return result;
+    }
+
+
+    /**
+     * Get consistency groups for a given remote replication set
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("{id}/consistency-groups")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public BlockConsistencyGroupList getRemoteReplicationSetCGs(@PathParam("id") URI id) {
+
+        _log.info("Called: getRemoteReplicationSetCGs() with id {}", id);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
+        BlockConsistencyGroupList result = new BlockConsistencyGroupList();
+        RemoteReplicationSet rrSet = queryResource(id);
+
+        List<URI> storageSystemsForSet = URIUtil.toURIList(rrSet.getSourceSystems());
+        if (storageSystemsForSet == null) {
+            return result;
+        }
+
+        List<URI> cgs = new ArrayList<>();
+        for(URI storageSystemUri : storageSystemsForSet ) {
+            URIQueryResultList cgsForStorageSystem = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                    getStorageSystemConsistencyGroupConstraint(storageSystemUri),cgsForStorageSystem);
+            Iterator<URI> itr = cgsForStorageSystem.iterator();
+            while (itr.hasNext()) {
+                cgs.add(itr.next());
+            }
+        }
+
+        for (URI uri : cgs) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, uri);
+
+            Set<String> targetCGSystemsSet = ConsistencyGroupUtils
+                    .findAllRRConsistencyGroupSystemsByAlternateLabel(cg.getLabel(), _dbClient);
+            if (!rrSet.getTargetSystems().containsAll(targetCGSystemsSet)) {
+                continue; // CG systems not all in RR Set's target systems
+            }
+
+            result.getConsistencyGroupList().add(
+                    new NamedRelatedBlockConsistencyGroupRep(cg.getId(), DbObjectMapper.toLink(cg),
+                            cg.getLabel(), null));
         }
         return result;
     }
@@ -342,7 +390,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             _log.info("Found total pairs: {}", rrPairs.size());
             int size = 0;
             for (RemoteReplicationPair rrPair : rrPairs) {
-                if(rrPair.getReplicationGroup() == null) {
+                if((rrPair.getReplicationGroup() == null) && !rrPair.isInCG(_dbClient)) {
                     // return only pairs directly in replication set
                     rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(rrPair));
                     size++;

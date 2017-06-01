@@ -22,7 +22,7 @@ public class FilePolicyList {
     // List of schedule policies
     private List<FilePolicyRestRep> filePolicies;
 
-    @XmlElement(name = "file_policy")
+    @XmlElement(name = "file_policies")
     public List<FilePolicyRestRep> getFilePolicies() {
         return filePolicies;
     }

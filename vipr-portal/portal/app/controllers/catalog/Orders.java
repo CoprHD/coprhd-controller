@@ -17,6 +17,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
@@ -45,6 +46,7 @@ import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.Tasks;
@@ -507,6 +509,8 @@ public class Orders extends OrderExecution {
 
         public Map<URI, String> viprTaskStepMessages;
 
+        public Set<String> viprTaskWarningMessages;
+
         public OrderDetails(String orderId) {
             order = OrderUtils.getOrder(uri(orderId));
             orderParameters = order.getParameters();
@@ -522,6 +526,7 @@ public class Orders extends OrderExecution {
             List<SearchResultResourceRep> searchResults = client.tasks().performSearchBy("tag", TagUtils.createOrderIdTag(orderId));
             viprTasks = client.tasks().getByRefs(searchResults);
             setTaskStepMessages();
+            setTaskWarningMessages();
 
             checkLastUpdated(viprTasks);
 
@@ -555,6 +560,15 @@ public class Orders extends OrderExecution {
                         scheduledEvent.getScheduleInfo().getMinuteOfHour());
                 DateTime startDateTime = DateTime.parse(isoDateTimeStr);
                 scheduleStartDateTime = startDateTime.toDate();
+            }
+        }
+
+        private void setTaskWarningMessages() {
+            viprTaskWarningMessages = Sets.newHashSet();
+            for (TaskResourceRep task : viprTasks) {
+                if (task != null && task.getWarningMessages() != null && !task.getWarningMessages().isEmpty()) {
+                    viprTaskWarningMessages.addAll(task.getWarningMessages());
+                }
             }
         }
 

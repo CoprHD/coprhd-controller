@@ -43,11 +43,11 @@ public class IvrZoneset extends BaseZoneInfo {
      * @param zoneMember
      * @return
      */
-    public boolean contains(IvrZoneMember zoneMember) {
+    public boolean contains(IvrZone zone) {
 
         boolean contained = false;
         for (IvrZone ivrZone : getZones()) {
-            if (ivrZone.contains(zoneMember)) {
+            if (ivrZone.equals(zone)) {
                 contained = true;
                 break;
             }

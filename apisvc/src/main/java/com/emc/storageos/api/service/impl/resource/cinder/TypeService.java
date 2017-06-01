@@ -191,6 +191,7 @@ public class TypeService extends TaskResourceService {
      * @prereq none
      * @param tenant_id the URN of the tenant
      * @param volume_type_id the URN of the volume type
+     * @brief Delete a specific volume type
      * @return error
      */
     @DELETE

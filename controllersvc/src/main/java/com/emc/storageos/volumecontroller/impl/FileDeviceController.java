@@ -70,6 +70,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -102,6 +103,7 @@ import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
@@ -4816,6 +4818,32 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             WorkflowStepCompleter.stepFailed(opId, error);
         }
+    }
+
+    /**
+     * Fail-over FileSystem when the filePolicy is applied at vPool/Project
+     */
+    public void failoverWhenRepPolicyAtHigherDir(URI sourceFileShareURI, URI tempTargetFSURI, URI filePolicyURI, String taskId) {
+        _log.info("Generating Steps for Failover of file system when the policy is applied at vPool/Project level");
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(sourceFileShareURI, taskId);
+        Workflow workflow = null;
+        try {
+            FileShare sourceFS = _dbClient.queryObject(FileShare.class, sourceFileShareURI);
+            VirtualPool sourceVP = _dbClient.queryObject(VirtualPool.class, sourceFS.getVirtualPool());
+            Project sourceProject = _dbClient.queryObject(Project.class, sourceFS.getProject().getURI());
+            FilePolicy fp = _dbClient.queryObject(FilePolicy.class, filePolicyURI);
+            String syncPolicyName = fp.getLabel() + "_FailoverTempPolicyAtTarget";
+            String tempTargetPath = FileOrchestrationUtils.buildTempTargetPathForHigherOrderFailover(sourceFS, sourceVP, sourceProject, fp);
+            StorageSystem targetSystem = FileOrchestrationUtils.getTargetSystemFromSourceFS(_dbClient, sourceFS, sourceProject, sourceVP);
+            String targetPath = FileOrchestrationUtils.buildTargetPathFromSourceFS(_dbClient, sourceFS, sourceProject, sourceVP, fp);
+
+            BiosCommandResult result = getDevice(targetSystem.getSystemType()).failoverAtHigherLevel(targetPath, tempTargetPath,
+                    targetSystem, tempTargetFSURI, syncPolicyName);
+
+        } catch (Exception e) {
+
+        }
+
     }
 
     @Override

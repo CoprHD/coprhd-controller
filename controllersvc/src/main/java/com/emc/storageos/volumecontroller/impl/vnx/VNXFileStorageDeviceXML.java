@@ -300,7 +300,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -1001,7 +1001,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1557,6 +1557,13 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult failoverAtHigherLevel(String targetPath, String tempTargetPath, StorageSystem targetSystem, URI tempTargetFsId,
+            String FilePolicyName) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }

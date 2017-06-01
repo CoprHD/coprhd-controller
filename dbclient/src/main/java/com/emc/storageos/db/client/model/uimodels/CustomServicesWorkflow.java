@@ -113,11 +113,13 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
         for (URI primitiveUri : primitives) {
             getPrimitives().add(primitiveUri.toString());
         }
+        setChanged(PRIMITIVES);
     }
 
     public void removePrimitives(final List<URI> primitives) {
         for (URI primitiveUri : primitives) {
             getPrimitives().remove(primitiveUri.toString());
         }
+        setChanged(PRIMITIVES);
     }
 }

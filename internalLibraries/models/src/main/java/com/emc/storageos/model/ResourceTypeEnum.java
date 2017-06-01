@@ -102,8 +102,8 @@ public enum ResourceTypeEnum {
     ACTIONABLE_EVENT("actionable_event", "/vdc/events"),
     CUSTOM_SERVICES_WORKFLOW("custom_services_workflow", "/workflows"),
     WF_DIRECTORY("wf_directory", "/workflow/directory"),
-    CUSTOM_SERVICES_PRIMTIVES("custom_services_primitives", "/primitives"),
-    CUSTOM_SERVICES_PRIMTIVE_RESOURCES("custom_services_primitive_resources", "/primitives/resource");
+    CUSTOM_SERVICES_PRIMITIVES("custom_services_primitives", "/primitives"),
+    CUSTOM_SERVICES_PRIMITIVE_RESOURCES("custom_services_primitive_resources", "/primitives/resource");
 
     private static final Map<String, ResourceTypeEnum> resourceMap = new HashMap<String, ResourceTypeEnum>();
 

@@ -729,6 +729,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     }
 
+    // Function to generate UUID for step Id that compliant with RFC-4122 version 4
     function generateUUID () {
         var d = new Date().getTime();
         if (typeof performance !== 'undefined' && typeof performance.now === 'function'){

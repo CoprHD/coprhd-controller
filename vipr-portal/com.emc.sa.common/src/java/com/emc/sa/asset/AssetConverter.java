@@ -58,7 +58,7 @@ public class AssetConverter {
         @Override
         public Object convert(Class type, Object value) {
             final String thisString = value.toString();
-            // String parameters mayl have quotes on them - remove them for Asset Providers
+            // String parameters may have quotes on them - remove them for Asset Providers
             // Note: it may be desirable to have parameter fields of type String containing
             // URIs (if sometimes non-URI values are desired in a field that typically has URIs).
             // Remove quotes so asset providers can properly handle the values

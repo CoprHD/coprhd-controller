@@ -61,10 +61,14 @@ public class CompressionMatcher extends AttributeMatcher {
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
-        boolean status = false;       
-        if (null != attributeMap && attributeMap.containsKey(Attributes.compression_enabled.toString()) && 
-        	(boolean) attributeMap.get(Attributes.compression_enabled.toString())) {        
-        	 	status = true;
+        boolean status = false;
+        if (null != attributeMap && attributeMap.containsKey(Attributes.system_type.toString())
+                && ((StringSet) attributeMap.get(Attributes.system_type.toString()))
+                        .contains(VirtualPool.SystemType.vmax.toString())) {
+            if (attributeMap.containsKey(Attributes.compression_enabled.toString()) &&
+                    (boolean) attributeMap.get(Attributes.compression_enabled.toString())) {
+                status = true;
+            }
         }
         return status;
     }

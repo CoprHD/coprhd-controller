@@ -149,6 +149,22 @@ public interface FileStorageDevice {
      */
     public BiosCommandResult doExpandFS(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
+    
+    
+    
+    
+    
+    /**
+     * 
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd)
+            throws ControllerException;
 
     /**
      * 

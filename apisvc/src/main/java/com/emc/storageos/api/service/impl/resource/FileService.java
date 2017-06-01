@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
@@ -72,6 +73,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
@@ -133,6 +135,7 @@ import com.emc.storageos.model.file.FileSystemExportList;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemMountParam;
 import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.model.file.FileSystemReduceParam;
 import com.emc.storageos.model.file.FileSystemReplicationSettings;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
@@ -189,6 +192,7 @@ public class FileService extends TaskResourceService {
     protected static final String PROTOCOL_CIFS = "CIFS";
     private static final Long MINUTES_PER_HOUR = 60L;
     private static final Long HOURS_PER_DAY = 24L;
+    protected static final String SEPARATOR = "::";
 
     @Override
     public String getServiceType() {
@@ -349,6 +353,11 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+
+        // Check for duplicate file system in this project
+        if (param.getLabel() != null && !param.getLabel().isEmpty()) {
+            checkForDuplicateName(param.getLabel(), FileShare.class, id, "project", _dbClient);
+        }
 
         return createFSInternal(param, project, tenant, null);
 
@@ -1289,6 +1298,86 @@ public class FileService extends TaskResourceService {
     }
 
     /**
+     * Reduce file system quota -- supported only on Isilon
+     * 
+     * @param id - the URN of a ViPR File system
+     * @param param - File system reduction parameters
+     * @return Task resource representation
+     * @throws InternalException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/reduce")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep reduce(@PathParam("id") URI id, FileSystemReduceParam param)
+            throws InternalException {
+        _log.info(String.format(
+                "FileShareReduce --- FileShare id: %1$s, New Quota: %2$s", id, param.getNewSize()));
+        // check file system
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        if (!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
+            throw APIException.badRequests.reduceFileSystemNotSupported(id, "Reduction of filesystem quota is supported only on Isilon");
+        }
+
+        Long newFSsize = SizeUtil.translateSize(param.getNewSize());
+        long quotaFsSize = newFSsize - fs.getCapacity();
+        final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
+
+        if (newFSsize <= 0) {
+            throw APIException.badRequests.parameterMustBeGreaterThan("new_size", 0);
+        } else {
+            if (quotaFsSize < MIN_EXPAND_SIZE) {
+                List<QuotaDirectory> quotaDirs = queryDBQuotaDirectories(fs);
+                if (null != quotaDirs && !quotaDirs.isEmpty()) {
+                    long qdsize = 0;
+                    // we will check sub quotas of filesystem
+                    // that new size should not be less than any of the sub quota.
+                    for (QuotaDirectory quotaDir : quotaDirs) {
+                        qdsize = newFSsize - quotaDir.getSize();
+
+                        if (qdsize < MIN_EXPAND_SIZE) {
+                            String msg = String
+                                    .format("filesystem is reduced to a size lesser than sub quota. Quota Path: %s, current capacity: %d",
+                                            quotaDir.getPath(), quotaDir.getSize());
+                            throw APIException.badRequests.reduceFileSystemNotSupported(id, msg);
+                        }
+                    }
+                }
+            } else {
+                throw APIException.badRequests.parameterMustBeLessThan("new_size", fs.getCapacity());
+            }
+        }
+
+        String task = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.REDUCE_FILE_SYSTEM);
+        op.setDescription("Filesystem reduce quota");
+
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        try {
+            fileServiceApi.reduceFileShareQuota(fs, newFSsize, task);
+        } catch (InternalException e) {
+            if (_log.isErrorEnabled()) {
+                _log.error("Reduce File Quota error", e);
+            }
+
+            fs = _dbClient.queryObject(FileShare.class, fs.getId());
+            op = fs.getOpStatus().get(task);
+            op.error(e);
+            fs.getOpStatus().updateTaskStatus(task, op);
+            _dbClient.updateObject(fs);
+            throw e;
+        }
+
+        return toTask(fs, task, op);
+    }
+
+    /**
      * Expand file system.
      * <p>
      * NOTE: This is an asynchronous operation.
@@ -1548,11 +1637,11 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskResourceRep snapshot(@PathParam("id") URI id, FileSystemSnapshotParam param) throws InternalException {
-        String task = UUID.randomUUID().toString();
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (vpool == null) {
@@ -1581,6 +1670,7 @@ public class FileService extends TaskResourceService {
         fs.setOpStatus(new OpStatusMap());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT);
+        String task = UUID.randomUUID().toString();
         snap.getOpStatus().createTaskStatus(task, op);
         fs.getOpStatus().createTaskStatus(task, op);
         _dbClient.createObject(snap);
@@ -2343,7 +2433,7 @@ public class FileService extends TaskResourceService {
 
         return toTask(fs, task, op);
     }
-    
+
     /**
      * Get File Share ACLs
      * 
@@ -2385,7 +2475,7 @@ public class FileService extends TaskResourceService {
         return acls;
 
     }
-    
+
     /**
      * Delete File Share ACL
      * 
@@ -2614,9 +2704,9 @@ public class FileService extends TaskResourceService {
      * Change File System Virtual Pool
      * 
      * @param id
-     *          the URN of a ViPR fileSystem
+     *            the URN of a ViPR fileSystem
      * @param param
-     * 			File System Virtual Pool Change parameter
+     *            File System Virtual Pool Change parameter
      * @brief Change a file systems virtual pool
      * @desc Add the file system to a different virtual pool.
      * @return TaskResponse
@@ -2737,14 +2827,14 @@ public class FileService extends TaskResourceService {
         }
         return fileSystemTask;
     }
-    
+
     /**
      * Create Continuous Copies
      * 
      * @param id
-     *          the URN of a ViPR fileSystem
+     *            the URN of a ViPR fileSystem
      * @param param
-     * 			File Replication Create parameter
+     *            File Replication Create parameter
      * @brief Define continuous copies
      * @return TaskResponse
      * @throws InternalException
@@ -2871,9 +2961,9 @@ public class FileService extends TaskResourceService {
      * Deactivate Continuous Copies
      * 
      * @param id
-     *          the URN of a ViPR fileSystem
+     *            the URN of a ViPR fileSystem
      * @param param
-     * 			File System Delete parameter
+     *            File System Delete parameter
      * @brief Delete continuous copies
      * @return TaskResponse
      * @throws InternalException
@@ -4503,8 +4593,42 @@ public class FileService extends TaskResourceService {
         } else {
             targetVArrys.add(sourceVarray.getId().toString());
         }
+        URI targetvPool = null;
+        // Get the existing topologies for the policy
+        if (filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
+            for (String strTopology : filePolicy.getReplicationTopologies()) {
+                FileReplicationTopology dbTopology = _dbClient.queryObject(FileReplicationTopology.class,
+                        URI.create(strTopology));
+                Set<String> dbTargetVArrys = new HashSet<String>();
+                if (dbTopology != null && sourceVarray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
+                    dbTargetVArrys.addAll(dbTopology.getTargetVArrays());
+                    if (dbTargetVArrys.containsAll(targetVArrys)) {
+                        // find a target virtual pool
+                        // Target virtual pool is required only for policies
+                        // which are created from older release remote replication vpool
+                        for (String targetVarray : targetVArrys) {
+                            if (dbTopology.getTargetVAVPool() != null && !dbTopology.getTargetVAVPool().isEmpty()) {
+                                String[] vavPool = dbTopology.getTargetVAVPool().split(SEPARATOR);
+                                if (vavPool != null && vavPool.length > 1 && targetVarray.equalsIgnoreCase(vavPool[0])) {
+                                    String strvPool = vavPool[1];
+                                    VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, URI.create(strvPool));
+                                    if (vPool != null && !vPool.getInactive()) {
+                                        targetvPool = vPool.getId();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
         capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS, targetVArrys);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
+        if (targetvPool != null) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, targetvPool);
+        } else {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
+        }
 
         FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
 

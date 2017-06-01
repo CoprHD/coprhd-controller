@@ -118,7 +118,7 @@ public class AddHostToClusterService extends ViPRService {
         }
         acquireClusterLock(cluster);
 
-        preCheckErrors = verifyClusterInVcenter(cluster, preCheckErrors);
+        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
 
         if (hostNames == null || hostNames.isEmpty() || hostIps == null || hostIps.isEmpty()) {
             preCheckErrors.append(
@@ -546,93 +546,4 @@ public class AddHostToClusterService extends ViPRService {
         this.copyOfHostNames = copyOfHostNames;
     }
 
-    /**
-     * Precheck to verify if cluster is associated to a datacenter and if it still
-     * on the same datacenter and vcenter.  Precheck fails the order if the cluster
-     * has datacenter association and is not found on the vcenter under the same datacenter
-     * If cluster does not have a datacenter association, then the cluster is
-     * a vipr cluster and precheck passes.
-     * @param cluster {@link Cluster} cluster instance
-     * @param preCheckErrors {@link StringBuilder} instance
-     * @return preCheckErrors
-     */
-    private StringBuilder verifyClusterInVcenter(Cluster cluster, StringBuilder preCheckErrors) {
-         //Precheck to verify if cluster has a datacenter and if the cluster still is on same datacenter in vcenter
-        //else fail order
-        if (!NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
-            VcenterDataCenter dataCenter = execute(new GetVcenterDataCenter(cluster.getVcenterDataCenter()));
-            if (dataCenter != null && !dataCenter.getInactive()) {
-                if (!NullColumnValueGetter.isNullURI(dataCenter.getVcenter())) {
-                    Vcenter vcenter = execute(new GetVcenter(dataCenter.getVcenter()));
-
-                    if (vcenter != null && !vcenter.getInactive()) {
-                        VMwareSupport vmware = null;
-                        try {
-                            vmware = new VMwareSupport();
-                            vmware.connect(vcenter.getId());
-                            ClusterComputeResource vcenterCluster = vmware.getCluster(dataCenter.getLabel(),
-                                    cluster.getLabel(), false);
-                            if (null != vcenterCluster) {
-                                ExecutionUtils.currentContext().logInfo(
-                                        "compute.cluster.precheck.cluster.VcenterDataCenter.found.in.vcenter",
-                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
-                            } else {
-                                preCheckErrors.append(ExecutionUtils.getMessage(
-                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
-                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));
-                            }
-
-                        } catch (ExecutionException e) {
-                            if (e.getCause() instanceof IllegalStateException) {
-                                ExecutionUtils.currentContext().logError(
-                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
-                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
-                                preCheckErrors.append(ExecutionUtils.getMessage(
-                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
-                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));
-                            } else {
-                                // If it's anything other than the
-                                // IllegalStateException, re-throw the base
-                                // exception
-                                throw e;
-                            }
-                        } finally {
-                            if (vmware != null) {
-                                vmware.disconnect();
-                            }
-                        }
-                    } else {
-                        // If the vcenter isn't returned properly, not found in
-                        // DB, but the cluster has a reference to
-                        // it, there's an issue with the sync of the DB object.
-                        // Do not allow the validation to pass
-                        // until that's fixed.
-                        preCheckErrors.append(ExecutionUtils.getMessage(
-                                "compute.cluster.precheck.cluster.VcenterDataCenter.improper.vcenter",
-                                dataCenter.getVcenter()));
-                    }
-                } else {
-                    // If datacenter does not have reference to a vcenter then
-                    // there's an issue with the sync of the DB object. Do not allow the validation to pass
-                    // until that's fixed.
-                    preCheckErrors.append(
-                            ExecutionUtils.getMessage("compute.cluster.precheck.cluster.VcenterDataCenter.noVcenter",
-                                    dataCenter.getLabel()));
-                }
-            } else {
-                // If the datacenter isn't returned properly, not found in DB,
-                // but the cluster has a reference to
-                // it, there's an issue with the sync of the DB object. Do not
-                // allow the validation to pass
-                // until that's fixed.
-                preCheckErrors.append(ExecutionUtils.getMessage(
-                        "compute.cluster.precheck.cluster.improper.VcenterDataCenter", cluster.getVcenterDataCenter()));
-            }
-        } else {
-            // cluster is a vipr cluster only no need to check anything further.
-            ExecutionUtils.currentContext().logInfo("compute.cluster.precheck.cluster.noVCenterDataCenter",
-                    cluster.getLabel());
-        }
-        return preCheckErrors;
-    }
 }

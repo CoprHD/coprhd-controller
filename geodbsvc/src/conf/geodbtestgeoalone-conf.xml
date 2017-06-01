@@ -50,6 +50,7 @@
     <bean id="unencryptedGeoDbContext" class="com.emc.storageos.db.client.impl.DbClientContext">
         <property name="clusterName" value="GeoStorageOS"/>
         <property name="keyspaceName" value="GeoStorageOS"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
 
     <bean id="dbclient" class="com.emc.storageos.db.client.upgrade.InternalDbClient">
@@ -58,6 +59,7 @@
         <property name="bypassMigrationLock" value="true"/>
         <property name="geoContext" ref="unencryptedGeoDbContext"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
     
     <bean id="globalGC" class="com.emc.storageos.db.gc.GlobalGCExecutorLoop">

@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.linux.tasks;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.iwave.ext.linux.command.UnmountCommand;
 
 public class UnmountPath extends LinuxExecutionTask<Void> {
@@ -16,8 +17,12 @@ public class UnmountPath extends LinuxExecutionTask<Void> {
 
     @Override
     public void execute() throws Exception {
-        UnmountCommand command = new UnmountCommand();
-        command.setPath(path);
-        executeCommand(command, SHORT_TIMEOUT);
+        try {
+            UnmountCommand command = new UnmountCommand();
+            command.setPath(path);
+            executeCommand(command, SHORT_TIMEOUT);
+        } catch (Exception ex) {
+            ExecutionUtils.fail("failTask.UnmountPath", new Object[] { path }, path, path);
+        }
     }
 }

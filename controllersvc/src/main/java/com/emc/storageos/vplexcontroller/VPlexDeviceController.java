@@ -78,6 +78,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -9881,11 +9882,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
-     * Returns the Varray that are hosting a set of Volumes.
+     * Returns the VirtualArray that is hosting a set of Volumes.
      *
+     * @param array
+     *            The backend StorageSystem whose volumes are being checked.
      * @param volumes
      *            Collection of volume URIs
-     * @return Varray of these volumes
+     * @return VirtualArray URI of these volumes
+     * @throws ControllerException if multiple varrays found
      */
     private URI getVolumesVarray(StorageSystem array, Collection<Volume> volumes)
             throws ControllerException {
@@ -9895,8 +9899,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 if (varray == null) {
                     varray = volume.getVirtualArray();
                 } else if (!varray.equals(volume.getVirtualArray())) {
+                    VirtualArray varray1 = _dbClient.queryObject(VirtualArray.class, varray);
+                    VirtualArray varray2 = _dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
                     DeviceControllerException ex = DeviceControllerException.exceptions.multipleVarraysInVPLEXExportGroup(
-                            array.getId().toString(), varray.toString(), volume.getVirtualArray().toString());
+                            array.forDisplay(), 
+                            varray1 != null ? varray1.forDisplay() : varray.toString(), 
+                            varray2 != null ? varray2.forDisplay() : volume.getVirtualArray().toString());
                     _log.error("Multiple varrays connecting VPLEX to array", ex);
                     throw ex;
                 }

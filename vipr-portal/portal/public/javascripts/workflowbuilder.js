@@ -707,8 +707,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     */
     function dragEndFunc(e) {
         //set ID and text within the step element
-        var randomIdHash = Math.random().toString(36).substring(7);
-
+        var randomIdHash = generateUUID ();
         //compensate x,y for zoom
         var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
         var y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
@@ -732,6 +731,19 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.modified = true;
         loadStep(stepData);
 
+    }
+
+    // Function to generate UUID for step Id that compliant with RFC-4122 version 4
+    function generateUUID () {
+        var d = new Date().getTime();
+        if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
+            d += performance.now(); //use high-precision timer if available
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = (d + Math.random() * 16) % 16 | 0;
+            d = Math.floor(d / 16);
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
     }
 
     $scope.getInputOptions=function(id){

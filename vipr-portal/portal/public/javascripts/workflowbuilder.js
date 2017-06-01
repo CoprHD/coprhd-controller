@@ -6,6 +6,7 @@ var localAnsibleNodeType = "ansible"
 var restAPINodeType = "rest"
 var viprRestAPINodeType = "vipr";
 var remoteAnsibleNodeType = "remote_ansible"
+var ASSET_TYPE_OPTIONS;
 
 angular.module("portalApp").controller('builderController', function($scope, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
     $rootScope.$on("addWorkflowTab", function(event, id, name){
@@ -25,7 +26,14 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         delete $scope.workflowTabs[tabID];
         $(".workflow-nav-tabs li").children('a').first().click();
     };
-})
+
+    $http.get(routes.Workflow_getAssetOptions()).then(function (resp) {
+        if (resp.status == 200) {
+            ASSET_TYPE_OPTIONS = resp.data;
+        }
+    });
+ })
+
 .controller('treeController', function($element, $scope, $compile, $http, $rootScope, translate) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     $scope.libOpen = true;
@@ -555,7 +563,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var INPUT_FIELD_OPTIONS = ['text','number','boolean','password'];
     var INPUT_TYPE_OPTIONS_REQUIRED = ['InputFromUser','AssetOptionMulti','AssetOptionSingle','InputFromUserMulti','FromOtherStepOutput','FromOtherStepInput'];
     var INPUT_TYPE_OPTIONS = ['Disabled'];
-    var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project','assetType.vipr.host'];
+
 
     var RELATIONSHIP_MAP = {};
     var STEP_INPUT_MAP = {};
@@ -581,6 +589,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.initializeWorkflowData = function(workflowInfo) {
         var elementid = workflowInfo.id.replace(/:/g,'');
         $http.get(routes.Workflow_get({workflowId: workflowInfo.id})).then(function (resp) {
+
             if (resp.status == 200) {
                 $scope.workflowData = resp.data;
                 activateTab(elementid);

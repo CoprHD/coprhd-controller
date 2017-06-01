@@ -152,4 +152,18 @@ public interface ExportMaskOperations {
      */
     public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
             TaskCompleter completer);
+    
+    /**
+     * Find the export mask for port group change. This call will find an existing export mask in the array, and look up in the 
+     * ViPR DB to find the corresponding export mask, if not found in vipr, create one
+     * 
+     * @param storage - Storage system
+     * @param initiatorNames - All initiator names in the export mask
+     * @param portGroupURI - The port group URI will be changed to
+     * @return - Found or created export mask
+     * @throws DeviceControllerException
+     */
+    public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
+            List<String> initiatorNames,
+            URI portGroupURI) throws DeviceControllerException;
 }

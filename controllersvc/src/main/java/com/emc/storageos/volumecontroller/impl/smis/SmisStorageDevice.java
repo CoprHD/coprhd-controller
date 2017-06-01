@@ -3370,10 +3370,17 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
     
+    @Override
     public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
             TaskCompleter completer) {
         _log.info("{} doExportChangePortGroup START ...", storage.getSerialNumber());
         _exportMaskOperationsHelper.changePortGroupAddPaths(storage, newMaskURI, oldMaskURI, portGroupURI, completer);
         _log.info("{} doExportChangePortGroup END ...", storage.getSerialNumber());
+    }
+    
+    public ExportMask findExportMasksForPortGroupChange(final StorageSystem storage,
+            final List<String> initiatorNames, final URI portGroupURI) throws DeviceControllerException {
+        return _exportMaskOperationsHelper.findExportMasksForPortGroupChange(storage, initiatorNames,
+                portGroupURI);
     }
 }

@@ -5556,11 +5556,125 @@ public class VmaxExportOperations implements ExportMaskOperations {
                      SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
              createMaskingView(storage, newMaskURI, newMask.getMaskName(), storageGroupPath,
                      new VolumeURIHLU[0], targetPortGroupPath, igPath, completer);
-         
+                      
          } catch (Exception e) {
              _log.error(String.format("change port group failed %s", oldMaskURI.toString()), e);
              ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
              completer.error(_dbClient, serviceError);
          }
+     }
+     
+     @Override
+     public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
+             List<String> initiatorNames,
+             URI portGroupURI) throws DeviceControllerException {
+         long startTime = System.currentTimeMillis();
+         ExportMask exportMask = null;
+         CloseableIterator<CIMInstance> maskInstanceItr = null;
+         try {
+             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+             WBEMClient client = _helper.getConnection(storage).getCimClient();
+             CIMObjectPath targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroup.getLabel(),
+                     SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+             
+             // Find out if there is a MaskingView associated with the portGroup ...
+             maskInstanceItr = _helper.getAssociatorInstances(storage, targetPortGroupPath, null, SmisConstants.SYMM_LUN_MASKING_VIEW, null,
+                     null, SmisConstants.PS_LUN_MASKING_CNTRL_NAME_AND_ROLE);
+             
+             while (maskInstanceItr.hasNext()) {
+                 // Found a MaskingView ...
+                 CIMInstance instance = maskInstanceItr.next();
+                 String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
+                 CIMProperty<String> deviceIdProperty = (CIMProperty<String>) instance.getObjectPath()
+                         .getKey(SmisConstants.CP_DEVICE_ID);
+                 // Find all the initiators associated with the MaskingView
+                 List<String> initiatorPorts = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
+                 if (initiatorPorts.size() == initiatorNames.size() &&
+                         initiatorPorts.containsAll(initiatorNames)) {
+                     // This is the match export mask
+                     // Look up ExportMask by deviceId/name and storage URI
+                     exportMask = ExportMaskUtils.getExportMaskByName(_dbClient, storage.getId(), name);
+                     boolean foundMaskInDb = (exportMask != null);
+                     // create a new one if not found
+                     if (!foundMaskInDb) {
+                         exportMask = new ExportMask();
+                         exportMask.setMaskName(name);
+                         exportMask.setNativeId(deviceIdProperty.getValue());
+                         exportMask.setStorageDevice(storage.getId());
+                         exportMask.setId(URIUtil.createId(ExportMask.class));
+                         exportMask.setCreatedBySystem(false);
+                         exportMask.setPortGroup(portGroupURI);
+                     }
+                     for (String portName : initiatorPorts) {
+                         Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(portName), _dbClient);
+                         if (existingInitiator != null) {
+                             exportMask.addInitiator(existingInitiator);
+                             exportMask.addToUserCreatedInitiators(existingInitiator);
+                             exportMask.removeFromExistingInitiators(existingInitiator);
+                         }
+                     }
+                     // Update the volumes
+                     Map<String, Integer> volumeWWNs = _helper.getVolumesFromLunMaskingInstance(client, instance);
+                     if (!CollectionUtils.isEmpty(exportMask.getExistingVolumes())) {
+                         exportMask.getExistingVolumes().clear();
+                     }
+                     exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
+
+                     // Update the volumes list to include existing volumes if we know about them (and remove from existing)
+                     if (volumeWWNs != null) {
+                         for (Entry<String, Integer> entry : volumeWWNs.entrySet()) {
+                             String wwn = entry.getKey();
+                             URIQueryResultList results = new URIQueryResultList();
+                             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                     .getVolumeWwnConstraint(wwn.toUpperCase()), results);
+                             if (results != null) {
+                                 Iterator<URI> resultsIter = results.iterator();
+                                 if (resultsIter.hasNext()) {
+                                     Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
+                                     if (volume != null) {
+                                         Integer hlu = volumeWWNs.get(wwn);
+                                         if (hlu == null) {
+                                             _log.warn(String
+                                                     .format(
+                                                             "The HLU for %s could not be found from the provider. Setting this to -1 (Unknown).",
+                                                             wwn));
+                                             hlu = -1;
+                                         }
+                                         exportMask.addVolume(volume.getId(), hlu);
+                                         exportMask.removeFromExistingVolumes(volume);
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                     // Grab the storage ports that have been allocated for this
+                     // existing mask and add them.
+                     List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
+                             instance);
+                     List<String> storagePortURIs = ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts);
+                     exportMask.setStoragePorts(storagePortURIs);
+                     if (foundMaskInDb) {
+                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
+                         _dbClient.updateObject(exportMask);
+                     } else {
+                         _dbClient.createObject(exportMask);
+                     }
+                     break;
+                 }
+             }
+             
+         } catch (Exception e) {
+             String msg = "Error when attempting to query LUN masking information: " + e.getMessage();
+             _log.error(MessageFormat.format("Encountered an SMIS error when attempting to query existing exports: {0}", msg), e);
+
+             throw SmisException.exceptions.queryExistingMasksFailure(msg, e);
+         } finally {
+             if (maskInstanceItr != null) {
+                 maskInstanceItr.close();
+             }
+             long totalTime = System.currentTimeMillis() - startTime;
+             _log.info(String.format("findExportMasksForPortGroup took %f seconds", (double) totalTime / (double) 1000));
+         }
+         return exportMask;
      }
 }

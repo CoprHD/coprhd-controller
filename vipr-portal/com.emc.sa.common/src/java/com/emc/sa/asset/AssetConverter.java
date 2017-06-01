@@ -22,6 +22,8 @@ public class AssetConverter {
     static {
         CONVERTER = new ConvertUtilsBean();
         CONVERTER.register(new URIConverter(), URI.class);
+        CONVERTER.deregister(String.class);
+        CONVERTER.register(new StringConverter(), String.class);
     }
 
     public static Object convert(String value, Class<?> type) {
@@ -51,4 +53,20 @@ public class AssetConverter {
         }
     }
 
+    private static class StringConverter implements Converter {
+        @SuppressWarnings("rawtypes")
+        @Override
+        public Object convert(Class type, Object value) {
+            final String thisString = value.toString();
+            // String parameters mayl have quotes on them - remove them for Asset Providers
+            // Note: it may be desirable to have parameter fields of type String containing
+            // URIs (if sometimes non-URI values are desired in a field that typically has URIs).
+            // Remove quotes so asset providers can properly handle the values
+            if ((thisString != null) &&
+                    thisString.startsWith("\"") && thisString.endsWith("\"")) {
+                return thisString.substring(1, thisString.length()-1);
+            }
+            return thisString;
+        }
+    }
 }

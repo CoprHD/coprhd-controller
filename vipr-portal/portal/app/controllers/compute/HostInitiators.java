@@ -108,18 +108,18 @@ public class HostInitiators extends ViprResourceController {
 
 	    List<String> associatedInitiators = new ArrayList<String>();
 
-            for (String initiatorId : ids) {
-                InitiatorRestRep initiator = getViprClient().initiators().get(uri(initiatorId));
-		RelatedResourceRep associatedInitiator = initiator.getAssociatedInitiator();
+        for (String initiatorId : ids) {
+            InitiatorRestRep initiator = getViprClient().initiators().get(uri(initiatorId));
+			RelatedResourceRep associatedInitiator = initiator.getAssociatedInitiator();
                                 
-                if (associatedInitiator != null){
-                associatedInitiators.add(associatedInitiator.toString());
-                }
+            if (associatedInitiator != null){
+            associatedInitiators.add(associatedInitiator.toString());
+            }    
 		
-		if (!associatedInitiators.contains(initiatorId)){
-                HostUtils.deactivateInitiator(initiator);
-		}
-            }
+			if (!associatedInitiators.contains(initiatorId)){
+            HostUtils.deactivateInitiator(initiator);
+			}
+        }
             flash.success(MessagesUtils.get(DELETED));
         }
         list(hostId);

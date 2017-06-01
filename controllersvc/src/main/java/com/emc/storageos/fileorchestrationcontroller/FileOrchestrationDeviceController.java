@@ -134,6 +134,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String FAILBACK_FILE_SYSTEM_METHOD = "doFailBackMirrorSessionWF";
     private static final String FILE_REPLICATION_OPERATIONS_METHOD = "performFileReplicationOperation";
     private static final String REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD = "addStepsToReplicateDirectoryQuotaSettings";
+    private static final String FAILOVER_WHEN_REPLICATION_POLICY_AT_HIGHER_DIRECTORY_METHOD = "failoverWhenRepPolicyAtHigherDir";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD = "addStepsToReplicateCIFSShares";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD = "addStepsToReplicateCIFSShareACLs";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD = "addStepsToReplicateNFSExports";
@@ -898,6 +899,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         Workflow workflow = null;
         String stepDescription = null;
         MirrorFileFailoverTaskCompleter failoverCompleter = null;
+        String waitForFailover = null;
         try {
 
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
@@ -905,21 +907,49 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
             FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
             StorageSystem systemTarget = s_dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
-
+            VirtualPool sourceVP = s_dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
+            Project sourceProject = s_dbClient.queryObject(Project.class, sourceFileShare.getProject().getURI());
+            FilePolicy sourcefp = FileOrchestrationUtils.getFilePolicyFromFS(s_dbClient, sourceVP, sourceProject);
             workflow = this._workflowService.getNewWorkflow(this, FAILOVER_FILESYSTEMS_WF_NAME, false, taskId, completer);
 
-            // Failover File System to Target
+            if (sourcefp.getApplyAt().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.vpool.name())
+                    || sourcefp.getApplyAt().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.project.name())) {
+                // Failover File System when the replication policy is applied at vPool/Project.
+                // create TempFailover Directory
+                StorageSystem targetStorageSystemFromSourceFS = FileOrchestrationUtils.getTargetSystemFromSourceFS(s_dbClient,
+                        sourceFileShare,
+                        sourceProject, sourceVP);
+                String tempTargetPath = FileOrchestrationUtils.buildTempTargetPathForHigherOrderFailover(sourceFileShare, sourceVP,
+                        sourceProject, sourcefp);
+                URI tempTargetFsId = FileOrchestrationUtils.createFsObj(s_dbClient, sourceFileShare.getId(), tempTargetPath,
+                        targetStorageSystemFromSourceFS);
+                FileShare tempTargetFS = s_dbClient.queryObject(FileShare.class, tempTargetFsId);
+                String FailoverhigherOrderStep = workflow.createStepId();
+                List<URI> combined = Arrays.asList(sourceFileShare.getId(), tempTargetFS.getId());
+                failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, FailoverhigherOrderStep);
+                stepDescription = String.format(
+                        "Failover source File System : %s. The Replication policy is applied at either vPool/Project",
+                        sourceFileShare.getLabel());
+                if (targetStorageSystemFromSourceFS.getId() != null) {
+                    Object[] args = new Object[] { sourceFileShare.getId(), tempTargetFS.getId(), sourcefp.getId(), failoverCompleter };
+                    waitForFailover = _fileDeviceController.createMethod(workflow, null,
+                            FAILOVER_WHEN_REPLICATION_POLICY_AT_HIGHER_DIRECTORY_METHOD, FailoverhigherOrderStep, stepDescription,
+                            targetStorageSystemFromSourceFS.getId(), args);
+                }
+            } else if (sourceFileShare.getMirrorfsTargets() != null && sourceFileShare.getFilePolicies() != null) {
+                // Failover File System to Target
 
-            s_logger.info("Generating steps for Failover File System to Target");
-            String failoverStep = workflow.createStepId();
+                s_logger.info("Generating steps for Failover File System to Target");
+                String failoverStep = workflow.createStepId();
 
-            List<URI> combined = Arrays.asList(sourceFileShare.getId(), targetFileShare.getId());
-            failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep);
-            stepDescription = String.format("Failover Source File System %s to Target System.", sourceFileShare.getLabel());
-            Object[] args = new Object[] { systemTarget.getId(), targetFileShare.getId(), failoverCompleter };
-            String waitForFailover = _fileDeviceController.createMethod(workflow, null,
-                    FAILOVER_FILE_SYSTEM_METHOD, failoverStep, stepDescription, systemTarget.getId(), args);
+                List<URI> combined = Arrays.asList(sourceFileShare.getId(), targetFileShare.getId());
+                failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep);
+                stepDescription = String.format("Failover Source File System %s to Target System.", sourceFileShare.getLabel());
+                Object[] args = new Object[] { systemTarget.getId(), targetFileShare.getId(), failoverCompleter };
+                waitForFailover = _fileDeviceController.createMethod(workflow, null,
+                        FAILOVER_FILE_SYSTEM_METHOD, failoverStep, stepDescription, systemTarget.getId(), args);
 
+            }
             // Replicate quota setting
             stepDescription = String.format(
                     "Replicating directory quota settings from source file system : %s to file target system : %s",
@@ -959,7 +989,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     String waitForShare = workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
                             systemTarget.getSystemType(), getClass(), replicateCIFSShareMethod, null, replicateCIFSShareStep);
 
-                    stepDescription = String.format("Replicating CIFS share ACLs from source file system : %s to file target system : %s",
+                    stepDescription = String.format(
+                            "Replicating CIFS share ACLs from source file system : %s to file target system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateCIFSShareACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD,
                             systemTarget.getId(), fsURI);
@@ -982,7 +1013,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     String waitForExport = workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
                             systemTarget.getSystemType(), getClass(), replicateNFSExportMethod, null, replicateNFSExportStep);
 
-                    stepDescription = String.format("Replicating NFS export rules from source file system : %s to target file system : %s",
+                    stepDescription = String.format(
+                            "Replicating NFS export rules from source file system : %s to target file system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateNFSExportRulesMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD,
                             systemTarget.getId(), fsURI);
@@ -991,6 +1023,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                             getClass(), replicateNFSExportRulesMethod, null, replicateNFSExportRulesStep);
                 }
             }
+
             String successMessage = "Failover FileSystem successful for: " + sourceFileShare.getLabel();
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
@@ -1742,6 +1775,51 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
             ServiceError serviceError = DeviceControllerException.errors.unableToUpdateFileSystem(opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
+        }
+    }
+
+    /**
+     * child workflow for the FileShare failover when the replication policy is applied at a higher level.
+     * 
+     * @param sourceFileShareURI
+     */
+    public void addStepsTofailoverWhenRepPolicyAtHigherDir(URI sourceFileShareURI, URI filePolicyURI, String taskId) {
+        s_logger.info("Generating Steps for Failover of file system when the policy is applied at vPool/Project level");
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(sourceFileShareURI, taskId);
+        Workflow workflow = null;
+        try {
+            FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceFileShareURI);
+            VirtualPool sourceVP = s_dbClient.queryObject(VirtualPool.class, sourceFS.getVirtualPool());
+            Project sourceProject = s_dbClient.queryObject(Project.class, sourceFS.getProject().getURI());
+            FilePolicy fp = s_dbClient.queryObject(FilePolicy.class, filePolicyURI);
+            String splitLabelAt = null;
+            String tempTargetNativeFSId;
+            FilePolicy fileReplicationPolicy = new FilePolicy();
+            if (sourceFS.getNativeId() != null && !sourceFS.getNativeId().isEmpty()) {
+                if (fp.getApplyAt().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.vpool.name())) {
+                    splitLabelAt = FileOrchestrationUtils.stripSpecialCharacter(sourceVP.getLabel());
+                    s_logger.info("_csm vPoolLabel splitLabelAt :: {}", splitLabelAt);
+                } else if (fp.getApplyAt().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.project.name())) {
+                    splitLabelAt = FileOrchestrationUtils.stripSpecialCharacter(sourceProject.getLabel());
+                    s_logger.info("_csm ProjectLabel splitLabelAt :: {}", splitLabelAt);
+                }
+                tempTargetNativeFSId = FileOrchestrationUtils.buildTempTargetNativeFSID(sourceFS.getNativeId(), splitLabelAt);
+            }
+            String polName = fp.getLabel() + "_FailoverTempPolicyAtTarget";
+            String polDescription = "This policy is applied to the target FS, which is the result of the replication when filepolicy is applied at vPool/Project";
+            fileReplicationPolicy.setId(URIUtil.createId(FilePolicy.class));
+            fileReplicationPolicy.setFilePolicyName(polName);
+            fileReplicationPolicy.setLabel(polName);
+            fileReplicationPolicy.setFilePolicyType(FilePolicy.FilePolicyType.file_replication.name());
+            fileReplicationPolicy.setFilePolicyDescription(polDescription);
+            fileReplicationPolicy.setFileReplicationType(FilePolicy.FileReplicationType.LOCAL.name());
+            fileReplicationPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.SYNC.name());
+            fileReplicationPolicy.setApplyAt(FilePolicy.FilePolicyApplyLevel.file_system.name());
+            s_dbClient.createObject(fileReplicationPolicy);
+            s_logger.info("Policy {} created successfully", fileReplicationPolicy.getLabel());
+
+        } catch (Exception e) {
+
         }
     }
 

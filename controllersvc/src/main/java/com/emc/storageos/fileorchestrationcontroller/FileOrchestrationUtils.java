@@ -6,6 +6,7 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,6 +35,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NFSShareACL;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
@@ -42,6 +44,7 @@ import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -1162,6 +1165,176 @@ public final class FileOrchestrationUtils {
             }
         }
         return policyStorageResources;
+    }
+
+    /**
+     * Returns the target Storage System for the provided source File Share
+     * 
+     * @param dbClient
+     * @param sourceFileShare
+     * @param sourceProject
+     * @param sourceVP
+     * @return targetStorageDevice
+     */
+    public static StorageSystem getTargetSystemFromSourceFS(DbClient dbClient, FileShare sourceFileShare, Project sourceProject,
+            VirtualPool sourceVP) {
+        StorageSystem targetStorageDevice = null;
+        List<PolicyStorageResource> policyStorageResources = FileOrchestrationUtils.getFilePolicyStorageResources(dbClient,
+                sourceVP, sourceProject, sourceFileShare);
+        for (PolicyStorageResource storageResource : policyStorageResources) {
+            if (storageResource.getNasServer().equals(sourceFileShare.getVirtualNAS())) {
+                FileReplicaPolicyTargetMap targetMap = storageResource.getFileReplicaPolicyTargetMap();
+                if (targetMap != null && !targetMap.isEmpty()) {
+                    for (FileReplicaPolicyTarget target : targetMap.values()) {
+                        if (target.getStorageSystem() != null && !target.getStorageSystem().isEmpty()) {
+                            targetStorageDevice = dbClient.queryObject(StorageSystem.class,
+                                    URI.create(target.getStorageSystem()));
+                            _log.info("_csm targetStorageDevice :: {} from target :: {} ", targetStorageDevice.forDisplay(),
+                                    target.toString());
+                            return targetStorageDevice;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Generate the Path for temporary target when failing-over an FS and the file policy is applied at vPool/Project
+     * 
+     * @param sourceFS
+     * @param sourceVP
+     * @param sourceProject
+     * @param fp
+     * @return
+     */
+    public static String buildTempTargetPathForHigherOrderFailover(FileShare sourceFS, VirtualPool sourceVP, Project sourceProject,
+            FilePolicy fp) {
+        String tempTargetPath = null;
+        String splitLabelAt = null;
+        if (fp.getApplyAt().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.vpool.name())) {
+            splitLabelAt = FileOrchestrationUtils.stripSpecialCharacter(sourceVP.getLabel());
+            _log.info("_csm vPoolLabel splitLabelAt :: {}", splitLabelAt);
+        } else if (fp.getApplyAt().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.project.name())) {
+            splitLabelAt = FileOrchestrationUtils.stripSpecialCharacter(sourceProject.getLabel());
+            _log.info("_csm ProjectLabel splitLabelAt :: {}", splitLabelAt);
+        }
+        tempTargetPath = FileOrchestrationUtils.buildTempTargetNativeFSID(sourceFS.getNativeId(), splitLabelAt);
+        return tempTargetPath;
+
+    }
+
+    public static FilePolicy getFilePolicyFromFS(DbClient _dbClient, VirtualPool sourceVP, Project sourceProject) {
+        FilePolicy fp = null;
+        if (sourceVP.getFilePolicies() != null && !sourceVP.getFilePolicies().isEmpty()) {
+            for (String policy : sourceVP.getFilePolicies()) {
+                fp = _dbClient.queryObject(FilePolicy.class, URI.create(policy));
+                _log.info("_csm SourceFilePolicy from vPool :: {} ", fp.toString());
+            }
+        } else if (sourceProject.getFilePolicies() != null && !sourceProject.getFilePolicies().isEmpty()) {
+            for (String policy : sourceProject.getFilePolicies()) {
+                fp = _dbClient.queryObject(FilePolicy.class, URI.create(policy));
+                _log.info("_csm sourceFilePolicy from project :: {}", fp.getFilePolicyName());
+            }
+        }
+        return fp;
+    }
+
+    /**
+     * Builds the temporary target's resourcePath
+     * 
+     * @param resourcePath
+     * @param splitLabelAt
+     * @return
+     */
+    public static String buildTempTargetNativeFSID(String resourcePath, String splitLabelAt) {
+        String path = null;
+        String targetNativeFSId = null;
+        String[] label = resourcePath.split(splitLabelAt);
+        targetNativeFSId = label[0] + splitLabelAt + "_failOverTemp";
+        return targetNativeFSId;
+
+    }
+
+    public static String stripSpecialCharacter(String label) {
+        return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
+    }
+
+    public static String buildTargetPathFromSourceFS(DbClient _dbClient, FileShare sourceFS, Project sourceProject, VirtualPool sourceVP,
+            FilePolicy fp) {
+        String targetPath = null;
+        String tenantName = null;
+        TenantOrg tenantObj = _dbClient.queryObject(TenantOrg.class, sourceFS.getTenant());
+        if (tenantObj != null) {
+            tenantName = stripSpecialCharacter(tenantObj.getLabel());
+        }
+        List<PolicyStorageResource> policyStorageResources = FileOrchestrationUtils.getFilePolicyStorageResources(_dbClient,
+                sourceVP, sourceProject, sourceFS);
+        for (PolicyStorageResource storageResource : policyStorageResources) {
+            if (storageResource.getNasServer().equals(sourceFS.getVirtualNAS())) {
+                FileReplicaPolicyTargetMap targetMap = storageResource.getFileReplicaPolicyTargetMap();
+                if (targetMap != null && !targetMap.isEmpty()) {
+                    for (FileReplicaPolicyTarget target : targetMap.values()) {
+                        if (target.getPath() != null && !target.getPath().isEmpty()) {
+                            if (fp.getApplyAt().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.vpool.name())) {
+                                targetPath = target.getPath() + "/" + tenantName + "/" + sourceProject.getLabel() + "/"
+                                        + sourceFS.getLabel();
+                                _log.info("_csm policy applied at vPool; targetPath :: {} ", targetPath);
+                            } else if (fp.getApplyAt().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.project.name())) {
+                                targetPath = target.getPath() + "/" + sourceFS.getLabel();
+                                _log.info("_csm policy applied at project; targetPath :: {} ", targetPath);
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        return targetPath;
+    }
+
+    /**
+     * create ViPR fileShare object for tempTargetFS and needed to create TaskCompleters
+     * 
+     * @param _dbClient
+     * @param sourceURI
+     * @param tempTargetPath
+     * @param targetSystem
+     * @return
+     */
+    public static URI createFsObj(DbClient _dbClient, URI sourceURI, String tempTargetPath, StorageSystem targetSystem) {
+        FileShare sourceFS = _dbClient.queryObject(FileShare.class, sourceURI);
+        FileShare tempFs = new FileShare();
+        String tempFsName = sourceFS.getLabel() + "_tempTarget";
+        tempFs.setId(URIUtil.createId(FilePolicy.class));
+        tempFs.setName(tempFsName);
+        tempFs.setLabel(tempFsName);
+        tempFs.setMountPath(tempTargetPath);
+        tempFs.setNativeId(tempTargetPath);
+        tempFs.setPath(tempTargetPath);
+        tempFs.setPersonality(FileShare.PersonalityTypes.TARGET.name());
+        tempFs.setParentFileShare(new NamedURI(sourceFS.getId(), sourceFS.getLabel()));
+        tempFs.setCapacity(sourceFS.getCapacity());
+        tempFs.setCreationTime(Calendar.getInstance());
+        tempFs.setInactive(false);
+        tempFs.setProtocol(sourceFS.getProtocol());
+        tempFs.setStorageDevice(targetSystem.getId());
+        // TODO: add storagePort
+        // tempFs.setStoragePort(storagePort);
+        tempFs.setThinlyProvisioned(sourceFS.getThinlyProvisioned());
+
+        _dbClient.createObject(tempFs);
+        _log.info("TempTargetFS created {}", tempFs);
+
+        sourceFS.setPersonality(FileShare.PersonalityTypes.SOURCE.name());
+        sourceFS.setMirrorfsTargets(new StringSet());
+        sourceFS.getMirrorfsTargets().add(tempFs.getId().toString());
+        _dbClient.updateObject(sourceFS);
+        _log.info("sourceFS updated {}", sourceFS);
+
+        return tempFs.getId();
     }
 
 }

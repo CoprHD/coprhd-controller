@@ -3444,24 +3444,28 @@ public class FileService extends TaskResourceService {
 
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
-        // Verify the file system is capable of replication..
-        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, notSuppReasonBuff, op.toLowerCase())) {
-            _log.error("Mirror Operation {} is not supported for the file system {} as : {}", op,
-                    sourceFileShare.getLabel(), notSuppReasonBuff.toString());
-            throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
-                    notSuppReasonBuff.toString());
+        if (!op.equalsIgnoreCase(ProtectionOp.FAILOVER.name()) && !op.equalsIgnoreCase(ProtectionOp.FAILBACK.name())) {
+            // Verify the file system is capable of replication..
+            if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, notSuppReasonBuff, op.toLowerCase())) {
+                _log.error("Mirror Operation {} is not supported for the file system {} as : {}", op,
+                        sourceFileShare.getLabel(), notSuppReasonBuff.toString());
+                throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
+                        notSuppReasonBuff.toString());
 
-        }
-        // Check for replication policy existence on file system..
-        if (FileSystemReplicationUtils.getReplicationPolicyAppliedOnFS(sourceFileShare, _dbClient) == null) {
-            notSuppReasonBuff
-                    .append(String
-                            .format(
-                                    "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
-                                    op, sourceFileShare.getLabel()));
-            _log.error(notSuppReasonBuff.toString());
-            throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
-                    notSuppReasonBuff.toString());
+            }
+            // Check for replication policy existence on file system..
+            if (FileSystemReplicationUtils.getReplicationPolicyAppliedOnFS(sourceFileShare, _dbClient) == null) {
+                notSuppReasonBuff
+                        .append(String
+                                .format(
+                                        "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
+                                        op, sourceFileShare.getLabel()));
+                _log.error(notSuppReasonBuff.toString());
+                throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
+                        notSuppReasonBuff.toString());
+            }
+        } else if (op.equalsIgnoreCase(ProtectionOp.FAILOVER.name()) || op.equalsIgnoreCase(ProtectionOp.FAILBACK.name())) {
+            _log.info("File Policy applied at either vPool/Project");
         }
     }
 

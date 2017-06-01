@@ -4081,4 +4081,59 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
     }
+
+    /**
+     * 
+     */
+    @Override
+    public BiosCommandResult failoverAtHigherLevel(String targetPath, String tempTargetPath, StorageSystem targetSystem,
+            URI tempTargetFsId, String syncPolicyName) {
+        BiosCommandResult result = null;
+        TaskCompleter completer = null;
+        try {
+            // create Sync Policy at target site
+            createIsilonSyncPolicyForFailoverHigherOrder(syncPolicyName, targetPath, tempTargetPath, targetSystem);
+            _log.info("createIsilonSyncPolicy Successful");
+            result = BiosCommandResult.createSuccessfulResult();
+
+            // Start Policy
+            // commenting out to test the create Sync policy
+            // TODO : handle the taskCompleters for startpolicy and failover
+            // TaskCompleter startPolicyCompleter = new MirrorFileStartTaskCompleter(FileShare.class, tempTargetFsId, opId);
+            // mirrorOperations.doStartReplicationPolicy(targetSystem, syncPolicyName, startPolicyCompleter);
+            //
+            // // failover fileSystem
+            // TaskCompleter = ;
+            // mirrorOperations.doFailover(targetSystem, syncPolicyName, taskCompleter);
+
+        } catch (IsilonException e) {
+            result = BiosCommandResult.createErrorResult(e);
+        }
+        return result;
+    }
+
+    private String createIsilonSyncPolicyForFailoverHigherOrder(String syncPolicyName, String targetPath, String tempTargetPath,
+            StorageSystem targetSystem) {
+        try {
+            IsilonApi isi = getIsilonDevice(targetSystem);
+            IsilonSyncPolicy replicationPolicy = new IsilonSyncPolicy(syncPolicyName, targetPath, tempTargetPath,
+                    targetSystem.getIpAddress(), Action.sync);
+            replicationPolicy.setDescription(
+                    "Temp Sync Policy between target and Temporary target to support FS failover when the policy is applied at vPool/Project");
+            replicationPolicy.setEnabled(true);
+            String scheduleId;
+            if (VersionChecker.verifyVersionDetails(ONEFS_V8, targetSystem.getFirmwareVersion()) >= 0) {
+                IsilonSyncPolicy8Above replicationPolicyCopy = new IsilonSyncPolicy8Above();
+                replicationPolicyCopy = replicationPolicyCopy.copy(replicationPolicy);
+                replicationPolicyCopy.setPriority(FilePolicyPriority.High.ordinal());
+                scheduleId = isi.createReplicationPolicy8above(replicationPolicyCopy);
+            } else {
+                scheduleId = isi.createReplicationPolicy(replicationPolicy);
+            }
+            return scheduleId;
+        } catch (IsilonException e) {
+            throw e;
+        }
+
+    }
 }

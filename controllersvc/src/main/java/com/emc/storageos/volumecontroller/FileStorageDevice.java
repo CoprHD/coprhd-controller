@@ -5,6 +5,7 @@
 
 package com.emc.storageos.volumecontroller;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.FileExport;
@@ -324,6 +325,9 @@ public interface FileStorageDevice {
 
     public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args);
 
+    public BiosCommandResult failoverAtHigherLevel(String targetPath, String tempTargetPath,
+            StorageSystem targetSystem, URI tempTargetFsId, String FilePolicyName);
+
     /**
      * Starts a replication link.
      *
@@ -378,4 +382,5 @@ public interface FileStorageDevice {
      * @return
      */
     BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer);
+
 }

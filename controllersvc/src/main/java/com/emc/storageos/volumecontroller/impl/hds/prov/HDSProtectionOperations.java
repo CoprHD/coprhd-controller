@@ -145,6 +145,8 @@ public class HDSProtectionOperations {
                     asyncTaskMessageId, targetVolume.getStorageController(), targetPool.getId(),
                     taskCompleter);
             hdsCommandHelper.waitForAsyncHDSJob(createHDSJob);
+        } else {
+            throw new Exception("Unable to get async taskId from HiCommand Device Manager for the create volume call");
         }
         log.info("SecondaryVolume creation operation completed successfully");
     }
@@ -189,6 +191,8 @@ public class HDSProtectionOperations {
                     asyncTaskMessageId, mirror.getStorageController(), targetPool.getId(),
                     taskCompleter);
             hdsCommandHelper.waitForAsyncHDSJob(createHDSJob);
+        } else {
+            throw new Exception("Unable to get async taskId from HiCommand Device Manager for the create volume call");
         }
         log.info("SecondaryVolume for mirror creation operation completed successfully");
     }
@@ -218,6 +222,8 @@ public class HDSProtectionOperations {
             HDSJob createHDSJob = new HDSBlockCreateSnapshotJob(
                     asyncTaskMessageId, snapshotObj.getStorageController(), taskCompleter);
             hdsCommandHelper.waitForAsyncHDSJob(createHDSJob);
+        } else {
+            throw new Exception("Unable to get async taskId from HiCommand Device Manager for the create snapshot volume call");
         }
         log.info("SecondaryVolume for snapshot creation operation completed successfully");
 

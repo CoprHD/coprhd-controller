@@ -13,21 +13,19 @@ import org.apache.commons.lang.StringUtils;
 
 /**
  * Simple class for supporting converting string asset values into types objects, mainly for URIs used as IDs.
- * 
- * @author jonnymiller
  */
 public class AssetConverter {
-    private static ConvertUtilsBean CONVERTER;
+    private static ConvertUtilsBean converter;
 
     static {
-        CONVERTER = new ConvertUtilsBean();
-        CONVERTER.register(new URIConverter(), URI.class);
-        CONVERTER.deregister(String.class);
-        CONVERTER.register(new StringConverter(), String.class);
+        converter = new ConvertUtilsBean();
+        converter.register(new URIConverter(), URI.class);
+        converter.deregister(String.class);
+        converter.register(new StringConverter(), String.class);
     }
 
     public static Object convert(String value, Class<?> type) {
-        return CONVERTER.convert(value, type);
+        return converter.convert(value, type);
     }
 
     private static class URIConverter implements Converter {

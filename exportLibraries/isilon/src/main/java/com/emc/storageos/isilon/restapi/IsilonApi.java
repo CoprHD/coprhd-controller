@@ -937,12 +937,17 @@ public class IsilonApi {
      * 
      * @param exp
      *            IsilonExport object with paths and clients set
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @return String identifier for the export created
      * @throws IsilonException
      */
-    public String createExport(IsilonExport exp) throws IsilonException {
+    public String createExport(IsilonExport exp, boolean force) throws IsilonException {
 
-        return create(_baseUrl.resolve(URI_NFS_EXPORTS), "Export", exp);
+        if (force) {
+            return create(_baseUrl.resolve(URI_NFS_EXPORTS + "?force=true"), "Export", exp);
+        } else {
+            return create(_baseUrl.resolve(URI_NFS_EXPORTS), "Export", exp);
+        }
     }
 
     /**
@@ -950,12 +955,17 @@ public class IsilonApi {
      * 
      * @param exp
      *            IsilonExport object with paths and clients set
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @return String identifier for the export created
      * @throws IsilonException
      */
-    public String createExport(IsilonExport exp, String zoneName) throws IsilonException {
+    public String createExport(IsilonExport exp, String zoneName, boolean force) throws IsilonException {
         String baseUrl = getURIWithZoneName(_baseUrl.resolve(URI_NFS_EXPORTS).toString(), zoneName);
         URI uri = URI.create(baseUrl);
+        if (force) {
+            uri = URI.create(baseUrl + "&force=true");
+        }
+
         return create(uri, "Export", exp);
     }
 
@@ -966,9 +976,13 @@ public class IsilonApi {
      *            identifier of the export to modify
      * @param exp
      *            IsilonExport object with the modified properties
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @throws IsilonException
      */
-    public void modifyExport(String id, IsilonExport exp) throws IsilonException {
+    public void modifyExport(String id, IsilonExport exp, boolean force) throws IsilonException {
+        if (force) {
+            id = id + "?force=true";
+        }
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
 
@@ -979,10 +993,14 @@ public class IsilonApi {
      *            identifier of the export to modify
      * @param exp
      *            IsilonExport object with the modified properties
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @throws IsilonException
      */
-    public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
+    public void modifyExport(String id, String zoneName, IsilonExport exp, boolean force) throws IsilonException {
         String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        if (force) {
+            uriWithZoneName = uriWithZoneName + "&force=true";
+        }
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
     }
 
@@ -1646,7 +1664,7 @@ public class IsilonApi {
     private IsilonList<IsilonEvent> getEvents(URI url, String firmwareVersion) throws IsilonException {
 
         // Get list of ISILON events using eventlists if ISILON version is OneFS8.0 or more else using events.
-        if (firmwareVersion.startsWith("8")) {
+        if (firmwareVersion != null && firmwareVersion.startsWith("8")) {
             List<IsilonOneFS8Event> eventLists = list(url, "eventlists", IsilonOneFS8Event.class, null).getList();
             IsilonList<IsilonEvent> isilonEventList = new IsilonList<IsilonEvent>();
 
@@ -1706,7 +1724,7 @@ public class IsilonApi {
                 .format("?begin=%1$d", begin);
 
         // If ISILON version is OneFS8.0 then get events URI will be /platform/3/event/eventlists/.
-        if (firmwareVersion.startsWith("8")) {
+        if (firmwareVersion != null && firmwareVersion.startsWith("8")) {
             return getEvents(_baseUrl.resolve(URI_ONEFS8_EVENTS.resolve(query)), firmwareVersion);
         }
         return getEvents(_baseUrl.resolve(URI_EVENTS.resolve(query)), firmwareVersion);
@@ -2018,7 +2036,7 @@ public class IsilonApi {
     public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
     }
-    
+
     /**
      * Get Replication Policy information from the Isilon array using oneFS v8 above
      * 
@@ -2038,7 +2056,7 @@ public class IsilonApi {
     public IsilonList<IsilonSyncPolicy> getReplicationPolicies() throws IsilonException {
         return list(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", IsilonSyncPolicy.class, "");
     }
-    
+
     /**
      * Get All Replication Policies information from the Isilon array
      * 
@@ -2070,7 +2088,7 @@ public class IsilonApi {
     public String createReplicationPolicy(IsilonSyncPolicy replicationPolicy) throws IsilonException {
         return create(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", replicationPolicy);
     }
-    
+
     /**
      * Create Replication Policy for isilon array using oneFSv8 and above
      * 
@@ -2095,7 +2113,7 @@ public class IsilonApi {
     public void modifyReplicationPolicy(String id, IsilonSyncPolicy syncPolicy) throws IsilonException {
         modify(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", syncPolicy);
     }
-    
+
     /**
      * Modify Replication Policyfor isilon array using oneFSv8 and above
      * 

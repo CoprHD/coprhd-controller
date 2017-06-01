@@ -234,7 +234,7 @@ URI_BLOCK_SNAPSHOT_SESSIONS_LIST = URI_BLOCK_SNAPSHOT_SESSION_CREATE
 
 URI_UNMANAGED                    = URI_VDC + '/unmanaged'
 URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
-URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/search"
+URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/volumes/search"
 URI_UNMANAGED_VOLUMES_SEARCH_NAME= URI_UNMANAGED_VOLUMES_SEARCH + "?name={0}"
 URI_UNMANAGED_EXPORTED_VOLUMES   = URI_UNMANAGED + '/volumes/ingest-exported' 
 URI_UNMANAGED_TASK               = URI_VDC + '/tasks/{0}'
@@ -8434,14 +8434,14 @@ class Bourne:
 
    
     # Service Catalog 
-    def catalog_search(self, servicename, tenant):
+    def catalog_search(self, servicename, tenant, categoryName=None):
         catalog_services = self.api('GET', URI_CATALOG_SERVICE_SEARCH_NAME.format(servicename))
         for catalog_service in catalog_services['resource']:
             service = self.catalog_service_query(catalog_service['id'])
             category = self.catalog_category_query(service['catalog_category']['id'])
-            if category['tenant']['id'] == tenant and service['name'] == servicename:
+            if category['tenant']['id'] == tenant and service['name'] == servicename and (categoryName is None or categoryName == category['name']):
                 return service 
-        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant)
+        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant + ' in category ' + categoryName)
 
     def catalog_category_query(self, id):
         return self.api('GET', URI_CATALOG_CATEGORY.format(id))
@@ -8468,10 +8468,10 @@ class Bourne:
         tenant = self.__tenant_id_from_label(tenant)
         return self.api('POST', URI_CATALOG_CATEGORY_UPGRADE.format(tenant))
  
-    def catalog_order(self, servicename, tenant, parameters):
+    def catalog_order(self, servicename, tenant, parameters, category=None, failOnError=None):
         tenant = self.__tenant_id_from_label(tenant)
         self.catalog_upgrade(tenant)
-        service = self.catalog_search(servicename, tenant)
+        service = self.catalog_search(servicename, tenant, category)
         parms = { 'tenantId': tenant,
                   'catalog_service': service['id']
                 }
@@ -8486,7 +8486,10 @@ class Bourne:
 
         parms['parameters'] = ordervalues
         order = self.api('POST', URI_CATALOG_ORDERS, parms)
-        return self.__catalog_poll(order['id'])
+        completedOrder = self.__catalog_poll(order['id'])
+        if (failOnError == "true" and completedOrder['order_status'] == 'ERROR'):
+            raise Exception('error during catalog order: ' + completedOrder['id'] + " " + completedOrder['message'])
+        return completedOrder
 
     #
     # Compute Resources - Host

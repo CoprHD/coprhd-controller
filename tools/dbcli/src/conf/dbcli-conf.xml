@@ -22,6 +22,7 @@
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
 
     <bean id="dbcli" class="com.emc.storageos.dbcli.DbCli">

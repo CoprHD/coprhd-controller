@@ -44,6 +44,7 @@ class Fileshare(object):
     URI_FILESHARE_CONSISTENCYGROUP = URI_FILESHARE + '/consistency-group'
     URI_PROJECT_RESOURCES = '/projects/{0}/resources'
     URI_EXPAND = URI_FILESHARE + '/expand'
+    URI_REDUCE = URI_FILESHARE + '/reduce'
     URI_DEACTIVATE = URI_FILESHARE + '/deactivate'
     URI_TAG_FILESHARE = URI_FILESHARE + '/tags'
 
@@ -82,6 +83,7 @@ class Fileshare(object):
 
     isTimeout = False
     timeout = 300
+    
 
     def __init__(self, ipAddr, port):
         '''
@@ -404,7 +406,7 @@ class Fileshare(object):
     def export(
             self, name, security_type, permission, root_user,
             endpoints, protocol, share_name, share_description,
-            permission_type, sub_dir, sync,synctimeout):
+            permission_type, sub_dir, sync,synctimeout,bypassdnscheck):
         '''
         Makes REST API call to export fileshare to a host
         Parameters:
@@ -438,10 +440,8 @@ class Fileshare(object):
 
                 body = json.dumps(request)
 
-                (s, h) = common.service_json_request(
-                    self.__ipAddr, self.__port, "POST",
-                    Fileshare.URI_FILESHARE_SMB_EXPORTS.format(fileshare_uri),
-                    body)
+                (s, h) = common.service_json_request(self.__ipAddr, self.__port, "POST",
+                    Fileshare.URI_FILESHARE_SMB_EXPORTS.format(fileshare_uri), body)
 
             else:
                 request = {
@@ -453,6 +453,9 @@ class Fileshare(object):
                 }
                 if(sub_dir):
                     request["sub_directory"] = sub_dir
+
+                if(bypassdnscheck):
+                    request["bypass_dns_check"] = bypassdnscheck
                 
 
                 body = json.dumps(request)
@@ -514,7 +517,7 @@ class Fileshare(object):
             return o
 
 
-    def export_rule(self, name, operation, securityflavor, user=None, roothosts=None, readonlyhosts=None, readwritehosts=None, subDir=None):
+    def export_rule(self, name, operation, securityflavor, user=None, roothosts=None, readonlyhosts=None, readwritehosts=None, subDir=None, bypassdnscheck="false"):
         
         fileshare_uri = self.fileshare_query(name)
         exportRulesparam = dict()
@@ -529,14 +532,17 @@ class Fileshare(object):
             exportRulesparam['anon'] = user
 
         exportRulerequest = {'exportRules':[exportRulesparam]}
+        
+        request = {}
+        request["bypass_dns_check"] = bypassdnscheck
 
         if("add"== operation):
-            request = {'add': exportRulerequest}
+            request['add'] = exportRulerequest
         elif("delete" == operation):
-            request = {'delete' : exportRulerequest}
+            request['delete'] = exportRulerequest
         else:
-            request = {'modify' : exportRulerequest}
-    
+            request['modify'] = exportRulerequest
+            
         body = json.dumps(request)
         params = ''
         if(subDir):
@@ -901,6 +907,31 @@ class Fileshare(object):
         if(sync):
             return self.check_for_sync(o, sync,synctimeout)
         return o
+	# this operation reduce the filesystem size only for isilon device	
+    def reduce(self, name, new_size, sync=False,synctimeout=0):
+        fileshare_detail = self.show(name)
+        current_size = float(fileshare_detail["capacity_gb"])
+        current_size = (current_size * 1073741824.0)
+        # in quota reduction the new size should be less than current size
+	if(new_size  >= current_size ):
+            raise SOSError(
+                SOSError.VALUE_ERR,
+                "error: Incorrect value of new size: " + str(new_size) +
+                " bytes\nNew size must be less than current size: " +
+                str(current_size) + " bytes")
+
+        body = json.dumps({"new_size": new_size})
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "POST",
+            Fileshare.URI_REDUCE.format(fileshare_detail["id"]), body)
+
+        if(not s):
+            return None
+        o = common.json_decode(s)
+        if(sync):
+            return self.check_for_sync(o, sync,synctimeout)
+        return o	
     
     def assign_policy(self, filesharename, policyname, tenantname, policyid, targetvarrays):
         assign_request = {}
@@ -2010,6 +2041,11 @@ def export_parser(subcommand_parsers, common_parser):
                                dest='synctimeout',
                                default=0,
                                type=int)
+    export_parser.add_argument('-bypassdnscheck',
+                               help='Bypass the FQDN validation for expoted hosts',
+                               dest='bypassdnscheck',
+                               choices=["true", "false"],
+                               default="false")
     export_parser.set_defaults(func=fileshare_export)
 
 
@@ -2056,7 +2092,7 @@ def fileshare_export(args):
             args.tenant + "/" + args.project + "/" + args.name,
             args.security, args.permission, args.root_user, args.endpoint,
             args.protocol, args.share, args.desc,
-            args.permission_type, args.subdir, args.sync,args.synctimeout)
+            args.permission_type, args.subdir, args.sync,args.synctimeout,args.bypassdnscheck)
 
 #        if(args.sync == False):
 #            return common.format_json_object(res)
@@ -2381,6 +2417,12 @@ def export_rule_parser(subcommand_parsers, common_parser):
                                     dest='user',
                                     metavar='<user>',
                                     help='User')
+    export_rule_parser.add_argument('-bypassdnscheck',
+                                    choices=["true", "false"],
+                                    default="false",
+                                    dest='bypassdnscheck',
+                                    metavar='<bypassdnscheck>',
+                                    help='Bypass the FQDN validation for expoted hosts')
     
     export_rule_parser.set_defaults(func=fileshare_export_rule)
 
@@ -2397,7 +2439,7 @@ def fileshare_export_rule(args):
         if(not args.user):
             raise SOSError(SOSError.CMD_LINE_ERR, "Anonymous user should be provided to add/update/delete export rule")
         res = obj.export_rule(
-            args.tenant + "/" + args.project + "/" + args.name, args.operation, args.securityflavor, args.user, args.roothosts, args.readonlyhosts, args.readwritehosts, args.subdir)
+            args.tenant + "/" + args.project + "/" + args.name, args.operation, args.securityflavor, args.user, args.roothosts, args.readonlyhosts, args.readwritehosts, args.subdir, args.bypassdnscheck)
 
     except SOSError as e:
         raise e
@@ -2637,6 +2679,66 @@ def fileshare_expand(args):
                          "/" + args.name, size, args.sync,args.synctimeout)
     except SOSError as e:
         raise e
+		
+def reduce_parser(subcommand_parsers, common_parser):
+    reduce_parser = subcommand_parsers.add_parser(
+        'reduce',
+        description='ViPR Filesystem Show CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Reduce the filesystem')
+    mandatory_args = reduce_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                dest='name',
+                                metavar='<filesystemname>',
+                                help='Name of Filesystem',
+                                required=True)
+    reduce_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument(
+        '-size', '-s',
+        help='New size of filesystem: {number}[unit]. ' +
+        'A size suffix of K for kilobytes, M for megabytes, ' +
+        'G for gigabytes, T for terabytes is optional.' +
+        'Default unit is bytes.',
+        metavar='<filesystemsize[kKmMgGtT]>',
+        dest='size', required=True)
+    reduce_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
+    
+    reduce_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
+    reduce_parser.set_defaults(func=fileshare_reduce)
+
+
+def fileshare_reduce(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
+    size = common.to_bytes(args.size)
+    if(not size):
+        raise SOSError(SOSError.CMD_LINE_ERR, 'error: Invalid input for -size')
+
+    obj = Fileshare(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+
+        res = obj.reduce(args.tenant + "/" + args.project +
+                         "/" + args.name, size, args.sync,args.synctimeout)
+    except SOSError as e:
+        raise e		
 
 
 def tag_parser(subcommand_parsers, common_parser):
@@ -3650,6 +3752,9 @@ def fileshare_parser(parent_subparser, common_parser):
 
     # expand fileshare parser
     expand_parser(subcommand_parsers, common_parser)
+	
+	# reduce fileshare parser
+    reduce_parser(subcommand_parsers, common_parser)
 
     # task list command parser
     task_parser(subcommand_parsers, common_parser)

@@ -41,7 +41,6 @@ import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 @Service("CreateComputeCluster")
 public class CreateComputeClusterService extends ViPRService {
@@ -119,6 +118,8 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.empty.cluster.exists"));
         }
 
+        //TODO convert hostnames to lower case here before proceeding
+        // and also inform it to the user
         if ((cluster != null) && !hostNames.containsAll(hostNamesInCluster)) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.unknown.host"));
         }
@@ -170,11 +171,13 @@ public class CreateComputeClusterService extends ViPRService {
         }
         else if (ntpServer != null && ntpServer.trim().length() > 0) {
             // allowing user to specify comma separated list - use only use the first valid one
+        	// TODO why do we take only the first NTP server? Check
             String[] ntpServerList = ntpServer.split(",");
             String validServer = null;
             for (String ntpServerx : ntpServerList) {
                 if (ComputeUtils.isValidHostIdentifier(ntpServerx.trim())) {
                     validServer = ntpServerx.trim();
+                    //TODO the break should be moved inside the 'if'
                 }
                 break;
             }
@@ -199,6 +202,14 @@ public class CreateComputeClusterService extends ViPRService {
                 }
             }
         }
+        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()) {
+             for (String hostName : hostNamesInCluster) {
+                if (existingHostNames.contains(hostName)){
+                    preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.hostname.already.in.cluster", hostName) + "  ");
+                }
+             }
+        }
+
 
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
@@ -220,7 +231,8 @@ public class CreateComputeClusterService extends ViPRService {
         }
 
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 
@@ -233,6 +245,7 @@ public class CreateComputeClusterService extends ViPRService {
 
         Map<String, String> hostToIPs = new HashMap<String, String>();
 
+        //TODO move this to the precheck section
         if (hostNames.size() != hostIps.size()) {
             throw new IllegalStateException(ExecutionUtils.getMessage("compute.cluster.host.ip.mismatch"));
         }
@@ -250,8 +263,12 @@ public class CreateComputeClusterService extends ViPRService {
             // If the hostName already exists, we remove it from the hostnames list.
             hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
         }
+        acquireClusterLock(cluster);
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+        for (Host host : hosts) {
+            acquireHostLock(host, cluster);
+        }
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
@@ -279,6 +296,9 @@ public class CreateComputeClusterService extends ViPRService {
         hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+        hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
+
         // VBDU [DONE]: COP-28400, Potential DU if external host is added to vCenter cluster not under ViPR mgmt.
         // ClusterService has a precheck to verify the matching environments before deactivating
         try {
@@ -287,11 +307,10 @@ public class CreateComputeClusterService extends ViPRService {
                 ComputeUtils.deactivateCluster(cluster);
             } else {
                 if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-                    ComputeUtils.addHostsToCluster(hosts, cluster);
                     pushToVcenter();
                     ComputeUtils.discoverHosts(hosts);
                 } else {
-                    logWarn("compute.cluster.installed.os.none");
+                    logWarn("compute.cluster.newly.provisioned.hosts.none");
                 }
             }
         } catch (Exception ex) {
@@ -321,7 +340,7 @@ public class CreateComputeClusterService extends ViPRService {
     }
 
     private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap, List<Host> createdHosts) {
-        List<OsInstallParam> osInstallParams = Lists.newArrayList();
+        Map<Host,OsInstallParam> osInstallParamMap = new HashMap<Host, OsInstallParam>();
         for (Host host : createdHosts) {
             if ((host != null) && (
                     (host.getType() == null) ||
@@ -340,15 +359,15 @@ public class CreateComputeClusterService extends ViPRService {
                 param.setManagementNetwork(managementNetwork);
                 param.setNtpServer(ntpServer);
                 param.setRootPassword(rootPassword);
-                osInstallParams.add(param);
+                osInstallParamMap.put(host,param);
             }
             else {
-                osInstallParams.add(null);
+                osInstallParamMap.put(host,null);
             }
         }
 
         try {
-            ComputeUtils.installOsOnHosts(createdHosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(osInstallParamMap);
         } catch (Exception e) {
             logError(e.getMessage());
         }
@@ -402,6 +421,7 @@ public class CreateComputeClusterService extends ViPRService {
                     }
                 }
             } catch (Exception e) {
+                logError("compute.cluster.vcenter.sync.failed.corrective.user.message", cluster.getLabel());
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
                 throw e;
             }

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.scaleio.api.restapi.response;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
@@ -24,6 +25,7 @@ public class ScaleIOSystem {
     private String systemVersionName;
     private String mdmClusterState;
     private String id;
+    private String name;
     private String installId;
     private MdmCluster mdmCluster;
 
@@ -44,27 +46,45 @@ public class ScaleIOSystem {
     }
 
     public String[] getPrimaryMdmActorIpList() {
-        return primaryMdmActorIpList.clone();
+        if(null == primaryMdmActorIpList){
+            return null;
+        }
+        return Arrays.copyOf(primaryMdmActorIpList,primaryMdmActorIpList.length);
     }
 
     public void setPrimaryMdmActorIpList(String[] primaryMdmActorIpList) {
-        this.primaryMdmActorIpList = primaryMdmActorIpList.clone();
+        if(null == primaryMdmActorIpList){
+            return;
+        }
+        this.primaryMdmActorIpList = Arrays.copyOf(primaryMdmActorIpList,primaryMdmActorIpList.length);
     }
 
     public String[] getSecondaryMdmActorIpList() {
-        return secondaryMdmActorIpList.clone();
+        if(null == secondaryMdmActorIpList){
+            return null;
+        }
+        return Arrays.copyOf(secondaryMdmActorIpList,secondaryMdmActorIpList.length);
     }
 
     public void setSecondaryMdmActorIpList(String[] secondaryMdmActorIpList) {
-        this.secondaryMdmActorIpList = secondaryMdmActorIpList.clone();
+        if(null == secondaryMdmActorIpList){
+            return;
+        }
+        this.secondaryMdmActorIpList = Arrays.copyOf(secondaryMdmActorIpList,secondaryMdmActorIpList.length);
     }
 
     public String[] getTiebreakerMdmIpList() {
-        return tiebreakerMdmIpList.clone();
+        if(null == tiebreakerMdmIpList){
+            return null;
+        }
+        return Arrays.copyOf(tiebreakerMdmIpList,tiebreakerMdmIpList.length);
     }
 
     public void setTiebreakerMdmIpList(String[] tiebreakerMdmIpList) {
-        this.tiebreakerMdmIpList = tiebreakerMdmIpList.clone();
+        if(null == tiebreakerMdmIpList){
+            return;
+        }
+        this.tiebreakerMdmIpList = Arrays.copyOf(tiebreakerMdmIpList,tiebreakerMdmIpList.length);
     }
 
     public String getSystemVersionName() {
@@ -89,6 +109,14 @@ public class ScaleIOSystem {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getInstallId() {

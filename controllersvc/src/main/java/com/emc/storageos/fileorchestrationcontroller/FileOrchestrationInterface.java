@@ -39,5 +39,19 @@ public interface FileOrchestrationInterface {
     public String addStepsForExpandFileSystems(
             Workflow workflow, String waitFor, java.util.List<FileDescriptor> fileDescriptors, String taskId)
             throws InternalException;
+    
+    /**
+     * Add the necessary steps for reduceing size of filesystems
+     *
+     * @param workflow - Workflow being constructed
+     * @param waitFor - The String key that should be used for waiting on previous steps in Workflow.createStep
+     * @param fileDescriptors - The entire list of FileDescriptors for this request (all technologies)
+     * @param taskId - The top level operation's taskId
+     * @return A waitFor key that can be used by subsequent controllers to wait on
+     *         the Steps created by this controller
+     */
+    public String addStepsForReduceFileSystems(
+            Workflow workflow, String waitFor, java.util.List<FileDescriptor> fileDescriptors, String taskId)
+            throws InternalException;
 
 }

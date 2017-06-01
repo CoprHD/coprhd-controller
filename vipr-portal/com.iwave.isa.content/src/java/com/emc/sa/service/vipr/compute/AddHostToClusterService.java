@@ -7,7 +7,6 @@ package com.emc.sa.service.vipr.compute;
 import static com.emc.sa.service.ServiceParams.CLUSTER;
 import static com.emc.sa.service.ServiceParams.COMPUTE_IMAGE;
 import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
-import static com.emc.sa.service.ServiceParams.DATACENTER;
 import static com.emc.sa.service.ServiceParams.DNS_SERVERS;
 import static com.emc.sa.service.ServiceParams.GATEWAY;
 import static com.emc.sa.service.ServiceParams.HLU;
@@ -17,7 +16,6 @@ import static com.emc.sa.service.ServiceParams.NETMASK;
 import static com.emc.sa.service.ServiceParams.NTP_SERVER;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
-import static com.emc.sa.service.ServiceParams.VCENTER;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
@@ -27,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
@@ -34,14 +33,19 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnToIpTable;
+import com.emc.sa.service.vmware.VMwareSupport;
+import com.emc.sa.service.vmware.tasks.GetVcenter;
+import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.vmware.vim25.mo.ClusterComputeResource;
 
 @Service("AddHostToCluster")
 public class AddHostToClusterService extends ViPRService {
@@ -91,12 +95,6 @@ public class AddHostToClusterService extends ViPRService {
     @Bindable(itemType = FqdnToIpTable.class)
     protected FqdnToIpTable[] fqdnToIps;
 
-    @Param(value = VCENTER, required = false)
-    protected URI vcenterId;
-
-    @Param(value = DATACENTER, required = false)
-    protected URI datacenterId;
-
     private Cluster cluster;
     private List<String> hostNames = null;
     private List<String> hostIps = null;
@@ -118,6 +116,9 @@ public class AddHostToClusterService extends ViPRService {
         if (cluster == null) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.no.cluster.exists"));
         }
+        acquireClusterLock(cluster);
+
+        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
 
         if (hostNames == null || hostNames.isEmpty() || hostIps == null || hostIps.isEmpty()) {
             preCheckErrors.append(
@@ -196,17 +197,20 @@ public class AddHostToClusterService extends ViPRService {
             }
         }
 
+        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()) {
+             for (String hostName : hostNamesInCluster) {
+                if (existingHostNames.contains(hostName)){
+                    preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.hostname.already.in.cluster", hostName) + "  ");
+                }
+             }
+        }
+
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
                 preCheckErrors.append(
                         ExecutionUtils.getMessage("compute.cluster.hosts.exists.elsewhere",
                                 existingHostName) + "  ");
             }
-        }
-
-        if (vcenterId != null && datacenterId == null) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.datacenter.id.null") + "  ");
         }
 
         ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
@@ -216,7 +220,8 @@ public class AddHostToClusterService extends ViPRService {
         }
 
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 
@@ -242,6 +247,9 @@ public class AddHostToClusterService extends ViPRService {
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
+        for (Host host : hosts) {
+            acquireHostLock(host, cluster);
+        }
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
@@ -264,24 +272,27 @@ public class AddHostToClusterService extends ViPRService {
 
         logInfo("compute.cluster.exports.installing.os");
         installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts), hosts);
+
         hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
+        // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+        hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
+
         try {
             if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-                // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
-                ComputeUtils.addHostsToCluster(hosts, cluster);
                 pushToVcenter();
                 ComputeUtils.discoverHosts(hosts);
             } else {
-                logWarn("compute.cluster.installed.os.none");
+                logWarn("compute.cluster.newly.provisioned.hosts.none");
             }
         } catch (Exception ex) {
             logError(ex.getMessage());
             setPartialSuccess();
         }
 
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(
@@ -316,7 +327,7 @@ public class AddHostToClusterService extends ViPRService {
     }
 
     private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap, List<Host> createdHosts) {
-        List<OsInstallParam> osInstallParams = Lists.newArrayList();
+        Map<Host,OsInstallParam> osInstallParamMap = new HashMap<Host,OsInstallParam>();
 
         for (Host host : createdHosts) {
             if ((host != null) && (
@@ -336,64 +347,47 @@ public class AddHostToClusterService extends ViPRService {
                 param.setManagementNetwork(managementNetwork);
                 param.setNtpServer(ntpServer);
                 param.setRootPassword(rootPassword);
-                osInstallParams.add(param);
+                osInstallParamMap.put(host,param);
             }
             else {
-                osInstallParams.add(null);
+                osInstallParamMap.put(host,null);
             }
         }
 
         try {
             // Attempt an OS Install only on the list of hosts that are a part of the order
             // This does check if the hosts already have a OS before attempting the install
-            ComputeUtils.installOsOnHosts(createdHosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(osInstallParamMap);
         } catch (Exception e) {
             logError(e.getMessage());
         }
     }
 
     private void pushToVcenter() {
-        if (vcenterId != null) {
-            // If the cluster already has a datacenter associated with it,
-            // it needs to be updated, else create.
+        // If the cluster has a datacenter associated with it,
+        //it needs to be updated and push hosts to vcenter
+        VcenterDataCenter dataCenter = null;
+        boolean status = true;
+        URI existingDatacenterId = cluster.getVcenterDataCenter();
+        if (!NullColumnValueGetter.isNullURI(existingDatacenterId)) {
+            logInfo("vcenter.cluster.update", cluster.getLabel());
             try {
-                Vcenter vcenter = null;
-                VcenterDataCenter dataCenter = null;
-                vcenter = ComputeUtils.getVcenter(vcenterId);
-
-                if (null != datacenterId) {
-                    dataCenter = ComputeUtils.getVcenterDataCenter(datacenterId);
-                }
-                boolean status = true;
-                URI existingDatacenterId = cluster.getVcenterDataCenter();
-                if (existingDatacenterId == null) {
-                    logInfo("compute.cluster.create.vcenter.cluster.datacenter",
-                            (vcenter != null ? vcenter.getLabel() : vcenterId),
-                            (dataCenter != null ? dataCenter.getLabel() : datacenterId));
-                    if (dataCenter == null) {
-                        status = ComputeUtils.createVcenterCluster(cluster, datacenterId);
-                    } else {
-                        status = ComputeUtils.createVcenterCluster(cluster, dataCenter);
-                    }
-
-                    if (!status) {
-                        throw new IllegalStateException(
-                                ExecutionUtils.getMessage("vcenter.cluster.create.failed", cluster.getLabel()));
-                    }
+                dataCenter = ComputeUtils.getVcenterDataCenter(existingDatacenterId);
+                //Changes were done as part of giving friendly names in UI logs
+                //Invoke by dataceterID if we failed to get datacenter from DB (we might fail, if there
+                //is some DB issue, but we fail with more meaningful error from controller.)
+                //else invoke using datacenter obj so that we show a user friendly name in UI.
+                if (dataCenter == null) {
+                    status = ComputeUtils.updateVcenterCluster(cluster, existingDatacenterId);
                 } else {
-                    logInfo("vcenter.cluster.update", cluster.getLabel());
-                    if (dataCenter == null) {
-                        status = ComputeUtils.updateVcenterCluster(cluster, datacenterId);
-                    } else {
-                        status = ComputeUtils.updateVcenterCluster(cluster, dataCenter);
-                    }
-
-                    if (!status) {
-                        throw new IllegalStateException(
-                                ExecutionUtils.getMessage("vcenter.cluster.update.failed", cluster.getLabel()));
-                    }
+                    status = ComputeUtils.updateVcenterCluster(cluster, dataCenter);
+                }
+                if (!status) {
+                    throw new IllegalStateException(
+                            ExecutionUtils.getMessage("vcenter.cluster.update.failed", cluster.getLabel()));
                 }
             } catch (Exception e) {
+                logError("compute.cluster.vcenter.sync.failed.corrective.user.message", cluster.getLabel());
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
                 throw e;
             }

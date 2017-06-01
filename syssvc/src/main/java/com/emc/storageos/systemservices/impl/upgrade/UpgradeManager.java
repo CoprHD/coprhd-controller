@@ -217,7 +217,7 @@ public class UpgradeManager extends AbstractManager {
                     }
 
                     SiteState localSiteState = drUtil.getLocalSite().getState();
-                    if (!localSiteState.equals(SiteState.STANDBY_SYNCED)) {
+                    if (!localSiteState.equals(SiteState.STANDBY_SYNCED) && !localSiteState.equals(SiteState.STANDBY_INCR_SYNCING)) {
                         log.info("current site is standby and is in state {}, sleep 1m and try again", localSiteState);
                         sleep(STANDBY_UPGRADE_RETRY_INTERVAL);
                         continue;

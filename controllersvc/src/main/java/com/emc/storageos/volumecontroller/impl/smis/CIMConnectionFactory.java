@@ -195,10 +195,16 @@ public class CIMConnectionFactory {
                 .queryByType(StorageSystem.class, true);
         Iterator<StorageSystem> allStorageSystemItr = _dbClient.queryIterativeObjects(StorageSystem.class, allStorageSystemsURIList);
         while (allStorageSystemItr.hasNext()) {
+            CimConnection cimConnection = null;
             StorageSystem storageSystem = allStorageSystemItr.next();
             if (null != storageSystem &&
                     Type.vnxfile.toString().equals(storageSystem.getSystemType())) {
-                CimConnection cimConnection = getConnection(storageSystem);
+                // Before calling getConnection check if storage System have valid SMIS connection during discovery
+                if (null != storageSystem.getSmisConnectionStatus() &&
+                        ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(
+                                storageSystem.getSmisConnectionStatus())) {
+                    cimConnection = getConnection(storageSystem);
+                }
                 if (null == cimConnection) {
                     _log.error("No CIMOM connection found for ip/port {}",
                             ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),

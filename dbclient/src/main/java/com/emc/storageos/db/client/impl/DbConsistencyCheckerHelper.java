@@ -40,7 +40,9 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.ExecutionState;
+import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.google.common.collect.Lists;
@@ -66,11 +68,10 @@ public class DbConsistencyCheckerHelper {
     private static final int INDEX_OBJECTS_BATCH_SIZE = 1000;
     private static final int THREAD_POOL_QUEUE_SIZE = 50;
     private static final int WAITING_TIME_FOR_QUEUE_FULL_MS = 3000;
-    private static final int REDUCED_PAGE_SIZE = 20;
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
-    private final Set<Class<? extends DataObject>> CFsReducingPageSize = new HashSet<>(Arrays.asList(ExecutionState.class));
+    private final Set<String> skipCheckCFs = new HashSet<>(Arrays.asList(ExecutionState.class.getSimpleName(), ExecutionLog.class.getSimpleName(), ExecutionTaskLog.class.getSimpleName()));
     private volatile Map<Long, String> schemaVersionsTime;
     private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(THREAD_POOL_QUEUE_SIZE);
     private ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 20, 50, TimeUnit.MILLISECONDS, blockingQueue);
@@ -141,14 +142,13 @@ public class DbConsistencyCheckerHelper {
      */
     public void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult) throws DriverException {
         initSchemaVersions();
-        int pageSize = dbClient.DEFAULT_PAGE_SIZE;
+        
         Class objClass = doType.getDataObjectClass();
-        _log.info("Check Data Object CF {} with double confirmed option: {}", objClass, doubleConfirmed);
-        if (CFsReducingPageSize.contains(objClass)) {
-            _log.info(
-                    "The record of Data Object CF {} may have large data, we should reduce the page size to {} to avoid frame size larger than Cassandra thrift message size.",
-                    objClass, REDUCED_PAGE_SIZE);
-            pageSize = REDUCED_PAGE_SIZE;
+        if (skipCheckCFs.contains(objClass.getSimpleName())) {
+            _log.info("Skip checking CF {}", objClass);
+            return;
+        } else {
+            _log.info("Check Data Object CF {} with double confirmed option: {}", objClass, doubleConfirmed);
         }
 
         Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();
@@ -292,6 +292,11 @@ public class DbConsistencyCheckerHelper {
 
             if (objCfName == null) {
                 logMessage(String.format("DataObject does not exist for %s", key), true, toConsole);
+                continue;
+            }
+            
+            if (skipCheckCFs.contains(objCfName)) {
+                _log.debug("Skip checking CF {} for index CF {}", objCfName, indexAndCf.cf);
                 continue;
             }
 
@@ -905,7 +910,7 @@ public class DbConsistencyCheckerHelper {
         @Override
         public String toString() {
             if (0 == getTotal()) {
-                return null;
+                return "\nNo corrupted rows found.";
             }
             StringBuilder builder = new StringBuilder();
             builder.append("\nCorrupted rows by version: ");

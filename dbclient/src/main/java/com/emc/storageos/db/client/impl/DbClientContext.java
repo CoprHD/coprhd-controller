@@ -104,6 +104,7 @@ public class DbClientContext {
     private String trustStoreFile;
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
+    private int logInterval = 1800; //seconds
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
 
     // whether to retry once with LOCAL_QUORUM for write failure 
@@ -141,9 +142,17 @@ public class DbClientContext {
     
     public com.datastax.driver.core.Cluster getCassandraCluster() {
         if (cassandraCluster == null) {
-            initClusterContext();
+        	initClusterContext();
         }
         return cassandraCluster;
+    }
+
+    public void setLogInterval(int interval) {
+        this.logInterval = interval;
+    }
+
+    public int getLogInterval() {
+        return logInterval;
     }
 
     public boolean isRetryFailedWriteWithLocalQuorum() {
@@ -618,7 +627,7 @@ public class DbClientContext {
         this.writeConsistencyLevel = writeConsistencyLevel;
     }
     
-    private Set<String> getLiveNodes() {
+	private Set<String> getLiveNodes() {
         Set<Host> hosts = cassandraCluster.getMetadata().getAllHosts(); 
         int port = getKeyspaceName() == DbClientContext.LOCAL_KEYSPACE_NAME ? CASSANDRA_DB_JMX_PORT : CASSANDRA_GEODB_JMX_PORT;
         String urlFormat = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
@@ -641,7 +650,7 @@ public class DbClientContext {
         }
         
         return Collections.emptySet();
-    }
+	}
     
     private class ViPRRetryPolicy implements RetryPolicy {
         private int maxRetry;

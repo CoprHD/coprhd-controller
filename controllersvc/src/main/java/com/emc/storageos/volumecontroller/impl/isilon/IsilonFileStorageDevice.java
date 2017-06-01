@@ -521,7 +521,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         SMBFileShare fileShare = currentShares.get(smbFileShare.getName());
         if (fileShare != null) {
 
-	    	
             String nativeId = fileShare.getNativeId();
             String zoneName = getZoneName(args.getvNAS());
             _log.info("delete the share {} with native id {}", smbFileShare.getName(), nativeId);
@@ -536,7 +535,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private void isiDeleteShares(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
-	_log.info("IsilonFileStorageDevice:isiDeleteShares()");
+        _log.info("IsilonFileStorageDevice:isiDeleteShares()");
         SMBShareMap currentShares = null;
         if (args.getFileOperation()) {
             FileShare fileObj = args.getFs();
@@ -664,9 +663,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 String id = null;
                 if (accessZoneName != null) {
                     _log.debug("Export will be created in zone: {}", accessZoneName);
-                    id = isi.createExport(newIsilonExport, accessZoneName);
+                    id = isi.createExport(newIsilonExport, accessZoneName, args.getBypassDnsCheck());
                 } else {
-                    id = isi.createExport(newIsilonExport);
+                    id = isi.createExport(newIsilonExport, args.getBypassDnsCheck());
                 }
 
                 // set file export data and add it to the export map
@@ -684,9 +683,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                 // modify current export in isilon.
                 if (accessZoneName != null) {
-                    isi.modifyExport(fExport.getIsilonId(), accessZoneName, newIsilonExport);
+                    isi.modifyExport(fExport.getIsilonId(), accessZoneName, newIsilonExport, args.getBypassDnsCheck());
                 } else {
-                    isi.modifyExport(fExport.getIsilonId(), newIsilonExport);
+                    isi.modifyExport(fExport.getIsilonId(), newIsilonExport, args.getBypassDnsCheck());
                 }
 
                 // update clients
@@ -866,6 +865,34 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, expandedQuota);
     }
+    
+    /**
+     * restapi request for reduction of fileshare size.
+     * @param isi
+     * @param quotaId
+     * @param args
+     * @throws ControllerException
+     * @throws IsilonException
+     */
+    private void isiReduceFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
+        Long capacity = args.getNewFSCapacity();
+        IsilonSmartQuota quota = isi.getQuota(quotaId);
+        //new capacity should be less than usage capacity of a filehare
+        if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
+            String msg = String
+                    .format(
+                            "In Reduction Isilon FS requested capacity is less than currently used physical space. Path: %s, current capacity: %d",
+                            quota.getPath(), quota.getThresholds().getHard());
+            _log.error(msg);
+            throw IsilonException.exceptions.reduceFsFailedinvalidParameters(quota.getPath(),
+                    quota.getThresholds().getHard());
+        } else {
+        	 // Modify quoties for fileshare
+        	quota = getExpandedQuota(isi, args, capacity);
+            isi.modifyQuota(quotaId, quota);
+        }
+    }
+
 
     private IsilonSmartQuota getExpandedQuota(IsilonApi isi, FileDeviceInputOutput args, Long capacity) {
         Long notificationLimit = 0L;
@@ -914,9 +941,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 FileShare fsParent = _dbClient.queryObject(FileShare.class, args.getFs().getParentFileShare().getURI());
                 fsName = fsParent.getName();
                 // Add if there is any suffix in target fs label!!
-                String[] fsNameSuffix = args.getFs().getLabel().split(fsParent.getName() + "-target");
-                if (fsNameSuffix != null && fsNameSuffix.length > 1 && !fsNameSuffix[1].isEmpty()) {
-                    fsName = fsName + fsNameSuffix[1];
+                if (args.getFs().getLabel().contains("-target")) {
+                    String[] fsNameSuffix = args.getFs().getLabel().split(fsParent.getName() + "-target");
+                    if (fsNameSuffix != null && fsNameSuffix.length > 1 && !fsNameSuffix[1].isEmpty()) {
+                        fsName = fsName + fsNameSuffix[1];
+                    }
+                } else if (args.getFs().getLabel().contains("-localTarget")) {
+                    String[] fsNameSuffix = args.getFs().getLabel().split(fsParent.getName() + "-localTarget");
+                    if (fsNameSuffix != null && fsNameSuffix.length > 1 && !fsNameSuffix[1].isEmpty()) {
+                        fsName = fsName + fsNameSuffix[1];
+                    }
                 }
             }
             // Update the mount path as required
@@ -1062,6 +1096,30 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             ServiceError serviceError = DeviceControllerErrors.isilon.unableToExpandFileSystem();
             return BiosCommandResult.createErrorResult(serviceError);
         }
+    }
+    
+    
+    @Override
+    public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
+    	try {
+    		 _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
+             IsilonApi isi = getIsilonDevice(storage);
+             String quotaId = null;
+             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
+                 quotaId = args.getFsExtensions().get(QUOTA);
+             } else {
+                 final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
+                 _log.error(serviceError.getMessage());
+                 return BiosCommandResult.createErrorResult(serviceError);
+             }
+
+             isiReduceFS(isi, quotaId, args);
+             _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
+             return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("doReduceFS failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        } 
     }
 
     @Override
@@ -1369,11 +1427,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             if (quotaId != null) {
-                // Isilon does not allow to update quota directory to zero.
-                if (qDirSize > 0) {
+            	// Isilon does not allow to update quota directory to zero.
+            	IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
+                long quotaUsageSpace = isiCurrentSmartQuota.getUsagePhysical();
+                
+                if (qDirSize > 0 && qDirSize.compareTo(quotaUsageSpace) > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
+                } else {
+                	String msg = String.format(
+                            "Shriking the Isilon FS failed, because the filesystem capacity is less than current usage capacity of file system. Path: %s, current usage capacity: %d",
+                            quotaDir.getPath(), quotaUsageSpace);
+                	_log.error("doUpdateQuotaDirectory : " + msg);
+                	ServiceError error = DeviceControllerErrors.isilon.jobFailed(msg);
+                	return BiosCommandResult.createErrorResult(error);
                 }
 
             } else {
@@ -1827,9 +1895,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 IsilonExport newIsilonExport = setIsilonExport(exportRule);
                 String expId = null;
                 if (zoneName != null) {
-                    expId = isi.createExport(newIsilonExport, zoneName);
+                    expId = isi.createExport(newIsilonExport, zoneName, args.getBypassDnsCheck());
                 } else {
-                    expId = isi.createExport(newIsilonExport);
+                    expId = isi.createExport(newIsilonExport, args.getBypassDnsCheck());
                 }
                 exportRule.setDeviceExportId(expId);
             }
@@ -2013,9 +2081,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             clonedExport.toString());
 
                     if (zoneName != null) {
-                        isi.modifyExport(isilonExportId, zoneName, clonedExport);
+                        isi.modifyExport(isilonExportId, zoneName, clonedExport, args.getBypassDnsCheck());
                     } else {
-                        isi.modifyExport(isilonExportId, clonedExport);
+                        isi.modifyExport(isilonExportId, clonedExport, args.getBypassDnsCheck());
                     }
 
                 }
@@ -2971,7 +3039,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     bModifyPolicy = true;
                 }
 
-      
                 if (policyUpdateParam.getReplicationPolicyParams() != null) {
                     FileReplicationPolicyParam replParam = policyUpdateParam.getReplicationPolicyParams();
 
@@ -2990,17 +3057,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                     }
                 }
-                
+
                 /*
                  * Changes made for addressing new fields added in sync Policy in OneFSv 8.0 and above
                  */
                 IsilonSyncPolicy8Above modifiedPolicycopy = new IsilonSyncPolicy8Above();
                 IsilonSyncPolicy8Above syncpolicyAtPath8 = null;
-                if(isVersion8above && policyUpdateParam.getPriority() != null){
+                if (isVersion8above && policyUpdateParam.getPriority() != null) {
                     syncpolicyAtPath8 = isi.getReplicationPolicy8above(syncpolicyAtPath.getName());
                     modifiedPolicycopy = modifiedPolicycopy.copy(modifiedPolicy);
-                    if(syncpolicyAtPath8 != null){
-                        if(FilePolicyPriority.valueOf(policyUpdateParam.getPriority()).ordinal() != syncpolicyAtPath8.getPriority()){
+                    if (syncpolicyAtPath8 != null) {
+                        if (FilePolicyPriority.valueOf(policyUpdateParam.getPriority()).ordinal() != syncpolicyAtPath8.getPriority()) {
                             modifiedPolicycopy.setPriority(FilePolicyPriority.valueOf(policyUpdateParam.getPriority()).ordinal());
                             bModifyPolicy = true;
                         }
@@ -3010,7 +3077,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (bModifyPolicy) {
                     JobState policyState = syncpolicyAtPath.getLastJobState();
                     if (!policyState.equals(JobState.running) && !policyState.equals(JobState.paused)) {
-                        if(isVersion8above) {
+                        if (isVersion8above) {
                             isi.modifyReplicationPolicy8above(syncpolicyAtPath8.getName(), modifiedPolicycopy);
                             _log.info("Modify Replication Policy- {} finished successfully", syncpolicyAtPath8.getName());
                         } else {
@@ -3271,7 +3338,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     policy.setEnabled(true);
                     String policyId = null;
                     if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageObj.getFirmwareVersion()) >= 0) {
-                        if (filePolicy.getPriority() != null){
+                        if (filePolicy.getPriority() != null) {
                             policycopy = policycopy.copy(policy);
                             policycopy.setPriority(FilePolicyPriority.valueOf(filePolicy.getPriority()).ordinal());
                         }
@@ -3279,7 +3346,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     } else {
                         policyId = isi.createReplicationPolicy(policy);
                     }
-                    
+
                     if (policyId != null) {
                         _log.info("Isilon File Policy {} created successfully.", policyId);
                         FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, sourcePath, policyName,
@@ -3559,7 +3626,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 policyPath = fsPathParts[0] + project + "_localTarget" + fsPathParts[1];
                 break;
             case file_system:
-                policyPath = fileShare.getNativeId();
+                policyPath = fileShare.getNativeId() + "_localTarget";
                 break;
             default:
                 _log.error("Not a valid policy apply level: " + applyLevel);
@@ -3579,25 +3646,35 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         Project project = args.getProject();
         FileShare fs = args.getFs();
 
-        List<FilePolicy> replicationPolicies = FileOrchestrationUtils.getReplicationPolices(_dbClient, vpool, project, fs);
-        if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
-            if (replicationPolicies.size() > 1) {
-                _log.warn("More than one replication policy found {}", replicationPolicies.size());
-            } else {
-                FilePolicy replPolicy = replicationPolicies.get(0);
-                if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())
-                        && replPolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())) {
-                    // For local replication, the path sould be different
-                    // add localTaget to file path at directory level where the policy is applied!!!
-                    String mountPath = generatePathForLocalTarget(replPolicy, fs, args);
-                    // replace extra forward slash with single one
-                    mountPath = mountPath.replaceAll("/+", "/");
-                    _log.info("Mount path to mount the Isilon File System {}", mountPath);
-                    args.setFsMountPath(mountPath);
-                    args.setFsNativeGuid(args.getFsMountPath());
-                    args.setFsNativeId(args.getFsMountPath());
-                    args.setFsPath(args.getFsMountPath());
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            List<FilePolicy> replicationPolicies = FileOrchestrationUtils.getReplicationPolices(_dbClient, vpool, project, null);
+            if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
+                if (replicationPolicies.size() > 1) {
+                    _log.warn("More than one replication policy found {}", replicationPolicies.size());
+                } else {
+                    FilePolicy replPolicy = replicationPolicies.get(0);
+                    if (replPolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())) {
+                        // For local replication, the path should be different
+                        // add localTaget to file path at directory level where the policy is applied!!!
+                        String mountPath = generatePathForLocalTarget(replPolicy, fs, args);
+                        // replace extra forward slash with single one
+                        mountPath = mountPath.replaceAll("/+", "/");
+                        _log.info("Mount path to mount the Isilon File System {}", mountPath);
+                        args.setFsMountPath(mountPath);
+                        args.setFsNativeGuid(args.getFsMountPath());
+                        args.setFsNativeId(args.getFsMountPath());
+                        args.setFsPath(args.getFsMountPath());
+                    }
                 }
+            } else if (fs.getLabel().contains("-localTarget")) {
+                String mountPath = fs.getNativeId() + "_localTarget";
+                // replace extra forward slash with single one
+                mountPath = mountPath.replaceAll("/+", "/");
+                _log.info("Mount path to mount the Isilon File System {}", mountPath);
+                args.setFsMountPath(mountPath);
+                args.setFsNativeGuid(args.getFsMountPath());
+                args.setFsNativeId(args.getFsMountPath());
+                args.setFsPath(args.getFsMountPath());
             }
         }
         return;
@@ -3775,12 +3852,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String scheduleId;
             if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageObj.getFirmwareVersion()) >= 0) {
                 IsilonSyncPolicy8Above replicationPolicyCopy = new IsilonSyncPolicy8Above();
-                replicationPolicyCopy =  replicationPolicyCopy.copy(replicationPolicy);
-                if(filePolicy.getPriority() != null){
+                replicationPolicyCopy = replicationPolicyCopy.copy(replicationPolicy);
+                if (filePolicy.getPriority() != null) {
                     replicationPolicyCopy.setPriority(FilePolicyPriority.valueOf(filePolicy.getPriority()).ordinal());
                 }
                 scheduleId = isi.createReplicationPolicy8above(replicationPolicyCopy);
-            } else{
+            } else {
                 scheduleId = isi.createReplicationPolicy(replicationPolicy);
             }
 

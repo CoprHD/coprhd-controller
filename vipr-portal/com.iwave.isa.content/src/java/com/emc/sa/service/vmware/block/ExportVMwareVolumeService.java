@@ -24,6 +24,11 @@ public class ExportVMwareVolumeService extends VMwareHostService {
     protected ExportBlockVolumeHelper helper = new ExportVMwareBlockVolumeHelper();
 
     @Override
+    public boolean checkClusterConnectivity() {
+        return false;
+    }
+
+    @Override
     public void precheck() throws Exception {
         vmware.disconnect();
         helper.precheck();

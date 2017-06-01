@@ -4339,7 +4339,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *
      * @param volumes The list of volumes to check
      *
-     * @return the volume that is in the CG.
+     * @return one of the volumes that are in the CG, null otherwise.
      */
     private Volume isVPlexVolumeInCgWithLocalType(List<Volume> volumes) {       
         for (Volume volume : volumes) {

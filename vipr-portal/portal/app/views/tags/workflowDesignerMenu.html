@@ -27,7 +27,7 @@
 												<div class="arrow"></div><div ng-repeat="message in inputError.errorMessages" class="custom-popover-content">{{message}}</div>
 											</div>
 										</div>
-										<collapse id="{{stepData.id}}_{{input.name}}_collapsible" title-key={{input.name}} style="height:10px; width:100px; word-wrap:break-word;" icon="error-icon"
+										<collapse id="{{stepData.id}}_{{input.name}}_collapsible" title-key={{input.name}} icon="error-icon"
 												  ng-class="{'required':input.required && stepData.type==='vipr',
 												  'input-error-icon':alert.error.errorSteps[stepData.id].errorInputGroups[inputGroupName].errorInputs[input.name].errorMessages}">
 											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.type" ng-if="!isInventoryFile(stepData, inputGroupName, input)">

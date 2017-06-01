@@ -865,9 +865,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, expandedQuota);
     }
-    
+
     /**
      * restapi request for reduction of fileshare size.
+     * 
      * @param isi
      * @param quotaId
      * @param args
@@ -877,8 +878,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private void isiReduceFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
         Long capacity = args.getNewFSCapacity();
         IsilonSmartQuota quota = isi.getQuota(quotaId);
-        //new capacity should be less than usage capacity of a filehare
-        if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
+        // new capacity should be less than usage capacity of a filehare
+        if (capacity.compareTo(quota.getUsagePhysical()) < 0) {
             String msg = String
                     .format(
                             "In Reduction Isilon FS requested capacity is less than currently used physical space. Path: %s, current capacity: %d",
@@ -887,12 +888,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             throw IsilonException.exceptions.reduceFsFailedinvalidParameters(quota.getPath(),
                     quota.getThresholds().getHard());
         } else {
-        	 // Modify quoties for fileshare
-        	quota = getExpandedQuota(isi, args, capacity);
+            // Modify quoties for fileshare
+            quota = getExpandedQuota(isi, args, capacity);
             isi.modifyQuota(quotaId, quota);
         }
     }
-
 
     private IsilonSmartQuota getExpandedQuota(IsilonApi isi, FileDeviceInputOutput args, Long capacity) {
         Long notificationLimit = 0L;
@@ -1097,29 +1097,28 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createErrorResult(serviceError);
         }
     }
-    
-    
+
     @Override
     public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-    	try {
-    		 _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
-             IsilonApi isi = getIsilonDevice(storage);
-             String quotaId = null;
-             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
-                 quotaId = args.getFsExtensions().get(QUOTA);
-             } else {
-                 final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
-                 _log.error(serviceError.getMessage());
-                 return BiosCommandResult.createErrorResult(serviceError);
-             }
+        try {
+            _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
+            IsilonApi isi = getIsilonDevice(storage);
+            String quotaId = null;
+            if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
+                quotaId = args.getFsExtensions().get(QUOTA);
+            } else {
+                final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
+                _log.error(serviceError.getMessage());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
 
-             isiReduceFS(isi, quotaId, args);
-             _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
-             return BiosCommandResult.createSuccessfulResult();
+            isiReduceFS(isi, quotaId, args);
+            _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
+            return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("doReduceFS failed.", e);
             return BiosCommandResult.createErrorResult(e);
-        } 
+        }
     }
 
     @Override
@@ -1427,21 +1426,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             if (quotaId != null) {
-            	// Isilon does not allow to update quota directory to zero.
-            	IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
+                // Isilon does not allow to update quota directory to zero.
+                IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
                 long quotaUsageSpace = isiCurrentSmartQuota.getUsagePhysical();
-                
+
                 if (qDirSize > 0 && qDirSize.compareTo(quotaUsageSpace) > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 } else {
-                	String msg = String.format(
-                            "Shriking the Isilon FS failed, because the filesystem capacity is less than current usage capacity of file system. Path: %s, current usage capacity: %d",
-                            quotaDir.getPath(), quotaUsageSpace);
-                	_log.error("doUpdateQuotaDirectory : " + msg);
-                	ServiceError error = DeviceControllerErrors.isilon.jobFailed(msg);
-                	return BiosCommandResult.createErrorResult(error);
+                    String msg = String
+                            .format(
+                                    "Shriking the Isilon FS failed, because the filesystem capacity is less than current usage capacity of file system. Path: %s, current usage capacity: %d",
+                                    quotaDir.getPath(), quotaUsageSpace);
+                    _log.error("doUpdateQuotaDirectory : " + msg);
+                    ServiceError error = DeviceControllerErrors.isilon.jobFailed(msg);
+                    return BiosCommandResult.createErrorResult(error);
                 }
 
             } else {
@@ -1522,7 +1522,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -2438,15 +2438,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 }
             }
         }
-        /*
-         * If permissions array list is empty, it means to remove all ACEs on
-         * the share.
-         */
-        /*
-         * This workaround is with reference to the bug reported on Isilon platform COP-18468.
-         * First clear all the ACL anf then set the ACL you want to set for that user.
-         */
-        modifyIsilonShareACL(isi, args, isilonSMBShare, new ArrayList<Permission>(), new ArrayList<IsilonSMBShare.Persona>());
+
         if (!permissions.isEmpty() || !runAsRootList.isEmpty()) {
             modifyIsilonShareACL(isi, args, isilonSMBShare, permissions, runAsRootList);
         }

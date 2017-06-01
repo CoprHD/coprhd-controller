@@ -263,18 +263,19 @@ public class ResourceTypeMapping {
     }
 
     public static ResourceTypeEnum getResourceType(final Class<?> objectClazz) {
-        ResourceTypeEnum type = getResourceTypeInternal(objectClazz); 
-        if(null == type ) {
+        ResourceTypeEnum type = getResourceTypeInternal(objectClazz);
+        if (null == type) {
             _log.error("No resourceMapping for type " + objectClazz.getName());
             return null;
         }
         return type;
     }
-    
+
     private static ResourceTypeEnum getResourceTypeInternal(final Class<?> objectClazz) {
-        if(objectClazz == null ) {
+        if (objectClazz == null) {
             return null;
-        } else if (!resourceMapping.containsKey(objectClazz)) {
+        }
+        if (!resourceMapping.containsKey(objectClazz)) {
             return getResourceTypeInternal(objectClazz.getSuperclass());
         } else {
             return resourceMapping.get(objectClazz);

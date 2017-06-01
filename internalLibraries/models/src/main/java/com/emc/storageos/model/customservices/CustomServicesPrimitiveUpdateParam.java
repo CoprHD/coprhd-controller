@@ -33,7 +33,7 @@ public class CustomServicesPrimitiveUpdateParam {
     private Map<String,String> attributes;
     private URI resource;
 
-    @XmlElement(name = "name")
+    @XmlElement(name = "name", nillable = true)
     public String getName() {
         return name;
     }
@@ -42,7 +42,7 @@ public class CustomServicesPrimitiveUpdateParam {
         this.name = name;
     }
 
-    @XmlElement(name = "friendly_name")
+    @XmlElement(name = "friendly_name", nillable = true)
     public String getFriendlyName() {
         return friendlyName;
     }
@@ -51,7 +51,7 @@ public class CustomServicesPrimitiveUpdateParam {
         this.friendlyName = friendlyName;
     }
 
-    @XmlElement(name = "description")
+    @XmlElement(name = "description", nillable = true)
     public String getDescription() {
         return description;
     }

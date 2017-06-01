@@ -32,10 +32,10 @@ public class CustomServicesPrimitiveCreateParam {
     private String type;
     private Map<String, InputCreateList> input;
     private List<String> output;
-    private Map<String,String> attributes;
+    private Map<String, String> attributes;
     private URI resource;
-    
-    @XmlElement(name = "name")
+
+    @XmlElement(name = "name", required = true)
     public String getName() {
         return name;
     }
@@ -44,7 +44,7 @@ public class CustomServicesPrimitiveCreateParam {
         this.name = name;
     }
 
-    @XmlElement(name = "friendly_name")
+    @XmlElement(name = "friendly_name", nillable = true)
     public String getFriendlyName() {
         return friendlyName;
     }
@@ -53,7 +53,7 @@ public class CustomServicesPrimitiveCreateParam {
         this.friendlyName = friendlyName;
     }
 
-    @XmlElement(name = "description")
+    @XmlElement(name = "description", nillable = true)
     public String getDescription() {
         return description;
     }
@@ -62,21 +62,21 @@ public class CustomServicesPrimitiveCreateParam {
         this.description = description;
     }
 
-    @XmlElement(name= "attributes") 
+    @XmlElement(name = "attributes")
     public Map<String, String> getAttributes() {
         return attributes;
     }
-    
-    public void setAttributes(final Map<String,String> attributes) {
+
+    public void setAttributes(final Map<String, String> attributes) {
         this.attributes = attributes;
     }
-    
+
     @XmlElement(name = "input")
-    public Map<String,InputCreateList> getInput() {
+    public Map<String, InputCreateList> getInput() {
         return input;
     }
 
-    public void setInput(final Map<String,InputCreateList>  input) {
+    public void setInput(final Map<String, InputCreateList> input) {
         this.input = input;
     }
 
@@ -88,25 +88,25 @@ public class CustomServicesPrimitiveCreateParam {
     public void setOutput(final List<String> output) {
         this.output = output;
     }
-    
-    @XmlElement(name = "resource") 
+
+    @XmlElement(name = "resource")
     public URI getResource() {
         return resource;
     }
-    
+
     public void setResource(final URI resource) {
         this.resource = resource;
     }
-    
-    @XmlElement(name = "type") 
+
+    @XmlElement(name = "type" , required = true)
     public String getType() {
         return type;
     }
-    
+
     public void setType(final String type) {
         this.type = type;
     }
-    
+
     public static class InputCreateList {
         private List<String> input;
 
@@ -118,8 +118,7 @@ public class CustomServicesPrimitiveCreateParam {
         public void setInput(List<String> input) {
             this.input = input;
         }
-        
-      
+
     }
-    
+
 }

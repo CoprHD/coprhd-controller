@@ -333,7 +333,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
 
     @Override
     protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.CUSTOM_SERVICES_PRIMTIVES;
+        return ResourceTypeEnum.CUSTOM_SERVICES_PRIMITIVES;
 
     }
 

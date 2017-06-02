@@ -130,6 +130,8 @@ public final class CustomServicesConstants {
     public static final String OPERATION_ERROR = "operation_error";
     public static final String OPERATION_RETURNCODE = "operation_returncode";
 
+    public static final String SPACES_REGEX = "\\s";
+
     // Supported REST methods for Custom Service
     public enum RestMethods {
         GET, POST, PUT, DELETE;

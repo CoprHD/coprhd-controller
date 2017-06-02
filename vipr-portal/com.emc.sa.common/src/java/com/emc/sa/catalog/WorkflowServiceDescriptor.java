@@ -148,7 +148,7 @@ public class WorkflowServiceDescriptor {
                                     wfInput.getFriendlyName();
                             serviceField
                                     .setLabel(friendlyName);
-                            serviceField.setName(friendlyName);
+                            serviceField.setName(friendlyName.replaceAll(CustomServicesConstants.SPACES_REGEX,StringUtils.EMPTY));
                             serviceField.setRequired(wfInput.getRequired());
                             if (!(CustomServicesConstants.InputType.FROM_USER_MULTI.toString().equals(wfInput.getType()))) {
                                 // Initial value already set for FROM_USER_MULTI

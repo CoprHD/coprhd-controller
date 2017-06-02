@@ -316,7 +316,7 @@ public class CustomServicesService extends ViPRService {
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
-                final String friendlyName = value.getFriendlyName();
+                final String friendlyName = value.getFriendlyName().replaceAll(CustomServicesConstants.SPACES_REGEX,StringUtils.EMPTY);
                 if (StringUtils.isEmpty(value.getType())) {
                     continue;
                 }

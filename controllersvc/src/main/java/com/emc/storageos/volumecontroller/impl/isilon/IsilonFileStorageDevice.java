@@ -877,20 +877,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private void isiReduceFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
         Long capacity = args.getNewFSCapacity();
         IsilonSmartQuota quota = isi.getQuota(quotaId);
-        //new capacity should be less than usage capacity of a filehare
-        if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
-            String msg = String
-                    .format(
-                            "In Reduction Isilon FS requested capacity is less than currently used physical space. Path: %s, current capacity: %d",
-                            quota.getPath(), quota.getThresholds().getHard());
-            _log.error(msg);
-            throw IsilonException.exceptions.reduceFsFailedinvalidParameters(quota.getPath(),
-                    quota.getThresholds().getHard());
-        } else {
-        	 // Modify quoties for fileshare
-        	quota = getExpandedQuota(isi, args, capacity);
-            isi.modifyQuota(quotaId, quota);
-        }
+        // Modify quoties for fileshare
+        quota = getExpandedQuota(isi, args, capacity);
+        isi.modifyQuota(quotaId, quota);
     }
 
 
@@ -1107,13 +1096,27 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
              String quotaId = null;
              if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
                  quotaId = args.getFsExtensions().get(QUOTA);
+                 
+                 Long capacity = args.getNewFSCapacity();
+                 IsilonSmartQuota quota = isi.getQuota(quotaId);
+                 //new capacity should be less than usage capacity of a filehare
+                 if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
+                     String msg = String
+                             .format(
+                                     "In Reduction Isilon FS requested capacity is less than currently used physical space. Path: %s, current capacity: %d",
+                                     quota.getPath(), quota.getThresholds().getHard());
+                     _log.error(msg);
+                     final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
+                     _log.error(serviceError.getMessage());
+                     return BiosCommandResult.createErrorResult(serviceError);
+                 } else {
+                	 isiReduceFS(isi, quotaId, args);
+                 }
              } else {
                  final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
                  _log.error(serviceError.getMessage());
                  return BiosCommandResult.createErrorResult(serviceError);
              }
-
-             isiReduceFS(isi, quotaId, args);
              _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
              return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
@@ -1440,7 +1443,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             "Shriking the Isilon FS failed, because the filesystem capacity is less than current usage capacity of file system. Path: %s, current usage capacity: %d",
                             quotaDir.getPath(), quotaUsageSpace);
                 	_log.error("doUpdateQuotaDirectory : " + msg);
-                	ServiceError error = DeviceControllerErrors.isilon.jobFailed(msg);
+                	ServiceError error = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(args.getFsId());
                 	return BiosCommandResult.createErrorResult(error);
                 }
 

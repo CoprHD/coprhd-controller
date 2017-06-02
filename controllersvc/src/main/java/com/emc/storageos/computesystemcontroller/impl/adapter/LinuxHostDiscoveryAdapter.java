@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.emc.aix.SecureShellSupport;
 import com.emc.storageos.computesystemcontroller.exceptions.CompatibilityException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.DbClient;
@@ -52,8 +53,6 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(LinuxHostDiscoveryAdapter.class);
 
     private static final String ETH0 = "eth0";
-
-    private static final int COMMAND_TIMEOUT = 60;
 
     @Override
     protected String getSupportedType() {
@@ -109,7 +108,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         String multipathMessage = null;
         try {
             PowermtCheckRegistrationCommand command = new PowermtCheckRegistrationCommand();
-            cli.executeCommand(command, COMMAND_TIMEOUT);
+            cli.executeCommand(command, SecureShellSupport.SHORT_TIMEOUT);
             // powerpath is installed
             LOG.info("PowerPath is installed");
             return;
@@ -121,7 +120,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         try {
             MultipathCommand command = new MultipathCommand();
             command.addArgument("-l");
-            cli.executeCommand(command, COMMAND_TIMEOUT);
+            cli.executeCommand(command, SecureShellSupport.SHORT_TIMEOUT);
             // multipath is installed
             LOG.info("Multipath is installed");
             return;

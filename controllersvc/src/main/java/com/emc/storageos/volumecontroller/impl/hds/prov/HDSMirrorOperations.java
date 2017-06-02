@@ -253,7 +253,8 @@ public class HDSMirrorOperations implements MirrorOperations {
                                 asyncThickLUsJobId, mirrorObj.getStorageController(),
                                 taskCompleter)));
                     } else {
-                        throw new Exception("Unable to get async taskId from HiCommand Device Manager for the delete mirror call");
+                        throw HDSException.exceptions
+                                .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the delete mirror call");
                     }
                 }
 
@@ -266,7 +267,8 @@ public class HDSMirrorOperations implements MirrorOperations {
                                 new HDSBlockMirrorDeleteJob(asyncThinHDSJobId, mirrorObj
                                         .getStorageController(), taskCompleter)));
                     } else {
-                        throw new Exception("Unable to get async taskId from HiCommand Device Manager for the delete mirror call");
+                        throw HDSException.exceptions
+                                .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the delete mirror call");
                     }
                 }
             }

@@ -97,7 +97,8 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
             String asyncTaskMessageId = hdsApiClient.createThickVolumes(systemObjectID,
                     poolObjectID, memberCapacity, memberCount, "", VOLUME_FORMAT_TYPE, storageSystem.getModel(), null);
             if (asyncTaskMessageId == null) {
-                throw new Exception("Unable to get async taskId from HiCommand Device Manager for the create volume call");
+                throw HDSException.exceptions
+                        .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the create volume call");
             }
             HDSCreateMetaVolumeMembersJob metaVolumeMembersJob = new HDSCreateMetaVolumeMembersJob(
                     asyncTaskMessageId, storageSystem.getId(), metaHead, memberCount,
@@ -205,7 +206,8 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
                 if (null != metaMember) {
                     String asyncTaskMessageId = hdsApiClient.formatLogicalUnit(systemObjectID, metaMember);
                     if (asyncTaskMessageId == null) {
-                        throw new Exception("Unable to get async taskId from HiCommand Device Manager for the expand volume call");
+                        throw HDSException.exceptions
+                                .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the expand volume call");
                     }
                     HDSJob formatLUJob = new HDSJob(asyncTaskMessageId, storageSystem.getId(),
                             metaVolumeTaskCompleter.getVolumeTaskCompleter(), "formatLogicalUnit");

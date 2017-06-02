@@ -199,7 +199,8 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                         taskCompleter);
                 ControllerServiceImpl.enqueueJob(new QueueJob(createHDSJob));
             } else {
-                throw new Exception("Unable to get async taskId from HiCommand Device Manager for the create volume call");
+                throw HDSException.exceptions
+                        .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the create volume call");
             }
         } catch (final InternalException e) {
             log.error("Problem in doCreateVolumes: ", e);
@@ -274,7 +275,8 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                         "ExpandVolume");
                 ControllerServiceImpl.enqueueJob(new QueueJob(expandVolumeJob));
             } else {
-                throw new Exception("Unable to get async taskId from HiCommand Device Manager for the expand volume call");
+                throw HDSException.exceptions
+                        .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the expand volume call");
             }
         } catch (final InternalException e) {
             log.error("Problem in doExpandVolume: ", e);
@@ -391,7 +393,8 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                                 asyncThickLUsJobId, volumes.get(0).getStorageController(),
                                 taskCompleter)));
                     } else {
-                        throw new Exception("Unable to get async taskId from HiCommand Device Manager for the delete volume call");
+                        throw HDSException.exceptions
+                                .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the delete volume call");
                     }
                 }
 
@@ -406,7 +409,8 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                                 new HDSDeleteVolumeJob(asyncThinHDSJobId, volumes.get(0)
                                         .getStorageController(), taskCompleter)));
                     } else {
-                        throw new Exception("Unable to get async taskId from HiCommand Device Manager for the delete volume call");
+                        throw HDSException.exceptions
+                                .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the delete volume call");
                     }
                 }
             } else {
@@ -834,7 +838,8 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                             storageSystem.getModel());
 
                     if (asyncMessageId == null) {
-                        throw new Exception("Unable to get async taskId from HiCommand Device Manager for the delete volume call");
+                        throw HDSException.exceptions
+                                .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the delete volume call");
                     }
 
                     if (cleanupCompleter.isWFStep()) {
@@ -1003,7 +1008,8 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                                     taskCompleter, HDSModifyVolumeJob.VOLUME_MODIFY_JOB);
                             ControllerServiceImpl.enqueueJob(new QueueJob(modifyHDSJob));
                         } else {
-                            throw new Exception("Unable to get async taskId from HiCommand Device Manager for the modify volume call");
+                            throw HDSException.exceptions
+                                    .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the modify volume call");
                         }
                     }
                 } else {
@@ -1012,9 +1018,6 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                     ServiceError serviceError = DeviceControllerErrors.hds.methodFailed("doModifyVolumes", errorMsg);
                     taskCompleter.error(dbClient, serviceError);
                 }
-            } catch (final InternalException e) {
-                log.error("Problem in doModifyVolumes: ", e);
-                taskCompleter.error(dbClient, e);
             } catch (final Exception e) {
                 log.error("Problem in doModifyVolumes: ", e);
                 ServiceError serviceError = DeviceControllerErrors.hds.methodFailed("doModifyVolumes", e.getMessage());

@@ -20,9 +20,6 @@ import play.data.validation.Required;
 
 import java.io.File;
 
-/**
- * Created by balak1 on 5/4/2017.
- */
 public class RemoteAnsiblePrimitiveForm {
     private String id;
     @Required

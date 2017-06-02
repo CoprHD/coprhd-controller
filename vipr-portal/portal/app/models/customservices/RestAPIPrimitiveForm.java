@@ -18,9 +18,6 @@ package models.customservices;
 
 import play.data.validation.Required;
 
-/**
- * Created by balak1 on 5/4/2017.
- */
 public class RestAPIPrimitiveForm {
     private String id; // this is empty for CREATE
     private String wfDirID; // this is empty for EDIT

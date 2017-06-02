@@ -83,9 +83,6 @@ import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
 
-/**
- * @author Nick Aquino
- */
 @With(Common.class)
 public class WorkflowBuilder extends Controller {
     private static final String NO_PARENT = "#";

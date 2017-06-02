@@ -20,9 +20,6 @@ import play.data.validation.Required;
 
 import java.io.File;
 
-/**
- * Created by balak1 on 5/4/2017.
- */
 public class ShellScriptPrimitiveForm {
     private String id; // this is empty for CREATE
     // Name and Description step

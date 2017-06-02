@@ -78,7 +78,7 @@ public class PathConstants {
     public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE_DELETE = "/primitives/resource/{id}/deactivate";
     public static final String CUSTOM_SERVICES_WORKFLOWS = "/workflows";
     public static final String CUSTOM_SERVICES_WORKFLOW_DELETE = "/workflows/{id}/deactivate";
-    public static final String CUSTOM_SERVICES_WORKFLOW_VALIDATE = "/workflows/{id}/validate.json";
+    public static final String CUSTOM_SERVICES_WORKFLOW_VALIDATE = "/workflows/{id}/validate";
     public static final String CUSTOM_SERVICES_WORKFLOW_PUBLISH = "/workflows/{id}/publish";
     public static final String CUSTOM_SERVICES_WORKFLOW_UNPUBLISH = "/workflows/{id}/unpublish";
     public static final String CUSTOM_SERVICES_WORKFLOW = "/workflows/{id}";

@@ -115,6 +115,8 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         } catch (PowerPathException e) {
             powerpathMessage = e.getMessage();
             LOG.info("PowerPath is unavailable: " + powerpathMessage);
+        } catch (Exception e) {
+            LOG.info("Error while checking for powerpath: " + e.getMessage(), e);
         }
 
         try {
@@ -127,6 +129,8 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         } catch (MultipathException e) {
             multipathMessage = e.getMessage();
             LOG.info("Multipath is unavailable: " + multipathMessage);
+        } catch (Exception e) {
+            LOG.info("Error while checking for multipath: " + e.getMessage(), e);
         }
         throw new CompatibilityException("No multipath software available: \n" + powerpathMessage + "\n"
                 + multipathMessage);

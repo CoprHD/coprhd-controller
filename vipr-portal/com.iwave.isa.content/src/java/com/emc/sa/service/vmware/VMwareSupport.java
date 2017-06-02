@@ -24,6 +24,7 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockVolumeMachineTag;
 import com.emc.sa.service.vipr.block.tasks.SetBlockVolumeMachineTag;
@@ -270,9 +271,25 @@ public class VMwareSupport {
      *            true to enable storage io control or false to disable storage io control
      */
     public void setStorageIOControl(Datastore datastore, Boolean enabled) {
+        setStorageIOControl(datastore, enabled, false);
+    }
+
+    /**
+     * Sets the storage IO control for the given datastore
+     * 
+     * @param datastore
+     *            the datastore to set the storage io control on
+     * @param enabled
+     *            true to enable storage io control or false to disable storage io control
+     * @param failIfErrorDuringEnable
+     *            true to fail the operation of enabling storage I/O if storage I/O is not supported
+     */
+    public void setStorageIOControl(Datastore datastore, Boolean enabled, Boolean failIfErrorDuringEnable) {
         if (enabled != null && datastore != null) {
             if (datastore.getCapability() != null && datastore.getCapability().storageIORMSupported) {
                 execute(new SetStorageIOControl(datastore, enabled));
+            } else if (enabled && failIfErrorDuringEnable) {
+                ExecutionUtils.fail("failTask.SetStorageIOControl", new Object[] {}, datastore.getName());
             } else {
                 logWarn("vmware.support.storage.io.control.not.supported", datastore.getName());
             }
@@ -795,7 +812,7 @@ public class VMwareSupport {
      *            the datastore.
      * @return the volumes backing the host system.
      */
-    public List<VolumeRestRep> findVolumesBackingDatastore(HostSystem host, URI hostId, Datastore datastore) {
+    public List<VolumeRestRep> verifyVolumesBackingDatastore(HostSystem host, URI hostId, Datastore datastore) {
         Set<String> luns = execute(new FindLunsBackingDatastore(host, datastore));
         List<VolumeRestRep> volumes = Lists.newArrayList();
         for (String lun : luns) {
@@ -804,15 +821,17 @@ public class VMwareSupport {
                 // VBDU: Check to ensure the correct datastore tag is in the volume returned
                 String tagValue = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
                 if (tagValue == null || !tagValue.equalsIgnoreCase(datastore.getName())) {
-                    logError("vmware.support.datastore.doesntmatchvolume", volume.getName(), datastore.getName());
-                    return null;
-                }
+                    String viprcliCommand = BlockStorageUtils.getVolumeTagCommand(volume.getId(),
+                            KnownMachineTags.getVMFSDatastoreTagName(hostId), datastore.getName());
+                    throw new IllegalStateException(
+                            ExecutionUtils.getMessage("vmware.support.datastore.doesntmatchvolume", volume.getName(), volume.getWwn(),
+                                    datastore.getName(), viprcliCommand));
 
+                }
                 volumes.add(volume);
             } else {
-                logError("vmware.support.datastore.volumenotfound", datastore.getName());
-                // Don't return any volume objects to quickly report there's an issue to the caller.
-                return null;
+                throw new IllegalStateException(
+                        ExecutionUtils.getMessage("vmware.support.datastore.volumenotfound", lun, datastore.getName()));
             }
         }
         return volumes;

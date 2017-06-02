@@ -1149,7 +1149,31 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
-    
+
+    @Asset("exportPathPreviewStorageSystem")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", "exportPathStorageSystem"})
+    public List<AssetOption> getPreviewStorageSystem(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
+
+        return getPreviewStorageSystem(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
+                useExisting, storageSystemId, new String(""));
+    }
+
+    @Asset("exportPathPreviewStorageSystem")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
+        "exportPathStorageSystem", "exportPathPorts" })
+    public List<AssetOption> getPreviewStorageSystem(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId, String ports) {
+        List<AssetOption> options = Lists.newArrayList();
+        List<URI> exportPathPorts = parseExportPathPorts(ports);
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId,
+                exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
+        options.add(new AssetOption(portPreview.getStorageSystem(), portPreview.getStorageSystem()));
+        return options;
+    }
+
     @Asset("exportPathResultingPaths")
     @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
         "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", "exportPathStorageSystem"})

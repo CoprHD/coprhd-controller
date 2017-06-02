@@ -1223,7 +1223,7 @@ public class TenantsService extends TaggedResource {
      * @param id the URN of a ViPR Tenant.
      * @param param new values for the quota
      * @prereq none
-     * @brief Updates quota and available capacity
+     * @brief Update quota and available capacity
      * @return QuotaInfo Quota metrics.
      */
     @PUT

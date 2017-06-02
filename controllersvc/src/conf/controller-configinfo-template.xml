@@ -127,6 +127,7 @@
 
         <entry key="time-tolerance" value="600" />
 
+        <entry key="metering-collection-type" value="${controller_metering_collection_type}" />
         <entry key="metering-dump" value="false" />
         <entry key="metering-dump-location" value="/tmp" />
         <entry key="metering-records-partition-size" value="1000" />

@@ -406,7 +406,7 @@ public class StoragePortService extends TaggedResource {
      * 
      * @param id the URN of a ViPR storage port to be removed.
      * 
-     * @brief remove storage port from ViPR
+     * @brief Remove storage port from ViPR
      * @return Status indicating success or failure.
      */
     @POST

@@ -1633,14 +1633,31 @@ public class BlockStorageUtils {
     /**
      * Utility method that determines if the given volume is already expanded based on
      * a desired expansion size.
+     * 
      * @param volume the volume to inspect
      * @param sizeInGb the desired volume expand size
      * @return true if the volume is already expanded, false otherwise
      */
-    public static boolean isVolumeExpanded(VolumeRestRep volume, Double sizeInGb) {
-    	return (Double.parseDouble(volume.getCapacity()) >= sizeInGb);
+    public static <T extends BlockObjectRestRep> boolean isVolumeExpanded(T resource, Double sizeInGb) {
+    	return (Double.parseDouble(getCapacity(resource)) >= sizeInGb);
     }
 
+    /**
+     * Get the capacity off a {@link BlockObjectRestRep}
+     */
+    public static <T extends BlockObjectRestRep> String getCapacity(T resource) {
+        if (resource instanceof BlockSnapshotRestRep) {
+            return ((BlockSnapshotRestRep) resource).getProvisionedCapacity();
+        }
+        else if (resource instanceof VolumeRestRep) {
+            return ((VolumeRestRep) resource).getCapacity();
+        }
+        else if (resource instanceof BlockMirrorRestRep) {
+            return ((BlockMirrorRestRep) resource).getCapacity();
+        }
+        throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.capacityNotFound", resource.getId()));
+    }    
+    
     /**
      * Returns the viprcli command for adding a tag to a block volume
      * 

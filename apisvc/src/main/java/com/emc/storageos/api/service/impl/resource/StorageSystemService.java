@@ -431,7 +431,7 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param id the URN of a ViPR storage system
      * @prereq none
-     * @brief Remove a storage system
+     * @brief Delete storage system
      * @return An asynchronous task.
      * 
      * @throws DatabaseException When an error occurs querying the database.
@@ -1231,6 +1231,13 @@ public class StorageSystemService extends TaskResourceService {
         return poolList;
     }
 
+    /**
+     * Get All RA Groups
+     * 
+     * @param id
+     * @brief List RDF groups names in a storage system 
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/rdf-groups")
@@ -1375,9 +1382,9 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param id storage system URN ID
      * @param nsId namespace id 
+     * @brief Show details for a namespace
      * @return details of namespace
      */
-    
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/object-namespaces/{nsId}")
@@ -1411,6 +1418,7 @@ public class StorageSystemService extends TaskResourceService {
      * @param param secret key
      * @param id storage system URN
      * @param userId user in array
+     * @brief Add a secret key for a storage system user
      * @return secret key details
      */
     @POST
@@ -1437,6 +1445,14 @@ public class StorageSystemService extends TaskResourceService {
         return map(secretKeyRes, true);
     }
 
+    /**
+     * Get RDF Group 
+     * 
+     * @param id
+     * @param rdfGroupId
+     * @brief Show details about an RDF group
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/rdf-groups/{rdfGrpId}")
@@ -1655,6 +1671,7 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param id the storage system id
      * @param param the StoragePortRequestParam
+     * @brief Define a storage port (for Cinder only)
      * @return A StoragePortRestRep reference specifying the data for the
      *         created port.
      * @throws ControllerException the controller exception

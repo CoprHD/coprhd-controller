@@ -109,7 +109,7 @@ public class UserGroupService extends TaggedResource {
      * 
      * @param param Representation of UserGroup with all necessary elements
      * 
-     * @brief Creates an User Group
+     * @brief Create a user group
      * @return Newly created User Group details as UserGroupRestRep
      * @see UserGroupCreateParam
      * @see UserGroupRestRep
@@ -150,7 +150,7 @@ public class UserGroupService extends TaggedResource {
      * 
      * @param param Representation of UserGroup with all necessary elements
      * 
-     * @brief Updates an User Group
+     * @brief Update a user group
      * @return The updated User Group details as UserGroupRestRep
      * @see UserGroupUpdateParam
      * @see UserGroupRestRep
@@ -184,7 +184,7 @@ public class UserGroupService extends TaggedResource {
     /**
      * Gets the user group list (of URNs).
      * 
-     * @brief All the active user group's URN will be returned.
+     * @brief List active user group URNs
      * @return All the user groups details as UserGroupList
      * @see UserGroupList
      */
@@ -215,7 +215,7 @@ public class UserGroupService extends TaggedResource {
      * Gets the details of one user group.
      * 
      * @param id of the user group to be returned.
-     * @brief The details of the active user group is returned.
+     * @brief Show details of a user group 
      * @return The user groups details as UserGroupRestRep
      * @see UserGroupRestRep
      */
@@ -236,7 +236,7 @@ public class UserGroupService extends TaggedResource {
      * Deletes the active user group.
      * 
      * @param id of the user group to be deleted.
-     * @brief The user group that matches the id will be deactivated.
+     * @brief Delete a user group
      * @return Ok if deletion is successful otherwise valid exception.
      */
     @DELETE

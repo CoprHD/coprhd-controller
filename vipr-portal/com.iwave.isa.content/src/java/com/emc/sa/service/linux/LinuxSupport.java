@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.linux.UnmountBlockVolumeHelper.VolumeSpec;
 import com.emc.sa.service.linux.tasks.AddToFSTab;
 import com.emc.sa.service.linux.tasks.CheckFileSystem;
@@ -37,6 +38,8 @@ import com.emc.sa.service.linux.tasks.FindPowerPathEntriesForMountPoint;
 import com.emc.sa.service.linux.tasks.FindPowerPathEntryForVolume;
 import com.emc.sa.service.linux.tasks.FormatVolume;
 import com.emc.sa.service.linux.tasks.GetDirectoryContents;
+import com.emc.sa.service.linux.tasks.GetDirectoryContentsNoFail;
+import com.emc.sa.service.linux.tasks.GetMountedFilesystem;
 import com.emc.sa.service.linux.tasks.GetMultipathBlockDevices;
 import com.emc.sa.service.linux.tasks.GetMultipathPrimaryPartitionDeviceParentDmName;
 import com.emc.sa.service.linux.tasks.GetPowerpathBlockDevices;
@@ -283,8 +286,80 @@ public class LinuxSupport {
         execute(new VerifyMountPoint(path));
     }
 
+    /**
+     * Checks fstab to verify that the volumes are mounted on the expected paths on the host. If validation fails, the order is marked as
+     * failed.
+     * 
+     * @param volumes list of volumes to verify
+     * @param usePowerPath true if using powerpath, otherwise false for multipath
+     */
+    public void verifyVolumeMount(List<VolumeSpec> volumes, boolean usePowerPath) {
+        for (VolumeSpec volume : volumes) {
+            verifyVolumeMount(volume.viprVolume, volume.mountPoint.getPath(), usePowerPath);
+        }
+    }
+
+    /**
+     * Checks fstab to verify that the volume is mounted on the expected path on the host. If validation fails, the order is marked as
+     * failed.
+     * 
+     * @param volume the volume to verify
+     * @param mountPointPath the path where the volume should be mounted
+     * @param usePowerPath true if using powerpath, otherwise false for multipath
+     */
+    public void verifyVolumeMount(BlockObjectRestRep volume, String mountPointPath, boolean usePowerPath) {
+        Map<String, MountPoint> mountPoints = getMountPoints();
+        String device = getDevice(volume, usePowerPath);
+        String partitionDevice = getPrimaryPartitionDevice(volume, mountPointPath, device, usePowerPath);
+
+        if (mountPoints == null) {
+            ExecutionUtils.fail("failTask.verifyVolumeMount.noMountPointsFound", new Object[] {}, new Object[] {});
+        } else if (!mountPoints.containsKey(mountPointPath)) {
+            ExecutionUtils.fail("failTask.verifyVolumeMount.mountPointNotFound", new Object[] {}, mountPointPath);
+        } else if (!mountPoints.get(mountPointPath).getDevice().equals(partitionDevice)) {
+            ExecutionUtils.fail("failTask.verifyVolumeMount.mountDevicesDoNotMatch", new Object[] {},
+                    mountPoints.get(mountPointPath).getDevice(), partitionDevice, volume.getWwn(), mountPointPath);
+        }
+    }
+
+    /**
+     * Check the current mounted filesystems on the host to verify that the volume is mounted on the correct path
+     * 
+     * @param volumes list of volumes
+     * @param usePowerPath if true, using powerpath, else using multipath
+     */
+    public void verifyVolumeFilesystemMount(List<VolumeSpec> volumes, boolean usePowerPath) {
+        for (VolumeSpec volume : volumes) {
+            verifyVolumeFilesystemMount(volume.viprVolume, volume.mountPoint.getPath(), usePowerPath);
+        }
+    }
+
+    /**
+     * Checks the current mounted filesystems on the host to verify that the volume is mounted on the correct path
+     * 
+     * @param volume volume to verify
+     * @param mountPointPath the path to verify
+     * @param usePowerPath
+     */
+    public void verifyVolumeFilesystemMount(BlockObjectRestRep volume, String mountPointPath, boolean usePowerPath) {
+        String device = getDevice(volume, usePowerPath);
+        String partitionDevice = getPrimaryPartitionDevice(volume, mountPointPath, device, usePowerPath);
+        String mountedDevice = getMountedFilesystem(mountPointPath);
+
+        if (mountedDevice == null) {
+            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.noMountFound", mountPointPath, mountPointPath);
+        } else if (!StringUtils.equalsIgnoreCase(partitionDevice, mountedDevice)) {
+            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.devicesDoNotMatch", new Object[] {}, partitionDevice, mountPointPath,
+                    mountedDevice);
+        }
+    }
+
     public MountPoint findMountPoint(BlockObjectRestRep volume) {
         return LinuxUtils.getMountPoint(targetSystem.getHostId(), getMountPoints(), volume);
+    }
+
+    public String getMountedFilesystem(String path) {
+        return execute(new GetMountedFilesystem(path));
     }
 
     public Map<String, MountPoint> getMountPoints() {
@@ -326,8 +401,9 @@ public class LinuxSupport {
         addRollback(new RemoveFromFSTab(path));
     }
 
-    public void removeFromFSTab(String path) {
-        execute(new RemoveFromFSTab(path));
+    public void removeFromFSTab(MountPoint mountPoint) {
+        execute(new RemoveFromFSTab(mountPoint.getPath()));
+        addRollback(new AddToFSTab(mountPoint.getDevice(), mountPoint.getPath(), mountPoint.getFsType(), mountPoint.getOptions()));
     }
 
     public void mountPath(String path) {
@@ -337,6 +413,7 @@ public class LinuxSupport {
 
     public void unmountPath(String path) {
         execute(new UnmountPath(path));
+        addRollback(new MountPath(path));
     }
 
     public void setVolumeMountPointTag(BlockObjectRestRep volume, String mountPoint) {
@@ -352,7 +429,9 @@ public class LinuxSupport {
     }
 
     public void removeVolumeMountPointTag(BlockObjectRestRep volume) {
+    	String tagValue = MachineTagUtils.getBlockVolumeTag(volume, getMountPointTagName());
         ExecutionUtils.execute(new RemoveBlockVolumeMachineTag(volume.getId(), getMountPointTagName()));
+        ExecutionUtils.addRollback(new SetBlockVolumeMachineTag(volume.getId(), getMountPointTagName(), tagValue));
         addAffectedResource(volume.getId());
     }
 
@@ -497,6 +576,16 @@ public class LinuxSupport {
         String parentDeviceDmName = execute(new GetMultipathPrimaryPartitionDeviceParentDmName(device));
         MultiPathEntry multipathEntry = execute(new FindMultiPathEntryForDmName(parentDeviceDmName));
         return StringUtils.substringBeforeLast(device, "/") + "/" + multipathEntry.getName();
+    }
+
+    public void checkDirectoryDoesNotExist(String path) {
+        boolean isEmpty = execute(new GetDirectoryContentsNoFail(path)).isEmpty();
+
+        if (!isEmpty) {
+            ExecutionUtils.fail("failTask.LinuxSupport.checkDirectoryDoesNotExist", path, path);
+        } else {
+            logInfo("linux.support.directory.is.empty", path);
+        }
     }
 
 }

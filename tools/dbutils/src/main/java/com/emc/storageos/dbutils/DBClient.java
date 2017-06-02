@@ -143,6 +143,7 @@ public class DBClient {
     private static final String PRINT_COUNT_RESULT = "Column Family %s's row count is: %s";
     private static final String REGEN_RECOVER_FILE_MSG = "Please regenerate the recovery " +
             "file from the node where the last add VDC operation was initiated.";
+    private static final String COLUMN_FAMILY_NAME_SEPARATOR = ",";
     private static final String KEY_DB = "dbKey";
     private static final String KEY_GEODB = "geodbKey";
 
@@ -434,13 +435,33 @@ public class DBClient {
     }
 
     /**
-     * Iteratively list records from DB in a user readable format
-     * 
+     * Iteratively list records from DB for column families in a user readable format.
+     * Names of column families be separated by comma
+     *
+     *
+     * @param cfNames
+     * @throws Exception
+     */
+    @SuppressWarnings("unchecked")
+    public void listRecords(String cfNames, Map<String, String> criteria) throws Exception {
+        if(isEmptyStr(cfNames)){
+            return;
+        }
+
+        for(String cfName : cfNames.split(COLUMN_FAMILY_NAME_SEPARATOR)){
+            listSingleCFRecords(cfName.trim(), criteria);
+        }
+
+    }
+
+    /**
+     * Iteratively list records from DB for a single column family in a user readable format
+     *
      * @param cfName
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public void listRecords(String cfName, Map<String, String> criterias) throws Exception {
+    public void listSingleCFRecords(String cfName, Map<String, String> criterias) throws Exception {
         final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
         if(clazz == null) {
             return;
@@ -448,12 +469,12 @@ public class DBClient {
         List<URI> uris = null;
         uris = getColumnUris(clazz, activeOnly);
         if (uris == null || !uris.iterator().hasNext()) {
-            System.out.println("No records found");
+            System.out.println("No records found for column family " + cfName);
             return;
         }
 
         int count = 0;
-        
+
         // The list returned by getColumnUris() is not compatible with sort, so normalize
         // to a type that does.
         if (sortByURI) {
@@ -462,7 +483,7 @@ public class DBClient {
             while (urisIter.hasNext()) {
                 straightUriList.add(urisIter.next());
             }
-        
+
             // Sort the URIs in alphabetical order for consistent output across executions
             Comparator<URI> cmp = new Comparator<URI>() {
                 public int compare(URI u1, URI u2) {
@@ -477,8 +498,8 @@ public class DBClient {
         } else {
             count = queryAndPrintRecords(uris, clazz, criterias);
         }
-        
-        System.out.println("Number of All Records is: " + count);
+
+        System.out.println("Number of All Records for column family " + cfName + " is: " + count);
     }
 
     /**

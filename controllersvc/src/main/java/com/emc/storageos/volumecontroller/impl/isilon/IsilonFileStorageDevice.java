@@ -1121,7 +1121,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
              return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("doReduceFS failed.", e);
-            return BiosCommandResult.createErrorResult(e);
+            return BiosCommandResult.createErrorResult(e);	
         } 
     }
 

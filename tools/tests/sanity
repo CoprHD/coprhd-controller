@@ -802,6 +802,7 @@ BLK_HOSTID=sanity-host-${HOSTNAME}-${seed}
 export BOURNE_IPADDR="$BOURNE_IP"
 
 source sanity_utils
+source subs/zones
 
 # search configuration
 TAG=$(tr -dc A-Za-z0-9_ < /dev/urandom | head -c 4)
@@ -3336,6 +3337,7 @@ vplex_ingest_exported() {
 
     #echo "exiting"
     #exit 0
+
 
     #echo "**** Ingesting Exported $localVolume2 (has backend snapshot)"
     #run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1" --host $hostLbl

@@ -32,12 +32,14 @@ public interface ComputeSystemController extends Controller {
      *            if true, deactivate the host when complete
      * @param deactivateBootVolume
      *            if true, and if the Host has a boot Volume associated with it, deactivate the boot volume
+     * @param checkHostInVcenter
+                  if true, perform checks in vcenter before deactivating eg check if there are VMs on the boot volume for host
      * @param bootVolDescriptors
      * @param opId
      *            operation id created by the API
      * @throws InternalException
      */
-    public void detachHostStorage(URI host, boolean deactivateOnComplete, boolean deactivateBootVolume,
+    public void detachHostStorage(URI host, boolean deactivateOnComplete, boolean deactivateBootVolume, boolean checkHostInVcenter,
             List<VolumeDescriptor> bootVolDescriptors, String opId) throws InternalException;
 
     /**

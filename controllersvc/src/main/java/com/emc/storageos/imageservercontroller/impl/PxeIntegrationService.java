@@ -195,7 +195,17 @@ public class PxeIntegrationService {
         ImageServerUtils.replaceAll(sb, "__NETMASK_MARKER__", nonNullValue(job.getNetmask()));
         ImageServerUtils.replaceAll(sb, "__GATEWAY_MARKER__", nonNullValue(job.getGateway()));
         ImageServerUtils.replaceAll(sb, "__NTP_SERVER_MARKER__", nonNullValue(job.getNtpServer()));
+        String suffix = "_boot";
+        String shortHostName = nonNullValue(job.getHostName()).split("\\.")[0];
+        StringBuilder volumeLabel = new StringBuilder();
+        volumeLabel.append(shortHostName);
+        int excessChars = volumeLabel.length() + suffix.length() - 127 ;// max 127 chars in a VMFS volume label
+        if (excessChars > 0) {
+            volumeLabel.delete(volumeLabel.length() - excessChars, volumeLabel.length());  // protect against negative indexes
+        }
+        volumeLabel.append(suffix);
 
+        ImageServerUtils.replaceAll(sb, "__BOOT_VOLUME_LABEL_MARKER__", volumeLabel.toString());
         String[] dnsServers = nonNullValue(job.getDnsServers()).split(",");
         ImageServerUtils.replaceAll(sb, "__DNS_PRIMARY_IP_MARKER__", dnsServers[0].trim());
         ImageServerUtils.replaceAll(sb, "__DNS_SECONDARY_IP_MARKER__", dnsServers.length == 1 ? "" : dnsServers[1].trim());

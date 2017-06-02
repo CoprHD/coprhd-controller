@@ -390,7 +390,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void detachHostStorage(URI host, boolean deactivateOnComplete, boolean deactivateBootVolume,
+    public void detachHostStorage(URI host, boolean deactivateOnComplete, boolean deactivateBootVolume, boolean checkHostInVcenter,
             List<VolumeDescriptor> volumeDescriptors, String taskId)
                     throws ControllerException {
         TaskCompleter completer = null;
@@ -399,7 +399,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
             Host hostObj = _dbClient.queryObject(Host.class, host);
-            if (hostObj != null && !NullColumnValueGetter.isNullURI(hostObj.getBootVolumeId())
+            if (checkHostInVcenter && hostObj != null && !NullColumnValueGetter.isNullURI(hostObj.getBootVolumeId())
                     && hostObj.getType() != null && (hostObj.getType().equalsIgnoreCase(Host.HostType.Esx.name()))) {
                 // check if host's boot-volume has any VMs on it before
                 // proceeding further.

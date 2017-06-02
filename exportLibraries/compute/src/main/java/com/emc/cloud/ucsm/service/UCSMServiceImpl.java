@@ -742,9 +742,18 @@ public class UCSMServiceImpl implements UCSMService {
         }
 
         List<com.emc.cloud.platform.ucs.out.model.ConfigConfig> configConfigs = new ArrayList<>();
+        String errorDescription = null;
+        String errorCode = null;
+
         if (configConfMoOut != null) {
             configConfigs = getSubElements(configConfMoOut.getContent(),
                     com.emc.cloud.platform.ucs.out.model.ConfigConfig.class);
+            errorDescription = configConfMoOut.getErrorDescr();
+            errorCode = configConfMoOut.getErrorCode();
+        }
+     
+        if (errorDescription !=null || errorCode!=null){
+            log.error("Error received from UCS: ErrorCode: " +errorCode+ "Description: "+ errorDescription);
         }
 
         for(com.emc.cloud.platform.ucs.out.model.ConfigConfig configConfigOut : configConfigs) {

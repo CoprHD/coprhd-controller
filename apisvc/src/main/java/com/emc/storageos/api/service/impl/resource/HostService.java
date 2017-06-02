@@ -680,7 +680,8 @@ public class HostService extends TaskResourceService {
     public TaskResourceRep deactivateHost(@PathParam("id") URI id,
             @DefaultValue("false") @QueryParam("detach_storage") boolean detachStorage,
             @DefaultValue("false") @QueryParam("detach-storage") boolean detachStorageDeprecated,
-            @DefaultValue("true") @QueryParam("deactivate_boot_volume") boolean deactivateBootVolume) throws DatabaseException {
+            @DefaultValue("true") @QueryParam("deactivate_boot_volume") boolean deactivateBootVolume,
+            @DefaultValue("true") @QueryParam("check_host_in_vcenter") boolean checkHostInVcenter) throws DatabaseException {
         Host host = queryHost(_dbClient, id);
         ArgValidator.checkEntity(host, id, true);
         boolean hasPendingTasks = hostHasPendingTasks(id);
@@ -752,7 +753,7 @@ public class HostService extends TaskResourceService {
             }
         }
 
-        controller.detachHostStorage(host.getId(), true, deactivateBootVolume, bootVolDescriptors, taskId);
+        controller.detachHostStorage(host.getId(), true, deactivateBootVolume, checkHostInVcenter, bootVolDescriptors, taskId);
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
         }

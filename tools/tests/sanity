@@ -4106,7 +4106,7 @@ rpmp_crr()
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
             run cos update block rpmp_crr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
         fi
-    fi
+    fi 
 }
 
 # MetroPoint CLR

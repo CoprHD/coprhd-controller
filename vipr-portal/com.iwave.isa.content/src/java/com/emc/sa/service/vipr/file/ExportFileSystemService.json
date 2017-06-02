@@ -26,12 +26,6 @@
       required: false
     },
     
-    mountAllDirectories: {
-      type: "boolean",
-      initialValue: "false",
-      required: false
-    },
-    
     exportRule:{
       type:"table",
       items:{
@@ -69,11 +63,17 @@
       collapsed:"true",
       items:{
            bypassDnsCheck:{
-      type: "boolean",
-      initialValue: "false",
-      required: "false",
-      lockable: true
-          }
+      			type: "boolean",
+      			initialValue: "false",
+      			required: "false",
+      			lockable: true
+          	},
+          
+      		mountAllDirectories: {
+      			type: "boolean",
+      			initialValue: "false",
+      			required: false
+    		}
         }
      }
   }

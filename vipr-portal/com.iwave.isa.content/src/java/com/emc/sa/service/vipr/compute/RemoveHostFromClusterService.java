@@ -70,7 +70,7 @@ public class RemoveHostFromClusterService extends ViPRService {
             preCheckErrors.append(".  Non-vblock hosts cannot be decommissioned from VCE Vblock catalog services. ");
         }
 
-        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
+        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster,false, preCheckErrors);
 
         // Validate all of the boot volumes are still valid.
         if (!validateBootVolumes(hostURIMap)) {

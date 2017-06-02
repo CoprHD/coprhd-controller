@@ -61,7 +61,7 @@ public class RemoveComputeClusterService extends ViPRService {
             .append(" is a mixed cluster; some hosts do not have UCS components. Cannot decommission a mixed cluster from Vblock catalog services.");
         }
         
-        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
+        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, true, preCheckErrors);
 
         // Validate all of the boot volumes are still valid.
         if (!validateBootVolumes()) {

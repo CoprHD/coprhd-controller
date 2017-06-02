@@ -118,7 +118,7 @@ public class AddHostToClusterService extends ViPRService {
         }
         acquireClusterLock(cluster);
 
-        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
+        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster,false, preCheckErrors);
 
         if (hostNames == null || hostNames.isEmpty() || hostIps == null || hostIps.isEmpty()) {
             preCheckErrors.append(

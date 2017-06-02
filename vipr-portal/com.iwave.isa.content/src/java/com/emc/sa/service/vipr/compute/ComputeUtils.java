@@ -11,6 +11,7 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.getOrderTenant;
 
 import java.net.URI;
 import java.text.SimpleDateFormat;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -86,8 +87,12 @@ import com.google.common.collect.Maps;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostSystemConnectionState;
+import com.vmware.vim25.InvalidProperty;
+import com.vmware.vim25.VirtualMachinePowerState;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;
+import com.vmware.vim25.mo.ResourcePool;
+import com.vmware.vim25.mo.VirtualMachine;
 
 public class ComputeUtils {
 
@@ -1403,12 +1408,14 @@ public class ComputeUtils {
      * in ViPR Cluster.
      * If cluster does not have a datacenter association, then the cluster is
      * a vipr cluster and precheck passes.
+     * If checkRunningVMs is true and the cluster has runningVMs, the precheck fails.
      * @param cluster {@link Cluster} cluster instance
+     * @param checkRunningVMs if true, check if the cluster has any running VMs
      * @param preCheckErrors {@link StringBuilder} instance
      * @return preCheckErrors
      */
 
-    public  static StringBuilder verifyClusterInVcenter(Cluster cluster, StringBuilder preCheckErrors) {
+    public  static StringBuilder verifyClusterInVcenter(Cluster cluster, boolean checkRunningVMs, StringBuilder preCheckErrors) throws RemoteException{
          //Precheck to verify if cluster has a datacenter and if the cluster still is on same datacenter in vcenter
         //else fail order
         if (!NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
@@ -1434,6 +1441,27 @@ public class ComputeUtils {
                                 ExecutionUtils.currentContext().logInfo(
                                         "compute.cluster.precheck.cluster.VcenterDataCenter.found.in.vcenter",
                                         cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
+                                if (checkRunningVMs) {
+                                    List<VirtualMachine> virtualMachines = new ArrayList<VirtualMachine>();
+                                    ResourcePool resourcePool = vcenterCluster.getResourcePool();
+                                    if (resourcePool != null && resourcePool.getVMs() != null) {
+                                        for (VirtualMachine virtualMachine : resourcePool.getVMs()) {
+                                             // Anything !poweredOff (poweredOn and suspended) will be considered running
+                                            if (!virtualMachine.getRuntime().getPowerState().equals(VirtualMachinePowerState.poweredOff)) {
+                                                virtualMachines.add(virtualMachine);
+                                            }
+                                        }
+                                   }
+                                   if (!virtualMachines.isEmpty()){
+                                        ExecutionUtils.currentContext().logError(
+                                        "compute.cluster.precheck.cluster.hasRunningVMs",
+                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
+                                        preCheckErrors.append(ExecutionUtils.getMessage(
+                                                "compute.cluster.precheck.cluster.hasRunningVMs",
+                                                cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));
+                                   }
+                               }
+
                             } else {
                                 preCheckErrors.append(ExecutionUtils.getMessage(
                                         "compute.cluster.precheck.cluster.VcenterDataCenter.nomatch.in.vcenter",
@@ -1454,6 +1482,8 @@ public class ComputeUtils {
                                 // exception
                                 throw e;
                             }
+                        } catch (Exception e){
+                            throw e;
                         } finally {
                             if (vmware != null) {
                                 vmware.disconnect();
@@ -1493,7 +1523,123 @@ public class ComputeUtils {
         }
         return preCheckErrors;
     }
+     /**
+     * Precheck to check if cluster has any running VMs
+     * If cluster does not have a datacenter association, then the cluster is
+     * a vipr cluster and precheck passes.
+     * @param cluster {@link Cluster} cluster instance
+     * @param preCheckErrors {@link StringBuilder} instance
+     * @return preCheckErrors
+     */
 
+/*    public  static StringBuilder checkClusterHasVMs(Cluster cluster, boolean runningOnly, StringBuilder preCheckErrors) {
+         //Precheck to verify if cluster has any running VMs
+        if (!NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
+            VcenterDataCenter dataCenter = execute(new GetVcenterDataCenter(cluster.getVcenterDataCenter()));
+            if (dataCenter != null && !dataCenter.getInactive()) {
+                if (!NullColumnValueGetter.isNullURI(dataCenter.getVcenter())) {
+                    Vcenter vcenter = execute(new GetVcenter(dataCenter.getVcenter()));
+
+                    if (vcenter != null && !vcenter.getInactive()) {
+                        VMwareSupport vmware = null;
+                        try {
+                            vmware = new VMwareSupport();
+                            vmware.connect(vcenter.getId());
+                            ClusterComputeResource vcenterCluster = vmware.getCluster(dataCenter.getLabel(),
+                                    cluster.getLabel(), false);
+                            if (null != vcenterCluster && vcenterCluster.getMOR() != null && vcenterCluster.getMOR().getVal() != null
+                                    && vcenterCluster.getMOR().getVal().equalsIgnoreCase(cluster.getExternalId())) {
+                                ExecutionUtils.currentContext().logInfo(
+                                        "compute.cluster.precheck.cluster.VcenterDataCenter.found.in.vcenter",
+                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
+								
+				List<VirtualMachine> virtualMachines = new ArrayList<VirtualMachine>();
+   				ResourcePool resourcePool = vcenterCluster.getResourcePool();
+				if (resourcePool != null) {
+					if (resourcePool.getVMs() != null) {
+						for (VirtualMachine virtualMachine : resourcePool.getVMs()) {
+							if (runningOnly) { // Anything !poweredOff (poweredOn and suspended) will be considered running
+								if (!virtualMachine.getRuntime().getPowerState().equals(VirtualMachinePowerState.poweredOff)) {
+									virtualMachines.add(virtualMachine);
+                                                                }
+							} else {
+								virtualMachines.add(virtualMachine);
+							}
+						}
+					}
+				}
+				if (!virtualMachines.isEmpty()){
+                                        ExecutionUtils.currentContext().logError(
+                                        "compute.cluster.precheck.cluster.hasRunningVMs",
+                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
+					preCheckErrors.append(ExecutionUtils.getMessage(
+		 				"compute.cluster.precheck.cluster.hasRunningVMs",
+						cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));
+				}
+                            } 
+
+                        } catch (ExecutionException e) {
+                            if (e.getCause() instanceof IllegalStateException) {
+                                ExecutionUtils.currentContext().logError(
+                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
+                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
+                                preCheckErrors.append(ExecutionUtils.getMessage(
+                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
+                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));
+                            } else {
+                                // If it's anything other than the
+                                // IllegalStateException, re-throw the base
+                                // exception
+                                throw e;
+                            }
+                        } catch (Exception e){
+                            ExecutionUtils.currentContext().logError(
+                                        "compute.cluster.precheck.cluster.runningVMs.error",
+                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
+                            preCheckErrors.append(ExecutionUtils.getMessage(
+                                                "compute.cluster.precheck.cluster.runningVMs.error",
+                                                cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));
+
+
+                        } finally {
+                           if (vmware != null) {
+                                vmware.disconnect();
+                            }
+                        }
+                    } else {
+                        // If the vcenter isn't returned properly, not found in
+                        // DB, but the cluster has a reference to
+                        // it, there's an issue with the sync of the DB object.
+                        // Do not allow the validation to pass
+                        // until that's fixed.
+                        preCheckErrors.append(ExecutionUtils.getMessage(
+                                "compute.cluster.precheck.cluster.VcenterDataCenter.improper.vcenter",
+                                dataCenter.getVcenter()));
+                    }
+                } else {
+                    // If datacenter does not have reference to a vcenter then
+                    // there's an issue with the sync of the DB object. Do not allow the validation to pass
+                    // until that's fixed.
+                    preCheckErrors.append(
+                            ExecutionUtils.getMessage("compute.cluster.precheck.cluster.VcenterDataCenter.noVcenter",
+                                    dataCenter.getLabel()));
+                }
+            } else {
+                // If the datacenter isn't returned properly, not found in DB,
+                // but the cluster has a reference to
+                // it, there's an issue with the sync of the DB object. Do not
+                // allow the validation to pass
+                // until that's fixed.
+                preCheckErrors.append(ExecutionUtils.getMessage(
+                        "compute.cluster.precheck.cluster.improper.VcenterDataCenter", cluster.getVcenterDataCenter()));
+            }
+        } else {
+            // cluster is a vipr cluster only no need to check anything further.
+            ExecutionUtils.currentContext().logInfo("compute.cluster.precheck.cluster.noVCenterDataCenter",
+                    cluster.getLabel());
+        }
+        return preCheckErrors;
+    }*/
 
     /**
      * Validate that the boot volume for this host is still on the server.

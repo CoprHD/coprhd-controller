@@ -19,6 +19,7 @@ package com.emc.sa.workflow;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -186,7 +187,8 @@ public class ValidationHelper {
         if (CollectionUtils.isEmpty(stepWithoutParent)) {
             return validateCycle(errorSteps);
         }
-        return false;
+        //If there are any errors (in the above) then validation of ancestor should not be done in validateOtherStepOutput
+        return true;
     }
 
     private boolean validateCycle(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
@@ -196,7 +198,10 @@ public class ValidationHelper {
         }
 
         // Traverse all nodes to identify any dis-joint forest that might exist
-        for (final String step : wfAdjList.keySet()) {
+        List<String> list_p = new ArrayList(wfAdjList.keySet());
+        Collections.sort(list_p);
+
+        for (final String step : list_p) {
             if (nodeTraverseMap.get(step).equals(NODE_NOT_VISITED)) {
                 if (graphTraverse(step, errorSteps)) {
                     return true;
@@ -208,7 +213,6 @@ public class ValidationHelper {
     }
 
     private boolean graphTraverse(final String node, final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
-        boolean foundCycle = false;
         nodeTraverseMap.put(node, NODE_IN_PATH);
         if (wfAdjList.get(node) == null) {
             return false;
@@ -229,17 +233,17 @@ public class ValidationHelper {
                     setErrorStepsForCycle(errorSteps, node);
                     return true;
                 case NODE_NOT_VISITED:
-                    foundCycle = graphTraverse(child, errorSteps);
-                default:
-            }
-            if (!foundCycle) {
-                buildDescendantList(child, node);
-            } else {
-                break;
+                    if (graphTraverse(child, errorSteps)) {
+                        return true;
+                    } else {
+                        buildDescendantList(child, node);
+                    }
+                default:// need to build the DescendantList for the node (with the child info) if the child is in NODE_VISITED status
+                    buildDescendantList(child, node);
             }
         }
         nodeTraverseMap.put(node, NODE_VISITED);
-        return foundCycle;
+        return false;
     }
 
     private void buildDescendantList(final String child, final String node) {
@@ -634,7 +638,9 @@ public class ValidationHelper {
     private String validateOtherStepOutput(final Step step, final String attribute) {
 
         if (step.getOutput() == null) {
-            return CustomServicesConstants.ERROR_MSG_OTHER_STEP_OUTPUT_NOT_DEFINED;
+            return String.format("%s for step %s(%s)", CustomServicesConstants.ERROR_MSG_OTHER_STEP_OUTPUT_NOT_DEFINED,
+                    step.getDescription(),
+                    step.getId());
 
         }
         for (final Output output : step.getOutput()) {

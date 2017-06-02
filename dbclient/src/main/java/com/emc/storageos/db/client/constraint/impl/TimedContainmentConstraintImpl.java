@@ -15,6 +15,8 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.TimeUUIDUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
@@ -22,6 +24,8 @@ import java.net.URI;
  * A containment constraint that returns only those elements from the index that were added between startTime and endTime
  */
 public class TimedContainmentConstraintImpl extends ConstraintImpl<IndexColumnName> {
+    private static Logger log = LoggerFactory.getLogger(TimedContainmentConstraintImpl.class.getName());
+
     private static final long MILLIS_TO_MICROS = 1000L;
 
     private final long startTimeMicros;
@@ -67,6 +71,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl<IndexColumnNa
 
     @Override
     protected RowQuery<String, IndexColumnName> genQuery() {
+        log.info("========== genQuery called");
         RowQuery<String, IndexColumnName> query = keyspace
                 .prepareQuery(field.getIndexCF())
                 .getKey(indexKey.toString())

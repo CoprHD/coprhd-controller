@@ -68,7 +68,7 @@ public class XtremIOV2Client extends XtremIOClient {
     @Override
     public List<XtremIOSystem> getXtremIOSystemInfo() throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_V2_BASE_CLUSTERS_URI);
-        log.info(response.toString());
+        log.debug(response.toString());
         XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
         log.info("Returned Clusters : {}", xioClusters.getClusters().length);
         List<XtremIOSystem> discoveredXIOSystems = new ArrayList<XtremIOSystem>();
@@ -644,7 +644,7 @@ public class XtremIOV2Client extends XtremIOClient {
         String uriString = XtremIOConstants.XTREMIO_V2_BASE_CLUSTERS_STR.concat(filterString);
         log.info("Calling get cluster details with: {}", uriString);
         ClientResponse response = get(URI.create(uriString));
-        log.info(response.toString());
+        log.debug(response.toString());
         XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
         log.info("Returned Clusters : {}", xioClusters.getClusters().length);
         for (XtremIOCluster cluster : xioClusters.getClusters()) {
@@ -682,7 +682,7 @@ public class XtremIOV2Client extends XtremIOClient {
                     .concat(XtremIOConstants.getInputNameForClusterString(xioTagName, clusterName));
             log.info("Calling get tag details with: {}", uriString);
             ClientResponse response = get(URI.create(uriString));
-            log.info(response.toString());
+            log.debug(response.toString());
             XtremIOTags tags = getResponseObject(XtremIOTags.class, response);
 
             return tags.getContent();
@@ -719,7 +719,7 @@ public class XtremIOV2Client extends XtremIOClient {
         String uriString = XtremIOConstants.XTREMIO_V2_SNAPSHOT_SET_STR
                 .concat(XtremIOConstants.getInputNameForClusterString(snapshotSetName, clusterName));
         ClientResponse response = get(URI.create(uriString));
-        log.info(response.toString());
+        log.debug(response.toString());
         XtremIOCGResponse cgResponse = getResponseObject(XtremIOCGResponse.class, response);
 
         return cgResponse.getContent();
@@ -729,7 +729,7 @@ public class XtremIOV2Client extends XtremIOClient {
     public List<XtremIOObjectInfo> getLunMaps(String clusterName) throws Exception {
         String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
         ClientResponse response = get(URI.create(uriString));
-        log.info(response.toString());
+        log.debug(response.toString());
         XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
 
         return Arrays.asList(lunMapLinks.getLunMapInfo());
@@ -740,7 +740,7 @@ public class XtremIOV2Client extends XtremIOClient {
         String filterString = String.format(XtremIOConstants.XTREMIO_LUNMAP_IG_FILTER_STR, igName, clusterName);
         String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(filterString);
         ClientResponse response = get(URI.create(uriString));
-        log.info(response.toString());
+        log.debug(response.toString());
         XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
 
         return Arrays.asList(lunMapLinks.getLunMapInfo());
@@ -751,7 +751,7 @@ public class XtremIOV2Client extends XtremIOClient {
         String uriString = XtremIOConstants.XTREMIO_V2_VOLUMES_STR.concat(XtremIOConstants.SLASH).concat(index)
                 .concat(XtremIOConstants.getInputClusterString(clusterName));
         ClientResponse response = get(URI.create(uriString));
-        log.info(response.toString());
+        log.debug(response.toString());
         XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
         return volumesResponse.getContent();
     }

@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -49,6 +50,7 @@ public class FileReplicationConfigFailoverCompleter extends FileWorkflowComplete
 
         int numStepsFailed = 0;
         int numSteps = 0;
+        int successSteps = 0;
         List<WorkflowStep> workFlowSteps = getWorkFlowSteps(dbClient);
         if (workFlowSteps != null && !workFlowSteps.isEmpty()) {
             StringBuffer strErrorMsg = new StringBuffer();
@@ -58,6 +60,8 @@ public class FileReplicationConfigFailoverCompleter extends FileWorkflowComplete
                 if (workFlowStep.getState() != null && workFlowStep.getState().equalsIgnoreCase("error")) {
                     numStepsFailed++;
                     strErrorMsg.append(workFlowStep.getDescription());
+                } else if (workFlowStep.getState() != null && workFlowStep.getState().equalsIgnoreCase("success")){
+                    successSteps++;
                 }
             }
             if (numStepsFailed > 0) {
@@ -69,7 +73,6 @@ public class FileReplicationConfigFailoverCompleter extends FileWorkflowComplete
         dbClient.updateObject(fileshare);
         // Update the task error, if the task failed!!!
         if (numStepsFailed > 0) {
-            int successSteps = numSteps - numStepsFailed;
             _log.error(String.format("failed updating  %s configurations and succeeded %s replication configrations on failover",
                     numStepsFailed,
                     successSteps));
@@ -78,6 +81,10 @@ public class FileReplicationConfigFailoverCompleter extends FileWorkflowComplete
             setStatus(dbClient, status, serviceError);
         } else {
             setStatus(dbClient, status, coded);
+        }
+        
+        if(numSteps == (successSteps + numStepsFailed)){
+            super.complete(dbClient, Operation.Status.ready, coded);
         }
 
     }

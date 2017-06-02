@@ -728,6 +728,10 @@
 		{
           "image": "Service_Remove_Block_Snapshot.png",
           "baseService": "RemoveBlockSnapshot" 
+        },
+        {
+          "image": "icon_host_add.png",
+          "baseService": "ExportVolume"
         }
       ]
     }

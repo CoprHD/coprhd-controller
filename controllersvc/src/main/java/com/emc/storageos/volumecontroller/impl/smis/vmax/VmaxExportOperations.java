@@ -56,7 +56,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -2383,7 +2382,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         removeVolumes || addStoragePorts || removeStoragePorts) {
                     mask.removeFromExistingInitiators(initiatorsToRemoveFromExistingList);
                     if (!initiatorsToRemoveFromUserAddedAndInitiatorList.isEmpty()) {
-                        mask.removeInitiators(_dbClient.queryObject(Initiator.class, initiatorsToRemoveFromUserAddedAndInitiatorList));
+                        mask.removeInitiatorURIs(initiatorsToRemoveFromUserAddedAndInitiatorList);
                         mask.removeFromUserAddedInitiatorsByURI(initiatorsToRemoveFromUserAddedAndInitiatorList);
                     }
                     // https://coprhd.atlassian.net/browse/COP-17224 - For those cases where InitiatorGroups are shared
@@ -2407,6 +2406,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.addToUserCreatedInitiators(initiatorsToAddToUserAddedAndInitiatorList);
 
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAddToExisting);
+                    mask.removeFromExistingInitiators(initiatorsToRemoveFromExistingList);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     mask.getStoragePorts().addAll(storagePortsToAdd);
@@ -3148,49 +3148,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return maskingWasDeleted;
     }
 
-    /**
-     * This method will navigate the provider to get a list of CIMObjectPath objects
-     * that are associated with cimObjectPath, which can point to a MaskingView or an
-     * InitiatorGroup. The routine tries to collect all of the IGs using cimObjectPath
-     * as the root, so this allows you get a listing of all SGs for a Storage Group
-     * in case it has a cascaded-SG.
-     *
-     * @param storage
-     *            [in] - StorageSystem object
-     * @param cimObjectPath
-     *            [in] - Object to start the search from
-     * @param collectedPaths
-     *            [in/out] - List of CIMObjectPath objects used for keeping
-     *            track of the collected SGs.
-     */
-    private void getDeviceGroupsFromParent(StorageSystem storage,
-            CIMObjectPath cimObjectPath,
-            List<CIMObjectPath> collectedPaths)
-            throws WBEMException {
-        CloseableIterator<CIMObjectPath> sgPaths = null;
-        if (collectedPaths == null) {
-            return;
-        }
-        try {
-            sgPaths = _helper.getAssociatorNames(storage, cimObjectPath, null,
-                    SmisConstants.SE_DEVICE_MASKING_GROUP, null, null);
-            while (sgPaths.hasNext()) {
-                CIMObjectPath sgPath = sgPaths.next();
-                // Check if the SG path is not the parent SG,
-                // if not add it to the result list
-                if (!collectedPaths.contains(sgPath)) {
-                    collectedPaths.add(sgPath);
-                    // This is recursive
-                    getDeviceGroupsFromParent(storage, sgPath, collectedPaths);
-                }
-            }
-        } finally {
-            if (sgPaths != null) {
-                sgPaths.close();
-            }
-        }
-    }
-
     private List<CIMObjectPath> getMembersFromArguments(CIMArgument[] args) {
         CIMObjectPath[] members = null;
         List<CIMObjectPath> memberList = new ArrayList<CIMObjectPath>();
@@ -3266,32 +3223,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
         }
         return memberIds;
-    }
-
-    private void deleteMaskingGroups(StorageSystem storage,
-            String groupName) throws Exception {
-        _log.debug("{} Masking view does not exist .. cleaning up masking groups: {}",
-                storage.getSerialNumber(), groupName);
-        _log.info("disable RP tag");
-
-        _helper.deleteMaskingGroup(storage, groupName, SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
-        _helper.deleteMaskingGroup(storage, groupName, SmisCommandHelper.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
-        _helper.deleteMaskingGroup(storage, groupName, SmisCommandHelper.MASKING_GROUP_TYPE.SE_InitiatorMaskingGroup);
-        _log.debug("{} deleteMaskingGroups END...", storage.getSerialNumber());
-    }
-
-    private boolean isMaskingGroupCreated(StorageSystem storage, String groupName)
-            throws Exception {
-        _log.debug("{} isMaskingGroupCreated START...", storage.getSerialNumber());
-        CIMInstance maskingViewInstance = maskingViewExists(storage, groupName);
-        if (maskingViewInstance != null) {
-            _log.info(
-                    "{} Masking view exists ..END",
-                    storage.getSerialNumber(), groupName);
-            return true;
-        }
-        _log.debug("{} isMaskingGroupCreated END...", storage.getSerialNumber());
-        return false;
     }
 
     private CIMInstance maskingViewExists(StorageSystem storage, String groupName) {
@@ -4810,6 +4741,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                     _log.info("FAST policy name associated with Storage Group {} : {}", childGroupName, currentPolicyName);
                     if (isVmax3) {
+                        newPolicyName = _helper.getVMAX3FastSettingWithRightNoneString(storage, newPolicyName);
                         CIMInstance toUpdate = new CIMInstance(childGroupInstance.getObjectPath(),
                                 _helper.getV3FastSettingProperties(newPolicyName));
                         _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_V3_FAST_SETTING_PROPERTIES);
@@ -4894,8 +4826,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             .groupStorageGroupsByAssociation(storage, parentGroupName);
 
                     List<String> newChildGroups = childGroupsByFast.get(newVirtualPoolPolicyLimits);
-                    CIMObjectPath newChildGroupPath = null;
+                    if (newChildGroups != null) {
+                        newChildGroups.remove(parentGroupName); // remove CSG
+                    }
                     boolean newGroup = false;
+                    CIMObjectPath newChildGroupPath = null;
                     String newChildGroupName = null;
                     if (newChildGroups != null && !newChildGroups.isEmpty()) {
                         newChildGroupName = newChildGroups.iterator().next();

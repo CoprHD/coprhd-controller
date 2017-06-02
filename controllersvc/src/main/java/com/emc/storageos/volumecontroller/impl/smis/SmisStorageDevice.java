@@ -2630,14 +2630,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doRemoveDeviceGroups(final StorageSystem system, final URI sourceURI,
             final URI targetURI, final TaskCompleter completer) {
-        _srdfOperations.removeDeviceGroups(system, sourceURI, targetURI, completer);
+        _srdfOperations.removeDeviceGroups(system, sourceURI, targetURI, false, completer);
     }
 
     @Override
     public void doRollbackLinks(final StorageSystem system,
             final List<URI> sourceURIs, final List<URI> targetURIs,
-            final boolean isGroupRollback, final TaskCompleter completer) {
-        _srdfOperations.rollbackSRDFMirrors(system, sourceURIs, targetURIs, isGroupRollback, completer);
+            final boolean isGroupRollback, final boolean isVpoolChange, final TaskCompleter completer) {
+        _srdfOperations.rollbackSRDFMirrors(system, sourceURIs, targetURIs, isGroupRollback, isVpoolChange, completer);
     }
 
     @Override

@@ -19,7 +19,6 @@ package com.emc.sa.workflow;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,8 +52,8 @@ public class ValidationHelper {
     final private Set<String> uniqueFriendlyInputNames = new HashSet<>();
     final private ImmutableMap<String, Step> stepsHash;
     final private String EMPTY_STRING = "";
-    final private Map<String, Set<String>> descendant = new HashMap();
-    final private Map<String, String> nodeTraverseMap = new HashMap();
+    final private Map<String, Set<String>> descendant = new HashMap<String, Set<String>>();
+    final private Map<String, String> nodeTraverseMap = new HashMap<String, String>();
     final private String NODE_NOT_VISITED = "not visited";
     final private String NODE_VISITED = "visited";
     final private String NODE_IN_PATH = "to be visited";
@@ -187,7 +186,7 @@ public class ValidationHelper {
         if (CollectionUtils.isEmpty(stepWithoutParent)) {
             return validateCycle(errorSteps);
         }
-        //If there are any errors (in the above) then validation of ancestor should not be done in validateOtherStepOutput
+        // If there are any errors (in the above) then validation of ancestor should not be done in validateOtherStepOutput
         return true;
     }
 
@@ -198,10 +197,7 @@ public class ValidationHelper {
         }
 
         // Traverse all nodes to identify any dis-joint forest that might exist
-        List<String> list_p = new ArrayList(wfAdjList.keySet());
-        Collections.sort(list_p);
-
-        for (final String step : list_p) {
+        for (final String step : wfAdjList.keySet()) {
             if (nodeTraverseMap.get(step).equals(NODE_NOT_VISITED)) {
                 if (graphTraverse(step, errorSteps)) {
                     return true;

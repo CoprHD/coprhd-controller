@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.hds.HDSConstants;
+import com.emc.storageos.hds.HDSException;
 import com.emc.storageos.hds.api.HDSApiClient;
 import com.emc.storageos.hds.api.HDSApiExportManager;
 import com.emc.storageos.hds.api.HDSApiFactory;
@@ -146,7 +147,8 @@ public class HDSProtectionOperations {
                     taskCompleter);
             hdsCommandHelper.waitForAsyncHDSJob(createHDSJob);
         } else {
-            throw new Exception("Unable to get async taskId from HiCommand Device Manager for the create volume call");
+            throw HDSException.exceptions
+                    .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the create volume call");
         }
         log.info("SecondaryVolume creation operation completed successfully");
     }
@@ -192,7 +194,8 @@ public class HDSProtectionOperations {
                     taskCompleter);
             hdsCommandHelper.waitForAsyncHDSJob(createHDSJob);
         } else {
-            throw new Exception("Unable to get async taskId from HiCommand Device Manager for the create volume call");
+            throw HDSException.exceptions
+                    .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the create volume call");
         }
         log.info("SecondaryVolume for mirror creation operation completed successfully");
     }
@@ -223,7 +226,8 @@ public class HDSProtectionOperations {
                     asyncTaskMessageId, snapshotObj.getStorageController(), taskCompleter);
             hdsCommandHelper.waitForAsyncHDSJob(createHDSJob);
         } else {
-            throw new Exception("Unable to get async taskId from HiCommand Device Manager for the create snapshot volume call");
+            throw HDSException.exceptions
+                    .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the create snapshot volume call");
         }
         log.info("SecondaryVolume for snapshot creation operation completed successfully");
 

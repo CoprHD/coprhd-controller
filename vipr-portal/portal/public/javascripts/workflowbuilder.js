@@ -8,7 +8,7 @@ var viprRestAPINodeType = "vipr";
 var remoteAnsibleNodeType = "remote_ansible"
 var ASSET_TYPE_OPTIONS;
 
-angular.module("portalApp").controller('builderController', function($scope, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+angular.module("portalApp").controller('builderController', function($scope, $rootScope, $http) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
     $rootScope.$on("addWorkflowTab", function(event, id, name){
        addTab(id,name);
     });
@@ -29,8 +29,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $http.get(routes.Workflow_getAssetOptions()).then(function (resp) {
         if (resp.status == 200) {
+		console.log('status is 200');
             ASSET_TYPE_OPTIONS = resp.data;
+		console.log(ASSET_TYPE_OPTIONS);
         }
+		console.log('status is not 200');
     });
  })
 

@@ -43,6 +43,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 
+import org.slf4j.LoggerFactory;
 import play.Logger;
 import play.data.validation.Valid;
 import play.i18n.Messages;
@@ -91,6 +92,7 @@ import controllers.Common;
  */
 @With(Common.class)
 public class WorkflowBuilder extends Controller {
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(WorkflowBuilder.class);
     private static final String NO_PARENT = "#";
     private static final String MY_LIBRARY_ROOT = "myLib";
     private static final String VIPR_LIBRARY_ROOT = "viprLib";
@@ -166,16 +168,21 @@ public class WorkflowBuilder extends Controller {
     }
 
 
-    public List<String> getAssetOptions() {
+    public static void getAssetOptions() {
         PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
         if (propInfo != null) {
+		logger.info("propInfo is not null");
             final String assetOptions = propInfo.getProperty("custom_services_assetoptions");
             if (assetOptions != null) {
-                return Arrays.asList(assetOptions.split("\\s*,\\s*"));
+		logger.info("assetoption is not null:{}", assetOptions);
+		logger.info("asset list:{}", Arrays.asList(assetOptions.split("\\s*,\\s*")));
+		renderJSON(Arrays.asList(assetOptions.split("\\s*,\\s*")));
             }
+		logger.info("assetoption is null");
         }
+	logger.info("propInfo is null send empty");
 
-        return new ArrayList<String>();
+	renderJSON(new ArrayList<String>());
     }
 
     public static void getWFDirectories() {

@@ -608,7 +608,7 @@ public class WorkflowBuilder extends Controller {
                     shellPrimitive.getId());
             if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
                 if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
-                    flash.error("Primitive %s is being used in Workflow", shellPrimitive.getName());
+                    flash.error("Operation %s is being used in Workflow", shellPrimitive.getName());
                     return;
                 }
             }

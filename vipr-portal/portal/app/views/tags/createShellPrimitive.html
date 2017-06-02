@@ -51,7 +51,7 @@ inputOutputTabID = 'inputOutputContent';
                         </div>
 
                         <control-group v-field='shellPrimitive.scriptName' labelWidth="1" ng-if="!shellPrimitive.newScript">
-                            <input-text></input-text>
+                            <input-text disabled></input-text>
                         </control-group>
 
                     #{/Modal.body}
@@ -132,6 +132,13 @@ inputOutputTabID = 'inputOutputContent';
         if (isBlank($('#shellPrimitive_name').val())) {
             complete = false;
         }
+
+        if( isBlank($('#shellPrimitive_script').val()) ) {
+            if ( $('[name="shellPrimitive.newScript"]').val() === "true" ) {
+                complete = false;
+            }
+        }
+
         // If form is complete, enable FINISH button
         if (complete) {
             $('#finishButton').prop('disabled', false);

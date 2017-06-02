@@ -125,7 +125,7 @@ public class CustomServicesValidationResponse {
 
         private Map<String,ErrorInput> errorInputs;
 
-        @XmlElement(name = "error_inputs")
+        @XmlElementWrapper(name = "error_inputs")
         public Map<String,ErrorInput> getErrorInputs() {
             return errorInputs;
         }

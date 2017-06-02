@@ -115,7 +115,7 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI,
             int nInitiatorGroups, Map<URI, Map<String, Integer>> switchToPortNumber,
-            Map<URI, PortAllocationContext> contextMap) {
+            Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
 
         // Determine the network with the fewest ports. It will determine how many
@@ -178,7 +178,9 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             portGroups.add(portGroup);
             _log.info(String.format("Port Group %d: %s", i, portNames.toString()));
             // Reinitialize the context in the allocator; we want redundancy within PG
-            allocator.getContext().reinitialize();
+            if (allocator.getContext() != null) {
+                allocator.getContext().reinitialize();
+            }
         }
         return portGroups;
     }

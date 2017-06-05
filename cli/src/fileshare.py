@@ -1612,7 +1612,7 @@ def fileshare_delete(args):
 def cifs_acl_parser(subcommand_parsers, common_parser):
     cifs_acl_parser = subcommand_parsers.add_parser(
         'share-acl',
-        description='ViPR Filesystem Export rule CLI usage.',
+        description='ViPR update filesystem share ACL CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
         help='Add/Update/Delete ACLs rules for file Share ')
@@ -1659,7 +1659,7 @@ def cifs_acl_parser(subcommand_parsers, common_parser):
                                     dest='group',
                                     metavar='<group>',
                                     help='Group')
-    cifs_acl_parser.add_argument('-root'
+    cifs_acl_parser.add_argument('-root',
                                     dest='runasroot',
                                     action='store_true',
                                     help='Run as root')

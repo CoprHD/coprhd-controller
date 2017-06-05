@@ -534,8 +534,11 @@ public class XtremIOProvUtils {
     	// and verify that the numerical value is greater than 2
     	Pattern pattern = Pattern.compile("([0-9]*?\\.[0-9]*?)\\.([0-9]*?)-");
     	Matcher matcher = pattern.matcher(version);
-    	while (matcher.find()) {    		
-            return (Float.parseFloat(matcher.group(1)) >= 4.0) && (Integer.valueOf(matcher.group(2)) >= 2);
+    	while (matcher.find()) {
+    		float xioVersion = Float.parseFloat(matcher.group(1));
+    		boolean isVersion4 = xioVersion == 4.0;
+    		boolean isVersionGreater = xioVersion > 4.0;
+            return isVersionGreater || (isVersion4 && (Integer.valueOf(matcher.group(2)) >= 2));
     	}
 
         return false;

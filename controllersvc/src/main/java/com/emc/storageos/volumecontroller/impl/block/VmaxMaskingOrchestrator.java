@@ -2307,7 +2307,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     MaskingWorkflowEntryPoints.getInstance(), workflowKey, true, token);
             
             // create a new masking view using the new port group
-            Map<URI, Integer> volumeMap = StringMapUtil.stringMapToVolumeMap(oldMask.getVolumes());
             SmisStorageDevice device = (SmisStorageDevice) getDevice();
             InitiatorHelper initiatorHelper = new InitiatorHelper(StringSetUtil.stringSetToUriList(oldMask.getInitiators())).process(exportGroup);
             List<String> initiatorNames = initiatorHelper.getPortNames();
@@ -2348,7 +2347,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 newMask.setPortGroup(portGroupURI);
             
                 List<BlockObject> vols = new ArrayList<BlockObject>();
-                for (URI boURI : volumeMap.keySet()) {
+                for (URI boURI : volumesToAdd.keySet()) {
                     BlockObject bo = BlockObject.fetch(_dbClient, boURI);
                     vols.add(bo);
                 }
@@ -2361,7 +2360,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 String maskingStep = workflow.createStepId();
                 ExportTaskCompleter exportTaskCompleter = new ExportMaskCreateCompleter(
                         exportGroupURI, newMask.getId(), StringSetUtil.stringSetToUriList(oldMask.getInitiators()), 
-                        volumeMap, maskingStep);
+                        volumesToAdd, maskingStep);
     
                 Workflow.Method maskingExecuteMethod = new Workflow.Method(
                         "doExportChangePortGroupAddPaths", storageURI, exportGroupURI, newMask.getId(),
@@ -2380,7 +2379,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 String zoningStep = workflow.createStepId();
                 List<URI> masks = new ArrayList<URI>();
                 masks.add(newMask.getId());
-                generateZoningCreateWorkflow(workflow, maskingStep, exportGroup, masks, volumeMap, zoningStep);
+                generateZoningCreateWorkflow(workflow, maskingStep, exportGroup, masks, volumesToAdd, zoningStep);
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The port rebalance workflow has {} steps. Starting the workflow.",

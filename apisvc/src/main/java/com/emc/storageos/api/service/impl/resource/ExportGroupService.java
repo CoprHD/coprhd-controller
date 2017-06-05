@@ -4028,15 +4028,22 @@ public class ExportGroupService extends TaskResourceService {
                 StringSet newPorts = newPortGroup.getStoragePorts();
                 StringSet currentPorts = null;
                 URI currentPGUri = exportMask.getPortGroup();
-                if (NullColumnValueGetter.isNullURI(currentPGUri)) {
-                    // ViPR created port group
-                    currentPorts = exportMask.getStoragePorts();
-                } else {
+                if (!newPortGroup.getId().equals(currentPGUri)) {
                     StoragePortGroup currentPG = queryObject(StoragePortGroup.class, currentPGUri, false);
                     currentPorts = currentPG.getStoragePorts();
-                }
-                if (!Collections.disjoint(newPorts, currentPorts)) {
-                    throw APIException.badRequests.pathAdjustementPortGroupNoOverlap(newPortGroup.getLabel());
+
+                    if (!Collections.disjoint(newPorts, currentPorts)) {
+                        throw APIException.badRequests.pathAdjustementPortGroupNoOverlap(newPortGroup.getLabel());
+                    }
+                    // We could not support volumes with host IO limit for port group change. users have to disable Host IO limit first
+                    // because we could not add use the same storage group and a new port group to create the new masking view
+                    if (system.checkIfVmax3()) {
+                        String volumeWithHostIO = ExportUtils.checkIfvPoolHasHostIOLimitSet(_dbClient, exportMask.getVolumes()); 
+                        if (volumeWithHostIO != null) {
+                            throw APIException.badRequests.pathAdjustementChangePortGroupNotSupportedforHostIOLimit(volumeWithHostIO);
+                        }
+                        
+                    }
                 }
             }
             // Populate the existing paths map.

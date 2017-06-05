@@ -1082,6 +1082,42 @@ public class ExportUtils {
         }
         return false;
     }
+    
+    /**
+     * Check if any of volume's vPool has host IO limit set.
+     *
+     * @param dbClient the db client
+     * @param volumeMap the volume map
+     * @return the volume label with host io limit set
+     */
+    public static String checkIfvPoolHasHostIOLimitSet(DbClient dbClient, StringMap volumeMap) {
+        String volumeWithHostIO = null;
+        Map<URI, Integer> volumes = StringMapUtil.stringMapToVolumeMap(volumeMap);
+        Map<URI, VirtualPool> vPoolMap = new HashMap<URI, VirtualPool>();
+        for (URI blockObjectURI : volumes.keySet()) {
+            Volume volume = null;
+            BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
+            if (blockObject instanceof BlockSnapshot) {
+                BlockSnapshot snapshot = (BlockSnapshot) blockObject;
+                volume = dbClient.queryObject(Volume.class, snapshot.getParent());
+            } else if (blockObject instanceof Volume) {
+                volume = (Volume) blockObject;
+            }
+            if (volume != null) {
+                URI vPoolURI = volume.getVirtualPool();
+                VirtualPool vPool = vPoolMap.get(vPoolURI);
+                if (vPool == null) {
+                    vPool = dbClient.queryObject(VirtualPool.class, vPoolURI);
+                    vPoolMap.put(vPoolURI, vPool);
+                }
+                if (vPool != null && (vPool.isHostIOLimitBandwidthSet() || vPool.isHostIOLimitIOPsSet())) {
+                    volumeWithHostIO = volume.getLabel();
+                    break;
+                }
+            }
+        }
+        return volumeWithHostIO;
+    }
 
     /**
      * Filters Initiators for non-VPLEX systems by the ExportGroup varray.

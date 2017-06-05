@@ -250,7 +250,8 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                     while (maskIt.hasNext()) {
                         URI maskURI = maskIt.next();
                         ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
-                        if (device.getId().equals(mask.getStorageDevice())) {
+                        if (device.getId().equals(mask.getStorageDevice()) &&
+                                mask.getUserAddedVolumes() != null && !mask.getUserAddedVolumes().isEmpty()) {
                             result.add(mask);
                             log.info(String.format("The port group %s is used by the export mask %s %s", portGroupName, maskName,
                                     maskURI.toString()));

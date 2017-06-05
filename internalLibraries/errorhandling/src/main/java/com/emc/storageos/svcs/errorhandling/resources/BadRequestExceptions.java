@@ -3356,4 +3356,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException pathAdjustmentPortGroupNotInVarray(String port, String portGroup, String varray);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException pathAdjustementChangePortGroupNotSupportedforHostIOLimit(String volume);
 }

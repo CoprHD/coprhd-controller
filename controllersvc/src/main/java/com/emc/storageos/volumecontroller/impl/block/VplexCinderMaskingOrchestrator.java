@@ -134,7 +134,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             URI varrayURI,
             int nInitiatorGroups,
             Map<URI, Map<String, Integer>> switchToPortNumber,
-            Map<URI, PortAllocationContext> contextMap) {
+            Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {
         _log.debug("START - getPortGroups");
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
@@ -255,20 +255,21 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             // First step would be to update the zoning map based on the connectivity
             updateZoningMap(initiatorPortMap, directorToInitiatorIds, exportMask);
 
+            StringBuilder errorMessages = new StringBuilder();
             boolean passed = VPlexBackEndOrchestratorUtil.validateExportMask(
                     varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
-                    idToInitiatorMap, _dbClient, _coordinator, portWwnToClusterMap);
+                    idToInitiatorMap, _dbClient, _coordinator, portWwnToClusterMap, errorMessages);
 
             if (!passed) {
                 // Mark this mask as inactive, so that we dont pick it in the next iteration
                 exportMask.setInactive(Boolean.TRUE);
-                _dbClient.persistObject(exportMask);
+                _dbClient.updateObject(exportMask);
 
                 _log.error("Export Mask is not suitable for VPLEX to backend storage system");
                 WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
-                        vplex.getNativeGuid(), array.getNativeGuid(), clusterId));
+                        vplex.getNativeGuid(), array.getNativeGuid(), clusterId, errorMessages.toString()));
                 throw VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
-                        vplex.getNativeGuid(), array.getNativeGuid(), clusterId);
+                        vplex.getNativeGuid(), array.getNativeGuid(), clusterId, errorMessages.toString());
             }
 
             WorkflowStepCompleter.stepSucceded(stepId);

@@ -2079,14 +2079,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             targetVolume.setReplicationGroupInstance(sourceVolume.getReplicationGroupInstance());
         }
 
-        // Retain any previous RP fields on the new target volumes
-        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getRpCopyName())) {
-            targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
-        }
-
-        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getInternalSiteName())) {
-            targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
-        }
         targetVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
         _dbClient.updateObject(targetVolume);
 
@@ -2588,6 +2580,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // expanding the backend volume(s).
             // TODO: At the moment, native expansion go via block orchestration controller. JIRA CTRL-5336 filed for this.
             // Expand via migration still follows the old way of doing things and this needs to be changed.
+            s_logger.info("VPLEX volume {} will be expanded natively.", vplexVolume.getId());
             List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptorsForNativeExpansion(Arrays.asList(vplexVolume.getId()));
             BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                     BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
@@ -2599,6 +2592,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // A list of the volumes satisfying the new size to
             // which the data on the current backend volumes
             // will be migrated.
+            s_logger.info("VPLEX volume {} will be expanded by migration.", vplexVolume.getId());
             List<URI> newVolumes = new ArrayList<URI>();
 
             // A Map containing a migration for each new backend

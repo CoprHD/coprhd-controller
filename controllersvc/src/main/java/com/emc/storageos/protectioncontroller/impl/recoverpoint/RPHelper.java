@@ -821,13 +821,13 @@ public class RPHelper {
      * @return true if the networks containing the RP site initiators contains valid storage ports, false othwerwise
      * @throws InternalException
      */
-    public static boolean rpInitiatorsInStorageConnectedNework(URI storageSystemURI, URI protectionSystemURI, String siteId, URI varrayURI, DbClient dbClient)
+    public static boolean rpInitiatorsInStorageConnectedNetwork(URI storageSystemURI, URI protectionSystemURI, String siteId, URI varrayURI, DbClient dbClient)
             throws InternalException {
         // Determine what network the StorageSystem is part of and verify that the RP site initiators
         // are part of that network.
         // Then get the front end ports on the Storage array.
-        Map<URI, List<StoragePort>> arrayTargetMap = ConnectivityUtil.getStoragePortsOfType(dbClient,
-                storageSystemURI, StoragePort.PortType.frontend);
+        Map<URI, List<StoragePort>> arrayTargetMap = ConnectivityUtil.getStoragePortsOfTypeAndVArray(dbClient,
+                storageSystemURI, StoragePort.PortType.frontend, varrayURI);
         Set<URI> arrayTargetNetworks = new HashSet<URI>();
         arrayTargetNetworks.addAll(arrayTargetMap.keySet());
 

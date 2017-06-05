@@ -165,14 +165,21 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         // COP-28960 check for null -- host, ce, etc.
         if (host != null) {
             ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+
+            ComputeVirtualPool vcp = _dbClient.queryObject(ComputeVirtualPool.class, vcpoolId);
+            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, varray);
+            if (ce != null) {
+                cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
+            }
+            TaskCompleter tc = new ComputeHostCompleter(hostId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
+            if (cs != null) {
+                getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
+            }
+        } else {
+            log.error("host is null!");
+            throw new IllegalArgumentException(
+                    "createHost method failed.  Could not find host from the provided hostId");
         }
-        ComputeVirtualPool vcp = _dbClient.queryObject(ComputeVirtualPool.class, vcpoolId);
-        VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, varray);
-        if (ce != null) {
-            cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
-        }
-        TaskCompleter tc = new ComputeHostCompleter(hostId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
-        getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
     }
 
     /**
@@ -295,7 +302,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     waitFor = workflow.createStep(REBIND_HOST_TO_TEMPLATE,
                             "Rebind host to service profile template after OS install", waitFor, cs.getId(),
                             cs.getSystemType(), this.getClass(),
-                            new Workflow.Method("rebindHostToTemplateStep", computeSystemId, hostId),
+                            new Workflow.Method("", computeSystemId, hostId),
                             new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
                 }
             } else {

@@ -23,6 +23,8 @@ public abstract class ShareACL extends DataObject {
     protected String fileSystemShareACLIndex;
     protected String snapshotShareACLIndex;
 
+    protected Boolean runAsRoot;
+
     public static enum SupportedPermissions {
         read, change, fullcontrol
     }
@@ -109,19 +111,64 @@ public abstract class ShareACL extends DataObject {
         setChanged("snapshotShareACLIndex");
     }
 
+    @Name("runAsRoot")
+    public Boolean getRunAsRoot() {
+        return runAsRoot;
+    }
+
+    public void setRunAsRoot(Boolean runAsRoot) {
+        this.runAsRoot = runAsRoot;
+        setChanged("runAsRoot");
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("ShareACL [user=");
-        builder.append(user);
-        builder.append(", group=");
-        builder.append(group);
-        builder.append(", shareName=");
-        builder.append(shareName);
-        builder.append(", permission=");
-        builder.append(permission);
-        builder.append(", deviceSharePath=");
-        builder.append(deviceSharePath);
+        builder.append("ShareACL [");
+        if (user != null) {
+            builder.append("user=");
+            builder.append(user);
+            builder.append(", ");
+        }
+        if (group != null) {
+            builder.append("group=");
+            builder.append(group);
+            builder.append(", ");
+        }
+        if (domain != null) {
+            builder.append("domain=");
+            builder.append(domain);
+            builder.append(", ");
+        }
+        if (shareName != null) {
+            builder.append("shareName=");
+            builder.append(shareName);
+            builder.append(", ");
+        }
+        if (permission != null) {
+            builder.append("permission=");
+            builder.append(permission);
+            builder.append(", ");
+        }
+        if (deviceSharePath != null) {
+            builder.append("deviceSharePath=");
+            builder.append(deviceSharePath);
+            builder.append(", ");
+        }
+        if (fileSystemShareACLIndex != null) {
+            builder.append("fileSystemShareACLIndex=");
+            builder.append(fileSystemShareACLIndex);
+            builder.append(", ");
+        }
+        if (snapshotShareACLIndex != null) {
+            builder.append("snapshotShareACLIndex=");
+            builder.append(snapshotShareACLIndex);
+            builder.append(", ");
+        }
+        if (runAsRoot != null) {
+            builder.append("runAsRoot=");
+            builder.append(runAsRoot);
+        }
         builder.append("]");
         return builder.toString();
     }

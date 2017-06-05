@@ -640,7 +640,7 @@ class Fileshare(object):
         return o
     
     # update cifs acl for given share    
-    def cifs_acl(self, tenant, project, fsname, sharename, operation, user=None, permission=None, domain=None, group=None):
+    def cifs_acl(self, tenant, project, fsname, sharename, operation, user=None, permission=None, domain=None, group=None, root=False):
         path = tenant + "/" + project + "/"
         fs_name = path + fsname
 
@@ -650,6 +650,7 @@ class Fileshare(object):
         
         cifs_acl_param = dict()
         cifs_acl_param['share_name'] = sharename
+        cifs_acl_param['run_as_root'] = root
         if(permission):
             cifs_acl_param['permission'] = permission
         if(user):
@@ -1611,7 +1612,7 @@ def fileshare_delete(args):
 def cifs_acl_parser(subcommand_parsers, common_parser):
     cifs_acl_parser = subcommand_parsers.add_parser(
         'share-acl',
-        description='ViPR Filesystem Export rule CLI usage.',
+        description='ViPR update filesystem share ACL CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
         help='Add/Update/Delete ACLs rules for file Share ')
@@ -1657,7 +1658,11 @@ def cifs_acl_parser(subcommand_parsers, common_parser):
     cifs_acl_parser.add_argument('-group', '-grp',
                                     dest='group',
                                     metavar='<group>',
-                                    help='Group')                    
+                                    help='Group')
+    cifs_acl_parser.add_argument('-root',
+                                    dest='runasroot',
+                                    action='store_true',
+                                    help='Run as root')
     
     cifs_acl_parser.set_defaults(func=fileshare_acl)
 
@@ -1669,6 +1674,8 @@ def fileshare_acl(args):
     try:
         if(not args.tenant):
             args.tenant = ""
+        if (not args.root):
+            args.root = False
         if(not args.user and not args.permission):
             raise SOSError(SOSError.CMD_LINE_ERR, "Anonymous user should be provided to add/update/delete acl rule")
         if(args.user and args.group):
@@ -1682,7 +1689,8 @@ def fileshare_acl(args):
                            args.user, 
                            args.permission,
                            args.domain,
-                           args.group)
+                           args.group,
+                           args.root)
 
 
     except SOSError as e:

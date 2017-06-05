@@ -45,7 +45,7 @@ public class CifsShareUtility {
     private String missingRequestParameterErrorString;
     private List<String> userGroupList;
     public static final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type"; // NOSONAR
-                                                                                  // ("Suppressing Sonar violation for variable name should be in camel case")
+    // ("Suppressing Sonar violation for variable name should be in camel case")
     public static final String REQUEST_PARAM_PERMISSION = "permission";			  // NOSONAR
     // ("Suppressing Sonar violation for variable name should be in camel case")
     public static final String REQUEST_PARAM_USER = "user";						  // NOSONAR
@@ -123,11 +123,11 @@ public class CifsShareUtility {
 
                 switch (error) {
 
-                /*
-                 * case SNAPSHOT_EXPORT_SHOULD_BE_READ_ONLY: { throw
-                 * APIException.badRequests.snapshotExportPermissionReadOnly();
-                 * }
-                 */
+                    /*
+                     * case SNAPSHOT_EXPORT_SHOULD_BE_READ_ONLY: { throw
+                     * APIException.badRequests.snapshotExportPermissionReadOnly();
+                     * }
+                     */
 
                     case USER_AND_GROUP_PROVIDED: {
                         throw APIException.badRequests.bothUserAndGroupInACLFound(
@@ -137,7 +137,7 @@ public class CifsShareUtility {
                     case USER_OR_GROUP_NOT_PROVIDED: {
 
                         throw APIException.badRequests
-                                .missingUserOrGroupInACE(opName);
+                        .missingUserOrGroupInACE(opName);
                     }
 
                     case MULTIPLE_ACES_WITH_SAME_USER_OR_GROUP: {
@@ -146,8 +146,8 @@ public class CifsShareUtility {
                                 : acl.getUser();
 
                         throw APIException.badRequests
-                                .multipleACLsWithUserOrGroupFound(opName,
-                                        userOrGroup);
+                        .multipleACLsWithUserOrGroupFound(opName,
+                                userOrGroup);
                     }
 
                     case MULTIPLE_DOMAINS_FOUND: {
@@ -190,13 +190,13 @@ public class CifsShareUtility {
 
                     case SNAPSHOT_SHARE_SHOULD_BE_READ_ONLY: {
                         throw APIException.badRequests
-                                .snapshotSMBSharePermissionReadOnly();
+                        .snapshotSMBSharePermissionReadOnly();
                     }
 
                     case INVALID_PERMISSION: {
                         if (acl.getPermission() != null) {
                             throw APIException.badRequests
-                                    .invalidPermissionForACL(acl.getPermission());
+                            .invalidPermissionForACL(acl.getPermission());
                         } else {
                             throw APIException.badRequests.missingValueInACE(
                                     opName, REQUEST_PARAM_PERMISSION);
@@ -211,7 +211,7 @@ public class CifsShareUtility {
                     case USER_OR_GROUP_NOT_PROVIDED: {
 
                         throw APIException.badRequests
-                                .missingUserOrGroupInACE(opName);
+                        .missingUserOrGroupInACE(opName);
                     }
 
                     case MULTIPLE_ACES_WITH_SAME_USER_OR_GROUP: {
@@ -220,8 +220,8 @@ public class CifsShareUtility {
                                 : acl.getUser();
 
                         throw APIException.badRequests
-                                .multipleACLsWithUserOrGroupFound(opName,
-                                        userOrGroup);
+                        .multipleACLsWithUserOrGroupFound(opName,
+                                userOrGroup);
                     }
 
                     case ACL_NOT_FOUND: {
@@ -265,13 +265,13 @@ public class CifsShareUtility {
 
                     case SNAPSHOT_SHARE_SHOULD_BE_READ_ONLY: {
                         throw APIException.badRequests
-                                .snapshotSMBSharePermissionReadOnly();
+                        .snapshotSMBSharePermissionReadOnly();
                     }
 
                     case INVALID_PERMISSION: {
                         if (acl.getPermission() != null) {
                             throw APIException.badRequests
-                                    .invalidPermissionForACL(acl.getPermission());
+                            .invalidPermissionForACL(acl.getPermission());
                         } else {
                             throw APIException.badRequests.missingValueInACE(
                                     opName, REQUEST_PARAM_PERMISSION);
@@ -286,7 +286,7 @@ public class CifsShareUtility {
                     case USER_OR_GROUP_NOT_PROVIDED: {
 
                         throw APIException.badRequests
-                                .missingUserOrGroupInACE(opName);
+                        .missingUserOrGroupInACE(opName);
                     }
 
                     case MULTIPLE_ACES_WITH_SAME_USER_OR_GROUP: {
@@ -295,8 +295,8 @@ public class CifsShareUtility {
                                 : acl.getUser();
 
                         throw APIException.badRequests
-                                .multipleACLsWithUserOrGroupFound(opName,
-                                        userOrGroup);
+                        .multipleACLsWithUserOrGroupFound(opName,
+                                userOrGroup);
                     }
 
                     case MULTIPLE_DOMAINS_FOUND: {
@@ -552,16 +552,16 @@ public class CifsShareUtility {
 
         String userOrGroup = requestAcl.getUser() == null ? requestAcl
                 .getGroup() : requestAcl.getUser();
-        // Construct ACL Index
-        StringBuffer aclIndex = new StringBuffer();
-        aclIndex.append(this.fs == null ? this.snapshot.getId().toString()
-                : this.fs.getId().toString());
-        aclIndex.append(this.shareName).append(domainOfReqAce)
+                // Construct ACL Index
+                StringBuffer aclIndex = new StringBuffer();
+                aclIndex.append(this.fs == null ? this.snapshot.getId().toString()
+                        : this.fs.getId().toString());
+                aclIndex.append(this.shareName).append(domainOfReqAce)
                 .append(userOrGroup);
 
-        acl = this.queryACLByIndex(aclIndex.toString());
+                acl = this.queryACLByIndex(aclIndex.toString());
 
-        return acl;
+                return acl;
     }
 
     private CifsShareACL queryACLByIndex(String index) {
@@ -608,7 +608,14 @@ public class CifsShareUtility {
          * acl.cancelNextStep(ShareACLOperationErrorType.INVALID_PERMISSION_TYPE
          * ); return; }
          */
+
+        Boolean runAsRoot = acl.getRunAsRoot();
+        if (runAsRoot != null && runAsRoot == true) {
+            acl.setPermission(SharePermission.FULLCONTROL.name());
+        }
+
         String permissionValue = acl.getPermission();
+
         try {
             SharePermission permission = SharePermission
                     .valueOf(permissionValue.toUpperCase());
@@ -690,7 +697,7 @@ public class CifsShareUtility {
 
     }
 
-    private String getFormattedPermissionText(SharePermission permission) {
+    private static String getFormattedPermissionText(SharePermission permission) {
         String permissionText = null;
 
         switch (permission) {
@@ -714,8 +721,8 @@ public class CifsShareUtility {
 
         if (storageSystemType.equals(StorageSystem.Type.vnxe) || storageSystemType.equals(StorageSystem.Type.vnxfile)
                 || storageSystemType.equals(StorageSystem.Type.datadomain)) {
-                throw APIException.badRequests.operationNotSupportedForSystemType(
-                        operation, storageType);
+            throw APIException.badRequests.operationNotSupportedForSystemType(
+                    operation, storageType);
         }
     }
 
@@ -739,4 +746,5 @@ public class CifsShareUtility {
         _log.info("CIFS share: {}, does not exist in {}", shareName, fileObject.getId());
         return false;
     }
+
 }

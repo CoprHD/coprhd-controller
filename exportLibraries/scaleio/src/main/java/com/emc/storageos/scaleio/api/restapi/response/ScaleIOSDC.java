@@ -4,8 +4,12 @@
  */
 package com.emc.storageos.scaleio.api.restapi.response;
 
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ScaleIOSDC {
     private String id;
+    private String name;
     private String sdcIp;
     private String sdcGuid;
     private String mdmConnectionState;
@@ -16,6 +20,14 @@ public class ScaleIOSDC {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getSdcIp() {

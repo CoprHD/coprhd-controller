@@ -1981,7 +1981,7 @@ public class MDSDialog extends SSHDialog {
                     zoneset.getZones().add(zone);
                     break;
                 case 2:
-                    member = new IvrZoneMember(groups[0] + groups[2], Integer.valueOf(groups[3]));
+                    member = new IvrZoneMember(groups[0], Integer.valueOf(groups[3]));
                     zone.getMembers().add(member);
                     break;
             }

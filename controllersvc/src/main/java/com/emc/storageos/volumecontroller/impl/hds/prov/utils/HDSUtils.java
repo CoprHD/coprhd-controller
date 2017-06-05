@@ -7,7 +7,9 @@ package com.emc.storageos.volumecontroller.impl.hds.prov.utils;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.milyn.payload.JavaResult;
 import org.slf4j.Logger;
@@ -28,6 +30,7 @@ import com.emc.storageos.hds.model.EchoCommand;
 import com.emc.storageos.hds.model.Error;
 import com.emc.storageos.hds.model.HostStorageDomain;
 import com.emc.storageos.hds.model.ISCSIName;
+import com.emc.storageos.hds.model.Path;
 import com.emc.storageos.hds.model.Pool;
 import com.emc.storageos.hds.model.WorldWideName;
 import com.emc.storageos.plugins.AccessProfile;
@@ -423,6 +426,48 @@ public class HDSUtils {
                 return hsd.getNickname();
             }
         };
+    }
+
+    /**
+     * Return a map[deviceId] => lun from the give HostStorageDomain.
+     * 
+     * @param hsd
+     * @return
+     */
+    public static Map<String, Integer> getVolumesFromHSD(HostStorageDomain hsd, StorageSystem storage) {
+        Map<String, Integer> volumesFromHSD = new HashMap<String, Integer>();
+        List<Path> pathList = hsd.getPathList();
+        if (null != pathList) {
+            for (Path path : pathList) {
+                String volumeWWN = generateHitachiVolumeWWN(storage, path.getDevNum());
+                volumesFromHSD.put(volumeWWN, Integer.valueOf(path.getLun()));
+            }
+        }
+        return volumesFromHSD;
+    }
+
+    /**
+     * Return the initiators from HSD passed in.
+     * 
+     * @param hsd
+     * @return
+     */
+    public static List<String> getInitiatorsFromHSD(HostStorageDomain hsd) {
+        List<String> initiatorsList = new ArrayList<String>();
+        if (null != hsd.getWwnList()) {
+            for (WorldWideName wwn : hsd.getWwnList()) {
+                String wwnName = wwn.getWwn();
+                String normalizedPortWWN = wwnName.replace(HDSConstants.DOT_OPERATOR, "");
+                initiatorsList.add(normalizedPortWWN);
+            }
+        }
+    
+        if (null != hsd.getIscsiList()) {
+            for (ISCSIName iscsi : hsd.getIscsiList()) {
+                initiatorsList.add(iscsi.getiSCSIName());
+            }
+        }
+        return initiatorsList;
     }
 
 }

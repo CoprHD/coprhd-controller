@@ -421,7 +421,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
     public BadRequestException invalidParameterBelowMinimum(String string, long size, long minimum,
             String unit);
-
+    
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterBlockCopyDoesNotBelongToVolume(URI pid, URI id);
 
@@ -1097,6 +1097,10 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
     public BadRequestException parameterMustBeGreaterThan(final String parameter,
             final Number greaterThan);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
+    public BadRequestException parameterMustBeLessThan(final String parameter,
+            final Number lessThan);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException parameterNotSupportedFor(final String parameter,
@@ -2232,6 +2236,15 @@ public interface BadRequestExceptions {
             final String volumeName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_MISSING)
+    public BadRequestException missingParameterSystemTypeforCompression();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidParameterSystemTypeforCompression();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidParameterAutoTieringPolicyforCompression();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_MISSING)
     public BadRequestException missingParameterSystemTypeforHostIOLimits();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -3054,7 +3067,11 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToCreateMirrorCopies(final URI fsUri, String reason);
-
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException reduceFileSystemNotSupported(final URI fsUri, String reason);
+    
+    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToDeleteMirrorCopies(final URI fsUri, String reason);
 
@@ -3063,6 +3080,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException expandMirrorFileSupportedOnlyOnSource(URI id);
+    
+    //supported only on isilon
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException reduceMirrorFileSupportedOnlyOnSource(URI id);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToPerformMirrorOperation(String operation, final URI fsUri, String reason);
@@ -3344,5 +3365,11 @@ public interface BadRequestExceptions {
     public BadRequestException userNotAuthorizedForWorkflow();
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException userNotAuthorizedForWorkflowStep();    
+    public BadRequestException userNotAuthorizedForWorkflowStep();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDiscoverStorageSystemUnexpectedResponse(final String storageSystemType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException storageSystemClientException(final String storageSystemType, final String errorMsg);
 }

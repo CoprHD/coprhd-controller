@@ -63,10 +63,10 @@ public class SRDFTaskCompleter extends TaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
         setDbClient(dbClient);
-        setStatus(dbClient, status, coded);
-        updateWorkflowStatus(status, coded);
         updateVolumeStatus(dbClient, status);
         updateConsistencyGroupTasks(dbClient, status, coded);
+        setStatus(dbClient, status, coded);
+        updateWorkflowStatus(status, coded);    // Advances workflow, so do this last.
     }
 
     protected void setDbClient(DbClient dbClient) {

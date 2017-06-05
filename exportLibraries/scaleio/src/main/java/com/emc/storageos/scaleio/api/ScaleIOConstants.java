@@ -17,6 +17,8 @@ public class ScaleIOConstants {
     public static final String GET_SYSTEMS_URI = "/api/types/System/instances";
     public static final String GET_SDS_URI = "/api/types/Sds/instances";
     public static final String GET_PROTECTION_DOMAIN_URI = "/api/types/ProtectionDomain/instances";
+    public static final String GET_FAULT_SET_URI = "/api/types/FaultSet/instances";
+    public static final String GET_STORAGE_POOLS_URI = "/api/types/StoragePool/instances";
     public static final String GET_SDC_URI = "/api/types/Sdc/instances";
     public static final String GET_SCSI_INITIATOR_URI = "/api/types/ScsiInitiator/instances";
     public static final String VOLUMES_URI = "/api/types/Volume/instances";
@@ -87,6 +89,14 @@ public class ScaleIOConstants {
 
     public static String getStoragePoolStatsURI(String poolId) {
         return String.format("/api/instances/StoragePool::%1$s/relationships/Statistics", poolId);
+    }
+
+    public static String getSdsDeviceURI(String sdsID) {
+        return String.format("/api/instances/Sds::%1$s/relationships/Device", sdsID);
+    }
+
+    public static String getSdcVolumeURI(String sdcID) {
+        return String.format("/api/instances/Sdc::%1$s/relationships/Volume", sdcID);
     }
 
     public static String getVolumeURI(String volId) {

@@ -535,7 +535,7 @@ public class XtremIOProvUtils {
     	Pattern pattern = Pattern.compile("([0-9]*?\\.[0-9]*?)\\.([0-9]*?)-");
     	Matcher matcher = pattern.matcher(version);
     	while (matcher.find()) {    		
-    		return (Integer.parseInt(matcher.group(1)) >= 4) && (Integer.valueOf(matcher.group(2)) >= 2);
+            return (Float.parseFloat(matcher.group(1)) >= 4.0) && (Integer.valueOf(matcher.group(2)) >= 2);
     	}
 
         return false;

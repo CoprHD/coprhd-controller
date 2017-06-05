@@ -2611,13 +2611,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         }
                     }
                 }
-            } else if (VirtualPool.vPoolSpecifiesMetroPoint(virtualPool)) {
+            } else if (volume.getAssociatedVolumes() != null && volume.getAssociatedVolumes().size() == 2) {
                 for (String associatedVolURI : volume.getAssociatedVolumes()) {
-                    _log.info(String.format("VPlex %s Volume [%s] to be removed from RP export group.", volume.getPersonality(), associatedVolURI));
+                    _log.info(String.format("VPLEX %s Volume [%s] to be removed from RP export group.", volume.getPersonality(), associatedVolURI));
                     Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolURI));
-
+                    String internalSiteName = associatedVolume.getInternalSiteName();
+                    
+                    if (NullColumnValueGetter.isNullValue(internalSiteName)) {
+                    	// Only MetroPoint associated volumes will have the internalSiteNameSet. For VPlex distributed volumes
+                    	// the parent (virtual volume) internal site name should be used.
+                    	internalSiteName = volume.getInternalSiteName();
+                    }
+                    
                     ExportGroup exportGroup = getExportGroup(rpSystem, volume.getId(), associatedVolume.getVirtualArray(),
-                            associatedVolume.getInternalSiteName());
+                    		internalSiteName);
                     if (exportGroup != null) {
                         _log.info(String.format("Removing volume [%s] from RP export group [%s].", volume.getLabel(),
                                 exportGroup.getGeneratedName()));
@@ -2678,7 +2685,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 rpExport.setStorageSystem(storageURI);
                 rpExports.put(exportGroup.getId(), rpExport);
             }
-            rpExport.getVolumes().add(volumeURI);
+            if (!rpExport.getVolumes().contains(volumeURI)) {
+            	// only add the volume if it doesn't already exist
+            	rpExport.getVolumes().add(volumeURI);
+            } else {
+            	_log.info(String.format("Skipping volume %s because there is already an RPExport mapping for ExportGroup %s.", 
+            			volumeURI, exportGroup.getId()));
+            }
         }
     }
 

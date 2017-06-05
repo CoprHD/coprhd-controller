@@ -31,7 +31,7 @@ public class GetMountedFilesystem extends LinuxExecutionTask<String> {
             if (lines != null) {
                 for (String line : lines) {
                     String[] values = line.split("\\s+");
-                    if (values != null && StringUtils.equals(path, values[DF_PATH_INDEX])) {
+                    if (values != null && values.length > DF_PATH_INDEX && StringUtils.equals(path, values[DF_PATH_INDEX])) {
                         return values[DF_DEVICE_INDEX];
                     }
                 }

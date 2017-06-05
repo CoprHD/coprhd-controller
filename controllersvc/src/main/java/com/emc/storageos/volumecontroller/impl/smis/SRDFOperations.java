@@ -40,6 +40,9 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorRollbackCompleter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -421,16 +424,30 @@ public class SRDFOperations implements SmisConstants {
                 }
                 Volume target = dbClient.queryObject(Volume.class, targetURI);
                 checkNotNull(target, format("Missing Target:%s for Source:%s", targetURI, source.getId()));
-                rollbackSRDFMirror(system, source, target, isGrouprollback, isVpoolChange);
+                rollbackSRDFMirror(system, source, target, isGrouprollback, isVpoolChange,
+                        (SRDFMirrorRollbackCompleter) completer);
             }
         }
     }
 
-    private void rollbackSRDFMirror(StorageSystem system, Volume source,
-            Volume target, boolean isGrouprollback, boolean isVpoolChange) {
+    private void rollbackSRDFMirror(StorageSystem system, final Volume source,
+                                    final Volume target, boolean isGrouprollback, boolean isVpoolChange,
+                                    final SRDFMirrorRollbackCompleter completer) {
         log.info("START Rolling back SRDF mirror");
         try {
-            performDetach(system, target, isGrouprollback, new NullTaskCompleter());
+            /*
+             * In order to help the user with any potential cleanup, use this anonymous task completer to update the
+             * rollback completer on whether or not a detach was successful for this source/target pair.
+             */
+            TaskCompleter inspect = new TaskCompleter() {
+                @Override
+                protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
+                        throws DeviceControllerException {
+                    completer.updateDetachStatus(source, target, status, coded);
+                }
+            };
+
+            performDetach(system, target, isGrouprollback, inspect);
 
             if (target.hasConsistencyGroup()) {
                 log.info("Removing Volume from device Group on roll back");
@@ -440,12 +457,7 @@ public class SRDFOperations implements SmisConstants {
             String msg = format(FAILURE_MSG_FMT, "rollback", source.getId(),
                     target.getId());
             log.warn(msg, e);
-            // Clean up target and source CGs since this is a rollback
-            BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, target.getConsistencyGroup());
-            BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, source.getConsistencyGroup());
-            SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId(), isVpoolChange, dbClient);
-            SRDFUtils.cleanupRDG(source, target, dbClient);
-            throw e;
+            throw e;  // Re-throw in order to cleanup any CG and RDFG.
         }
     }
 

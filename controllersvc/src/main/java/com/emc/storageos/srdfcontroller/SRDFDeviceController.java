@@ -1392,13 +1392,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_076);
             getRemoteMirrorDevice().doRollbackLinks(system, sourceURIs, targetURIs, isGroupRollback, isVpoolChange, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_077);
+
+            return completeAsReady(completer, opId);
         } catch (Exception e) {
-            log.error("Ignoring exception while rolling back SRDF sources: {}", sourceURIs, e);
+            log.error("Exception while rolling back SRDF sources: {}", sourceURIs, e);
             // Succeed here, to allow other rollbacks to run
             cleanupCGsOnRollbackError(sourceURIs, targetURIs, systemURI, isVpoolChange);
-        } finally {
-            // Always succeed to allow rollback to continue.
-            return completeAsReady(completer, opId);
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
     }
 

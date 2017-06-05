@@ -548,6 +548,25 @@ public class RemoteReplicationUtils {
     }
 
     /**
+     *
+     * @param srcVolumes
+     * @param tgtVolumes
+     * @param dbClient
+     */
+    public static void deleteRemoteReplicationPairForSrdfPairs(Collection<Volume> srcVolumes, Collection<Volume> tgtVolumes, DbClient dbClient) {
+        // todo:
+        // Iterate over source volumes. For each srdf src volumes find if it was swapped.
+        // Not swapped case: get all pairs for this src volume. Find pairs from this list which have target volume in tgt srdf volumes argument.
+        // These pairs have to be deleted. add them to delete list.
+        // Swapped case: this is target volume in remote replication pairs. Find all rr pairs for this target volume. Should be only one. If more than one, log warning.
+        // From this pairs find pairs with source volume in target srdf volumes. These pairs should be deleted, add them to delete list.
+        // call client to delete each pair.
+
+
+    }
+
+
+    /**
      * Builds sb sdk remote replication pair for srdf source and target volumes.
      *
      * @param inSourceUri

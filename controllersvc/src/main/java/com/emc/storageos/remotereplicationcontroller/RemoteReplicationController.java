@@ -21,7 +21,8 @@ public interface RemoteReplicationController extends Controller {
         SPLIT,
         FAIL_OVER,
         FAIL_BACK,
-        SWAP
+        SWAP,
+        STOP
     }
 
     /**
@@ -108,6 +109,13 @@ public interface RemoteReplicationController extends Controller {
      * @param replicationElement: set/group/pair
      */
     public void swap(RemoteReplicationElement replicationElement, String opId);
+
+    /**
+     * Controller method to initiate driver call to delete remote replication link for remote replication element.
+     *
+     * @param replicationElement: set/group/pair
+     */
+    public void stop(RemoteReplicationElement replicationElement, String opId);
 
     /**
      * Move replication pair from its parent group to other replication group.

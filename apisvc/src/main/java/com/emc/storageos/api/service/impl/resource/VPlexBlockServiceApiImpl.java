@@ -484,7 +484,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 performanceParams = siteParamsMap.values().iterator().next();
             } else {
                 // The performance parameters for the copy are those with the same varray as the target.
-                performanceParams = siteParamsMap.get(vArray);
+                performanceParams = siteParamsMap.get(vArray.getId());
             }
         }
 

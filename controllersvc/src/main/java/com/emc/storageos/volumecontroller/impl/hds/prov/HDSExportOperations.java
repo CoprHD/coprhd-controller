@@ -2111,6 +2111,9 @@ public class HDSExportOperations implements ExportMaskOperations {
                             HDSJob modifyHDSJob = new HDSModifyVolumeJob(asyncMessageId, volume.getStorageController(),
                                     taskCompleter, HDSModifyVolumeJob.VOLUME_VPOOL_CHANGE_JOB);
                             ControllerServiceImpl.enqueueJob(new QueueJob(modifyHDSJob));
+                        } else {
+                            throw HDSException.exceptions
+                                    .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the modify volume call");
                         }
                     }
                 }

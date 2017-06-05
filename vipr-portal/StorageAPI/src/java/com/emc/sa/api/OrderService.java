@@ -476,7 +476,7 @@ public class OrderService extends CatalogTaggedResourceService {
             order.setOrderStatus(OrderStatus.CANCELLED.name());
             client.save(order);
         } else {
-            orderManager.deleteOrder(order);
+            orderManager.cancelOrder(order);
         }
 
         return Response.ok().build();

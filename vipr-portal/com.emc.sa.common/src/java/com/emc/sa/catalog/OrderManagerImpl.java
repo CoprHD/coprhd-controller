@@ -484,9 +484,17 @@ public class OrderManagerImpl implements OrderManager {
         return (now - createdTime) < noDeletePeriod;
     }
 
+
+    public void cancelOrder(Order order) {
+        deleteOrderInDb(order);
+    }
+
     public void deleteOrder(Order order) {
         canBeDeleted(order, null);
+        deleteOrderInDb(order);
+    }
 
+    private void deleteOrderInDb(Order order) {
         URI orderId = order.getId();
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
         client.delete(approvalRequests);

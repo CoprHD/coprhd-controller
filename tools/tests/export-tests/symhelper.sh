@@ -474,6 +474,45 @@ delete_export_mask() {
     verify_export_via_provider $SID $NAME gone
 }
 
+cleanup_rdfg() {
+    SID=$1
+    PROJECT=$2
+
+    SYMCLI=/opt/emc/SYMCLI/bin
+
+    # Get RDF group number
+    RDFG=`/opt/storageos/bin/dbutils list RemoteDirectorGroup | grep -A10 "label = $PROJECT" | grep "sourceGroupId =" | tail -n1 | awk -F" " '{print $NF}'`
+
+    # Determine device pairs present in the group
+    PAIRS=`$SYMCLI/symrdf -sid $SID -rdfg $RDFG list -offline 2> /dev/null | grep -E "^([0-9A-F]+\s){2}" | awk -F' ' '{print $1,$2}' 2> /dev/null`
+    IFS=$'\n'
+    TMP_DEVICE_FILE="/tmp/devices-${RANDOM}"
+    cat /dev/null > $TMP_DEVICE_FILE
+    for p in $PAIRS; do
+        echo $p >> $TMP_DEVICE_FILE
+    done
+
+    if [ `cat $TMP_DEVICE_FILE | wc -l` -eq 0 ]
+    then
+        echo "=== RDFG $SID:$RDFG is empty.  No cleanup required."
+        exit
+    fi
+
+    echo "=== Removing RDF device pairs in $TMP_DEVICE_FILE from $SID:$RDFG"
+
+    # Suspend
+    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE suspend -force -noprompt > /dev/null
+    SUSPEND_OP=$?
+    # Disable
+    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE disable -force -noprompt > /dev/null
+    DISABLE_OP=$?
+    # Delete
+    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE deletepair -noprompt > /dev/null
+    DELETE_OP=$?
+
+    echo "=== Finished RDFG cleanup (${SUSPEND_OP}, ${DISABLE_OP}, ${DELETE_OP})"
+}
+
 # Check to see if this is an operational request or a verification of export request
 if [ "$1" = "add_volume_to_mask" ]; then
     shift
@@ -505,6 +544,9 @@ elif [ "$1" = "create_export_mask" ]; then
 elif [ "$1" = "delete_export_mask" ]; then
     shift
     delete_export_mask $*
+elif [ "$1" = "cleanup_rdfg" ]; then
+    shift
+    cleanup_rdfg $*
 else
     # Backward compatibility with vmaxexport scripts
     verify_export $*

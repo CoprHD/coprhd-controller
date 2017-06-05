@@ -4741,6 +4741,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                     _log.info("FAST policy name associated with Storage Group {} : {}", childGroupName, currentPolicyName);
                     if (isVmax3) {
+                        newPolicyName = _helper.getVMAX3FastSettingWithRightNoneString(storage, newPolicyName);
                         CIMInstance toUpdate = new CIMInstance(childGroupInstance.getObjectPath(),
                                 _helper.getV3FastSettingProperties(newPolicyName));
                         _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_V3_FAST_SETTING_PROPERTIES);
@@ -4825,8 +4826,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             .groupStorageGroupsByAssociation(storage, parentGroupName);
 
                     List<String> newChildGroups = childGroupsByFast.get(newVirtualPoolPolicyLimits);
-                    CIMObjectPath newChildGroupPath = null;
+                    if (newChildGroups != null) {
+                        newChildGroups.remove(parentGroupName); // remove CSG
+                    }
                     boolean newGroup = false;
+                    CIMObjectPath newChildGroupPath = null;
                     String newChildGroupName = null;
                     if (newChildGroups != null && !newChildGroups.isEmpty()) {
                         newChildGroupName = newChildGroups.iterator().next();

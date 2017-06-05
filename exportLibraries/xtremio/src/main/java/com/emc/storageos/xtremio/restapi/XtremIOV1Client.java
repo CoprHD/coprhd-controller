@@ -85,7 +85,7 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public List<XtremIOSystem> getXtremIOSystemInfo() throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_BASE_CLUSTERS_URI);
-        log.info(response.toString());
+        log.debug(response.toString());
         XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
         log.info("Returned Clusters : {}", xioClusters.getClusters().length);
         List<XtremIOSystem> discoveredXIOSystems = new ArrayList<XtremIOSystem>();
@@ -546,7 +546,7 @@ public class XtremIOV1Client extends XtremIOClient {
     public String getXtremIOXMSVersion() throws Exception {
         log.info("no XMS object in version 1. So get the cluster and send back its version info");
         ClientResponse response = get(XtremIOConstants.XTREMIO_BASE_CLUSTERS_URI);
-        log.info(response.toString());
+        log.debug(response.toString());
         XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
         log.info("Returned Clusters : {}", xioClusters.getClusters().length);
         for (XtremIOCluster cluster : xioClusters.getClusters()) {
@@ -617,7 +617,7 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public List<XtremIOObjectInfo> getLunMaps(String clusterName) throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_LUNMAPS_URI);
-        log.info(response.toString());
+        log.debug(response.toString());
         XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
 
         return Arrays.asList(lunMapLinks.getLunMapInfo());
@@ -632,7 +632,7 @@ public class XtremIOV1Client extends XtremIOClient {
     public XtremIOVolume getVolumeByIndex(String index, String clusterName) throws Exception {
         String uriString = XtremIOConstants.XTREMIO_VOLUMES_STR.concat(XtremIOConstants.SLASH).concat(index);
         ClientResponse response = get(URI.create(uriString));
-        log.info(response.toString());
+        log.debug(response.toString());
         XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
         return volumesResponse.getContent();
     }

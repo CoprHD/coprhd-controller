@@ -1080,6 +1080,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     _log.info("Clearing targets for existing source");
                     volume.getSrdfTargets().clear();
                     _dbClient.updateObject(volume);
+                    // Clearing Source CG
+                    URI sourceCgUri = volume.getConsistencyGroup();
+                    if (null != sourceCgUri) {
+                        BlockConsistencyGroup sourceCG = _dbClient.queryObject(BlockConsistencyGroup.class, sourceCgUri);
+                        if (null != sourceCG && (null == sourceCG.getTypes()
+                                || NullColumnValueGetter.isNullURI(sourceCG.getStorageController()))) {
+                            sourceCG.getRequestedTypes().remove(Types.SRDF.name());
+                            _dbClient.updateObject(sourceCG);
+                        }
+                    }
                 }
                 // for change Virtual Pool, if failed, clear targets and personality field for source and also
                 if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {

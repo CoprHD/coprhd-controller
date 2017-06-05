@@ -2611,10 +2611,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         }
                     }
                 }
-            } else if (volume.getAssociatedVolumes() != null && volume.getAssociatedVolumes().size() == 2) {
+            } else if (VirtualPool.vPoolSpecifiesMetroPoint(virtualPool)) {
                 for (String associatedVolURI : volume.getAssociatedVolumes()) {
-                    _log.info(String.format("VPlex Distributed %s Volume [%s] to be removed from RP export group.", volume.getPersonality(), volume.getLabel()));
+                    _log.info(String.format("VPlex %s Volume [%s] to be removed from RP export group.", volume.getPersonality(), associatedVolURI));
                     Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolURI));
+
                     ExportGroup exportGroup = getExportGroup(rpSystem, volume.getId(), associatedVolume.getVirtualArray(),
                             associatedVolume.getInternalSiteName());
                     if (exportGroup != null) {

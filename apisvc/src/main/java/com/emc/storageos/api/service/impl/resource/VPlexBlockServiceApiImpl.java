@@ -542,19 +542,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // not swapped, then the passed capabilities reflect the primary and we need
             // to update them when preparing the HA volume.
             VirtualPoolCapabilityValuesWrapper backendCapabilities = vPoolCapabilities;
-            if (topologySite != VolumeTopologySite.SOURCE || 
-                    (VirtualPool.isRPVPlexProtectHASide(vPool) ? role != VolumeTopologyRole.HA : role != VolumeTopologyRole.PRIMARY)) {
-                if (role == (VirtualPool.isRPVPlexProtectHASide(vPool) ? VolumeTopologyRole.PRIMARY : VolumeTopologyRole.HA)) {
-                    // Make sure to get the HA vpool, not the passed vpool.
-                    VirtualPool beVpool = vplexRecommendations.get(0).getVirtualPool();
-                    backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                            beVpool, performanceParams, role, vPoolCapabilities, _dbClient);
-                } else {
-                    backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                            vPool, performanceParams, role, vPoolCapabilities, _dbClient);                    
-                }
+            if (topologySite == VolumeTopologySite.COPY || role == VolumeTopologyRole.JOURNAL
+                    || role == VolumeTopologyRole.STANDBY_JOURNAL) {
+                // For a copy or a journal, update the capabilities. Note that these are 
+                // always local VPLEX volumes, so they need to be updated but no need to 
+                // account for an HA side.
+                backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                        vPool, performanceParams, role, vPoolCapabilities, _dbClient);
+            } else if (VirtualPool.isRPVPlexProtectHASide(vPool) ? role != VolumeTopologyRole.HA : role != VolumeTopologyRole.PRIMARY) {
+                // Make sure to get the HA vpool, not the passed vpool.
+                VirtualPool beVpool = vplexRecommendations.get(0).getVirtualPool();
+                backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                        beVpool, performanceParams, role, vPoolCapabilities, _dbClient);
             }
-
+            
             s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
             List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(
                     vplexRecommendations, project, vplexProject, vPool, performanceParamsURI,

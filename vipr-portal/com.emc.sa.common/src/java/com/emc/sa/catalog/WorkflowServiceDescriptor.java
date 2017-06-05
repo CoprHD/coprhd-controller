@@ -98,6 +98,17 @@ public class WorkflowServiceDescriptor {
         final ServiceDescriptor to = new ServiceDescriptor();
         try {
             final CustomServicesWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
+            final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByName(wfDocument.getName());
+            if (wfs.isEmpty() || wfs.size()>1) {
+                log.error("Cannot get workflow or more than one workflow mapped per workflow name:{}", wfDocument.getName());
+                throw new IllegalStateException(String.format("ECannot get workflow or more than one workflow mapped per workflow name %s", wfDocument.getName()));
+            }
+            if (StringUtils.isEmpty(wfs.get(0).getState()) || wfs.get(0).getState().equals(CustomServicesWorkflowStatus.NONE) ||
+                    wfs.get(0).getState().equals(CustomServicesWorkflowStatus.INVALID)) {
+                log.error("Workflow state is not valid. State:{} Workflow name:{}", wfs.get(0).getState(), wfDocument.getName());
+                throw new IllegalStateException(String.format("Workflow state is not valid. State %s", wfs.get(0).getState()));
+            }
+
             to.setCategory(CUSTOM_SERVICE_CATEGORY);
             to.setDescription(wfDocument.getDescription());
             to.setDestructive(false);

@@ -61,12 +61,12 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
         try {
-            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId());
+            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId() + "\t Step Name:" + step.getFriendlyName());
 
             final CustomServicesDBRESTApiPrimitive restPrimitive = dbClient.queryObject(CustomServicesDBRESTApiPrimitive.class,
                     step.getOperation());
             if (null == restPrimitive) {
-                logger.error("Error retrieving the ansible primitive from DB. {} not found in DB", step.getOperation());
+                logger.error("Error retrieving the REST primitive from DB. {} not found in DB", step.getOperation());
                 ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "\"Error retrieving the REST primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(step.getOperation() + " not found in DB");
             }
@@ -99,7 +99,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
                     result = executeRest(method, null, builder);
             }
 
-            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo", step.getId());
+            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo", step.getId() + "\t Step Name:" + step.getFriendlyName());
             return result;
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesRESTExecution.doneInfo", "Custom Service Task Failed" + e);

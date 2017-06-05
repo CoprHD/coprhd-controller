@@ -75,7 +75,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             final CustomServicesDBScriptPrimitive primitive = dbClient.queryObject(CustomServicesDBScriptPrimitive.class, scriptid);
             if (null == primitive) {
                 logger.error("Error retrieving script primitive from DB. {} not found in DB", scriptid);
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Error retrieving script primitive from DB.");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId() + "\t Step Name:" + step.getFriendlyName(), "Error retrieving script primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
             }
 
@@ -85,7 +85,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
                 logger.error("Error retrieving resource for the script primitive from DB. {} not found in DB",
                         primitive.getResource());
 
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Error retrieving resource for the script primitive from DB.");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId() + "\t Step Name:" + step.getFriendlyName(),"Error retrieving resource for the script primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
             }
@@ -97,17 +97,17 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             final byte[] bytes = Base64.decodeBase64(script.getResource());
             AnsibleHelper.writeResourceToFile(bytes, scriptFileName);
 
-            final String exeScriptFileName = String.format("%s%s.sh", chrootOrderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
+            final String exeScriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
             result = executeCmd(exeScriptFileName);
 
         } catch (final Exception e) {
             logger.error("CS: Could not execute shell script step:{}. Exception:", step.getId(), e);
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Could not execute shell script step"+e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId()+ "\t Step Name:" + step.getFriendlyName(), "Could not execute shell script step"+e);
 
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId()+ "\t Step Name:" + step.getFriendlyName());
 
         if (result == null) {
             logger.error("CS: Script Execution result is null for step:{}", step.getId());
@@ -125,13 +125,13 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     private Exec.Result executeCmd(final String shellScript) throws Exception {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, shellScript);
-        cmd.setChrootCmd(CustomServicesConstants.CHROOT_CMD);
+       // cmd.setChrootCmd(CustomServicesConstants.CHROOT_CMD);
         final String[] cmds = cmd.build();
 
         //default to no host key checking
         final Map<String,String> environment = makeParam(input);
 
-        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
+        return Exec.exec(new File(orderDir), timeout, null, environment, cmds);
     }
 
     private Map<String,String> makeParam(final Map<String, List<String>> input) throws Exception {

@@ -34,7 +34,6 @@ public class VNXeSystemValidatorFactory implements StorageSystemValidatorFactory
 
     private DbClient dbClient;
     private VNXeApiClientFactory clientFactory;
-    private ValidatorLogger logger;
     private ValidatorConfig config;
 
     public DbClient getDbClient() {
@@ -77,7 +76,7 @@ public class VNXeSystemValidatorFactory implements StorageSystemValidatorFactory
     @Override
     public Validator exportMaskDelete(ExportMaskValidationContext ctx) {
         // removing initiators from mask will be ViPR DB only operation if there is unknown volume, hence no volume validation
-        logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
+        ValidatorLogger logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         VNXeExportMaskInitiatorsValidator initiatorValidator = new VNXeExportMaskInitiatorsValidator(ctx.getStorage(),
                 ctx.getExportMask());
         initiatorValidator.setExceptionContext(ctx);
@@ -88,7 +87,7 @@ public class VNXeSystemValidatorFactory implements StorageSystemValidatorFactory
 
     @Override
     public Validator removeVolumes(ExportMaskValidationContext ctx) {
-        logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
+        ValidatorLogger logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         VNXeExportMaskInitiatorsValidator validator = new VNXeExportMaskInitiatorsValidator(ctx.getStorage(),
                 ctx.getExportMask());
         validator.setExceptionContext(ctx);
@@ -114,7 +113,7 @@ public class VNXeSystemValidatorFactory implements StorageSystemValidatorFactory
 
     @Override
     public Validator removeInitiators(ExportMaskValidationContext ctx) {
-        logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
+        ValidatorLogger logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         VNXeExportMaskVolumesValidator volumeValidator = new VNXeExportMaskVolumesValidator(ctx.getStorage(),
                 ctx.getExportMask(), ctx.getBlockObjects());
         volumeValidator.setExceptionContext(ctx);

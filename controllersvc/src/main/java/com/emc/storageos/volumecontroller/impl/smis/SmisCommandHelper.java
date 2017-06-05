@@ -5567,8 +5567,8 @@ public class SmisCommandHelper implements SmisConstants {
         Set<CIMInstance> parkingSLOStorageGroups = new HashSet<>();
         CloseableIterator<CIMInstance> cimInstanceItr = null;
         for (String nativeId : nativeIds) {
-            CIMObjectPath volumePath = _cimPath.getVolumePath(storage, nativeId);
             try {
+                CIMObjectPath volumePath = _cimPath.getVolumePath(storage, nativeId);
                 cimInstanceItr = getAssociatorInstances(storage, volumePath, null,
                         MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null,
                         PS_ELEMENT_NAME);

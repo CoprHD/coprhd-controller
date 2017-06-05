@@ -355,7 +355,9 @@ public class XtremIOV1Client extends XtremIOClient {
             String uriStr = XtremIOConstants.XTREMIO_INITIATORS_STR.concat(XtremIOConstants.getInputNameString(initiatorName));
             ClientResponse response = get(URI.create(uriStr));
             XtremIOInitiators initiators = getResponseObject(XtremIOInitiators.class, response);
-            return initiators.getContent();
+            XtremIOInitiator initiator = initiators.getContent();
+            log.info(initiator.toString());
+            return initiator;
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
                 throw e;
@@ -374,7 +376,9 @@ public class XtremIOV1Client extends XtremIOClient {
             ClientResponse response = get(URI.create(uriStr));
             XtremIOInitiatorGroups igGroups = getResponseObject(XtremIOInitiatorGroups.class,
                     response);
-            return igGroups.getContent();
+            XtremIOInitiatorGroup igGroup= igGroups.getContent();
+            log.info(igGroup.toString());
+            return igGroup;
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
                 throw e;
@@ -393,7 +397,9 @@ public class XtremIOV1Client extends XtremIOClient {
             ClientResponse response = get(URI.create(uriStr));
             XtremIOTags folderResponse = getResponseObject(
                     XtremIOTags.class, response);
-            return folderResponse.getContent();
+            XtremIOTag folder = folderResponse.getContent();
+            log.info(folder.toString());            		
+            return folder;
 
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
@@ -413,7 +419,9 @@ public class XtremIOV1Client extends XtremIOClient {
                     XtremIOConstants.getInputNameString(volumeFolderName));
             ClientResponse response = get(URI.create(uriStr));
             XtremIOTags folderResponse = getResponseObject(XtremIOTags.class, response);
-            return folderResponse.getContent();
+            XtremIOTag folder = folderResponse.getContent();
+            log.info(folder.toString());            		
+            return folder;
 
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
@@ -430,7 +438,6 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public void deleteInitiatorGroup(String igName, String clusterName) throws Exception {
         String uriStr = XtremIOConstants.XTREMIO_INITIATOR_GROUPS_STR.concat(XtremIOConstants.getInputNameString(igName));
-        log.info("Calling Delete Initiator Group with uri : {}", uriStr);
         delete(URI.create(uriStr));
     }
 
@@ -439,7 +446,9 @@ public class XtremIOV1Client extends XtremIOClient {
         String uriStr = XtremIOConstants.XTREMIO_VOLUMES_STR.concat(XtremIOConstants.getInputNameString(volumeName));
         ClientResponse response = get(URI.create(uriStr));
         XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
-        return volumesResponse.getContent();
+        XtremIOVolume volume = volumesResponse.getContent();
+        log.info(volume.toString());
+        return volume;
     }
 
     @Override
@@ -447,7 +456,9 @@ public class XtremIOV1Client extends XtremIOClient {
         String uriStr = XtremIOConstants.XTREMIO_SNAPS_STR.concat(XtremIOConstants.getInputNameString(snapName));
         ClientResponse response = get(URI.create(uriStr));
         XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
-        return volumesResponse.getContent();
+        XtremIOVolume snap = volumesResponse.getContent();
+        log.info(snap.toString());
+        return snap;
     }
 
     @Override
@@ -608,6 +619,8 @@ public class XtremIOV1Client extends XtremIOClient {
         String uriString = XtremIOConstants.XTREMIO_VOLUMES_STR.concat(XtremIOConstants.SLASH).concat(index);
         ClientResponse response = get(URI.create(uriString));
         XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
-        return volumesResponse.getContent();
+        XtremIOVolume volume = volumesResponse.getContent();
+        log.info(volume.toString());
+        return volume;
     }
 }

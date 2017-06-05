@@ -119,9 +119,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
     public ClientResponse post(URI uri, String body) throws InternalException {
     	ClientResponse response = null;
         log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
-        response = super.post(uri, body);
-        log.info("Response - {}", response.toString());
-        
+        response = super.post(uri, body);        
         return response;
     }
     
@@ -129,9 +127,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
     public ClientResponse get(URI uri) throws InternalException {
     	ClientResponse response = null;
         log.info("Calling GET {}", uri.toString());
-        response = super.get(uri);
-        log.info("Response - {}", response.toString());
-        
+        response = super.get(uri);        
         return response;
     }
 
@@ -148,7 +144,6 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
         try {
             log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
             response = super.post(uri,  body);
-            log.info("Response - {}", response.toString());
         } finally {
             closeResponse(response);
         }
@@ -183,7 +178,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
     public ClientResponse delete(URI uri, String body) throws InternalException {
         ClientResponse response = null;
         try {
-            log.info("Calling DELETE {}", uri.toString());
+        	log.info(String.format("Calling DELETE %s with data %s", uri.toString(), body));
             response = super.delete(uri, body);
         } finally {
             closeResponse(response);

@@ -5,6 +5,8 @@
 
 package com.emc.storageos.db.client.model;
 
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
@@ -158,7 +160,7 @@ public abstract class BlockObject extends DataObject {
     }
 
     public boolean hasConsistencyGroup() {
-        return _consistencyGroupId != null;
+        return !isNullURI(_consistencyGroupId);
     }
 
     @Name("consistencyGroups")

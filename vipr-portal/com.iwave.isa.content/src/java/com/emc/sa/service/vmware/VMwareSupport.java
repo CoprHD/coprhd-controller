@@ -726,9 +726,13 @@ public class VMwareSupport {
                 if (StringUtils.equals(host.getName(), otherHost.getName())) {
                     continue;
                 }
-                if (VMwareSupport.isHostConnected(otherHost)) {
-                    HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly, throwIfNotFound));
-                    disks.put(otherHost, otherDisk);
+                try {
+                    if (VMwareSupport.isHostConnected(otherHost)) {
+                        HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly, throwIfNotFound));
+                        disks.put(otherHost, otherDisk);
+                    }
+                } catch (Exception e) {
+                    logWarn("vmware.support.find.scsi.disk.volumenotfound", volume.getWwn(), otherHost.getName());
                 }
             }
         }

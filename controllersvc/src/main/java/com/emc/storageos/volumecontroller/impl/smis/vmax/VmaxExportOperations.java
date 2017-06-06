@@ -1784,12 +1784,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     if (targetURIList != null && !targetURIList.isEmpty()) {
                         _log.info("Removing targets...");
 
-                        ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-
                         URI pgURI = exportMask.getPortGroup();
                         if (!NullColumnValueGetter.isNullURI(pgURI)) {
                             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-                            if (!portGroup.getInactive() && !portGroup.getMutable()) {
+                            if (!portGroup.getMutable()) {
                                 _log.info(String.format("The port group %s is immutable, done", 
                                         portGroup.getNativeGuid()));
                             
@@ -1797,10 +1795,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 return;
                             }
                         }
-                        CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, mask.getMaskName());
+                        CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, exportMask.getMaskName());
                         if (null == portGroupInstance) {
                             String errMsg = String.format("removeInitiators failed - maskName %s : Port group not found ",
-                                    mask.getMaskName());
+                                    exportMask.getMaskName());
                             ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
                             taskCompleter.error(_dbClient, serviceError);
                             return;
@@ -5351,6 +5349,18 @@ public class VmaxExportOperations implements ExportMaskOperations {
         // If the storage ports does not show up in the zoning map other than the removing paths, remove the storage ports from the
         // port group
         try {
+            // Check if the port group is mutable. If not, don't remove ports.
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            URI pgURI = mask.getPortGroup();
+            if (!NullColumnValueGetter.isNullURI(pgURI)) {
+                StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                if (!portGroup.getMutable()) {
+                    _log.info(String.format("The port group %s is immutable, done", 
+                            portGroup.getNativeGuid()));
+                    taskCompleter.ready(_dbClient);
+                    return;
+                }
+            }
             List<URI> removingPorts = getRemovedStoragePortsForRemovePaths(adjustedPaths, removePaths);
             if (removingPorts != null && !removingPorts.isEmpty()) {
                 Set<URI> portsRemoved = removeStoragePorts(storage, exportMaskURI, removingPorts);

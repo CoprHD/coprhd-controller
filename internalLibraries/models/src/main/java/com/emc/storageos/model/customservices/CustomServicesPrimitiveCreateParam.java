@@ -80,7 +80,7 @@ public class CustomServicesPrimitiveCreateParam {
         this.input = input;
     }
 
-    @XmlElement(name = "output")
+    @XmlElement(name = "output", nillable = true)
     public List<String> getOutput() {
         return output;
     }

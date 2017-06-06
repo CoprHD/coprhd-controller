@@ -150,6 +150,9 @@ public class WFDirectoryService extends TaggedResource {
         WFDirectory wfDirectory = new WFDirectory();
         final String createParamLabel = wfDirectoryParam.getName();
         final URI parentId = wfDirectoryParam.getParent() == null ? getRootLevelParentId() : wfDirectoryParam.getParent();
+        if(null != wfDirectoryParam.getParent()){
+            checkWFDirExists(wfDirectoryParam.getParent());
+        }
         if (StringUtils.isNotBlank(createParamLabel)) {
             checkDuplicateLabel(createParamLabel.trim(), parentId);
         } else {
@@ -201,7 +204,7 @@ public class WFDirectoryService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public WFDirectoryRestRep updateWFDirectory(@PathParam("id") URI id, WFDirectoryUpdateParam param) {
-        WFDirectory wfDirectory = wfDirectoryManager.getWFDirectoryById(id);
+        WFDirectory wfDirectory = checkWFDirExists(id);
         // update object
         if (StringUtils.isNotBlank(param.getName())) {
             final String label = param.getName().trim();
@@ -214,6 +217,7 @@ public class WFDirectoryService extends TaggedResource {
 
         if (null != param.getParent()) {
             // no need to set the parent to getRootLevelParentId() since this would have been set during creation
+            checkWFDirExists(param.getParent());
             wfDirectory.setParent(param.getParent());
         }
 
@@ -224,6 +228,16 @@ public class WFDirectoryService extends TaggedResource {
         }
         wfDirectoryManager.updateWFDirectory(wfDirectory);
         return map(wfDirectory);
+    }
+
+    private WFDirectory checkWFDirExists(final URI id){
+        final WFDirectory wfDirectory = wfDirectoryManager.getWFDirectoryById(id);
+        if (null == wfDirectory) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        } else if (wfDirectory.getInactive()) {
+            throw APIException.notFound.entityInURLIsInactive(id);
+        }
+        return wfDirectory;
     }
 
     private WFDirectoryRestRep map(WFDirectory from) {

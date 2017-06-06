@@ -50,12 +50,20 @@ public class WorkflowDirectoryManagerImpl implements WorkflowDirectoryManager {
     }
 
     public void deactivateWFDirectory(URI id) {
+        // validate that the children are empty before deleting
+        checkChildren(id);
+
+        // delete empty children
+        deleteDirectoryAndChildren(id);
+    }
+
+    private void checkChildren(URI id) {
         WFDirectory wfDirectory = client.wfDirectory().findById(id);
         if (null == wfDirectory) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
 
-        // Disallow operation if this node has children
+        // Disallow operation if this node has children that contain workflows/ primitives
         List<WFDirectory> children = getWFDirectoryChildren(id);
         if (CollectionUtils.isNotEmpty(wfDirectory.getWorkflows())) {
             throw APIException.methodNotAllowed.notSupportedWithReason("Directory has workflows. Cannot be deleted");
@@ -65,14 +73,31 @@ public class WorkflowDirectoryManagerImpl implements WorkflowDirectoryManager {
                 throw APIException.methodNotAllowed
                         .notSupportedWithReason("Directory has children that contain workflows. Cannot be deleted");
             }
+            // check the children
+            checkChildren(child.getId());
+        }
+    }
+
+    private boolean deleteDirectoryAndChildren(URI id) {
+        WFDirectory wfDirectory = client.wfDirectory().findById(id);
+        if (null == wfDirectory) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
         }
 
-        // delete empty children
-        for (final WFDirectory child : children) {
-            client.delete(child);
+        List<WFDirectory> children = getWFDirectoryChildren(id);
+        // start deleting from inner nodes
+        if (CollectionUtils.isEmpty(children)) {
+            //delete only if the wfDirectory does not have any children
+            client.delete(wfDirectory);
+            return true;
+        } else {
+            for (final WFDirectory child : children) {
+                deleteDirectoryAndChildren(child.getId());
+            }
+            //all children deleted. delete the empty folder
+            client.delete(wfDirectory);
         }
-
-        client.delete(wfDirectory);
+        return true;
     }
 
     public void updateWFDirectory(WFDirectory wfDirectory) {

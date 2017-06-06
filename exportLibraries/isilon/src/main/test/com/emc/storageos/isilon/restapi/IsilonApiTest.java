@@ -334,6 +334,9 @@ public class IsilonApiTest {
         e1.setSecurityFlavors(securityFlavors1);
         e1.setReadOnly();
         e1.setComment("New export: unix.rw.nobody");
+        e1.setReturn_32bit_file_ids(true);
+        e1.resetAllDirs();
+        e1.setMap_lookup_uid(false);
 
         String export1Id = _client.createExport(e1, false);
         Assert.assertTrue(Integer.parseInt(export1Id) > 0);
@@ -382,6 +385,9 @@ public class IsilonApiTest {
         e2.setSecurityFlavors(securityFlavors);
         e2.setMapAll("root"); // to indicate that this export has root permissions (required by PAPI)
         e2.setComment("New export: krb5.root.root");
+        e2.setReturn_32bit_file_ids(false);
+        e2.setAllDirs();
+        e2.setMap_lookup_uid(false);
         String export2Id = _client.createExport(e2, false);
 
         // Step 9 verify the created export
@@ -411,6 +417,9 @@ public class IsilonApiTest {
         ie3.setSecurityFlavors(securityFlavors3);
         ie3.setReadOnly();
         ie3.setComment("New export: unix.rw.nobody");
+        ie3.setReturn_32bit_file_ids(false);
+        ie3.resetAllDirs();
+        ie3.setMap_lookup_uid(true);
 
         String export3Id = _client.createExport(ie3, true);
 

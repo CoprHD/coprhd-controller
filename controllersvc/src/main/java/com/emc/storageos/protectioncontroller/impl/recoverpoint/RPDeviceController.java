@@ -3563,19 +3563,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             URI volURI = descriptor.getVolumeURI();
             ProtectionSystem rp = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
 
-            Map<String, RecreateReplicationSetRequestParams> rsetParams = new HashMap<String, RecreateReplicationSetRequestParams>();
-
             RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, volURI);
+
+            Map<String, RecreateReplicationSetRequestParams> rsetParams = new HashMap<String, RecreateReplicationSetRequestParams>();
             rsetParams.put(RPHelper.getRPWWn(volURI, _dbClient), rsetParam);
 
             String stepId = workflow.createStepId();
             Workflow.Method deleteRsetExecuteMethod = new Workflow.Method(METHOD_DELETE_RSET_STEP, rpSystem.getId(), Arrays.asList(volURI));
 
-            Workflow.Method deleteRsetRollbackeMethod = new Workflow.Method(METHOD_DELETE_RSET_ROLLBACK_STEP, rpSystem.getId(),
-                    Arrays.asList(volURI), rsetParams);
-
             workflow.createStep(STEP_PRE_VOLUME_EXPAND, "Pre volume expand, delete replication set subtask for RP: " + volURI.toString(),
-                    null, rpSystem.getId(), rp.getSystemType(), this.getClass(), deleteRsetExecuteMethod, deleteRsetRollbackeMethod,
+                    null, rpSystem.getId(), rp.getSystemType(), this.getClass(), deleteRsetExecuteMethod, rollbackMethodNullMethod(),
                     stepId);
 
             _log.info("addPreVolumeExpandSteps Replication Set in workflow");
@@ -3643,7 +3640,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             workflow.createStep(STEP_POST_VOLUME_EXPAND,
                     "Post volume Expand, Recreate replication set subtask for RP: " + volume.toString(), waitFor, rpSystem.getId(),
-                    rpSystem.getSystemType(), this.getClass(), recreateRSetExecuteMethod, null, stepId);
+                    rpSystem.getSystemType(), this.getClass(), recreateRSetExecuteMethod, rollbackMethodNullMethod(), stepId);
 
             _log.info("Recreate Replication Set in workflow");
         }

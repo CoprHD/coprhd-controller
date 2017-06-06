@@ -39,6 +39,7 @@ import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.AssetOptionsManager;
+import com.emc.sa.asset.AssetOptionsProvider;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
@@ -277,7 +278,8 @@ public class OrderManagerImpl implements OrderManager {
             else {
 
                 // if provider prefers raw labels (because retrieval is too slow) use raw value
-                if(assetOptionsManager.getProviderForAssetType(assetType).useRawLabels()){
+                final AssetOptionsProvider assetProvider = assetOptionsManager.getProviderForAssetType(assetType);
+                if(assetProvider != null && assetProvider.useRawLabels()){
                     return key;
                 }
 

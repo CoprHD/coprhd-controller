@@ -565,3 +565,16 @@ client_encryption_options:
 #          dc   - traffic between different datacenters is compressed
 #          none - nothing is compressed.
 internode_compression: none
+
+hints_directory: /data/geodb/1/hints
+
+# Enable / disable CDC functionality on a per-node basis. This modifies the logic used
+# for write path allocation rejection (standard: never reject. cdc: reject Mutation
+# containing a CDC-enabled table if at space limit in cdc_raw_directory).
+cdc_enabled: false
+
+# CommitLogSegments are moved to this directory on flush if cdc_enabled: true and the
+# segment contains mutations for a CDC-enabled table. This should be placed on a
+# separate spindle than the data directories. If not set, the default directory is
+# $CASSANDRA_HOME/data/cdc_raw.
+cdc_raw_directory: /data/geodb/1/cdc_raw

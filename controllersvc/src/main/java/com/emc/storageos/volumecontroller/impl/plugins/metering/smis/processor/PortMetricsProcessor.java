@@ -1747,7 +1747,7 @@ public class PortMetricsProcessor {
                     !portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                 StringSet ports = portGroup.getStoragePorts();
                 List<StoragePort> portMembers = _dbClient.queryObject(StoragePort.class, StringSetUtil.stringSetToUriList(ports));
-                Double portMetricDouble = 0.0;
+                Double portMetricTotal = 0.0;
                 StringMap dbMetrics = portGroup.getMetrics();
                 boolean metricsSet = true;
                 for (StoragePort port : portMembers) {
@@ -1761,18 +1761,17 @@ public class PortMetricsProcessor {
                         metricsSet = false;
                         break;
                     }
-                    portMetricDouble += portMetric;
+                    portMetricTotal += portMetric;
                 }
-                if (metricsSet && portMetricDouble != null ) {
-                    _log.info(String.format("port group %s portMetric %s", portGroup.getLabel(), portMetricDouble.toString()));
-                    MetricsKeys.putDouble(MetricsKeys.portMetric, portMetricDouble/portMembers.size(),
+                if (metricsSet && portMetricTotal != null ) {
+                    _log.info(String.format("port group %s portMetric %s", portGroup.getNativeGuid(), portMetricTotal.toString()));
+                    MetricsKeys.putDouble(MetricsKeys.portMetric, portMetricTotal/portMembers.size(),
                             dbMetrics);
                 }
                 computePortGroupVolumeCounts(portGroup, dbMetrics, _dbClient);
                 portGroup.setMetrics(dbMetrics);
                 _dbClient.updateObject(portGroup);  
             }
-        
         }
     }
     
@@ -1800,15 +1799,14 @@ public class PortMetricsProcessor {
                 continue;
             }
 
-            // VMAX3 does not have a dependency on meta-luns, so these are not counted.
             if (mask.getExistingVolumes() != null) {
                 volumeCount += mask.getExistingVolumes().size();
             }
             if (system.checkIfVmax3() == true) {
+             // VMAX3 does not have a dependency on meta-luns, so these are not counted.
                 if (mask.getUserAddedVolumes() != null) {
                     volumeCount += mask.getUserAddedVolumes().size();
                 }
-                
             } else {
                 StringMap volumes = mask.getVolumes();
                 if (volumes == null) {
@@ -1832,8 +1830,7 @@ public class PortMetricsProcessor {
                         }
                     }
                 }
-            }
-            
+            }  
         }
         MetricsKeys.putLong(MetricsKeys.volumeCount, volumeCount, dbMetrics);
 

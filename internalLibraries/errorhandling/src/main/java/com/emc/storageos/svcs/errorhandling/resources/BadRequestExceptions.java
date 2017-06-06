@@ -3345,6 +3345,9 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotExportVolumesFromDifferentSystems(String portGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupNotInVarray(String port, String portGroup, String varray);
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException pathAdjustmentPortGroupNoExistingPaths();
     

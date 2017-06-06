@@ -644,7 +644,7 @@ public class CustomConfigService extends ResourceService {
         ArgValidator.checkFieldNotEmpty(configName, "configName");
         CustomConfigType item = customConfigHandler.getCustomConfigType(configName);
         String simpleValueType = "SimpleValue";
-        if (!simpleValueType.equals(item.getConfigType())) {
+        if (item != null && !simpleValueType.equals(item.getConfigType())) {
             throw APIException.badRequests.invalidConfigValueType(configName);
         }
         SimpleValueRep result = new SimpleValueRep();
@@ -652,7 +652,7 @@ public class CustomConfigService extends ResourceService {
             String value = customConfigHandler.getComputedCustomConfigValue(configName, scope, null);
             result.setValue(value);
         } else {
-            log.info("Invalid config type for :", configName);
+            log.info(String.format("Invalid config type for %s", configName));
             throw APIException.badRequests.invalidConfigType(configName);
         }
         

@@ -5698,8 +5698,8 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the storage ports in the port group is associated to the virtual array
      * 
-     * @param portGroup
-     * @param varray virtual array URI
+     * @param portGroup The port group instance
+     * @param varray The virtual array URI
      */
     private void validatePortGroupValidWithVirtualArray(StoragePortGroup portGroup, URI varray) {        
         List<URI> ports = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
@@ -5709,7 +5709,8 @@ public class BlockService extends TaskResourceService {
             if (!varrays.contains(varray)) {
                 List<URI> connectedVarrays = StringSetUtil.stringSetToUriList(port.getConnectedVirtualArrays());
                 if (!connectedVarrays.contains(varray)) {
-                    throw APIException.badRequests.portGroupInvalid(portGroup.getId().toString());
+                    throw APIException.badRequests.portGroupNotInVarray(port.getPortName(), portGroup.getNativeGuid(),
+                            varray.toString());
                 }
             }
         }

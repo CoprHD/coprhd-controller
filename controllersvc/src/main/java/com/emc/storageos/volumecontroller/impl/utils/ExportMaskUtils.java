@@ -760,7 +760,7 @@ public class ExportMaskUtils {
             String guid = String.format("%s+%s" , system.getNativeGuid(), portGroupName);
             URIQueryResultList result = new URIQueryResultList();
             dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getPortGroupNativeGUIdConstraint(guid), result);
+                    .getPortGroupNativeGuidConstraint(guid), result);
             Iterator<URI> it = result.iterator();
             boolean foundPG = it.hasNext();
             StoragePortGroup portGroup = null;

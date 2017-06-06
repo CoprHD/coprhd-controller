@@ -1342,7 +1342,7 @@ public class FileService extends TaskResourceService {
 
                         if (qdsize < MIN_EXPAND_SIZE) {
                             String msg = String
-                                    .format("filesystem is reduced to a size lesser than sub quota. Quota Path: %s, current capacity: %d",
+                                    .format("filesystem size is reduced lesser than its quota size. Quota Path: %s, current capacity: %d",
                                             quotaDir.getPath(), quotaDir.getSize());
                             throw APIException.badRequests.reduceFileSystemNotSupported(id, msg);
                         }

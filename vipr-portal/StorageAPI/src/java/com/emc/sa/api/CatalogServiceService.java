@@ -49,8 +49,8 @@ import com.emc.sa.api.utils.CatalogConfigUtils;
 import com.emc.sa.api.utils.ValidationUtils;
 import com.emc.sa.catalog.CatalogCategoryManager;
 import com.emc.sa.catalog.CatalogServiceManager;
-import com.emc.sa.catalog.WorkflowServiceDescriptor;
 import com.emc.sa.catalog.ServiceDescriptorUtil;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
@@ -81,10 +81,8 @@ import com.emc.vipr.model.catalog.CatalogServiceList;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceUpdateParam;
 
-@DefaultPermissions(
-        readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        writeRoles = { Role.TENANT_ADMIN },
-        readAcls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
+        Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
 @Path("/catalog/services")
 public class CatalogServiceService extends CatalogTaggedResourceService {
 
@@ -403,13 +401,13 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         if (descriptor == null) {
             throw APIException.badRequests.baseServiceNotFound(input.getBaseService());
         }
-        
-        if(null != input.getWorkflowName() && !input.getWorkflowName().isEmpty()) {
-            if(null == catalogServiceManager.getWorkflowDocument(input.getWorkflowName())) 
+
+        if (null != input.getWorkflowName() && !input.getWorkflowName().isEmpty()) {
+            if (null == catalogServiceManager.getWorkflowDocument(input.getWorkflowName())) {
                 throw APIException.badRequests.workflowNotFound(input.getWorkflowName());
+            }
         }
 
-        //TODO: validate fields against the workflow
         for (CatalogServiceFieldParam field : input.getCatalogServiceFields()) {
             if (!field.getOverride()) {
                 continue;

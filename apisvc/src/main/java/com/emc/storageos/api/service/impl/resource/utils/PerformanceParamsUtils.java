@@ -243,6 +243,35 @@ public class PerformanceParamsUtils {
         }
 
         return autoTieringPolicyName;
+    } 
+    
+    /**
+     * Get the auto tiering policy name. If set in the passed performance parameters,
+     * return this value, otherwise the value comes from the passed virtual pool.
+     * 
+     * @param performanceParamsURI URI of a performance parameters instance.
+     * @param vpool A reference to a VirtualPool.
+     * @param dbClient A reference to a DbClient.
+     * 
+     * @return The auto tiering policy name or null if not set.
+     */
+    public static String getAutoTierinigPolicyName(URI performanceParamsURI, VirtualPool vpool, DbClient dbClient) {
+        String autoTieringPolicyName = null;
+        if (performanceParamsURI != null) {
+            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+            if (performanceParams != null) {
+                // There will always be a value for the auto tiering policy
+                // name, so return that value.
+                return performanceParams.getAutoTierPolicyName();
+            }
+        }
+
+        // If here, use the value from the vpool.
+        if (vpool != null) {
+            autoTieringPolicyName = vpool.getAutoTierPolicyName();
+        }
+
+        return autoTieringPolicyName;
     }    
 
     /**
@@ -302,6 +331,35 @@ public class PerformanceParamsUtils {
 
         return thinVolumePreAllocPercentage != null ? thinVolumePreAllocPercentage : 0;
     }
+    
+    /**
+     * Get the thin volume pre-allocation percentage. If set in the passed performance 
+     * parameters, return this value, otherwise the value comes from the passed virtual pool.
+     * 
+     * @param performanceParamsURI The URI of a performance parameters instance.
+     * @param vpool A reference to a VirtualPool.
+     * @param dbClient A reference to a DbClient.
+     * 
+     * @return The thin volume pre-allocation percentage or 0 if not set.
+     */
+    public static Integer getThinVolumePreAllocPercentage(URI performanceParamsURI, VirtualPool vpool, DbClient dbClient) {
+        if (performanceParamsURI != null) {
+            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+            if (performanceParams != null) {
+                // There will always be a value for the thin volume pre-allocation
+                // percentage, so return that value.
+                return performanceParams.getThinVolumePreAllocationPercentage();
+            }
+        }
+
+        // If here, use the value from virtual pool.
+        Integer thinVolumePreAllocPercentage = null;
+        if (vpool != null) {
+            thinVolumePreAllocPercentage = vpool.getThinVolumePreAllocationPercentage();
+        } 
+
+        return thinVolumePreAllocPercentage != null ? thinVolumePreAllocPercentage : 0;
+    }    
 
     /**
      * Get the deduplication capable setting. If set in the passed performance 
@@ -358,6 +416,33 @@ public class PerformanceParamsUtils {
     }
     
     /**
+     * Get the deduplication capable setting. If set in the passed performance 
+     * parameters, return this value, otherwise the value comes from the passed
+     * virtual pool.
+     * 
+     * @param performanceParamsURI The URI of a performance parameters instance
+     * @param vpool A reference to a VirtualPool.
+     * @param dbClient A reference to a DbClient.
+     * 
+     * @return True is set, False otherwise.
+     */
+    public static Boolean getIsDedupCapable(URI performanceParamsURI, VirtualPool vpool, DbClient dbClient) {
+        Boolean dedupCapable = Boolean.FALSE;
+        if (performanceParamsURI != null) {
+            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+            if (performanceParams != null) {
+                // There will always be a value for dedup capable, so return that value.
+                return performanceParams.getDedupCapable();
+            }
+        }
+
+        // If here, use the value from virtual pool.
+        dedupCapable = vpool.getDedupCapable();
+
+        return dedupCapable != null ? dedupCapable : Boolean.FALSE;
+    }    
+    
+    /**
      * Get the fast expansion setting. If set in the passed performance 
      * parameters, return this value, otherwise the value comes from the passed
      * virtual pool.
@@ -374,7 +459,7 @@ public class PerformanceParamsUtils {
         Boolean fastExpansion = Boolean.FALSE;
         PerformanceParams performanceParams = getPerformanceParamsForRole(performanceParamsMap, role, dbClient);
         if (performanceParams != null) {
-            // There will always be a value for dedup capable, so return that value.
+            // There will always be a value for fast expansion, so return that value.
             return performanceParams.getFastExpansion();
         }
 
@@ -384,6 +469,33 @@ public class PerformanceParamsUtils {
         return fastExpansion != null ? fastExpansion : Boolean.FALSE;
     }    
     
+    /**
+     * Get the fast expansion setting. If set in the passed performance 
+     * parameters, return this value, otherwise the value comes from the passed
+     * virtual pool.
+     * 
+     * @param performanceParamsURI The URI of a performance parameters instance.
+     * @param vpool A reference to a VirtualPool.
+     * @param dbClient A reference to a DbClient.
+     * 
+     * @return True is set, False otherwise.
+     */
+    public static Boolean getFastExpansion(URI performanceParamsURI, VirtualPool vpool, DbClient dbClient) {
+        Boolean fastExpansion = Boolean.FALSE;
+        if (performanceParamsURI != null) {
+            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+            if (performanceParams != null) {
+                // There will always be a value for fast expansion, so return that value.
+                return performanceParams.getFastExpansion();
+            }
+        }
+
+        // If here, use the value from virtual pool.
+        fastExpansion = vpool.getFastExpansion();
+
+        return fastExpansion != null ? fastExpansion : Boolean.FALSE;
+    }    
+
     /**
      * Override the passed source, primary side capabilities to get the capabilities used when
      * placing ha side of a distributed volume or an SRDF/RP copy. Used the passed virtual pool

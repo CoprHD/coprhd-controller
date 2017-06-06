@@ -2118,28 +2118,28 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         
         return descriptors;
     }
-
+    
     /**
      * Prepare a new Bourne volume.
-     *
-     * TODO: Use existing function (prepareVolume) when VirtualPool capabilities change
-     * completed by Stalin. Just pass size instead of getting from VolumeCreate
-     * parameter.
      *
      * @param size The volume size.
      * @param project A reference to the volume's Project.
      * @param neighborhood A reference to the volume's varray.
      * @param vpool A reference to the volume's VirtualPool.
+     * @param performanceParamsURI The URI of a performance params instance.
+     * @param capabilities vpool capabilities.
      * @param storageSystemURI The URI of the volume's storage system.
      * @param storagePoolURI The URI of the volume's storage pool.
      * @param label The volume label.
+     * @param opType The operation type.
      * @param token The task id for volume creation.
      * @param dbClient A reference to a database client.
      *
      * @return A reference to the new volume.
      */
     public static Volume prepareVolumeForRequest(Long size, Project project,
-            VirtualArray neighborhood, VirtualPool vpool, URI storageSystemURI,
+            VirtualArray neighborhood, VirtualPool vpool, URI performanceParamsURI,
+            VirtualPoolCapabilityValuesWrapper capabilities, URI storageSystemURI,
             URI storagePoolURI, String label, ResourceOperationTypeEnum opType,
             String token, DbClient dbClient) {
         Volume volume = new Volume();
@@ -2148,7 +2148,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         volume.setCapacity(size);
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString()
                 .equalsIgnoreCase(vpool.getSupportedProvisioningType()));
+        if (0 != capabilities.getThinVolumePreAllocateSize()) {
+            volume.setThinVolumePreAllocationSize(capabilities.getThinVolumePreAllocateSize());
+        }
         volume.setVirtualPool(vpool.getId());
+        volume.setPerformanceParams(performanceParamsURI);
         volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(neighborhood.getId());
@@ -2177,13 +2181,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         volume.setOpStatus(new OpStatusMap());
 
         // Set the auto tiering policy.
-        if (null != vpool.getAutoTierPolicyName()) {
+        if (NullColumnValueGetter.isNotNullValue(capabilities.getAutoTierPolicyName())) {
             URI autoTierPolicyUri = StorageScheduler.getAutoTierPolicy(storagePoolURI,
-                    vpool.getAutoTierPolicyName(), dbClient);
+                    capabilities.getAutoTierPolicyName(), dbClient);
             if (null != autoTierPolicyUri) {
                 volume.setAutoTieringPolicyUri(autoTierPolicyUri);
             }
         }
+
+        volume.setIsDeduplicated(capabilities.getDedupCapable());
 
         if (opType != null) {
             Operation op = new Operation();
@@ -2194,6 +2200,38 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         dbClient.createObject(volume);
 
         return volume;
+    }
+
+
+    /**
+     * Prepare a new Bourne volume.
+     *
+     * TODO: Use existing function (prepareVolume) when VirtualPool capabilities change
+     * completed by Stalin. Just pass size instead of getting from VolumeCreate
+     * parameter.
+     * 
+     * TBD Heg - Need to handle for other callers beside full copy.
+     * Migrations and vpool changes.
+     *
+     * @param size The volume size.
+     * @param project A reference to the volume's Project.
+     * @param neighborhood A reference to the volume's varray.
+     * @param vpool A reference to the volume's VirtualPool.
+     * @param storageSystemURI The URI of the volume's storage system.
+     * @param storagePoolURI The URI of the volume's storage pool.
+     * @param label The volume label.
+     * @param opType The operation type.
+     * @param token The task id for volume creation.
+     * @param dbClient A reference to a database client.
+     *
+     * @return A reference to the new volume.
+     */
+    public static Volume prepareVolumeForRequest(Long size, Project project,
+            VirtualArray neighborhood, VirtualPool vpool, URI storageSystemURI,
+            URI storagePoolURI, String label, ResourceOperationTypeEnum opType,
+            String token, DbClient dbClient) {
+        return prepareVolumeForRequest(size, project, neighborhood, vpool, null, null, 
+                storagePoolURI, storagePoolURI, label, opType, token, dbClient); 
     }
 
     /**

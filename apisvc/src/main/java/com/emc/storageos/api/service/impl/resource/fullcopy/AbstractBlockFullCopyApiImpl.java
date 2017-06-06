@@ -28,12 +28,14 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
+import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -46,6 +48,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -570,15 +573,43 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, count);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE,
                 BlockFullCopyUtils.getCapacityForFullCopySource(fcSourceObj, _dbClient));
-        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
-                vpool.getSupportedProvisioningType())) {
+        
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
 
             // To guarantee that storage pool for a copy has enough physical
-            // space to contain current allocated capacity of thin source volume
+            // space we use the current allocated capacity of thin source volume
+            // rather than determine a value based on the thin volume pre-allocation
+            // percentage of the volume.
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
                     BlockFullCopyUtils.getAllocatedCapacityForFullCopySource(fcSourceObj, _dbClient));
         }
+        
+        // Make sure same auto tiering policy is used. The value set in the volume is
+        // the value reflected by the performance parameters for the volume, if any, 
+        // else the vpool for the volume.
+        URI autoTieringPolicyURI = null;
+        Boolean isDedupCapable = Boolean.FALSE;
+        if (fcSourceObj instanceof Volume) {
+            Volume fcSourceVolume = (Volume) fcSourceObj;
+            autoTieringPolicyURI = fcSourceVolume.getAutoTieringPolicyUri();
+            isDedupCapable = fcSourceVolume.getIsDeduplicated();
+        } else {
+            URI parentVolURI = ((BlockSnapshot) fcSourceObj).getParent().getURI();
+            Volume parentVolume = _dbClient.queryObject(Volume.class, parentVolURI);
+            autoTieringPolicyURI = parentVolume.getAutoTieringPolicyUri();
+            isDedupCapable = parentVolume.getIsDeduplicated();
+        }
+        
+        if (autoTieringPolicyURI != null) {
+            AutoTieringPolicy autoTieringPolicy = _dbClient.queryObject(AutoTieringPolicy.class, autoTieringPolicyURI);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTieringPolicy.getNativeGuid());
+        }
+        
+        // Also set the deduplication setting into the capabilities so that it
+        // is properly reflect in the full copy. Again, the value in the volume
+        // already account for performance parameter and vpool settings.
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, isDedupCapable);
 
         return capabilities;
     }

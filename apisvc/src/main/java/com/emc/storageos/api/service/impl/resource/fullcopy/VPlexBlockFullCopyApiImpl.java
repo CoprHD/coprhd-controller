@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -399,15 +400,24 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
                 }
 
-                // Get the capabilities
+                // Get the capabilities. If the source is a VLPEX volume, then get the capabilities of
+                // the primary backend volume as this is the volume for which we create the native
+                // full copy and it is certain to have all the capabilities required to properly place
+                // the primary volume to be used by the VPLEX copy. For example, the VPLEX volume
+                // will not reflect the auto tiering policy of the primary backend volume and it we want
+                // a real copy it should reflect the same auto tiering policy.
+                VirtualPoolCapabilityValuesWrapper capabilities = null;
                 VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
-                VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(fcSourceObj, vpool,
-                        count);
+                if (null != vplexSrcPrimaryVolume) {
+                    capabilities = getCapabilitiesForFullCopyCreate(vplexSrcPrimaryVolume, vpool, count);
+                } else {
+                    capabilities = getCapabilitiesForFullCopyCreate(fcSourceObj, vpool, count);
+                }
 
                 // Get the number of copies to create and the size of the volumes.
                 // Note that for the size, we must use the actual provisioned size
                 // of the source side backend volume. The size passed in the
-                // capabilities will be the size of the VPLEX volume. When the
+                // capabilities will be the requested size of the volume. When the
                 // source side backend volume for the copy is provisioned, you
                 // might not get that actual size. On VMAX, the size will be slightly
                 // larger while for VNX the size will be exactly what is requested.
@@ -553,13 +563,29 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 vpool.getSupportedProvisioningType())) {
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
             // To guarantee that storage pool for a copy has enough physical
-            // space to contain current allocated capacity of thin source volume
+            // space we use the current allocated capacity of thin source volume
+            // rather than determine a value based on the thin volume pre-allocation
+            // percentage of the volume.
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
                     BlockFullCopyUtils.getAllocatedCapacityForFullCopySource(srcHAVolume, _dbClient));
         }
+        
+        // Make sure same auto tiering policy is used. The value set in the volume is
+        // the value reflected by the performance parameters for the volume, if any, 
+        // else the vpool for the volume.
+        URI autoTieringPolicyURI = srcHAVolume.getAutoTieringPolicyUri();
+        if (autoTieringPolicyURI != null) {
+            AutoTieringPolicy autoTieringPolicy = _dbClient.queryObject(AutoTieringPolicy.class, autoTieringPolicyURI);
+            haCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTieringPolicy.getNativeGuid());
+        }
+        
+        // Also set the deduplication setting into the capabilities so that it
+        // is properly reflect in the full copy. Again, the value in the volume
+        // already account for performance parameter and vpool settings.
+        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, srcHAVolume.getIsDeduplicated());
+
         List<Recommendation> recommendations = ((VPlexScheduler) _scheduler)
-                .scheduleStorageForImport(srcVarray, vplexSystemURIS, haVarray, haVpool,
-                        haCapabilities);
+                .scheduleStorageForImport(srcVarray, vplexSystemURIS, haVarray, haVpool, haCapabilities);
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageForHaVolumesForVplexVolumeCopies();
         }
@@ -576,14 +602,22 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                     nameBuilder.append("-");
                     nameBuilder.append(copyIndex++);
                 }
+                
+                // This is done when creating a simple block full copy. After getting recommendations
+                // using the current allocated capacity, we reset the pre-allocation size to that of the
+                // source, so that the prepared copy volume reflects the same value as the source.
+                if (null != srcHAVolume.getThinVolumePreAllocationSize()) {
+                    haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, 
+                            srcHAVolume.getThinVolumePreAllocationSize());
+                }
 
                 // Prepare the volume.
                 Volume volume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
-                        vplexSystemProject, haVarray, haVpool,
+                        vplexSystemProject, haVarray, haVpool, srcHAVolume.getPerformanceParams(), haCapabilities,
                         haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
                         nameBuilder.toString(), null, taskId, _dbClient);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
                 copyHAVolumes.add(volume);
 
                 // Create the volume descriptor and add it to the passed list.
@@ -711,7 +745,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                     nameBuilder.toString(), srcBlockObject, recommendation, copyIndex++,
                     srcCapabilities);
             volume.addInternalFlags(Flag.INTERNAL_OBJECT);
-            _dbClient.persistObject(volume);
+            _dbClient.updateObject(volume);
             copyPrimaryVolumes.add(volume);
 
             // Create the volume descriptor and add it to the passed list.

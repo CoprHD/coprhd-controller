@@ -1517,7 +1517,7 @@ public class StorageScheduler implements Scheduler {
 
         String label = name + (volumeCounter > 0 ? ("-" + volumeCounter) : "");
         Volume volume = prepareVolume(dbClient, null, size, project, vArray, vPool,
-                null, recommendation, label, null, capabilities, createInactive);
+                sourceVolume.getPerformanceParams(), recommendation, label, null, capabilities, createInactive);
 
         // Since this is a full copy, update it with URI of the source volume
         volume.setAssociatedSourceVolume(sourceVolume.getId());
@@ -1528,8 +1528,8 @@ public class StorageScheduler implements Scheduler {
         }
         associatedFullCopies.add(volume.getId().toString());
 
-        dbClient.persistObject(volume);
-        dbClient.persistObject(sourceVolume);
+        dbClient.updateObject(volume);
+        dbClient.updateObject(sourceVolume);
 
         addVolumeCapacityToReservedCapacityMap(dbClient, volume);
         return volume;
@@ -1549,6 +1549,11 @@ public class StorageScheduler implements Scheduler {
         URI projectUri = sourceSnapshot.getProject().getURI();
         long size = sourceSnapshot.getProvisionedCapacity();
         long preAllocateSize = sourceSnapshot.getAllocatedCapacity();
+        // TBD Heg - Hmmmm, seems it should already be set to this? Also, when preparing the 
+        // full copy volume from a volume source, the pre-allocation size is set to that 
+        // of the source volume, so that the FC volume would reflect the same preallocation
+        // size as the source. So, why not do the same here and use the preallocation size
+        // of the parent volume of the snapshot.
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, preAllocateSize);
 
         Project project = dbClient.queryObject(Project.class, projectUri);
@@ -1559,8 +1564,10 @@ public class StorageScheduler implements Scheduler {
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vPoolUri);
 
         String label = name + (volumeCounter > 0 ? ("-" + volumeCounter) : "");
+        // TBD Heg - Pass the performance params of parent. The FC reflects the vpool of
+        // the parent, so should probably also reflect the performance params.
         Volume volume = prepareVolume(dbClient, null, size, project, vArray, vPool,
-                null, recommendation, label, null, capabilities, createInactive);
+                parentVolume.getPerformanceParams(), recommendation, label, null, capabilities, createInactive);
 
         // Since this is a full copy, update it with URI of the source snapshot
         volume.setAssociatedSourceVolume(sourceSnapshot.getId());

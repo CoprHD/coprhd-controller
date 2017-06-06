@@ -77,6 +77,17 @@ def remotereplicationset_split(args):
     else:
         print 'Failed to split remote replication set.'
 
+def remotereplicationset_swap(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_swap(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Swap remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to swap remote replication set.'
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -129,6 +140,9 @@ try:
     elif (cmd == "split"):
         args = operation.parse_args()
         remotereplicationset_split(args)
+    elif (cmd == "swap"):
+        args = operation.parse_args()
+        remotereplicationset_swap(args)
     else:
         parser.print_help()
 

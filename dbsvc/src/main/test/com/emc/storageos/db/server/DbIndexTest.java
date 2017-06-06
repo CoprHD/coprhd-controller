@@ -5,7 +5,7 @@
 
 package com.emc.storageos.db.server;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.beans.PropertyDescriptor;
 import java.io.File;
@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.cassandra.io.sstable.Descriptor;
+import org.apache.cassandra.tools.NodeProbe;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -57,15 +59,39 @@ import com.emc.storageos.db.client.impl.PrefixDbIndex;
 import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.impl.ScopedLabelDbIndex;
 import com.emc.storageos.db.client.impl.TypeMap;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSetMap;
+import com.emc.storageos.db.client.model.AuthnProvider;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.IndexByKey;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
+import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.common.VdcUtil;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.apache.cassandra.io.sstable.Descriptor;
-import org.apache.cassandra.tools.NodeProbe;
-import org.apache.cassandra.tools.SSTableExport;
 
 // RaceCondition test is to ensure even any rarely happens race condition do occur, DB is still left in an "acceptable" state
 // "acceptable" here means:
@@ -1549,7 +1575,7 @@ public class DbIndexTest extends DbsvcTestBase {
         String dirPath = String.format("%s/data/Test/%s/snapshots/%s", _dataDir.getAbsolutePath(), cf, label);
         File dir = new File(dirPath);
         if (!dir.exists()) {
-            this.probe.takeSnapshot(label, cf, new String[] { "Test" });
+            //this.probe.takeSnapshot(label, cf, new String[] { "Test" });
         }
 
         if (new File(String.format("%s/data.json", dirPath)).exists()) {
@@ -1569,7 +1595,7 @@ public class DbIndexTest extends DbsvcTestBase {
         for (int i = 0; i < dataFiles.length; i++) {
             String fileName = dataFiles[i];
             Descriptor desc = Descriptor.fromFilename(String.format("%s/%s", dirPath, fileName));
-            SSTableExport.export(desc, outs, null, null);
+            //SSTableExport.export(desc, outs, null, null);
             if (i + 1 < dataFiles.length) {
                 outs.println(",");
             }

@@ -815,3 +815,16 @@ inter_dc_tcp_nodelay: false
 # Adjust the threshold based on your application throughput requirement
 # By default, Cassandra logs GC Pauses greater than 200 ms at INFO level
 # gc_warn_threshold_in_ms: 1000
+
+hints_directory: /data/db/hints
+
+# Enable / disable CDC functionality on a per-node basis. This modifies the logic used
+# for write path allocation rejection (standard: never reject. cdc: reject Mutation
+# containing a CDC-enabled table if at space limit in cdc_raw_directory).
+cdc_enabled: false
+
+# CommitLogSegments are moved to this directory on flush if cdc_enabled: true and the
+# segment contains mutations for a CDC-enabled table. This should be placed on a
+# separate spindle than the data directories. If not set, the default directory is
+# $CASSANDRA_HOME/data/cdc_raw.
+cdc_raw_directory: dbtest/cdc_raw

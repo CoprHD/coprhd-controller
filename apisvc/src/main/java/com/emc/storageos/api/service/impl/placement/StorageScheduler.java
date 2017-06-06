@@ -1572,8 +1572,8 @@ public class StorageScheduler implements Scheduler {
         // Since this is a full copy, update it with URI of the source snapshot
         volume.setAssociatedSourceVolume(sourceSnapshot.getId());
 
-        dbClient.persistObject(volume);
-        dbClient.persistObject(sourceSnapshot);
+        dbClient.updateObject(volume);
+        dbClient.updateObject(sourceSnapshot);
 
         addVolumeCapacityToReservedCapacityMap(dbClient, volume);
         return volume;

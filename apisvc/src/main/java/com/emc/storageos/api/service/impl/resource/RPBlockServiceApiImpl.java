@@ -413,11 +413,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             // Create the source. Note that we don't know the role for the VPLEX volume. Pass
                             // null and the VPLEX implementation will use the proper performance parameters for
                             // the primary and HA sides.
-                            boolean isVplex = VirtualPool.vPoolSpecifiesHighAvailability(sourceRec.getVirtualPool());
                             sourceVolume = createRecoverPointVolume(sourceRec, newVolumeLabel, project, srcCapabilities, consistencyGroup,
                                     param, protectionSystemURI, Volume.PersonalityTypes.SOURCE, rsetName, preCreatedVolume, null, taskList,
                                     task, sourceCopyName, descriptors, changeVpoolVolume, isChangeVpool, isSrcAndHaSwapped, true,
-                                    performanceParams, VolumeTopologySite.SOURCE, (isVplex ? null : VolumeTopologyRole.PRIMARY));
+                                    performanceParams, VolumeTopologySite.SOURCE, VolumeTopologyRole.PRIMARY);
                         } else {
                             if (metroPointEnabled) {
                                 _log.info("Upgrade to MetroPoint operation...");
@@ -506,11 +505,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             // Create the target. Note that we don't know the role for the VPLEX volume. Pass
                             // null and the VPLEX implementation will use the proper performance parameters for
                             // the primary and HA sides.
-                            boolean isVplex = VirtualPool.vPoolSpecifiesHighAvailability(targetRec.getVirtualPool());
                             Volume targetVolume = createRecoverPointVolume(targetRec, targetVolumeName, project, copyOfCapabilities,
                                     consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.TARGET, rsetName, null,
                                     sourceVolume, taskList, task, targetRec.getRpCopyName(), descriptors, null, false, false, false,
-                                    performanceParams, VolumeTopologySite.COPY, (isVplex ? null : VolumeTopologyRole.PRIMARY));
+                                    performanceParams, VolumeTopologySite.COPY, VolumeTopologyRole.PRIMARY);
 
                             volumeInfoBuffer.append(logVolumeInfo(targetVolume));
                             volumeURIs.add(targetVolume.getId());
@@ -554,11 +552,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 // Create the standby target. Note that we don't know the role for the VPLEX volume. Pass
                                 // null and the VPLEX implementation will use the proper performance parameters for
                                 // the primary and HA sides.
-                                boolean isVplex = VirtualPool.vPoolSpecifiesHighAvailability(standbyTargetRec.getVirtualPool());
                                 Volume standbyTargetVolume = createRecoverPointVolume(standbyTargetRec, standbyTargetVolumeName, project,
                                         copyOfCapabilities, consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.TARGET,
                                         rsetName, null, sourceVolume, taskList, task, standbyTargetRec.getRpCopyName(), descriptors, null,
-                                        false, false, false, performanceParams, VolumeTopologySite.COPY, (isVplex ? null : VolumeTopologyRole.PRIMARY));
+                                        false, false, false, performanceParams, VolumeTopologySite.COPY, VolumeTopologyRole.PRIMARY);
                                 volumeInfoBuffer.append(logVolumeInfo(standbyTargetVolume));
                                 volumeURIs.add(standbyTargetVolume.getId());
                             }
@@ -981,7 +978,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // the performance parameters of the volume.
         VirtualPoolCapabilityValuesWrapper volCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
                 vpool, performanceParams, topologyRole, capabilities, _dbClient);
-
+        
         // Prepare RP specific volume info
         rpVolume = prepareVolume(rpVolume, project, varray, vpool, size, rpRec, rpVolumeName, consistencyGroup, protectionSystemURI,
                 personalityType, rsetName, rpInternalSiteName, copyName, sourceVolume, vplex, changeVpoolVolume, isPreCreatedVolume,

@@ -500,13 +500,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             String varrayId = varrayIter.next();
             List<VPlexRecommendation> vplexRecommendations = varrayRecommendationsMap.get(varrayId);
             
-            // If a role is passed this means we must be creating a VPLEX journal volume.
-            // In this case, the performance parameter role will be either JOURNAL or 
-            // STANDBY_JOURNAL. Otherwise, this is a VPLEX source or target volume and we 
-            // need to determine the role based on whether these are the primary or HA 
-            // recommendations for the volume.
-            VolumeTopologyRole role = topologyRole;
-            if (role == null) {
+            // If the role is JOURNAL or STANDBY_JOURNAL or the site COPY, then
+            // the VPLEX volume is a local volume and we do not need to consider
+            // whether the recommendation is for the primary or HA side of a distributed
+            // source volume. Whether the recommendation is for the primary or HA side
+            // determines the role we use to extract the performance parameters.
+            VolumeTopologyRole role = null;
+            if (topologySite == VolumeTopologySite.COPY || topologyRole == VolumeTopologyRole.JOURNAL
+                    || topologyRole == VolumeTopologyRole.STANDBY_JOURNAL) {
+                role = topologyRole;
+            } else {
                 role = VolumeTopologyRole.PRIMARY;
                 if (VirtualPool.isRPVPlexProtectHASide(vPool)) {
                     // In this case the RP implementation has swapped primary
@@ -576,17 +579,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         s_logger.info("Preparing virtual volumes");
         List<URI> virtualVolumeURIs = new ArrayList<URI>();
         URI nullPoolURI = NullColumnValueGetter.getNullURI();
-        vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
         
         // Associate the same performance parameters for the VPLEX volume as the
         // primary backend volume similar to how the same vpool is associated with
-        // the VPLEX volume and primary backend volume. Note however, that if a 
-        // topology role is passed, then this is a VPLEX journal or standby journal
-        // and the VPLEX volume should reflect those used for the journal backend volume.
+        // the VPLEX volume and primary backend volume.
         URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(
-                performanceParams, topologyRole != null ? topologyRole : VolumeTopologyRole.PRIMARY, _dbClient);
+                performanceParams, topologyRole, _dbClient);
         
-        for (int i = 0; i < vPoolCapabilities.getResourceCount(); i++) {
+        // Auto tiering policy not set on VPLEX volume.
+        VirtualPoolCapabilityValuesWrapper vplexCapabilities = new VirtualPoolCapabilityValuesWrapper(vPoolCapabilities);
+        vplexCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
+        
+        for (int i = 0; i < vplexCapabilities.getResourceCount(); i++) {
             // Compute the volume label based on the label of the underlying volume
             String volumeLabelBuilt = null;
             Volume associatedVolume = _dbClient.queryObject(Volume.class, varrayVolumeURIs[0][i]);
@@ -599,7 +603,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 associatedVolume.getReplicationGroupInstance() : NullColumnValueGetter.getNullStr();
             } else {
                 volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i,
-                        vPoolCapabilities.getResourceCount());
+                        vplexCapabilities.getResourceCount());
             }
             s_logger.info("Volume label is {}", volumeLabelBuilt);
 
@@ -608,13 +612,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (volume != null) {
                 volumePrecreated = true;
             }
-
+            
             // Prepare volume.
-            long thinVolumePreAllocationSize = vPoolCapabilities.getThinVolumePreAllocateSize();
+            long thinVolumePreAllocationSize = vplexCapabilities.getThinVolumePreAllocateSize();
             volume = prepareVolume(VolumeType.VPLEX_VIRTUAL_VOLUME, volume,
                     size, thinVolumePreAllocationSize, project, vArray,
                     vPool, performanceParamsURI, vplexStorageSystemURI, nullPoolURI,
-                    volumeLabelBuilt, consistencyGroup, vPoolCapabilities);
+                    volumeLabelBuilt, consistencyGroup, vplexCapabilities);
 
             StringSet associatedVolumes = new StringSet();
             associatedVolumes.add(varrayVolumeURIs[0][i].toString());
@@ -644,7 +648,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VolumeDescriptor descriptor = new VolumeDescriptor(
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexStorageSystemURI, volumeId,
                     null, consistencyGroup == null ? null : consistencyGroup.getId(),
-                    vPoolCapabilities, volume.getCapacity());
+                            vplexCapabilities, volume.getCapacity());
 
             // Set the compute resource in the descriptor if the volume to be created will be exported
 

@@ -6401,31 +6401,40 @@ recoverpoint_tests()
             rpxio_tgt_vpool='rpxio_targets'
         fi
 
+        # Have to account for "-1" being added to volume name if
+        # volume count is greater than 1.
+        volume_name_modifier=''
+        if [ "$RP_VOLUME_COUNT" = "1" ]; then
+            volume_name_modifier=''
+        else
+            volume_name_modifier='-1'
+        fi
+
         # RP
         rp_src_vpool='rp_'$rp_type
         rp_src_vpool_sync=${rp_src_vpool}'-sync'
         rpvolume=${RP_VOLUME}
-        rpvolumetarget=${rpvolume}'-target-'${rp_tgt_varray}
+        rpvolumetarget=${rpvolume}${volume_name_modifier}'-target-'${rp_tgt_varray}
 
         # RP+VPLEX
         rpvplex_src_vpool='rpvplex_'$rp_type
         rpvplex_src_vpool_sync=${rpvplex_src_vpool}'-sync'
         rpvplex_migrate_vpool=${rpvplex_src_vpool}'-migrate'
         rpvplexvolume=${RP_VPLEX_VOLUME}
-        rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
+        rpvplexvolumetarget=${rpvplexvolume}${volume_name_modifier}'-target-'${rpvplex_tgt_varray}
 
         # MP
         rpmp_src_vpool='rpmp_'$rp_type
         rpmp_src_vpool_sync=${rpmp_src_vpool}'-sync'
         rpmp_migrate_vpool=${rpmp_src_vpool}'-migrate'
         rpmpvolume=${RP_METROPOINT_VOLUME}
-        rpmpvolumetarget=${mpvolume}'-target-'${rpmp_active_tgt_varray}
+        rpmpvolumetarget=${mpvolume}${volume_name_modifier}'-target-'${rpmp_active_tgt_varray}
 
         # XIO
         rpxio_src_vpool='rpxio_'$rp_type
         rpxio_src_vpool_sync=${rpxio_src_vpool}'-sync'
         rpxiovolume=${RP_XIO_VOLUME}
-        rpxiovolumetarget=${xiovolume}'-target-'${rpxio_active_tgt_varray}
+        rpxiovolumetarget=${xiovolume}${volume_name_modifier}'-target-'${rpxio_active_tgt_varray}
 
         # Ingestion Tests
         if [ "$RP_INGESTTESTS" = "1" ]; then
@@ -6468,15 +6477,6 @@ recoverpoint_tests()
         if [ "$RPXIO_TESTS" = "1" ]; then
             secho 'XIO volume create...'
             run volume create ${rpxiovolume} $PROJECT ${rpxio_src_varray} ${rpxio_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_XIO_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-        fi
-
-        # Have to account for "-1" being added to volume name if
-        # volume count is greater than 1.
-        volume_name_modifier=''
-        if [ "$RP_VOLUME_COUNT" = "1" ]; then
-            volume_name_modifier=''
-        else
-            volume_name_modifier='-1'
         fi
 
         # Compile a list of target volume names that have been created for RP

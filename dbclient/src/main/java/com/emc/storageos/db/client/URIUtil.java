@@ -334,7 +334,7 @@ public class URIUtil {
      * @param dataObjects
      * @return list of uris
      */
-    public static List<URI> toUris(List<? extends DataObject> dataObjects) {
+    public static List<URI> toUris(Collection<? extends DataObject> dataObjects) {
         List<URI> uris = new ArrayList<>();
         if (dataObjects != null) {
             for (DataObject dataObject : dataObjects) {

@@ -548,21 +548,58 @@ public class RemoteReplicationUtils {
     }
 
     /**
+     * Delete remote replication pairs for srdf volumes.
      *
-     * @param srcVolumes
-     * @param tgtVolumes
+     * @param srdfSrcVolumes list of srdf source volumes
+     * @param srdfTgtVolumes list of srdf target volumes
      * @param dbClient
      */
-    public static void deleteRemoteReplicationPairForSrdfPairs(Collection<Volume> srcVolumes, Collection<Volume> tgtVolumes, DbClient dbClient) {
-        // todo:
-        // Iterate over source volumes. For each srdf src volumes find if it was swapped.
-        // Not swapped case: get all pairs for this src volume. Find pairs from this list which have target volume in tgt srdf volumes argument.
-        // These pairs have to be deleted. add them to delete list.
-        // Swapped case: this is target volume in remote replication pairs. Find all rr pairs for this target volume. Should be only one. If more than one, log warning.
-        // From this pairs find pairs with source volume in target srdf volumes. These pairs should be deleted, add them to delete list.
-        // call client to delete each pair.
+    public static void deleteRemoteReplicationPairForSrdfPairs(Collection<Volume> srdfSrcVolumes, Collection<Volume> srdfTgtVolumes, DbClient dbClient) {
+        List<RemoteReplicationPair> rrPairsToDelete = new ArrayList<>();
+        String logMsg;
+        try {
+            List srcUris = URIUtil.toUris(srdfSrcVolumes);
+            List tgtUris = URIUtil.toUris(srdfTgtVolumes);
+            logMsg = String.format("Delete remote replication pairs for srdf volumes --- srdf source volumes %s ; " +
+                    " \n\t\t srdf target volumes: %s ;", srcUris, tgtUris);
+            _log.info(logMsg);
 
-
+            for (Volume srdfSrcVolume : srdfSrcVolumes) {
+                List<RemoteReplicationPair> rrPairs;
+                URI srcUri = srdfSrcVolume.getId();
+                if (isSwapped(srcUri, dbClient)) {
+                    // this is target in rr pair
+                    // get all rr pairs where this volume is target volume (we expect only one such pair)
+                    rrPairs = getRemoteReplicationPairsForTargetElement(srcUri, dbClient);
+                    if (rrPairs != null) {
+                        for (RemoteReplicationPair rrPair : rrPairs) {
+                            if (srcUris.contains(rrPair.getSourceElement())) {
+                                rrPairsToDelete.add(rrPair);
+                            }
+                        }
+                    }
+                } else {
+                    // this is source element in rr pair
+                    // get all rr pairs where this volume is source volume (can be more than one, star replication as example)
+                    rrPairs = getRemoteReplicationPairsForSourceElement(srcUri, dbClient);
+                    if (rrPairs != null) {
+                        for (RemoteReplicationPair rrPair : rrPairs) {
+                            if (tgtUris.contains(rrPair.getTargetElement())) {
+                                rrPairsToDelete.add(rrPair);
+                            }
+                        }
+                    }
+                }
+            }
+            logMsg = String.format("Found replication pairs to delete: \n \t\t %s ", StringUtils.join(rrPairsToDelete, "\n\t\t"));
+            _log.info(logMsg);
+            // delete pairs
+            dbClient.markForDeletion(rrPairsToDelete);
+        } catch (Exception ex) {
+            String msg = String.format("Failed to delete remote replication pairs for srdf volumes .");
+            _log.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        }
     }
 
 

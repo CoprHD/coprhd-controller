@@ -277,7 +277,7 @@ public class OrderManagerImpl implements OrderManager {
             else {
 
                 // if provider prefers raw labels (because retrieval is too slow) use raw value
-                if(assetOptionsManager.getProviderForAssetType(assetType).useRawLabels()){
+                if(assetOptionsManager.getProviderForAssetType(assetType) != null && assetOptionsManager.getProviderForAssetType(assetType).useRawLabels()){
                     return key;
                 }
 

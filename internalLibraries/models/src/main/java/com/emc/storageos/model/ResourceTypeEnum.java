@@ -100,10 +100,10 @@ public enum ResourceTypeEnum {
     STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
     ACTIONABLE_EVENT("actionable_event", "/vdc/events"),
-    CUSTOM_SERVICES_WORKFLOW("custom_services_workflow", "/workflows"),
-    WF_DIRECTORY("wf_directory", "/workflow/directory"),
-    CUSTOM_SERVICES_PRIMITIVES("custom_services_primitives", "/primitives"),
-    CUSTOM_SERVICES_PRIMITIVE_RESOURCES("custom_services_primitive_resources", "/primitives/resource");
+    CUSTOM_SERVICES_WORKFLOW("custom_services_workflow", "/customservices/workflows"),
+    WF_DIRECTORY("wf_directory", "/customservices/workflows/directory"),
+    CUSTOM_SERVICES_PRIMITIVES("custom_services_primitives", "/customservices/primitives"),
+    CUSTOM_SERVICES_PRIMITIVE_RESOURCES("custom_services_primitive_resources", "/customservices/primitives/resource");
 
     private static final Map<String, ResourceTypeEnum> resourceMap = new HashMap<String, ResourceTypeEnum>();
 

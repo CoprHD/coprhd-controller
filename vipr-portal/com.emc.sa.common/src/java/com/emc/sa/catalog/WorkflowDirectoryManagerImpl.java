@@ -20,7 +20,6 @@ import java.net.URI;
 import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -66,6 +65,11 @@ public class WorkflowDirectoryManagerImpl implements WorkflowDirectoryManager {
                 throw APIException.methodNotAllowed
                         .notSupportedWithReason("Directory has children that contain workflows. Cannot be deleted");
             }
+        }
+
+        // delete empty children
+        for (final WFDirectory child : children) {
+            client.delete(child);
         }
 
         client.delete(wfDirectory);

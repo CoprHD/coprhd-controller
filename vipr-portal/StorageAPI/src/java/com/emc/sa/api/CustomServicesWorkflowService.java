@@ -77,9 +77,9 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
-        Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
-@Path("/workflows")
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+        Role.SYSTEM_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
+@Path("/customservices/workflows")
 public class CustomServicesWorkflowService extends CatalogTaggedResourceService {
 
     private static final Logger log = LoggerFactory.getLogger(CustomServicesWorkflowService.class);
@@ -175,7 +175,8 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                     WorkflowHelper.update(customServicesWorkflow, workflow.getDocument());
 
                     // On update, if there is any change to steps, resetting workflow status to initial state -NONE
-                    if (StringUtils.isNotBlank(currentSteps) && StringUtils.isNotBlank(customServicesWorkflow.getSteps()) && !currentSteps.equals(customServicesWorkflow.getSteps())) {
+                    if (StringUtils.isNotBlank(currentSteps) && StringUtils.isNotBlank(customServicesWorkflow.getSteps())
+                            && !currentSteps.equals(customServicesWorkflow.getSteps())) {
                         customServicesWorkflow.setState(CustomServicesWorkflowStatus.NONE.toString());
                     }
             }

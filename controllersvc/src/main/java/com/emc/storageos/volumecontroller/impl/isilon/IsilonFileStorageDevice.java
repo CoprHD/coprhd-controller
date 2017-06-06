@@ -1268,7 +1268,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info(msg);
         } catch (IsilonException e) {
             _log.error("doConnect failed.", e);
-            throw DeviceControllerException.exceptions.connectStorageFailed(e);
+            throw DeviceControllerException.exceptions.connectFileStorageFailed(e);
         }
     }
 

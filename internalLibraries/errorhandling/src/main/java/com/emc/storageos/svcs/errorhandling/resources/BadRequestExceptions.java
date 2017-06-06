@@ -3039,7 +3039,7 @@ public interface BadRequestExceptions {
     public BadRequestException unableToCreateMirrorCopies(final URI fsUri, String reason);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException reduceFileSystemNotSupported(final URI fsUri, String reason);
+    public BadRequestException reduceFileSystemNotSupported(String reason);
     
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.google.common.collect.Iterables;
 
 /**
@@ -365,11 +366,15 @@ public abstract class Processor {
 
     public Object getFromOutputArgs(CIMArgument[] outputArguments, String key) {
         Object element = null;
-        for (CIMArgument outArg : outputArguments) {
-            if (outArg != null) {
-                if (outArg.getName().equals(key)) {
-                    element = outArg.getValue();
-                    break;
+        if (outputArguments != null) {
+            for (CIMArgument outArg : outputArguments) {
+                if (outArg != null && null != outArg.getName()) {
+                    if (outArg.getName().equals(key)) {
+                        element = outArg.getValue();
+                        break;
+                    }
+                } else {
+                    _logger.info("Provider returned unexpected values");
                 }
             }
         }

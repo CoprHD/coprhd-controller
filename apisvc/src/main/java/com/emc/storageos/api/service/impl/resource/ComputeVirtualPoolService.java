@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,12 +20,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.model.NamedRelatedResourceRep;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +46,18 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -66,10 +85,12 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 @Path("/compute/vpools")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
@@ -234,7 +255,11 @@ public class ComputeVirtualPoolService extends TaggedResource {
         ComputeVirtualPool cvp = new ComputeVirtualPool();
 
         // Populate Virtual Pool
-        cvp.setId(URIUtil.createId(ComputeVirtualPool.class));
+        if(NullColumnValueGetter.isNotNullValue(param.getId())) {
+            cvp.setId(URI.create(param.getId()));
+        } else {
+            cvp.setId(URIUtil.createId(ComputeVirtualPool.class));
+        }
         cvp.setLabel(param.getName());
         cvp.setDescription(param.getDescription());
         cvp.setSystemType(param.getSystemType());
@@ -283,9 +308,24 @@ public class ComputeVirtualPoolService extends TaggedResource {
         if (cvp.getMatchedComputeElements() != null) {
             Collection<ComputeElement> computeElements = _dbClient.queryObject(ComputeElement.class,
                     toUriList(cvp.getMatchedComputeElements()));
+            Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
+            Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+                Arrays.asList("label", "computeElement", "cluster"), ControllerUtils.getFullyImplementedCollection(hostIds));
             for (ComputeElement computeElement : computeElements) {
-                ComputeElementRestRep rest = map(computeElement);
-                if (rest != null) {
+                if (computeElement!=null) {
+                    Host associatedHost = null;
+                    for (Host host : hosts){
+                        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(computeElement.getId())) {
+                            associatedHost = host;
+                            break;
+                        }
+                    }
+                    Cluster cluster = null;
+                    if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
+                        cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
+                    }
+
+                    ComputeElementRestRep rest = map(computeElement, associatedHost, cluster);
                     result.getList().add(rest);
                 }
             }
@@ -294,11 +334,11 @@ public class ComputeVirtualPoolService extends TaggedResource {
     }
 
     /**
-     * Get compute elements that match the Compute Virtual Pool criteria
+     * Get compute elements that match the compute virtual pool criteria
      * 
-     * @brief Get compute elements that match the Compute Virtual Pool criteria
-     * @param param The Compute Virtual Pool create spec containing the criteria
-     * @return ComputeElementListRestRep collection of Compute Elements
+     * @brief Get compute elements that match the compute virtual pool criteria
+     * @param The compute virtual pool create spec containing the criteria
+     * @return ComputeElementListRestRep collection of compute Elements
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -325,7 +365,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
         checkForDuplicateName(param.getName(), ComputeVirtualPool.class);
         ComputeVirtualPool cvp = constructAndValidateComputeVirtualPool(param);
         _dbClient.createObject(cvp);
-
+        updateHostToCVPRelation(cvp);
         recordOperation(OperationTypeEnum.CREATE_COMPUTE_VPOOL, VPOOL_CREATED_DESCRIPTION, cvp);
         return toComputeVirtualPool(_dbClient, cvp, isComputeVirtualPoolInUse(cvp));
     }
@@ -441,7 +481,14 @@ public class ComputeVirtualPoolService extends TaggedResource {
 
     private List<URI> findAllStaticallyAssignedComputeElementsInOtherPools(ComputeVirtualPool computeVirtualPool) {
         List<URI> staticallyAssignedComputeElements = findAllStaticallyAssignedComputeElements();
-        List<URI> poolUris = toUriList(computeVirtualPool.getMatchedComputeElements());
+        //fetch cvp from db
+        ComputeVirtualPool cvp = _dbClient.queryObject(ComputeVirtualPool.class, computeVirtualPool.getId());
+        List<URI> poolUris = Lists.newArrayList();
+        if(null != cvp) {
+            poolUris = toUriList(cvp.getMatchedComputeElements());
+        } else {
+            poolUris = toUriList(computeVirtualPool.getMatchedComputeElements());
+        }
 
         if (!poolUris.isEmpty() && !staticallyAssignedComputeElements.isEmpty()) {
             _log.debug("Remove " + poolUris.size() + " previously assigned compute elements from list of "
@@ -484,6 +531,9 @@ public class ComputeVirtualPoolService extends TaggedResource {
         }
         return ceList;
     }
+    private boolean isRegistered(ComputeElement computeElement) {
+        return RegistrationStatus.REGISTERED.name().equals(computeElement.getRegistrationStatus());
+    }
 
     private boolean isAvailable(ComputeElement computeElement) {
         return RegistrationStatus.REGISTERED.name().equals(computeElement.getRegistrationStatus()) && computeElement.getAvailable();
@@ -522,7 +572,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
                     continue;
                 }
 
-                if (!isAvailable(ce)) {
+                if (!isRegistered(ce)) {
                     continue;
                 }
 
@@ -871,26 +921,10 @@ public class ComputeVirtualPoolService extends TaggedResource {
                         _log.warn("Compute Element does not meet criteria; so being removed");
                     }
                 }
-
-                StringSet cesMeetingCriteria = new StringSet();
-                for (ComputeElement staticElement : staticElements) {
-                    _log.debug("Blade:" + staticElement.getChassisId() + ":" + staticElement.getSlotId());
-                    boolean invalid = false;
-                    for (ComputeElement element : cesNotMeetingCriteria) {
-                        if (element.getId().toString().equals(staticElement.getId().toString())) {
-                            invalid = true;
-                        }
-                    }
-                    if (!invalid) {
-                        _log.debug("added");
-                        cesMeetingCriteria.add(staticElement.getId().toString());
-                    }
-                }
-                cvp.getMatchedComputeElements().clear();
-                cvp.setMatchedComputeElements(cesMeetingCriteria);
             }
 
         }
+        updateHostToCVPRelation(cvp);
         _dbClient.updateAndReindexObject(cvp);
 
         recordOperation(OperationTypeEnum.UPDATE_COMPUTE_VPOOL, VPOOL_UPDATED_DESCRIPTION, cvp);
@@ -1630,8 +1664,8 @@ public class ComputeVirtualPoolService extends TaggedResource {
     /**
      * Assign Compute Elements to the Compute Virtual Pool
      * 
-     * @brief Assign Compute Elements to the compute virtual pool
      * @param param The Compute Virtual Pool Compute Elements to be added and removed
+     * @brief Assign compute elements to the compute virtual pool
      * @return ComputeVirtualPoolRestRep The updated Compute Virtual Pool
      */
     @PUT
@@ -1675,12 +1709,6 @@ public class ComputeVirtualPoolService extends TaggedResource {
 
             List<URI> staticCeUris = findAllStaticallyAssignedComputeElementsInOtherPools(cvp);
             for (ComputeElement computeElement : addElements) {
-                if (!isAvailable(computeElement)) {
-                    _log.error("Compute element " + computeElement.getId()
-                            + " is not available and thus may not be moved into different pool");
-                    throw APIException.badRequests.changeToComputeVirtualPoolNotSupported(cvp.getLabel(),
-                            "Cannot reassign compute element(s) already used.");
-                }
                 if (staticCeUris.contains(computeElement.getId())) {
                     _log.error("Compute element " + computeElement.getId() + " already statically assigned to a different pool");
                     throw APIException.badRequests.changeToComputeVirtualPoolNotSupported(cvp.getLabel(),
@@ -1709,13 +1737,6 @@ public class ComputeVirtualPoolService extends TaggedResource {
                 throw APIException.badRequests.changeToComputeVirtualPoolNotSupported(cvp.getLabel(),
                         "Invalid remove compute element(s) specified.");
             }
-            for (ComputeElement computeElement : removeElements) {
-                if (!isAvailable(computeElement)) {
-                    _log.error("Compute element " + computeElement.getId() + " is not available and thus may not be removed");
-                    throw APIException.badRequests.changeToComputeVirtualPoolNotSupported(cvp.getLabel(),
-                            "Cannot remove compute element(s) already used.");
-                }
-            }
 
             // Remove against the current collection of compute elements
             for (String computeElementUriString : removeElementsUris) {
@@ -1723,6 +1744,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
                 _log.debug("Compute pool " + cvp.getLabel() + " needed removal of compute element " + computeElementUriString + ": "
                         + removed);
             }
+            removeHostToCVPRelation(removeElements, cvp);
         }
         Collection<ComputeElement> assignedElements = _dbClient.queryObject(ComputeElement.class, toUriList(currentElements)); // Validate
                                                                                                                                // object
@@ -1753,6 +1775,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
 
         }
         cvp.setMatchedComputeElements(currentElements);
+        updateHostToCVPRelation(cvp);
         _dbClient.updateAndReindexObject(cvp);
 
         // Crucial that we save the static assignments before running updateOtherPoolsComputeElements
@@ -1809,4 +1832,43 @@ public class ComputeVirtualPoolService extends TaggedResource {
         }
     }
 
+    private void updateHostToCVPRelation(ComputeVirtualPool cvp) {
+        Collection<ComputeElement> computeElements = _dbClient.queryObject(ComputeElement.class,
+                toUriList(cvp.getMatchedComputeElements()));
+        List<Host> updatedHosts = Lists.newArrayList();
+        for (ComputeElement computeElement : computeElements) {
+            List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
+                    ContainmentConstraint.Factory.getContainedObjectsConstraint(computeElement.getId(), Host.class,
+                            "computeElement"));
+            for (Host host : hosts) {
+                if (NullColumnValueGetter.isNullURI(host.getComputeVirtualPoolId())
+                        || !cvp.getId().equals(host.getComputeVirtualPoolId())) {
+                    host.setComputeVirtualPoolId(cvp.getId());
+                    updatedHosts.add(host);
+                }
+            }
+        }
+        if (CollectionUtils.isNotEmpty(updatedHosts)) {
+            _dbClient.updateObject(updatedHosts);
+        }
+    }
+
+    private void removeHostToCVPRelation(Collection<ComputeElement> removeElements, ComputeVirtualPool cvp) {
+        List<Host> updatedHosts = Lists.newArrayList();
+        for (ComputeElement computeElement : removeElements) {
+            List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
+                    ContainmentConstraint.Factory.getContainedObjectsConstraint(computeElement.getId(), Host.class,
+                            "computeElement"));
+            for (Host host : hosts) {
+                if (!NullColumnValueGetter.isNullURI(host.getComputeVirtualPoolId())
+                        && host.getComputeVirtualPoolId().equals(cvp.getId())) {
+                    host.setComputeVirtualPoolId(NullColumnValueGetter.getNullURI());
+                    updatedHosts.add(host);
+                }
+            }
+        }
+        if (CollectionUtils.isNotEmpty(updatedHosts)) {
+            _dbClient.updateObject(updatedHosts);
+        }
+    }
 }

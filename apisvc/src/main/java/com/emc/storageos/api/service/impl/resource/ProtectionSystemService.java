@@ -599,7 +599,7 @@ public class ProtectionSystemService extends TaskResourceService {
      * 
      * @param id the URI of a ViPR protection system
      * @prereq none
-     * @brief List of all unmanaged cgs available for a protection system
+     * @brief List unmanaged consistency groups available for a protection system 
      * @return UnManagedCGList
      */
     @GET

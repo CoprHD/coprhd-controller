@@ -92,7 +92,11 @@ public class HP3PARIngestHelper {
 				driverVolume.setStoragePoolId(objVolMember.getUserCPG());
 				driverVolume.setNativeId(objVolMember.getName());
 				driverVolume.setProvisionedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-				driverVolume.setAllocatedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+				// Allocated capacity is the sum of user, snapshot and admin reserved space
+				Long allocatedCapacity = objVolMember.getUserSpace().getReservedMiB();
+				allocatedCapacity += objVolMember.getSnapshotSpace().getReservedMiB();
+				allocatedCapacity += objVolMember.getAdminSpace().getReservedMiB();
+				driverVolume.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
 				driverVolume.setWwn(objVolMember.getWwn());
 				driverVolume.setNativeId(objVolMember.getName());
 				driverVolume.setDeviceLabel(objVolMember.getName());
@@ -255,9 +259,11 @@ public class HP3PARIngestHelper {
 	
 					driverSnapshot.setWwn(resultSnap.getWwn());
 	
-					// TODO: We need to have more clarity on provisioned and
-					// allocated sizes
-					driverSnapshot.setAllocatedCapacity(resultSnap.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+					// Allocated capacity is the sum of user, snapshot and admin reserved space
+					Long allocatedCapacity = resultSnap.getUserSpace().getReservedMiB();
+					allocatedCapacity += resultSnap.getSnapshotSpace().getReservedMiB();
+					allocatedCapacity += resultSnap.getAdminSpace().getReservedMiB();
+					driverSnapshot.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
 					driverSnapshot.setProvisionedCapacity(resultSnap.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 					snapshots.add(driverSnapshot);
 				}
@@ -320,9 +326,11 @@ public class HP3PARIngestHelper {
 					driverClone.setWwn(objClone.getWwn());
 					driverClone.setThinlyProvisioned(volume.getThinlyProvisioned());
 
-					// TODO: We need to have more clarity on provisioned and
-					// allocated sizes
-					driverClone.setAllocatedCapacity(objClone.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+					// Allocated capacity is the sum of user, snapshot and admin reserved space
+					Long allocatedCapacity = objClone.getUserSpace().getReservedMiB();
+					allocatedCapacity += objClone.getSnapshotSpace().getReservedMiB();
+					allocatedCapacity += objClone.getAdminSpace().getReservedMiB();
+					driverClone.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
 					driverClone.setProvisionedCapacity(objClone.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 					driverClone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
 					clones.add(driverClone);				
@@ -394,6 +402,26 @@ public class HP3PARIngestHelper {
 			//for (int index = 0; index < vlunsOfVolume.getTotal(); index++) {
 			for (VirtualLun objVirtualLun : vlunsOfVolume.getMembers()){
 				if (!objVirtualLun.isActive()) {
+					if (objVirtualLun.getType() == 5) {
+
+						String exportPath = storageSystemId + objectName + objVirtualLun.getHostname();
+						_log.info("3PARDriver:Ingestion {} for registry entry", exportPath);
+
+						// Make a registry entry for ingested volume if it is
+						// exported to host set
+
+						Map<String, List<String>> attributes = new HashMap<>();
+						List<String> expValue = new ArrayList<>();
+						List<String> lunValue = new ArrayList<>();
+
+						expValue.add(exportPath);
+						attributes.put("EXPORT_PATH", expValue);
+						lunValue.add(objVirtualLun.getLun().toString());
+
+						attributes.put(objectName, lunValue);
+						registry.setDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath, attributes);
+						_log.info("3PARDriver:Ingestion {} for attributes entry", attributes);
+					}
 					continue;
 				}
 

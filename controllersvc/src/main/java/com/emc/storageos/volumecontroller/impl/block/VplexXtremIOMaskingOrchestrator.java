@@ -24,9 +24,11 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
@@ -38,7 +40,11 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
+import com.emc.storageos.volumecontroller.placement.PlacementUtils;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
@@ -106,7 +112,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts, Map<URI, NetworkLite> networkMap,
-            URI varrayURI, int nInitiatorGroups) {
+            URI varrayURI, int nInitiatorGroups, Map<URI, Map<String, Integer>> switchToPortNumber,
+            Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {
         /**
          * Number of Port Group for XtremIO is always one.
          * - If multiple port groups, each VPLEX Director's initiators will be mapped to multiple ports
@@ -155,7 +162,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         Map<URI, List<String>> networkToSelectedXbricks = new HashMap<URI, List<String>>();
         do {
             Map<URI, List<StoragePort>> useablePortsSet = getUsablePortsSet(allocatablePorts, orderedNetworks, usedPorts,
-                    xBricksToSelectedSCs, networkToSelectedXbricks, networkMap, allocator, sanZoningEnabled);
+                    xBricksToSelectedSCs, networkToSelectedXbricks, networkMap, allocator, sanZoningEnabled, switchToPortNumber,
+                    contextMap);
             if (useablePortsSet == null) {
                 // if requirement not satisfied
                 break;
@@ -200,7 +208,9 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
      */
     private Map<URI, List<StoragePort>> getUsablePortsSet(Map<URI, List<StoragePort>> allocatablePorts, List<URI> orderedNetworks,
             Set<String> usedPorts, Map<String, List<String>> xBricksToSelectedSCs, Map<URI, List<String>> networkToSelectedXbricks,
-            Map<URI, NetworkLite> networkMap, StoragePortsAllocator allocator, boolean sanZoningEnabled) {
+            Map<URI, NetworkLite> networkMap, StoragePortsAllocator allocator, boolean sanZoningEnabled,
+            Map<URI, Map<String, Integer>> switchToPortNumber,
+            Map<URI, PortAllocationContext> contextMap) {
 
         Map<URI, List<StoragePort>> useablePorts = new HashMap<URI, List<StoragePort>>();
         Set<String> usedPortsSet = new HashSet<String>();
@@ -216,9 +226,17 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 NetworkLite net = networkMap.get(networkURI);
                 // Determine if we should check connectivity from the Network's varray.auto_san_zoning
                 boolean checkConnectivity = sanZoningEnabled && !StorageProtocol.Transport.IP.name().equals(net.getTransportType());
-
+                Map<String, Integer> switchNumberMap = null;
+                PortAllocationContext context = null;
+                if (switchToPortNumber != null) {
+                    switchNumberMap = switchToPortNumber.get(networkURI);
+                }
+                if (contextMap != null) {
+                    context = contextMap.get(networkURI);
+                }
                 StoragePort port = getNetworkPortUniqueXbrick(networkURI, allocatablePorts.get(networkURI),
-                        portsSelected, networkToSelectedXbricks, xBricksToSelectedSCs, allocator, checkConnectivity);
+                        portsSelected, networkToSelectedXbricks, xBricksToSelectedSCs, allocator, checkConnectivity,
+                        switchNumberMap, context);
                 _log.debug("Port selected {} for network {}", port != null ? port.getPortName() : null, networkURI);
                 if (port != null) {
                     usedPortsSet.add(port.getPortName());
@@ -270,7 +288,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
      */
     private StoragePort getNetworkPortUniqueXbrick(URI networkURI, List<StoragePort> storagePorts, Set<String> usedPorts,
             Map<URI, List<String>> networkToSelectedXbricks, Map<String, List<String>> xBricksToSelectedSCs,
-            StoragePortsAllocator allocator, boolean checkConnectivity) {
+            StoragePortsAllocator allocator, boolean checkConnectivity, Map<String, Integer> switchNumberMap,
+            PortAllocationContext context) {
         /**
          * Input:
          * -List of network's storage ports;
@@ -287,6 +306,19 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         if (networkToSelectedXbricks.get(networkURI) == null) {
             networkToSelectedXbricks.put(networkURI, new ArrayList<String>());
         }
+        boolean isSwitchAffinity = false;
+        Map<StoragePort, String> portSwitchMap = null;
+        if (switchNumberMap != null) {
+            // switch affinity is on
+            isSwitchAffinity = true;
+            if (!simulation) {
+                portSwitchMap = getPortSwitchMap(storagePorts);
+            } else if (simulation && context != null) {
+                portSwitchMap = allocator.getPortSwitchMap(context);
+            }
+            
+        }
+        List<StoragePort> uniqueXBrickPorts = new ArrayList<StoragePort>();
         for (StoragePort sPort : storagePorts) {
             // Do not choose a port that has already been chosen
             if (!usedPorts.contains(sPort.getPortName()) && isPortConnected(allocator, sPort, checkConnectivity)) {
@@ -295,14 +327,23 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 String sc = splitArray[1];
                 // select port from unique X-brick/SC
                 if (!xBricksToSelectedSCs.containsKey(xBrick)) {
-                    port = sPort;
-                    addSCToXbrick(xBricksToSelectedSCs, xBrick, sc);
-                    networkToSelectedXbricks.get(networkURI).add(xBrick);
-                    break;
+                    if (isSwitchAffinity) {
+                        uniqueXBrickPorts.add(sPort);
+                    } else {
+                        port = sPort;
+                        addSCToXbrick(xBricksToSelectedSCs, xBrick, sc);
+                        networkToSelectedXbricks.get(networkURI).add(xBrick);
+                        break;
+                    }
                 }
             }
         }
+        if (!uniqueXBrickPorts.isEmpty()) {
+            port = getSwitchAffinityPort(uniqueXBrickPorts, switchNumberMap, portSwitchMap, networkToSelectedXbricks, 
+                    xBricksToSelectedSCs, networkURI);  
+        } 
         if (port == null) {
+            uniqueXBrickPorts.clear();
             for (StoragePort sPort : storagePorts) {
                 // Do not choose a port that has already been chosen
                 if (!usedPorts.contains(sPort.getPortName()) && isPortConnected(allocator, sPort, checkConnectivity)) {
@@ -312,13 +353,21 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     // select port from unique X-brick/SC for this network
                     if (!networkToSelectedXbricks.get(networkURI).contains(xBrick)
                             && (xBricksToSelectedSCs.get(xBrick) == null || !xBricksToSelectedSCs.get(xBrick).contains(sc))) {
-                        port = sPort;
-                        addSCToXbrick(xBricksToSelectedSCs, xBrick, sc);
-                        networkToSelectedXbricks.get(networkURI).add(xBrick);
-                        break;
+                        if (isSwitchAffinity) {
+                            uniqueXBrickPorts.add(sPort);
+                        } else {
+                            port = sPort;
+                            addSCToXbrick(xBricksToSelectedSCs, xBrick, sc);
+                            networkToSelectedXbricks.get(networkURI).add(xBrick);
+                            break;
+                        }
                     }
                 }
             }
+            if (!uniqueXBrickPorts.isEmpty()) {
+                port = getSwitchAffinityPort(uniqueXBrickPorts, switchNumberMap, portSwitchMap, networkToSelectedXbricks, 
+                        xBricksToSelectedSCs, networkURI);  
+            } 
         }
         return port;
     }
@@ -328,7 +377,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
      *
      */
     private boolean isPortConnected(StoragePortsAllocator allocator, StoragePort sPort, boolean checkConnectivity) {
-        if (checkConnectivity && (allocator.getSwitchName(sPort, _dbClient) == null)) {
+        if (checkConnectivity && (PlacementUtils.getSwitchName(sPort, _dbClient) == null)) {
             return false;
         }
         return true;
@@ -405,14 +454,18 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     }
 
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
-            List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI) {
+            List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI, 
+            Map<String, Integer> switchToPortNumber, PortAllocationContext context) {
         return VPlexBackEndOrchestratorUtil.allocatePorts(allocator, candidatePorts, portsRequested, net, varrayURI,
-                simulation, _blockScheduler, _dbClient);
+                simulation, _blockScheduler, _dbClient, switchToPortNumber, context);
     }
 
     @Override
     public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
-            Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
+            Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap, 
+            StoragePortsAssigner assigner, Map<URI, String> initiatorSwitchMap,
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap) {
 
         StringSetMap zoningMap = new StringSetMap();
         // Set up a map to track port usage so that we can use all ports more or less equally.
@@ -429,6 +482,12 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         }
         _log.info(String.format("VPLEX Directors: %s, X-bricks: %s, Number of paths per VPLEX Director: %s", vplexDirectorCount,
                 xtremIOXbricksCount, pathsPerDirector));
+
+        boolean isSwitchAffinity = false;
+        if (initiatorSwitchMap != null && !initiatorSwitchMap.isEmpty() &&
+                switchStoragePortsMap != null && !switchStoragePortsMap.isEmpty()) {
+            isSwitchAffinity = true;
+        }
 
         int directorNumber = 1;
         for (String director : initiatorGroup.keySet()) {
@@ -453,15 +512,38 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                                 net.getLabel(), numberOfInitiatorsPerNetwork, director));
                         break;
                     }
-
+                    
+                    List<StoragePort> assignablePorts = null;
+                    if (isSwitchAffinity) {
+                        // find the ports with the same switch as the initiator
+                        String switchName = initiatorSwitchMap.get(initiator.getId());
+                        if (!switchName.equals(NullColumnValueGetter.getNullStr())) {
+                            Map<String, List<StoragePort>>switchMap = switchStoragePortsMap.get(networkURI);
+                            if (switchMap != null) {
+                                List<StoragePort> switchPorts = switchMap.get(switchName);
+                                if (switchPorts != null && !switchPorts.isEmpty()) {
+                                    _log.info(String.format("Found the same switch ports, switch is %s", switchName));
+                                    assignablePorts = switchPorts;
+                                }
+                            }
+                        }
+                    }
+                    
                     List<StoragePort> portList = getStoragePortSetForDirector(portGroup.get(networkURI), directorNumber);
+                    if (assignablePorts != null) {
+                        assignablePorts.retainAll(portList);
+                    }
+                    
+                    if (assignablePorts == null || assignablePorts.isEmpty()) {
+                        assignablePorts = portList;
+                    }
                     // find a port for the initiator
                     StoragePort storagePort = VPlexBackEndOrchestratorUtil.assignPortToInitiator(assigner,
-                            portList, net, initiator, portUsage, null);
+                            assignablePorts, net, initiator, portUsage, null);
                     if (storagePort != null) {
-                        _log.info(String.format("%s %s   %s -> %s  %s", director, net.getLabel(),
-                                initiator.getInitiatorPort(), storagePort.getPortNetworkId(),
-                                storagePort.getPortName()));
+                        _log.info(String.format("%s %s   %s %s -> %s  %s %s", director, net.getLabel(),
+                                initiator.getInitiatorPort(), initiatorSwitchMap.get(initiator.getId()), storagePort.getPortNetworkId(),
+                                storagePort.getPortName(), portSwitchMap.get(storagePort.getId())));
                         StringSet ports = new StringSet();
                         ports.add(storagePort.getId().toString());
                         zoningMap.put(initiator.getId().toString(), ports);
@@ -529,9 +611,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
-            // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
-            device.refreshExportMask(array, exportMask);
 
             if (!exportMask.hasAnyVolumes()) {
                 // We are creating this ExportMask on the hardware! (Maybe not
@@ -582,15 +662,18 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     @Override
     public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
+            List<URI> volumes, List<URI> initiatorURIs) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs);
     }
 
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
+            List<URI> volumes, List<URI> initiatorURIs, String stepId) {
+        ExportTaskCompleter completer = null;
         try {
+            completer = new ExportMaskOnlyRemoveVolumeCompleter(exportGroupURI,
+                    exportMaskURI, volumes, stepId);
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
@@ -599,7 +682,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             // If the exportMask isn't found, or has been deleted, nothing to do.
             if (exportMask == null || exportMask.getInactive()) {
                 _log.info(String.format("ExportMask %s inactive, returning success", exportMaskURI));
-                WorkflowStepCompleter.stepSucceded(stepId);
+                completer.ready(_dbClient);
                 return;
             }
 
@@ -610,39 +693,55 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
-            // Make sure the completer will complete the workflow. This happens
-            // on rollback case.
-            if (!completer.getOpId().equals(stepId)) {
-                completer.setOpId(stepId);
-            }
-            // refresh export mask
-            device.refreshExportMask(array, exportMask);
-
+            // Determine if we're deleting the last volume in the mask.
+            StringMap maskVolumesMap = exportMask.getVolumes();
             Set<String> remainingVolumes = new HashSet<String>();
-            if (exportMask.getVolumes() != null) {
-                remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            List<URI> passedVolumesInMask = new ArrayList<>(volumes);
+            if (maskVolumesMap != null) {
+                remainingVolumes.addAll(maskVolumesMap.keySet());
             }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
+                
+                // Remove any volumes from the volume list that are no longer
+                // in the export mask. When a failure occurs removing a backend
+                // volume from a mask, the rollback method will try and remove it
+                // again. However, in the case of a distributed volume, one side
+                // may have succeeded, so we will try and remove it again. Previously,
+                // this was not a problem. However, new validation exists at the
+                // block level that checks to make sure the volume to remove is
+                // actually in the mask, which now causes a failure when you remove
+                // it a second time. So, we check here and remove any volumes that
+                // are not in the mask to handle this condition.
+                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))){
+                    passedVolumesInMask.remove(volume);
+                }
             }
-            // If it is last volume and there are no existing initiators
-            // or existing volumes, delete the ExportMask.
+            
+            // None of the volumes is in the export mask, so we are done.
+            if (passedVolumesInMask.isEmpty()) {
+                _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
+                completer.ready(_dbClient);
+                return;
+            }
+
+            // If it is last volume and there are no existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && !exportMask.hasAnyExistingVolumes()
-                    && !exportMask.hasAnyExistingInitiators()) {
-                device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
+                    && !exportMask.hasAnyExistingVolumes()) {
+                device.doExportDelete(array, exportMask, passedVolumesInMask, initiatorURIs, completer);
             } else {
                 List<Initiator> initiators = null;
                 if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                     initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
                 }
-                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
+                device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
+            completer.ready(_dbClient);
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex
                     .addStepsForCreateVolumesFailed(ex);
-            WorkflowStepCompleter.stepFailed(stepId, vplexex);
+            completer.error(_dbClient, vplexex);
         }
     }
 
@@ -658,4 +757,70 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     public void setWorkflowService(WorkflowService _workflowService) {
         this._workflowService = _workflowService;
     }
+    
+    /**
+     * Get storage port to switch name map
+     *  
+     * @param storagePorts all storage ports
+     * @return the map of storage port to switch name
+     */
+    private Map<StoragePort, String> getPortSwitchMap(List<StoragePort> storagePorts) {
+        Map<StoragePort, String> result = new HashMap<StoragePort, String>();
+        for (StoragePort port: storagePorts) {
+            String switchName = PlacementUtils.getSwitchName(port, _dbClient);
+            if (switchName != null && !switchName.isEmpty()) {
+                result.put(port, switchName);
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Get the first storage port whose switch name exists in the switchNumberMap if possible, otherwise, return the first
+     * port in the input port list.
+     * 
+     * @param ports ports to be selected
+     * @param switchNumberMap switch name to number of ports map
+     * @param portSwitchMap port to switch name map
+     * @param networkToSelectedXbricks will be updated after the port is selected
+     * @param xBricksToSelectedSCs will be updated after the port is selected
+     * @return
+     */
+    private StoragePort getSwitchAffinityPort(List<StoragePort>ports, Map<String, Integer>switchNumberMap, 
+            Map<StoragePort, String> portSwitchMap, Map<URI, List<String>> networkToSelectedXbricks, 
+            Map<String, List<String>> xBricksToSelectedSCs, URI netURI) {
+        StoragePort result = null;
+        if (portSwitchMap == null || switchNumberMap == null || ports == null || ports.isEmpty()) {
+            return result;
+        }
+        for (StoragePort port : ports) {
+            String switchName = portSwitchMap.get(port);
+            if (switchName == null) {
+                continue;
+            }
+            Integer count = switchNumberMap.get(switchName);
+            if (count != null && count > 0) {
+                result  = port;
+                // update the switchNumberMap
+                if (count > 1) {
+                    switchNumberMap.put(switchName, count--);
+                } else {
+                    switchNumberMap.remove(switchName);
+                }
+                break;
+            }
+        }
+        if (result == null) {
+            result = ports.get(0);
+            _log.info(String.format("Not found the same switch port: %s", result.getPortName()));
+        }
+        String[] splitArray = result.getPortGroup().split(Constants.HYPHEN);
+        String xBrick = splitArray[0];
+        String sc = splitArray[1];
+        addSCToXbrick(xBricksToSelectedSCs, xBrick, sc);
+        networkToSelectedXbricks.get(netURI).add(xBrick);
+        
+        return result;
+    }
+    
 }

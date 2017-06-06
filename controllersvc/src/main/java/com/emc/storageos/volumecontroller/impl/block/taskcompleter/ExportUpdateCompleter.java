@@ -6,21 +6,22 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockExportController;
 
 /**
@@ -36,12 +37,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
     private static final String EXPORT_UPDATE_FAILED_MSG = "Failed to update ExportGroup %s";
     private Map<URI, Integer> _addedBlockObjects = new HashMap<URI, Integer>();
     private Map<URI, Integer> _removedBlockObjects = new HashMap<URI, Integer>();
-    private List<URI> _addedInitiators = new ArrayList<URI>();
-    private List<URI> _removedInitiators = new ArrayList<URI>();
-    private List<URI> _addedHosts = new ArrayList<URI>();
-    private List<URI> _removedHosts = new ArrayList<URI>();
-    private List<URI> _addedClusters = new ArrayList<URI>();
-    private List<URI> _removedClusters = new ArrayList<URI>();
+    private Set<URI> _addedInitiators = new HashSet<>();
+    private Set<URI> _removedInitiators = new HashSet<>();
+    private Set<URI> _addedHosts = new HashSet<>();
+    private Set<URI> _removedHosts = new HashSet<>();
+    private Set<URI> _addedClusters = new HashSet<>();
+    private Set<URI> _removedClusters = new HashSet<>();
 
     /**
      * Constructor for export updates.
@@ -61,9 +62,9 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             URI egUri,
             Map<URI, Integer> addedBlockObjects,
             Map<URI, Integer> removedBlockObjects,
-            List<URI> addedInitiators, List<URI> removedInitiators,
-            List<URI> addedHosts, List<URI> removedHosts,
-            List<URI> addedClusters, List<URI> removedClusters,
+            Set<URI> addedInitiators, Set<URI> removedInitiators,
+            Set<URI> addedHosts, Set<URI> removedHosts,
+            Set<URI> addedClusters, Set<URI> removedClusters,
             String task) {
         super(ExportGroup.class, egUri, task);
         _addedBlockObjects = addedBlockObjects;
@@ -102,21 +103,27 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                     break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
-            // update the export group data if the job completes successfully
+            // Update the export group data.
             if (status.equals(Operation.Status.ready)) {
-                updateExportGroup(exportGroup);
+                updateExportGroup(exportGroup, dbClient);
+            } else {
+                dbClient.updateObject(exportGroup);
             }
-            if (exportGroup != null && exportGroup.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
-                _log.info("Clearing the TASK_IN_PROGRESS flag from export group {}", exportGroup.getId());
-                exportGroup.clearInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
+
+
+            if (Operation.isTerminalState(status) && needToRunExportGroupCleanup(dbClient)) {
+                // Clean stale references from EG if the status is either ready or error.
+                ExportUtils.cleanStaleReferences(exportGroup, dbClient);
             }
-            dbClient.updateObject(exportGroup);
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
             recordBlockExportOperation(dbClient, OperationTypeEnum.UPDATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
                     exportGroup);
+            
+            // Check to see if Export Group needs to be cleaned up
+            ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskUpdate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
@@ -135,11 +142,9 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
      * Update the export group data.
      * 
      * @param exportGroup the export group to be updated.
+     * @param dbClient {@link DbClient}
      */
-    private void updateExportGroup(ExportGroup exportGroup) {
-        // TODO
-        // Consider removing clusters when all their hosts are removed
-        // and removing hosts when all their initiators are removed.
+    private void updateExportGroup(ExportGroup exportGroup, DbClient dbClient) {
         if (_addedInitiators != null) {
             exportGroup.addInitiators(_addedInitiators);
         }
@@ -171,5 +176,40 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         if (_removedBlockObjects != null) {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
+        dbClient.updateObject(exportGroup);
+    }
+
+    /**
+     * If the initiators and hosts are added, but there are no volumes in the export Group, then no need to run.
+     * If the initiators and hosts and clusters are added, but there are no volumes in the export Group, then no need to run.
+     * If volumes are added, but there are no initiators, no need to cleanup
+     *
+     * This is needed to handle CLI scenarios like Create Empty Export Group, Add host to Export Group, Add Volume to Export Group.
+     * the 1st 2 cases doesn't need to run Cleanup, but the 3rd needs to, as real export happens.
+     *
+     * Other case : Create Empty Export Group, Add Volume to Export Group, Add Host to Export Group.
+     * the 1st 2 cases doesn't need to run Cleanup, but the 3rd needs to, as real export happens.
+     * 
+     * @return
+     */
+    private boolean needToRunExportGroupCleanup(DbClient dbClient) {
+        boolean needtoRunExportCleanupTask = true;
+        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+        if (null == exportGroup.getVolumes() || exportGroup.getVolumes().isEmpty()) {
+            if ((_addedInitiators != null && !_addedInitiators.isEmpty()) ||
+                    (_addedHosts != null && !_addedHosts.isEmpty())
+                    || (_addedClusters != null && !_addedClusters.isEmpty())) {
+                _log.info(
+                        "No need to run Export Clean up, as export Group contains no volumes and the request includes to add compute resource.");
+                needtoRunExportCleanupTask = false;
+            }
+        } else if (null == exportGroup.getInitiators() || exportGroup.getInitiators().isEmpty()) {
+            if (_addedBlockObjects != null && !_addedBlockObjects.isEmpty()) {
+                needtoRunExportCleanupTask = false;
+                _log.info(
+                        "No need to run Export Clean up, as export Group contains no initiators and the request includes to add volumes.");
+            }
+        }
+        return needtoRunExportCleanupTask;
     }
 }

@@ -17,10 +17,8 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.util.ConnectivityUtil;
 
 /*
  * MULTIPLE_MASK_PER_HOST :
@@ -51,10 +49,11 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         if (null != maskUris && !maskUris.isEmpty()) {
             for (URI maskUri : maskUris) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
-                if (null == exportMask) {
-                    continue;
-                }
-                if (VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
+                // skip if the mask is null, the storage device doesn't match, or is on the incorrect vplex cluster path
+                if (null == exportMask 
+                        || null == exportMask.getStorageDevice()
+                        || !exportMask.getStorageDevice().equals(mask.getStorageSystemUri())
+                        || VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
                     continue;
                 }
                 // COP-18184 : Check if the initiators are also matching
@@ -72,12 +71,15 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestExportOrchestrator#getExportMaskAlreadyCreated(com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask, com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext)
      */
     @Override
-    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
+    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext, DbClient dbClient) {
         List<ExportMask> exportMasks = requestContext.findAllNewExportMasks();
         for (ExportMask createdMask : exportMasks) {
             // COP-18184 : Check if the initiators are also matching
             if (null != createdMask && createdMask.getInitiators() != null
                     && createdMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
+                if (VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, createdMask, dbClient)) {
+                    continue;
+                }
                 _logger.info("Found already-created ExportMask {} matching all initiators of UnManagedExportMask {}",
                         createdMask.getMaskName(), mask.getMaskName());
                 return createdMask;

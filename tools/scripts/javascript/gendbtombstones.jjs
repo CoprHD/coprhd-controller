@@ -1,0 +1,111 @@
+//  JRE Rhino javascript based tool to generate cassandra tombstones. It calls db client
+//  API to manipuate Cassandra database.
+//
+//  It depends on jjs command in JRE only. Simply copy this scripts to any coprhd nodes and run
+//  it as the following
+//
+//  Usage:
+//  jjs gendbtombstones.jjs -- <object id> <number of tombstones> 
+//
+//  Example -
+//  /usr/lib64/jvm/jre/bin/jjs -J-Djava.class.path="/opt/storageos/conf/:$(echo /opt/storageos/lib/*.jar | tr ' ' ':')" -J-Dlog4j.configuration=dbutils-log4j.properties -J-DbuildType=emc gendbtombstones.jjs -- urn:storageos:Host:c66e4a97-9e8f-40ac-bc5b-857b83d71ee7:vdc1 100
+
+
+function usage() {
+    print("Usage: gendbtombstones.jjs <object id> <number of tombstones>");
+    print();
+    exit();
+}
+
+// Initial dbclient from spring context 
+function init() {
+    ctx = new Packages.org.springframework.context.support.ClassPathXmlApplicationContext("/dbutils-conf.xml");
+    dbClient = ctx.getBean("dbclient");
+    dbClient.start();
+}
+
+// Get DataObject class according to given db object id
+function getClass(objId) {
+    typeName = Packages.com.emc.storageos.db.client.URIUtil.getTypeName(objId);
+    pkgs = ["com.emc.storageos.db.client.model",
+            "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects", 
+            "com.emc.storageos.db.client.model.uimodels"];
+    for (var i = 0; i < pkgs.length ; i ++) {
+       pkgName = pkgs[i];
+       className = pkgName + "." + typeName;
+       try {
+           return Packages.java.lang.Thread.currentThread().getContextClassLoader().loadClass(className); 
+       } catch (e) {}
+    }
+    return undefined;
+}
+
+// Duplicate a new db object from given object id
+// Return value - the new object
+function duplicateAndRemove(objId) {
+    clazz = getClass(objId);
+    if (clazz == undefined) {
+       print("ERROR - unknown data model class for " + objId);
+       return;
+    }
+    obj = dbClient.queryObject(clazz, new Packages.java.net.URI(objId));
+    dupObj = obj.getClass().newInstance();
+
+    pds = Packages.java.beans.Introspector.getBeanInfo(obj.getClass()).getPropertyDescriptors();
+    for(var i = 0; i < pds.length; i++) {
+        pd = pds[i];
+        readMethod = pd.getReadMethod();
+        if (readMethod == null) continue;
+        value = readMethod.invoke(obj);
+        if (value == null) {
+            continue;
+        }
+        if (value instanceof Packages.com.emc.storageos.db.client.model.StringSet){
+             newValue = new Packages.com.emc.storageos.db.client.model.StringSet();
+             newValue.addAll(value);
+             value = newValue;
+        } else if (value instanceof Packages.com.emc.storageos.db.client.model.StringMap){
+             newValue = new Packages.com.emc.storageos.db.client.model.StringMap();
+             for (var k in value) {
+                 newValue.put(k, value[k]);
+             }
+             value = newValue;
+        } else if (value instanceof Packages.com.emc.storageos.db.client.model.StringSetMap) {
+            newValue = new Packages.com.emc.storageos.db.client.model.StringSetMap();
+            for (var k in value) {
+               newValue.put(k, value[k]);
+            }
+            value = newValue;
+        }
+        writeMethod = pd.getWriteMethod();
+        if (writeMethod == null) continue;
+        writeMethod.invoke(dupObj, value);
+    }
+    newId = Packages.com.emc.storageos.db.client.URIUtil.createId(obj.getClass());
+    dupObj.setId(newId);
+    dupObj.setLabel(dupObj.getLabel() + "_dup");
+    dbClient.updateObject(dupObj);
+    
+    // remove it
+    dbClient.removeObject(dupObj);
+    return dupObj;
+}
+
+// Check and validate command line arguments
+objId = arguments[0];
+num = arguments[1];
+if (objId == undefined) {
+   print("Error: no object id specified.");
+   usage(); 
+}
+if (num == undefined) {
+   print("Error: no number of duplications specified.");
+   usage();
+}
+
+init();
+for(var i = 1; i < Number(num) + 1; i ++) {
+   dupObj=duplicateAndRemove(objId);
+   print("Duplicate and remove " + newId + ". " + i + " of " + num);
+}
+exit();

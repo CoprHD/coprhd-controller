@@ -19,6 +19,7 @@ import com.emc.storageos.systemservices.SysSvc;
 import com.emc.storageos.systemservices.impl.audit.SystemAudit;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
+import com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager;
 import com.emc.storageos.systemservices.impl.jobs.DiagnosticsScheduler;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
@@ -72,6 +73,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     @Autowired
     private RecoveryManager _recoveryMgr;
+
+    @Autowired
+    private StorageDriverManager _driverMgr;
 
     @Autowired
     // used by data node to poll the ip address change of controller cluster
@@ -216,6 +220,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startDiagnosticsScheduler();
             
             drPostFailoverDBCheckHandler.run();
+            _driverMgr.start();
         } else {
             throw new Exception("No app found.");
         }

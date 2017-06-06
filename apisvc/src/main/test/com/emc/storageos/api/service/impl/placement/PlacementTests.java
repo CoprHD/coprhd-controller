@@ -2439,10 +2439,13 @@ public class PlacementTests extends DbsvcTestBase {
             for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
                 assertNotNull(targetJournalRec.getSourceStoragePool());
                 assertTrue(targetJournalRec.getVirtualArray().toString().equals("varray2"));
-                assertTrue("pool5".equals(targetJournalRec.getSourceStoragePool().toString())
-                        || "pool4".equals(targetJournalRec.getSourceStoragePool().toString()));
+                assertTrue("pool4".equals(targetJournalRec.getSourceStoragePool().toString())
+                        || "pool5".equals(targetJournalRec.getSourceStoragePool().toString())
+                        || "pool6".equals(targetJournalRec.getSourceStoragePool().toString()));
                 assertTrue("site2".equals(targetJournalRec.getInternalSiteName()));
-                assertTrue("xtremio5".equals(targetJournalRec.getSourceStorageSystem().toString()));
+                assertTrue("xtremio4".equals(targetJournalRec.getSourceStorageSystem().toString())
+                        || "xtremio5".equals(targetJournalRec.getSourceStorageSystem().toString())
+                        || "xtremio6".equals(targetJournalRec.getSourceStorageSystem().toString()));
 
             }
 
@@ -3318,9 +3321,9 @@ public class PlacementTests extends DbsvcTestBase {
         StorageSystem vmaxStorageSystem2 = PlacementTestUtils.createStorageSystem(_dbClient, "vmax", "vmax2");
         StorageSystem vmaxStorageSystem3 = PlacementTestUtils.createStorageSystem(_dbClient, "vmax", "vmax3");
 
-        StorageSystem vnxStorageSystem1 = PlacementTestUtils.createStorageSystem(_dbClient, "vnx", "vnx1");
-        StorageSystem vnxStorageSystem2 = PlacementTestUtils.createStorageSystem(_dbClient, "vnx", "vnx2");
-        StorageSystem vnxStorageSystem3 = PlacementTestUtils.createStorageSystem(_dbClient, "vnx", "vnx3");
+        StorageSystem vnxStorageSystem1 = PlacementTestUtils.createStorageSystem(_dbClient, "vnxblock", "vnx1");
+        StorageSystem vnxStorageSystem2 = PlacementTestUtils.createStorageSystem(_dbClient, "vnxblock", "vnx2");
+        StorageSystem vnxStorageSystem3 = PlacementTestUtils.createStorageSystem(_dbClient, "vnxblock", "vnx3");
 
         // Create 2 VPLEX storage systems
         StorageSystem vplexStorageSystem1 = PlacementTestUtils.createStorageSystem(_dbClient, "vplex", "vplex1");
@@ -3928,9 +3931,9 @@ public class PlacementTests extends DbsvcTestBase {
         StorageSystem vmaxStorageSystem2 = PlacementTestUtils.createStorageSystem(_dbClient, "vmax", "vmax2");
         StorageSystem vmaxStorageSystem3 = PlacementTestUtils.createStorageSystem(_dbClient, "vmax", "vmax3");
 
-        StorageSystem vnxStorageSystem1 = PlacementTestUtils.createStorageSystem(_dbClient, "vnx", "vnx1");
-        StorageSystem vnxStorageSystem2 = PlacementTestUtils.createStorageSystem(_dbClient, "vnx", "vnx2");
-        StorageSystem vnxStorageSystem3 = PlacementTestUtils.createStorageSystem(_dbClient, "vnx", "vnx3");
+        StorageSystem vnxStorageSystem1 = PlacementTestUtils.createStorageSystem(_dbClient, "vnxblock", "vnx1");
+        StorageSystem vnxStorageSystem2 = PlacementTestUtils.createStorageSystem(_dbClient, "vnxblock", "vnx2");
+        StorageSystem vnxStorageSystem3 = PlacementTestUtils.createStorageSystem(_dbClient, "vnxblock", "vnx3");
 
         // Create two front-end storage ports VMAX1
         List<StoragePort> vmax1Ports = new ArrayList<StoragePort>();

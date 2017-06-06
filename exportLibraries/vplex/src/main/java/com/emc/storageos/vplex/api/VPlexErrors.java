@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.vplex.api;
 
+import java.net.URI;
+import java.util.List;
+
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -89,6 +92,10 @@ public interface VPlexErrors {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public ServiceError registerInitiatorsStepFailed(final String opName,
+            final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError storageViewAddInitiatorFailed(final String opName,
             final Throwable cause);
 
@@ -124,7 +131,7 @@ public interface VPlexErrors {
     public ServiceError commitMigrationFailed(final String opName,
             final Throwable cause);
 
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    @DeclareServiceCode(ServiceCode.VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION)
     public ServiceError cantRollbackCommittedMigration();
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -208,10 +215,6 @@ public interface VPlexErrors {
             final Throwable cause);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public ServiceError rebuildSetTransferSpeed(final String opName,
-            final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError upgradeLocalToDistributedFailed(final String opName);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -244,4 +247,7 @@ public interface VPlexErrors {
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError cantRollbackExceptionDeterminingCommitState(final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public ServiceError relinkSnapshotSessionTargetsFailed(List<URI> snapshotURIs, URI tgtSnapSessionURI, final Throwable cause);
 }

@@ -42,6 +42,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +114,7 @@ import com.google.common.base.Function;
 public class BlockVirtualPoolService extends VirtualPoolService {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockVirtualPoolService.class);
-    private static final String NONE = "none";
+    private static final String NONE = "NONE";
 
     /**
      * Returns all potential virtual pools, which supported the given virtual pool change operation
@@ -335,6 +336,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
+        
         return updateAclsOnVirtualPool(VirtualPool.Type.block, id, changes);
     }
 
@@ -445,6 +447,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             }
 
             vpool.getArrayInfo().put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
+        } else {
+            if (vpool.getArrayInfo() == null) {
+                vpool.setArrayInfo(new StringSetMap());
+                vpool.getArrayInfo().put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, NONE);
+            }
         }
 
         if (null != param.getRaidLevelChanges()) {
@@ -480,6 +487,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         if (null != param.getDriveType()) {
             vpool.setDriveType(param.getDriveType());
+        } else {
+            vpool.setDriveType(NONE);
         }
 
         validateAndSetPathParams(vpool, param.getMaxPaths(), param.getMinPaths(), param.getPathsPerInitiator());
@@ -1260,7 +1269,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * @prereq none
      * @param id the URN of a ViPR VirtualPool.
      * @param param new values for the quota
-     * @brief Updates quota and available capacity before quota is exhausted
+     * @brief Update quota and available capacity before quota is exhausted
      * @return QuotaInfo Quota metrics.
      */
     @PUT
@@ -1493,9 +1502,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             arrayInfo.put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
         }
 
-        if (!arrayInfo.isEmpty()) {
-            vpool.addArrayInfoDetails(arrayInfo);
+        if (arrayInfo.isEmpty()) {
+            arrayInfo.put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, NONE);
         }
+        
+        vpool.addArrayInfoDetails(arrayInfo);
 
         if (param.getProtection() != null) {
             if (param.getProtection().getContinuousCopies() != null) {
@@ -1750,6 +1761,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
         if (null != param.getDriveType()) {
             vpool.setDriveType(param.getDriveType());
+        } else {
+            vpool.setDriveType(NONE);
         }
 
         // Set the min/max paths an paths per initiator

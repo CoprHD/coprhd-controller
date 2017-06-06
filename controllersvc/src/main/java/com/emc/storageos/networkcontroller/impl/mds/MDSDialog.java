@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,7 +29,7 @@ import com.emc.storageos.networkcontroller.SSHDialog;
 import com.emc.storageos.networkcontroller.SSHPrompt;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.google.common.collect.Sets;
 
 
@@ -62,6 +61,7 @@ public class MDSDialog extends SSHDialog {
     private final String wwnRegex = "([0-9A-Fa-f][0-9A-Fa-f]:){7}[0-9A-Fa-f][0-9A-Fa-f]";
     private final static Integer sessionLockRetryMax = 5;
     private final static String IVR_ZONENAME_PREFIX = "IVRZ_";
+    private final static String EXCEPTION_REGEX_KEY = "MDSDialog.exception.regex";
     public MDSDialog(SSHSession session, Integer defaultTimeout) {
         super(session, defaultTimeout);
     }
@@ -405,6 +405,11 @@ public class MDSDialog extends SSHDialog {
 
         Map<String, String> aliasDatabase = showDeviceAliasDatabase();
 
+        String filterCriteria = null;
+        if (!StringUtils.isEmpty(zoneName) && zoneName.startsWith(NetworkDeviceController.ZONESET_QUERY_FILTER)) {
+            filterCriteria = zoneName.substring(NetworkDeviceController.ZONESET_QUERY_FILTER.length());
+        }
+
         for (String line : lines) {        	
             int index = match(line, regex, groups);
             switch (index) {
@@ -419,8 +424,10 @@ public class MDSDialog extends SSHDialog {
                     break;
                 case 1:
                     // if zoneName is not specified, we want all zones in zoneset.
-                    // Or, if it zoneName is specified, then only return zone matched the name. Otherwise, ignore it.
-                    if (StringUtils.isEmpty(zoneName) || StringUtils.equals(groups[0], zoneName)) {
+                    // Or, if it zoneName is specified, then only return zone matched the name.
+                    // Or, if there was a filter specified, check the name for that. Otherwise, ignore it.
+                    if (StringUtils.isEmpty(zoneName) || StringUtils.equals(groups[0], zoneName)
+                            || (!StringUtils.isEmpty(filterCriteria) && groups[0].contains(filterCriteria))) {
                         zone = new Zone(groups[0]);
                         zoneset.getZones().add(zone);
                     } else {
@@ -1444,23 +1451,28 @@ public class MDSDialog extends SSHDialog {
         String newZoneset = generateZonesetCloneName(zonesetToClone);
         List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId);
         _log.info("Creating new zoneset clone : " + newZoneset	);
-        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
-        lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
-        String[] lines = getLines(buf);
         
-        for(String line : lines ){
-        	if (line.indexOf(errorString) >= 0) {
-        		_log.info("Zoneset clone operation failed");        		
-        		throw NetworkDeviceControllerException.exceptions.zonesetCloneFailed(newZoneset, line);
-        	}
+        boolean retryNeeded = false;
+        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
+        for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
+            lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
+            String[] lines = getLines(buf);
+            
+            for(String line : lines ) {
+            	if (line.indexOf(errorString) >= 0) {
+            		_log.info("Zoneset clone operation failed");        		
+            		throw NetworkDeviceControllerException.exceptions.zonesetCloneFailed(newZoneset, line);
+            	}
+            }
+            retryNeeded = checkForEnhancedZoneSession(lines, retryCount);
         }
         
+
         //Delete older clones
         for (String zonesetClone : zonesetClonesToDelete) {
         	_log.info(String.format("Removing zoneset (clone) %s", zonesetClone));  
 			zonesetNameVsan(zonesetClone, vsanId, true);    	
         }
-        	
         _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
@@ -1969,7 +1981,7 @@ public class MDSDialog extends SSHDialog {
                     zoneset.getZones().add(zone);
                     break;
                 case 2:
-                    member = new IvrZoneMember(groups[0] + groups[2], Integer.valueOf(groups[3]));
+                    member = new IvrZoneMember(groups[0], Integer.valueOf(groups[3]));
                     zone.getMembers().add(member);
                     break;
             }
@@ -2383,5 +2395,13 @@ public class MDSDialog extends SSHDialog {
     		}
     	}
     	return otherPwwns;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected String getResponseExceptionRegex() {
+        return MDSDialogProperties.getString(EXCEPTION_REGEX_KEY);
     }
 }

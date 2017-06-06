@@ -38,6 +38,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+import com.emc.sa.engine.ExecutionContext;
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
@@ -49,10 +50,12 @@ import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
 import com.emc.sa.service.vipr.application.tasks.GetFullCopyList;
 import com.emc.sa.service.vipr.block.tasks.AddClusterToExport;
+import com.emc.sa.service.vipr.block.tasks.AddHostAndVolumeToExportNoWait;
 import com.emc.sa.service.vipr.block.tasks.AddHostToExport;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
+import com.emc.sa.service.vipr.block.tasks.AdjustExportPaths;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.CreateContinuousCopy;
@@ -70,9 +73,9 @@ import com.emc.sa.service.vipr.block.tasks.DeactivateVolumes;
 import com.emc.sa.service.vipr.block.tasks.DetachFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ExpandVolume;
 import com.emc.sa.service.vipr.block.tasks.FindBlockVolumeHlus;
-import com.emc.sa.service.vipr.block.tasks.FindEmptyExportByName;
 import com.emc.sa.service.vipr.block.tasks.FindExportByCluster;
 import com.emc.sa.service.vipr.block.tasks.FindExportByHost;
+import com.emc.sa.service.vipr.block.tasks.FindExportByName;
 import com.emc.sa.service.vipr.block.tasks.FindExportsContainingCluster;
 import com.emc.sa.service.vipr.block.tasks.FindExportsContainingHost;
 import com.emc.sa.service.vipr.block.tasks.FindVirtualArrayInitiators;
@@ -91,6 +94,8 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
+import com.emc.sa.service.vipr.block.tasks.GetProject;
+import com.emc.sa.service.vipr.block.tasks.GetTenant;
 import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.PauseContinuousCopy;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
@@ -109,8 +114,10 @@ import com.emc.sa.service.vipr.tasks.GetStorageSystem;
 import com.emc.sa.service.vipr.tasks.GetVirtualArray;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
@@ -133,12 +140,16 @@ import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.storageos.model.block.export.InitiatorPathParam;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.BlockVolumeBootVolumeFilter;
 import com.emc.vipr.client.core.filters.ExportClusterFilter;
 import com.emc.vipr.client.core.filters.ExportHostFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -158,6 +169,7 @@ public class BlockStorageUtils {
     public static final String COPY_NATIVE = "native";
     public static final String COPY_RP = "rp";
     public static final String COPY_SRDF = "srdf";
+    public static final String UNDERSCORE = "_";
 
     public static boolean isHost(URI id) {
         return StringUtils.startsWith(id.toString(), "urn:storageos:Host");
@@ -174,8 +186,8 @@ public class BlockStorageUtils {
         return execute(new GetHost(hostId));
     }
 
-    public static void checkEvents(URI resourceId) {
-        execute(new GetActionableEvents(resourceId));
+    public static void checkEvents(DataObject resource) {
+        execute(new GetActionableEvents(resource));
     }
 
     public static Cluster getCluster(URI clusterId) {
@@ -278,6 +290,16 @@ public class BlockStorageUtils {
     }
 
     /**
+     * Return true of false if a given volume is a boot volume for an OS.
+     *
+     * @param blockObject to validate
+     * @return true or false if the volume is a boot volume
+     */
+    public static boolean isVolumeBootVolume(BlockObjectRestRep blockObject) {
+        return BlockVolumeBootVolumeFilter.isVolumeBootVolume(blockObject);
+    }
+
+    /**
      * Return true of false if a given volume is mounted.
      *
      * @param blockObject to validate
@@ -341,9 +363,15 @@ public class BlockStorageUtils {
                     break;
             }
         }
-        blockResources.addAll(getVolumes(blockVolumes));
-        blockResources.addAll(getBlockSnapshots(blockSnapshots));
-        blockResources.addAll(getBlockContinuousCopies(blockContinuousCopies, parentId));
+        if (!blockVolumes.isEmpty()) {
+            blockResources.addAll(getVolumes(blockVolumes));
+        }
+        if (!blockSnapshots.isEmpty()) {
+            blockResources.addAll(getBlockSnapshots(blockSnapshots));
+        }
+        if (!blockContinuousCopies.isEmpty()) {
+            blockResources.addAll(getBlockContinuousCopies(blockContinuousCopies, parentId));
+        }
         return blockResources;
     }
 
@@ -353,6 +381,14 @@ public class BlockStorageUtils {
 
     public static List<VolumeRestRep> getVolumeByName(String name) {
         return execute(new GetVolumeByName(name));
+    }
+
+    public static ProjectRestRep getProject(URI projectId) {
+        return execute(new GetProject(projectId));
+    }
+
+    public static TenantOrgRestRep getTenant(URI tenantId) {
+        return execute(new GetTenant(tenantId));
     }
 
     public static ExportGroupRestRep getExport(URI exportId) {
@@ -379,8 +415,19 @@ public class BlockStorageUtils {
         return execute(new FindExportsContainingHost(host, projectId, varrayId));
     }
 
-    public static ExportGroupRestRep findEmptyExportsByName(String name, URI projectId, URI varrayId) {
-        return execute(new FindEmptyExportByName(name, projectId, varrayId));
+    public static ExportGroupRestRep findExportsByName(String name, URI projectId, URI varrayId) {
+        return execute(new FindExportByName(name, projectId, varrayId));
+    }
+    
+    public static URI adjustExportPaths(URI vArray, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
+            URI storageSystemId, URI id, List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths,
+            boolean suspendWait) {
+        
+        Task<ExportGroupRestRep> task = execute(new AdjustExportPaths(vArray, minPaths, maxPaths, pathsPerInitiator,
+                storageSystemId, id, addedPaths, removedPaths, suspendWait));
+        URI exportId = task.getResourceId();
+        addAffectedResource(exportId);
+        return exportId;
     }
 
     public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId, double sizeInGb, Integer count,
@@ -446,6 +493,14 @@ public class BlockStorageUtils {
     public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host,
             Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         String exportName = host.getHostName();
+        URI exportId = createHostExport(exportName, projectId, virtualArrayId, volumeIds, hlu, host, volumeHlus, minPaths, maxPaths,
+                pathsPerInitiator);
+        return exportId;
+    }
+
+    public static URI createHostExport(String name, URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host,
+            Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+        String exportName = name != null ? name : host.getHostName();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
                 host.getHostName(), host.getId(), null, volumeHlus, minPaths, maxPaths, pathsPerInitiator));
         URI exportId = task.getResourceId();
@@ -454,16 +509,23 @@ public class BlockStorageUtils {
         return exportId;
     }
 
-    public static Task<ExportGroupRestRep> createHostExportNoWait(URI projectId, URI virtualArrayId,
-            List<URI> volumeIds, Integer hlu, Host host) {
-        String exportName = host.getHostName();
-        return execute(new CreateExportNoWait(exportName, virtualArrayId, projectId,
-                volumeIds, hlu, host.getHostName(), host.getId(), null));
+    public static Task<ExportGroupRestRep> createHostExportNoWait(String exportName, URI projectId,
+            URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host) {
+        return execute(new CreateExportNoWait(exportName == null ? host.getHostName() : exportName, 
+                virtualArrayId, projectId, volumeIds, hlu, host.getHostName(), host.getId(), null));
     }
 
     public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster,
             Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         String exportName = cluster.getLabel();
+        URI exportId = createClusterExport(exportName, projectId, virtualArrayId, volumeIds, hlu, cluster, volumeHlus, minPaths, maxPaths,
+                pathsPerInitiator);
+        return exportId;
+    }
+
+    public static URI createClusterExport(String name, URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu,
+            Cluster cluster, Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+        String exportName = name != null ? name : cluster.getLabel();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
                 cluster.getLabel(), null, cluster.getId(), volumeHlus, minPaths, maxPaths, pathsPerInitiator));
         URI exportId = task.getResourceId();
@@ -486,6 +548,10 @@ public class BlockStorageUtils {
         addAffectedResource(task);
     }
 
+    public static Task<ExportGroupRestRep> addHostAndVolumeToExportNoWait(URI exportId, URI host, URI volumeId, Integer hlu) {
+        return execute(new AddHostAndVolumeToExportNoWait(exportId, host, volumeId, hlu));
+    }
+    
     public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         Task<ExportGroupRestRep> task = execute(new AddClusterToExport(exportId, cluster, minPaths, maxPaths, pathsPerInitiator));
         addRollback(new DeactivateBlockExport(exportId));
@@ -689,9 +755,11 @@ public class BlockStorageUtils {
     }
 
     public static void removeFullCopiesForVolume(URI volumeId, Collection<URI> vols, VolumeDeleteTypeEnum type) {
-        List<URI> fullCopiesIds = getActiveFullCopies(volumeId);
-        vols.removeAll(fullCopiesIds);
-        removeFullCopies(fullCopiesIds, type);
+        if (!ResourceType.isType(BLOCK_SNAPSHOT, volumeId)) {
+            List<URI> fullCopiesIds = getActiveFullCopies(volumeId);
+            vols.removeAll(fullCopiesIds);
+            removeFullCopies(fullCopiesIds, type);
+        }
     }
 
     public static void removeFullCopies(Collection<URI> fullCopyIds, VolumeDeleteTypeEnum type) {
@@ -1515,4 +1583,58 @@ public class BlockStorageUtils {
         return group != null && group.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name());
     }
 
+    public static void checkVolumeLimit(ViPRCoreClient client, URI project) {
+        ExecutionContext context = ExecutionUtils.currentContext();
+        long limit = context.getResourceLimit(Constants.RESOURCE_LIMIT_PROJECT_VOLUMES);
+        int numOfVolumes = client.blockVolumes().countByProject(project);
+        // Show alert in case of approaching 90% of the limit
+        if (numOfVolumes >= limit * Constants.RESOURCE_LIMIT_ALERT_RATE) {
+            context.logWarn("alert.createVolume.exceedingResourceLimit", numOfVolumes, limit);
+        }
+    }
+    
+    /**
+     * Utility method that determines if the given volume is already expanded based on
+     * a desired expansion size.
+     * 
+     * @param volume the volume to inspect
+     * @param sizeInGb the desired volume expand size
+     * @return true if the volume is already expanded, false otherwise
+     */
+    public static <T extends BlockObjectRestRep> boolean isVolumeExpanded(T resource, Double sizeInGb) {
+    	return (Double.parseDouble(getCapacity(resource)) >= sizeInGb);
+    }
+
+    /**
+     * Get the capacity off a {@link BlockObjectRestRep}
+     */
+    public static <T extends BlockObjectRestRep> String getCapacity(T resource) {
+        if (resource instanceof BlockSnapshotRestRep) {
+            return ((BlockSnapshotRestRep) resource).getProvisionedCapacity();
+        }
+        else if (resource instanceof VolumeRestRep) {
+            return ((VolumeRestRep) resource).getCapacity();
+        }
+        else if (resource instanceof BlockMirrorRestRep) {
+            return ((BlockMirrorRestRep) resource).getCapacity();
+        }
+        throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.capacityNotFound", resource.getId()));
+    }    
+    
+    /**
+     * Returns the viprcli command for adding a tag to a block volume
+     * 
+     * @param blockObjectId the id of the block object
+     * @param tagName the tag name
+     * @param tagValue the tag value
+     * @return viprcli command
+     */
+    public static String getVolumeTagCommand(URI blockObjectId, String tagName, String tagValue) {
+        BlockObjectRestRep blockObject = getBlockResource(blockObjectId);
+        URI projectId = getProjectId(blockObject);
+        ProjectRestRep project = getProject(projectId);
+        TenantOrgRestRep tenant = getTenant(project.getTenant().getId());
+        return ExecutionUtils.getMessage("viprcli.volume.tag", blockObject.getName(), tenant.getName(), project.getName(),
+                tagName, tagValue);
+    }
 }

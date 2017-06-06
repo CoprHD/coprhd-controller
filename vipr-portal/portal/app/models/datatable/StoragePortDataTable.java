@@ -4,16 +4,16 @@
  */
 package models.datatable;
 
-import models.TransportProtocols;
-
 import org.apache.commons.lang.StringUtils;
-
-import util.datatable.DataTable;
 
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+
+import models.TransportProtocols;
+import util.BourneUtil;
+import util.datatable.DataTable;
 
 public class StoragePortDataTable extends DataTable {
 
@@ -29,6 +29,7 @@ public class StoragePortDataTable extends DataTable {
         addColumn("type");
         addColumn("network").hidden();
         addColumn("allocationDisqualified").setRenderFunction("render.allocationDisqualified");
+        addColumn("isDRPort").hidden().setRenderFunction("render.boolean");
         addColumn("operationalStatus").setRenderFunction("render.operationalStatus");
 
         sortAllExcept("id");
@@ -49,6 +50,7 @@ public class StoragePortDataTable extends DataTable {
         public String network;
         public boolean assigned;
         public boolean allocationDisqualified;
+        public boolean isDRPort;
 
         public StoragePortInfo(StoragePortRestRep storagePort) {
             this(storagePort, null);
@@ -66,12 +68,10 @@ public class StoragePortDataTable extends DataTable {
                 this.networkIdentifier = storagePort.getIpAddress();
                 if (StringUtils.isEmpty(this.networkIdentifier) && !StringUtils.startsWithIgnoreCase(networkID, "IQN.")) {
                     this.networkIdentifier = networkID;
-                }
-                else if (StringUtils.startsWithIgnoreCase(networkID, "IQN.")) {
+                } else if (StringUtils.startsWithIgnoreCase(networkID, "IQN.")) {
                     this.iqn = networkID;
                 }
-            }
-            else {
+            } else {
                 this.networkIdentifier = storagePort.getPortNetworkId();
             }
             this.alias = storagePort.getPortAlias();
@@ -81,11 +81,17 @@ public class StoragePortDataTable extends DataTable {
             if (OperationalStatus.OK.name().equals(storagePort.getOperationalStatus())
                     && CompatibilityStatus.UNKNOWN.name().equals(storagePort.getCompatibilityStatus())) {
                 this.operationalStatus = OperationalStatus.UNKNOWN.name();
+            } else if (OperationalStatus.OK.name().equals(storagePort.getOperationalStatus())
+                    && CompatibilityStatus.INCOMPATIBLE.name().equals(storagePort.getCompatibilityStatus())) {
+                this.operationalStatus = OperationalStatus.NOT_OK.name();
             } else {
                 this.operationalStatus = storagePort.getOperationalStatus();
             }
 
             this.allocationDisqualified = storagePort.getAllocationDisqualified();
+            if (BourneUtil.getViprClient().storagePorts().getTags(storagePort.getId()).contains("dr_port")) {
+                isDRPort = true;
+            }
         }
     }
 }

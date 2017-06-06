@@ -15,6 +15,7 @@ import org.apache.commons.lang.math.NumberUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.iwave.ext.command.HostRescanAdapter;
 import com.vmware.vim25.AlreadyExists;
 import com.vmware.vim25.DuplicateName;
 import com.vmware.vim25.HostConfigFault;
@@ -58,7 +59,7 @@ import com.vmware.vim25.mo.HostSystem;
  * 
  * @author jonnymiller
  */
-public class HostStorageAPI {
+public class HostStorageAPI implements HostRescanAdapter {
 
     private static final String VMW_PSP_RR = "VMW_PSP_RR";
     private static final String VMW_PSP_MRU = "VMW_PSP_MRU";
@@ -83,6 +84,26 @@ public class HostStorageAPI {
     public HostStorageSystem getStorageSystem() {
         try {
             return host.getHostStorageSystem();
+        } catch (InvalidProperty e) {
+            throw new VMWareException(e);
+        } catch (RuntimeFault e) {
+            throw new VMWareException(e);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+
+    /**
+     * Query to list disks that can be used to contain VMFS datastore extents
+     * 
+     * @param datastore if provided, finds disks that can contain extents for this datastore
+     * @return list of available disks
+     */
+    public List<HostScsiDisk> queryAvailableDisksForVmfs(Datastore datastore) {
+        try {
+            List<HostScsiDisk> scsiDisks = Lists.newArrayList();
+            addItems(scsiDisks, host.getHostDatastoreSystem().queryAvailableDisksForVmfs(datastore), HostScsiDisk.class);
+            return scsiDisks;
         } catch (InvalidProperty e) {
             throw new VMWareException(e);
         } catch (RuntimeFault e) {
@@ -848,22 +869,6 @@ public class HostStorageAPI {
     }
 
     /**
-     * Detach all of the disks associated with the datastore on this host
-     * 
-     * @param datastore the datastore
-     * @throws VMWareException
-     */
-    public void detachDatastore(Datastore datastore) {
-        for (HostScsiDisk disk : listDisks(datastore)) {
-            try {
-                host.getHostStorageSystem().detachScsiLun(disk.getUuid());
-            } catch (RemoteException e) {
-                throw new VMWareException(e);
-            }
-        }
-    }
-
-    /**
      * Unmount Vmfs datastore from this host storage system
      * 
      * @param datastore the datastore
@@ -1152,5 +1157,10 @@ public class HostStorageAPI {
                 }
             }
         }
+    }
+
+    @Override
+    public void rescan() throws Exception {
+        rescanHBAs();
     }
 }

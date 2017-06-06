@@ -24,6 +24,7 @@
         e.preventDefault();
         this.disabled = 'true';
         validateExternalServerIpPort();
+        window.scrollTo(0,0);
         });
     });
     function checkIfDisableTestButton() {
@@ -259,6 +260,8 @@
 </script>
 #{/set}
 
+<br/>
+#{ConfigProperties.property property:page.logRetentionDays, disabled:unstable/}
 #{ConfigProperties.property property:page.syslogEnable, disabled:unstable/}
 %{
 property = page.syslogDriverCa

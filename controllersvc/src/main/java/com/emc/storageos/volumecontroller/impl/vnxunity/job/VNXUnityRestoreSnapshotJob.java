@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -147,9 +148,11 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
         createdSnap.setParent(new NamedURI(blockObj.getId(), label));
         createdSnap.setLabel(label);
         createdSnap.setStorageController(blockObj.getStorageController());
+        createdSnap.setSystemType(blockObj.getSystemType());
         createdSnap.setVirtualArray(blockObj.getVirtualArray());
         createdSnap.setProtocol(new StringSet());
         createdSnap.getProtocol().addAll(blockObj.getProtocol());
+        createdSnap.setTechnologyType(TechnologyType.NATIVE.name());
         if (blockObj instanceof Volume ) {
             createdSnap.setProject(new NamedURI(projectUri, label));
         } else if (blockObj instanceof BlockSnapshot) {

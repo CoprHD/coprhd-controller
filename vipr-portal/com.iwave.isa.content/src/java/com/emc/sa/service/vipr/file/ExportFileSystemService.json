@@ -39,12 +39,36 @@
           lockable: true
         },
         
+        domain:{
+          type:"text",
+          required: false,
+          lockable: true
+        },
+        
+        rootUserMapping:{
+          type:"text",
+          initialValue:"nobody",
+          lockable: true
+        },
+        
         permission:{
           type:"assetType.vipr.fileNFSPermission",
           initialValue:"rw",
           lockable: true
         }
       }
-    }
+    },
+     advanced:{
+      type:"group",
+      collapsed:"true",
+      items:{
+           bypassDnsCheck:{
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+          }
+        }
+     }
   }
 }

@@ -77,6 +77,7 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
                 List<AttributeMatcher> attrMatcherList = (List<AttributeMatcher>) getBeanFromContext(matcherGroupName);
                 ObjectLocalCache cache = new ObjectLocalCache(dbClient);
                 initializeCommonReferencesForAllMatchers(cache, coordinator);
+                errorMessage.setLength(0); // Clear the existing content before matcher
                 for (AttributeMatcher matcher : attrMatcherList) {
                     int poolSizeAtTheStart = matchedPools.size();
                     if (!matchedPools.isEmpty()) {
@@ -103,7 +104,10 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
                 _logger.info("Ended execution of {} group matchers .", matcherGroupName);
             }
         } else {
-            errorMessage.append("Virtual pool does not have matching Storage pool.");
+            String message = "Virtual pool does not have matching Storage pool. ";
+            if (errorMessage != null && !errorMessage.toString().contains(message)) {
+                errorMessage.append(message);
+            }
             _logger.error(errorMessage.toString());
         }
         return matchedPools;

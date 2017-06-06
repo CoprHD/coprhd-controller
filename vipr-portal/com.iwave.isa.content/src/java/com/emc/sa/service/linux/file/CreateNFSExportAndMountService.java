@@ -13,11 +13,12 @@ import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
-import static com.emc.sa.service.vipr.file.FileConstants.DEFAULT_ROOT_USER;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -64,6 +65,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
 
     protected MountNFSExportHelper mountNFSExportHelper;
 
+
     @Override
     public void init() throws Exception {
         super.init();
@@ -94,6 +96,8 @@ public class CreateNFSExportAndMountService extends ViPRService {
             export.setExportHosts(exportHosts);
             export.setPermission(mount.getPermission());
             export.setSecurity(mount.getSecurity());
+            export.setDomain(mount.getDomain());
+            export.setRootUserMapping(mount.getRootUserMapping());
             exportList.add(export);
         }
 
@@ -104,10 +108,16 @@ public class CreateNFSExportAndMountService extends ViPRService {
 
         // create nfs export
         if (exportList != null) {
+            String rootUserMapping = exportList.get(0).getRootUserMapping().trim();
+            String domain = exportList.get(0).getDomain();
+            if(StringUtils.isNotBlank(domain)) {
+                rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
+            }
             FileStorageUtils.createFileSystemExportWithoutRollBack(fileSystemId, comment, exportList.get(0).getSecurity(),
-                    exportList.get(0).getPermission(), DEFAULT_ROOT_USER, exportList.get(0).getExportHosts(), null);
+                    exportList.get(0).getPermission(), rootUserMapping, exportList.get(0).getExportHosts(), null, false);
             if (!exportList.isEmpty()) {
-                FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]));
+                FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]),
+                        false);
             }
         }
         // mount the exports

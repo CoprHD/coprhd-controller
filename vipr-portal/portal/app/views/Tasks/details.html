@@ -100,10 +100,23 @@ margin-bottom: 5px;
       </span>
     </dl>
     
-   <div class="alert alert-danger" ng-show="task.isError">
+   <div class="alert alert-danger" ng-show="task.isError" style="white-space: pre-wrap;">
     <span style="font-weight: bold;">Error {{task.serviceCode_error}}:  {{task.serviceCode_errorDesc}}</span>
     <br/>
-    {{task.serviceCode_message}}<br/>
+    {{task.serviceCode_message.trim()}}<br/>
+   </div>
+
+   <div ng-show="task.warningMessages != null && task.warningMessages.length != 0">
+     <div class="section-header"><h1>&{'tasks.warningMessages'}</h1></div>
+     <table class="table table-condensed dataTable">
+       <tbody>
+         <tr ng-repeat="message in task.warningMessages">
+           <td>
+             {{message}}
+           </td>
+         </tr>
+       </tbody>
+     </table>
    </div>
 
    <div ng-show="task.steps.length != 0">

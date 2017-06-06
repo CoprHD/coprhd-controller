@@ -1,0 +1,176 @@
+%{
+  titleKey = 'assignPolicy.assign.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{set assignAlready:assignPolicy?.isAssigned ? true : false/}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'FileProtectionPolicies.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+
+#{form @saveAssignPolicy(), id:'assignPolicy', class:'form form-horizontal', autocomplete:"off"}
+  #{if assignPolicy?.id}
+    #{field 'assignPolicy.id'}
+      <input type="hidden" name="id" value="${field.value}">
+    #{/field}  
+  #{/if}
+<!--   #{field 'assignPolicy.tenantId'} -->
+        <input type="hidden" name="tenantId" value="${field.value}"/>
+  #{/field}
+ #{field 'assignPolicy.referrerUrl'}
+     <input type="hidden" name="${field.policyName}" value="${field.value}">
+  #{/field}
+  
+  #{field 'assignPolicy.replicationType'}
+     <input type="hidden" id="replicationType" value="${field.value}">
+  #{/field}
+  
+ 
+    #{field 'assignPolicy.policyName'}
+      %{
+        field.cssClass = 'initialFocus';
+        field.required = true
+        field.fieldKey = 'assignPolicy.policyName'
+        field.atts = ['readonly':'readonly']
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'assignPolicy.policyType'}
+      <input type="hidden" id="policyType" value="${field.value}">
+    #{/field} 
+    
+    #{field 'assignPolicy.appliedAt'}
+       %{
+       field.disabled=true
+       }%
+      #{Form.selectOneControlGroup field:field, options:applyPolicyOptions, select:assignPolicy.appliedAt, cssClass:'span3' /}
+    #{/field} 
+    
+    <div id="projectFields"> 
+     #{field 'assignPolicy.projects', noLabel:noLabel}
+         #{Form.selectManyControlGroup field:field, options:projectOptions /}
+     #{/field}
+    </div>
+    <div id="vpoolFieldsForSnapShot">
+     #{field 'assignPolicy.virtualPools', noLabel:noLabel}
+         #{Form.selectManyControlGroup field:field, options:vPoolOptions /}
+     #{/field}
+    </div>
+    
+    <div id="fileAssignInfo" class="row" style="padding-top:20px; padding-bottom:0px;">
+            <div class="col-xs-3"></div>    
+            <div class="pull-left col-sm-6" >&{'assignPolicy.AppliedAtFileInfo'}</div>
+     </div>
+        
+    <div ng-init="policyId='${assignPolicy.id}'"  ng-controller="filePolicyCtrl">
+    	<div id="vpoolFields"  class="row">
+           <div class="control-label col-sm-3"><strong>&{'assignPolicy.vpool'}:</strong></div> 
+           <div class="pull-left col-sm-6" v-field="assignPolicy.vpool">
+              <select-one options="vPoolOptions" ng-change="populateVarray(field)" required></select-one>
+           </div> 
+        </div> 
+        <br>
+        <div id="replicationFields">
+        <div class="row" style="padding-top:20px; padding-bottom:0px;">
+            <div class="col-xs-3"></div>    
+            <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.sourceVArray'}</strong></div>
+            <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.targetVArray'}</strong></div>
+        </div>
+        <hr style="margin:5px;"/>
+        <div class="row col-gap-none" ng-repeat="topology in topologies" style="margin-bottom:5px;">
+            <div class="col-xs-3"></div>    
+            <div class="pull-left col-sm-3" v-field="topology.sourceVArray">
+                <select-one options="virtualArrayOptions" required></select-one>
+            </div>
+            <div class="pull-left col-sm-3" v-field="topology.targetVArray" style="padding-right:0px;">
+                <select-one options="virtualArrayOptions" required></select-one>
+            </div>
+            <div class="pull-left col-sm-0" style="padding-left:10px; margin-top:5px;"><button type="button" ng-click="deleteTopology($index)" class="close">&times;</button></div>
+        </div>
+        <div class="row">
+            <div class="col-xs-2"></div>    
+            <div class="pull-left col-sm-9"><button type="button" ng-click="addTopology()" class="btn btn-sm btn-success"><i v-icon=plus></i> &{'button.add'}</button></div>
+        </div>
+        
+        #{field 'assignPolicy.topologiesString'}
+            <input type="hidden" name="assignPolicy.topologiesString" ng-value="topologiesString" />
+        #{/field}
+        
+        
+    </div>
+    </div>
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
+#{/form}
+</div>
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+    $(document).ready(function() {
+        // know where it came from so can navigate back;
+        // only set the referrerUrl if it has not been set at some earlier point 
+        // i.e. in multi-step flows take into account error-handling
+        var referrerUrl = $('input[name="assignPolicy.referrerUrl"]').val();
+		if(!referrerUrl)
+		  referrerUrl = document.referrer;
+        
+		// navigate back only if referral URL is different than this one
+		if(referrerUrl && referrerUrl != document.URL) {
+	        $('input[name="assignPolicy.referrerUrl"]').val(referrerUrl);
+			// navigate cancel button to referrer url
+			$('div.form-actions a.btn').attr('href', referrerUrl);
+		}
+				
+		$('#assignPolicy_appliedAt').on('change', showAssignAt);
+		showAssignAt();
+		
+    });
+    
+    
+    function showAssignAt(){
+			var assignAt = $('#assignPolicy_appliedAt').val();
+            var policyType = $('#policyType').val();
+            var replicationType = $('#replicationType').val();
+				if (assignAt == 'project') {
+					$('#projectFields').show();
+					$('#vpoolFields').show();
+				} else if (assignAt == 'vpool') {
+					$('#vpoolFields').show();
+					$('#projectFields').hide();
+				}  
+				if (policyType == 'file_replication' && replicationType == 'REMOTE') {
+				     $('#replicationFields').show();				
+				}else {
+					$('#replicationFields').hide();
+				}
+				//currenlty mupiple vpool selction is only for snapshotpolicy at vpool level.
+				if(policyType == 'file_snapshot' && assignAt == 'vpool' ) {
+					$('#vpoolFields').hide();
+					$('#vpoolFieldsForSnapShot').show();
+					
+				}else{
+					$('#vpoolFieldsForSnapShot').hide();
+				}
+				//for assign at file syetme it is not 
+				if (assignAt == 'file_system') {
+					$('#vpoolFields').hide();
+					$('#projectFields').hide();
+					$('#replicationFields').hide();
+					$('#fileAssignInfo').show();
+					$('#button.save').hide();
+				}else {
+					$('#fileAssignInfo').hide();
+				}
+				
+			}
+    
+		</script>
+#{/set}

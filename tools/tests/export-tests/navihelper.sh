@@ -27,7 +27,7 @@ get_sg_name() {
     hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
     if [ ${hits} -gt 1 ]
 	then
-	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
 	exit 1;
     fi
 
@@ -70,7 +70,7 @@ remove_volume_from_mask() {
     hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
     if [ ${hits} -gt 1 ]
 	then
-	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
 	exit 1;
     fi
 
@@ -105,7 +105,11 @@ add_initiator_to_mask() {
     # This requires that the first number of the WWN is "1"
     /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -setpath -gname ${sgname} -hbauid $(echo $pwwn | sed 's/^1/2/g'):${pwwn} -sp a -spport 0 -arraycommpath 1 -failovermode 4 -host dutest_fakehost -ip 11.22.33.44 -o > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
-	echo "Failed to add the initiator to the mask."
+	echo "Failed to add the initiator to the mask, trying port 1"
+	/opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -setpath -gname ${sgname} -hbauid $(echo $pwwn | sed 's/^1/2/g'):${pwwn} -sp a -spport 1 -arraycommpath 1 -failovermode 4 -host dutest_fakehost -ip 11.22.33.44 -o > /tmp/navisechelper.out
+	if [ $? -ne 0 ]; then
+	    echo "Failed to add the initiator to the mask"
+	fi
     fi
 
     # Ensure the provider is updated
@@ -122,10 +126,10 @@ remove_initiator_from_mask() {
     # Get the full name of the storage group
     sgname=`get_sg_name ${VNX_SP_IP} ${SG_PATTERN}`
 
-    # Find out how many luns there are in the mask now.
+    # Find out how many initiators there are in the mask now.
     num_inits=`get_number_of_initiators_in_mask ${VNX_SP_IP} ${sgname}`
 
-    # register a fake host (maybe add a check to see if it's already there?)
+    # remove the initiators(s)
     /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -disconnecthost -gname ${sgname} -o -host dutest_fakehost > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
 	echo "Failed to remove the initiator from the mask."
@@ -153,17 +157,22 @@ create_storage_group() {
 delete_storage_group() {
     VNX_SP_IP=$1
     SG_PATTERN=$2
+    HOSTREMOVE=${SG_PATTERN: :-4}
 
     /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -list > /tmp/verify.txt
 
     hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
     if [ ${hits} -gt 1 ]
 	then
-	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
 	exit 1;
     fi
 
     sgname=`grep ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $2}' | awk '{print $1}'`
+
+    # Delete the host
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -disconnecthost -gname ${sgname} -o -host ${HOSTREMOVE} > /tmp/navisechelper.out
+    # Ignore failures by this command
 
     /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -destroy -o -gname ${sgname} > /tmp/navisechelper.out
     set +x
@@ -198,12 +207,12 @@ verify_export() {
 	    echo "PASSED: Verified storage group with pattern ${SG_PATTERN} doesn't exist."
 	    exit 0;
 	fi
-	echo "ERROR: Expected storage group ${SG_PATTERN}, but could not find it";
+	echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN}, but could not find it";
 	exit 1;
     else
 	if [ "${NUM_INITIATORS}" = "gone" ]
 	    then
-	    echo "ERROR: Expected storage group ${SG_PATTERN} to be gone, but it was found"
+	    echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN} to be gone, but it was found"
 	    exit 1;
 	fi
     fi
@@ -211,7 +220,7 @@ verify_export() {
     hits=`grep -n ${SG_PATTERN} ${TMPFILE1} | wc -l`
     if [ ${hits} -gt 1 ]
 	then
-	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
 	exit 1;
     fi
 
@@ -236,7 +245,7 @@ verify_export() {
 
     if [ "${num_inits}" != "${NUM_INITIATORS}" ]
 	then
-	echo "ERROR: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
+	echo -e "\e[91mERROR\e[0m: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
 	echo "Export group dump:"
 	cat /tmp/verify2.txt
 	failed=true
@@ -244,7 +253,7 @@ verify_export() {
 
     if [ "${num_luns}" != "${NUM_LUNS}" ]
 	then
-	echo "ERROR: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
+	echo -e "\e[91mERROR\e[0m: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
 	echo "Export group dump:"
 	cat /tmp/verify2.txt
 	failed=true
@@ -268,7 +277,7 @@ verify_export_prechecks() {
 
     grep -n ${SG_PATTERN} ${TMPFILE1} > /dev/null
     if [ $? -ne 0 ]; then
-	echo "ERROR: Expected MaskingView ${SG_PATTERN}, but could not find it";
+	echo -e "\e[91mERROR\e[0m: Expected MaskingView ${SG_PATTERN}, but could not find it";
 	exit 1;
     fi
 

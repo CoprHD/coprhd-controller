@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -55,6 +56,14 @@ public class CommonTransformerFunctions {
                 }
             };
 
+    public static final Function<String, Integer> FCTN_STRING_TO_INTEGER =
+            new Function<String, Integer>() {
+                @Override
+                public Integer apply(String str) {
+                    return Integer.valueOf(str);
+                }
+            };
+
     public static final Function<URI, String> FCTN_URI_TO_STRING =
             new Function<URI, String>() {
                 @Override
@@ -74,6 +83,21 @@ public class CommonTransformerFunctions {
                             URI.create(uriStr));
                 }
                 return initiator;
+            }
+        };
+    }
+
+    public static Function<String, Host>
+            fctnStringToHost(final DbClient dbClient) {
+        return new Function<String, Host>() {
+            @Override
+            public Host apply(String uriStr) {
+                Host host = null;
+                if (uriStr != null && !uriStr.isEmpty()) {
+                    host = dbClient.queryObject(Host.class,
+                            URI.create(uriStr));
+                }
+                return host;
             }
         };
     }
@@ -161,7 +185,7 @@ public class CommonTransformerFunctions {
 
             @Override
             public String apply(DataObject obj) {
-                return obj.forDisplay();
+                return obj != null ? obj.forDisplay() : EMPTY_STRING;
             }
         };
     }

@@ -13,13 +13,27 @@
       var projectId = $('#project option:selected').val();
       table.dataTable().fnReloadAjax(route({id: projectId}));
     }
-  
+  	
+  	function checkSnapshotLimits() {
+        //Do nothing if dataTable is not created
+        if (table.snapshots.dataTable.getDataTable() != null) {
+            var limit = ${resource_limit_project_snapshots};
+            if (table.snapshots.dataTable.needResourceLimitAlert(limit)){
+                $('#resourceLimitAlert').text(Messages.get('resources.snapshot.resourceLimitAlert', limit));
+       		    $('#resourceLimitAlert').show();
+            }
+        }
+    }
+  	table.snapshots.dataTable.setDrawCallback(checkSnapshotLimits);
+  	
     $(document).ready(function() {
       $('#project').on('change', reloadSnapshots);
     });
   </script>
   
 #{Resources.projectsControl projects:projects /}
+
+<p id="resourceLimitAlert" class="alert alert-info" style="display:none"></p>
 
 #{DataTable.header titleKey:'nav.block.snapshots' /}  
 #{DataTable.table id:'snapshots',

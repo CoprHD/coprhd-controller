@@ -82,7 +82,8 @@ public class ActionableEventScrubberExecutor {
             if (event.getCreationTime().after(startTimeMarker)) {
                 continue;
             }
-            if (event != null && !ActionableEvent.Status.pending.name().equalsIgnoreCase(event.getEventStatus())) {
+            if (event != null && !ActionableEvent.Status.pending.name().equalsIgnoreCase(event.getEventStatus())
+                    && !ActionableEvent.Status.failed.name().equalsIgnoreCase(event.getEventStatus())) {
                 toBeDeleted.add(event);
             }
             if (toBeDeleted.size() >= DELETE_BATCH_SIZE) {

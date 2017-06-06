@@ -21,7 +21,6 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 
 public class BaseModelFinder<T extends DataObject> {
-
     protected DBClientWrapper client;
     protected Class<T> clazz;
 
@@ -107,7 +106,7 @@ public class BaseModelFinder<T extends DataObject> {
 
     /**
      * Finds by IDs and filters out inactive. Note that the number of results could be less than IDs requested.
-     * 
+     *
      * @param ids IDs of records to query
      * @return
      * @throws DataAccessException

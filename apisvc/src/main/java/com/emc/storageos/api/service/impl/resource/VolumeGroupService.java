@@ -53,6 +53,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -70,7 +71,6 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -221,6 +221,9 @@ public class VolumeGroupService extends TaskResourceService {
     // A reference to the block consistency group service.
     private BlockConsistencyGroupService _blockConsistencyGroupService;
 
+    // A reference to the block snapshot service.
+    private BlockSnapshotService _blockSnapshotService;
+
     // Block service implementations
     private static Map<String, BlockServiceApi> _blockServiceApis;
 
@@ -240,6 +243,13 @@ public class VolumeGroupService extends TaskResourceService {
      */
     public void setBlockConsistencyGroupService(BlockConsistencyGroupService blockConsistencyGroupService) {
         _blockConsistencyGroupService = blockConsistencyGroupService;
+    }
+
+    /**
+     * @param blockSnapshotService the blockSnapshotService to set
+     */
+    public void setBlockSnapshotService(BlockSnapshotService blockSnapshotService) {
+        this._blockSnapshotService = blockSnapshotService;
     }
 
     public void setBlockServiceApis(final Map<String, BlockServiceApi> serviceInterfaces) {
@@ -277,6 +287,7 @@ public class VolumeGroupService extends TaskResourceService {
      * Create a volume group
      * 
      * @param param Parameters for creating a volume group
+     * @brief Create new volume group
      * @return created volume group
      */
     @POST
@@ -323,6 +334,7 @@ public class VolumeGroupService extends TaskResourceService {
      * List a volume group
      * 
      * @param id volume group Id
+     * @brief Show details for a volume group
      * @return ApplicationRestRep
      */
     @GET
@@ -355,6 +367,7 @@ public class VolumeGroupService extends TaskResourceService {
     /**
      * List volume groups.
      * 
+     * @brief List all volume groups
      * @return A reference to VolumeGroupList.
      */
     @GET
@@ -397,6 +410,7 @@ public class VolumeGroupService extends TaskResourceService {
      * Get application volumes
      * 
      * @param id Application Id
+     * @brief List volumes for an application
      * @return NamedVolumesList
      */
     @GET
@@ -417,6 +431,7 @@ public class VolumeGroupService extends TaskResourceService {
      * Get application hosts
      * 
      * @param id Application Id
+     * @brief List hosts for an application
      * @return HostList
      */
     @GET
@@ -437,6 +452,7 @@ public class VolumeGroupService extends TaskResourceService {
      * Get application clusters
      * 
      * @param id Application Id
+     * @brief List clusters for an application
      * @return ClusterList
      */
     @GET
@@ -457,6 +473,7 @@ public class VolumeGroupService extends TaskResourceService {
      * Get the list of child volume groups
      * 
      * @param id
+     * @brief List the child volume groups
      * @return
      */
     @GET
@@ -519,11 +536,12 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * update a volume group
+     * Update a volume group
      * 
      * @param id volume group id
      * @param param volume group update parameters
-     * @return
+     * @brief Change information for volume group
+     * @return TaskList
      */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1739,6 +1757,14 @@ public class VolumeGroupService extends TaskResourceService {
          */
         // TODO consider copyOnHaSide from user's request once the underlying implementation supports it.
         List<Volume> vmax3Volumes = getVMAX3Volumes(volumes, false);
+        if (!vmax3Volumes.isEmpty()) {
+            // check snap session name provided is not duplicate
+            VolumeGroupCopySetList sessionSet = getVolumeGroupSnapsetSessionSets(volumeGroup);
+            if (sessionSet.getCopySets().contains(name)) {
+                // duplicate name
+                throw APIException.badRequests.duplicateCopySetName(name, ReplicaTypeEnum.SNAPSHOT_SESSION.toString());
+            }
+        }
 
         // create snapshot
         Map<URI, List<URI>> cgToVolUris = ControllerUtils.groupVolumeURIsByCG(volumes);
@@ -2012,14 +2038,25 @@ public class VolumeGroupService extends TaskResourceService {
                 List<Volume> volumesInApplication = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
                 Map<URI, Volume> volumesMap = new HashMap<URI, Volume>();
                 for (Volume volume : volumesInApplication) {
-                    volumesMap.put(volume.getId(), volume);
+                    if (volume.getAssociatedVolumes() != null) {
+                        List<URI> assocVolIds = new ArrayList<URI>();
+                        for(String s : volume.getAssociatedVolumes()) {
+                            assocVolIds.add(URI.create(s));
+                        }
+                        List<Volume> assocVols = _dbClient.queryObject(Volume.class, assocVolIds);
+                        for (Volume assocVol : assocVols) {
+                            volumesMap.put(assocVol.getId(), assocVol);
+                        }
+                    } else {
+                        volumesMap.put(volume.getId(), volume);
+                    }
                 }
                     
                 while (iter.hasNext()) {
                     BlockSnapshot snapshot = iter.next();
                     Volume parent = volumesMap.get(snapshot.getParent().getURI());
                     if (parent != null &&  param.getSubGroups().contains(parent.getReplicationGroupInstance())) {
-                        snapshotsInRequest.add(iter.next().getId());
+                        snapshotsInRequest.add(snapshot.getId());
                     }
                 }
             } else {
@@ -2085,14 +2122,9 @@ public class VolumeGroupService extends TaskResourceService {
     private TaskList performVolumeGroupSnapshotOperation(final URI volumeGroupId, final VolumeGroupSnapshotOperationParam param, OperationTypeEnum opType) {
         Map<String, List<BlockSnapshot>> snapsetToSnapshots = getSnapshotsGroupedBySnapset(volumeGroupId, param);
         
-        // Check for pending tasks
-        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
-        if (opType == OperationTypeEnum.RESTORE_VOLUME_GROUP_SNAPSHOT) {
-            checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
-        } else {
-            checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
-        }
-        
+        // validate that it's ok to do the snapshot operation
+        validateSnapshotOperation(volumeGroupId, snapsetToSnapshots, opType);
+                
         auditOp(opType, true, AuditLogManager.AUDITOP_BEGIN,
                 volumeGroupId.toString(), param.getSnapshots());
         TaskList taskList = new TaskList();
@@ -2138,6 +2170,38 @@ public class VolumeGroupService extends TaskResourceService {
         auditOp(opType, true, AuditLogManager.AUDITOP_END, volumeGroupId.toString(), param.getSnapshots());
         return taskList;
     }
+    
+    /**
+     * Validates a snapshot operation and throws and exception if the operation cannot be done:
+     *      - checks for pending tasks
+     *      - for deactivate snapshot, check for any exported snapshots
+     *      
+     * @param volumeGroupId
+     * @param snapsetToSnapshots
+     * @param opType
+     */
+    private void validateSnapshotOperation(URI volumeGroupId, Map<String, List<BlockSnapshot>> snapsetToSnapshots, OperationTypeEnum opType) {
+        // Check for pending tasks
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
+        if (opType == OperationTypeEnum.RESTORE_VOLUME_GROUP_SNAPSHOT) {
+            checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
+        } else {
+            checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
+            if (opType == OperationTypeEnum.DEACTIVATE_VOLUME_GROUP_SNAPSHOT) {
+                for (Entry<String, List<BlockSnapshot>> entry : snapsetToSnapshots.entrySet()) {
+                    String snapsetName = entry.getKey();
+                    List<BlockSnapshot> snapshotList = entry.getValue();
+                    for (BlockSnapshot snapshot : snapshotList) {
+                        if (snapshot.isSnapshotExported(_dbClient)) {
+                            throw APIException.badRequests.cannotDeleteApplicationSnapshotExportExists(volumeGroup.getLabel(), snapsetName);
+                        }
+                    }
+                }
+            }
+        }
+        
+    }
+
 
     /**
      * Activate the specified Volume group snapshot
@@ -2241,6 +2305,47 @@ public class VolumeGroupService extends TaskResourceService {
     public TaskList resynchronizeVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
             final VolumeGroupSnapshotOperationParam param) {
         return performVolumeGroupSnapshotOperation(volumeGroupId, param, OperationTypeEnum.RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT);
+    }
+    /**
+     * Exposes the target volumes associated with application BlockSnapshot instances
+     * as ViPR Volumes. The BlockSnapshot instances must represent snapshots
+     * whose parent volumes are the backend volumes for VPLEX volumes. That is, it must be a
+     * VPLEX snapshot. The purpose is to expose the backend snapshot as a VPLEX volume so
+     * that access to the snapshot is via the VPLEX rather than directly via the backend
+     * storage system.
+     * 
+     * The volumes created are not added to the application
+     * 
+     * @prereq Create volume group snapshot
+     *
+     * @param volumeGroupId The URI of the volume group
+     * @param param VolumeGroupSnapshotOperationParam
+     *
+     * @brief Expose application snapshots as vplex volumes
+     *
+     * @return TaskList
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshots/expose")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList exposeVolumeGroupSnapshotAsVolume(@PathParam("id") final URI volumeGroupId,
+            final VolumeGroupSnapshotOperationParam param) {
+        Map<String, List<BlockSnapshot>> snapsetToSnapshots = getSnapshotsGroupedBySnapset(volumeGroupId, param);
+        
+        // Check for pending tasks
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
+        checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
+        
+        TaskList taskList = new TaskList();
+        
+        for (List<BlockSnapshot> snapshots : snapsetToSnapshots.values()) {
+            for (BlockSnapshot snapshot : snapshots) {
+                taskList.addTask(_blockSnapshotService.exposeSnapshotAsVolume(snapshot.getId()));
+            }
+        }
+        return taskList;
     }
 
     /**
@@ -2524,7 +2629,7 @@ public class VolumeGroupService extends TaskResourceService {
      *
      * @param volumeGroupId The URI of the volume group
      *
-     * @brief List snapsetLabels for a volume group
+     * @brief List snapset labels for a volume group
      * 
      * @return VolumeGroupCopySetList
      */

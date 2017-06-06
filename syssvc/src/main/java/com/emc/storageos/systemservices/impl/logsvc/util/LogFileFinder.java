@@ -41,17 +41,9 @@ public class LogFileFinder {
         for (File file : logFiles) {
             String baseName;
             fileName = file.getName();
-            int dashIndex = fileName.indexOf("-");
             int dotIndex = fileName.indexOf(".");
-            int subIndex;
-            if (dotIndex > 0 && dashIndex > 0) {
-                subIndex = (dotIndex < dashIndex) ? dotIndex : dashIndex;
-            }
-            else {
-                subIndex = dotIndex > 0 ? dotIndex : dashIndex;
-            }
-            if (subIndex > 0) {
-                baseName = fileName.substring(0, subIndex);
+            if (dotIndex > 0) {
+                baseName = fileName.substring(0, dotIndex);
             } else {
                 baseName = fileName;
             }

@@ -406,7 +406,7 @@ public class StoragePortService extends TaggedResource {
      * 
      * @param id the URN of a ViPR storage port to be removed.
      * 
-     * @brief remove storage port from ViPR
+     * @brief Remove storage port from ViPR
      * @return Status indicating success or failure.
      */
     @POST
@@ -675,13 +675,14 @@ public class StoragePortService extends TaggedResource {
      * Updates the virtual arrays to which the port of virtual nas is assigned.
      * 
      * @param storagePort A reference to the storage port.
-     * @param varrayChanges The virtual array changes.
-     * 
+     * @param newNetwork Network service assicated with varray
+     * @param varrayAssignmentChanges The virtual array changes.
+     * @param removePort - is port remove or add
      * @return true if there was a virtual array assignment change, false otherwise.
      */
     private boolean updatevNasVirtualArrays(StoragePort storagePort, Network newNetwork,
             VirtualArrayAssignmentChanges varrayAssignmentChanges, boolean removePort) {
-
+        _log.info("StoragePort:updatevNasVirtualArrays {} ", storagePort.getLabel());
         // Validate that the virtual arrays to be assigned to the vnas
         // reference existing virtual arrays in the database and add them to
         // the vnas.
@@ -694,6 +695,16 @@ public class StoragePortService extends TaggedResource {
             return false;
         }
 
+        VirtualArrayAssignments addAssignments = null;
+        VirtualArrayAssignments removeAssignments = null;
+        StringSet currentAssignmentsForvNas = null;
+        if (varrayAssignmentChanges != null) {
+
+            addAssignments = varrayAssignmentChanges.getAdd();
+            removeAssignments = varrayAssignmentChanges.getRemove();
+            currentAssignmentsForvNas = vNas.getAssignedVirtualArrays();
+        }
+
         // Update the vNas virtual arrays from network!!!
         if (newNetwork != null) {
             StringSet vArrays = newNetwork.getAssignedVirtualArrays();
@@ -702,33 +713,39 @@ public class StoragePortService extends TaggedResource {
                     vNas.addAssignedVirtualArrays(vArrays);
                     varraysForvNasUpdated = true;
                 } else { // Removing storage port from netwok!!!
+                    _log.info("Step to Removing storage port from netwok");
                     StringSet vNasVarrys = new StringSet();
+                    StringSet vNasVarryOther = new StringSet();
                     for (String sp : vNas.getStoragePorts()) {
+                        StoragePort vNasSp = _dbClient.queryObject(StoragePort.class, URI.create(sp));
                         if (!sp.equalsIgnoreCase(storagePort.getId().toString())) {
-                            StoragePort vNasSp = _dbClient.queryObject(StoragePort.class, URI.create(sp));
                             if (vNasSp.getConnectedVirtualArrays() != null && !vNasSp.getConnectedVirtualArrays().isEmpty()) {
                                 vNasVarrys.addAll(vNasSp.getConnectedVirtualArrays());
                             }
                         }
                     }
-                    // Remove storage varray from vnas virtual arrays,
-                    // if other ports on vnas not belongs to same varray.
-                    if (!vNasVarrys.contains(vArrays)) {
-                        if (vNas.getAssignedVirtualArrays() != null && !vNas.getAssignedVirtualArrays().isEmpty()) {
-                            vNas.getAssignedVirtualArrays().removeAll(vArrays);
-                            varraysForvNasUpdated = true;
-                        }
+                    if(!vNasVarrys.isEmpty()) {
+                        _log.info("varrays of vNas other ports {} and varrays of a network {}",
+                                vNasVarrys.toString(), vArrays.toString());
+                    }
+
+                    /*
+                        If the varray of the port to be deleted is common with another port then we should not update vnas.
+                        because the other ports of vnas may exist with same network of deleting port
+                    */
+                    if ((vNasVarrys.isEmpty()) ||
+                            (!vNasVarrys.isEmpty() && !vNasVarrys.containsAll(vArrays) ) ) {
+                        _log.info("Remove the varray from vNAS {} ", vNasVarrys.toString());
+                        vNas.getAssignedVirtualArrays().removeAll(vArrays);
+                        //remaining vNASvarray of other ports
+                        vNas.getAssignedVirtualArrays().addAll(vNasVarrys);
+                        varraysForvNasUpdated = true;
                     }
                 }
             }
         }
 
         if (varrayAssignmentChanges != null) {
-
-            VirtualArrayAssignments addAssignments = varrayAssignmentChanges.getAdd();
-            VirtualArrayAssignments removeAssignments = varrayAssignmentChanges.getRemove();
-            StringSet currentAssignmentsForvNas = vNas.getAssignedVirtualArrays();
-
             if (addAssignments != null) {
                 Set<String> addVArrays = addAssignments.getVarrays();
                 if ((addVArrays != null) && (!addVArrays.isEmpty())) {
@@ -764,6 +781,8 @@ public class StoragePortService extends TaggedResource {
 
                     // Iterate over the virtual arrays and assign them
                     // to the virtual NAS.
+                    _log.info("Virtual Nas that has virtual array to remove {}",
+                            removeVArrays.toString());
                     Iterator<String> removeVArraysIterForvNas = removeVArrays.iterator();
                     while (removeVArraysIterForvNas.hasNext()) {
                         String removeVArrayId = removeVArraysIterForvNas.next();
@@ -793,6 +812,7 @@ public class StoragePortService extends TaggedResource {
             _dbClient.persistObject(vNas);
         }
         return varraysForvNasUpdated;
+
     }
 
     /**

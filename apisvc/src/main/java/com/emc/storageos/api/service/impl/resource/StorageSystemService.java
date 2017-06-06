@@ -16,8 +16,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -39,7 +41,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.api.mapper.functions.MapStoragePort;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
+import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
+import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -78,6 +82,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -115,7 +120,9 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
+import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -156,9 +163,6 @@ public class StorageSystemService extends TaskResourceService {
 
     @Autowired
     private RecordableEventManager _evtMgr;
-
-    @Autowired
-    private RPHelper rpHelper;
 
     @Autowired
     private PortMetricsProcessor portMetricsProcessor;
@@ -277,6 +281,11 @@ public class StorageSystemService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createStorageSystem(StorageSystemRequestParam param) throws Exception {
 
+        if (!isControllerServiceOnline()) {
+            _log.error("Controller services are not started yet");
+            throw APIException.serviceUnavailable.controllerServiceUnavailable();
+        }
+
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
         if (!StorageSystem.Type.isDriverManagedStorageSystem(param.getSystemType())) {
 
@@ -291,8 +300,13 @@ public class StorageSystemService extends TaskResourceService {
         }
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
         checkForDuplicateName(param.getName(), StorageSystem.class);
-
-        ArgValidator.checkFieldValidIP(param.getIpAddress(), "ip_address");
+        
+        if (systemType.equals(StorageSystem.Type.isilon) || systemType.equals(StorageSystem.Type.unity)
+                || systemType.equals(StorageSystem.Type.vnxfile)) {
+            ArgValidator.checkFieldValidInetAddress(param.getIpAddress(), "ip_address");
+        } else {
+            ArgValidator.checkFieldValidIP(param.getIpAddress(), "ip_address");
+        }
         ArgValidator.checkFieldNotNull(param.getPortNumber(), "port_number");
         ArgValidator.checkFieldRange(param.getPortNumber(), 1, 65535, "port_number");
         validateStorageSystemExists(param.getIpAddress(), param.getPortNumber());
@@ -335,13 +349,26 @@ public class StorageSystemService extends TaskResourceService {
         }
     }
 
+    private boolean isControllerServiceOnline() {
+        List<Service> services = null;
+        try {
+            services = _coordinator.locateAllServices(CONTROLLER_SVC, CONTROLLER_SVC_VER, null, null);
+        } catch (CoordinatorException e) {
+            _log.error("Error happened when querying controller service beacons", e);
+        }
+        if (services != null && !services.isEmpty()) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Validates SMI-S Provider attributes of the vnxFile as it is a mandatory fields for indications
      * 
      * @param param
      */
     private void validateVNXFileSMISProviderMandatoryDetails(StorageSystemRequestParam param) {
-        ArgValidator.checkFieldValidIP(param.getSmisProviderIP(), "smis_provider_ip");
+        ArgValidator.checkFieldValidInetAddress(param.getSmisProviderIP(), "smis_provider_ip");
         ArgValidator.checkFieldNotNull(param.getSmisPortNumber(), "smis_port_number");
         ArgValidator.checkFieldRange(param.getSmisPortNumber(), 1, 65535, "smis_port_number");
         ArgValidator.checkFieldNotEmpty(param.getSmisUserName(), "smis_user_name");
@@ -359,7 +386,7 @@ public class StorageSystemService extends TaskResourceService {
          * Because while doing update client can try to update one among all existing mandatory fields.
          */
         if (param.getSmisProviderIP() != null) {
-            ArgValidator.checkFieldValidIP(param.getSmisProviderIP(), "smis_provider_ip");
+            ArgValidator.checkFieldValidInetAddress(param.getSmisProviderIP(), "smis_provider_ip");
         }
         if (param.getSmisUserName() != null) {
             ArgValidator.checkFieldNotEmpty(param.getSmisUserName(), "smis_user_name");
@@ -395,7 +422,7 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param id the URN of a ViPR storage system
      * @prereq none
-     * @brief Remove a storage system
+     * @brief Delete storage system
      * @return An asynchronous task.
      * 
      * @throws DatabaseException When an error occurs querying the database.
@@ -417,7 +444,7 @@ public class StorageSystemService extends TaskResourceService {
         }
 
         // Ensure the storage system has no active RecoverPoint volumes under management.
-        if (rpHelper.containsActiveRpVolumes(id)) {
+        if (RPHelper.containsActiveRpVolumes(id, _dbClient)) {
             throw APIException.badRequests.cannotDeactivateStorageSystemActiveRpVolumes();
         }
 
@@ -430,7 +457,10 @@ public class StorageSystemService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(StorageSystem.class, system.getId(),
                 taskId, ResourceOperationTypeEnum.DELETE_STORAGE_SYSTEM);
 
-        if (StringUtils.isNotBlank(system.getNativeGuid()) && system.isStorageSystemManagedByProvider()) {
+        // (COP-22167) Create DecommissionedResource object only if the system is actively managed by a storage provider.
+        // Otherwise, the created decommissioned object will not be cleared when the provider is removed and added back.
+        if (StringUtils.isNotBlank(system.getNativeGuid()) && system.isStorageSystemManagedByProvider()
+                && !NullColumnValueGetter.isNullURI(system.getActiveProviderURI())) {
             DecommissionedResource oldStorage = null;
             List<URI> oldResources = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getDecommissionedResourceIDConstraint(id
                     .toString()));
@@ -454,14 +484,16 @@ public class StorageSystemService extends TaskResourceService {
                 oldStorage.setId(URIUtil.createId(DecommissionedResource.class));
                 _dbClient.createObject(oldStorage);
             }
-            if (system.getActiveProviderURI() != null) {
-                StorageProvider provider = _dbClient.queryObject(StorageProvider.class, system.getActiveProviderURI());
-                if (provider != null) {
-                    StringSet providerDecomSys = new StringSet();
-                    providerDecomSys.add(oldStorage.getId().toString());
+
+            StorageProvider provider = _dbClient.queryObject(StorageProvider.class, system.getActiveProviderURI());
+            if (provider != null) {
+                StringSet providerDecomSys = provider.getDecommissionedSystems();
+                if (providerDecomSys == null) {
+                    providerDecomSys = new StringSet();
                     provider.setDecommissionedSystems(providerDecomSys);
-                    _dbClient.persistObject(provider);
                 }
+                providerDecomSys.add(oldStorage.getId().toString());
+                _dbClient.updateObject(provider);
             }
         }
 
@@ -562,7 +594,13 @@ public class StorageSystemService extends TaskResourceService {
 
             String ipAddress = (param.getIpAddress() != null) ? param.getIpAddress() : system.getIpAddress();
             Integer portNumber = (param.getPortNumber() != null) ? param.getPortNumber() : system.getPortNumber();
-            ArgValidator.checkFieldValidIP(ipAddress, "ip_address");
+            if (systemType.equals(StorageSystem.Type.isilon) || systemType.equals(StorageSystem.Type.unity)
+                    || systemType.equals(StorageSystem.Type.vnxfile) || systemType.equals(StorageSystem.Type.vnxe)) {
+                ArgValidator.checkFieldValidInetAddress(ipAddress, "ip_address");
+            } else {
+                ArgValidator.checkFieldValidIP(ipAddress, "ip_address");
+            }
+
             ArgValidator.checkFieldRange(portNumber, 1, 65535, "port_number");
             validateStorageSystemExists(ipAddress, portNumber);
             system.setMgmtAccessPoint(ipAddress + "-" + portNumber);
@@ -1184,6 +1222,13 @@ public class StorageSystemService extends TaskResourceService {
         return poolList;
     }
 
+    /**
+     * Get All RA Groups
+     * 
+     * @param id
+     * @brief List RDF groups names in a storage system 
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/rdf-groups")
@@ -1328,9 +1373,9 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param id storage system URN ID
      * @param nsId namespace id 
+     * @brief Show details for a namespace
      * @return details of namespace
      */
-    
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/object-namespaces/{nsId}")
@@ -1364,6 +1409,7 @@ public class StorageSystemService extends TaskResourceService {
      * @param param secret key
      * @param id storage system URN
      * @param userId user in array
+     * @brief Add a secret key for a storage system user
      * @return secret key details
      */
     @POST
@@ -1390,6 +1436,14 @@ public class StorageSystemService extends TaskResourceService {
         return map(secretKeyRes, true);
     }
 
+    /**
+     * Get RDF Group 
+     * 
+     * @param id
+     * @param rdfGroupId
+     * @brief Show details about an RDF group
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/rdf-groups/{rdfGrpId}")
@@ -1605,6 +1659,7 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param id the storage system id
      * @param param the StoragePortRequestParam
+     * @brief Define a storage port (for Cinder only)
      * @return A StoragePortRestRep reference specifying the data for the
      *         created port.
      * @throws ControllerException the controller exception
@@ -1769,6 +1824,9 @@ public class StorageSystemService extends TaskResourceService {
         }
         String isExportedSelected = exportType.equalsIgnoreCase(ExportType.EXPORTED.name()) ? TRUE_STR
                 : FALSE_STR;
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, id);
+        boolean isVplexSystem = ConnectivityUtil.isAVPlex(system);
+        Map<String, UnManagedVolume> vplexParentVolumeCache = isVplexSystem ? new HashMap<String, UnManagedVolume>() : null;
         UnManagedVolumeList unManagedVolumeList = new UnManagedVolumeList();
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(
@@ -1786,9 +1844,17 @@ public class StorageSystemService extends TaskResourceService {
                 umvExportStatus = umv.getVolumeCharacterstics().get(
                         SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString());
             }
-            
-            if (umv.getStorageSystemUri().equals(id) && null != umvExportStatus
-                    && umvExportStatus.equalsIgnoreCase(isExportedSelected)) {
+            boolean exportStatusMatch = (null != umvExportStatus) && umvExportStatus.equalsIgnoreCase(isExportedSelected); 
+            boolean systemMatch = umv.getStorageSystemUri().equals(id);
+            // allow backend snapshots for vplex vpool ingestion - must check parent virtual volume for system match
+            boolean isVplexSnapshot = false;
+            if (exportStatusMatch && isVplexSystem && VolumeIngestionUtil.isSnapshot(umv)) {
+                UnManagedVolume vplexParentVolume = VolumeIngestionUtil.findVplexParentVolume(umv, _dbClient, vplexParentVolumeCache);
+                if (vplexParentVolume != null && vplexParentVolume.getStorageSystemUri().equals(id)) {
+                    isVplexSnapshot = true;
+                }
+            }
+            if (exportStatusMatch && (systemMatch || isVplexSnapshot)) {
                 String name = (null == umv.getLabel()) ? umv.getNativeGuid() : umv.getLabel();
                 unManagedVolumeList.getNamedUnManagedVolumes().add(
                         toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, umv.getId(), name));

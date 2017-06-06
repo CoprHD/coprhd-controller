@@ -17,12 +17,16 @@
 #
 #set -x
 
+# Required for remote execution of SYMCLI commands.
+# If you are debugging, export this variable on your command line or add to your .bashrc
+export SYMCLI_CONNECT=SYMAPI_SERVER
+
 ## Convenience method for deleting a mask outside of ViPR (including the storage group)
 delete_mask() {
     serial_number=$1
     pattern=$2
 
-    echo "y" | /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete view -name ${pattern}
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete view -name ${pattern} -noprompt
     if [ $? -ne 0 ]; then
 	echo "no mask found."
     fi
@@ -40,7 +44,7 @@ delete_mask() {
 	# Put it back into the optimized SG?
 
 	# Delete storage group
-	/opt/emc/SYMCLI/bin/symaccess -sid 612 delete -force -name ${sg_long_id} -type storage
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete -force -name ${sg_long_id} -type storage -noprompt
     fi
 }
 
@@ -107,7 +111,7 @@ add_initiator_to_mask() {
 	echo "Initiator group ${pattern}_IG was not found.  Not able to add to it."
     else
 	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG add -wwn ${pwwn}
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG add -wwn ${pwwn} 
     fi
 
     # Ensure the provider is updated
@@ -147,7 +151,7 @@ delete_volume() {
         OPTIMIZEDSG=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -devs ${devid} -v \
             | grep "Storage Group Name" | grep "Optimized"  | awk -F:  '{ print $2 }' | sed -E 's/\s//'`
         if [ ! -z ${OPTIMIZEDSG// } ]; then
-            /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name ${OPTIMIZEDSG} remove dev ${devid} -noprompt
+            /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name ${OPTIMIZEDSG} remove dev ${devid}
         fi
         /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} free -all -devs ${devid} -noprompt
     else
@@ -167,7 +171,7 @@ verify_export_prechecks() {
 
     grep -n ${SG_PATTERN} ${TMPFILE1} > /dev/null
     if [ $? -ne 0 ]; then
-	echo "ERROR: Expected MaskingView ${SG_PATTERN}, but could not find it";
+	echo -e "\e[91mERROR\e[0m: Expected MaskingView ${SG_PATTERN}, but could not find it";
 	exit 1;
     fi
 }
@@ -204,11 +208,12 @@ verify_export() {
     # First parameter is the Symm ID
     SID=$1
     shift
-    # Subsequent parameters: MaskingView Name, Number of Initiators, Number of Luns
+    # Subsequent parameters: MaskingView Name, Number of Initiators, Number of Luns, HLUs for Luns
     # If checking if the MaskingView does not exist, then parameter $2 should be "gone"
     SG_PATTERN=$1
     NUM_INITIATORS=$2
     NUM_LUNS=$3
+    HLUS=$4
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
 
@@ -223,23 +228,24 @@ verify_export() {
 	    echo "PASSED: Verified MaskingView with pattern ${SG_PATTERN} doesn't exist."
 	    exit 0;
 	fi
-	echo "ERROR: Expected MaskingView ${SG_PATTERN}, but could not find it";
+	echo -e "\e[91mERROR\e[0m: Expected MaskingView ${SG_PATTERN}, but could not find it";
 	exit 1;
     else
 	if [ "$2" = "gone" ]
 	    then
-	    echo "ERROR: Expected MaskingView ${SG_PATTERN} to be gone, but it was found"
+	    echo -e "\e[91mERROR\e[0m: Expected MaskingView ${SG_PATTERN} to be gone, but it was found"
 	    exit 1;
 	fi
     fi
 
     num_inits=`grep "WWN.*:" ${TMPFILE1} | wc -l`
     num_luns=`perl -nle 'print $1 if(m#(\S+)\s+\S+\s+Not Visible\s+#);' ${TMPFILE1} | sort -u | wc -l`
+    hlus=( `perl -nle 'print $1 if(m#\S+\s+\S+\s+Not Visible\s+(\S+)+\s#);' ${TMPFILE1} | sort -u` )
     failed=false
 
     if [ "${num_inits}" != "${NUM_INITIATORS}" ]; then
-	echo "FAILED: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
-	echo "FAILED: Masking view dump:"
+	echo -e "\e[91mERROR\e[0m: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
+	echo -e "\e[91mERROR\e[0m: Masking view dump:"
 	grep "Masking View Name" ${TMPFILE1}
 	grep "Group Name" ${TMPFILE1}
 	grep "WWN.*:" ${TMPFILE1}
@@ -248,8 +254,8 @@ verify_export() {
     fi
 
     if [ "${num_luns}" != "${NUM_LUNS}" ]; then
-	echo "FAILED: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
-	echo "FAILED: Masking view dump:"
+	echo -e "\e[91mERROR\e[0m: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
+	echo -e "\e[91mERROR\e[0m: Masking view dump:"
 	grep "Masking View Name" ${TMPFILE1}
 	grep "Group Name" ${TMPFILE1}
 	grep "WWN" ${TMPFILE1}
@@ -257,11 +263,28 @@ verify_export() {
 	failed=true
     fi
 
+    if [ -n "${HLUS}" ]; then
+        hlu_arr=(${HLUS//,/ })
+        if [  "${hlus[*]}" != "${hlu_arr[*]}" ]; then
+            echo -e "\e[91mERROR\e[0m: Export group HLUs: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
+            echo -e "\e[91mERROR\e[0m: Masking view dump:"
+            grep "Masking View Name" ${TMPFILE1}
+            grep "Group Name" ${TMPFILE1}
+            grep "WWN" ${TMPFILE1}
+            grep "Not Visible" ${TMPFILE1} | sort -u
+            failed=true
+        fi
+    fi
+
     if [ "${failed}" = "true" ]; then
 	exit 1;
     fi
 
-    echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns"
+    if [ -n "${HLUS}" ]; then
+        echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns with HLUs $4"
+    else
+        echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns"
+    fi
     exit 0;
 }
 
@@ -433,7 +456,7 @@ delete_export_mask() {
         optimized=`symaccess -sid ${SID} list -type storage -v | grep Optimized | awk '{ print $5 }'`
         if [[ ! -z "${optimized// }" ]]; then
             echo "=== /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id"
-            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id
+            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_i
         fi
     else
         echo "=== Skipping storage group deletion because 'noop' was passed"
@@ -449,6 +472,45 @@ delete_export_mask() {
 
     # Verify that the mask has been deleted on the provider
     verify_export_via_provider $SID $NAME gone
+}
+
+cleanup_rdfg() {
+    SID=$1
+    PROJECT=$2
+
+    SYMCLI=/opt/emc/SYMCLI/bin
+
+    # Get RDF group number
+    RDFG=`/opt/storageos/bin/dbutils list RemoteDirectorGroup | grep -A10 "label = $PROJECT" | grep "sourceGroupId =" | tail -n1 | awk -F" " '{print $NF}'`
+
+    # Determine device pairs present in the group
+    PAIRS=`$SYMCLI/symrdf -sid $SID -rdfg $RDFG list -offline 2> /dev/null | grep -E "^([0-9A-F]+\s){2}" | awk -F' ' '{print $1,$2}' 2> /dev/null`
+    IFS=$'\n'
+    TMP_DEVICE_FILE="/tmp/devices-${RANDOM}"
+    cat /dev/null > $TMP_DEVICE_FILE
+    for p in $PAIRS; do
+        echo $p >> $TMP_DEVICE_FILE
+    done
+
+    if [ `cat $TMP_DEVICE_FILE | wc -l` -eq 0 ]
+    then
+        echo "=== RDFG $SID:$RDFG is empty.  No cleanup required."
+        exit
+    fi
+
+    echo "=== Removing RDF device pairs in $TMP_DEVICE_FILE from $SID:$RDFG"
+
+    # Suspend
+    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE suspend -force -noprompt > /dev/null
+    SUSPEND_OP=$?
+    # Disable
+    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE disable -force -noprompt > /dev/null
+    DISABLE_OP=$?
+    # Delete
+    $SYMCLI/symrdf -sid $SID -rdfg $RDFG -file $TMP_DEVICE_FILE deletepair -noprompt > /dev/null
+    DELETE_OP=$?
+
+    echo "=== Finished RDFG cleanup (${SUSPEND_OP}, ${DISABLE_OP}, ${DELETE_OP})"
 }
 
 # Check to see if this is an operational request or a verification of export request
@@ -482,6 +544,9 @@ elif [ "$1" = "create_export_mask" ]; then
 elif [ "$1" = "delete_export_mask" ]; then
     shift
     delete_export_mask $*
+elif [ "$1" = "cleanup_rdfg" ]; then
+    shift
+    cleanup_rdfg $*
 else
     # Backward compatibility with vmaxexport scripts
     verify_export $*

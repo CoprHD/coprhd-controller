@@ -6,17 +6,19 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.util.NoSuchElementException;
 
-import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.query.RowQuery;
+
+import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
 
 /**
  * QueryHitIterator with a filter based on column name
  */
-public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
-    private Column<IndexColumnName> _current;
+public abstract class FilteredQueryHitIterator<T1, T2 extends CompositeIndexColumnName>
+        extends QueryHitIterator<T1, T2> {
+    private Column<T2> _current;
 
-    public FilteredQueryHitIterator(RowQuery<String, IndexColumnName> query) {
+    public FilteredQueryHitIterator(RowQuery<String, T2> query) {
         super(query);
     }
 
@@ -47,24 +49,26 @@ public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
         _current = null;
         while (_currentIt != null) {
             skipToNext();
+
             if (_current != null) {
                 return;
             }
+
             super.runQuery();
         }
     }
 
     @Override
     public boolean hasNext() {
-        return (_current != null);
+        return _current != null;
     }
 
     @Override
-    public T next() {
+    public T1 next() {
         if (_current == null) {
             throw new NoSuchElementException();
         }
-        T ret = createQueryHit(_current);
+        T1 ret = createQueryHit(_current);
         moveNext();
         return ret;
     }
@@ -75,5 +79,5 @@ public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
      * @param column
      * @return true if filter likes column, false otherwise
      */
-    public abstract boolean filter(Column<IndexColumnName> column);
+    public abstract boolean filter(Column<T2> column);
 }

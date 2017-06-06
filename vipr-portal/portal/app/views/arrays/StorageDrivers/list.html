@@ -1,0 +1,133 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.storageDrivers'] /}
+
+<script type="text/javascript">
+    $(document).ready(function() {
+    });
+</script>
+
+<script type="text/javascript">
+function storageDriverStatus(o, val) {
+    if (!o.aData.status) {
+        return "";
+    }
+    var labels = {
+        'READY': 'label-success',
+        'IN_USE': 'label-success',
+        'INSTALLING': 'label-info',
+        'UNINSTALLING': 'label-info',
+        'UPGRADING': 'label-info'
+    }
+    var icons = {
+        'READY': 'glyphicon glyphicon-ok',
+        'IN_USE': 'glyphicon glyphicon-ok',
+        'INSTALLING': 'glyphicon glyphicon-refresh rotate',
+        'UNINSTALLING': 'glyphicon glyphicon-refresh rotate',
+        'UPGRADING': 'glyphicon glyphicon-refresh rotate'
+    }
+
+    var messages = {
+            'READY': Messages.get("renderFunctions.storageDriver.status.ready"),
+            'IN_USE': Messages.get("renderFunctions.storageDriver.status.inUse"),
+            'INSTALLING': Messages.get("renderFunctions.storageDriver.status.installing"),
+            'UNINSTALLING': Messages.get("renderFunctions.storageDriver.status.uninstalling"),
+            'UPGRADING': Messages.get("renderFunctions.storageDriver.status.upgrading")
+    };
+
+    var label = defaultValue(labels[o.aData.status], 'label-default');
+    var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
+
+    var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.storageDriver.status.unknown"));
+
+    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
+}
+</script>
+
+<script id="inlineActions.html" type="text/ng-template">
+    <div class="btn-group-site">
+        <a class="btn btn-default btn-xs" ng-show="allowUpgrade" role="button" href="{{upgradeUrl}}">{{'storageDrivers.upgradeButton' | t}}</a>
+        <a class="btn btn-default btn-xs" ng-show="allowDelete" role="button" href="{{deleteUrl}}"onclick="if (!confirm('&{'storageDrivers.operation.confirm'}')){return false;}">{{'storageDrivers.deleteButton' | t}}</a>
+    </div>
+</script>
+
+<script type="text/javascript">
+var deleteUrl = #{jsAction @delete(':driverName') /}
+var upgradeUrl = #{jsAction @upgrade(':driverName') /}
+
+angular.module('tags').directive({
+    actions: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineActions.html",
+         link: function(scope, elem, attrs) {
+             scope.deleteUrl = deleteUrl({'driverName': scope.row.driverName});
+             scope.upgradeUrl = upgradeUrl({'driverName': scope.row.driverName});
+
+             scope.allowUpgrade = false;
+             scope.allowDelete = false;
+             if (scope.row.status.toUpperCase() == "READY") {
+                  scope.allowUpgrade = true;
+                  scope.allowDelete = true;
+             }
+             if (scope.row.status.toUpperCase() == "IN_USE") {
+                 scope.allowUpgrade = true;
+             }
+         }
+     }
+ },
+ url: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineLink.html"
+     }
+ }
+});
+
+function renderButtonBar(o,val) {
+    return "<actions></actions>";
+}
+</script>
+
+<script type="text/javascript">
+function watchDriverStatus(datatable, itemsJson) {
+    var fields = ['driverName', 'driverVersion', 'supportedStorageSystems', 'type', 'defaultNonSslPort',
+                  'defaultSslPort', 'status', 'actions'];
+    var fieldToWatch = 'status';
+    var triggerValues = ['INSTALLING', 'UNINSTALLING', 'UPGRADING'];
+    var triggerStableValues =  ['READY', 'IN_USE'];
+
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerStableValues, fields, 60000);
+}
+$(document).ready(function() {
+    var dataTable = table.storageDrivers.dataTable.getDataTable();
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchDriverStatus(dataTable, itemsJson);
+    // eliminate outdated alerts
+    window.setInterval(function() {
+        var currentTable = table.storageDrivers.dataTable.getDataTable();
+        var data = currentTable.fnGetData();
+        var eliminateAlert = true;
+        for (var i = 0; i < data.length; i++) {
+            var row = data[i];
+            var status = row['status'];
+            if ($.inArray(status, ['INSTALLING', 'UNINSTALLING', 'UPGRADING']) > -1) {
+                eliminateAlert = false;
+                break;
+            }
+        }
+        if (eliminateAlert) {
+            $('.alert-success').hide();
+        }
+    }, 5000);
+});
+</script>
+
+#{DataTable.header titleKey:'storageDrivers.list.title' /}
+#{DataTable.crudTable id:'storageDrivers',
+                      dataTable:dataTable,
+                      disableSelectable: true,
+                      disableDeletable: true,
+                      disableEditable: true,
+                      deleteConfirm:messages.get('storageDrivers.deleteConfirm')}
+#{/DataTable.crudTable}

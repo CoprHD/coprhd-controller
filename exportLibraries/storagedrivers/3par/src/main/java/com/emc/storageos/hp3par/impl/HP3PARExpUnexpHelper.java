@@ -345,6 +345,8 @@ public class HP3PARExpUnexpHelper {
 
         String host = null;
         Boolean fullSuccess = true;
+        boolean gotLock = false;
+        String exportPath = null;
 
         if (initiators.isEmpty() || volumes.isEmpty()) {
             String msg = "3PARDriver:unexportVolumesFromInitiators error blank initiator and/or volumes";
@@ -480,8 +482,10 @@ public class HP3PARExpUnexpHelper {
 
                         // cluster unexport
                         String clusterName = "set:" + initiators.get(0).getClusterName();
-                        String exportPath = volume.getStorageSystemId() + volume.getNativeId() + clusterName;
+                        exportPath = volume.getStorageSystemId() + volume.getNativeId() + clusterName;
+                        gotLock = false;
                         if (driverLockManager.acquireLock(exportPath, 10, TimeUnit.MINUTES)) {
+                            gotLock = true;
                         	Map<String, List<String>> attributes = new HashMap<>();
                         	List<String> expValue = new ArrayList<>();
                         	List<String> lunValue = new ArrayList<>();
@@ -512,6 +516,9 @@ public class HP3PARExpUnexpHelper {
                         		// gracefully exit, nothing to be done
                         		_log.info("3PARDriver: Already unexported, exiting gracefully" + message);
                         	}
+                        	
+                        	driverLockManager.releaseLock(exportPath);
+                        	gotLock = false;
                         } else {// lock
                         	 _log.error("3PARDriver:unexportVolumesFromInitiators error: could not acquire thread lock");
                              throw new HP3PARException(
@@ -528,6 +535,9 @@ public class HP3PARExpUnexpHelper {
                 task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
                 e.printStackTrace();
                 fullSuccess = false;
+                if (gotLock && (exportPath != null)) {
+                    driverLockManager.releaseLock(exportPath);
+                }
             }
         } // for each volume
 
@@ -730,6 +740,10 @@ public class HP3PARExpUnexpHelper {
                     for(FcPath fcPath: hostMemb.getFCPaths()) {                         
                         if (SanUtils.formatWWN(fcPath.getWwn()).compareToIgnoreCase(init.getPort()) == 0) {
                             hp3parHost = hostMemb.getName();
+                            //Reference for residual initiator is present and there is no host name associated with this. 
+                            if (hp3parHost == null) {
+                                continue;
+                            }
                             hp3parHostResult.setHostName(hp3parHost);
                             // Confirm all initiators are present with this host
                             if (hostHasAllFcInitiators(initiators, hostMemb.getFCPaths())) {
@@ -796,29 +810,28 @@ public class HP3PARExpUnexpHelper {
         // Supporting from lower OS versions; 
         switch (hostType) {
             case Windows:
-            case Linux:
-            case SUNVCS:
-                persona = 1;
+                persona = 11;
                 break;
 
             case HPUX:
-                persona = 7;
+                persona = 10;
                 break;
 
             case Esx:
-                persona = 11;
+                persona = 8;
                 break;
 
             case AIX:
             case AIXVIO:
-                persona = 8;
+                persona = 5;
                 break;
 
-                // persona 3 is by experimentation, doc is not up-to-date
             case No_OS:
+            case Linux:
+            case SUNVCS:
             case Other:
             default:
-                persona = 3;
+                persona = 1;
                 break;
         }
         return persona;

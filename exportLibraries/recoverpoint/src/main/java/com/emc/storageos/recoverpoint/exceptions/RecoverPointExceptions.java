@@ -274,6 +274,12 @@ public interface RecoverPointExceptions {
     public RecoverPointException databaseExceptionDeactivateSnapshot(final URI protectionDevice);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToActivateSnapshotEmNameMissing(final URI snapshot);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToDeactivateSnapshotEmNameMissing(final URI snapshot);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedDisableAccessOnRP();
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
@@ -349,4 +355,13 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException unableToPerformValidation(final String errMsg);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException imageAccessModeNotSupported(final String imageAccessMode);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException protectionOperationNotSupported(final String operation);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failoverWrongTargetSpecified();
 }

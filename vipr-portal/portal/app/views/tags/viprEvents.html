@@ -1,5 +1,5 @@
 <li ng-controller="eventController" class="event-count" xmlns="http://www.w3.org/1999/html">
     <a href="@{Events.listAll()}">
-        <img src="/public/img/events-small.png" style="margin-bottom: 5px"/><span ng-show="numOfPendingEvents >=0" class="badge badge-white">{{numOfPendingEvents}}</span><span ng-hide="numOfPendingEvents >= 0"  class="badge badge-white">--</span>
+        <img src="/public/img/events-small.png" style="margin-bottom: 5px"/><span ng-show="numOfPendingAndFailedEvents >=0" class="badge badge-white">{{numOfPendingAndFailedEvents}}</span><span ng-hide="numOfPendingAndFailedEvents >= 0"  class="badge badge-white">--</span>
     </a>
 </li>

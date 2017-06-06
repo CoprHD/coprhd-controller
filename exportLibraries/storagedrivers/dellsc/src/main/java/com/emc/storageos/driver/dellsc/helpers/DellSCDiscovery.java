@@ -292,9 +292,12 @@ public class DellSCDiscovery {
 
                 ScControllerPort[] fdPorts = api.getFaultDomainPorts(fd.instanceId, virtualMode);
                 for (ScControllerPort fdPort : fdPorts) {
-                    // See if we need to inherit the subnet mask from the fault domain
-                    if ("0.0.0.0".equals(fdPort.iscsiSubnetMask)) {
+                    // See if we need to inherit the IP settings from the fault domain
+                    if (EMPTY_IPADDR.equals(fdPort.iscsiSubnetMask)) {
                         fdPort.iscsiSubnetMask = fd.subnetMask;
+                    }
+                    if (EMPTY_IPADDR.equals(fdPort.iscsiIpAddress)) {
+                        fdPort.iscsiIpAddress = fd.targetIpv4Address;
                     }
                     ports.get(fd.name).add(fdPort);
                 }

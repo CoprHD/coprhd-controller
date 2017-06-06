@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -133,6 +134,9 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         snapShot.setSnapsetLabel(snapsetName);
 
         snapShot.setStorageController(requestContext.getStorageSystem().getId());
+        String systemType = requestContext.getStorageSystem().checkIfVmax3() ? 
+                DiscoveredDataObject.Type.vmax3.name() : requestContext.getStorageSystem().getSystemType();
+        snapShot.setSystemType(systemType);
         snapShot.setVirtualArray(requestContext.getVarray(unManagedVolume).getId());
         snapShot.setProject(new NamedURI(requestContext.getProject().getId(), snapShot.getLabel()));
         snapShot.setWWN(unManagedVolume.getWwn());

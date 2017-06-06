@@ -195,7 +195,7 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
             // is idempotent.
             snap.setInactive(true);
             snap.setIsSyncActive(false);
-            _dbClient.persistObject(snap);
+            _dbClient.updateObject(snap);
             taskCompleter.ready(_dbClient);
         } catch (WBEMException e) {
             String message = String.format(
@@ -377,7 +377,7 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
             for (BlockSnapshot snap : snaps) {
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                _dbClient.persistObject(snap);
+                _dbClient.updateObject(snap);
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {

@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2016 Dell EMC Software
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 
 import javax.xml.soap.SOAPEnvelope;
 import javax.xml.soap.SOAPFactory;
@@ -13,35 +14,56 @@ import javax.xml.soap.SOAPFault;
 import javax.xml.xpath.XPathExpression;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
+import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.HttpClient;
+import org.apache.http.auth.NTCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.AuthSchemes;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContextBuilder;
+import org.apache.http.conn.ssl.SSLContexts;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
-import org.apache.http.impl.conn.SchemeRegistryFactory;
-import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.impl.auth.BasicSchemeFactory;
+import org.apache.http.impl.auth.DigestSchemeFactory;
+import org.apache.http.impl.auth.KerberosSchemeFactory;
+import org.apache.http.impl.auth.NTLMSchemeFactory;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
-import com.iwave.ext.xml.XmlUtils;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import com.iwave.ext.windows.winrm.encryption.EncryptedHttpRequestExecutor;
+import com.iwave.ext.xml.XmlUtils;
+
 public class WinRMTarget {
+    private static final Logger logger = LoggerFactory.getLogger(WinRMTarget.class);
+
     protected static final ContentType SOAP = ContentType.create("application/soap+xml", "UTF-8");
     public static final int DEFAULT_HTTP_PORT = 5985;
     public static final int DEFAULT_HTTPS_PORT = 5986;
+    private static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
     private String host;
     private int port;
@@ -49,7 +71,7 @@ public class WinRMTarget {
     private String username;
     private String password;
 
-    private HttpClient client;
+    private CloseableHttpClient client;
     private HttpContext context;
 
     public WinRMTarget(String host, String username, String password) {
@@ -60,10 +82,12 @@ public class WinRMTarget {
         this.host = host;
         this.port = port;
         this.secure = secure;
-        this.username = normalizeUsername(username);
+        this.username = username;
         this.password = password;
     }
 
+    
+    //TODO: Remove this method, probably no longer needed.
     /**
      * This will normalize a windows style username into the appropriate format for Kerberos. Windows usernames are
      * specified as <i>DOMAIN\\username</i>, but kerberos requires the names to be <i>username@DOMAIN</i>.
@@ -85,7 +109,7 @@ public class WinRMTarget {
             return username;
         }
     }
-
+    
     public String getHost() {
         return host;
     }
@@ -124,7 +148,9 @@ public class WinRMTarget {
             post.setEntity(new StringEntity(request, SOAP));
 
             HttpHost targetHost = new HttpHost(getHost(), getPort(), getProtocol());
-            HttpResponse response = getClient().execute(targetHost, post, getContext());
+            CloseableHttpClient client = getClient();
+            HttpContext context = getContext();
+            HttpResponse response = client.execute(targetHost, post, context);
             String text = EntityUtils.toString(response.getEntity());
 
             if (response.getStatusLine().getStatusCode() != 200) {
@@ -186,46 +212,101 @@ public class WinRMTarget {
                 }
             }
         }
-
         return null; // No Description, or it's empty
     }
 
-    protected HttpClient getClient() {
+    protected CloseableHttpClient getClient() throws HttpException {
         if (client == null) {
-            client = createHttpClient();
+            try {
+				client = createHttpClient();
+			} catch (HttpException e) {
+				throw e;
+			}
         }
         return client;
     }
 
     protected HttpContext getContext() {
         if (context == null) {
-            context = createHttpContext();
+            context = createHttpClientContext();
         }
         return context;
     }
 
-    protected HttpClient createHttpClient() {
-        DefaultHttpClient client = new DefaultHttpClient(createClientConnectionManager());
-        client.getAuthSchemes().register("Negotiate", new CustomSPNegoSchemeFactory());
-        client.getCredentialsProvider().setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(username, password));
-        return client;
+    /**
+     * HttpClient builder
+     * @return HttpClient
+     * @throws HttpException
+     */
+    protected CloseableHttpClient createHttpClient() throws HttpException {
+    	
+    	HttpClientBuilder httpClient = HttpClientBuilder.create();
+    	
+    	//Build the request config identifying the target preferred authentication schemes and other socket connection parameters.
+    	RequestConfig.Builder requestConfig = RequestConfig.custom()
+                .setTargetPreferredAuthSchemes(
+                        Arrays.asList(AuthSchemes.SPNEGO, AuthSchemes.NTLM, AuthSchemes.DIGEST, AuthSchemes.BASIC));
+    	requestConfig.setConnectTimeout(DEFAULT_CONNECTION_TIMEOUT);
+    	requestConfig.setSocketTimeout(DEFAULT_CONNECTION_TIMEOUT);
+    	httpClient.setDefaultRequestConfig(requestConfig.build());
+    	
+    	//Set the request executor. The EncryptedHttpRequestExecutor is a custom request executor that is capable of encryption and works
+    	//using the Windows NTLM authentication scheme.
+    	httpClient.setRequestExecutor(new EncryptedHttpRequestExecutor());
+    	
+    	//Build a list of the authentication schemes
+    	Registry<AuthSchemeProvider> authSchemeRegistry = RegistryBuilder.<AuthSchemeProvider> create()
+				.register(AuthSchemes.NTLM, new NTLMSchemeFactory())
+				.register(AuthSchemes.BASIC, new BasicSchemeFactory())
+				.register(AuthSchemes.DIGEST, new DigestSchemeFactory())
+				.register(AuthSchemes.KERBEROS, new KerberosSchemeFactory())
+				.register(AuthSchemes.SPNEGO, new CustomSPNegoSchemeFactory()).build();
+    
+    	try {
+			httpClient.setConnectionManager(createClientConnectionManager());
+		} catch (Exception e) {
+			throw new HttpException(e.getMessage());
+		}
+    	httpClient.setDefaultAuthSchemeRegistry(authSchemeRegistry);   	
+    	return httpClient.build();
     }
 
-    private ClientConnectionManager createClientConnectionManager() {
-        SchemeRegistry schemeRegistry = SchemeRegistryFactory.createDefault();
+    private HttpClientConnectionManager createClientConnectionManager() throws Exception {
+    	SSLContextBuilder contextBuilder = SSLContexts.custom();
+        try {
+            contextBuilder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+            SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(SSLContexts.custom()
+                    .loadTrustMaterial(null, new TrustSelfSignedStrategy()).build(),
+                    SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            Registry<ConnectionSocketFactory> registry = RegistryBuilder.<ConnectionSocketFactory> create()
+            		.register("http", PlainConnectionSocketFactory.INSTANCE)
+                    .register("https", socketFactory)
+            		.build();
+            
+        	return (new PoolingHttpClientConnectionManager(registry));
 
-        // SSL Trust all for HTTP Client 4.x
-        SSLSocketFactory sf = new SSLSocketFactory(SSLUtil.getTrustAllContext(),
-                SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-        Scheme httpsScheme = new Scheme("https", port, sf);
-        schemeRegistry.register(httpsScheme);
-
-        ClientConnectionManager connectionManager = new PoolingClientConnectionManager(schemeRegistry);
-        return connectionManager;
+        } catch (Exception e) {
+        	throw new HttpException(e.getMessage());
+        }
     }
 
-    protected HttpContext createHttpContext() {
-        return new BasicHttpContext();
+    protected  HttpClientContext createHttpClientContext() {
+        HttpClientContext httpClientContext = HttpClientContext.create();
+        
+        //Build the credential provider. Note that the credentials are using NTCredentials class which is a derived class of UserPasswordCredentials
+    	//This is specifically needed for NTLM authentication.
+    	//NTCredentials requires user name in the format "user" and NOT "domain\\user"
+        String[] tokens = StringUtils.split(getUsername(), "\\", 2);
+        CredentialsProvider credsProvider = new BasicCredentialsProvider();
+        credsProvider.setCredentials(
+                AuthScope.ANY,
+                new NTCredentials(tokens.length > 1 ? tokens[1] : getUsername(), 
+                getPassword(), 
+                System.getProperty("hostname"), tokens.length > 1 ? tokens[0] : null)
+               );
+
+        httpClientContext.setCredentialsProvider(credsProvider);
+        httpClientContext.setTargetHost(new HttpHost(getHost()));
+        return httpClientContext;
     }
 }

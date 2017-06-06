@@ -126,11 +126,12 @@ public class NetAppFileCommunicationInterface extends
                             .toString(),
                     SupportedNtpFileSystemInformation.STORAGE_POOL.toString(),
                     SupportedNtpFileSystemInformation.NAME.toString(),
-                    SupportedNtpFileSystemInformation.VFILER.toString()));
+                    SupportedNtpFileSystemInformation.VFILER.toString(),
+                    SupportedNtpFileSystemInformation.SNAPSHOT_BLOCKS_RESERVED.toString()));
 
     public enum SupportedNtpFileSystemInformation {
         ALLOCATED_CAPACITY("size-used"), PROVISIONED_CAPACITY("size-total"), STORAGE_POOL(
-                "containing-aggregate"), NATIVE_GUID("NativeGuid"), NAME("name"), VFILER("owning-vfiler");
+                "containing-aggregate"), NATIVE_GUID("NativeGuid"), NAME("name"), VFILER("owning-vfiler"),SNAPSHOT_BLOCKS_RESERVED("snapshot-blocks-reserved");
 
         private String _infoKey;
 
@@ -975,7 +976,8 @@ public class NetAppFileCommunicationInterface extends
                         if ("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
                             unManagedFileQuotaDirectory.setOpLock(true);
                         }
-                        unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
+                        //Converting KB to Bytes
+                        unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()) * BYTESCONVERTER);
 
                         if (!unManagedFileQuotaDirectoryExists) {
                              unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
@@ -1393,10 +1395,17 @@ public class NetAppFileCommunicationInterface extends
                         .getFileSystemInformation(SupportedNtpFileSystemInformation.PROVISIONED_CAPACITY
                                 .toString()))) {
             StringSet provisionedCapacity = new StringSet();
+            String totalCapacity = fileSystemChars.get(SupportedNtpFileSystemInformation
+                    .getFileSystemInformation(SupportedNtpFileSystemInformation.PROVISIONED_CAPACITY
+                            .toString()));
+            String snapShotReserveBlocks = fileSystemChars.get(SupportedNtpFileSystemInformation
+                    .getFileSystemInformation(SupportedNtpFileSystemInformation.SNAPSHOT_BLOCKS_RESERVED
+                            .toString()));
+            // Snapshot reserved Blocks - 1 block is 1024 bytes, convert it to bytes
+            String fsProvisionedCapacity = Long
+                    .toString(Long.parseLong(totalCapacity) + (Long.parseLong(snapShotReserveBlocks) * BYTESCONVERTER));
             provisionedCapacity
-                    .add(fileSystemChars.get(SupportedNtpFileSystemInformation
-                            .getFileSystemInformation(SupportedNtpFileSystemInformation.PROVISIONED_CAPACITY
-                                    .toString())));
+                    .add(fsProvisionedCapacity);
             unManagedFileSystemInformation.put(
                     SupportedFileSystemInformation.PROVISIONED_CAPACITY
                             .toString(),

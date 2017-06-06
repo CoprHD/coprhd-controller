@@ -671,8 +671,9 @@ public class AuthnConfigurationService extends TaggedResource {
             authn.setServerUrls(ssOld);
         }
 
-        if (param.getMode().equals(AuthnProvider.ProvidersType.keystone.toString()) &&
-            param.getTenantsSynchronizationOptionsChanges() != null) {
+        if (param.getMode() != null
+                && param.getMode().equals(AuthnProvider.ProvidersType.keystone.toString())
+                && param.getTenantsSynchronizationOptionsChanges() != null) {
             StringSet oldOptions = authn.getTenantsSynchronizationOptions();
             if (oldOptions == null) {
                 oldOptions = new StringSet();
@@ -961,7 +962,7 @@ public class AuthnConfigurationService extends TaggedResource {
             try {
                 ProvidersType.valueOf(param.getMode());
             } catch (IllegalArgumentException ex) {
-                throw APIException.badRequests.invalidParameter("mode", param.getMode(), ex);
+                throw APIException.badRequests.invalidParameterWithCause("mode", param.getMode(), ex);
             }
         }
         if (param.getManagerDn() != null) {
@@ -1027,7 +1028,7 @@ public class AuthnConfigurationService extends TaggedResource {
                     // Just validate that the scope is one of the enums
                     SearchScope.valueOf(param.getSearchScope());
                 } catch (IllegalArgumentException ex) {
-                    throw APIException.badRequests.invalidParameter("search_scope", param.getSearchScope(), ex);
+                    throw APIException.badRequests.invalidParameterWithCause("search_scope", param.getSearchScope(), ex);
                 }
             }
             if (param.getSearchBase() != null) {

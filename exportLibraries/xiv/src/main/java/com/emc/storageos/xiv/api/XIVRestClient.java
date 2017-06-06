@@ -429,10 +429,11 @@ public class XIVRestClient extends StandardRestClient {
      * 
      * @param xivSystem XIV system
      * @param hostName Host name to be deleted
+     * @param forceDelete True would delete Host even if Volumes are mapped to Cluster
      * @return True if deleted. Else false.
      * @throws Exception Throws Exception If error occurs during execution
      */
-    public boolean deleteHost(final String xivSystem, final String hostName) throws Exception {
+    public boolean deleteHost(final String xivSystem, final String hostName, final boolean forceDelete) throws Exception {
         final String instanceURL = MessageFormat.format(HOST_INSTANCE_URL, xivSystem, hostName);
         boolean deleteSuccessful = false;
         if (findAvailability(instanceURL)) {
@@ -440,7 +441,7 @@ public class XIVRestClient extends StandardRestClient {
             boolean isVolumeExportAvailable = findAvailability(
                     MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, HOST, hostName));
 
-            if (!isVolumeExportAvailable) {
+            if (forceDelete || !isVolumeExportAvailable) {
                 // Validate if there are any Initiators associated with Host before deleting.
                 boolean isInitiatorAvailable = findAvailability(
                         MessageFormat.format(HOST_PORT_URL + SEARCH_URL, xivSystem, HOST, hostName));

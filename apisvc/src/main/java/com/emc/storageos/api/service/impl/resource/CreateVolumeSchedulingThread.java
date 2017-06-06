@@ -16,6 +16,7 @@ import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -104,6 +105,12 @@ class CreateVolumeSchedulingThread implements Runnable {
                 // Set the volumes to inactive
                 Volume volume = this.blockService._dbClient.queryObject(Volume.class, taskObj.getResource().getId());
                 volume.setInactive(true);
+                // clean up the consistency group
+                if (consistencyGroup != null) {
+                    StringSet cgRequestTypes = consistencyGroup.getRequestedTypes();
+                    cgRequestTypes.removeAll(cgRequestTypes);
+                    this.blockService._dbClient.updateObject(consistencyGroup);
+                }
                 this.blockService._dbClient.updateObject(volume);
             }
         }
@@ -147,7 +154,7 @@ class CreateVolumeSchedulingThread implements Runnable {
                 // Set the volumes to inactive
                 Volume volume = dbClient.queryObject(Volume.class, taskObj.getResource().getId());
                 volume.setInactive(true);
-                dbClient.updateAndReindexObject(volume);
+                dbClient.updateObject(volume);
             }
         }
     }

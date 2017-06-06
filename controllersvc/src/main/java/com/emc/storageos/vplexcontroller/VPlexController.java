@@ -326,6 +326,20 @@ public interface VPlexController extends Controller {
             throws InternalException;
     
     /**
+     * Re-link the linked targets represented the BlockSnapshot instances with the
+     * passed URIs to the BlockSnapshotSession instance with the passed URI.
+     * 
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param tgtSnapSessionURI The URI of the snapshot session to which the targets are re-linked.
+     * @param snapshotURIs The URIs of the snapshots representing the linked targets.
+     * @param opId The unique task identifier.
+     * 
+     * @throws InternalException When an error occurs configuring the relink target workflow.
+     */
+    public void relinkTargetsToSnapshotSession(URI vplexURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
+            String opId) throws InternalException;
+    
+    /**
      * Add/remove volumes to/from volume group
      * @param vplexURI
      * @param addVolList

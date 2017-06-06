@@ -17,6 +17,7 @@ public class FileExportUpdateParams implements Serializable {
     protected ExportRules exportRulesToAdd;
     protected ExportRules exportRulesToDelete;
     protected ExportRules exportRulesToModify;
+    protected Boolean bypassDnsCheck;
 
     // Non payload models - for internal use only
     protected String subDir;
@@ -86,6 +87,15 @@ public class FileExportUpdateParams implements Serializable {
         this.exportRulesToModify = exportRulesToModify;
     }
 
+    @XmlElement(name = "bypass_dns_check", required = false, defaultValue = "false")
+    public Boolean getBypassDnsCheck() {
+        return bypassDnsCheck;
+    }
+
+    public void setBypassDnsCheck(Boolean bypassDnsCheck) {
+        this.bypassDnsCheck = bypassDnsCheck;
+    }
+
     @Override
     public String toString() {
 
@@ -106,13 +116,17 @@ public class FileExportUpdateParams implements Serializable {
         return sb.toString();
 
     }
-
+    
+    /**
+     * Non payload models - for internal use only: use query parameter subDir instead
+     */
     public String getSubDir() {
         return subDir;
     }
 
     /**
      * Non payload models - for internal use only: use query parameter subDir instead
+     * 
      * @param subDir
      */
     public void setSubDir(String subDir) {

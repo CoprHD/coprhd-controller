@@ -67,7 +67,7 @@ public class FileUtils {
                     }
                 }
                 exportRuleInfo.setAnon(rule.getAnon());
-                exportRuleInfo.setSecurity(rule.getSecFlavor());
+                exportRuleInfo.setSecurity(getSecurityFlavorList(rule.getSecFlavor()));
                 exportRuleInfo.setEndpointsInfo(infos);
             }
         }
@@ -89,6 +89,14 @@ public class FileUtils {
         return endpointList;
     }
 
+    private static List<String> getSecurityFlavorList(String secFlo) {
+    	List<String> secTypes = Lists.newArrayList();
+    	for (String secType : secFlo.split(",")) {
+    		secTypes.add(secType.trim());
+    	}
+    	return secTypes;
+    }
+
     public static class EndpointInfo {
         public String endpoint;
         public String permission;
@@ -101,7 +109,7 @@ public class FileUtils {
 
     public static class ExportRuleInfo {
         public String anon;
-        public String security;
+        public List<String> security;
         public List<EndpointInfo> endpoints;
 
         public ExportRuleInfo() {
@@ -111,7 +119,7 @@ public class FileUtils {
             this.anon = anon;
         }
 
-        public void setSecurity(String security) {
+        public void setSecurity(List<String> security) {
             this.security = security;
         }
 
@@ -119,4 +127,4 @@ public class FileUtils {
             this.endpoints = infos;
         }
     }
-}
+  }

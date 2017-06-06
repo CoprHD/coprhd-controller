@@ -310,6 +310,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 throw new IllegalArgumentException(e);
             }
             model.setLabel(label);
+            info("Creating new instance of %s with label %s", modelClass.getSimpleName(), label);
         } else {
             models.remove(model);
         }
@@ -646,8 +647,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                     host.setCluster(cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId());
                     dbClient.updateObject(host);
                     ComputeSystemHelper.updateHostAndInitiatorClusterReferences(dbClient, host.getCluster(), host.getId());
-                    ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, host.getId(),
-                            cluster != null ? cluster.getVcenterDataCenter() : NullColumnValueGetter.getNullURI());
+                    if (cluster != null) {
+                        ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, host.getId(),
+                                cluster != null ? cluster.getVcenterDataCenter() : NullColumnValueGetter.getNullURI());
+                    }
                 }
             } else if (!NullColumnValueGetter.isNullURI(change.getNewDatacenter())) {
                 VcenterDataCenter currentDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getNewDatacenter());
@@ -677,6 +680,12 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             new Object[] { newInitiator.getId() }, EventUtils.addInitiatorDecline,
                             new Object[] { newInitiator.getId() });
                 }
+            } else {
+                for (Initiator oldInitiator : oldInitiatorObjects) {
+                    info("Deleting Initiator %s because it was not re-discovered and is not in use by any export groups",
+                            oldInitiator.getId());
+                    dbClient.removeObject(oldInitiator);
+                }
             }
         }
 
@@ -698,9 +707,12 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                         + " is part of a cluster that was not re-discovered. Fail discovery and keep the host in our database");
 
             } else {
+                Vcenter vcenter = ComputeSystemHelper.getHostVcenter(dbClient, host);
                 EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.UNASSIGN_HOST_FROM_VCENTER, host.getTenant(),
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignLabel"),
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDescription", host.getLabel()),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignLabel",
+                                vcenter == null ? "N/A" : vcenter.getLabel()),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDescription", host.getLabel(),
+                                vcenter == null ? "N/A" : vcenter.getLabel()),
                         ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignWarning"),
                         host, Lists.newArrayList(host.getId(), host.getCluster()),
                         EventUtils.hostVcenterUnassign, new Object[] { deletedHost },
@@ -724,8 +736,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     }
 
     // TODO: move to AbstractHostDiscoveryAdapter once EsxHostDiscoveryAdatper is moved to extend it
-    public void matchHostsToComputeElements(URI hostId) {
-        log.warn("Matching host to compute element not supported for this host type.");
+    public void matchHostToComputeElements(Host host) {
+        log.warn("Matching host to compute elements not supported for this host type.");
     }
 
 }

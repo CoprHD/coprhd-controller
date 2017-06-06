@@ -830,7 +830,7 @@ class Volume(object):
         return o
 
     def unmanaged_exported_volume_ingest(self, tenant, project,
-                                varray, vpool, volumes, host, cluster, ingestmethod):
+                                varray, vpool, volumes, host, cluster,datacenter,vcenter, ingestmethod):
         '''
         This function is to ingest given unmanaged volumes
         into ViPR.
@@ -866,7 +866,7 @@ class Volume(object):
         if(cluster is not None):
             from cluster import Cluster
             cluster_obj = Cluster(self.__ipAddr, self.__port)
-            cluster_uri = cluster_obj.cluster_query(cluster)
+            cluster_uri = cluster_obj.cluster_query(cluster,datacenter,vcenter,tenant)
             request["cluster"] = cluster_uri
 
         body = json.dumps(request)
@@ -2867,6 +2867,16 @@ def unmanaged_parser(subcommand_parsers, common_parser):
                                 metavar='<cluster name>',
                                 dest='cluster',
                                 help='Name of cluster')
+    ingest_parser.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default=None)
+    ingest_parser.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default=None)
     ingest_parser.add_argument('-ingestmethod', '-inmd',
                                 metavar='<ingest method>',
                                 dest='ingestmethod',
@@ -2908,7 +2918,7 @@ def unmanaged_volume_ingest(args):
                 obj.unmanaged_exported_volume_ingest(args.tenant, args.project,
                                           args.varray, args.vpool,
                                           args.volumes, args.host,
-                                          args.cluster ,args.ingestmethod)
+                                          args.cluster,args.datacenter, args.vcenter,args.ingestmethod)
             else:
                 obj.unmanaged_volume_ingest(args.tenant, args.project,
                                           args.varray, args.vpool,

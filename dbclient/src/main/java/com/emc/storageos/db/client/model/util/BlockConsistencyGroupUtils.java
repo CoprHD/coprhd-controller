@@ -5,12 +5,15 @@
 package com.emc.storageos.db.client.model.util;
 
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -20,11 +23,13 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class BlockConsistencyGroupUtils {
@@ -124,6 +129,31 @@ public class BlockConsistencyGroupUtils {
     }
 
     /**
+     * Gets the protection system(s) containing the CGs corresponding to the
+     * passed RP CG.
+     * 
+     * @param cg the BlockConsistencyGroup.
+     * @param dbClient the DB client references.
+     * @return A list of the the protection system(s) containing the CGs
+     *         corresponding to the passed RP CG.
+     */
+    public static List<ProtectionSystem> getRPProtectionSystems(BlockConsistencyGroup cg, DbClient dbClient) {
+        List<ProtectionSystem> rpSystems = new ArrayList<ProtectionSystem>();
+
+        if (cg.getSystemConsistencyGroups() != null &&
+                !cg.getSystemConsistencyGroups().isEmpty()) {
+            for (String systemUri : cg.getSystemConsistencyGroups().keySet()) {
+                if (URIUtil.isType(URI.create(systemUri), ProtectionSystem.class)) {
+                    ProtectionSystem rpSystem = dbClient.queryObject(ProtectionSystem.class, URI.create(systemUri));
+                    rpSystems.add(rpSystem);
+                }
+            }
+        }
+
+        return rpSystems;
+    }
+
+    /**
      * Determines if the given BlockConsistencyGroup references any non-LOCAL storage system
      * consistency groups.
      * 
@@ -133,19 +163,31 @@ public class BlockConsistencyGroupUtils {
      */
     public static boolean referencesNonLocalCgs(BlockConsistencyGroup cg, DbClient dbClient) {
         List<StorageSystem> storageSystems = getVPlexStorageSystems(cg, dbClient);
-        boolean referencesCgs = false;
+        List<ProtectionSystem> protectionSystems = getRPProtectionSystems(cg, dbClient);
+        boolean referencesVplexCgs = false;
+        boolean referencesRpCgs = false;
 
         if (storageSystems != null && !storageSystems.isEmpty()) {
             for (StorageSystem storageSystem : storageSystems) {
                 StringSet cgs = cg.getSystemConsistencyGroups().get(storageSystem.getId().toString());
                 if (cgs != null && !cgs.isEmpty()) {
-                    referencesCgs = true;
+                    referencesVplexCgs = true;
                     break;
                 }
             }
         }
 
-        return referencesCgs;
+        if (protectionSystems != null && !protectionSystems.isEmpty()) {
+            for (ProtectionSystem protectionSystem : protectionSystems) {
+                StringSet cgs = cg.getSystemConsistencyGroups().get(protectionSystem.getId().toString());
+                if (cgs != null && !cgs.isEmpty()) {
+                    referencesRpCgs = true;
+                    break;
+                }
+            }
+        }
+
+        return referencesVplexCgs || referencesRpCgs;
     }
 
     /**
@@ -424,6 +466,131 @@ public class BlockConsistencyGroupUtils {
             result.addAll(getActiveNativeVolumesInCG(cg, dbClient));
         }
 
+        return result;
+    }
+    
+    /**
+     * Given a list of volumes find all unique CG URIs.
+     * 
+     * @param volumes List of volumes to parse over and find all CGs related to the volumes
+     * @return Set of unique CG URIs
+     */
+    public static Set<URI> getAllCGsFromVolumes(List<Volume> volumes) {
+        // Using a Set to store all unique CG URIs collected from the
+        // volumes passed in.
+        Set<URI> cgURIs = new HashSet<URI>();
+        
+        if (volumes != null) {
+            for (Volume vol : volumes) {
+                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
+                    cgURIs.add(vol.getConsistencyGroup());
+                }
+            }
+        }
+        
+        return cgURIs; 
+    }
+
+    /**
+     * Method to clean up a consistency group after an operation succeeds or fails.
+     * 
+     * @param consistencyGroup
+     *            consistency group
+     * @param storageId
+     *            storage system
+     * @param replicationGroupName
+     *            replication group name
+     * @param markInactive
+     *            whether you can mark it as inactive as part of cleanup (delete the CG itself)
+     * @param dbClient
+     *            dbclient
+     */
+    public static void cleanUpCG(BlockConsistencyGroup consistencyGroup, URI storageId, String replicationGroupName,
+            Boolean markInactive, DbClient dbClient) {
+        checkNotNull(consistencyGroup, "consistency group must be non-null");
+        // Remove the replication group name from the SystemConsistencyGroup field
+        if (replicationGroupName != null) {
+            consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageId), replicationGroupName);
+        }
+        /*
+         * Verify if the BlockConsistencyGroup references any LOCAL arrays.
+         * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
+         */
+        List<URI> referencedArrays = getLocalSystems(consistencyGroup, dbClient);
+        boolean cgReferenced = false;
+        for (URI storageSystemUri : referencedArrays) {
+            StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
+            if (cgs != null && !cgs.isEmpty()) {
+                cgReferenced = true;
+                break;
+            }
+        }
+
+        if (!cgReferenced) {
+            // Remove the LOCAL type
+            StringSet cgTypes = consistencyGroup.getTypes();
+            cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
+            consistencyGroup.setTypes(cgTypes);
+
+            StringSet requestedTypes = consistencyGroup.getRequestedTypes();
+            requestedTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
+            consistencyGroup.setRequestedTypes(requestedTypes);
+
+            // Remove the referenced storage system as well, but only if there are no other types
+            // of storage systems associated with the CG.
+            if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, dbClient)) {
+                consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
+                // Clear any remaining types and requestedTypes
+                consistencyGroup.getTypes().clear();
+                consistencyGroup.getRequestedTypes().clear();
+                // Update the consistency group model
+                consistencyGroup.setInactive(markInactive);
+            }
+        }
+    }
+
+    /**
+     * Method to clean up a consistency group after an operation succeeds or fails.  Also persists any changes to the
+     * database.
+     *
+     * @param consistencyGroup
+     *            consistency group
+     * @param storageId
+     *            storage system
+     * @param replicationGroupName
+     *            replication group name
+     * @param markInactive
+     *            whether you can mark it as inactive as part of cleanup (delete the CG itself)
+     * @param dbClient
+     *            dbclient
+     */
+    public static void cleanUpCGAndUpdate(BlockConsistencyGroup consistencyGroup, URI storageId, String replicationGroupName,
+                                          Boolean markInactive, DbClient dbClient) {
+        if (consistencyGroup != null) {
+            cleanUpCG(consistencyGroup, storageId, replicationGroupName, markInactive, dbClient);
+            dbClient.updateObject(consistencyGroup);
+        }
+    }
+
+    /**
+     * Return a set of ReplicationGroup names for the given storage system and consistency group.
+     *
+     * @param consistencyGroup  Consistency group
+     * @param storageSystem     Storage system
+     * @return                  Set of group names or an empty set if none exist.
+     */
+    public static Set<String> getGroupNamesForSystemCG(BlockConsistencyGroup consistencyGroup, StorageSystem storageSystem) {
+        checkNotNull(consistencyGroup);
+        checkNotNull(storageSystem);
+
+        Set<String> result = new HashSet<>();
+        StringSetMap systemConsistencyGroups = consistencyGroup.getSystemConsistencyGroups();
+        if (systemConsistencyGroups != null) {
+            StringSet cgsForSystem = systemConsistencyGroups.get(storageSystem.getId().toString());
+            if (cgsForSystem != null || !cgsForSystem.isEmpty()) {
+                result.addAll(cgsForSystem);
+            }
+        }
         return result;
     }
 }

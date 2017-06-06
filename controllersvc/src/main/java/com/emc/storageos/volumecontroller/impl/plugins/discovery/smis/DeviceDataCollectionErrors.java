@@ -27,7 +27,7 @@ public interface DeviceDataCollectionErrors {
     public ServiceError failedToEnqueue(final String jobType, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_DATA_COLLECTION_ERROR)
-    public ServiceError scanFailed(final Throwable cause);
+    public ServiceError scanFailed(final String message, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_DATA_COLLECTION_ERROR)
     public ServiceError scanLockFailed();

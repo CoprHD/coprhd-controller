@@ -40,7 +40,7 @@ public interface RemoteMirroring {
      * @param target
      * @param completer
      */
-    void doCreateLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
+    void doCreateLink(StorageSystem system, URI source, URI target, TaskCompleter completer) throws Exception;
 
     /**
      * Create and establish replication links from a list of source and target volumes.
@@ -80,9 +80,11 @@ public interface RemoteMirroring {
      * @param sources
      * @param targets
      * @param isGroupRollback
+     * @param isVpoolChange
      * @param completer
      */
-    void doRollbackLinks(StorageSystem system, List<URI> sources, List<URI> targets, boolean isGroupRollback, TaskCompleter completer);
+    void doRollbackLinks(StorageSystem system, List<URI> sources, List<URI> targets, boolean isGroupRollback, boolean isVpoolChange,
+            TaskCompleter completer);
 
     /**
      * Split replication links.

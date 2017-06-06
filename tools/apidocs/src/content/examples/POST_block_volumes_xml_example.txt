@@ -4,58 +4,48 @@ Content-Type: application/xml
 X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
 
 <volume_create>
-     <name>volume1234</name>
-     <size>1GB</size>
-     <count>1</count>
-     <project>urn:storageos:Project:7a6b150e-d224-492a-939b-57ca4d91d15a:</project>
-     <varray>urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:</varray>
-     <vpool>urn:storageos:VirtualPool:9cdc6936-4636-4909-a85f-3fd4c2e87e41:</vpool>
+    <name>volume1234</name>
+    <size>1GB</size>
+    <count>1</count>
+    <project>urn:storageos:Project:4ce62cf6-45cc-4dc7-9288-644806803e61:global</project>
+    <varray>urn:storageos:VirtualArray:8518bc72-cae6-4e43-a85e-d57242a46718:vdc1</varray>
+    <vpool>urn:storageos:VirtualPool:51b58c85-b69e-4793-9164-7fccbd00486f:vdc1</vpool>
 </volume_create>
 ==Response
-HTTP/1.1 200 OK 
+HTTP/1.1 202 Accepted
 Content-Type: application/xml 
 
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-  <tasks>
-       <task>
-            <op_id>52c81901-3cc0-4428-a3ec-2e69dbdbf36f</op_id>
-            <resource>
-                 <id>urn:storageos:Volume:50c25b8b-589f-4896-ad14-b27b4de9b0e5:</id>
-                 <link href="/block/volumes/urn:storageos:Volume:50c25b8b-589f-4896-ad14-b27b4de9b0e5:" rel="self"/>
-                 <name>volume1234</name>
-            </resource>
-            <link href="/block/volumes/urn:storageos:Volume:50c25b8b-589f-4896-ad14-b27b4de9b0e5:/tasks/52c81901-3cc0-4428-a3ec-2e69dbdbf36f" rel="self"/>
-            <start_time>1380041965765</start_time>
-            <state>pending</state>
-       </task>
-  </tasks>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?><error><code>1021</code><description>Unable to find a suitable placement to handle the request</description><details>No matching storage pool found using virtual pool urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea: and virtual array urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917: as virtual pool contains 1) Pools are over subscribed. 2) Pools are over utilized. 3) No free space. 4) Reached Pool/System maximum resources limit.</details><retryable>false</retryable></error>
+<tasks>
+    <task>
+        <creation_time>1475255355673</creation_time>
+        <global>false</global>
+        <id>urn:storageos:Task:fb6676c4-3a77-477f-b6dc-d0382a81ad9b:vdc1</id>
+        <inactive>false</inactive>
+        <internal>false</internal>
+        <link rel="self" href="/vdc/tasks/urn:storageos:Task:fb6676c4-3a77-477f-b6dc-d0382a81ad9b:vdc1"/>
+        <name>CREATE VOLUME</name>
+        <remote>false</remote>
+        <tags/>
+        <vdc>
+            <id>urn:storageos:VirtualDataCenter:d4251c37-6982-492a-b9d9-8a1f84b1cd52:vdc1</id>
+            <link rel="self" href="/vdc/urn:storageos:VirtualDataCenter:d4251c37-6982-492a-b9d9-8a1f84b1cd52:vdc1"/>
+        </vdc>
+        <allowed_operations>none_specified</allowed_operations>
+        <associated_resources/>
+        <description>create volume operation</description>
+        <op_id>ebe51dcd-2159-4941-a8f2-2236bc4e994c</op_id>
+        <progress>0</progress>
+        <resource>
+            <id>urn:storageos:Volume:e94fb952-9bb3-41af-8a04-79ab57379a8c:vdc1</id>
+            <link rel="self" href="/block/volumes/urn:storageos:Volume:e94fb952-9bb3-41af-8a04-79ab57379a8c:vdc1"/>
+            <name>volume1234</name>
+        </resource>
+        <start_time>1475255355672</start_time>
+        <state>pending</state>
+        <tenant>
+            <id>urn:storageos:TenantOrg:b744be49-002a-4251-9231-70218451a9cb:global</id>
+            <link rel="self" href="/tenants/urn:storageos:TenantOrg:b744be49-002a-4251-9231-70218451a9cb:global"/>
+        </tenant>
+    </task>
+</tasks>

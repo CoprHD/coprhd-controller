@@ -402,15 +402,10 @@ public class DellSCProvisioning {
      */
     private ScServer createOrFindScServer(StorageCenterAPI api, String ssn, List<Initiator> initiators, List<ScServerHba> matchedHbas,
             boolean createIfNotFound) {
-        boolean isCluster = false;
-        String clusterName = "";
         ScServerOperatingSystem os = null;
 
         Map<String, ScServer> serverLookup = new HashMap<>();
         for (Initiator init : initiators) {
-            boolean cluster = init.getInitiatorType().equals(Type.Cluster);
-            isCluster = isCluster || cluster;
-            clusterName = init.getClusterName();
 
             if (os == null) {
                 os = findOsType(api, ssn, init.getHostOsType());
@@ -465,57 +460,14 @@ public class DellSCProvisioning {
             }
         }
 
-        if (isCluster) {
-            // Find our cluster server definition
-            ScServer server = null;
-            for (ScServer scServer : serverLookup.values()) {
-                ScPhysicalServer phyServer = null;
-                if (scServer instanceof ScPhysicalServer) {
-                    phyServer = (ScPhysicalServer) scServer;
-                } else {
-                    phyServer = api.getPhysicalServerDefinition(scServer.instanceId);
-                }
+        if (serverLookup.size() != 1) {
+            LOG.warn("Looking for server returned {} servers.",
+                    serverLookup.size());
+        }
 
-                if (phyServer == null || phyServer.parent == null) {
-                    continue;
-                }
-
-                server = api.getServerDefinition(phyServer.parent.instanceId);
-                break;
-            }
-
-            if (server == null) {
-                try {
-                    // Create cluster server definition
-                    server = api.createClusterServer(
-                            ssn,
-                            clusterName,
-                            os.instanceId);
-                } catch (StorageCenterAPIException e) {
-                    LOG.warn(String.format("Error creating cluster: %s", e));
-                    return null;
-                }
-            }
-
-            // Now make sure all servers are set to be under this cluster
-            for (ScServer scServer : serverLookup.values()) {
-                LOG.info("Adding server '{}' to cluster '{}', result: {}",
-                        scServer.name,
-                        server.name,
-                        api.setAddServerToCluster(scServer.instanceId, server.instanceId));
-            }
-
-            return server;
-        } else {
-            if (serverLookup.size() != 1) {
-                LOG.warn("Looking for server returned {} servers.",
-                        serverLookup.size());
-            }
-
-            for (ScServer scServer : serverLookup.values()) {
-                // Just return the first one
-                return scServer;
-            }
+        for (ScServer scServer : serverLookup.values()) {
+            // Just return the first one
+            return scServer;
         }
 
         return null;

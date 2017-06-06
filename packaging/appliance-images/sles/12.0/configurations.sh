@@ -143,16 +143,16 @@ adg_KIWIMods() {
      xsed $FileArchiveBuilder 's/--exclude=image/--exclude=\.\/image/'
     fi
 
-    FileLinuxRC="$kiwiPath/KIWILinuxRC.sh"
-    if [ -f $FileLinuxRC ]; then
-     echo "Modifying to fix for FIPS firstboot issue $FileLinuxRC"
-     linenum=`grep -n "# create grub2 configuration" $FileLinuxRC | cut -d ":" -f1`
-     let linenum=$linenum+2
-     sed -i."bak" "$linenum i \    /usr/sbin/haveged" $FileLinuxRC
-     linenum=`grep -n "# reset bind mount to standard boot dir" $FileLinuxRC | cut -d ":" -f1`
-     let linenum=$linenum+5
-     sed -i "$linenum i \    mv /\$bootdir/tmp/.vmlinuz* /\$bootdir" $FileLinuxRC
-    fi
+    #FileLinuxRC="$kiwiPath/KIWILinuxRC.sh"
+    #if [ -f $FileLinuxRC ]; then
+    # echo "Modifying to fix for FIPS firstboot issue $FileLinuxRC"
+    # linenum=`grep -n "# create grub2 configuration" $FileLinuxRC | cut -d ":" -f1`
+    # let linenum=$linenum+2
+    # sed -i."bak" "$linenum i \    /usr/sbin/haveged" $FileLinuxRC
+    # linenum=`grep -n "# reset bind mount to standard boot dir" $FileLinuxRC | cut -d ":" -f1`
+    # let linenum=$linenum+5
+    # sed -i "$linenum i \    mv /\$bootdir/tmp/.vmlinuz* /\$bootdir" $FileLinuxRC
+    #fi
 
     #######################################################
     # Modify zypper cache behaviour
@@ -1180,6 +1180,15 @@ vipr_fix_add_strongswan() {
     echo "*** Fixing Adding strongswan parameter" >&2
     echo "net.ipv4.xfrm4_gc_thresh=32768" >> /etc/sysctl.conf
     echo "net.ipv6.xfrm6_gc_thresh=32768" >> /etc/sysctl.conf
+}
+
+#======================================
+# Fix /etc/profile
+#--------------------------------------
+vipr_fix_etc_profile() {
+    if [ -f /etc/profile ] ; then
+        xsed /etc/profile 's/^mesg n/mesg n \&> \/dev\/null/'
+    fi
 }
 
 #======================================

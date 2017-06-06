@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -529,7 +530,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 maskToInitiatorsMap.put(mask.getId(), initiatorURIs);
 
                 generateDeviceSpecificAddInitiatorWorkFlow(workflow, previousStep,
-                        storage, exportGroup, mask, null, initiatorsURIs,
+                        storage, exportGroup, mask, Arrays.asList(), initiatorsURIs,
                         maskToInitiatorsMap, token);
 
                 anyOperationsToDo = true;
@@ -618,6 +619,13 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         } else {
             taskCompleter.ready(_dbClient);
         }
+    }
+
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) throws Exception {
+        // TODO Auto-generated method stub
+
     }
 
     /**

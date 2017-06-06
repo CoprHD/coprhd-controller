@@ -10,6 +10,67 @@
 		$(param).prev().show();
 		$(param).hide();
 	}
+
+	function addValidationMessage(controlGrp,msg){
+			controlGrp.addClass('has-error');
+		     $('.help-inline', controlGrp).text(msg);
+		     $("#saveQuotaButton").attr("disabled", true);
+	}
+
+	function removeValidationMessage(controlGrp){
+			controlGrp.removeClass('has-error');
+			 $('.help-inline', controlGrp).text("");
+			 $("#saveQuotaButton").removeAttr("disabled");
+	}
+	  
+	  
+	  function getValidateQuotaSize(data,controlGroup,url){
+			$.post(url, data)
+			.done(function(result) { showQuotaSizeValidityStatus(result,controlGroup); });
+		}
+	  
+	  function showQuotaSizeValidityStatus(results,controlGroup){
+			var finalResult = null;
+			if ($.isArray(results)) {
+				finalResult = results[0];
+		    }
+		    else {
+		    	finalResult = results ;
+		    }
+			 if (!finalResult.success) {
+				 addValidationMessage(controlGroup,finalResult.message);
+		     }else{
+		    	 removeValidationMessage(controlGroup);
+		    	 $('.help-inline', controlGroup).html('<span id="validationRes" class="text-success"> <span class="glyphicon glyphicon-ok"></span></span>');
+		     }
+		}
+	  
+	  function validateQuotaSize(quotaSizeField,url,authToken){
+
+		   $("#" + quotaSizeField).on('change',function(){
+			   var data = {
+					   authenticityToken:authToken,
+					   fieldName: quotaSizeField,
+					   quotaSize: $('#' + quotaSizeField).val()
+			    };
+			   var controlGroup = $('input[name="'+ $("#" + quotaSizeField).attr('name')+'"]').parents('.form-group');
+			    removeValidationMessage(controlGroup);
+			  
+	 			if($('#validationRes')){
+						$('#validationRes').remove();	
+					}
+
+				 if($("#" + quotaSizeField).val()=="" || $("#" + quotaSizeField).val()== null){
+					 addValidationMessage(controlGroup,'Required') ;
+				 }else{
+					 setTimeout(getValidateQuotaSize(data,controlGroup,url),500000);
+				 }
+		 	 });
+	  }
+	
+	  $(document).ready(function() {
+		  validateQuotaSize('quota_size','@{validateQuotaSize}','${session.authenticityToken}');
+	  });
 	
 </script>
 #{if quotas}

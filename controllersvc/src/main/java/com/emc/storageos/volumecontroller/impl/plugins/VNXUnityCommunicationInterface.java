@@ -458,7 +458,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             viprStorageSystem.setUsername(accessProfile.getUserName());
             viprStorageSystem.setPortNumber(accessProfile.getPortNumber());
             viprStorageSystem.setPassword(accessProfile.getPassword());
-            _dbClient.updateObject(viprStorageSystem);
             _completer.statusPending(_dbClient, "Completed discovery of system properties");
         } else {
             _logger.error("Failed to retrieve VNX Unity system info!");
@@ -469,6 +468,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         if (info != null) {
             viprStorageSystem.setFirmwareVersion(info.getSoftwareVersion());
         }
+        _dbClient.updateObject(viprStorageSystem);
         return viprStorageSystem;
     }
 
@@ -803,6 +803,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             if ((nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION)
                     || nasServer.getIsReplicationDestination()) {
                 _logger.debug("Found a replication destination NasServer");
+                // On failover the existing Nas server becomes the destination. So changing state to unknown as it
+                // should not be picked for provisioning.
+                VirtualNAS vNas = findvNasByNativeId(system, nasServer.getId());
+                if (vNas != null) {
+                    vNas.setNasState(VirtualNasState.UNKNOWN.name());
+                    existingVirtualNas.add(vNas);
+                }
                 continue;
             }
 
@@ -1154,6 +1161,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 newSPs.add(haDomain);
             } else {
                 existingSPs.add(haDomain);
+            }
+            if (sp.getSlotNumber() != null) {
+                haDomain.setSlotNumber(sp.getSlotNumber().toString());
             }
             spIdMap.put(sp.getId(), haDomain.getId());
         }

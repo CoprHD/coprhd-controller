@@ -31,9 +31,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
-import com.emc.storageos.management.backup.*;
-import com.emc.storageos.management.backup.util.BackupClient;
-import com.emc.storageos.management.backup.util.CifsClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,11 +55,11 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.vipr.model.sys.backup.BackupSets;
-import com.emc.vipr.model.sys.backup.BackupUploadStatus;
-import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
-import com.emc.vipr.model.sys.backup.BackupInfo;
-import com.emc.vipr.model.sys.backup.ExternalBackups;
+import com.emc.storageos.management.backup.*;
+import com.emc.storageos.management.backup.util.BackupClient;
+import com.emc.storageos.management.backup.util.CifsClient;
+import com.emc.storageos.services.util.TimeUtils;
+import com.emc.vipr.model.sys.backup.*;
 
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 
@@ -291,6 +288,7 @@ public class BackupService {
             log.error("Failed to create backup(tag={}), e=", backupTag, e);
             descParams.add(e.getLocalizedMessage());
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
+            backupOps.updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), false);
             throw APIException.internalServerErrors.createObjectError("Backup files", e);
         }
         return Response.ok().build();
@@ -549,34 +547,30 @@ public class BackupService {
         BackupRestoreStatus s = new BackupRestoreStatus();
         s.setBackupName(backupName);
         s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOADING, null);
-        try {
-            Map<String,URI> nodesInfo = backupOps.getNodesInfo();
-            int numberOfNodes = nodesInfo.size();
-            Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
-            Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);
-            for (int i =1; i <= numberOfNodes; i++) {
-                sizesToDownload.put("vipr"+i, (long)0);
-                downloadedSizes.put("vipr"+i, (long)0);
-            }
 
-            // the zipped backup file will be downloaded to this node
-            // so set the size to be downloaded on this node to the size of zip file
-            String localHostName = InetAddress.getLocalHost().getHostName();
-            sizesToDownload.put(localHostName, size);
-            s.setSizeToDownload(sizesToDownload);
-
-            // check if we've already downloaded some part of zip file before,
-            // if so, updated the downloaded size
-            File downloadFolder = backupOps.getDownloadDirectory(backupName);
-            File zipfile = new File(downloadFolder, backupName);
-            if (zipfile.exists()) {
-                downloadedSizes.put(localHostName, zipfile.length());
-            }
-            s.setDownloadedSize(downloadedSizes);
-        }catch(UnknownHostException |URISyntaxException e) {
-            log.error("Failed to set the download size e={}", e.getMessage());
-            throw new RuntimeException(e);
+        Map<String, String> hosts = backupOps.getHosts();
+        int numberOfNodes = hosts.size();
+        Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
+        Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);
+        for (String hostID : hosts.keySet()) {
+            sizesToDownload.put(hostID, (long)0);
+            downloadedSizes.put(hostID, (long)0);
         }
+
+        // the zipped backup file will be downloaded to this node
+        // so set the size to be downloaded on this node to the size of zip file
+        String localHostID = backupOps.getLocalHostID();
+        sizesToDownload.put(localHostID, size);
+        s.setSizeToDownload(sizesToDownload);
+
+        // check if we've already downloaded some part of zip file before,
+        // if so, updated the downloaded size
+        File downloadFolder = backupOps.getDownloadDirectory(backupName);
+        File zipfile = new File(downloadFolder, backupName);
+        if (zipfile.exists()) {
+            downloadedSizes.put(localHostID, zipfile.length());
+        }
+        s.setDownloadedSize(downloadedSizes);
 
         backupOps.persistBackupRestoreStatus(s, false, true);
     }
@@ -970,6 +964,28 @@ public class BackupService {
             return new CifsClient(cfg.getExternalServerUrl(), cfg.getExternalDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
         }else {
             return new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
+        }
+    }
+
+    /**
+     *  Query backup operation related status
+     *  @brief  Query backup operation related status
+     *
+     * @return backup operation status
+     */
+    @GET
+    @Path("backup-status")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public BackupOperationStatus getBackupOperationStatus() {
+        log.info("Received get backup operation status request");
+        try {
+            BackupOperationStatus backupOperationStatus = backupOps.queryBackupOperationStatus();
+            backupOperationStatus.setNextScheduledCreation(backupScheduler.getNextScheduledRunTime().getTime());
+            return backupOperationStatus;
+        } catch (Exception e) {
+            log.error("Failed to get backup operation status", e);
+            throw APIException.internalServerErrors.getObjectError("Operation status", e);
         }
     }
 }

@@ -4,52 +4,65 @@
  */
 package com.emc.storageos.systemservices.impl.resource;
 
+import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_ID_PATTERN;
+
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ws.rs.*;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
-import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
-import com.emc.vipr.model.sys.ClusterInfo;
-import com.emc.storageos.systemservices.impl.util.DbRepairStatusHandler;
-import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
-import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
-
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.emc.vipr.model.sys.recovery.RecoveryStatus;
-import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.PowerOffState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.security.dbInfo.DbInfoUtils;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.ServicesMetadata;
 import com.emc.storageos.services.util.AlertsLogger;
+import com.emc.storageos.services.util.Exec;
+import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-
-import static com.emc.storageos.coordinator.client.model.Constants.*;
-
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
+import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import com.emc.storageos.systemservices.impl.util.DbRepairStatusHandler;
 import com.emc.storageos.systemservices.impl.vdc.VdcManager;
-import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
+import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
+import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
+import com.emc.vipr.model.sys.recovery.DbOfflineStatus;
+import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
+import com.emc.vipr.model.sys.recovery.RecoveryStatus;
+import com.sun.jersey.api.client.ClientHandlerException;
 
 /**
  * Control service is used to
@@ -173,6 +186,58 @@ public class ControlService {
         synchronized (lock) {
             controlState = ControlState.END;
             lock.notifyAll();
+        }
+    }
+    /**
+    * Internal call to reset db data for vapp node recovery include cleanup db file,stop db service,create startup file.
+    */
+    @POST
+    @Path("internal/node/db-reset")
+    @Produces({ MediaType.APPLICATION_JSON })
+    public Response resetDbdata(@QueryParam("node_id") String nodeId ) {
+        _log.info("stop dbsvc/geosvc for node recovery");
+        LocalRepository localRepository = LocalRepository.getInstance();
+        localRepository.stop("geodbsvc");
+        localRepository.stop("dbsvc");
+        purgeDbData();
+        return Response.ok().build();
+    }
+
+    /**
+     * clean up database file and create hibernate file
+     */
+    private void purgeDbData () {
+        final String startupModeFile = "startupmode";
+        final String startupModeContent = startupModeFile +"=hibernate";
+        final String dataDir = "/data/";
+        final String dbDir = dataDir + "db/";
+        final String geodbDir=dataDir +"geodb/";
+        final String dbFile= dbDir + startupModeFile;
+        final String geodbFile=geodbDir + startupModeFile;
+
+        ArrayList<String> cleanDb = new ArrayList<>();
+        cleanDb.add("/usr/bin/rm");
+        cleanDb.add("-fr");
+        File dbDirFile = new File(dbDir);
+        File [] files = dbDirFile.listFiles();
+        for (File file: files){
+            cleanDb.add(file.toString());
+        }
+        dbDirFile = new File(geodbDir);
+        files = dbDirFile.listFiles();
+        for (File file: files){
+            cleanDb.add(file.toString());
+        }
+        _log.info("clean db for node recovery {}",cleanDb);
+        String[] cleanDbarray = new String [cleanDb.size()];
+        cleanDbarray = cleanDb.toArray(cleanDbarray);
+        Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cleanDbarray);
+        _log.info("result code is {}",result.getExitValue());
+        try {
+            FileUtils.writePlainFile(dbFile,startupModeContent.getBytes());
+            FileUtils.writePlainFile(geodbFile,startupModeContent.getBytes());
+        }catch (IOException e ) {
+            _log.error("Error when create db startup mode file {}",e);
         }
     }
 
@@ -494,6 +559,84 @@ public class ControlService {
         _log.info("Check db repair status");
         return dbRepairStatusHandler.getDbRepairStatus();
     }
+
+    @GET
+    @Path("cluster/recovery/precheck-status")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public RecoveryPrecheckStatus recoveryPrecheck () {
+        RecoveryPrecheckStatus recoveryPrecheckStatus = new RecoveryPrecheckStatus();
+        DrUtil drUtil = new DrUtil(_coordinator.getCoordinatorClient());
+        if (drUtil.isMultivdc() || drUtil.isMultisite()) {
+            recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.VAPP_IN_DR_OR_GEO);
+            return recoveryPrecheckStatus;
+        }
+        ArrayList<String> nodeList = _coordinator.getAllNodeIds();
+        HashSet<String> unvaliableNodeSet = new HashSet<>();
+        ArrayList<String> recoverableNodeList = new ArrayList<>();
+        for (String nodeId : nodeList) {
+            Long dbOfflineTime = DbInfoUtils.getDbOfflineTime(_coordinator.getCoordinatorClient(), Constants.DBSVC_NAME, nodeId);
+            if (dbOfflineTime != null ) {
+                unvaliableNodeSet.add(nodeId);
+            } else {
+                dbOfflineTime = DbInfoUtils.getDbOfflineTime(_coordinator.getCoordinatorClient(), Constants.GEODBSVC_NAME, nodeId);
+                if (dbOfflineTime != null) {
+                    unvaliableNodeSet.add(nodeId);
+                }
+            }
+            try {
+                DbOfflineStatus dbOfflineStatus = SysClientFactory.getSysClient(_coordinator.getNodeEndpoint(nodeId)).get(SysClientFactory.URI_GET_DB_OFFLINE_STATUS,
+                        DbOfflineStatus.class, null);
+                if (dbOfflineStatus.getOutageTimeExceeded()) {
+                    recoverableNodeList.add(nodeId);
+                    unvaliableNodeSet.add(nodeId);
+                }
+            } catch (Exception e) {
+                recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.NODE_UNREACHABLE);
+                _log.warn("Failed to check dbOfflineStatus on {} :{}",nodeId,e.getMessage());
+            }
+        }
+        ArrayList<String> unvaliableNodeList = new ArrayList<>(unvaliableNodeSet);
+        setRecoverPrecheckStatus(recoveryPrecheckStatus, unvaliableNodeList, recoverableNodeList, nodeList.size());
+        recoveryPrecheckStatus.setUnavailables(unvaliableNodeList);
+        recoveryPrecheckStatus.setRecoverables(recoverableNodeList);
+        return recoveryPrecheckStatus;
+    }
+
+    private void setRecoverPrecheckStatus(RecoveryPrecheckStatus recoveryPrecheckStatus ,ArrayList<String> unvaliableNodeList, ArrayList<String> recoverableNodeList ,int size) {
+        if (recoveryPrecheckStatus.getStatus() == null || !recoveryPrecheckStatus.getStatus().equals(RecoveryPrecheckStatus.Status.NODE_UNREACHABLE)) {
+            if (!unvaliableNodeList.isEmpty()) {
+                Collections.sort(unvaliableNodeList);
+                Collections.sort(recoverableNodeList);
+                if (!unvaliableNodeList.equals(recoverableNodeList)) {
+                    recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.CORRUPTED_NODE_FOR_OTHER_REASON);
+                }else {
+                    if (recoverableNodeList.size() < (size / 2 + 1)) { /*corrupted nodes is less than quorum nodes*/
+                        recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.RECOVERY_NEEDED);
+                    }else {
+                        recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.CORRUPTED_NODE_COUNT_MORE_THAN_QUORUM);
+                    }
+                }
+            } else {
+                recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.ALL_GOOD);
+            }
+        }
+    }
+
+    @GET
+    @Path("internal/node/dbsvc-offline-status")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public DbOfflineStatus checkDbOfflineTime() {
+        _log.info("Check db offline time");
+        try {
+            DbInfoUtils.checkDBOfflineInfo(_coordinator.getCoordinatorClient(), Constants.DBSVC_NAME , "/data/db", false);
+            DbInfoUtils.checkDBOfflineInfo(_coordinator.getCoordinatorClient(), Constants.GEODBSVC_NAME , "/data/geodb", false);
+        }catch (IllegalStateException e){
+            return new DbOfflineStatus(true);
+        }
+        return new DbOfflineStatus(false);
+    }
+
 
     /**
      * Trigger ip reconfiguration

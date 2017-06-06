@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 
 import models.security.UserInfo;
 
+import org.apache.commons.collections.map.MultiKeyMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 
@@ -74,6 +75,20 @@ public class Common extends Controller {
 
     public static final String CACHE_EXPR = "2min";
 
+    public static final String PATH_SANITIZER = "pathSanitizer";
+    private static final MultiKeyMap XSS_SANITIZERS = new MultiKeyMap() {
+        {
+            put("/orders/submitOrder","mountPoint", PATH_SANITIZER);
+            put("/orders/submitOrder","mountPath", PATH_SANITIZER);
+
+            put("/ldap/save","ldapSources.managerDn", PATH_SANITIZER);
+            put("/usergroup/save","userGroup.name", PATH_SANITIZER);
+
+            put("/config/passwords","user", PATH_SANITIZER);
+            put("/customConfigs/preview", "value", PATH_SANITIZER);
+        }
+    };
+
     @Before(priority = 0)
     @Unrestricted
     public static void checkSetup() {
@@ -112,23 +127,25 @@ public class Common extends Controller {
     @Before(priority = 0)
     public static void xssCheck() {
         for (String param : params.all().keySet()) {
-
             // skip xss sanitation for fields which name contains password
-            if (param.toLowerCase().contains("password")) {
+            if (param.toLowerCase().contains("password") || param.toLowerCase().contains("username")) {
                 Logger.debug("skip sanitation for " + param);
                 return;
             }
 
             String[] data = params.getAll(param);
-
             if ((data != null) && (data.length > 0)) {
-                Logger.debug("Cleaning data for " + param);
+                String sanitizer = (String)XSS_SANITIZERS.get(request.path, param);
+                Logger.debug("Cleaning data for [ %s ] [ %s ]", request.path, param);
                 String[] cleanValues = new String[data.length];
                 for (int i = 0; i < data.length; ++i) {
-                    cleanValues[i] = SecurityUtils.stripXSS(data[i]);
+                    if (PATH_SANITIZER.equals(sanitizer)){
+                        cleanValues[i] = SecurityUtils.stripPathXSS(data[i]);
+                    } else {
+                        cleanValues[i] = SecurityUtils.stripXSS(data[i]);
+                    }
+                    params.put(param, cleanValues);
                 }
-
-                params.put(param, cleanValues);
             }
         }
     }

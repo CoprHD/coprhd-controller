@@ -66,8 +66,10 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
+import com.emc.storageos.security.authorization.InheritCheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.workflow.WorkflowController;
 import com.emc.storageos.workflow.WorkflowState;
@@ -78,8 +80,6 @@ import com.google.common.collect.Sets;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, writeRoles = {
         Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class TaskService extends TaggedResource {
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
-
     private static final URI SYSTEM_TENANT = URI.create("system");
     private static final Integer FETCH_ALL = -1;
 
@@ -92,7 +92,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Returns information about the specified task.
-     * 
+     *
      * @param id
      *            the URN of a ViPR task
      * @brief Show Task
@@ -116,12 +116,12 @@ public class TaskService extends TaggedResource {
 
     /**
      * Retrieve resource representations based on input ids.
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param param
      *            POST data containing the id list.
-     * 
+     *
      * @brief List data of volume resources
      * @return list of representations.
      */
@@ -136,7 +136,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Returns task status count information for the specified Tenant.
-     * 
+     *
      * @brief Task Status count
      * @param tenantId
      *            Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will
@@ -179,7 +179,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Returns a list of tasks for the specified tenant
-     * 
+     *
      * @brief Return a list of tasks for a tenant
      * @param tenantId
      *            Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will
@@ -209,8 +209,8 @@ public class TaskService extends TaggedResource {
                     }
                 });
 
-        Date startWindowDate = getDateFromString(startTime);
-        Date endWindowDate = getDateFromString(endTime);
+        Date startWindowDate = TimeUtils.getDateTimestamp(startTime);
+        Date endWindowDate = TimeUtils.getDateTimestamp(endTime);
 
         // Fetch index entries and load into sorted set
         List<NamedRelatedResourceRep> resourceReps = Lists.newArrayList();
@@ -250,7 +250,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Deletes the specified task. After this operation has been called, the task will no longer be accessible.
-     * 
+     *
      * @brief Deletes a task
      * @param taskId
      *            ID of the task to be deleted
@@ -278,9 +278,9 @@ public class TaskService extends TaggedResource {
     /**
      * Resumes a task. This can only be performed on a Task that has status of: suspended_no_error
      * Retries a task. This can only be performed on a Task that has status of: suspended_error
-     * 
+     *
      * In the case of retry, we will retry the controller workflow starting at the failed step.
-     * 
+     *
      * @brief Resumes a task
      * @param taskId
      *            ID of the task to be resumed
@@ -305,13 +305,13 @@ public class TaskService extends TaggedResource {
         // Resume the workflow
         WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
                 ResourceOperationTypeEnum.WORKFLOW_RESUME);
-        getWorkflowController().resumeWorkflow(workflow.getId(), taskId.toString());
+        getWorkflowController().resumeWorkflow(workflow.getId(), opId);
         return Response.ok().build();
     }
 
     /**
      * Rolls back a task. This can only be performed on a Task with status: suspended_error
-     * 
+     *
      * @brief rolls back a task
      * @param taskId
      *            ID of the task to roll back
@@ -336,7 +336,7 @@ public class TaskService extends TaggedResource {
         // Rollback the workflow
         WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
                 ResourceOperationTypeEnum.WORKFLOW_ROLLBACK);
-        getWorkflowController().rollbackWorkflow(workflow.getId(), taskId.toString());
+        getWorkflowController().rollbackWorkflow(workflow.getId(), opId);
         return Response.ok().build();
     }
 
@@ -346,7 +346,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Validate a task's workflow information for the purpose of restarting the workflow.
-     * 
+     *
      * @param task
      *            task object
      * @return a workflow (as a convenience)
@@ -379,9 +379,9 @@ public class TaskService extends TaggedResource {
     /**
      * @brief Assign tags to resource
      *        Assign tags
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id
      *            the URN of a ViPR resource
      * @param assignment
@@ -391,6 +391,7 @@ public class TaskService extends TaggedResource {
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/tags")
+    @InheritCheckPermission(writeAccess = true)
     @Override
     public Tags assignTags(@PathParam("id") URI id, TagAssignment assignment) {
         Task task = queryResource(id);
@@ -402,9 +403,9 @@ public class TaskService extends TaggedResource {
     /**
      * @brief List tags assigned to resource
      *        Returns assigned tags
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id
      *            the URN of a ViPR Resource
      * @return Tags information
@@ -412,6 +413,7 @@ public class TaskService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/tags")
+    @InheritCheckPermission
     @Override
     public Tags getTags(@PathParam("id") URI id) {
         Task task = queryResource(id);
@@ -583,26 +585,9 @@ public class TaskService extends TaggedResource {
         return new SearchResultResourceRep(uri, selfLink, null);
     }
 
-    private static Date getDateFromString(String timestampStr) {
-        if (timestampStr == null) {
-            return null;
-        }
-
-        try {
-            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
-            return dateFormat.parse(timestampStr);
-        } catch (ParseException pe) {
-            try {
-                return new Date(Long.parseLong(timestampStr));
-            } catch (NumberFormatException n) {
-                throw APIException.badRequests.invalidDate(timestampStr);
-            }
-        }
-    }
-
     /**
      * Retrieve task representations based on input ids.
-     * 
+     *
      * @return list of task representations.
      */
     @Override

@@ -37,12 +37,13 @@ var routes = {
   Tasks_countSummary: #{jsAction @Tasks.getCountSummary(':tenantId') /},
   
   Events_countSummary: #{jsAction @Events.getCountSummary(':tenantId') /},
-  Events_pendingEventCount: #{jsAction @Events.getPendingCount() /},
+  Events_pendingAndFailedEventCount: #{jsAction @Events.getPendingAndFailedCount() /},
   Events_details: #{jsAction @Events.details(':id') /},
 
   BlockVolumes_volume: #{jsAction @resources.BlockVolumes.volume(':volumeId') /},
   BlockExportGroups_exportGroup: #{jsAction @resources.BlockExportGroups.exportGroup(':exportGroupId')/},
   FileSystems_fileSystem: #{jsAction @resources.FileSystems.fileSystem(':fileSystemId')/}, 
+  FileSystems_validateQuotaSize: #{jsAction @resources.FileSystems.validateQuotaSize(':quotaSize')/},
   FileSnapshots_snapshot: #{jsAction @resources.FileSnapshots.snapshot(':snapshotId')/},
   BlockSnapshots_snapshotDetails: #{jsAction @resources.BlockSnapshots.snapshotDetails(':snapshotId')/},
   Hosts_edit: #{jsAction @compute.Hosts.edit(':id')/},
@@ -82,11 +83,16 @@ var routes = {
 
   AuditLog_list: #{jsAction @infra.AuditLog.list() /},
   AuditLog_download: #{jsAction @infra.AuditLog.download() /},
+  
+  Order_list: #{jsAction @catalog.Orders.list() /},
+  Order_allOrders: #{jsAction @catalog.Orders.allOrders() /},
 
   FileSystems_fileSystemExportsJson: #{jsAction @resources.FileSystems.fileSystemExportsJson() /},
+  FileSystems_getStorageSystemJson: #{jsAction @resources.FileSystems.getStorageSystemJson(':id') /},
   FileSystems_save: #{jsAction @resources.FileSystems.save() /},
   FileSystems_fileSystemQuotaJson: #{jsAction @resources.FileSystems.fileSystemQuotaJson() /},
   FileSystems_getScheculePolicies: #{jsAction @resources.FileSystems.getScheculePolicies() /},
+  FileSystems_getTargetVArrys: #{jsAction @resources.FileSystems.getTargetVArrys() /},
 
   FileSnapshots_fileSnapshotExportsJson: #{jsAction @resources.FileSnapshots.fileSnapshotExportsJson() /},
   FileSnapshots_save: #{jsAction @resources.FileSnapshots.save() /},
@@ -105,6 +111,8 @@ var routes = {
   VirtualArrays_pools: #{jsAction @VirtualArrays.storagePoolsJson(':id') /},
   Networks_getDisconnectedStorage: #{jsAction @arrays.Networks.getDisconnectedStorage(':ids') /},
   VirtualArrays_getDisconnectedStorage: #{jsAction @VirtualArrays.getDisconnectedStorage(':ids') /},
-  VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /}
-
+  VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /},
+  FileProtectionPolicy_details: #{jsAction @arrays.FileProtectionPolicies.details(':id') /},
+  FileProtectionPolicy_getVpoolForProtectionPolicy: #{jsAction @arrays.FileProtectionPolicies.getVpoolForProtectionPolicy(':id') /},
+  FileProtectionPolicy_getVarraysAssociatedWithPools: #{jsAction @arrays.FileProtectionPolicies.getVarraysAssociatedWithPools(':id') /}
 };

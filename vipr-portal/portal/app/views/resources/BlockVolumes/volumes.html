@@ -34,12 +34,28 @@
         }
     }
     
+    function checkVolumeLimits() {
+        //Do nothing if dataTable is not created
+        if (table.volumes.dataTable.getDataTable() != null) {
+            var limit = ${resource_limit_project_volumes};
+            if (table.volumes.dataTable.needResourceLimitAlert(limit)){
+                $('#resourceLimitAlert').text(Messages.get('resources.volume.resourceLimitAlert', limit));
+       		    $('#resourceLimitAlert').show();
+            }
+        }
+    }
+    
+    function dtDrawCallback() {
+        disableSRDFSource();
+        checkVolumeLimits();
+    }
+  	
     function reloadVolumesbyFilter() {
     	var filterSelected = $('#filter option:selected').val();
     	reloadVolumes(filterSelected);
     }
-    table.volumes.dataTable.setDrawCallback(disableSRDFSource);
-
+    
+    table.volumes.dataTable.setDrawCallback(dtDrawCallback);
     
     $(document).ready(function() {
     	$('#application').on('change', function() {reloadVolumes("Application");});
@@ -51,6 +67,7 @@
 #{Resources.projectsApplicationsControl projects:projects /}
 
 <p id="srdfAlert" class="alert alert-info" style="display:none">&{'resources.volume.disabledSRDF'}</p> 
+<p id="resourceLimitAlert" class="alert alert-info" style="display:none"></p>
 
 #{DataTable.header titleKey:'nav.block.volumes' /}  
 #{DataTable.table id:'volumes',

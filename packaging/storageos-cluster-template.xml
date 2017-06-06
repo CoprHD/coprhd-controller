@@ -127,7 +127,7 @@ ${include="storageos-cluster-properties.xml"}
           <rasd:Description>SCSI Controller</rasd:Description>
           <rasd:ElementName>SCSI controller 0</rasd:ElementName>
           <rasd:InstanceID>3</rasd:InstanceID>
-          <rasd:ResourceSubType>VirtualSCSI</rasd:ResourceSubType>
+          <rasd:ResourceSubType>lsilogic</rasd:ResourceSubType>
           <rasd:ResourceType>6</rasd:ResourceType>
         </Item>
         <Item>

@@ -188,7 +188,7 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         // to the passed target snapshot session.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.relinkTargetsToSnapshotSession(storageSystem.getId(), tgtSnapSession.getId(), snapshotURIs, taskId);
+        controller.relinkTargetsToSnapshotSession(storageSystem.getId(), tgtSnapSession.getId(), snapshotURIs, Boolean.TRUE, taskId);
     }
 
     /**

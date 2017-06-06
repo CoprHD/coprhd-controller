@@ -1,6 +1,5 @@
 #{extends 'main.html' /}
-#{set navSelected: ['nav.catalog', 'nav.editCatalog'] /}
-
+#{set navSelected: ['nav.catalog', 'nav.viewImage'] /}
 #{set 'moreScripts'}
 #{get 'moreScripts'/}
 <script type="text/javascript">
@@ -12,11 +11,11 @@ function renderSize(o, val) {
     var size = o.aData.size;
     if (size > 1024 * 1024) {
         size = Math.round(size / (1024 * 1024));
-        return Message.get("catalogImage.MB", size);
+        return Messages.get("catalogImage.MB", size);
     }
     if (size > 1024) {
         size = Math.round(size / 1024);
-        return Message.get("catalogImage.KB", size)
+        return Messages.get("catalogImage.KB", size)
     }
 
     return Messages.get("catalogImage.bytes", size);

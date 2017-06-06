@@ -4,10 +4,9 @@
  */
 package com.emc.storageos.db.client.constraint.impl;
 
-import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
-import com.emc.storageos.db.client.impl.IndexColumnName;
-import com.emc.storageos.db.client.model.DataObject;
+import java.net.URI;
+import java.util.Date;
+
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -16,16 +15,18 @@ import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-import java.net.URI;
-import java.util.Date;
-
+import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
+import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.client.model.DataObject;
 /**
  * Constraint to query indexed columns on a start/end time. This uses the same
- * index as DecomissionedConstraintImpl but is designed to work on other column
+ * index as decommissionedConstraintImpl but is designed to work on other column
  * families. This constraint takes a Start and End time and returns records
  * between this time period.
  */
-public class TimeConstraintImpl extends ConstraintImpl implements DecommissionedConstraint {
+public class TimeConstraintImpl extends ConstraintImpl<IndexColumnName> implements DecommissionedConstraint {
     private static final long MILLIS_TO_MICROS = 1000L;
     private static final int DEFAULT_PAGE_SIZE = 100;
     private Keyspace keyspace;
@@ -47,6 +48,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     public TimeConstraintImpl(Class<? extends DataObject> clazz, ColumnFamily<String, IndexColumnName> cf,
             Boolean value, long startTimeMillis, long endTimeMillis) {
         this.cf = cf;
+        indexSerializer = IndexColumnNameSerializer.get();
         rowKey = clazz.getSimpleName();
         this.startTimeMicros = startTimeMillis * MILLIS_TO_MICROS;
         this.endTimeMicros = endTimeMillis * MILLIS_TO_MICROS;
@@ -92,7 +94,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
                                     .limit(DEFAULT_PAGE_SIZE));
         }
 
-        FilteredQueryHitIterator<T> it = new FilteredQueryHitIterator<T>(query) {
+        FilteredQueryHitIterator<T, IndexColumnName> it = new FilteredQueryHitIterator<T, IndexColumnName>(query) {
             @Override
             protected T createQueryHit(Column<IndexColumnName> column) {
                 return result.createQueryHit(URI.create(column.getName().getTwo()));
@@ -133,18 +135,20 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     }
 
     @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
+    public RowQuery<String, IndexColumnName> genQuery() {
         RowQuery<String, IndexColumnName> query;
         if (value == null) {
             query = keyspace.prepareQuery(cf).getKey(rowKey)
-                    .withColumnRange(new RangeBuilder().setLimit(pageCount).build());
+                    .autoPaginate(true)
+                    .withColumnRange(new RangeBuilder().build());
         } else {
             query = keyspace.prepareQuery(cf).getKey(rowKey)
+                    .autoPaginate(true)
                     .withColumnRange(
-                            CompositeColumnNameSerializer.get().buildRange()
+                            IndexColumnNameSerializer.get().buildRange()
                                     .greaterThanEquals(value.toString())
                                     .lessThanEquals(value.toString())
-                                    .limit(pageCount));
+                                    .limit(pageCount).build());
         }
 
         return query;

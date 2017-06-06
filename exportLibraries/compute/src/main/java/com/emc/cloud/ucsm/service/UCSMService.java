@@ -36,11 +36,14 @@ public interface UCSMService {
     public Map<String, LsServer> getAllAssociatedLsServers(String ucsmURL, String username, String password)
             throws ClientGeneralException;
 
+    public List<LsServer> getAllServiceProfiles(String ucsmURL, String username, String password)
+            throws ClientGeneralException;
+
     public LsServer getLsServer(String ucsmURL, String username, String password, String uuid)
             throws ClientGeneralException;
 
     public LsServer setLsServerPowerState(String ucsmURL, String username, String password, String lsServerDN,
-            String powerState) throws ClientGeneralException;
+            String powerState, StringBuilder errorMessage) throws ClientGeneralException;
 
     public List<LsbootPolicy> getBootPolicies(String ucsmURL, String username, String password)
             throws ClientGeneralException;
@@ -55,31 +58,31 @@ public interface UCSMService {
             throws ClientGeneralException;
 
     public LsServer createServiceProfileFromTemplate(String ucsmURL, String username, String password,
-            String serviceProfileTemplateDn, String serviceProfileName) throws ClientGeneralException;
+            String serviceProfileTemplateDn, String serviceProfileName, StringBuffer errorMessage) throws ClientGeneralException;
 
     public LsServer bindSPToComputeElement(String ucsmURL, String username, String password, String serviceProfileDn,
-            String computeElementDn) throws ClientGeneralException;
+            String computeElementDn, StringBuilder errorMessage) throws ClientGeneralException;
 
-    public LsServer unbindServiceProfile(String ucsmURL, String username, String password, String spDn)
+    public LsServer unbindServiceProfile(String ucsmURL, String username, String password, String spDn, StringBuilder errorMessage)
             throws ClientGeneralException;
 
     public LsServer bindSPToTemplate(String ucsmURL, String username, String password, String serviceProfileDn,
-            String sptDn) throws ClientGeneralException;
+            String sptDn, StringBuilder errorMessage) throws ClientGeneralException;
 
-    public LsServer unbindSPFromTemplate(String ucsmURL, String username, String password, String spDn)
+    public LsServer unbindSPFromTemplate(String ucsmURL, String username, String password, String spDn, StringBuilder errorMessage)
             throws ClientGeneralException;
 
     public FabricVlan getVlanById(String ucsmURL, String username, String password, String vlanId)
             throws ClientGeneralException;
 
-    public LsServer setServiceProfileToLanBoot(String ucsmURL, String username, String password, String spDn)
+    public LsServer setServiceProfileToLanBoot(String ucsmURL, String username, String password, String spDn, StringBuilder errorMessage)
             throws ClientGeneralException;
 
     public Map<String, Boolean> setOsInstallVlan(String ucsmURL, String username, String password, String spDn,
             String osInstallVlanId) throws ClientGeneralException;
 
     public LsServer setServiceProfileToSanBoot(String ucsmURL, String username, String password, String spDn,
-            Map<String, Map<String, Integer>> hbaToStoragePortMap) throws ClientGeneralException;
+            Map<String, Map<String, Integer>> hbaToStoragePortMap, StringBuilder errorMessage) throws ClientGeneralException;
 
     public void removeOsInstallVlan(String ucsmURL, String username, String password, String spDn,
             String osInstallVlanId, Map<String, Boolean> vlanMap) throws ClientGeneralException;
@@ -109,10 +112,10 @@ public interface UCSMService {
 
     public void clearDeviceSession(String ucsmURL, String username, String password) throws ClientGeneralException;
 
-    public void deleteServiceProfile(String ucsmURL, String username, String password, String spDn)
+    public void deleteServiceProfile(String ucsmURL, String username, String password, String spDn, StringBuilder errorMessage)
             throws ClientGeneralException;
 
-    LsServer setServiceProfileToNoBoot(String ucsmURL, String username, String password, String spDn)
+    LsServer setServiceProfileToNoBoot(String ucsmURL, String username, String password, String spDn, StringBuilder errorMessage)
             throws ClientGeneralException;
 
     <T> T getManagedObject(String ucsmURL, String username, String password, String dn, boolean hierarchical,

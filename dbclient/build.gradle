@@ -1,5 +1,6 @@
 dependencies {
-    compile library(apache_cassandra),
+    compile "commons-collections:commons-collections:3.2.1",
+    		library(apache_cassandra),
             library(commons_io),
             library(jna),
             library(javassist),
@@ -19,7 +20,7 @@ test {
 // To change the type of schema lock, modify the following schemaLock ext.
 // VALUE must be NONE, GEO or ALL, default is NONE.
 ext {
-    schemaLock = "ALL"
+    schemaLock = "NONE"
 }
 def schemaLockOption = project.ext.has('schemaLock')? project.ext.get('schemaLock') : "NONE"
 
@@ -44,4 +45,4 @@ task checkSchema(type: JavaExec, dependsOn: compileTestJava) {
     classpath = sourceSets.test.runtimeClasspath
 }
 
-//RAG assemble.dependsOn checkSchema
+assemble.dependsOn checkSchema

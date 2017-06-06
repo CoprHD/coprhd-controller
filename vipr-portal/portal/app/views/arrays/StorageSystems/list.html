@@ -13,7 +13,7 @@
                       expandable: true,
                       deleteConfirm:messages.get('StorageSystems.deleteConfirm')}
   #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'rediscoverForm',
-                data:['enabled':'selected', 'property':'discoveryStatus', 'not-value':'IN_PROGRESS']/}
+                data:['enabled':'selected', 'property':'discoveryInProgress', 'value':'FALSE']/}
   #{Form.button name:'button.register', icon:'plus', submit:'registerForm', 
                 data:['enabled':'selected', 'property':'registrationStatus', 'value':'UNREGISTERED']/}
   #{Form.button name:'button.deregister', icon:'minus', submit:'deregisterForm', 

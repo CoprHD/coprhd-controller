@@ -1321,7 +1321,7 @@ public class FileService extends TaskResourceService {
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         if (!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-            throw APIException.badRequests.reduceFileSystemNotSupported(id, "Reduction of filesystem quota is supported only on Isilon");
+            throw APIException.badRequests.reduceFileSystemNotSupported(id, "Reduction of filesystem quota is supported only for Isilon storage");
         }
 
         Long newFSsize = SizeUtil.translateSize(param.getNewSize());

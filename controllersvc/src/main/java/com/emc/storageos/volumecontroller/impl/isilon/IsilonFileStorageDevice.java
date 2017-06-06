@@ -1107,7 +1107,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                                      quota.getPath(), quota.getThresholds().getHard());
                      _log.error(msg);
                      final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
-                     _log.error(serviceError.getMessage());
                      return BiosCommandResult.createErrorResult(serviceError);
                  } else {
                 	 isiReduceFS(isi, quotaId, args);

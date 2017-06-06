@@ -1091,7 +1091,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void addStepsToReplicateCIFSShareACLs(URI systemTarget, URI fsURI, String taskId) {
         s_logger.info("Generating steps for Replicating CIFS share ACLs to Target Cluster");
         CifsShareACLUpdateParams params;
-        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
+        FileReplicationConfigFailoverCompleter completer = new FileReplicationConfigFailoverCompleter(fsURI, taskId);
         FileShare targetFileShare = null;
         Workflow workflow = null;
         try {
@@ -1226,7 +1226,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      */
     public void addStepsToReplicateNFSExports(URI systemTarget, URI fsURI, StoragePort nfsPort, String taskId) {
         s_logger.info("Generating steps for Replicating NFS exports to Target Cluster");
-        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
+        FileReplicationConfigFailoverCompleter completer = new FileReplicationConfigFailoverCompleter(fsURI, taskId);
         Workflow workflow = null;
         FileShare targetFileShare = null;
         try {
@@ -1325,7 +1325,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      */
     public void addStepsToReplicateNFSExportRules(URI systemTarget, URI fsURI, String taskId) {
         s_logger.info("Generating steps for Replicating NFS export rules to Target Cluster");
-        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
+        FileReplicationConfigFailoverCompleter completer = new FileReplicationConfigFailoverCompleter(fsURI, taskId);
         Workflow workflow = null;
         FileShare targetFileShare = null;
         try {

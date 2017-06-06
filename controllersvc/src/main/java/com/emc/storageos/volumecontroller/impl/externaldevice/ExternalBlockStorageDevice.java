@@ -2340,7 +2340,100 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     @Override
     public void swap(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+        ElementType elementType = null;
+        URI elementURI = null;
 
+        StorageSystem sourceSystem = null;
+        RemoteReplicationDriver driver = null;
+        RemoteReplicationOperationContext context = null;
+        RemoteReplicationSet replicationSet = null;
+        RemoteReplicationGroup replicationGroup = null;
+        List<RemoteReplicationPair> systemRRPairs = null;
+        List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
+
+        try {
+            elementType = replicationElement.getType();
+            elementURI = replicationElement.getElementUri();
+            _log.info("Swap remote replication element {} with system id {}", elementType.toString(), elementURI);
+
+            switch (elementType) {
+                case REPLICATION_GROUP:
+                    replicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
+                    sourceSystem = dbClient.queryObject(StorageSystem.class, replicationGroup.getSourceSystem());
+                    driver = (RemoteReplicationDriver) getDriver(sourceSystem.getSystemType());
+                    systemRRPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
+                            RemoteReplicationPair.class, "replicationGroup");
+                    context = initializeContext(systemRRPairs.get(0),
+                            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP);
+
+                    break;
+
+                case REPLICATION_PAIR:
+                    RemoteReplicationPair replicationPair = dbClient.queryObject(RemoteReplicationPair.class, elementURI);
+                    systemRRPairs = new ArrayList<>();
+                    systemRRPairs.add(replicationPair);
+                    URI sourceVolumeURI = replicationPair.getSourceElement().getURI();
+                    Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeURI);
+                    sourceSystem = dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
+                    driver = (RemoteReplicationDriver) getDriver(sourceSystem.getSystemType());
+                    context = initializeContext(systemRRPairs.get(0),
+                            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR);
+
+                    break;
+
+                case CONSISTENCY_GROUP:
+                    BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, elementURI);
+                    sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
+                    driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
+                    systemRRPairs = RemoteReplicationUtils.getRemoteReplicationPairsForSourceCG(cg, dbClient);
+                    context = initializeContext(systemRRPairs.get(0),
+                            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR);
+
+                    break;
+                case REPLICATION_SET:
+                    replicationSet = dbClient.queryObject(RemoteReplicationSet.class, elementURI);
+                    driver = (RemoteReplicationDriver) getDriver(replicationSet.getStorageSystemType());
+                    systemRRPairs = RemoteReplicationUtils.findAllRemoteRepliationPairsByRrSet(elementURI, dbClient);
+                    context = initializeContext(systemRRPairs.get(0),
+                            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET);
+
+                    break;
+                default:
+                    throw new RuntimeException(String.format("Undefined element type: %s", Strings.repr(elementType)));
+                }
+
+            if (systemRRPairs != null && !systemRRPairs.isEmpty()) {
+                // prepare driver replication pairs and call driver
+                prepareDriverRemoteReplicationPairs(systemRRPairs, driverRRPairs);
+            }
+
+            DriverTask task = driver.swap(Collections.unmodifiableList(driverRRPairs), context, null);
+
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                String msg = String.format("swap -- swap remote replication element %s with system id %s: %s",
+                        elementType, elementURI, task.getMessage());
+                _log.info(msg);
+                processOperationResult(context, systemRRPairs, driverRRPairs, replicationSet, replicationGroup);
+                taskCompleter.ready(dbClient);
+            } else {
+                String errorMsg = String.format(
+                        "swap -- Failed swap operation for remote replication element %s with system id %s: %s",
+                        elementType, elementURI, task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed(
+                        "swap", elementType.toString(), elementURI.toString(), errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception e) {
+            String errorMsg = String.format(
+                    "swap -- Failed swap operation for remote replication element %s with system id %s .",
+                    elementType, elementURI);
+            _log.error(errorMsg, e);
+            ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed("swap",
+                    Strings.repr(elementType), Strings.repr(elementURI), errorMsg);
+            taskCompleter.error(dbClient, serviceError);
+        }
     }
 
     @Override

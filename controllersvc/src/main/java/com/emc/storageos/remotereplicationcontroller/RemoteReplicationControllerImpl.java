@@ -117,7 +117,7 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
 
     @Override
     public void swap(RemoteReplicationElement replicationElement, String opId) {
-
+        exec("swap", replicationElement, opId);
     }
 
     @Override

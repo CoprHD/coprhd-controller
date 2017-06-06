@@ -89,6 +89,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -2211,9 +2212,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         
         //validate the targets
         if (volume.getRpTargets() != null) {
-        	for (String volumeId : volume.getRpTargets()) {        	   
-        		Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeId));
-	        		
+        	List<URI> targetVolumeURIs = new ArrayList<URI>();
+        	for (String volumeId : volume.getRpTargets()) { 
+        		URI targetVolumeURI = URI.create(volumeId);
+        		targetVolumeURIs.add(targetVolumeURI);
+        		Volume targetVolume = _dbClient.queryObject(Volume.class, targetVolumeURI);
+        		
         		if (RPHelper.isVPlexVolume(targetVolume, _dbClient)) {
         			if (targetVolume.getAssociatedVolumes() != null && !targetVolume.getAssociatedVolumes().isEmpty()) {
         				vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(targetVolume, newSize);
@@ -2221,7 +2225,26 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         		} else {
                     super.verifyVolumeExpansionRequest(targetVolume, newSize); 	                     
         		}
-    		}        	
+    		}
+        	
+            // Get a handle on the RPController so we can query the access states associated with the
+            // target volumes.
+            RPController rpController = getController(RPController.class, ProtectionSystem._RP);
+            // Get a mapping of target volume URIs to their corresponding copy access states
+            Map<URI, String> copyAccessStates = rpController
+                    .getCopyAccessStates(volume.getProtectionController(), targetVolumeURIs);
+            
+            for (Entry<URI, String> accessState : copyAccessStates.entrySet()) {
+            	// If any of the target copies are in direct access, we cannot perform the expand operation.
+            	// This is because volumes on the arrays will be in an active copy session, which fails
+            	// if an expand is attempted.
+            	String copyAccessState = accessState.getValue();
+            	// If the copyAccessState is null for whatever reason, we won't block the expand request and 
+            	// allow it proceed to RP and the arrays
+            	if (!RPHelper.isValidRecoverPointExpandState(copyAccessState)) {
+            		throw APIException.badRequests.invalidRPCopyStateForExpand(volume.getLabel(), copyAccessState);   
+            	}
+            }
         } else {
         	throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());        	
         }

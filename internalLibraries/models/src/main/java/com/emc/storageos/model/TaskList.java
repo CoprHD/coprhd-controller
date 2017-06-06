@@ -42,4 +42,8 @@ public class TaskList {
     public void addTask(TaskResourceRep task) {
         getTaskList().add(task);
     }
+
+    public void addTasks(TaskList tasks) {
+        getTaskList().addAll(tasks.getTaskList());
+    }
 }

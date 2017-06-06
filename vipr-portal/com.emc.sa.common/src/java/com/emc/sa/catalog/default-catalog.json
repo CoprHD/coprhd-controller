@@ -281,12 +281,36 @@
               "baseService": "CreateRemoteReplicationGroup"
             },
             {
-              "image": "icon_RemoteReplicationPair.png",
-              "baseService": "RemoteReplicationPair"
-            },
-            {
               "image": "icon_RemoteReplicationFailover.png",
               "baseService": "RemoteReplicationFailover"
+            },
+            {
+              "image": "icon_RemoteReplicationFailback.png",
+              "baseService": "RemoteReplicationFailback"
+            },
+            {
+              "image": "icon_RemoteReplicationSwap.png",
+              "baseService": "RemoteReplicationSwap"
+            },
+            {
+              "image": "icon_RemoteReplicationEstablish.png",
+              "baseService": "RemoteReplicationEstablish"
+            },
+            {
+              "image": "icon_RemoteReplicationSplit.png",
+              "baseService": "RemoteReplicationSplit"
+            },
+            {
+              "image": "icon_RemoteReplicationStop.png",
+              "baseService": "RemoteReplicationStop"
+            },
+            {
+              "image": "icon_RemoteReplicationSuspend.png",
+              "baseService": "RemoteReplicationSuspend"
+            },
+            {
+              "image": "icon_RemoteReplicationResume.png",
+              "baseService": "RemoteReplicationResume"
             }
           ]
         }

@@ -47,8 +47,10 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
         ACL.ALL })
 public class RemoteReplicationManagementService extends TaskResourceService {
 
-    private static final String MULTI_PAIR_VMAX_ERR_MSG = "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request";
-    private static final String UNSUPPORTTED_CONTEXT_VMAX_ERR_MSG = "For VMAX arrays, operations with context %s are not supported. Use %s or %s context";
+    private static final String MULTI_PAIR_VMAX_ERR_MSG = "Multiple pairs in the request. For VMAX arrays, " +
+            "operations with context %s are supported only for a single pair in the request";
+    private static final String UNSUPPORTTED_CONTEXT_VMAX_ERR_MSG = "For VMAX arrays, operations with context " +
+            "%s are not supported. Use %s or %s context";
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationManagementService.class);
     public static final String SERVICE_TYPE = "remote_replication_management";
 

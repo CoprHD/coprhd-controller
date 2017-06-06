@@ -5,6 +5,7 @@ var shellNodeType = "script";
 var localAnsibleNodeType = "ansible"
 var restAPINodeType = "rest"
 var viprRestAPINodeType = "vipr";
+var remoteAnsibleNodeType = "remote_ansible"
 
 angular.module("portalApp").controller('builderController', function($scope, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
     $rootScope.$on("addWorkflowTab", function(event, id, name){
@@ -37,12 +38,21 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     var jstreeContainer = $element.find('#jstree_demo');
 
-    var fileNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType, workflowNodeType]
-    var primitiveNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType]
+    var fileNodeTypes = [shellNodeType, localAnsibleNodeType, remoteAnsibleNodeType, restAPINodeType, workflowNodeType]
+    var primitiveNodeTypes = [shellNodeType, localAnsibleNodeType, remoteAnsibleNodeType, restAPINodeType]
     var viprLib = "viprLib";
     var myLib = "myLib";
 
     initializeJsTree();
+
+    // This is required for IE ('startswith' is not supported)
+    if (!String.prototype.startsWith) {
+      String.prototype.startsWith = function(searchString, position) {
+        position = position || 0;
+        return this.indexOf(searchString, position) === position;
+      };
+    }
+    // --
 
     function initializeJsTree(){
         var to = null;
@@ -51,6 +61,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             if(to) { clearTimeout(to); }
                 to = setTimeout(function() {
                   var searchString = searchElem.val();
+                  jstreeContainer.jstree(true).show_all();
                   jstreeContainer.jstree('search', searchString);
                 }, 250);
         });
@@ -68,7 +79,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             "types": {
                 "#": {
                     "max_children": 1,
-                    "max_depth": 4,
+                    "max_depth": -1,
                     "valid_children": ["root"]
                 },
                 "root": {
@@ -77,7 +88,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "FOLDER": {
                     "icon": "builder-jstree-icon builder-folder-icon",
-                    "valid_children": ["Workflow","FOLDER", "script", "ansible", "rest"]
+                    "valid_children": ["Workflow","FOLDER", "script", "ansible", "rest", "remote_ansible"]
                 },
                 "Workflow": {
                     "icon": "builder-jstree-icon builder-jstree-workflow-icon",
@@ -91,6 +102,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "ansible": {
                     "icon": "builder-jstree-icon builder-jstree-ansible-icon",
+                    "valid_children": [],
+                    "li_attr": {"class": "draggable-card"}
+                },
+                "remote_ansible": {
+                    "icon": "builder-jstree-icon builder-jstree-remote-ansible-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
@@ -113,15 +129,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                   'show_only_matches' : true
             }
         }).on('ready.jstree', function() {
-            jstreeContainer.find( ".draggable-card" ).draggable({delay: 200,handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});
+            jstreeContainer.find( ".draggable-card" ).draggable({delay: 200,handle: ".jstree-anchor",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});
         }).bind("rename_node.jstree clear_search.jstree search.jstree open_node.jstree", function() {
-            jstreeContainer.find( ".draggable-card" ).draggable({delay: 200,handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
+            jstreeContainer.find( ".draggable-card" ).draggable({delay: 200,handle: ".jstree-anchor",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
         }).on('search.jstree', function (nodes, str) {
               if (str.nodes.length === 0) {
-                  $('#jstree_demo').css("visibility", "hidden");
-              }
-              else {
-                $('#jstree_demo').css("visibility", "visible");
+                  $('#jstree_demo').jstree(true).hide_all();
               }
         });
     }
@@ -146,40 +159,121 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     // jstree actions
-    //TODO: do error handling on all actions
     jstreeContainer.on("rename_node.jstree", renameDir);
-    jstreeContainer.on("delete_node.jstree", deleteDir);
     jstreeContainer.on("select_node.jstree", selectDir);
     jstreeContainer.on("hover_node.jstree", hoverDir);
     jstreeContainer.on("dehover_node.jstree", dehoverDir);
 
+    function displaySuccessMessage(successMessage) {
+    	var alertsDiv = $("#wfAlertsDiv");
+    	var successAlert = alertsDiv.find("#alerts_success");
+    	if(!successAlert.length) {
+    	    // if it doesn't exist, create
+    	    var successAlertHTML =
+    	    "<p id='alerts_success' class='alert alert-success'>"+
+                "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>×</button>"+
+                "<span class='message'></span>"+
+            "</p>";
+    	    alertsDiv.append(successAlertHTML);
+    	    successAlert = $("#alerts_success");
+    	}
+
+    	successAlert.find("span").html(successMessage);
+        successAlert.show();
+    };
+
+    function displayErrorMessage(errorMessage) {
+    	var alertsDiv = $("#wfAlertsDiv");
+    	var errorAlert = alertsDiv.find("#alerts_error");
+    	if(!errorAlert.length) {
+    	    // if it doesn't exist, create
+    	    var errorAlertHTML =
+    	    "<p id='alerts_error' class='alert alert-danger'>"+
+                "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>×</button>"+
+                "<span class='message'></span>"+
+            "</p>";
+    	    alertsDiv.append(errorAlertHTML);
+    	    errorAlert = $("#alerts_error");
+    	}
+
+    	errorAlert.find("span").html(errorMessage);
+        errorAlert.show();
+    };
+
     function createDir(event, data) {
         if (folderNodeType === data.node.type) {
-            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).then(function (resp) {
-                data.instance.set_id(data.node, resp.data.id);
+            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).success(function(resp) {
+                data.instance.set_id(data.node, resp.id);
+                displaySuccessMessage(translate("node.create.success"));
+            })
+            .error(function (error){
+                deleteNodeFromJSTreeAndDisplayErrorMsg(data.node, error.details);
             });
         }
         else {
-            $http.get(routes.Workflow_create({"workflowName": data.node.text,"dirID": data.node.parent})).then(function (resp) {
-                data.instance.set_id(data.node, resp.data.id);
+            $http.get(routes.Workflow_create({"workflowName": data.node.text,"dirID": data.node.parent})).success(function(resp) {
+                data.instance.set_id(data.node, resp.id);
+                displaySuccessMessage(translate("node.create.success"));
+            })
+            .error(function (error){
+                deleteNodeFromJSTreeAndDisplayErrorMsg(data.node, error.details);
             });
         }
     };
 
-    function deleteDir(event, data) {
-        if (folderNodeType === data.node.type) {
-            $http.get(routes.WF_directory_delete({"id": data.node.id}));
-        }
-        else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
-        	$http.get(routes.Primitive_delete({"primitiveId": data.node.id, "dirID": data.parent}));
-        }
-        else {
-            $http.get(routes.Workflow_delete({"workflowID": data.node.id, "dirID": data.parent}));
-        }
+    function deleteNodeFromJSTreeAndDisplayErrorMsg(selectedNode, errorMsg) {
+        jstreeContainer.jstree(true).delete_node(selectedNode);
+        displayErrorMessage(errorMsg);
+    }
+
+    function deleteNodeFromJSTreeAndDisplaySuccessMsg(jstreeRef, selectedNode) {
+        jstreeRef.delete_node(selectedNode);
 
         // By default select "My Library"
         jstreeContainer.jstree("select_node", myLib);
+
+        displaySuccessMessage(translate("node.delete.success"));
+    }
+
+    $scope.deleteNode = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected('full',true);
+        if(!sel.length) { return false; }
+        var nodeId = sel[0].id;
+        var nodeType = sel[0].type;
+        var nodeParent = sel[0].parent;
+        if (folderNodeType === nodeType) {
+            $http.get(routes.WF_directory_delete({"id": nodeId})).success(function() {
+                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
+            })
+            .error(function (error){
+                displayErrorMessage(error.details);
+            });
+        }
+        else if($.inArray(nodeType, primitiveNodeTypes) > -1) {
+        	$http.get(routes.Primitive_delete({"primitiveId": nodeId, "dirID": nodeParent})).success(function() {
+                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
+            })
+            .error(function (error){
+                displayErrorMessage(error.details);
+            });
+        }
+        else {
+            $http.get(routes.Workflow_delete({"workflowID": nodeId, "dirID": nodeParent})).success(function() {
+                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
+            })
+            .error(function (error){
+                displayErrorMessage(error.details);
+            });
+        }
+
     };
+
+    function revertRename(node, oldText, errorMessage) {
+        jstreeContainer.jstree('set_text', node , oldText );
+        displayErrorMessage(errorMessage);
+        addMoreOptions(node.id, node.type, node.parent);
+    }
 
     function renameDir(event, data) {
         // Identifying if node is not saved to DB yet and creating it.
@@ -188,35 +282,53 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             addMoreOptions(data.node.parent, folderNodeType, "");
         }
         else {
-            if (folderNodeType === data.node.type) {
-                $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
-            }
-            else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
-                $http.get(routes.Primitive_edit_name({"primitiveID": data.node.id, "newName": data.text}));
-            }
-            else if (workflowNodeType === data.node.type){
-                $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
+            // if Old text is not equal to new text, then rename
+            if (data.old !== data.text) {
+                if (folderNodeType === data.node.type) {
+                    $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text})).success(function() {
+                        displaySuccessMessage(translate("node.rename.success"));
+                    })
+                    .error(function (error){
+                        revertRename(data.node, data.old, error.details)
+                    });
+                }
+                else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
+                    $http.get(routes.Primitive_edit_name({"primitiveID": data.node.id, "newName": data.text})).success(function() {
+                        displaySuccessMessage(translate("node.rename.success"));
+                    })
+                    .error(function (error){
+                        revertRename(data.node, data.old, error.details)
+                    });
+                }
+                else if (workflowNodeType === data.node.type){
+                    $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text})).success(function() {
+                        displaySuccessMessage(translate("node.rename.success"));
+                    })
+                    .error(function (error){
+                        revertRename(data.node, data.old, error.details)
+                    });
+                }
             }
 
             addMoreOptions(data.node.id, data.node.type, data.node.parent);
         }
     };
 
-    var optionsHTML = `
-    <div id="treeMoreOptionsSel" class="btn-group treeMoreOptions">
-       <button id="optionsBtn" type="button" class="btn btn-xs btn-default dropdown-toggle" title="Options" data-toggle="dropdown">
-           <span class="glyphicon"><img src="/public/img/customServices/ThreeDotsMenu.svg" height="20" width="20"></span>
-       </button>
-       <ul class="dropdown-menu dropdown-menu-right" role="menu">
-            <li id="editMenu" style="display:none;"><a  href="#" ng-click="editNode();">${translate('wfBuilder.menu.edit')}</a></li>
-            <li id="editWFMenu" style="display:none;"><a  href="#" ng-click="openWorkflow();">${translate('wfBuilder.menu.edit')}</a></li>
-            <li id="renameMenu" style="display:none;"><a  href="#" ng-click="renameNode();">${translate('wfBuilder.menu.rename')}</a></li>
-            <li id="deleteMenu" style="display:none;"><a  href="#" ng-click="deleteNode();">${translate('wfBuilder.menu.delete')}</a></li>
-            <li id="importExportSeparator" role="separator" class="divider" style="display:none;"></li>
-            <li id="exportMenu" style="display:none;"><a  href="#" ng-click="exportWorkflow();">${translate('wfBuilder.menu.export')}</a></li>
-       </ul>
-    </div>
-    `;
+
+    var optionsHTML =
+    "<div id='treeMoreOptionsSel' class='btn-group treeMoreOptions'>"+
+       "<button id='optionsBtn' type='button' class='btn btn-xs btn-default dropdown-toggle' title='Options' data-toggle='dropdown'>"+
+           "<span class='glyphicon'><img src='/public/img/customServices/ThreeDotsMenu.svg' height='20' width='20'></span>"+
+       "</button>"+
+       "<ul class='dropdown-menu dropdown-menu-right' role='menu'>"+
+            "<li id='editMenu' style='display:none;'><a  href='#' ng-click='editNode();'>"+translate('wfBuilder.menu.edit')+"</a></li>"+
+            "<li id='editWFMenu' style='display:none;'><a  href='#' ng-click='openWorkflow();'>"+translate('wfBuilder.menu.edit')+"</a></li>"+
+            "<li id='renameMenu' style='display:none;'><a  href='#' ng-click='renameNode();'>"+translate('wfBuilder.menu.rename')+"</a></li>"+
+            "<li id='deleteMenu' style='display:none;'><a  href='#' ng-click='deleteNode();'>"+translate('wfBuilder.menu.delete')+"</a></li>"+
+            "<li id='importExportSeparator' role='separator' class='divider' style='display:none;'></li>"+
+            "<li id='exportMenu' style='display:none;'><a  href='#' ng-click='exportWorkflow();'>"+translate('wfBuilder.menu.export')+"</a></li>"+
+       "</ul>"+
+    "</div>";
 
     var validActionsOnMyLib = ["addWorkflowMenu", "addShellMenu", "addLAMenu", "addRestMenu", "addFolderDivider", "addFolderMenu"]
     var validActionsOnFolder = ["editDivider", "renameMenu", "deleteMenu"]
@@ -259,7 +371,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $('#'+value).show();
         });
 
-        //TODO: check if we can avoid this search on ID
         var generated = jstreeContainer.jstree(true).get_node(nodeId, true);
         $compile(generated.contents())($scope);
     }
@@ -279,7 +390,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     };
 
-    $scope.hoverOptionsClick = function(nodeId){
+    $scope.hoverOptionsClick = function(event, nodeId){
         jstreeContainer.jstree("deselect_node", $scope.selNodeId);
         jstreeContainer.jstree("select_node", nodeId);
         event.stopPropagation();
@@ -292,13 +403,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
         // Do not show again for selected node
         if (showOptions(nodeId, data.node.parents) && $scope.selNodeId !== nodeId) {
-            var optionsHoverHTML = `
-                <div id="treeMoreOptionsHover" class="btn-group treeMoreOptions">
-                   <button id="optionsHoverBtn" type="button" class="btn btn-xs btn-default" title="Options" ng-click="hoverOptionsClick('${nodeId}');">
-                       <span class="glyphicon"><img src="/public/img/customServices/ThreeDotsMenu.svg" height="20" width="20"></span>
-                   </button>
-                </div>
-            `;
+            var optionsHoverHTML =
+                "<div id='treeMoreOptionsHover' class='btn-group treeMoreOptions'>"+
+                   "<button id='optionsHoverBtn' type='button' class='btn btn-xs btn-default' title='Options' ng-click=\"hoverOptionsClick($event, '" + nodeId + "');\">"+
+                       "<span class='glyphicon'><img src='/public/img/customServices/ThreeDotsMenu.svg' height='20' width='20'></span>"+
+                   "</button>"+
+                "</div>";
 
             $('[id="'+nodeId+'"]').children('a').before(optionsHoverHTML);
             var generated = jstreeContainer.jstree(true).get_node(nodeId, true);
@@ -338,19 +448,41 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.openShellScriptModal = function(){
         var scope = angular.element($('#scriptModal')).scope();
         scope.populateModal(false);
-        $('#shellPrimitiveDialog').modal('show');
+        $('#shellPrimitiveDialog').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
     }
 
     $scope.openLocalAnsibleModal = function(){
         var scope = angular.element($('#localAnsibleModal')).scope();
         scope.populateModal(false);
-        $('#localAnsiblePrimitiveDialog').modal('show');
+        $('#localAnsiblePrimitiveDialog').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+
+    $scope.openRemoteAnsibleModal = function(){
+        var scope = angular.element($('#remoteAnsibleModal')).scope();
+        scope.populateModal(false);
+        $('#remoteAnsiblePrimitiveDialog').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
     }
 
     $scope.openRestAPIModal = function(){
-            var scope = angular.element($('#restAPIModal')).scope();
-            scope.populateModal(false);
-            $('#restAPIPrimitiveDialog').modal('show');
+        var scope = angular.element($('#restAPIModal')).scope();
+        scope.populateModal(false);
+        $('#restAPIPrimitiveDialog').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
     }
 
     // Rename node
@@ -380,6 +512,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             scope.populateModal(true, sel.id, sel.type);
             $('#localAnsiblePrimitiveDialog').modal('show');
         }
+        else if(remoteAnsibleNodeType === sel.type){
+            //open script modal
+            var scope = angular.element($('#remoteAnsibleModal')).scope();
+            scope.populateModal(true, sel.id, sel.type);
+            $('#remoteAnsiblePrimitiveDialog').modal('show');
+        }
         else if(restAPINodeType === sel.type){
             //open script modal
             var scope = angular.element($('#restAPIModal')).scope();
@@ -389,13 +527,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         else{
             ref.edit(sel.id);
         }
-    };
-
-    $scope.deleteNode = function() {
-        var ref = jstreeContainer.jstree(true),
-            sel = ref.get_selected();
-        if(!sel.length) { return false; }
-        ref.delete_node(sel);
     };
 
     $scope.openWorkflow = function() {
@@ -426,9 +557,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var INPUT_TYPE_OPTIONS = ['Disabled'];
     var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project','assetType.vipr.host'];
 
+    var RELATIONSHIP_MAP = {};
+    var STEP_INPUT_MAP = {};
+    var STEP_OUTPUT_MAP = {};
+
     $scope.workflowData = {};
-    $scope.stepInputOptions = {};
-    $scope.stepOutputOptions = {};
     var DEFAULT_OUTPUT_PARAMS = ["operation_output","operation_error","operation_returncode"];
 
     $scope.modified = false;
@@ -451,8 +584,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             if (resp.status == 200) {
                 $scope.workflowData = resp.data;
                 activateTab(elementid);
-            } else {
-                //TODO: show error for workflow failed to load
             }
         });
     }
@@ -468,7 +599,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             maxScale: 2,
             increment: 0.1,
             duration: 100
-            //TODO add contain: 'invert'
         });
 
         //DOMMouseScroll is needed for firefox
@@ -537,7 +667,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     */
     var passEndpoint = {
         endpoint: ["Image", {
-            src:"/public/img/customServices/YesDark.svg"
+            src:"/public/img/customServices/YesDark.svg",
+            height:'20',
+            width:'20'
         }],
         isSource: true,
         connector: ["Flowchart", {
@@ -550,7 +682,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     var failEndpoint = {
         endpoint: ["Image", {
-            src:"/public/img/customServices/NoDark.svg"
+            src:"/public/img/customServices/NoDark.svg",
+            height:'20',
+            width:'20'
         }],
         isSource: true,
         connector: ["Flowchart", {
@@ -573,9 +707,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     */
     function dragEndFunc(e) {
         //set ID and text within the step element
-        //TODO: retrieve stepname from step data when API is available
-        var randomIdHash = Math.random().toString(36).substring(7);
-
+        var randomIdHash = generateUUID ();
         //compensate x,y for zoom
         var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
         var y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
@@ -601,16 +733,131 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     }
 
-    $scope.getInputOptions=function(){
-        return Object.keys($scope.stepInputOptions).map(function(key) {
-               return $scope.stepInputOptions[key];
-           });
+    // Function to generate UUID for step Id that compliant with RFC-4122 version 4
+    function generateUUID () {
+        var d = new Date().getTime();
+        if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
+            d += performance.now(); //use high-precision timer if available
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = (d + Math.random() * 16) % 16 | 0;
+            d = Math.floor(d / 16);
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
     }
 
-    $scope.getOutputOptions=function(){
-        return Object.keys($scope.stepOutputOptions).map(function(key) {
-               return $scope.stepOutputOptions[key];
-           });
+    $scope.getInputOptions=function(id){
+        return STEP_INPUT_MAP[id];
+    }
+
+    $scope.getOutputOptions=function(id){
+        return STEP_OUTPUT_MAP[id];
+    }
+
+    $scope.getParentOptions=function(id){
+        var parents = [];
+        parents=getAllParents(id,parents);
+        return parents;
+    }
+
+    function findWithAttr(array, attr, value) {
+        for(var i = 0; i < array.length; i += 1) {
+            if(array[i][attr] === value) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function getAllParents(id,result){
+        if (null == result){
+            result = [];
+        }
+        var parents = RELATIONSHIP_MAP[id];
+        if (null != parents) {
+            for(var parent in parents) {
+                if (parents.hasOwnProperty(parent)) {
+                    var index = findWithAttr(result,"id",parent);
+                    if( index === -1){
+                        result.push({id:parent,name:parents[parent]});
+                        result=getAllParents(parent,result);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    function addRelation(source,target,sourceData) {
+        if(source === 'Start'||target === 'End'){
+            return;
+        }
+        var parents = RELATIONSHIP_MAP[target];
+        if (null != parents) {
+            if(!parents.hasOwnProperty(source)) {
+                parents[source]=sourceData.friendlyName;
+            }
+        } else {
+            parents = {};
+            parents[source]=sourceData.friendlyName;
+        }
+        RELATIONSHIP_MAP[target]=parents;
+
+        var inputParamsList = STEP_INPUT_MAP[source];
+        if (null == inputParamsList)  {
+            inputParamsList = [];
+            if("inputGroups" in sourceData) {
+                for(var inputGroupEntry in sourceData.inputGroups) {
+                    if(sourceData.inputGroups.hasOwnProperty(inputGroupEntry)) {
+                        var inparams = sourceData.inputGroups[inputGroupEntry].inputGroup;
+                        for(var inputparam in inparams) {
+                            if(inparams.hasOwnProperty(inputparam)) {
+                                var inparam_name = inparams[inputparam].name;
+                                var stepidconcate = sourceData.id + "." + inparam_name;
+                                inputParamsList.push({id:stepidconcate, name:inparam_name});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        STEP_INPUT_MAP[source]=inputParamsList;
+
+        var outputParamsList = STEP_OUTPUT_MAP[source];
+        if (null == outputParamsList)  {
+            outputParamsList = [];
+            var outparams = sourceData.output;
+            for(var outputparam in outparams) {
+                if(outparams.hasOwnProperty(outputparam)) {
+                    var outparam_name = outparams[outputparam].name;
+                    var stepidconcate = sourceData.id + "." + outparam_name;
+                    outputParamsList.push({id:stepidconcate, name:outparam_name});
+                }
+            }
+
+            for(var outputparam in DEFAULT_OUTPUT_PARAMS) {
+                if(DEFAULT_OUTPUT_PARAMS.hasOwnProperty(outputparam)) {
+                    var outparam_name = DEFAULT_OUTPUT_PARAMS[outputparam];
+                    var stepidconcate = sourceData.id + "." + outparam_name;
+                    outputParamsList.push({id:stepidconcate, name:outparam_name});
+                }
+            }
+        }
+        STEP_OUTPUT_MAP[source]=outputParamsList;
+    }
+
+    function removeRelation(source,target,sourceData) {
+        var parents = RELATIONSHIP_MAP[target];
+        if (null != parents) {
+            if(sourceData.next.defaultStep !== target && sourceData.next.failedStep !== target && parents.hasOwnProperty(source)) {
+                delete parents[source];
+                if (jQuery.isEmptyObject(parents)){
+                    delete RELATIONSHIP_MAP[target];
+                    delete STEP_INPUT_MAP[source];
+                    delete STEP_OUTPUT_MAP[source];
+                }
+            }
+        }
     }
 
     function setBindings() {
@@ -631,43 +878,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             }
             // Populate array for input and output from previous steps
 
-            if (sourceData.id !== 'Start' && sourceData.id !== 'End' ){
-                if("inputGroups" in sourceData) {
-                    for(var inputGroupEntry in sourceData.inputGroups) {
-                        if(sourceData.inputGroups.hasOwnProperty(inputGroupEntry)) {
-                            var inparams = sourceData.inputGroups[inputGroupEntry].inputGroup;
-                            for(var inputparam in inparams) {
-                                if(inparams.hasOwnProperty(inputparam)) {
-                                    var inparam_name = inparams[inputparam].name;
-                                    var stepidconcate = sourceData.id + "." + inparam_name;
-                                    var stepnameconcate = sourceData.friendlyName + " " + inparam_name
-                                    //prevents duplicates by using key
-                                    $scope.stepInputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
-                                }
-                            }
-                        }
-                    }
-                }
-                var outparams = sourceData.output;
-                for(var outputparam in outparams) {
-                    if(outparams.hasOwnProperty(outputparam)) {
-                        var outparam_name = outparams[outputparam].name;
-                        var stepidconcate = sourceData.id + "." + outparam_name;
-                        var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-                        $scope.stepOutputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
-                    }
-                }
-
-                for(var outputparam in DEFAULT_OUTPUT_PARAMS) {
-                    if(DEFAULT_OUTPUT_PARAMS.hasOwnProperty(outputparam)) {
-                        var outparam_name = DEFAULT_OUTPUT_PARAMS[outputparam];
-                        var stepidconcate = sourceData.id + "." + outparam_name;
-                        var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-                        $scope.stepOutputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
-                    }
-                }
-            }
             sourceData.next=sourceNext;
+            addRelation(sourceData.id,connection.targetId,sourceData)
             $scope.modified = true;
             $scope.$apply();
         });
@@ -687,23 +899,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 delete sourceData.next.failedStep;
             }
             sourceData.next=sourceNext;
-            // Remove source data after unbind array for input and output from previous steps
-            if (!sourceData.next.hasOwnProperty("defaultStep") && !sourceData.next.hasOwnProperty("failedStep")){
-                 for (var k in $scope.stepInputOptions){
-                    if ($scope.stepInputOptions.hasOwnProperty(k)) {
-                        if (k.startsWith(sourceData.id + ".")) {
-                            delete $scope.stepInputOptions[k];
-                        }
-                    }
-                }
-                 for (var k in $scope.stepOutputOptions){
-                    if ($scope.stepOutputOptions.hasOwnProperty(k)) {
-                        if (k.startsWith(sourceData.id + ".")) {
-                            delete $scope.stepOutputOptions[k];
-                        }
-                    }
-                }
-            }
+            removeRelation(sourceData.id,connection.targetId,sourceData)
             $scope.modified = true;
             $scope.$apply();
         });
@@ -765,6 +961,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.modified = state;
     }
 
+    $scope.isInventoryFile = function(step, inputGroupName, input) {
+        return step.type == 'ansible' && inputGroupName == 'ansible_options' && input.name == 'inventory_file'
+    }
+
     function buildJSON() {
         var blocks = []
         diagramContainer.find(" .item,  .item-start-end").each(function(idx, elem) {
@@ -778,7 +978,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             } ));
         });
 
-        //TODO: return JSON data so that it can be accessed in Export/SaveWorkflow via this method
         $scope.workflowData.document.steps = blocks;
     }
 
@@ -894,7 +1093,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         return getStepIconClass(stepType);
     }
 
-	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
+	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "remoteAnsibleNodeType":remoteAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
     function getStepIconClass(stepType){
         var stepIconClass = "builder-step-icon";
         if(stepType != null) {
@@ -904,6 +1103,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     break;
                 case draggableNodeTypes.localAnsibleNodeType:
                     stepIconClass = "builder-ansible-icon";
+                    break;
+                case draggableNodeTypes.remoteAnsibleNodeType:
+                    stepIconClass = "builder-remote-ansible-icon";
                     break;
                 case draggableNodeTypes.workflowNodeType:
                     stepIconClass = "builder-workflow-icon";
@@ -966,6 +1168,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     }
 
+    $scope.isEmpty = function(obj) {
+        return (obj === undefined || obj === null || Object.keys(obj).length === 0);
+    }
+
     function loadStep(step) {
         if(!step.positionY || !step.positionX){
             return;
@@ -979,36 +1185,35 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var trimmedStepName = stepName;
         if (stepName.length > 70)
             trimmedStepName = stepName.substring(0,65)+'...';
-        var stepHTML = `
-        <div id="${stepDivID}" class="example-item-card-wrapper" ng-class="{\'highlighted\':(selectedId == '${stepId}' && menuOpen)}">
-            <div ng-if="alert.error.errorSteps.${stepId}" ng-init="checkStepErrorMessage('${stepId}')" ng-class="{'visible':alert.error.errorSteps.${stepId}.visible}" class="custom-error-popover custom-error-step-popover top">
-                <div class="arrow"></div><div ng-repeat="message in alert.error.errorSteps.${stepId}.errorMessages" class="custom-popover-content">{{message}}</div>
-            </div>
-            <span id="${stepId}-error"  class="glyphicon item-card-error-icon failure-icon" ng-if="alert.error.errorSteps.${stepId}" ng-mouseover="hoverErrorIn('${stepId}')" ng-mouseleave="hoverErrorOut('${stepId}')"></span>
-            <div  class="button-container">
-                <a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep('${stepId}')"></a>
-                <a class="glyphicon glyphicon-pencil button-step-close" ng-click="select('${stepId}')"></a>
-            </div>
-            <div id="${stepId}"  class="item">
-                <div class="step-type-image ${getStepIconClass(step.type)}">
-                </div>
-                <div class="itemText">${trimmedStepName}</div>
-            </div>
-        </div>
-        `;
+        var stepHTML =
+        "<div id="+stepDivID+" class='example-item-card-wrapper' ng-class=\"{'highlighted':(selectedId == '" + stepId + "' && menuOpen)}\">"+
+            "<div ng-if='alert.error.errorSteps." + stepId + "' ng-init='checkStepErrorMessage(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
+                "<div class='arrow'></div><div ng-repeat='message in alert.error.errorSteps."+stepId+".errorMessages' class='custom-popover-content'>{{message}}</div>"+
+            "</div>"+
+            "<span id='"+stepId+"-error'  class='glyphicon item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
+            "<div  class='button-container'>"+
+                "<a ng-click='removeStep(\"" + stepId + "\")'><div class='builder-removeStep-icon'></div></a>"+
+                "<a class='button-edit-step' ng-click='select(\"" + stepId + "\")'><div class='builder-editStep-icon'></div></a>"+
+            "</div>"+
+            "<div id='"+stepId+"'  class='item'>"+
+                "<div class='step-type-image " + getStepIconClass(step.type) + "'>"+
+                "</div>"+
+                "<div class='itemText'>"+trimmedStepName+"</div>"+
+            "</div>"+
+        "</div>";
 
         if (stepId === "Start" || stepId === "End"){
-            var stepSEHTML = `
-            <div id="${stepDivID}" class="example-item-card-wrapper">
-            <div ng-if="alert.error.errorSteps.${stepId}" style="bottom: 60px;" ng-init="checkStepErrorMessage('${stepId}')" ng-class="{'visible':alert.error.errorSteps.${stepId}.visible}" class="custom-error-popover custom-error-step-popover top">
-                <div class="arrow"></div><div ng-repeat="message in alert.error.errorSteps.${stepId}.errorMessages" class="custom-popover-content">{{message}}</div>
-            </div>
-            <span id="${stepId}-error"  class="glyphicon glyphicon-remove-sign item-card-error-icon failure-icon" ng-if="alert.error.errorSteps.${stepId}" ng-mouseover="hoverErrorIn('${stepId}')" ng-mouseleave="hoverErrorOut('${stepId}')"></span>
-                <div id="${stepId}"  class="item-start-end" ng-class="{\'highlighted\':selectedId == '${stepId}'}">
-                    <div class="itemTextStartEnd">${stepName}</div>
-                </div>
-            </div>
-            `;
+            var stepSEHTML =
+            "<div id="+stepDivID+" class='example-item-card-wrapper'>"+
+                "<div ng-if='alert.error.errorSteps." + stepId + "' style='bottom: 60px;' ng-init='checkStepErrorMessage(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
+                    "<div class='arrow'></div>"+
+                    "<div ng-repeat='message in alert.error.errorSteps."+stepId+".errorMessages' class='custom-popover-content'>{{message}}</div>"+
+                "</div>"+
+                "<span id='"+stepId+"-error'  class='glyphicon glyphicon-remove-sign item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
+                "<div id='"+stepId+"' class='item-start-end' ng-class=\"{'highlighted':selectedId == '" + stepId + "'}\">"+
+                    "<div class='itemTextStartEnd'>"+stepName+"</div>"+
+                "</div>"+
+            "</div>";
             $(stepSEHTML).appendTo(diagramContainer);
         } else {
             $(stepHTML).appendTo(diagramContainer);

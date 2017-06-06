@@ -27,7 +27,7 @@
 }
 
 .message-bar-icon {
-    display: table-cell;
+    float: left;
     position: relative;
     top: 2px;
     width: 23px;
@@ -144,6 +144,8 @@
     top: 0px;
     margin: 0px;
     padding: 7px;
+    max-height: 27px;
+    width: 27px;
 }
 
 .example-item-card-wrapper a:hover {
@@ -344,11 +346,6 @@
     margin-left: 9px;
 }
 
-.button-step-close {
-    margin: 5px;
-    color: #a7a9ac;
-}
-
 .button-container {
     position: absolute;
     right: 0px;
@@ -372,7 +369,7 @@
     background-color: #4794cd;
 }
 
-.highlighted .button-container .glyphicon-pencil{
+.highlighted .button-container .button-edit-step {
 	display: none;
 }
 
@@ -401,7 +398,7 @@ table, th , td {
 }
 
 .sidenav-open {
-    width: 500px;
+    width: 400px;
 }
 
 .sidenav h3{
@@ -472,6 +469,10 @@ table, th , td {
 
 .sidenav .panel-title .glyphicon, .panel-title .vipricon {
     margin-right: 3px;
+}
+
+.panel-title {
+    font-size: 12px
 }
 
 .lib-slider-button {
@@ -634,6 +635,10 @@ table, th , td {
     background-image: url(/public/img/customServices/Library-LocalAnsible.svg) !important;
 }
 
+.builder-jstree-remote-ansible-icon {
+    background-image: url(/public/img/customServices/Library-RemoteAnsible.svg) !important;
+}
+
 .builder-jstree-script-icon {
     background-image: url(/public/img/customServices/Library-Script.svg) !important;
 }
@@ -641,11 +646,6 @@ table, th , td {
 .builder-jstree-workflow-icon {
     background-image: url(/public/img/customServices/Library-Workflow.svg) !important;
 }
-
-
-
-
-
 
 .builder-rest-icon {
     background-image: url(/public/img/customServices/RestApi.svg) !important;
@@ -657,6 +657,10 @@ table, th , td {
 
 .builder-ansible-icon {
     background-image: url(/public/img/customServices/LocalAnsible.svg) !important;
+}
+
+.builder-remote-ansible-icon {
+    background-image: url(/public/img/customServices/RemoteAnsible.svg) !important;
 }
 
 .builder-script-icon {
@@ -675,6 +679,24 @@ table, th , td {
     background-image: url(/public/img/customServices/TreeNodeStep.svg) !important;
 }
 
+.builder-editStep-icon {
+    background-image:url(/public/img/customServices/EditStep.svg);
+    width: 13px;
+    height: 13px;
+}
+
+.builder-removeStep-icon {
+    background-image:url(/public/img/customServices/RemoveStep.svg);
+    width: 11px;
+    height: 11px;
+}
+
+.highlighted .builder-removeStep-icon {
+    background-image:url(/public/img/customServices/RemoveStepSelected.svg);
+    width: 11px;
+    height: 11px;
+}
+
 .highlighted .builder-rest-icon {
     background-image: url(/public/img/customServices/RestApiSelected.svg) !important;
 }
@@ -685,6 +707,10 @@ table, th , td {
 
 .highlighted .builder-ansible-icon {
     background-image: url(/public/img/customServices/LocalAnsibleSelected.svg) !important;
+}
+
+.highlighted .builder-remote-ansible-icon {
+    background-image: url(/public/img/customServices/RemoteAnsibleSelected.svg) !important;
 }
 
 .highlighted .builder-script-icon {

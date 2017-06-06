@@ -5,7 +5,12 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +30,7 @@ import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -79,33 +85,21 @@ public class FilePolicyServiceUtils {
                         + " is invalid");
                 return false;
             }
-
-            // validating schedule time
-            String period = " PM";
-            int hour;
-            int minute;
-            boolean isValid = true;
             if (policyScheduleparams.getScheduleTime() == null) {
                 errorMsg.append("required parameter schedule_time is missing");
                 return false;
             }
-            if (policyScheduleparams.getScheduleTime() != null && policyScheduleparams.getScheduleTime().contains(":")) {
-                String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
-                hour = Integer.parseInt(splitTime[0]);
-                minute = Integer.parseInt(splitTime[1]);
-                if (splitTime[0].startsWith("-") || splitTime[1].startsWith("-")) {
-                    isValid = false;
-                }
-            } else {
-                hour = Integer.parseInt(policyScheduleparams.getScheduleTime());
-                minute = 0;
-            }
-            if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
-                if (hour < 12) {
-                    period = " AM";
-                }
-            } else {
-                errorMsg.append("Schedule time: " + policyScheduleparams.getScheduleTime() + " is invalid");
+
+            // Convert time from 24 Hours to 12 Hours using SimpleDateFormat class
+            String time = policyScheduleparams.getScheduleTime();
+            DateFormat sdf24 = new SimpleDateFormat("HH:mm");
+            DateFormat sdf12 = new SimpleDateFormat("hh:mm a");
+            try {
+                Date date = sdf24.parse(time);
+                String time12 = sdf12.format(date);
+                policyScheduleparams.setScheduleTime(time12);
+            } catch (ParseException e) {
+                errorMsg.append("Schedule time: " + time + " is invalid");
                 return false;
             }
 
@@ -116,7 +110,7 @@ public class FilePolicyServiceUtils {
                 case HOURS:
                 case DAYS:
                     schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
-                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime());
                     if (schedulePolicy.getScheduleDayOfWeek() != null && !schedulePolicy.getScheduleDayOfWeek().isEmpty()) {
                         schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                     }
@@ -139,7 +133,7 @@ public class FilePolicyServiceUtils {
                         errorMsg.append("required parameter schedule_day_of_week is missing or empty");
                         return false;
                     }
-                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime());
                     if (schedulePolicy.getScheduleDayOfMonth() != null) {
                         schedulePolicy.setScheduleDayOfMonth(0L);
                     }
@@ -149,7 +143,7 @@ public class FilePolicyServiceUtils {
                             && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
                         schedulePolicy.setScheduleDayOfMonth((long) policyScheduleparams.getScheduleDayOfMonth());
                         schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
-                        schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                        schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime());
                         if (schedulePolicy.getScheduleDayOfWeek() != null) {
                             schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                         }
@@ -417,8 +411,10 @@ public class FilePolicyServiceUtils {
                     }
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
                             targetVArrys);
+
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
                             vPool.getId());
+
                 } else {
                     errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
                     return false;
@@ -646,6 +642,39 @@ public class FilePolicyServiceUtils {
                 task.setTenant(TenantOrg.SYSTEM_TENANT);
             }
             dbClient.updateObject(task);
+        }
+    }
+
+    /**
+     * Resets the filesystem relation due to replication policy assigned at higher level
+     * Only to be used when delete FS is FULL type
+     * 
+     * @param _dbClient
+     * @param fileshare
+     */
+    public static void resetReplicationFileSystemsRelation(DbClient _dbClient, FileShare fileshare) {
+        List<FileShare> modifiedFileshares = new ArrayList<>();
+        if (fileshare.getPersonality() != null) {
+            fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
+            fileshare.setAccessState(NullColumnValueGetter.getNullStr());
+            fileshare.setPersonality(NullColumnValueGetter.getNullStr());
+            if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
+                StringSet targets = fileshare.getMirrorfsTargets();
+                for (String strTargetFs : targets) {
+                    FileShare targetFs = _dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
+                    targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                    targetFs.setAccessState(NullColumnValueGetter.getNullStr());
+                    targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
+                    targetFs.setPersonality(NullColumnValueGetter.getNullStr());
+                    modifiedFileshares.add(targetFs);
+                }
+                targets.clear();
+                fileshare.setMirrorfsTargets(targets);
+            }
+        }
+        modifiedFileshares.add(fileshare);
+        if (!modifiedFileshares.isEmpty()) {
+            _dbClient.updateObject(modifiedFileshares);
         }
     }
 }

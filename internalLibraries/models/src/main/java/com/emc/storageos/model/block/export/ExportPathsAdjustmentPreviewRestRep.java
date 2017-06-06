@@ -10,6 +10,7 @@ import java.util.List;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -21,6 +22,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ExportPathsAdjustmentPreviewRestRep {
     
+    private String storageSystem;
     private List<InitiatorPortMapRestRep> adjustedPaths;
     private List<InitiatorPortMapRestRep> removedPaths;
     private List<NamedRelatedResourceRep> affectedExportGroups;
@@ -86,6 +88,15 @@ public class ExportPathsAdjustmentPreviewRestRep {
     		log.info("Ports: " + buffer.toString());
     	    }
         }
+    }
+
+    @XmlElement(name = "storage_system")
+    public String getStorageSystem() {
+        return storageSystem;
+    }
+
+    public void setStorageSystem(String storageSystem) {
+        this.storageSystem = storageSystem;
     }
 
 }

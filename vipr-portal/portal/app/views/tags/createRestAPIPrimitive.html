@@ -184,6 +184,13 @@ inputOutputTabID = 'inputOutputRestContent';
     }
 
     $(function() {
+        // Reset data on modal close
+        $('#restAPIPrimitiveDialog').on('hidden.bs.modal', function(e) {
+            $('#restAPIPrimitiveForm')[0].reset();
+            // Select first tab
+            $('.restTabbable a:first').tab('show')
+        });
+
         //on start hiding finish and back buttons
         $('#finishButtonRest').hide();
         $('#backButtonRest').hide();

@@ -30,10 +30,9 @@ public class AnsibleCommandLine {
     private final String ansiblePath;
     private final String playbook;
     private String prefix;
-    private String ssh;
-    private String node;
     private String extraVars;
     private String shellArgs;
+    private boolean isRemoteAnsible = false;
     private String chrootCmd;
     private final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
 
@@ -52,22 +51,6 @@ public class AnsibleCommandLine {
     public AnsibleCommandLine setUser(final String user) {
         if (!StringUtils.isEmpty(user))
             optionalParam.add("-u").add(user);
-
-        return this;
-    }
-
-    public AnsibleCommandLine setSsh(final String ssh) {
-        if (!StringUtils.isEmpty(ssh)) {
-            this.ssh = ssh;
-        }
-
-        return this;
-    }
-
-    public AnsibleCommandLine setUserAndIp(final String user, final String ip) {
-        if (!StringUtils.isEmpty(user) && !StringUtils.isEmpty(ip)) {
-            this.node = user + "@" + ip;
-        }
 
         return this;
     }
@@ -115,6 +98,12 @@ public class AnsibleCommandLine {
         return this;
     }
 
+    public AnsibleCommandLine setIsRemoteAnsible(final boolean isRemoteAnsible) {
+        this.isRemoteAnsible = isRemoteAnsible;
+
+	return this;
+    }
+
     public AnsibleCommandLine setChrootCmd(final String chrootcmd) {
         if (!StringUtils.isEmpty(chrootcmd)) {
             this.chrootCmd = chrootcmd;
@@ -134,28 +123,27 @@ public class AnsibleCommandLine {
             builder.add(CustomServicesConstants.CHROOT_DIR);
         }
 
-        if (!StringUtils.isEmpty(ssh) && !StringUtils.isEmpty(node)) {
-            builder.add(ssh).add(node);
-        }
-
         if (!StringUtils.isEmpty(shellArgs)) {
             final String[] splited = shellArgs.split("\\s+");
 
-            for (final String part : splited)
+            for (final String part : splited) {
                 builder.add(part);
+            }
         }
 
         final ImmutableList<String> opt = optionalParam.build();
         builder.add(ansiblePath).add(opt.toArray(new String[opt.size()])).add(playbook);
 
-        if (!StringUtils.isEmpty(extraVars))
-            builder.add("--extra-vars").add(extraVars);
-
-
+        if (!StringUtils.isEmpty(extraVars)) {
+            if (isRemoteAnsible) {
+                builder.add("--extra-vars").add("\"").add(extraVars).add("\"");
+            } else {
+                builder.add("--extra-vars").add(extraVars);
+            }
+        }
 
         final ImmutableList<String> cmdList = builder.build();
 
         return cmdList.toArray(new String[cmdList.size()]);
     }
-
 }

@@ -12,7 +12,7 @@ inputOutputTabID = 'inputOutputLAContent';
         autocomplete:"off"}
         <input type="hidden" name="localAnsible.wfDirID" id="localAnsible_wfDirID" ng-value="localAnsible.wfDirID"/>
         <input type="hidden" name="localAnsible.id" id="localAnsible_id" ng-value="localAnsible.id"/>
-        <div class="col-md-3 tabbable">
+        <div class="col-md-3 tabbable localAnsibleTabbable">
             <ul class="nav nav-pills nav-stacked primitivesNav">
                 <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
                     &{'primitive.menu.nameDescription'}</a></li>
@@ -188,6 +188,17 @@ inputOutputTabID = 'inputOutputLAContent';
     }
 
     $(function(){
+        // Reset data on modal close
+        $('#localAnsiblePrimitiveDialog').on('hidden.bs.modal', function(e) {
+            $('#localAnsiblePrimitiveForm')[0].reset();
+
+            // Remove more than 1 inventory file upload
+            $(".multi-file-upload").not(':last').remove();
+
+            // Select first tab
+            $('.localAnsibleTabbable a:first').tab('show')
+        });
+
         //on start hiding finish and back buttons
         $('#finishButtonLA').hide();
         $('#backButtonLA').hide();
@@ -217,7 +228,7 @@ inputOutputTabID = 'inputOutputLAContent';
             }
         });
 
-        var $tabs = $('.tabbable li');
+        var $tabs = $('.localAnsibleTabbable li');
         $('#backButtonLA').on('click', function() {
             var prevTabAnchor = $tabs.filter('.active').prev('li').find('a[data-toggle="tab"]');
             if(prevTabAnchor.length == 0) {

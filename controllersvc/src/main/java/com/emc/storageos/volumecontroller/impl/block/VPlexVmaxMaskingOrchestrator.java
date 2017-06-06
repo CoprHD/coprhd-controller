@@ -107,7 +107,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
             Map<URI, Map<String, Integer>> switchToPortNumber,
-            Map<URI, PortAllocationContext> contextMap) {
+            Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {
 
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
 
@@ -166,8 +166,14 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             }
         }
         if (useFilteredPorts) {
-            _log.info("Using filtered ports: " + usedPorts.toString());
-            _log.info("Ports eliminated because of sharing a cpu with a used port: " + eliminatedPorts.toString());
+            String message = String.format(
+                    "Ports successfully selected are %s. Ports eliminated because of sharing a cpu with an already-selected port are %s.",
+                    usedPorts.toString(), eliminatedPorts.toString());
+            _log.info(message);
+            if (errorMessages != null) {
+                errorMessages.append(message);
+            }
+
             allocatablePorts = useablePorts;
         } else {
             _log.info("Some networks have zero remaining ports after cpu filtering, will use duplicate ports on some cpus. "
@@ -221,7 +227,12 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             }
         }
         int numPG = minPorts / portsPerNetPerPG;
-        _log.info(String.format("Number Port Groups %d Per Network Ports Per Group %d", numPG, portsPerNetPerPG));
+        String message = String.format("Min Ports: %d. Number Port Groups: %d. Ports Per Network Per Port Group: %d.", 
+                minPorts, numPG, portsPerNetPerPG);
+        _log.info(message);
+        if (errorMessages != null) {
+            errorMessages.append(message);
+        }
         if (numPG == 0) {
             return portGroups;
         }
@@ -268,7 +279,9 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             portGroups.add(portGroup);
             _log.info(String.format("Port Group %d: %s", i, portNames.toString()));
             // Reinitialize the context in the allocator; we want redundancy within PG
-            allocator.getContext().reinitialize();
+            if (allocator.getContext() != null) {
+                allocator.getContext().reinitialize();
+            }
         }
         return portGroups;
     }
@@ -523,8 +536,6 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                 }
                 device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_044);
-            completer.ready(_dbClient);
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);

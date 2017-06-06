@@ -150,9 +150,9 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep updateWorkflow(@PathParam("id") final URI id, final CustomServicesWorkflowUpdateParam workflow) {
-        final CustomServicesWorkflow updated;
+        final CustomServicesWorkflow customServicesWorkflow;
         try {
-            CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
+            customServicesWorkflow = getCustomServicesWorkflow(id);
             if (null == customServicesWorkflow) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
             } else if (customServicesWorkflow.getInactive()) {
@@ -170,19 +170,21 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                         }
                     }
 
-                    updated = WorkflowHelper.update(customServicesWorkflow, workflow.getDocument());
+                    final String currentSteps = customServicesWorkflow.getSteps();
+
+                    WorkflowHelper.update(customServicesWorkflow, workflow.getDocument());
 
                     // On update, if there is any change to steps, resetting workflow status to initial state -NONE
-                    if (!customServicesWorkflow.getSteps().equals(updated.getSteps())) {
-                        updated.setState(CustomServicesWorkflowStatus.NONE.toString());
+                    if (StringUtils.isNotBlank(currentSteps) && StringUtils.isNotBlank(customServicesWorkflow.getSteps()) && !currentSteps.equals(customServicesWorkflow.getSteps())) {
+                        customServicesWorkflow.setState(CustomServicesWorkflowStatus.NONE.toString());
                     }
             }
 
         } catch (IOException e) {
             throw APIException.internalServerErrors.genericApisvcError("Error serializing workflow", e);
         }
-        customServicesWorkflowManager.save(updated);
-        return map(updated);
+        customServicesWorkflowManager.save(customServicesWorkflow);
+        return map(customServicesWorkflow);
     }
 
     @POST

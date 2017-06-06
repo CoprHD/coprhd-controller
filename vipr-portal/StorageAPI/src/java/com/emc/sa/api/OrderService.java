@@ -158,7 +158,7 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String ORDER_JOB_LOCK="order-jobs";
 
     private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
-    private long maxOrderDeletedPerGC=200000L;
+    private long maxOrderDeletedPerGC=20000L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -539,7 +539,7 @@ public class OrderService extends CatalogTaggedResourceService {
             order.setOrderStatus(OrderStatus.CANCELLED.name());
             client.save(order);
         } else {
-            orderManager.deleteOrder(order);
+            orderManager.cancelOrder(order);
         }
 
         return Response.ok().build();

@@ -39,6 +39,7 @@ import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.AssetOptionsManager;
+import com.emc.sa.asset.AssetOptionsProvider;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
@@ -277,7 +278,8 @@ public class OrderManagerImpl implements OrderManager {
             else {
 
                 // if provider prefers raw labels (because retrieval is too slow) use raw value
-                if(assetOptionsManager.getProviderForAssetType(assetType).useRawLabels()){
+                final AssetOptionsProvider assetProvider = assetOptionsManager.getProviderForAssetType(assetType);
+                if(assetProvider != null && assetProvider.useRawLabels()){
                     return key;
                 }
 
@@ -446,7 +448,12 @@ public class OrderManagerImpl implements OrderManager {
                 return serviceField;
             }
         }
-        return null;
+
+        log.info(String.format("Unexpected service field value found: %s", serviceFieldName));
+        ServiceField field = new ServiceField();
+        field.setName(serviceFieldName);
+        field.setLabel(serviceFieldName);
+        return field;
     }
 
     private OrderParameter findOrderParameter(String serviceFieldName, List<OrderParameter> orderParameters) {
@@ -501,9 +508,17 @@ public class OrderManagerImpl implements OrderManager {
         return (now - createdTime) < noDeletePeriod;
     }
 
+
+    public void cancelOrder(Order order) {
+        deleteOrderInDb(order);
+    }
+
     public void deleteOrder(Order order) {
         canBeDeleted(order, null);
+        deleteOrderInDb(order);
+    }
 
+    private void deleteOrderInDb(Order order) {
         URI orderId = order.getId();
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
         client.delete(approvalRequests);

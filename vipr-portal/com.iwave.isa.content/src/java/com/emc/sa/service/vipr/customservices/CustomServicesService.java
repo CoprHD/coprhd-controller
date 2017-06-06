@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -67,7 +68,6 @@ public class CustomServicesService extends ViPRService {
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
     private Map<String, Object> params;
-    private String oeOrderJson;
 
     @Autowired
     private DbClient dbClient;
@@ -76,7 +76,16 @@ public class CustomServicesService extends ViPRService {
     @Autowired
     private CustomServicesViprPrimitiveDAO customServicesViprDao;
 
-    private int code;
+    protected String decrypt(final String value) {
+        if (StringUtils.isNotBlank(value)) {
+            try {
+                return getEncryptionProvider().decrypt(Base64.decodeBase64(value));
+            } catch (RuntimeException e) {
+                throw new IllegalStateException(String.format("Failed to decrypt value: %s", e.getMessage()), e);
+            }
+        }
+        return value;
+    }
 
     @Override
     public void precheck() throws Exception {
@@ -140,7 +149,8 @@ public class CustomServicesService extends ViPRService {
                 next = getNext(isSuccess, res, step);
             } catch (final Exception e) {
                 logger.warn(
-                        "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:" + e);
+                        "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:", e);
+
                 next = getNext(false, null, step);
             }
             if (next == null) {
@@ -191,7 +201,7 @@ public class CustomServicesService extends ViPRService {
                 Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmd);
             }
         } catch (final Exception e) {
-            logger.error("Failed to cleanup OrderDir directory" + e);
+            logger.error("Failed to cleanup OrderDir directory", e);
         }
     }
 
@@ -275,7 +285,7 @@ public class CustomServicesService extends ViPRService {
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
-                final String friendlyName = value.getFriendlyName();
+                final String friendlyName = value.getFriendlyName().replaceAll(CustomServicesConstants.SPACES_REGEX,StringUtils.EMPTY);
                 if (StringUtils.isEmpty(value.getType())) {
                     continue;
                 }
@@ -288,12 +298,18 @@ public class CustomServicesService extends ViPRService {
                     case FROM_USER_MULTI:
                     case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
-                            if (StringUtils.isEmpty(value.getTableName())) {
-                                inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "")));
+                           final String param;
+                            if (!StringUtils.isEmpty(value.getInputFieldType()) && 
+				                value.getInputFieldType().toUpperCase().equals(CustomServicesConstants.InputFieldType.PASSWORD)) {
+                                param = decrypt(params.get(friendlyName).toString());
                             } else {
-                                inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "").split(",")));
+                                param = params.get(friendlyName).toString();
                             }
-
+                            if (StringUtils.isEmpty(value.getTableName())) {
+                                inputs.put(name, Arrays.asList(param.replace("\"", "")));
+                            } else {
+                                inputs.put(name, Arrays.asList(param.replace("\"", "").split(",")));
+                            }
                         } else {
                             if (value.getDefaultValue() != null) {
                                 inputs.put(name, Arrays.asList(value.getDefaultValue()));

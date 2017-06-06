@@ -691,11 +691,11 @@ public final class CustomServicesDBHelper {
         final List<NamedElement> workflows = client.customServicesWorkflows().getByPrimitive(id);
         if (CollectionUtils.isNotEmpty(workflows)) {
             final StringBuilder wfName = new StringBuilder();
-            String prefix = ". Workflows used : \"";
+            String prefix = ". Workflows used : ";
             for (final NamedElement eachWf : workflows) {
                 wfName.append(prefix);
-                prefix = ", \"";
-                wfName.append(eachWf.getName()).append("\"");
+                prefix = ", ";
+                wfName.append(eachWf.getName());
             }
 
             throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), primitive.getLabel(),

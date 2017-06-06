@@ -20,9 +20,6 @@ import play.data.validation.Required;
 
 import java.io.File;
 
-/**
- * Created by balak1 on 5/4/2017.
- */
 public class LocalAnsiblePrimitiveForm {
     private String id;
     @Required
@@ -42,11 +39,6 @@ public class LocalAnsiblePrimitiveForm {
     private File[] inventoryFiles;
     // This is comma separated list of updated inventory file names
     private String updatedInventoryFiles;
-
-    // TODO
-    public void validate() {
-
-    }
 
     public String getId() {
         return id;

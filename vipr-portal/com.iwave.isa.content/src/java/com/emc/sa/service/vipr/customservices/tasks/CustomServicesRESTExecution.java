@@ -23,10 +23,13 @@ import java.util.Map;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRESTApiPrimitive;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -35,19 +38,23 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 
+
+
 public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesRESTExecution.class);
 
     private final Map<String, List<String>> input;
     private final CustomServicesWorkflowDocument.Step step;
 
+    private final DbClient dbClient;
     private final CoordinatorClient coordinator;
 
     public CustomServicesRESTExecution(final Map<String, List<String>> input,
-            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator) {
+            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator,final DbClient dbClient) {
         this.input = input;
         this.step = step;
         this.coordinator = coordinator;
+        this.dbClient = dbClient;
         provideDetailArgs(step.getId());
     }
 
@@ -56,27 +63,35 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         try {
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId());
 
-            //TODO get it from primitive which are not runtime variable
-            final String authType = AnsibleHelper.getOptions(CustomServicesConstants.AUTH_TYPE, input);
+            final CustomServicesDBRESTApiPrimitive restPrimitive = dbClient.queryObject(CustomServicesDBRESTApiPrimitive.class,
+                    step.getOperation());
+            if (null == restPrimitive) {
+                logger.error("Error retrieving the ansible primitive from DB. {} not found in DB", step.getOperation());
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "\"Error retrieving the REST primitive from DB.");
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(step.getOperation() + " not found in DB");
+            }
+            final Map<String, String> attrs = restPrimitive.getAttributes();
+
+            final String authType = attrs.get(CustomServicesConstants.AUTH_TYPE);
             if (StringUtils.isEmpty(authType)) {
                 logger.error("Auth type cannot be undefined");
                 ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Auth type cannot be undefined");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot find Auth type");
             }
 
-            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, AnsibleHelper.getOptions(CustomServicesConstants.PROTOCOL, input),
+            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, restPrimitive.getAttributes().get(CustomServicesConstants.PROTOCOL),
                     AnsibleHelper.getOptions(CustomServicesConstants.USER, input), AnsibleHelper.getOptions(CustomServicesConstants.PASSWORD, input));
-            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(), null);
+            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(restPrimitive), null);
             final WebResource.Builder builder = BuildRestRequest.makeRequestBuilder(webResource, step, input);
 
             final CustomServicesConstants.RestMethods method =
-                    CustomServicesConstants.RestMethods.valueOf(AnsibleHelper.getOptions(CustomServicesConstants.METHOD, input));
+                    CustomServicesConstants.RestMethods.valueOf(attrs.get(CustomServicesConstants.METHOD));
 
             final CustomServicesTaskResult result;
             switch (method) {
                 case PUT:
                 case POST:
-                    final String body = RESTHelper.makePostBody(AnsibleHelper.getOptions(CustomServicesConstants.BODY, input),0, input);
+                    final String body = RESTHelper.makePostBody(restPrimitive.getAttributes().get(CustomServicesConstants.BODY),0, input);
 
                     result = executeRest(method, body, builder);
                     break;
@@ -88,6 +103,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             return result;
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesRESTExecution.doneInfo", "Custom Service Task Failed" + e);
+            logger.error("Exception:", e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
     }
@@ -120,12 +136,12 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
     }
 
-    public String getUrl() {
-        //TODO get from primitive.
+    public String getUrl(final CustomServicesDBRESTApiPrimitive primitive) {
+
         final String target = AnsibleHelper.getOptions(CustomServicesConstants.TARGET, input);
-        final String path = AnsibleHelper.getOptions(CustomServicesConstants.PATH, input);
+        final String path = primitive.getAttributes().get(CustomServicesConstants.PATH);
         final String port = AnsibleHelper.getOptions(CustomServicesConstants.PORT, input);
-        final String protocol =  AnsibleHelper.getOptions(CustomServicesConstants.PROTOCOL, input);
+        final String protocol =  primitive.getAttributes().get(CustomServicesConstants.PROTOCOL);
 
 
         if (StringUtils.isEmpty(target) || StringUtils.isEmpty(path) || StringUtils.isEmpty(port) || StringUtils.isEmpty(protocol)) {

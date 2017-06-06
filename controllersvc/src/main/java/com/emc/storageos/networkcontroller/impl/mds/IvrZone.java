@@ -47,7 +47,12 @@ public class IvrZone extends BaseZoneInfo {
      * @return
      */
     public boolean contains(IvrZoneMember zoneMember) {
-        return getMembers().contains(zoneMember);
+    	for (IvrZoneMember ivrZoneMember : getMembers()) {
+    		if (ivrZoneMember.equals(zoneMember)) {
+    			return true;
+    		}
+    	}
+        return false;
     }
 
     @Override

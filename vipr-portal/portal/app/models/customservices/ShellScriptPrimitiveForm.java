@@ -20,9 +20,6 @@ import play.data.validation.Required;
 
 import java.io.File;
 
-/**
- * Created by balak1 on 5/4/2017.
- */
 public class ShellScriptPrimitiveForm {
     private String id; // this is empty for CREATE
     // Name and Description step
@@ -38,11 +35,6 @@ public class ShellScriptPrimitiveForm {
     private String outputs; // comma separated list of ouputs
     private boolean newScript; // if true create new resource(delete any existing)
     private String wfDirID; // this is empty for EDIT
-
-    // TODO
-    public void validate() {
-        // check if script is not null
-    }
 
     public String getId() {
         return id;

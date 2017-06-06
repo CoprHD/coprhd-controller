@@ -502,7 +502,7 @@ public class VPlexScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities, Project project,
             VpoolUse srcVpoolUse, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
 
-        _log.info("Executing VPlex high availability placement strategy for Distributed VPLEX Volumes.");
+        _log.info("Executing VPLEX high availability placement strategy for Distributed VPLEX Volumes.");
 
         // Initialize the list of recommendations.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
@@ -542,7 +542,7 @@ public class VPlexScheduler implements Scheduler {
                 getVPlexConnectedMatchingPools(srcVarray, requestedVPlexSystems,
                         capabilities, allMatchingPoolsForSrcVarray);
         if (vplexPoolMapForSrcVarray.isEmpty()) {
-            _log.info("No matching pools on storage systems connected to a VPlex");
+            _log.info("No matching pools on storage systems connected to a VPLEX");
             // There are no matching pools in the source virtual array
             // on storage systems connected to a VPlex storage system
             // or there are, but a specific VPlex system was requested

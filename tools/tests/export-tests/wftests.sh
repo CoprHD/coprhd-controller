@@ -494,6 +494,7 @@ vmax3_sim_setup() {
     SMIS_PASSWD=$SMIS_PASSWD
     VMAX_SMIS_SSL=true
     VMAX_NATIVEGUID=$SIMULATOR_VMAX3_NATIVEGUID
+    VMAX_FAST_POLICY=$SIMULATOR_VMAX3_FAST_POLICY
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
@@ -537,6 +538,8 @@ vmax3_setup() {
     
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
+  --system_type vmax                     \
+  --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 2				            \

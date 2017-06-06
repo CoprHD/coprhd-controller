@@ -237,13 +237,21 @@ public class VMwareSupport {
                 List<HostSystem> clusterHosts = Lists.newArrayList(cluster.getHosts());
                 for (HostSystem clusterHost : clusterHosts) {
                     if (isHostConnected(clusterHost)) {
-                        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
-                        hostDisks.put(clusterHost, disk);
+                        try {
+                            HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
+                            hostDisks.put(clusterHost, disk);
+                        } catch (Exception ex) {
+                            logWarn("vmware.support.multipath.policy.volumenotfound", volume.getWwn(), clusterHost.getName());
+                        }
                     }
                 }
             } else if (host != null) {
-                HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
-                hostDisks.put(host, disk);
+                try {
+                    HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
+                    hostDisks.put(host, disk);
+                } catch (Exception e) {
+                    logWarn("vmware.support.multipath.policy.volumenotfound", volume.getWwn(), host.getName());
+                }
             }
 
             if (hostDisks.size() > 0) {

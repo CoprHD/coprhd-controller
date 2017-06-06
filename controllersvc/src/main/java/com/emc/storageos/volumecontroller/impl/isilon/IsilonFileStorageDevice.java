@@ -1101,12 +1101,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                  IsilonSmartQuota quota = isi.getQuota(quotaId);
                  //new capacity should be less than usage capacity of a filehare
                  if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
-                     String msg = String
-                             .format(
-                                     "In Reduction Isilon FS requested capacity is less than currently used physical space. Path: %s, current capacity: %d",
-                                     quota.getPath(), quota.getThresholds().getHard());
+                	 String msg = String.format("as requested reduced size %s is lesser than used capacity %d for filesystem %s", 
+                			 capacity.toString(), quota.getUsagePhysical(), args.getFs().getName());
                      _log.error(msg);
-                     final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
+                     final ServiceError serviceError = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
                      return BiosCommandResult.createErrorResult(serviceError);
                  } else {
                 	 isiReduceFS(isi, quotaId, args);
@@ -1438,11 +1436,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 } else {
-                	String msg = String.format(
-                            "Shriking the Isilon FS failed, because the filesystem capacity is less than current usage capacity of file system. Path: %s, current usage capacity: %d",
-                            quotaDir.getPath(), quotaUsageSpace);
+                	String msg = String.format("as requested reduced size %s is lesser than used capacity %d for filesystem %s", 
+                			qDirSize.toString(), quotaUsageSpace, args.getFs().getName());
                 	_log.error("doUpdateQuotaDirectory : " + msg);
-                	ServiceError error = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(args.getFsId());
+                	ServiceError error = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
                 	return BiosCommandResult.createErrorResult(error);
                 }
 

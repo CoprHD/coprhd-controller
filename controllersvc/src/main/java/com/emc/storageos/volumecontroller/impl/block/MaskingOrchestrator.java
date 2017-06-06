@@ -158,12 +158,45 @@ public interface MaskingOrchestrator {
      * @param exportGroup - ExportGroup URI the port rebalance will happen
      * @param varray - URI of virtual array
      * @param exportMask - Export mask URI
-     * @param addpaths - Paths going to be added
+     * @param adjustedPaths - Paths after the adjustment
      * @param removedPaths - Paths going to removed
      * @param isAdd - If true, it is for add paths, if false, it is for remove paths
      * @param token - Operation token for completer
      * @throws Exception
      */
-    public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> addpaths,
+    public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> adjustedPaths,
             Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception;
+    
+    /**
+     * Add paths for change port group
+     * 
+     * @param workflow - Workflow
+     * @param storageSystem - StorageSystem URI
+     * @param exportGroup - ExportGroup URI the port rebalance will happen
+     * @param varray - URI of virtual array
+     * @param exportMask - Export mask URI
+     * @param addPaths - New paths
+     * @param removedPaths - Paths going to removed
+     * @param portGroupURI - The new port group URI
+     * @param token - Operation token for completer
+     * @throws Exception
+     */
+    public void changePortGroupAddPaths(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> addPaths,
+            Map<URI, List<URI>> removedPaths, URI portGroupURI, String token) throws Exception;
+    
+    /**
+     * remove paths for change port group
+     * 
+     * @param workflow - Workflow
+     * @param storageSystem - StorageSystem URI
+     * @param exportGroup - ExportGroup URI the port rebalance will happen
+     * @param exportMask - Export mask URI
+     * @param adjustedPaths - New paths
+     * @param removedPaths - Paths going to removed
+     * @param portGroupURI - The new port group URI
+     * @param token - Operation token for completer
+     * @throws Exception
+     */
+    public void changePortGroupRemovePaths(URI storageSystem, URI exportGroup, URI exportMask, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, URI portGroupURI, String token) throws Exception;
 }

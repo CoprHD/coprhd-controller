@@ -356,7 +356,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 initiators, volumeMap, targets, assignments, maskName, _dbClient);
         if (portGroupURI != null) {
             exportMask.setPortGroup(portGroupURI);
-            _dbClient.updateObject(exportMask);
         }
         List<BlockObject> vols = new ArrayList<BlockObject>();
         for (URI boURI : volumeMap.keySet()) {
@@ -661,6 +660,18 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 volumeURIs, exportGroup.getNumPaths(), storageURI, exportGroupURI);
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
+        }
+        
+        URI pgURI = exportMask.getPortGroup();
+        if (!NullColumnValueGetter.isNullURI(pgURI)) {
+            // It has port group
+            
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+            if (!portGroup.getInactive() && !portGroup.getMutable()) {
+                _log.info(String.format("Using the port group %s for allocate ports for adding initiators", 
+                        portGroup.getNativeGuid()));
+                pathParams.setStoragePorts(portGroup.getStoragePorts());
+            }
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
@@ -1895,6 +1906,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 .calculateExportPathParamForVolumes(volumes, 0, storage, exportGroup.getId());
         _log.info(String.format("determineInitiatorToExportMaskPlacements - ExportGroup=%s, exportPathParams=%s",
                 exportGroup.getId().toString(), exportPathParams));
+        URI portGroup = exportPathParams.getPortGroup();
+        _log.info("Port group:" + portGroup);
         // Update mapping based on what is seen on the array
         for (Map.Entry<String, Set<URI>> entry : initiatorToExportMapOnArray.entrySet()) {
             String portName = entry.getKey();
@@ -1967,7 +1980,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 Map<String, String> storagePortToNetworkName = new HashMap<String, String>();
                 if (mask.getCreatedBySystem()) {
                     if (mask.getResource().equals(computeResource)) {
-                        if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
+                        if (maskHasPortGroup(mask, portGroup) &&
+                                maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
                             _log.info(String
                                     .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s qualifies for consideration for re-use",
                                             mask.getMaskName()));
@@ -1984,10 +1998,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                                     .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s does not qualify for consideration for re-use due to storage ports mismatch with varray.",
                                             mask.getMaskName()));
                         }
+                    } else {
+                        _log.info(String
+                                .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s does not qualify for consideration for re-use due to compute resource mismatch.",
+                                        mask.getMaskName()));
                     }
                 } else if (maskHasInitiatorsBasedOnExportType(exportGroup, mask, initiator, portsForComputeResource) ||
                         maskHasInitiatorsBasedOnExportType(exportGroup, mask, allExportMaskURIs, portsForComputeResource, partialMasks)) {
-                    if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
+                    if (maskHasPortGroup(mask, portGroup) &&
+                            maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
                         _log.info(String.format(
                                 "determineInitiatorToExportMaskPlacements - Pre-existing mask %s qualifies for consideration for re-use",
                                 mask.getMaskName()));
@@ -2705,5 +2724,20 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 null, maskingStep);
         return maskingStep;
     }
-    
+ 
+    /**
+     * Check if the export mask has the same port group as specified one
+     * 
+     * @param mask - Export mask
+     * @param portGroup - Port group URI
+     * @return - true or false
+     */
+    private boolean maskHasPortGroup(ExportMask mask, URI portGroup) {
+        boolean result = false;
+        if (portGroup == null ||
+                (portGroup != null && portGroup.equals(mask.getPortGroup()))) {
+            result = true;
+        }
+        return result;
+    }
 }

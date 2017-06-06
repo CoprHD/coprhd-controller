@@ -993,6 +993,7 @@ public class ControllerUtils {
                 uriQueryResultList);
         Iterator<BlockSnapshot> snapIterator = dbClient.queryIterativeObjects(BlockSnapshot.class,
                 uriQueryResultList);
+
         while (snapIterator.hasNext()) {
             BlockSnapshot snapshot = snapIterator.next();
             if (snapshot != null && !snapshot.getInactive() && storage.equals(snapshot.getStorageController())) {
@@ -1325,9 +1326,15 @@ public class ControllerUtils {
      * @return the copy mode from snapshot group
      */
     public static String getCopyModeFromSnapshotGroup(String snapGroupName, URI storage,  DbClient dbClient) {
-       List<BlockSnapshot> snapshots =  getSnapshotsPartOfReplicationGroup(snapGroupName, storage, dbClient);
-       return snapshots.get(0).getCopyMode();
-       
+       List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(snapGroupName, storage, dbClient);
+        if (!CollectionUtils.isEmpty(snapshots)) {
+            BlockSnapshot snapshot = snapshots.get(0);
+            return snapshot.getCopyMode();
+        }
+        s_logger.warn(
+               String.format("No snapshots found for snap group name %s on storage controller %s, returning 'no copy' mode", 
+                       snapGroupName, storage));
+       return BlockSnapshot.CopyMode.nocopy.name();
     }
 
     /**
@@ -2087,5 +2094,22 @@ public class ControllerUtils {
             }
         }
         return false;
+    }
+
+   /**
+    *  Convert objects (like URIQueryResultList) that only implement iterator to fully implemented Collection
+    *
+    *  @param collectionIn
+    *  @return collectionOut
+    */
+    public static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
+        // Convert objects (like URIQueryResultList) that only implement iterator to
+        // fully implemented Collection
+        Collection<T> collectionOut = new ArrayList<>();
+        Iterator<T> iter = collectionIn.iterator();
+        while (iter.hasNext()) {
+            collectionOut.add(iter.next());
+        }
+        return collectionOut;
     }
 }

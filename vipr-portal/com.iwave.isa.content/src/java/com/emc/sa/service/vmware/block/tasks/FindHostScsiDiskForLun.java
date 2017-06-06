@@ -91,7 +91,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     }
 
     private HostScsiDisk findLun() {
-        HostScsiDisk lun = null;
+        HostScsiDisk lun = getLunDisk();
         long startTime = System.currentTimeMillis();
 
         while ((lun == null) && canRetry(startTime, FIND_DISK_TIMEOUT)) {
@@ -108,7 +108,15 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
 
     private HostScsiDisk getLunDisk() {
 
-        List<HostScsiDisk> scsiDisks = null;
+        List<HostScsiDisk> scsiDisks = storageAPI.listScsiDisks();
+
+        // List all disks and attach the disk if it is found
+        for (HostScsiDisk entry : scsiDisks) {
+            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume.getWwn()) && VMwareUtils.isDiskOff(entry)) {
+                attachDisk(entry);
+            }
+        }
+
         if (availableDiskOnly) {
             scsiDisks = storageAPI.queryAvailableDisksForVmfs(null);
         } else {
@@ -154,7 +162,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
             disk = getLunDisk();
             if (disk == null) {
                 diskNotFound(false);
-            } else if (isDiskOff(disk)) {
+            } else if (VMwareUtils.isDiskOff(disk)) {
                 attachDisk(disk);
             }
         }
@@ -164,21 +172,6 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
             diskInvalid(disk);
         }
         return disk;
-    }
-
-    /**
-     * Returns true if the disk operational state is 'off'
-     * 
-     * @param disk the scsi disk
-     * @return true if the disk operational state is 'off', otherwise returns false
-     */
-    private boolean isDiskOff(HostScsiDisk disk) {
-        String[] state = disk.getOperationalState();
-        if (state == null || state.length == 0) {
-            return false;
-        }
-        String primaryState = state[0];
-        return StringUtils.equals(primaryState, ScsiLunState.off.name());
     }
 
     private boolean isValidState(HostScsiDisk disk) {
@@ -210,7 +203,11 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
 
     private void diskNotFound(boolean fail) {
         if (fail && this.throwIfNotFound) {
-            throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
+            if (availableDiskOnly) {
+                throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFoundCheckDatastoreRDM", lunDiskName, host.getName());
+            } else {
+                throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
+            }
         } else {
             logInfo("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
         }

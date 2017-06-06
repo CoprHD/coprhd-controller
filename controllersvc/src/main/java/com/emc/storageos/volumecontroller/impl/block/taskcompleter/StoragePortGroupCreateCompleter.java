@@ -17,13 +17,13 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
-public class StoragePortGroupCreateCompleter extends TaskCompleter{
+public class StoragePortGroupCreateCompleter extends TaskCompleter {
     private static final Logger log = LoggerFactory.getLogger(StoragePortGroupCreateCompleter.class);
-    
+
     public StoragePortGroupCreateCompleter(URI id, String opId) {
         super(StoragePortGroup.class, id, opId);
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
@@ -41,8 +41,8 @@ public class StoragePortGroupCreateCompleter extends TaskCompleter{
                 dbClient.error(StoragePortGroup.class, getId(), getOpId(), coded);
                 dbClient.removeObject(portGroup);
             }
-        
-        } catch (Exception e){
+
+        } catch (Exception e) {
             log.error("Failed updating status", e);
         } finally {
             updateWorkflowStatus(status, coded);

@@ -1111,6 +1111,18 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException If error occurs during the processing
      */
     public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, Collection<URI> initiatorURIs) throws DeviceControllerException;
+
+    /**
+     * Group volumes by storage group with host IO limit.
+     *
+     * @param storage the storage
+     * @param volumeURIs the volume uris
+     * @return true, if successful
+     * @throws Exception the exception
+     */
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage, Set<URI> volumeURIs)
+            throws Exception;
+
     /**
      * Set an Alias for the supplied initiator on a given Storage System
      * 
@@ -1171,4 +1183,25 @@ public interface BlockStorageDevice {
      * @throws Exception
      */
     public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception;
+    
+    /**
+     * Add paths for chnange port group
+     * 
+     * @param storage - Storage system
+     * @param newMaskURI - New export mask
+     * @param oldMaskURI - Old exportMask
+     * @param portGroupURI - New Port group URI
+     * @param completer - Task completer
+     */
+    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+                TaskCompleter completer);
+    
+    /**
+     * Remove paths for change port group
+     * 
+     * @param storage - Storage system
+     * @param oldMaskURI - Old exportMask
+     * @param completer - Task completer
+     */
+    public void doExportChangePortGroupRemovePaths(StorageSystem storage, URI oldMaskURI, TaskCompleter completer);
 }

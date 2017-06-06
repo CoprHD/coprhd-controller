@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
 import java.net.URI;
@@ -23,16 +27,13 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.StringSetUtil;
-import com.emc.storageos.model.portgroup.StoragePortGroupList;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -41,11 +42,11 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 
-public class VmaxPortGroupProcessor extends StorageProcessor{
+public class VmaxPortGroupProcessor extends StorageProcessor {
     private Logger log = LoggerFactory.getLogger(VmaxPortGroupProcessor.class);
-    private Set<String> allPortGroupNativeGuids = new HashSet<String> ();
+    private Set<String> allPortGroupNativeGuids = new HashSet<String>();
     private DbClient dbClient;
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -58,6 +59,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
             WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
             StorageSystem device = dbClient.queryObject(StorageSystem.class, profile.getSystemId());
             boolean hasVolume = hasAnyVolume(device.getId());
+
             final Iterator<CIMInstance> it = (Iterator<CIMInstance>) resultObj;
             while (it.hasNext()) {
                 CIMInstance groupInstance = it.next();
@@ -78,16 +80,23 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
                                 Constants._Name);
                         String fixedName = Initiator.toPortNetworkId(portName);
                         storagePorts.add(fixedName);
-                        log.info("port member: " + fixedName);
                     }
                     if (!storagePorts.isEmpty()) {
                         StoragePortGroup portGroup = getPortGroupInDB(portGroupName, device);
                         if (portGroup == null) {
                             // Check if the port group is ViPR created
-                            if (!hasVolume ||!checkViPRCreated(client, groupPath, portGroupName, device)) {
-                                portGroup = createPortGroup(portGroupName, device, false);
-                            } else {
-                                portGroup = createPortGroup(portGroupName, device, true);
+                            if (!hasVolume) {
+                                List<ExportMask> masks = getExportMasksForPortGroup(client, groupPath, portGroupName, device);
+                                if (masks.size() == 1) {
+                                    // The port group is vipr provisioning created
+                                    portGroup = createPortGroup(portGroupName, device, true);
+                                } else {
+                                    portGroup = createPortGroup(portGroupName, device, false);
+                                }
+                                for (ExportMask mask : masks) {
+                                    mask.setPortGroup(portGroup.getId());
+                                    dbClient.updateObject(mask);
+                                }
                             }
                         }
                         allPortGroupNativeGuids.add(portGroup.getNativeGuid());
@@ -100,10 +109,10 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
                         // no storage ports in the port group, remove it
                         log.info(String.format("The port group %s does not have any storage ports, ignore", portGroupName));
                     }
-                    
+
                 }
             }
-            if (!allPortGroupNativeGuids.isEmpty()) { 
+            if (!allPortGroupNativeGuids.isEmpty()) {
                 doBookKeeping(device.getId());
             } else {
                 log.info("Did not get any port group, skip book keeping");
@@ -114,15 +123,16 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
             allPortGroupNativeGuids.clear();
         }
     }
-    
+
     /**
      * Get the port group from DB if it is discovered before, or create a new port group if it is a new one.
+     * 
      * @param pgName - port group name
      * @param storage - storage system
      * @return - the existing or newly created port group
      */
     private StoragePortGroup getPortGroupInDB(String pgName, StorageSystem storage) {
-        String guid = String.format("%s+%s" , storage.getNativeGuid(), pgName);
+        String guid = String.format("%s+%s", storage.getNativeGuid(), pgName);
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getPortGroupNativeGUIdConstraint(guid), result);
@@ -133,9 +143,17 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
         }
         return portGroup;
     }
-    
+
+    /**
+     * Create a port group instance in ViPR DB
+     * 
+     * @param pgName - port group name
+     * @param storage - storage system
+     * @param viprCreated - if the port group is implicitly created by ViPR
+     * @return
+     */
     private StoragePortGroup createPortGroup(String pgName, StorageSystem storage, boolean viprCreated) {
-        String guid = String.format("%s+%s" , storage.getNativeGuid(), pgName);
+        String guid = String.format("%s+%s", storage.getNativeGuid(), pgName);
         StoragePortGroup portGroup = new StoragePortGroup();
         portGroup.setId(URIUtil.createId(StoragePortGroup.class));
         portGroup.setLabel(pgName);
@@ -144,14 +162,14 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
         portGroup.setInactive(false);
         if (viprCreated) {
             portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.name());
-            portGroup.addInternalFlags(Flag.INTERNAL_OBJECT);
         } else {
             portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
         }
+        portGroup.setMutable(viprCreated);
         dbClient.createObject(portGroup);
         return portGroup;
     }
-    
+
     /**
      * Check if any port group in DB does not show up in the array anymore
      * 
@@ -173,9 +191,9 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
                 }
             }
         }
-        
+
     }
-    
+
     /**
      * Check if there is any volume for the storage system. this is to check if this is a newly created storage system.
      * 
@@ -189,73 +207,65 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
         dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(systemUri),
                 queryList);
-        
+
         Iterator<URI> volumeIter = queryList.iterator();
         if (volumeIter.hasNext()) {
-            // has export mask
-            log.info("The system has volume");
             result = true;
         }
         return result;
     }
-    
+
     /**
-     * Check if the port group is created by ViPR as part of volume export without reuse port group
+     * Get export masks using the specified port group
      * 
      * @param client - WBEMClient
      * @param groupPath - port group CIMObjectPath
      * @param portGroupName - port group name
      * @param device - Storage system
-     * @return true or false
+     * @return List of export mask using this port group
      */
-    private boolean checkViPRCreated(WBEMClient client, CIMObjectPath groupPath, String portGroupName, StorageSystem device) {
-        boolean result = false;
+    private List<ExportMask> getExportMasksForPortGroup(WBEMClient client, CIMObjectPath groupPath, String portGroupName,
+            StorageSystem device) {
+        List<ExportMask> result = new ArrayList<ExportMask>();
         CloseableIterator<CIMInstance> iterator = null;
         try {
             iterator = client.associatorInstances(groupPath, null,
                     Constants.SYMM_LUNMASKINGVIEW, null, null, false, Constants.PS_NAME);
-        
+
             if (!iterator.hasNext()) {
-                // No lun masking view associated. 
+                // No lun masking view associated.
                 return result;
             }
-            int count = 0;
-            String maskName = null;
-            while (iterator.hasNext() ) {
-                count ++;
-                if (count > 1) {
-                    // ViPR created port group could only be associated with one lun masking view
-                    return false;
-                    
-                }
+
+            while (iterator.hasNext()) {
                 CIMInstance cimInstance = iterator.next();
-                maskName = CIMPropertyFactory.getPropertyValue(cimInstance, Constants._Name);
-                log.info("maskName: " + maskName);
-            }
-            if (maskName != null) {
-                // Try to see if we could find export mask in ViPR has the same name
-                URIQueryResultList exportMaskURIs = new URIQueryResultList();
-                dbClient.queryByConstraint(
-                        AlternateIdConstraint.Factory.getExportMaskByNameConstraint(maskName), exportMaskURIs);
-                Iterator<URI> maskIt = exportMaskURIs.iterator();
-                while (maskIt.hasNext()) {
-                    URI maskURI = maskIt.next();
-                    ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
-                    if (device.getId().equals(mask.getStorageDevice())) {
-                        log.info(String.format("The port group %s is used by the export mask %s %s", portGroupName, maskName, 
-                                maskURI.toString()));
-                        result = true;
-                        break;
+                String maskName = CIMPropertyFactory.getPropertyValue(cimInstance, Constants._Name);
+
+                if (maskName != null) {
+                    // Try to see if we could find export mask in ViPR has the same name
+                    URIQueryResultList exportMaskURIs = new URIQueryResultList();
+                    dbClient.queryByConstraint(
+                            AlternateIdConstraint.Factory.getExportMaskByNameConstraint(maskName), exportMaskURIs);
+                    Iterator<URI> maskIt = exportMaskURIs.iterator();
+                    while (maskIt.hasNext()) {
+                        URI maskURI = maskIt.next();
+                        ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
+                        if (device.getId().equals(mask.getStorageDevice()) &&
+                                mask.getUserAddedVolumes() != null && !mask.getUserAddedVolumes().isEmpty()) {
+                            result.add(mask);
+                            log.info(String.format("The port group %s is used by the export mask %s %s", portGroupName, maskName,
+                                    maskURI.toString()));
+                        }
                     }
                 }
             }
         } catch (Exception e) {
             log.info("Exception while getting port gorup association:", e);
-            result = false;
         } finally {
             if (null != iterator) {
                 iterator.close();
             }
+
         }
         return result;
     }

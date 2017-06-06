@@ -132,6 +132,18 @@ public class ExportWorkflowEntryPoints implements Controller {
             Map<URI, List<URI>>removedPaths) {
         return new Workflow.Method("exportAddPathsStep", storageURI, exportGroup, varray, exportMask, adjustedPaths, removedPaths);
     }
+    
+    public static Workflow.Method exportChangePortGroupAddPathsMethod(URI storageURI, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>>adjustedPaths,
+            Map<URI, List<URI>>removedPaths, URI portGroupURI) {
+        return new Workflow.Method("exportChangePortGroupAddPaths", storageURI, exportGroup, varray, exportMask, adjustedPaths,
+                removedPaths, portGroupURI);
+    }
+    
+    public static Workflow.Method exportChangePortGroupRemovePathsMethod(URI storageURI, URI exportGroup, URI exportMask, Map<URI, List<URI>>adjustedPaths,
+            Map<URI, List<URI>>removedPaths, URI portGroupURI) {
+        return new Workflow.Method("exportChangePortGroupRemovePaths", storageURI, exportGroup, exportMask, adjustedPaths,
+                removedPaths, portGroupURI);
+    }
 
     // ====================== Methods to call Masking Orchestrator
     // ======================
@@ -418,6 +430,50 @@ public class ExportWorkflowEntryPoints implements Controller {
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
             } else {
                 _log.info("Sub-workflow for exportRemovePathsStep was already created");
+            }
+        } catch (Exception e) {
+            DeviceControllerException exception = DeviceControllerException.exceptions
+                    .exportGroupPortRebalanceError(e);
+            WorkflowStepCompleter.stepFailed(token, exception);
+        }
+    }
+    
+    public void exportChangePortGroupAddPaths(URI storageURI, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>>adjustedPaths, 
+            Map<URI, List<URI>>removePaths, URI portGroupURI, String token) throws ControllerException{
+        try {
+            WorkflowStepCompleter.stepExecuting(token);
+            final String workflowKey = "changePortGroupAddPaths";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.changePortGroupAddPaths(storageURI, exportGroupURI, varray, exportMaskURI, adjustedPaths, removePaths,
+                        portGroupURI, token);
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            } else {
+                _log.info("Sub-workflow for exportChangePortGroup was already created");
+            }
+        } catch (Exception e) {
+            DeviceControllerException exception = DeviceControllerException.exceptions
+                    .exportGroupPortRebalanceError(e);
+            WorkflowStepCompleter.stepFailed(token, exception);
+        }
+    }
+    
+    public void exportChangePortGroupRemovePaths(URI storageURI, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>>adjustedPaths, 
+            Map<URI, List<URI>>removePaths, URI portGroupURI, String token) throws ControllerException{
+        try {
+            WorkflowStepCompleter.stepExecuting(token);
+            final String workflowKey = "changePortGroupRemovePaths";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.changePortGroupRemovePaths(storageURI, exportGroupURI, exportMaskURI, adjustedPaths, removePaths,
+                        portGroupURI, token);
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            } else {
+                _log.info("Sub-workflow for exportChangePortGroup was already created");
             }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions

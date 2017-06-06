@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -576,7 +577,7 @@ public class BlockStorageDeviceTest {
         final Project project = new Project();
         project.setId(URIUtil.createId(Project.class));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenantorg.getId(), tenantorg.getLabel()));
+        project.setTenantOrg(new NamedURI(tenantorg.getId(), project.getLabel()));
 
         _dbClient.createObject(project);
         _logger.info("Project :" + project.getId());
@@ -614,8 +615,8 @@ public class BlockStorageDeviceTest {
             volume.setSystemType(_storageSystem.getSystemType());
             volume.setPool(_storagePool.getId());
             volume.setVirtualPool(URIUtil.createId(VirtualPool.class));
-            volume.setProject(new NamedURI(_project.getId(), _project.getLabel()));
-            volume.setTenant(new NamedURI(_project.getTenantOrg().getURI(), _project.getTenantOrg().getName()));
+            volume.setProject(new NamedURI(_project.getId(), volume.getLabel()));
+            volume.setTenant(new NamedURI(_project.getTenantOrg().getURI(), volume.getLabel()));
 
             volumes.add(volume);
         }
@@ -664,8 +665,8 @@ public class BlockStorageDeviceTest {
             exportGroup.setId(URIUtil.createId(ExportGroup.class));
             exportGroup.setLabel("EMCViPR");
             exportGroup.setInactive(false);
-            exportGroup.setProject(new NamedURI(_project.getId(), _project.getLabel()));
-            exportGroup.setTenant(new NamedURI(_project.getTenantOrg().getURI(), _project.getTenantOrg().getName()));
+            exportGroup.setProject(new NamedURI(_project.getId(), exportGroup.getLabel()));
+            exportGroup.setTenant(new NamedURI(_project.getTenantOrg().getURI(), exportGroup.getLabel()));
             exportGroup.setVirtualArray(URIUtil.createId(VirtualArray.class));
             _dbClient.createObject(exportGroup);
         }
@@ -807,7 +808,8 @@ public class BlockStorageDeviceTest {
             snapshot.setLabel(LABEL_PREFIX + "_snap_" + 1);
             snapshot.setStorageController(_storageSystem.getId());
             snapshot.setSystemType(_storageSystem.getSystemType());
-            snapshot.setProject(new NamedURI(_project.getId(), _project.getLabel()));
+            snapshot.setProject(new NamedURI(_project.getId(), snapshot
+                    .getLabel()));
             snapshot.setParent(new NamedURI(getVolumes(_storageSystem).get(0)
                     .getId(), snapshot.getLabel()));
             snapshot.setConsistencyGroup(getConsistencyGroup().getId());

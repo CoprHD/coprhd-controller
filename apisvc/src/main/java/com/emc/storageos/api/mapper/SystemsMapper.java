@@ -36,7 +36,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
@@ -500,6 +499,12 @@ public class SystemsMapper {
 		return to;
 	}
 	
+	/**
+	 * Map a StoragePortGroup instance to StoragePortGroupRestRep
+	 * 
+	 * @param from The StoragePortGroup instance 
+	 * @return StoragePortGroupRestRep
+	 */
 	public static StoragePortGroupRestRep map(StoragePortGroup from) {
         if (from == null) {
             return null;
@@ -509,6 +514,7 @@ public class SystemsMapper {
         to.setId(from.getId());
         to.setStorageDevice(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));
         to.setRegistrationStatus(from.getRegistrationStatus());
+        to.setNativeGuid(from.getNativeGuid());
         StringMap metrics= from.getMetrics();
         if (metrics != null && !metrics.isEmpty()) {
             Double portMetric = MetricsKeys.getDoubleOrNull(MetricsKeys.portMetric, metrics);

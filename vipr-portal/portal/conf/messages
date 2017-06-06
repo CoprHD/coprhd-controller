@@ -730,10 +730,13 @@ CustomConfigs.configType.SanZoneAddVolumeCheckZoning=Enable Zoning On Export Add
 CustomConfigs.configType.PortAllocationInitiatorCeiling=Initiator Ceiling
 CustomConfigs.configType.PortAllocationVolumeCeiling=Volume Ceiling
 CustomConfigs.configType.PortAllocationPortUtilizationCeiling=Port Utilization Ceiling
+CustomConfigs.configType.PortAllocationPortUtilizationFloor=Port Utilization Floor
 CustomConfigs.configType.PortAllocationCpuUtilizationCeiling=CPU Utilization Ceiling
+CustomConfigs.configType.PortAllocationCpuUtilizationFloor=CPU Utilization Floor
 CustomConfigs.configType.PortAllocationDaysToAverageUtilization=Days To Average Utilization
 CustomConfigs.configType.PortAllocationMetricsEnabled=Metrics Enabled
 CustomConfigs.configType.PortAllocationEmaFactor=Weight for Exponential Moving Average
+CustomConfigs.configType.PortAllocationVolumeCoefficient=Metric Volume Coefficient
 CustomConfigs.configType.PortAllocationUsePrezonedPortsFrontEnd=Zoned Ports Favored For Host Exports
 CustomConfigs.configType.PortAllocationUsePrezonedPortsBackEnd=Zoned Ports Used For Backend Exports
 CustomConfigs.configType.PortAllocationSwitchAffinityEnabled=Switch Affinity Enabled
@@ -770,7 +773,7 @@ CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.configType.HostResourceMaximumNumberOfArrays=Maximum Number Of Arrays That Resources Can be Placed For A Host/Cluster
 CustomConfigs.configType.IsilonPathCustomization=File System Directory Path
-CustomConfigs.configType.VMAXUsePortGroupEnabled=Use Port Group Enabled
+CustomConfigs.configType.VMAXUsePortGroupEnabled=Use Existing Port Group
 CustomConfigs.no_dir.description=Do not use any directory. Example: {dir_name}={no_dir} 
 CustomConfigs.dir_name.description=A directory is used for system access zone namespace. Example: {dir_name}=MyOrg
 CustomConfigs.configType.IsilonSystemAccessZoneNameSpace=System Access Zone Directory
@@ -1099,7 +1102,7 @@ nodeRecovery.precheck.fail.allgood=All nodes and services are active. Node recov
 nodeRecovery.precheck.fail.drorgeo=Don't support node recovery on vApp in DR/GEO environment
 nodeRecovery.precheck.fail.unreachable=There is node unreachable, please power it on and refresh this page
 nodeRecovery.precheck.fail.quorum=Can't do node recovery because that the count of node with db service corrupted is more than quorum node count of this site
-nodeRecovery.precheck.fail.other=Node corrupted for other reason that node recovery is not support.Please contact customer support.
+nodeRecovery.precheck.fail.other=Node corruption is detected. Automated Node Recovery can't address detected issues. Please contact customer support for assistance.
 nodeRecovery.precheck.success=Database service on node %s needs to be recovered
 
 # System Health Dashboard
@@ -1387,7 +1390,11 @@ assignPolicy.applySpecificvPools=
 assignPolicy.applyToAllProjects=Projects
 assignPolicy.applyToAllVpools=Virtual Pools
 assignPolicy.projects=Projects
+assignPolicy.unassignedProjects=Projects
 assignPolicy.virtualPools=Virtual Pools
+assignPolicy.unassignedVirtualPools=Virtual Pools
+assignPolicy.AppliedAtFileInfo=Use Service Catalog "Associate File Policy to File System"
+unAassignPolicy.AppliedAtFileInfo=Use Service Catalog "Dissociate File Policy from File System"
 assignPolicy.vpool=Virtual Pool
 assignPolicy.request.submit=File Protection Policy '%s' assignment request submitted successfully
 unAssignPolicy.request.submit=File Protection Policy '%s' unassignment request submitted successfully
@@ -2112,7 +2119,9 @@ storageArray.type=Type
 storageArray.actions=Edit
 storageArray.version=Version
 storageArray.ipAddress=IP Address
+storageArray.fqdnIpAddress=IP Address / FQDN											
 storageArray.ipAddress.help=Enter the IP address of the system.
+storageArray.fqdnIpAddress.help=Enter the fully qualified domain name or IP address of the system.
 storageArray.smisProvider=Storage Provider
 storageArray.smisProviderIpAddress=Storage Provider Host
 storageArray.xtremProviderIpAddress=XtremIO Management Server IP/Hostname
@@ -2462,7 +2471,7 @@ replicationCopy.title=Replication Copy
 
 # Recoverpoint
 vpool.rpJournalSize=RecoverPoint Source Journal Size
-vpool.rpJournalSize.help=Valid value is "Min", "min", or a number >= 10GB
+vpool.rpJournalSize.help=Valid value is "Min", "min", or a number >= 10GB. It is recommended to use a consistent size for all RecoverPoint journals.
 vpool.rpRemoteCopyMode=Replication Mode
 vpool.rpRpoValue=RPO
 vpool.rpCopies=RecoverPoint Copies
@@ -2480,7 +2489,7 @@ rpCopy.journalVArray.help=Optionally select a virtual array for this RecoverPoin
 rpCopy.journalVPool=Journal Virtual Pool
 rpCopy.journalVPool.help=Optionally select a virtual pool for this RecoverPoint copy's journal volume (defaults to same Virtual pool as the RecoverPoint copy)
 rpCopy.journalSize=Journal Size
-rpCopy.journalSize.help=Valid value is "Min", "min", or a number >= 10GB
+rpCopy.journalSize.help=Valid value is "Min", "min", or a number >= 10GB. It is recommended to use a consistent size for all RecoverPoint journals.
 
 # SRDF
 vpool.srdf.error.notSupported=Must be EMC VMAX when SRDF copy protection is used
@@ -2965,7 +2974,7 @@ computeSystems.osInstallNetworkDisplay=OS Install Network
 computeSystems.vlanList=OS Install Network
 computeSystems.userName=User Name
 computeSystems.password=User Password
-computeSystems.confirmPassword=Comfirm Password
+computeSystems.confirmPassword=Confirm Password
 computeSystems.computeImageServer=Compute Image Server
 computeSystems.computeImageServerSelection.description=Select the Compute Image Server for Operating System Installation
 computeSystems.version=Version
@@ -3009,6 +3018,7 @@ computeSystemElements.computeSystem=Vblock Compute System
 computeSystemElements.model=Model
 computeSystemElements.numberOfCores=Cores
 computeSystemElements.numberOfProcessors=Processors
+computeSystemElements.hostName=Host
 computeSystemElements.numberOfThreads=Threads
 computeSystemElements.processorSpeed=Processor Speed (GHz)
 computeSystemElements.ram=Memory (MB)
@@ -3078,7 +3088,7 @@ computeImageServers.userName=Username
 computeImageServers.password=Password
 computeImageServers.imageServerIp=Image Server IP Address
 computeImageServers.tftpBootDir=TFTPBOOT Directory
-computeImageServers.confirmPassword=Comfirm Password
+computeImageServers.confirmPassword=Confirm Password
 computeImageServers.computeImageServerStatus=Image Server Status
 computeImageServers.osInstallNetworkAddress=OS Install Network IP Address
 computeImageServers.osInstallTimeOut=OS Install Timeout in seconds
@@ -3152,6 +3162,7 @@ computeVirtualPool.min.nics=Minimum Nics
 computeVirtualPool.max.nics=Maximum Nics
 computeVirtualPool.min.hbas=Minimum HBAs
 computeVirtualPool.max.hbas=Maximum HBAs
+computeVirtualPool.selected.SPTs=Selected Service Profile Templates
 computeVirtualPool.group.type=System Type
 computeVirtualPool.systemType=System Type
 computeVirtualPool.group.spts=Service Profile Templates
@@ -3189,6 +3200,7 @@ computeElements.model=Model
 computeElements.computeSystem=Name
 computeElements.numberOfCores=Cores
 computeElements.numberOfProcessors=Processors
+computeElements.hostName=Host
 computeElements.numberOfThreads=Threads
 computeElements.processorSpeed=Processor Speed (GHz)
 computeElements.ram=Memory (MB)
@@ -3238,7 +3250,7 @@ orders.delete.help=Please download orders before deletion. <p>In order to be del
 orders.delete.submitted=Orders deletion submitted successfully.
 orders.delete.status=Deleting orders from %s to %s is in progress: %s of %s orders have been successfully deleted, %s orders failed.
 orders.download=Download Orders
-orders.download.description=Click Confirm to delete the selected (checked) orders.
+orders.download.description=Click Confirm to download the selected (checked) orders.
 orders.download.all=All rows are checked, all <b style="color:red">%s</b> orders will be downloaded.
 orders.download.help=Orders can't be downloaded while a deletion or another download is in progress.
 orders.download.status=Downloading orders from %s to %s is in progress: %s of %s orders have been successfully downloaded, %s orders failed.
@@ -3292,6 +3304,7 @@ order.rollbackTasks=Rollback Steps
 order.executionWindow=Execution Window
 order.resubmit=Resubmit
 order.affectedResources=Affected Resources
+order.taskWarningMessages=Task Warning Messages
 order.breadcrumbs.root=Service Catalog
 
 order.executionLogs=Logs
@@ -3993,8 +4006,7 @@ storageDrivers.installButton=Install
 storageDrivers.upgradeButton=Upgrade
 storageDrivers.upgradeButton=Upgrade
 storageDrivers.deleteButton=Delete
-storageDrivers.upgrade.confirm=Controller services will be restarted, unfinished orders may fail. Are you still willing to proceed?
-storageDrivers.delete.confirm=Controller service will be restarted, unfinished orders may fail. Are you still willing to proceed?
+storageDrivers.operation.confirm=This operation will restart all controller services. This will impact all new orders submitted after driver installation was started. Please make sure there is no ongoing or queued order, and wait until this operation finishes to create a new order. Do you want to proceed?
 
 storageDrivers.install.init.success=Install request initiated ...
 storageDrivers.delete.init.success=Uninstall request initiated ...
@@ -4048,6 +4060,7 @@ tasks.errorCodeDetails=Error Details
 tasks.actions=Actions
 tasks.orderId=Order
 tasks.viewOrder=View Order
+tasks.warningMessages=Warning Messages
 
 taskLogs.time=Time
 taskLogs.severity=Level
@@ -4821,6 +4834,7 @@ boolean.false=False
 rule.security=Security
 rule.anon=Root User Mapping
 rule.subDir=Sub Directory
+rule.bypassDnsCheck=Bypass DNS Check
 
 shareACL.permission=Permission
 shareACL.name=Name

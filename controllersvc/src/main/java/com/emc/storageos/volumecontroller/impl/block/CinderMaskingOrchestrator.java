@@ -228,5 +228,4 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator 
         // TODO Auto-generated method stub
 
     }
-
 }

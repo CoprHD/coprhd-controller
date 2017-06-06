@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.api.mapper.functions.MapStoragePortGroup;
 import com.emc.storageos.api.mapper.functions.MapVirtualArray;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.GeoVisibilityHelper;
@@ -72,6 +73,8 @@ import com.emc.storageos.model.compute.ComputeSystemBulkRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.portgroup.StoragePortGroupList;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRepList;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
@@ -963,8 +966,8 @@ public class VirtualArrayService extends TaggedResource {
      * this API call provides the supported information.
      * 
      * @param id the URN of a ViPR VirtualArray.
-     * @brief List available attributes for VirutalArray
-     * @return List available attributes for VirutalArray
+     * @brief List available attributes for VirtualArray
+     * @return List available attributes for VirtualArray
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -998,8 +1001,8 @@ public class VirtualArrayService extends TaggedResource {
      * varray, if a system supports raid_levels such as RAID1, RAID2 then
      * this API call provides the supported information.
      * 
-     * @brief List available attributes for all VirutalArrays
-     * @return List available attributes for all VirutalArrays
+     * @brief List available attributes for all VirtualArrays
+     * @return List available attributes for all VirtualArrays
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1628,22 +1631,26 @@ public class VirtualArrayService extends TaggedResource {
     
     /**
      * This method gets storage port groups for a given virtual array. The storage ports in the port group
-     * should all be assigned or connected to the virtual array. If export group is specified, then it will return
-     * the port group used in the export masks belonging to the export group. If storage system is specified, then
-     * It will return the port groups belonging to the storage system.
+     * should all be assigned or connected to the virtual array. If export group is specified, it will return
+     * the port group used in the export masks belonging to the export group. If storage system is specified, 
+     * It will only return the port groups belonging to the storage system. If vpool is specified, it will get
+     * the port groups from the same storage system as vpool's storage pools reside. This API is used by UI to 
+     * get storage port group list for export related catalog services 
      * 
      * @param id - Virtual array URI
      * @param storageURI - Storage system URI
      * @param exportGroupURI - Export group URI
+     * @param vpoolURI - virtual pool URI
      * @return - Storage port group list
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/storage-port-groups")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
-    public StoragePortGroupList getVirtualArrayStoragePortGroups(@PathParam("id") URI id,
+    public StoragePortGroupRestRepList getVirtualArrayStoragePortGroups(@PathParam("id") URI id,
             @QueryParam("storage_system") URI storageURI,
-            @QueryParam("export_group") URI exportGroupURI) {
+            @QueryParam("export_group") URI exportGroupURI,
+            @QueryParam("vpool") URI vpoolURI) {
 
         // Get and validate the varray with the passed id.
         ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
@@ -1659,19 +1666,12 @@ public class VirtualArrayService extends TaggedResource {
         for (URI portURI : storagePortURIs) {
             portURIs.add(portURI);
         }
-        URIQueryResultList connectedPortURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getImplicitVirtualArrayStoragePortsConstraint(id.toString()),
-                connectedPortURIs);
-        for (URI portURI : connectedPortURIs) {
-            portURIs.add(portURI);
-        }
         
         Set<URI> portGroupURIs = new HashSet<URI>();
-        
-        StoragePortGroupList portGroups = new StoragePortGroupList();
+        StoragePortGroupRestRepList portGroups = new StoragePortGroupRestRepList();
         Set<URI> excludeSystem = new HashSet<URI>();
         if (exportGroupURI != null) {
+            // Get the storage port groups used in export masks
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             if (exportGroup == null ||
                     !id.equals(exportGroup.getVirtualArray())) {
@@ -1698,11 +1698,37 @@ public class VirtualArrayService extends TaggedResource {
                 }
             }
         }
+
+        Set<URI> includedSystems = new HashSet<URI>();
+        if (vpoolURI != null) {
+            // vpool is specified. Get storage port groups belonging to the same storage system as the vpool
+            // valid storage pools.
+            ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+                // This is vplex, return empty
+                _log.warn(String.format("The vpool %s is for vplex, no port group is supported", vpool.getLabel()));
+                return portGroups;
+            }
+            List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
+            if (null != pools && !pools.isEmpty()) {
+                for (StoragePool pool : pools) {
+                    includedSystems.add(pool.getStorageDevice());
+                }
+            } else {
+                _log.warn(String.format("The vpool %s does not have any valid storage pools, no port group returned", 
+                        vpool.getLabel()));
+                return portGroups;
+            }
+        }
         for (URI portURI : portURIs) {
             // Get port groups for each port
             StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
             if (port == null || (storageURI != null && !storageURI.equals(port.getStorageDevice()))
                     || excludeSystem.contains(port.getStorageDevice())) {
+                continue;
+            }
+            if (!includedSystems.isEmpty() && !includedSystems.contains(port.getStorageDevice())) {
                 continue;
             }
             if ((port != null)
@@ -1717,12 +1743,14 @@ public class VirtualArrayService extends TaggedResource {
                 }                
             }
         }
+
         // return the result.
         for (URI uri : portGroupURIs) {
             StoragePortGroup portGroup= _dbClient.queryObject(StoragePortGroup.class, uri);
             if (portGroup != null && portGroup.isUsable()) {
                 if (portURIs.containsAll(StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()))) {
-                    portGroups.getPortGroups().add(toNamedRelatedResource(portGroup, portGroup.getNativeGuid()));
+                    StoragePortGroupRestRep pgRep = MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
+                    portGroups.getStoragePortGroups().add(pgRep);
                 }
             }
         }

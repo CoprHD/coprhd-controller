@@ -59,6 +59,7 @@
         <property name="encryptionProvider" ref="encryptionProvider"/>
         <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
 
     <bean id="globalGC" class="com.emc.storageos.db.gc.GlobalGCExecutorLoop">

@@ -40,15 +40,19 @@ import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
@@ -56,11 +60,14 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumesOnAdoptedMaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.SmisStorageDevice;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
@@ -71,6 +78,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ListMultimap;
+import com.sun.tools.javac.code.Attribute.Array;
 
 public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
@@ -605,15 +613,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     List<URI> initiatorsToRemoveOnStorage = new ArrayList<URI>();
                     for (URI initiatorURI : initiatorsToRemove) {
                         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
-                        //COP-28729 - We can allow remove initiator or host if the shared mask doesn't have any existing volumes.
-                        //Shared masks will have atleast one unmanaged volume.
-                        List<String> sharedMaskNamesWithUnManagedVolumes = ExportUtils.getExportMasksSharingInitiatorAndHasUnManagedVolumes(_dbClient, initiatorURI, mask,
+                        // COP-28729 - We can allow remove initiator or host if the shared mask doesn't have any existing volumes.
+                        // Shared masks will have at least one unmanaged volume.
+                        String err = ExportUtils.getExportMasksSharingInitiatorAndHasUnManagedVolumes(_dbClient, initiator, mask,
                                 existingMasksToRemoveInitiator.keySet());
-                        if (!CollectionUtils.isEmpty(sharedMaskNamesWithUnManagedVolumes)) {
-                            String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
-                            errorMessage.append(
-                                    String.format(" Initiator %s is shared between other Export Masks  %s and has unmanaged volumes.Removing initiator will affect the other masking view",
-                                            normalizedName, Joiner.on(", ").join(sharedMaskNamesWithUnManagedVolumes)));
+                        if (err != null) {
+                            errorMessage.append(err);
                         }
                         initiatorsToRemoveOnStorage.add(initiatorURI);
                     }
@@ -731,7 +736,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             if (isValidationNeeded && StringUtils.hasText(errorMessage)) {
                 throw DeviceControllerException.exceptions.removeInitiatorValidationError(Joiner.on(", ").join(initiatorNames),
-                        storage.forDisplay(),
+                        storage.getLabel(),
                         errorMessage.toString());
             }
 
@@ -803,13 +808,30 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // In the case of clusters, we try to find the export mask that contains a subset of initiators
         // of the cluster, so we can build onto it.
         Set<URI> partialMasks = new HashSet<>();
-        Map<String, Set<URI>> matchingMasks = device.findExportMasks(storage, initiatorHelper.getPortNames(), false);
+        /**
+         * For Cluster exports, we will not reuse any partial masking views. Masking view will only be reused if all the required cluster
+         * initiators are available in the existing masking view. This is to simplify the existing design.
+         * - If there are existing masking views already available, then we will not reuse it.
+         * - If there are masking views with all required cluster initiators, we will reuse it.
+         * - If there are masking views which has more than one Host in the Cluster but not all the hosts are part of it, then don't reuse.
+         * - If there are existing masking views with all the hosts in the Cluster, but few of the hosts doesn't contain all ViPR discovered
+         * initiators then don't reuse. Always try to create a new masking view for Cluster.
+         * 
+         * Btw we consider only the host or cluster initiators connected to the network to be part of the given masking view.
+         * If ViPR discovered X initiators in CLuster and only X-n are connected to network,
+         * then we look for masking view with X-N initiators not X. Later during export the remaining initiators will be added to IG.
+         * The existing IG can be one single IG with more than one host or it could be IG per host with missing initiators.
+         * If X initiators are already available in the view, then we try to create a new masking view by reusing the IG.
+         * During reuse if the masking view creation fails with Initiator-port is already available, then user has to modify the existing
+         * initiator Group.
+         */
+        Map<String, Set<URI>> matchingMasks = device.findExportMasks(storage, initiatorHelper.getPortNames(), exportGroup.forCluster());
         Map<String, List<URI>> initiatorToComputeResourceMap =   initiatorHelper.getResourceToInitiators();
         
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
                 initiatorToComputeResourceMap, matchingMasks,
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
-        
+
         /**
          * COP-28674: During Vblock boot volume export, if existing masking views are found then check for existing volumes
          * If found throw exception. This condition is valid only for boot volume vblock export.
@@ -841,7 +863,32 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.info("VBlock Boot volume Export Validation : Skipping");
         }
 
+        /**
+         * To support multiple export for VMAX3 volumes with Host IO Limit, same Storage Group and
+         * Port Group should be used to create a new masking view. Re-using same storage group will
+         * lead to problems as it could have additional volumes. Also reusing a child storage group
+         * in a masking view to another masking view is not supported.
+         */
+        if (storage.checkIfVmax3() && ExportUtils.checkIfvPoolHasHostIOLimitSet(_dbClient, volumeMap)) {
+            _log.info("Volumes have Host IO Limit set in virtual pools. Validating for multiple export..");
+            Map<String, List<URI>> storageGroupToVolumes =
+                    getDevice().groupVolumesByStorageGroupWithHostIOLimit(storage, volumeMap.keySet());
+            if (!storageGroupToVolumes.isEmpty()) {
+                ExportOrchestrationTask completer = new ExportOrchestrationTask(exportGroup.getId(), token);
+                ServiceError serviceError = DeviceControllerException.errors.cannotMultiExportVolumesWithHostIOLimit(
+                        Joiner.on(",").join(storageGroupToVolumes.keySet()),
+                        Joiner.on(",").join(storageGroupToVolumes.values()));
+                completer.error(_dbClient, serviceError);
+                return false;
+            }
+        }
+
         findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+        
+        /**
+         * If export Group cluster. run algorithm to discard the matching masks based on the below
+         * 1. If any of the mask has cascaded IG, use the mask and discard others.
+         */
 
         // If we didn't find any export masks for any compute resources, then it's a total loss, and we need to
         // create new masks for each compute resource.
@@ -868,7 +915,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, ExportMaskPolicy> policyCache = new HashMap<>();
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
                     + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}", Joiner.on(",")
-                    .join(initiatorHelper.getPortNames()), Joiner.on(",").join(initiatorToExportMaskPlacementMap.keySet()), Joiner
+                    .join(initiatorHelper.getPortNames()), Joiner.on(",").join(initiatorToExportMaskPlacementMap.values()), Joiner
                     .on(",").join(initiatorHelper.getPortNameToInitiatorURI().entrySet())));
             // There are some initiators that already exist. We need to create a
             // workflow that create new masking containers or updates masking
@@ -953,7 +1000,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         // It may turn out that we find these initiators already covered by a collection of
                         // masks for cluster purposes. If that's the case, we figure that out below and these
                         // "new" exports will never see the light of day.
+                        _log.info("New export mask will be created for initiator {}", initiatorURI);
                         initiatorsForNewExport.add(initiatorURI);
+                        // remove this mask from policyCache
+                        policyCache.remove(mask.getId());
                         continue;
                     }
 
@@ -1018,6 +1068,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // want to create another export against one of the hosts in the cluster,
             // or vice-versa.
             if (!initiatorsForNewExport.isEmpty()) {
+                _log.info("Initiators for which new Export Mask will be created: {}", initiatorsForNewExport);
                 if (exportGroup.forCluster() && !initiatorURIsCopy.isEmpty()) {
                     // Clustered export group create request and there are essentially
                     // new and existing initiators. We'll take what's not already
@@ -1201,11 +1252,15 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                         exportMasksToAdd.add(mask.getId());
                                     }
                                 }
+                            } else {
+                                _log.info("Initiator {} does not have any masks that match its compute resource",
+                                        initiator.getInitiatorPort());
                             }
                         }
                     }
 
                     if (!exportMasksToAdd.isEmpty()) {
+                        _log.info("Initiator {} - to be added to export masks: {}", initiator.getInitiatorPort(), exportMasksToAdd);
                         initiatorToExportMaskPlacementMap.put(Initiator.normalizePort(initiator.getInitiatorPort()), exportMasksToAdd);
                     }
                 }
@@ -2231,6 +2286,204 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     private List<URI> getExpectedInitiators(ExportMask exportMask) {
         return newArrayList(ExportMaskUtils.getAllInitiatorsForExportMask(_dbClient, exportMask));
     }
+    
+    @Override
+    public void changePortGroupAddPaths(URI storageURI, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, URI portGroupURI, String token) throws Exception {
+        ExportOrchestrationTask taskCompleter = null;
+        try {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+            ExportMask oldMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
+            logExportGroup(exportGroup, storageURI);
+
+            String workflowKey = "exporChangePortGroupAddPaths";
+            if (_workflowService.hasWorkflowBeenCreated(token, workflowKey)) {
+                return;
+            }
+            Workflow workflow = _workflowService.getNewWorkflow(
+                    MaskingWorkflowEntryPoints.getInstance(), workflowKey, true, token);
+            
+            // create a new masking view using the new port group
+            SmisStorageDevice device = (SmisStorageDevice) getDevice();
+            InitiatorHelper initiatorHelper = new InitiatorHelper(StringSetUtil.stringSetToUriList(oldMask.getInitiators())).process(exportGroup);
+            List<String> initiatorNames = initiatorHelper.getPortNames();
+            if (oldMask.getExistingInitiators() != null && !oldMask.getExistingInitiators().isEmpty()) {
+                initiatorNames.addAll(oldMask.getExistingInitiators());
+            }
+            ExportMask newMask = device.findExportMasksForPortGroupChange(storage, initiatorNames, portGroupURI);
+            Map<URI, Integer> volumesToAdd = StringMapUtil.stringMapToVolumeMap(oldMask.getVolumes());
+            String previousStep = null;
+            if (newMask != null) {
+                updateZoningMap(exportGroup, newMask, true);
+                _log.info(String.format("adding these volumes %s to mask %s",
+                        Joiner.on(",").join(volumesToAdd.keySet()), newMask.getMaskName()));
+                previousStep = generateZoningAddVolumesWorkflow(workflow, previousStep,
+                        exportGroup, Arrays.asList(newMask), new ArrayList<URI>(volumesToAdd.keySet()));
+                previousStep = generateExportMaskAddVolumesWorkflow
+                        (workflow, previousStep, storage, exportGroup, newMask, volumesToAdd, null);
+            } else {
+                String oldName = oldMask.getMaskName();
+                URI oldPGURI = oldMask.getPortGroup();
+                if (oldPGURI != null) {
+                    StoragePortGroup oldPG = _dbClient.queryObject(StoragePortGroup.class, oldPGURI);
+                    if (oldPG != null) {
+                        String pgName = oldPG.getLabel();
+                        if (oldName.contains(pgName)) {
+                            oldName = oldName.replaceAll(pgName, "");
+                        }
+                    }
+                }
+                String maskName = String.format("%s_%s", oldName, portGroup.getLabel());
+                List<Initiator> initiators = _dbClient.queryObject(Initiator.class, 
+                        StringSetUtil.stringSetToUriList(oldMask.getInitiators()));
+                newMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
+                        initiators, 
+                        volumesToAdd, 
+                        getStoragePortsInPaths(adjustedPaths), adjustedPaths, maskName, _dbClient);
+    
+                newMask.setPortGroup(portGroupURI);
+            
+                List<BlockObject> vols = new ArrayList<BlockObject>();
+                for (URI boURI : volumesToAdd.keySet()) {
+                    BlockObject bo = BlockObject.fetch(_dbClient, boURI);
+                    vols.add(bo);
+                }
+                newMask.addToUserCreatedVolumes(vols);
+                _dbClient.updateObject(newMask);
+                _log.info(String.format("Creating new exportMask %s", maskName));
+                // Make a new TaskCompleter for the exportStep. It has only one subtask.
+                // This is due to existing requirements in the doExportGroupCreate completion
+                // logic.
+                String maskingStep = workflow.createStepId();
+                ExportTaskCompleter exportTaskCompleter = new ExportMaskCreateCompleter(
+                        exportGroupURI, newMask.getId(), StringSetUtil.stringSetToUriList(oldMask.getInitiators()), 
+                        volumesToAdd, maskingStep);
+    
+                Workflow.Method maskingExecuteMethod = new Workflow.Method(
+                        "doExportChangePortGroupAddPaths", storageURI, exportGroupURI, newMask.getId(),
+                        oldMask.getId(), portGroupURI, exportTaskCompleter);
+    
+                Workflow.Method maskingRollbackMethod = new Workflow.Method(
+                        "rollbackExportGroupCreate",
+                        storageURI, exportGroupURI, newMask.getId(), maskingStep);
+    
+                maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
+                        String.format("Export mask(%s) change to port group %s",
+                                newMask.getMaskName(), portGroup.getNativeGuid()),
+                        null, storageURI, storage.getSystemType(),
+                        MaskingWorkflowEntryPoints.class, maskingExecuteMethod,
+                        maskingRollbackMethod, maskingStep);
+                String zoningStep = workflow.createStepId();
+                List<URI> masks = new ArrayList<URI>();
+                masks.add(newMask.getId());
+                generateZoningCreateWorkflow(workflow, maskingStep, exportGroup, masks, volumesToAdd, zoningStep);
+            }
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
+                        workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
+                _workflowService.markWorkflowBeenCreated(token, workflowKey);
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+        } catch (Exception e) {
+            _log.error("Export change port group Orchestration failed.", e);
+            if (taskCompleter != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(e.getMessage(), e);
+                taskCompleter.error(_dbClient, serviceError);
+            }
+
+        }
+    }
+    
+    @Override
+    public void changePortGroupRemovePaths(URI storageURI, URI exportGroupURI, URI oldMaskURI, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, URI portGroupURI, String token) throws Exception {
+        ExportOrchestrationTask taskCompleter = null;
+        try {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+            ExportMask oldMask = _dbClient.queryObject(ExportMask.class, oldMaskURI);
+            taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
+            logExportGroup(exportGroup, storageURI);
+            String workflowKey = "exporChangePortGroupRemovePaths";
+            if (_workflowService.hasWorkflowBeenCreated(token, workflowKey)) {
+                return;
+            }
+            Workflow workflow = _workflowService.getNewWorkflow(
+                    MaskingWorkflowEntryPoints.getInstance(), workflowKey, true, token);
+            
+            // Remove the old export mask.
+            
+            String maskingStep = workflow.createStepId();
+            ExportTaskCompleter exportTaskCompleter = new ExportMaskDeleteCompleter(exportGroupURI,
+                    oldMaskURI, maskingStep);
+            StringMap volMap = oldMask.getVolumes();
+            List<URI> volumes = null;
+            if (volMap != null) {
+                volumes = StringSetUtil.stringSetToUriList(volMap.keySet());
+            }
+            List<URI> inits = StringSetUtil.stringSetToUriList(oldMask.getInitiators());
+            Workflow.Method maskingExecuteMethod = new Workflow.Method(
+                    "doExportGroupDelete", storageURI, exportGroupURI, oldMaskURI, volumes, inits,
+                    exportTaskCompleter);
+            _log.info("Mask to be deleted:" + oldMask.getMaskName());
+            // Find the newly added export mask. it should have the maskName = oldMask name + pgName
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, storageURI);
+            ExportMask newMask = null;
+            for (ExportMask mask : exportMasks) {
+                _log.info("export group mask name:" +mask.getMaskName());
+                if (mask.getPortGroup().equals(portGroupURI)) {
+                    newMask = mask;
+                    break;
+                }
+            }
+            if (newMask == null) {
+                _log.error("Could not find the newly added mask");
+            }
+            Workflow.Method maskinkRollbackMethod = new Workflow.Method(
+                    "doExportChangePortGroupAddPaths", storageURI, exportGroupURI, oldMaskURI,
+                    newMask.getId(), oldMask.getPortGroup(), exportTaskCompleter);
+            maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
+                    String.format("Deleting mask %s (%s)", oldMask.getMaskName(),
+                            oldMask.getId().toString()),
+                    null, storageURI, storage.getSystemType(),
+                    MaskingWorkflowEntryPoints.class, maskingExecuteMethod, maskinkRollbackMethod,
+                    maskingStep);
+            
+            List<ExportMask> masks = new ArrayList<ExportMask>();
+            masks.add(oldMask);
+            generateZoningDeleteWorkflow(workflow, maskingStep, exportGroup, masks);
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
+                        workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
+                _workflowService.markWorkflowBeenCreated(token, workflowKey);
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+        } catch (Exception e) {
+            _log.error("Export remove paths change port group Orchestration failed.", e);
+            if (taskCompleter != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(e.getMessage(), e);
+                taskCompleter.error(_dbClient, serviceError);
+            }
+
+        }
+    }
+    
+    private List<URI> getStoragePortsInPaths(Map<URI, List<URI>> paths) {
+        Set<URI> results = new HashSet<URI>();
+        for (List<URI> ports : paths.values()) {
+            for (URI port : ports) {
+                results.add(port);
+            }
+        }
+        return new ArrayList<URI>(results);
+    }
 
     /**
      * Native VMAX rules application. This should run the volume to ExportMask matching rules, then do
@@ -2330,6 +2583,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     initiatorsToVolumes, context.exportMaskToPolicy, context.masksToUpdateWithInitiators, context.partialMasks,
                     context.token);
         }
+        
+        
     }
 
     /**

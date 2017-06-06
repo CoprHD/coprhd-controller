@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.util.CollectionUtils;
+
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.collect.Collections2;
@@ -83,7 +85,7 @@ public class ExportMask extends DataObject {
     // as a convenience.
     private String _resource;
 
-    // port group uri to identify if use port group in the array
+    // port group uri
     private URI _portGroup;
     
     // Captures the Device Specific information that are created for this export mask.
@@ -504,6 +506,12 @@ public class ExportMask extends DataObject {
     public void removeFromExistingInitiator(List<Initiator> initiators) {
         for (Initiator ini : initiators) {
             removeFromExistingInitiators(ini.getInitiatorPort());
+        }
+    }
+
+    public void removeFromExistingInitiators(Collection<String> initiatorWWNs) {
+        if (!CollectionUtils.isEmpty(_existingInitiators) && !CollectionUtils.isEmpty(initiatorWWNs)) {
+            _existingInitiators.removeAll(initiatorWWNs);
         }
     }
 
@@ -933,9 +941,11 @@ public class ExportMask extends DataObject {
                 "ExportMask %s (%s)\n" +
                         "\tInactive            : %s\n" +
                         "\tCreatedBySystem     : %s\n" +
+                        "\tResource            : %s\n" +
                         "\tVolumes             : %s\n" +
                         "\tInitiators          : %s\n" +
                         "\tStoragePorts        : %s\n" +
+                        "\tPortGroup           : %s\n" +
                         "\tUserAddedVolumes    : %s\n" +
                         "\tExistingVolumes     : %s\n" +
                         "\tUserAddedInitiators : %s\n" +
@@ -945,9 +955,11 @@ public class ExportMask extends DataObject {
                 _id,
                 _inactive,
                 _createdBySystem,
+                getResource(),
                 collectionString(_volumes),
                 collectionString(_initiators),
                 collectionString(_storagePorts),
+                _portGroup,
                 collectionString(_userAddedVolumes),
                 collectionString(_existingVolumes),
                 collectionString(_userAddedInitiators),

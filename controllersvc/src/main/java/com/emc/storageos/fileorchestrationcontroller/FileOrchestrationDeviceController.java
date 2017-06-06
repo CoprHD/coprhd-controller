@@ -83,7 +83,6 @@ import com.emc.storageos.workflow.WorkflowService;
 
 public class FileOrchestrationDeviceController implements FileOrchestrationController, Controller {
     private static final Logger s_logger = LoggerFactory.getLogger(FileOrchestrationDeviceController.class);
-
     private static DbClient s_dbClient;
     private WorkflowService _workflowService;
     private static FileDeviceController _fileDeviceController;
@@ -94,6 +93,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String CREATE_FILESYSTEMS_WF_NAME = "CREATE_FILESYSTEMS_WORKFLOW";
     static final String DELETE_FILESYSTEMS_WF_NAME = "DELETE_FILESYSTEMS_WORKFLOW";
     static final String EXPAND_FILESYSTEMS_WF_NAME = "EXPAND_FILESYSTEMS_WORKFLOW";
+    static final String REDUCE_FILESYSTEMS_WF_NAME = "REDUCE_FILESYSTEMS_WORKFLOW";
     static final String CHANGE_FILESYSTEMS_VPOOL_WF_NAME = "CHANGE_FILESYSTEMS_VPOOL_WORKFLOW";
     static final String CREATE_MIRROR_FILESYSTEMS_WF_NAME = "CREATE_MIRROR_FILESYSTEMS_WORKFLOW";
     static final String CREATE_FILESYSTEM_CIFS_SHARE_WF_NAME = "CREATE_FILESYSTEM_CIFS_SHARE_WORKFLOW";
@@ -2085,26 +2085,47 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
+    private Map<URI, List<FileStorageSystemAssociation>>
+            getAssociationsPerAssignedResource(List<FileStorageSystemAssociation> associations) {
+
+        Map<URI, List<FileStorageSystemAssociation>> resAssociations = new HashMap<URI, List<FileStorageSystemAssociation>>();
+        for (FileStorageSystemAssociation association : associations) {
+            List<FileStorageSystemAssociation> recs = resAssociations.get(association.getAppliedAtResource());
+            if (recs == null) {
+                recs = new ArrayList<FileStorageSystemAssociation>();
+                resAssociations.put(association.getAppliedAtResource(), recs);
+            }
+            recs.add(association);
+        }
+        return resAssociations;
+    }
+
     private boolean checkRecommendationsWithManySourceToOneTarget(List<FileStorageSystemAssociation> associations) {
         StringSet targets = new StringSet();
-        for (FileStorageSystemAssociation association : associations) {
-            StorageSystem system = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
-            if (system != null && system.getSystemType().equalsIgnoreCase(Type.isilon.toString()) &&
-                    association.getTargets() != null && !association.getTargets().isEmpty()) {
-                for (TargetAssociation target : association.getTargets()) {
-                    StringBuffer targetKey = new StringBuffer();
-                    if (target.getStorageSystemURI() != null) {
-                        targetKey.append(target.getStorageSystemURI().toString());
-                    }
-                    if (target.getvNASURI() != null) {
-                        targetKey.append(target.getvNASURI().toString());
-                    }
-                    if (!targetKey.toString().isEmpty()) {
-                        if (targets.contains(targetKey.toString())) {
-                            s_logger.info("Found same taget for different source recommendations");
-                            return true;
+        for (Map.Entry<URI, List<FileStorageSystemAssociation>> entry : getAssociationsPerAssignedResource(associations).entrySet()) {
+            // Verify more recommnedations are pointing to same target!!!
+            if (entry.getValue() != null && entry.getValue().size() < 2) {
+                continue;
+            }
+            for (FileStorageSystemAssociation association : entry.getValue()) {
+                StorageSystem system = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
+                if (system != null && system.getSystemType().equalsIgnoreCase(Type.isilon.toString()) &&
+                        association.getTargets() != null && !association.getTargets().isEmpty()) {
+                    for (TargetAssociation target : association.getTargets()) {
+                        StringBuffer targetKey = new StringBuffer();
+                        if (target.getStorageSystemURI() != null) {
+                            targetKey.append(target.getStorageSystemURI().toString());
                         }
-                        targets.add(targetKey.toString());
+                        if (target.getvNASURI() != null) {
+                            targetKey.append(target.getvNASURI().toString());
+                        }
+                        if (!targetKey.toString().isEmpty()) {
+                            if (targets.contains(targetKey.toString())) {
+                                s_logger.info("Found same taget for different source recommendations");
+                                return true;
+                            }
+                            targets.add(targetKey.toString());
+                        }
                     }
                 }
             }
@@ -2535,5 +2556,42 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             taskCompleter.error(s_dbClient, this._locker, serviceError);
         }
     }
+
+    /**
+     * This method is responsible for reduction of fileshare quota
+     * 
+     * a Workflow and invoking the FileOrchestrationInterface.addStepsForReduceFileSystems
+     * 
+     * @param fileDescriptors
+     * @param taskId
+     * @throws ControllerException
+     */
+	@Override
+	public void reduceFileSystem(List<FileDescriptor> fileDescriptors, String taskId) throws ControllerException {
+	    List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(fileShareUris, taskId);
+        Workflow workflow = null;
+        String waitFor = null; // the wait for key returned by previous call
+        try {
+            // Generate the Workflow.
+            workflow = _workflowService.getNewWorkflow(this, REDUCE_FILESYSTEMS_WF_NAME, false, taskId);
+            // Next, call the FileDeviceController
+            waitFor = _fileDeviceController.addStepsForReduceFileSystems(workflow, waitFor, fileDescriptors, taskId);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Reduce FileShares successful for: " + fileShareUris.toString();
+            Object[] callbackArgs = new Object[] { fileShareUris };
+            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+        } catch (Exception ex) {
+            s_logger.error("Could not Reduce FileShares: " + fileShareUris, ex);
+            releaseWorkflowLocks(workflow);
+            String opName = ResourceOperationTypeEnum.REDUCE_FILE_SYSTEM.getName();
+            ServiceError serviceError = DeviceControllerException.errors.reduceFileShareFailed(
+            							fileShareUris.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+		
+	}
 
 }

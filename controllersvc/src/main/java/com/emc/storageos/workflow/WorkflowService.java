@@ -2059,6 +2059,15 @@ public class WorkflowService implements WorkflowController {
         }
         return false;
     }
+    
+    /**
+     * Retrieves the parent Workflow if available.
+     * @param childWorkflow
+     * @return -- parent Workflow node if available, otherwise null. No exception.
+     */
+    private Workflow getParentWorkflow(Workflow childWorkflow) {
+        return getWorkflowFromStepId(childWorkflow.getOrchTaskId());
+    }
 
     /**
      * Given a Workflow step id, search ZK and return the immediate parent Workflow.
@@ -2893,6 +2902,36 @@ public class WorkflowService implements WorkflowController {
             }
         }
     }
+    
+    /**
+     * Adds a warning message to the top level task(s) associated with this step.
+     * Traverses upward through any workflow parents and then retrieves any tasks
+     * matching the root workflow's orchestration task id and adds the warning message.
+     * @param stepId -- Arbitrariy step id
+     * @param message -- warning message to be added
+     * @return true if was able to add the warning message, false if not
+     */
+    public boolean postTaskWarningMessage(String stepId, String message) {
+        Workflow workflow = getWorkflowFromStepId(stepId);
+        Workflow parentWorkflow = null; 
+        do {
+            parentWorkflow = getParentWorkflow(workflow);
+            if (parentWorkflow != null) {
+                workflow = parentWorkflow;
+            }
+        } while (parentWorkflow != null);
+        // Now look to see if there are corresponding tasks for the top level Workflow.
+        List<Task> foundTasks = TaskUtils.findTasksForRequestId(_dbClient, workflow.getOrchTaskId());
+        for (Task task : foundTasks) {
+            task.addWarningMessage(message);
+        }
+        if (!foundTasks.isEmpty()) {
+            _dbClient.updateObject(foundTasks);
+            return true;
+        }
+        return false;
+    }
+   
 
     public static void completerStepSucceded(String stepId)
             throws WorkflowException {

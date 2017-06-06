@@ -24,6 +24,7 @@ def volume_create(args):
     if (args.consistencyGroup):
     	cons_grp_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
 
+    port_group_uri = ''
     if(args.portgroup):
         port_group_uri = bourne.storageportgroup_query(args.portgroup)
         

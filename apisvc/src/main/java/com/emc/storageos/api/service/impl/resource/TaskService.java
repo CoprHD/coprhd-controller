@@ -220,9 +220,9 @@ public class TaskService extends TaggedResource {
         Date endWindowDate = TimeUtils.getDateTimestamp(endTime);
 
         // Fetch index entries and load into sorted set
-        int count = 0;
+        int taskCount = 0;
         for (URI normalizedTenantId : tenantIds) {
-            log.info("====== Retriving task from tenant {}", normalizedTenantId);
+            log.debug("Retriving tasks from tenant {}", normalizedTenantId);
             TimestampedURIQueryResult taskIds = new TimestampedURIQueryResult();
             _dbClient.queryByConstraint(
                     ContainmentConstraint.Factory.getTimedTenantOrgTaskConstraint(normalizedTenantId, startWindowDate, endWindowDate),
@@ -230,7 +230,7 @@ public class TaskService extends TaggedResource {
 
             Iterator<TimestampedURIQueryResult.TimestampedURI> it = taskIds.iterator();
             while (it.hasNext()) {
-                count++;
+                taskCount++;
                 if (taskHeap.size() >= max_count) {
                     taskHeap.poll();
                 }
@@ -239,7 +239,7 @@ public class TaskService extends TaggedResource {
             }
         }
 
-        log.info("========= count = {}, heap size is {}", count, taskHeap.size());
+        log.debug("The number of tasks of all tenants is {}, heap size is {}", taskCount, taskHeap.size());
 
         List<NamedRelatedResourceRep> resourceReps = Lists.newArrayList();
         while (!taskHeap.isEmpty()) {

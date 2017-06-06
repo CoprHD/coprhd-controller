@@ -71,7 +71,6 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl<IndexColumnNa
 
     @Override
     protected RowQuery<String, IndexColumnName> genQuery() {
-        log.info("========== genQuery called");
         RowQuery<String, IndexColumnName> query = keyspace
                 .prepareQuery(field.getIndexCF())
                 .getKey(indexKey.toString())

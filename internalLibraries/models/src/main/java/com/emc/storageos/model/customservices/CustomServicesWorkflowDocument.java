@@ -97,7 +97,7 @@ public class CustomServicesWorkflowDocument {
         // Use this to set "key,value" pairs for type "InputFromUserMulti"
         private Map<String, String> options;
 
-        @XmlElement(name = "name", required = true)
+        @XmlElement(name = "name", nillable = true)
         public String getName() {
             return name;
         }
@@ -106,7 +106,7 @@ public class CustomServicesWorkflowDocument {
             this.name = name;
         }
 
-        @XmlElement(name = "type", required = true)
+        @XmlElement(name = "type", nillable = true)
         public String getType() {
             return type;
         }
@@ -196,7 +196,7 @@ public class CustomServicesWorkflowDocument {
             this.tableName = tablename;
         }
 
-        @XmlElement(name = "options")
+        @XmlElementWrapper(name = "options")
         public Map<String, String> getOptions() {
             return options;
         }
@@ -212,7 +212,7 @@ public class CustomServicesWorkflowDocument {
         private String type;
         private String table;
 
-        @XmlElement(name = "name")
+        @XmlElement(name = "name", nillable = true)
         public String getName() {
             return name;
         }
@@ -221,7 +221,7 @@ public class CustomServicesWorkflowDocument {
             this.name = name;
         }
 
-        @XmlElement(name = "type")
+        @XmlElement(name = "type", nillable = true)
         public String getType() {
             return type;
         }
@@ -230,7 +230,7 @@ public class CustomServicesWorkflowDocument {
             this.type = type;
         }
 
-        @XmlElement(name = "table")
+        @XmlElement(name = "table", nillable = true)
         public String getTable() {
             return table;
         }
@@ -289,6 +289,7 @@ public class CustomServicesWorkflowDocument {
             this.id = stepId;
         }
 
+        //ALl steps should have friendly_name
         @XmlElement(name = "friendly_name", required = true)
         public String getFriendlyName() {
             return friendlyName;
@@ -298,7 +299,7 @@ public class CustomServicesWorkflowDocument {
             this.friendlyName = friendlyName;
         }
 
-        @XmlElement(name = "position_y", nillable = true)
+        @XmlElement(name = "position_y")
         public Integer getPositionY() {
             return positionY;
         }
@@ -307,7 +308,7 @@ public class CustomServicesWorkflowDocument {
             this.positionY = positionY;
         }
 
-        @XmlElement(name = "position_x", nillable = true)
+        @XmlElement(name = "position_x")
         public Integer getPositionX() {
             return positionX;
         }
@@ -316,7 +317,7 @@ public class CustomServicesWorkflowDocument {
             this.positionX = positionX;
         }
 
-        @XmlElement(name = "operation", required = true)
+        @XmlElement(name = "operation")
         public URI getOperation() {
             return operation;
         }
@@ -334,7 +335,8 @@ public class CustomServicesWorkflowDocument {
             this.description = description;
         }
 
-        @XmlElement(name = "type", required = true)
+        //Start and end does not have type
+        @XmlElement(name = "type", nillable = true)
         public String getType() {
             return type;
         }
@@ -393,6 +395,7 @@ public class CustomServicesWorkflowDocument {
         private String defaultStep;
         private String failedStep;
 
+        //End does not have next steps
         @XmlElement(name = "default", nillable = true)
         public String getDefaultStep() {
             return defaultStep;

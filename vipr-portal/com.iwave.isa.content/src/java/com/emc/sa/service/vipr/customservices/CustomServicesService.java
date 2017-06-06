@@ -17,23 +17,15 @@
 
 package com.emc.sa.service.vipr.customservices;
 
-import java.beans.PropertyDescriptor;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.xml.bind.annotation.XmlElement;
 
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
@@ -52,6 +44,7 @@ import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesScriptTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
+import com.emc.sa.service.vipr.customservices.tasks.RESTHelper;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
@@ -84,29 +77,6 @@ public class CustomServicesService extends ViPRService {
     private CustomServicesViprPrimitiveDAO customServicesViprDao;
 
     private int code;
-
-    private static Field getField(Class<?> clazz, final String name) {
-        Field field = null;
-        while (clazz != null && field == null) {
-            try {
-                field = clazz.getDeclaredField(name);
-            } catch (Exception e) {
-            }
-            clazz = clazz.getSuperclass();
-        }
-
-        return field;
-    }
-
-    public static boolean isGetter(Method method) {
-        if (!method.getName().startsWith("get")
-                || method.getParameterTypes().length != 0
-                || void.class.equals(method.getReturnType())) {
-            return false;
-        }
-
-        return true;
-    }
 
     @Override
     public void precheck() throws Exception {
@@ -520,130 +490,13 @@ public class CustomServicesService extends ViPRService {
 
             // Start parsing at i=1 because the name of the root
             // element is not included in the JSON
-            final List<String> list = parserOutput(bits, 1, responseEntity);
+            final List<String> list = RESTHelper.parserOutput(bits, 1, responseEntity);
             if (list != null) {
                 output.put(out.getName(), list);
             }
         }
 
         return output;
-    }
-
-    private List<String> parserOutput(final String[] bits, final int i, final Object className) throws Exception {
-
-        if (className == null) {
-            logger.warn("class name is null, cannot parse output");
-
-            return null;
-        }
-        final Method method = findMethod(bits[i], className);
-
-        if (method == null) {
-            logger.warn("method is null. cannot parse output");
-
-            return null;
-        }
-        logger.debug("bit:{}", bits[i]);
-
-        // 1) primitive
-        if (i == bits.length - 1) {
-            final Object value = method.invoke(className, null);
-            logger.debug("value:{}", value);
-
-            if (value != null) {
-                return Arrays.asList(value.toString());
-            } else {
-                return null;
-            }
-        }
-
-        final Type returnType = method.getGenericReturnType();
-        if (returnType == null) {
-            logger.info("Could not find return type of method:{}", method.getName());
-
-            return null;
-        }
-
-        // 2) Class single object
-        if (returnType instanceof Class<?>) {
-            return parserOutput(bits, i + 1, method.invoke(className, null));
-        }
-
-        // 3) Collection primitive
-        if (Collection.class.isAssignableFrom(method.getReturnType())) {
-            return getCollectionValue(method, bits, i, className);
-        }
-
-        return null;
-    }
-
-    private List<String> getCollectionValue(final Method method, final String[] bits, final int i, final Object className)
-            throws Exception {
-
-        final Type returnType = method.getGenericReturnType();
-        if (returnType instanceof ParameterizedType) {
-            final ParameterizedType paramType = (ParameterizedType) returnType;
-
-            if (i == bits.length - 1) {
-                final List<Object> value = (List<Object>) method.invoke(className, null);
-                logger.debug("array value:{}", method.invoke(className, null));
-                final List<String> listStringOut = new ArrayList<String>();
-                for (final Object val : value) {
-                    listStringOut.add(val.toString());
-                }
-                return listStringOut;
-            }
-            final Type o = paramType.getActualTypeArguments()[0];
-            if (o instanceof Class<?>) {
-                final List<String> list = new ArrayList<String>();
-                for (final Object o1 : (Collection<?>) method.invoke(className, null)) {
-                    final List<String> value = parserOutput(bits, i + 1, o1);
-                    if (value != null) {
-                        list.addAll(value);
-                    }
-                }
-
-                if (!list.isEmpty()) {
-                    return list;
-                }
-            }
-        }
-        return null;
-    }
-
-    private Method findMethod(final String str, final Object className) throws Exception {
-        final Method[] methods = className.getClass().getMethods();
-        for (Method method : methods) {
-            XmlElement elem = method.getAnnotation(XmlElement.class);
-            if (elem != null) {
-                if (elem.name().equals(str) && isGetter(method)) {
-                    logger.debug("name matched elem:{} str:{}", elem.name(), str);
-                    return method;
-                }
-            }
-        }
-        logger.info("didn't match in xml. str:{} check for getter", str);
-
-        final Field field = getField(className.getClass(), str);
-        if (field != null) {
-            final PropertyDescriptor pd = new PropertyDescriptor(str, className.getClass());
-            if (pd == null) {
-                return null;
-            }
-            final Method getter = pd.getReadMethod();
-            if (getter != null) {
-                if (getter.getAnnotation(XmlElement.class) == null) {
-                    return null;
-                }
-                if (getter.getAnnotation(XmlElement.class).name().equals("##default")) {
-                    return getter;
-                }
-            }
-        }
-
-        logger.info("could not find getter");
-
-        return null;
     }
 
     private boolean isScript(final Step step) {

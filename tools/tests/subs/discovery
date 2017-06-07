@@ -12,7 +12,7 @@ disnetworksystem() {
 }
 
 dissmisprovider() {
-    discovered=$(smisprovider list | grep $2 | wc -l)
+    discovered=$(smisprovider list | grep $3 | wc -l)
     if [ $discovered -eq 0 ]; then
         run  smisprovider $*
         newdev=1

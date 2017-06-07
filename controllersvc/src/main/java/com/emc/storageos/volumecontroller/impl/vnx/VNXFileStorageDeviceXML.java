@@ -47,6 +47,7 @@ import com.emc.storageos.vnx.xmlapi.VNXSnapshot;
 import com.emc.storageos.vnx.xmlapi.XMLApiResult;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi;
@@ -300,7 +301,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -1001,7 +1002,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1557,6 +1558,24 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult createFileReplicationPolicyHigherOrder(String syncPolicyName, FileShare targetFs, FileShare tempFs) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doStartSyncIQPolicy(StorageSystem system, String syncPolicyName, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doFailoverHigherOrder(StorageSystem system, String syncPolicyName, TaskCompleter completer) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }

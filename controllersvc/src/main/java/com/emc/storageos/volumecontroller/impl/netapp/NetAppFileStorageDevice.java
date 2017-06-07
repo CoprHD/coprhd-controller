@@ -40,6 +40,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.FileSystemConstants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
@@ -332,7 +333,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         _log.info("NetAppFileStorageDevice doExport - start");
         // Verify inputs.
         validateExportArgs(exportList);
@@ -533,7 +534,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doUnexport: {} - start", args.getFileObjId());
@@ -633,7 +634,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         // To be in-sync with isilon implementation, currently forceGroup is
         // set to null which will set the group name as "everyone" by default.
         String forceGroup = null;
@@ -693,7 +694,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doDeleteShare - start");
@@ -1870,6 +1871,24 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netapp.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult createFileReplicationPolicyHigherOrder(String syncPolicyName, FileShare targetFs, FileShare tempFs) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netapp.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doStartSyncIQPolicy(StorageSystem system, String syncPolicyName, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netapp.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doFailoverHigherOrder(StorageSystem system, String syncPolicyName, TaskCompleter completer) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.netapp.operationNotSupported());
     }

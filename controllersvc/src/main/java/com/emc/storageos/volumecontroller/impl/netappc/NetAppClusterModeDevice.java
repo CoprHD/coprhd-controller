@@ -40,6 +40,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.FileSystemConstants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
@@ -272,7 +273,7 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         _log.info("NetAppClusterModeDevice doExport - start");
         // Verify inputs.
         validateExportArgs(exportList);
@@ -308,7 +309,7 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
                 _log.error("NetAppClusterModeDevice::doExport {} : Snapshot export is not Supported", args.getSnapshotId());
                 ServiceError serviceError = DeviceControllerErrors.netappc.unableToExportSnapshot();
                 serviceError
-                .setMessage(genDetailedMessage("doExport", args.getSnapshotId().toString(), "Snapshot export is not Supported"));
+                        .setMessage(genDetailedMessage("doExport", args.getSnapshotId().toString(), "Snapshot export is not Supported"));
                 result = BiosCommandResult.createErrorResult(serviceError);
                 return result;
             }
@@ -528,7 +529,7 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         // To be in-sync with isilon implementation, currently forceGroup is
         // set to null which will set the group name as "everyone" by default.
         String forceGroup = null;
@@ -579,7 +580,7 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppClusterModeDevice doDeleteShare - start");
@@ -646,7 +647,7 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppClusterModeDevice doUnexport: {} - start", args.getFileObjId());
@@ -859,7 +860,7 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> dbSnapshots)
-                    throws ControllerException {
+            throws ControllerException {
         if (null == args.getFsName()) {
             throw new DeviceControllerException(
                     "Filesystem name is either missing or empty",
@@ -1040,7 +1041,7 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qtree)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppClusterModeDevice doCreateQuotaDirectory - start");
@@ -1119,7 +1120,7 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qtree)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
 
         try {
@@ -1340,7 +1341,7 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
             _log.error("NetAppClusterModeDevice::doUnexport {} : Snapshot unexport is not Supported", args.getSnapshotId());
             ServiceError serviceError = DeviceControllerErrors.netappc.unableToUnexportSnapshot();
             serviceError
-            .setMessage(genDetailedMessage("doUnExport", args.getSnapshotId().toString(), "Snapshot unexport is not Supported"));
+                    .setMessage(genDetailedMessage("doUnExport", args.getSnapshotId().toString(), "Snapshot unexport is not Supported"));
             result = BiosCommandResult.createErrorResult(serviceError);
             return result;
         } else {
@@ -1865,6 +1866,24 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult createFileReplicationPolicyHigherOrder(String syncPolicyName, FileShare targetFs, FileShare tempFs) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doStartSyncIQPolicy(StorageSystem system, String syncPolicyName, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doFailoverHigherOrder(StorageSystem system, String syncPolicyName, TaskCompleter completer) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.netappc.operationNotSupported());
     }

@@ -75,7 +75,7 @@ import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSy
 import com.google.common.collect.Sets;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
-implements FileStorageDevice {
+        implements FileStorageDevice {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityFileStorageDevice.class);
 
@@ -231,7 +231,7 @@ implements FileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -1815,9 +1815,27 @@ implements FileStorageDevice {
                 DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "Unity"));
     }
 
-	@Override
-	public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
-		return BiosCommandResult.createErrorResult(
+    @Override
+    public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+        return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("reduction of filesystem quota", "Unity"));
-	}
+    }
+
+    @Override
+    public BiosCommandResult createFileReplicationPolicyHigherOrder(String syncPolicyName, FileShare targetFs, FileShare tempFs) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("reduction of filesystem quota", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doStartSyncIQPolicy(StorageSystem system, String syncPolicyName, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("reduction of filesystem quota", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doFailoverHigherOrder(StorageSystem system, String syncPolicyName, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("reduction of filesystem quota", "Unity"));
+    }
 }

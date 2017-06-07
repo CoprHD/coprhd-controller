@@ -376,7 +376,7 @@ public class DbManager implements DbManagerMBean {
         
         // Compact HINTS column family and eliminate deleted hints before checking hinted handoff logs
         try {
-            //StorageService.instance.forceKeyspaceCompaction("system", SystemKeyspace.HINTS_CF);
+            StorageService.instance.forceKeyspaceCompaction(true, "system", SystemKeyspace.LEGACY_HINTS);
         } catch (Exception ex) {
             log.warn("Fail to compact system HINTS_CF", ex);
         }
@@ -414,15 +414,15 @@ public class DbManager implements DbManagerMBean {
         log.info("Pending hinted hand off logs found at {}", endpointsWithPendingHints);
         UUID hostId = Gossiper.instance.getHostId(endpoint);
         final ByteBuffer hostIdBytes = ByteBuffer.wrap(UUIDGen.decompose(hostId));
-        /*DecoratedKey epkey =  StorageService.getPartitioner().decorateKey(hostIdBytes);
-        Token.TokenFactory tokenFactory = StorageService.getPartitioner().getTokenFactory();
+        DecoratedKey epkey =  StorageService.instance.getTokenMetadata().decorateKey(hostIdBytes);
+        Token.TokenFactory tokenFactory = StorageService.instance.getTokenFactory();
         String token = tokenFactory.toString(epkey.getToken());
         for (String unsyncedEndpoint : endpointsWithPendingHints) {
             if (token.equals(unsyncedEndpoint)) {
                 log.info("Unsynced data found for : {}", endpoint);
                 return true;
             }
-        } */
+        }
         return false;
     }
 

@@ -205,7 +205,7 @@ public class TaskService extends TaggedResource {
          */
         public int compare(TimestampedURIQueryResult.TimestampedURI obj1, TimestampedURIQueryResult.TimestampedURI obj2) {
             if (Objects.equals(obj1.getTimestamp(), obj2.getTimestamp())) {
-                return 1; // If timestampe are equal don't return 0 or TreeSet will remove one of them
+                return 1; // If timestamps are equal don't return 0 or TreeSet will remove one of them
             } else {
                 return obj2.getTimestamp().compareTo(obj1.getTimestamp());
             }

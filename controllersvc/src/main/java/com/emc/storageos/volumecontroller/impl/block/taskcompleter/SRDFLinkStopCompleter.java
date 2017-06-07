@@ -78,6 +78,7 @@ public class SRDFLinkStopCompleter extends SRDFTaskCompleter {
                         recordSRDFOperation(dbClient, OperationTypeEnum.STOP_SRDF_LINK, status, source.getId().toString(), target
                                 .getId().toString());
                     }
+                    break;
                 default:
                     _log.info("Unable to handle SRDF Link Stop Operational status: {}", status);
             }

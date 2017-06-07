@@ -573,7 +573,7 @@ public class RemoteReplicationUtils {
                     rrPairs = getRemoteReplicationPairsForTargetElement(srcUri, dbClient);
                     if (rrPairs != null) {
                         for (RemoteReplicationPair rrPair : rrPairs) {
-                            if (srcUris.contains(rrPair.getSourceElement())) {
+                            if (srcUris.contains(rrPair.getSourceElement().getURI())) {
                                 rrPairsToDelete.add(rrPair);
                             }
                         }
@@ -584,7 +584,7 @@ public class RemoteReplicationUtils {
                     rrPairs = getRemoteReplicationPairsForSourceElement(srcUri, dbClient);
                     if (rrPairs != null) {
                         for (RemoteReplicationPair rrPair : rrPairs) {
-                            if (tgtUris.contains(rrPair.getTargetElement())) {
+                            if (tgtUris.contains(rrPair.getTargetElement().getURI())) {
                                 rrPairsToDelete.add(rrPair);
                             }
                         }

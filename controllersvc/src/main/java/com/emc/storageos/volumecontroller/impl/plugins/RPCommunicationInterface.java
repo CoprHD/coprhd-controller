@@ -68,6 +68,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.recoverpoint.RPUnManagedObjectDiscoverer;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**
@@ -151,6 +152,12 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
             if (StorageSystem.Discovery_Namespaces.UNMANAGED_CGS.toString().equalsIgnoreCase(accessProfile.getnamespace())) {
                 try {
+
+                    if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                        _log.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
+                        return;
+                    }
+
                     unManagedCGDiscoverer.discoverUnManagedObjects(accessProfile, _dbClient, _partitionManager);
                 } catch (RecoverPointException rpe) {
                     discoverySuccess = false;

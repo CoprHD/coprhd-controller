@@ -156,6 +156,17 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 log.info("Volume count on this page {} ", driverVolumes.size());
 
                 for (StorageVolume driverVolume : driverVolumes) {
+
+                    if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                        log.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
+                        return;
+                    }
+
+                    if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(driverVolume.getDisplayName())) {
+                        // skipping this volume because the filter doesn't match
+                        continue;
+                    }
+
                     UnManagedVolume unManagedVolume = null;
                     try {
                         com.emc.storageos.db.client.model.StoragePool storagePool = getStoragePoolOfUnManagedVolume(storageSystem, driverVolume, dbClient);

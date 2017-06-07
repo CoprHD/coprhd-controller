@@ -230,6 +230,12 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())
                     || accessProfile.getnamespace()
                             .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()))) {
+
+                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                    _logger.warn("Discovery kill switch is on, discontinuing unmanaged discovery.");
+                    return;
+                }
+
                 discoverUnmanagedObjects(accessProfile);
             } else {
                 // Get the VNX Unity storage system from the database.

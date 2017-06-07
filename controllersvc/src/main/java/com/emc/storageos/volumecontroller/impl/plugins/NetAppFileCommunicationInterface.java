@@ -681,6 +681,12 @@ public class NetAppFileCommunicationInterface extends
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
+
+            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                _logger.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
+                return;
+            }
+
             discoverUmanagedFileSystems(accessProfile);
             discoverUmanagedFileQuotaDirectory(accessProfile);
             // discoverUnManagedExports(accessProfile);
@@ -743,6 +749,12 @@ public class NetAppFileCommunicationInterface extends
             List<VFilerInfo> vFilers = netAppApi.listVFilers(null);
 
             for (Map<String, String> fileSystemChar : fileSystemInfo) {
+
+                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                    _logger.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
+                    return;
+                }
+
                 String poolName = fileSystemChar
                         .get(SupportedNtpFileSystemInformation
                                 .getFileSystemInformation(SupportedNtpFileSystemInformation.STORAGE_POOL
@@ -752,6 +764,11 @@ public class NetAppFileCommunicationInterface extends
                         .get(SupportedNtpFileSystemInformation
                                 .getFileSystemInformation(SupportedNtpFileSystemInformation.NAME
                                         .toString()));
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(filesystem)) {
+                    // skipping this volume because the filter doesn't match
+                    continue;
+                }
 
                 String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystem,
                         poolName, NativeGUIDGenerator.POOL);

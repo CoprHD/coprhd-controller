@@ -13,10 +13,14 @@ import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
+import play.Play;
+import plugin.StorageOsPlugin;
+
 import java.util.Iterator;
 import java.util.List;
 import static util.BourneUtil.getViprClient;
@@ -190,4 +194,22 @@ public class DisasterRecoveryUtils {
         SiteActive siteCheck = checkActiveSite();
         return siteCheck.getIsMultiSite();
     }
+
+    public static boolean isCustomServicesEnabled() {
+        if(!Play.mode.isDev()) {
+            PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
+            if (propInfo != null) {
+                final String isCustomEnableProp = propInfo.getProperty(ConfigProperty.CUSTOM_SEREVICES_ENABLE);
+                if(isCustomEnableProp != null) {
+                    final boolean isEnable = Boolean.valueOf(isCustomEnableProp);
+                    return isEnable;
+                }
+            }
+        }
+        else {
+            return true;
+        }
+        return false;
+    }
+
 }

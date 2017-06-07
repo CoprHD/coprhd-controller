@@ -1,6 +1,18 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.sa.api;
 
@@ -29,23 +41,25 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.sa.api.utils.CatalogConfigUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CatalogServiceFilter;
 import com.emc.sa.api.utils.CatalogACLInputFilter;
+import com.emc.sa.api.utils.CatalogConfigUtils;
 import com.emc.sa.api.utils.ValidationUtils;
 import com.emc.sa.catalog.CatalogCategoryManager;
 import com.emc.sa.catalog.CatalogServiceManager;
+import com.emc.sa.catalog.ServiceDescriptorUtil;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
+import com.emc.sa.model.util.SortedIndexUtils;
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceAndFields;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
-import com.emc.sa.model.util.SortedIndexUtils;
-import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -67,10 +81,8 @@ import com.emc.vipr.model.catalog.CatalogServiceList;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceUpdateParam;
 
-@DefaultPermissions(
-        readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        writeRoles = { Role.TENANT_ADMIN },
-        readAcls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
+        Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
 @Path("/catalog/services")
 public class CatalogServiceService extends CatalogTaggedResourceService {
 
@@ -87,6 +99,9 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
     @Autowired
     private ServiceDescriptors serviceDescriptors;
+
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
 
     private CatalogConfigUtils catalogConfigUtils;
 
@@ -139,7 +154,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
      */
     private ServiceDescriptor getServiceDescriptor(String serviceId) {
         try {
-            return serviceDescriptors.getDescriptor(Locale.getDefault(), serviceId);
+            return ServiceDescriptorUtil.getServiceDescriptorByName(serviceDescriptors, workflowServiceDescriptor, serviceId);
         } catch (IllegalStateException e) {
             return null;
         }
@@ -171,7 +186,6 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         CatalogService catalogService = queryResource(id);
         ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
         List<CatalogServiceField> catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
-
         return map(catalogService, serviceDescriptor, catalogServiceFields);
     }
 
@@ -207,7 +221,6 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         catalogService = catalogServiceManager.getCatalogServiceById(catalogService.getId());
         catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
         ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
-
         return map(catalogService, serviceDescriptor, catalogServiceFields);
     }
 
@@ -383,11 +396,16 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
     private void validateParam(CatalogServiceCommonParam input, CatalogService existing) {
 
-        ServiceDescriptor descriptor =
-                catalogServiceManager.getServiceDescriptor(input.getBaseService());
+        ServiceDescriptor descriptor = getServiceDescriptor(input.getBaseService());
 
         if (descriptor == null) {
             throw APIException.badRequests.baseServiceNotFound(input.getBaseService());
+        }
+
+        if (null != input.getWorkflowName() && !input.getWorkflowName().isEmpty()) {
+            if (null == catalogServiceManager.getWorkflowDocument(input.getWorkflowName())) {
+                throw APIException.badRequests.workflowNotFound(input.getWorkflowName());
+            }
         }
 
         for (CatalogServiceFieldParam field : input.getCatalogServiceFields()) {
@@ -451,7 +469,6 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
                 CatalogService service = catalogServiceAndField.getCatalogService();
                 ServiceDescriptor descriptor = descriptors.get(service.getBaseService());
                 List<CatalogServiceField> serviceFields = catalogServiceAndField.getCatalogServiceFields();
-
                 catalogServiceRestReps.add(map(service, descriptor, serviceFields));
             }
         }

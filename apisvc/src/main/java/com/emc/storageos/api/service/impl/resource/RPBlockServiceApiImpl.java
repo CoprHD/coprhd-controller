@@ -273,20 +273,20 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         container.setHaVarray(haVarray);
         container.setHaVpool(haVpool);
         container.setCapabilities(capabilities);
-        
+
         // Get the source performance parameters.
         Map<VolumeTopologyRole, URI> sourceParams = null;
         Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = performanceParams.get(VolumeTopologySite.SOURCE);
         if (sourceParamsMap != null && !sourceParamsMap.isEmpty()) {
             // There will always be at most one entry for the source.
-            sourceParamsMap.values().iterator().next();
+            sourceParams = sourceParamsMap.values().iterator().next();
         }
         container = RecoverPointScheduler.initializeSwapContainer(container, sourceParams, _dbClient);
         
         // The source capabilities should come from the container as some values may have
         // changed due to account for HA virtual pool and performance parameters.
         VirtualPoolCapabilityValuesWrapper srcCapabilities = container.getCapabilities();
-        
+
         // This copy of capabilities object is meant to be used by all volume prepares that require changing data,
         // which is our case is TARGET and JOURNALS. SOURCE will use always use the main capabilities object.
         VirtualPoolCapabilityValuesWrapper copyOfCapabilities = new VirtualPoolCapabilityValuesWrapper(srcCapabilities);
@@ -968,7 +968,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         Map<VolumeTopologyRole, URI> performanceParams = null;
         Map<URI, Map<VolumeTopologyRole, URI>> siteParamsMap = performanceParamsMap.get(topologySite);
         if (siteParamsMap != null && !siteParamsMap.isEmpty()) {
-            performanceParams = siteParamsMap.get(varray.getId());
+            if (topologySite == VolumeTopologySite.SOURCE) {
+                performanceParams = siteParamsMap.values().iterator().next();
+            } else {
+                performanceParams = siteParamsMap.get(varray.getId());
+            }
             if (performanceParams != null) {
                 performanceParamsURIForRole = performanceParams.get(topologyRole);
             }
@@ -978,7 +982,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // the performance parameters of the volume.
         VirtualPoolCapabilityValuesWrapper volCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
                 vpool, performanceParams, topologyRole, capabilities, _dbClient);
-        
+
         // Prepare RP specific volume info
         rpVolume = prepareVolume(rpVolume, project, varray, vpool, size, rpRec, rpVolumeName, consistencyGroup, protectionSystemURI,
                 personalityType, rsetName, rpInternalSiteName, copyName, sourceVolume, vplex, changeVpoolVolume, isPreCreatedVolume,

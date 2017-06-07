@@ -962,23 +962,23 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         }
     }
-    
+
     @Override
     public void reduceFS(URI storage, URI uri, long newFSsize, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         FileShare fs = null;
         StoragePool pool = null;
         StorageSystem storageObj = null;
-        
+
         FileDeviceInputOutput args = new FileDeviceInputOutput();
         try {
-        	fs = _dbClient.queryObject(FileShare.class, uri);
-        	pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
-        	storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            
+            fs = _dbClient.queryObject(FileShare.class, uri);
+            pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+
             args.addFSFileObject(fs);
             args.addStoragePool(pool);
-            
+
             args.setFileOperation(true);
             args.setNewFSCapacity(newFSsize);
             args.setOpId(opId);
@@ -3864,7 +3864,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
-    
+
     /*
      * Reduce filesystem
      * (non-Javadoc)
@@ -3990,7 +3990,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
-    
+
     /**
      * Reduce File System Step
      *
@@ -4005,9 +4005,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         _log.info("START Reduce file system");
         Map<URI, Long> filesharesToReduce = new HashMap<URI, Long>();
         for (FileDescriptor descriptor : fileDescriptors) {
-        	FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
             if (fileShare.getCapacity() != null && fileShare.getCapacity().longValue() != 0) {
-            	filesharesToReduce.put(fileShare.getId(), descriptor.getFileSize());
+                filesharesToReduce.put(fileShare.getId(), descriptor.getFileSize());
             }
         }
 
@@ -4026,10 +4026,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
-    
-    
-    
-    
 
     /**
      * Return a WorkFlow.Method for expandFileShares
@@ -4042,7 +4038,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     Workflow.Method expandFileSharesMethod(URI uriStorage, URI fileURI, long size) {
         return new Workflow.Method("expandFS", uriStorage, fileURI, size);
     }
-    
+
     /**
      * Return a WorkFlow.Method for reduceFileShares
      *
@@ -4498,6 +4494,28 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
         Workflow.Method method = new Workflow.Method(methodName, args);
         return workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null, stepId);
+    }
+
+    /**
+     * common method which creates Controller Methods that would be executed by work-flow Service,
+     * takes stepGroup into consideration.
+     * 
+     * @param workflow
+     * @param waitFor
+     * @param methodName
+     * @param stepGroup
+     * @param stepId
+     * @param stepDescription
+     * @param storage
+     * @param args
+     * @return
+     */
+    public String createMethod(Workflow workflow, String waitFor, String methodName, String stepGroup, String stepId,
+            String stepDescription, URI storage,
+            Object[] args) {
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+        Workflow.Method method = new Workflow.Method(methodName, args);
+        return workflow.createStep(stepGroup, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null, stepId);
     }
 
     /**
@@ -4966,6 +4984,82 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             _log.error("Error occured while checking policy path has resorce label.", e);
             WorkflowStepCompleter.stepFailed(opId, error);
+        }
+
+    }
+
+    public void createRepPolicyForFsHigherOrder(URI targetFsId, URI tempFsId, String syncPolicyName, String opId) {
+        try {
+            FileShare targetFs = _dbClient.queryObject(FileShare.class, targetFsId);
+            FileShare tempFs = _dbClient.queryObject(FileShare.class, tempFsId);
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+            WorkflowStepCompleter.stepExecuting(opId);
+
+            _log.info("_csm Invoking IsilonFSD.createFileReplicationPolicyHigherOrder to create ReplicationPOlicy : {} ", syncPolicyName);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).createFileReplicationPolicyHigherOrder(syncPolicyName,
+                    targetFs, tempFs);
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+                _log.info("_csm created ReplicationPOlicy : {} ", syncPolicyName);
+            }
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    public void startSyncIQPolicy(String syncPolicyName, URI fsURI, String opId) {
+        FileShare targetObj = null;
+        try {
+            _log.info("_csm Starting Policy : {}  ", syncPolicyName);
+            targetObj = _dbClient.queryObject(FileShare.class, fsURI);
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, targetObj.getStorageDevice());
+            TaskCompleter completer = new MirrorFileStartTaskCompleter(FileShare.class, fsURI, opId);
+
+            BiosCommandResult result = getDevice(system.getSystemType()).doStartSyncIQPolicy(system, syncPolicyName, completer);
+
+            if (result.getCommandSuccess()) {
+                _log.info("File replication successfully of the replication policy : {}", syncPolicyName);
+                completer.ready(_dbClient);
+            } else if (result.getCommandPending()) {
+                completer.statusPending(_dbClient, result.getMessage());
+            }
+        } catch (Exception e) {
+            _log.error(" Unable to start the Policy ");
+            updateTaskStatus(opId, targetObj, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, error);
+        }
+    }
+
+    public void failoverFsHigherOrder(String syncPolicyName, URI targetURI, TaskCompleter completer, String opId) {
+        FileShare targetFs = _dbClient.queryObject(FileShare.class, targetURI);
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+        try {
+
+            _log.info("_csm failover fileSystem : {}", targetFs);
+            BiosCommandResult result = getDevice(system.getSystemType()).doFailoverHigherOrder(system, syncPolicyName, completer);
+
+            if (result.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else if (result.getCommandPending()) {
+                completer.statusPending(_dbClient, result.getMessage());
+            } else {
+                completer.error(_dbClient, result.getServiceCoded());
+            }
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(this._dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
+
         }
 
     }

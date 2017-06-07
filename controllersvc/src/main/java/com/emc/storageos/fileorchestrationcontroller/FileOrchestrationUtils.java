@@ -6,6 +6,7 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,6 +35,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NFSShareACL;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
@@ -1162,6 +1164,93 @@ public final class FileOrchestrationUtils {
             }
         }
         return policyStorageResources;
+    }
+
+    public static FilePolicy getFilePolicyFromFS(DbClient _dbClient, VirtualPool sourceVP, Project sourceProject) {
+        FilePolicy fp = null;
+        if (sourceVP.getFilePolicies() != null && !sourceVP.getFilePolicies().isEmpty()) {
+            for (String policy : sourceVP.getFilePolicies()) {
+                fp = _dbClient.queryObject(FilePolicy.class, URI.create(policy));
+                _log.info("_csm SourceFilePolicy from vPool :: {} ", fp.toString());
+            }
+        } else if (sourceProject.getFilePolicies() != null && !sourceProject.getFilePolicies().isEmpty()) {
+            for (String policy : sourceProject.getFilePolicies()) {
+                fp = _dbClient.queryObject(FilePolicy.class, URI.create(policy));
+                _log.info("_csm sourceFilePolicy from project :: {}", fp.getFilePolicyName());
+            }
+        }
+        return fp;
+    }
+
+    /**
+     * create ViPR fileShare object for tempTargetFS and needed to create TaskCompleters
+     * 
+     * @param _dbClient
+     * @param sourceURI
+     * @param tempTargetPath
+     * @param targetSystem
+     * @return
+     */
+    public static URI createFsObj(DbClient _dbClient, URI targetURI) {
+        FileShare targetFS = _dbClient.queryObject(FileShare.class, targetURI);
+        FileShare tempFs = new FileShare();
+        String tempTargetPath = "/ifs/" + targetFS.getLabel() + "TempDir";
+        String tempFsName = targetFS.getLabel() + "_Temp";
+        tempFs.setId(URIUtil.createId(FilePolicy.class));
+        tempFs.setName(tempFsName);
+        tempFs.setLabel(tempFsName);
+        tempFs.setMountPath(tempTargetPath);
+        tempFs.setNativeId(tempTargetPath);
+        tempFs.setPath(tempTargetPath);
+        tempFs.setPersonality(FileShare.PersonalityTypes.TARGET.name());
+        tempFs.setParentFileShare(new NamedURI(targetFS.getId(), targetFS.getLabel()));
+        tempFs.setCapacity(targetFS.getCapacity());
+        tempFs.setCreationTime(Calendar.getInstance());
+        tempFs.setInactive(false);
+        tempFs.setProtocol(targetFS.getProtocol());
+        tempFs.setStorageDevice(targetFS.getStorageDevice());
+        tempFs.setVirtualArray(targetFS.getVirtualArray());
+        // TODO: add storagePort
+        // tempFs.setStoragePort(storagePort);
+        tempFs.setThinlyProvisioned(targetFS.getThinlyProvisioned());
+
+        _dbClient.createObject(tempFs);
+        _log.info("TempTargetFS created {}", tempFs);
+
+        return tempFs.getId();
+    }
+
+    public static FilePolicy createFpObj(DbClient s_dbClient, FileShare targetFs, FileShare tempTargetFs, FilePolicy sourcePolicy) {
+        FilePolicy repPolicy = new FilePolicy();
+        String polName = sourcePolicy.getLabel() + "_" + targetFs.getLabel() + "_tempPolicy";
+        VirtualPool targetVp = s_dbClient.queryObject(VirtualPool.class, targetFs.getVirtualPool());
+        repPolicy.setId(URIUtil.createId(FilePolicy.class));
+        repPolicy.setFilePolicyDescription("Replication Policy between FS : " + targetFs.getLabel() + " and " + tempTargetFs.getLabel());
+        repPolicy.setLabel(polName);
+        repPolicy.setFilePolicyName(polName);
+        repPolicy.setLabel(polName);
+        repPolicy.setFilePolicyType(FilePolicyType.file_replication.name());
+        repPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
+        repPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.SYNC.name());
+        repPolicy.setPriority(FilePolicy.FilePolicyPriority.Normal.toString());
+        repPolicy.setFileReplicationType(FilePolicy.FileReplicationType.LOCAL.name());
+
+        FileReplicationTopology frp = new FileReplicationTopology();
+        // frp.set
+
+        return null;
+    }
+
+    // public static FilePolicy generateSyncPolicyHigherOrderFsFailover(DbClient s_dbClient, FileShare targetFileShare,
+    // FileShare tempFileShare, FilePolicy sourceFilePolicy) {
+    // // TODO Auto-generated method stub
+    // return null;
+    // }
+
+    public static String generateTempSyncIQNameHigherOrderFsFailover(DbClient s_dbClient, FileShare targetFileShare,
+            FileShare tempFileShare, FilePolicy sourceFilePolicy) {
+        String syncPolicyName = targetFileShare.getLabel() + "_" + tempFileShare.getLabel() + "_LocalReplication";
+        return syncPolicyName;
     }
 
 }

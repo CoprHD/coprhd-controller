@@ -865,9 +865,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, expandedQuota);
     }
-    
+
     /**
      * restapi request for reduction of fileshare size.
+     * 
      * @param isi
      * @param quotaId
      * @param args
@@ -877,8 +878,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private void isiReduceFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
         Long capacity = args.getNewFSCapacity();
         IsilonSmartQuota quota = isi.getQuota(quotaId);
-        //new capacity should be less than usage capacity of a filehare
-        if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
+        // new capacity should be less than usage capacity of a filehare
+        if (capacity.compareTo(quota.getUsagePhysical()) < 0) {
             String msg = String
                     .format(
                             "In Reduction Isilon FS requested capacity is less than currently used physical space. Path: %s, current capacity: %d",
@@ -887,12 +888,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             throw IsilonException.exceptions.reduceFsFailedinvalidParameters(quota.getPath(),
                     quota.getThresholds().getHard());
         } else {
-        	 // Modify quoties for fileshare
-        	quota = getExpandedQuota(isi, args, capacity);
+            // Modify quoties for fileshare
+            quota = getExpandedQuota(isi, args, capacity);
             isi.modifyQuota(quotaId, quota);
         }
     }
-
 
     private IsilonSmartQuota getExpandedQuota(IsilonApi isi, FileDeviceInputOutput args, Long capacity) {
         Long notificationLimit = 0L;
@@ -1097,29 +1097,28 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createErrorResult(serviceError);
         }
     }
-    
-    
+
     @Override
     public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-    	try {
-    		 _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
-             IsilonApi isi = getIsilonDevice(storage);
-             String quotaId = null;
-             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
-                 quotaId = args.getFsExtensions().get(QUOTA);
-             } else {
-                 final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
-                 _log.error(serviceError.getMessage());
-                 return BiosCommandResult.createErrorResult(serviceError);
-             }
+        try {
+            _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
+            IsilonApi isi = getIsilonDevice(storage);
+            String quotaId = null;
+            if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
+                quotaId = args.getFsExtensions().get(QUOTA);
+            } else {
+                final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
+                _log.error(serviceError.getMessage());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
 
-             isiReduceFS(isi, quotaId, args);
-             _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
-             return BiosCommandResult.createSuccessfulResult();
+            isiReduceFS(isi, quotaId, args);
+            _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
+            return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("doReduceFS failed.", e);
             return BiosCommandResult.createErrorResult(e);
-        } 
+        }
     }
 
     @Override
@@ -1427,21 +1426,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             if (quotaId != null) {
-            	// Isilon does not allow to update quota directory to zero.
-            	IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
+                // Isilon does not allow to update quota directory to zero.
+                IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
                 long quotaUsageSpace = isiCurrentSmartQuota.getUsagePhysical();
-                
+
                 if (qDirSize > 0 && qDirSize.compareTo(quotaUsageSpace) > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 } else {
-                	String msg = String.format(
+                    String msg = String.format(
                             "Shriking the Isilon FS failed, because the filesystem capacity is less than current usage capacity of file system. Path: %s, current usage capacity: %d",
                             quotaDir.getPath(), quotaUsageSpace);
-                	_log.error("doUpdateQuotaDirectory : " + msg);
-                	ServiceError error = DeviceControllerErrors.isilon.jobFailed(msg);
-                	return BiosCommandResult.createErrorResult(error);
+                    _log.error("doUpdateQuotaDirectory : " + msg);
+                    ServiceError error = DeviceControllerErrors.isilon.jobFailed(msg);
+                    return BiosCommandResult.createErrorResult(error);
                 }
 
             } else {
@@ -4080,5 +4079,62 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createErrorResult(e);
         }
 
+    }
+
+    @Override
+    public BiosCommandResult createFileReplicationPolicyHigherOrder(String syncPolicyName, FileShare targetFs, FileShare tempFs) {
+        BiosCommandResult result = null;
+        try {
+            _log.info("_csm finalStep ReplicationPOlicy : {} ", syncPolicyName);
+            createIsilonSyncPolicyHigherOrderFailover(syncPolicyName, targetFs, tempFs);
+            result = BiosCommandResult.createSuccessfulResult();
+            _log.info("_csm ReplicationPOlicy : {} ------- result : {} ", syncPolicyName, result.toString());
+        } catch (IsilonException e) {
+            _log.error("createFileReplicationPolicyHigherOrder Failed !!", e);
+            result = BiosCommandResult.createErrorResult(e);
+        }
+        return result;
+    }
+
+    private String createIsilonSyncPolicyHigherOrderFailover(String syncPolicyName, FileShare targetFs, FileShare tempFs) {
+        _log.info("File replication policy : {} creation started", syncPolicyName);
+        try {
+            StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+            StorageSystem tempStorage = _dbClient.queryObject(StorageSystem.class, tempFs.getStorageDevice());
+            // String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId(),
+            // targetFs.getVirtualArray(), targetVNasURI);
+            IsilonApi isi = getIsilonDevice(targetStorage);
+            isi.createDir(targetFs.getPath(), true);
+            IsilonSyncPolicy tempRepPolicy = new IsilonSyncPolicy(syncPolicyName, targetFs.getPath(), tempFs.getPath(),
+                    tempStorage.getIpAddress(), Action.sync);
+            tempRepPolicy.setDescription(
+                    "filePolicy between the targetFileShare :" + targetFs.getLabel() + "and tempFs : {} " + tempFs.getLabel());
+            tempRepPolicy.setEnabled(true);
+            String scheduleId;
+            if (VersionChecker.verifyVersionDetails(ONEFS_V8, tempStorage.getFirmwareVersion()) >= 0) {
+                IsilonSyncPolicy8Above tempRepPolicyCopy = new IsilonSyncPolicy8Above();
+                tempRepPolicyCopy = tempRepPolicyCopy.copy(tempRepPolicy);
+                tempRepPolicyCopy.setPriority(FilePolicyPriority.High.ordinal());
+                scheduleId = isi.createReplicationPolicy8above(tempRepPolicyCopy);
+            } else {
+                scheduleId = isi.createReplicationPolicy(tempRepPolicy);
+            }
+            _log.info("_csm ScheduleId : {}", scheduleId);
+            return scheduleId;
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    @Override
+    public BiosCommandResult doStartSyncIQPolicy(StorageSystem system, String syncPolicyName, TaskCompleter completer) {
+        _log.info("invoking doStartReplicationPolicy()");
+        return mirrorOperations.doStartReplicationPolicy(system, syncPolicyName, completer);
+    }
+
+    @Override
+    public BiosCommandResult doFailoverHigherOrder(StorageSystem system, String syncPolicyName, TaskCompleter completer) {
+        _log.info("invoking doFailover()");
+        return mirrorOperations.doFailover(system, syncPolicyName, completer);
     }
 }

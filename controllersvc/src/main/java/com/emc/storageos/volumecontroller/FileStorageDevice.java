@@ -149,11 +149,7 @@ public interface FileStorageDevice {
      */
     public BiosCommandResult doExpandFS(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
-    
-    
-    
-    
-    
+
     /**
      * 
      * @param storage
@@ -323,6 +319,12 @@ public interface FileStorageDevice {
             FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs);
 
     public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args);
+
+    public BiosCommandResult createFileReplicationPolicyHigherOrder(String syncPolicyName, FileShare targetFs, FileShare tempFs);
+
+    public BiosCommandResult doStartSyncIQPolicy(StorageSystem system, String syncPolicyName, TaskCompleter completer);
+
+    public BiosCommandResult doFailoverHigherOrder(StorageSystem system, String syncPolicyName, TaskCompleter completer);
 
     /**
      * Starts a replication link.

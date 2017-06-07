@@ -345,7 +345,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             if(NO_GROUP.equals(groupId)) {
                 // get pairs in set (that aren't in any groups)
                 return createNamedResourceOptions(api(ctx).remoteReplicationSets().
-                        listRemoteReplicationPairs(setId).getRemoteReplicationPairs());
+                        listRemoteReplicationSetPairs(setId).getRemoteReplicationPairs());
             } else {
                 // get pairs in the selected group
                 return createNamedResourceOptions(api(ctx).remoteReplicationGroups().

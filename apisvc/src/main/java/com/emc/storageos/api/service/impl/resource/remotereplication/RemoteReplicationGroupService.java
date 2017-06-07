@@ -199,7 +199,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                     targetvPoolURI, _dbClient, _coordinator);
             allTargetSystems.addAll(targetDevices);
         }
-        Iterator<RemoteReplicationGroup> it = RemoteReplicationUtils.findAllRemoteRepliationGroupsIteratively(_dbClient);
+        Iterator<RemoteReplicationGroup> it = RemoteReplicationUtils.findAllRemoteReplicationGroupsIteratively(_dbClient);
         while (it.hasNext()) {
             RemoteReplicationGroup rrGroup = it.next();
 
@@ -246,7 +246,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         }
         Set<String> targetCGSystemsSet = ConsistencyGroupUtils
                 .findAllRRConsistencyGroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
-        Iterator<RemoteReplicationGroup> groups = RemoteReplicationUtils.findAllRemoteRepliationGroupsIteratively(_dbClient);
+        Iterator<RemoteReplicationGroup> groups = RemoteReplicationUtils.findAllRemoteReplicationGroupsIteratively(_dbClient);
         while (groups.hasNext()) {
             RemoteReplicationGroup rrGroup = groups.next();
             StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cGroup.getStorageController());

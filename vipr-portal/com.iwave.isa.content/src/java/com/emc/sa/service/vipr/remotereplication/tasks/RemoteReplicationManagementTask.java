@@ -14,18 +14,19 @@ public class RemoteReplicationManagementTask extends ViPRExecutionTask<List<Task
 
     RemoteReplicationOperationParam params;
     Operation operation;
-    RemoteReplicationManagementClient rrClient;
 
     public RemoteReplicationManagementTask(RemoteReplicationOperationParam params, Operation operation) {
         this.params = params;
         this.operation = operation;
-        this.rrClient = getClient().remoteReplicationManagement();
+        this.setDetail("RemoteReplicationManagementTask.detail",operation.name());
     }
 
     @Override
     public List<TaskResourceRep> executeTask() throws Exception {
 
         TaskList createdTasks;
+
+        RemoteReplicationManagementClient rrClient = getClient().remoteReplicationManagement();
         
         logInfo("Task executing for operation " + operation.name());
 
@@ -50,6 +51,9 @@ public class RemoteReplicationManagementTask extends ViPRExecutionTask<List<Task
             break;
         case STOP:
             createdTasks = rrClient.stopRemoteReplication(params);
+            break;
+        case SWAP:
+            createdTasks = rrClient.swapRemoteReplication(params);
             break;
         default:
             throw new IllegalStateException("Invalid Remote Replication Management operation: " + 

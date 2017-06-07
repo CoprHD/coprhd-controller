@@ -111,7 +111,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         _log.info("Called: getRemoteReplicationSets()");
         RemoteReplicationSetList rrSetList = new RemoteReplicationSetList();
 
-        Iterator<RemoteReplicationSet> iter = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
+        Iterator<RemoteReplicationSet> iter = RemoteReplicationUtils.findAllRemoteReplicationSetsIteratively(_dbClient);
         while (iter.hasNext()) {
             rrSetList.getRemoteReplicationSets().add(toNamedRelatedResource(iter.next()));
         }
@@ -156,7 +156,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             allTargetSystems.addAll(targetDevices);
         }
 
-        Iterator<RemoteReplicationSet> it = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
+        Iterator<RemoteReplicationSet> it = RemoteReplicationUtils.findAllRemoteReplicationSetsIteratively(_dbClient);
         outloop:
         while (it.hasNext()) {
             RemoteReplicationSet rrSet = it.next();
@@ -273,7 +273,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         }
         Set<String> targetCGSystemsSet = ConsistencyGroupUtils
                 .findAllRRConsistencyGroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
-        Iterator<RemoteReplicationSet> sets = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
+        Iterator<RemoteReplicationSet> sets = RemoteReplicationUtils.findAllRemoteReplicationSetsIteratively(_dbClient);
         StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cGroup.getStorageController());
         while (sets.hasNext()) {
             RemoteReplicationSet rrSet = sets.next();
@@ -384,18 +384,17 @@ public class RemoteReplicationSetService extends TaskResourceService {
         _log.info("Called: get" +
                 "getRemoteReplicationSetPairs() for replication set {}", id);
         ArgValidator.checkFieldUriType(id, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class, "id");
-        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id, RemoteReplicationPair.class, "replicationSet");
+        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id,
+                RemoteReplicationPair.class, "replicationSet");
         RemoteReplicationPairList rrPairList = new RemoteReplicationPairList();
         if (rrPairs != null) {
             _log.info("Found total pairs: {}", rrPairs.size());
-            int size = 0;
             for (RemoteReplicationPair rrPair : rrPairs) {
                 if((rrPair.getReplicationGroup() == null) && !rrPair.isInCG(_dbClient)) {
                     // return only pairs directly in replication set
                     rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(rrPair));
-                    size++;
                 }
-                _log.info("Found pairs: {} directly in the set", size);
+                _log.info("Found pairs: {} directly in the set", rrPairList.getRemoteReplicationPairs().size());
             }
         }
         return rrPairList;

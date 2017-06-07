@@ -8,7 +8,13 @@ import java.net.URI;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationOperationParam;
@@ -36,7 +42,7 @@ public class RemoteReplicationManagementClient {
     }
 
     public static enum Operation {FAILOVER("/failover"),FAILBACK("/failback"),ESTABLISH("/establish"),
-        SUSPEND("/suspend"),SPLIT("/suspend"),RESUME("/resume"),STOP("/stop");
+        SUSPEND("/suspend"),SPLIT("/suspend"),RESUME("/resume"),STOP("/stop"),SWAP("/swap");
         private String path;
         Operation(String path) {
             this.path = path;
@@ -74,6 +80,10 @@ public class RemoteReplicationManagementClient {
         return performOperation(operationParam,Operation.STOP);
     }
 
+    public TaskList swapRemoteReplication(RemoteReplicationOperationParam operationParam) {
+        return performOperation(operationParam,Operation.SWAP);
+    }
+
     private TaskList performOperation(RemoteReplicationOperationParam operationParam, Operation operation) {
         /*
          * Catalog Service may have sent:
@@ -106,44 +116,56 @@ public class RemoteReplicationManagementClient {
         case RR_GROUP_CG:
             operateOnGroupCG(operationParam,operation);
             break;
-
         }
         return taskListResult;
     }
 
     private void operateOnSet(RemoteReplicationOperationParam operationParam, Operation operation) {
-        _log.info("Operating on set");
+        _log.info("Operating on sets");
         for(URI setId : operationParam.getIds()) { // assume all IDs are RR Set IDs
-            for(NamedRelatedResourceRep pair: 
-                coreClient.remoteReplicationSets().
-                listRemoteReplicationPairs(setId).getRemoteReplicationPairs()) {
 
-                // insert ID of 1st pair in this RR Set in parameters for API call
-                RemoteReplicationOperationParam pairParam = 
-                        new RemoteReplicationOperationParam(
-                                RemoteReplicationOperationParam.OperationContext.RR_SET.name(),
-                                Arrays.asList(pair.getId()));
+            List<NamedRelatedResourceRep> pairs = coreClient.remoteReplicationSets().
+                    listRemoteReplicationPairs(setId).getRemoteReplicationPairs();
 
-                callApi(pairParam,operation);
+            Map<URI,String> pairMap = new HashMap<>();
+            for(NamedRelatedResourceRep pair: pairs) {
+                pairMap.put(pair.getId(), pair.getName());
             }
+
+            _log.info("Operating on set " + setId + " with pairs " +
+                    pairMap.values() + pairMap.keySet());
+
+            // insert IDs of pairs in this RR Set in parameters for API call
+            RemoteReplicationOperationParam pairParam =
+                    new RemoteReplicationOperationParam(
+                            RemoteReplicationOperationParam.OperationContext.RR_SET.name(),
+                            new ArrayList<URI>(pairMap.keySet()));
+
+            callApi(pairParam,operation);
         }
     }
 
     private void operateOnGroup(RemoteReplicationOperationParam operationParam, Operation operation) {
         _log.info("Operating on group");
         for(URI groupId : operationParam.getIds()) { // assume all IDs are RR Group IDs
-            for(NamedRelatedResourceRep pair: 
-                coreClient.remoteReplicationGroups().
-                listRemoteReplicationPairs(groupId.toString()).getRemoteReplicationPairs()) {
 
-                // insert ID of 1st pair in this RR Group in parameters for API call
-                RemoteReplicationOperationParam pairParam = 
-                        new RemoteReplicationOperationParam(
-                                RemoteReplicationOperationParam.OperationContext.RR_GROUP.name(),
-                                Arrays.asList(pair.getId()));
+            List<NamedRelatedResourceRep> pairs = coreClient.remoteReplicationGroups().
+                    listRemoteReplicationPairs(groupId.toString()).getRemoteReplicationPairs();
 
-                callApi(pairParam,operation);
+            Map<URI,String> pairMap = new HashMap<>();
+            for(NamedRelatedResourceRep pair: pairs) {
+                pairMap.put(pair.getId(), pair.getName());
             }
+
+            _log.info("Operating on group " + groupId + " with pairs " +
+                    pairMap.values() + pairMap.keySet());
+
+            RemoteReplicationOperationParam pairParam = 
+                    new RemoteReplicationOperationParam(
+                            RemoteReplicationOperationParam.OperationContext.RR_GROUP.name(),
+                            new ArrayList<URI>(pairMap.keySet()));
+
+            callApi(pairParam,operation);
         }
     }
 

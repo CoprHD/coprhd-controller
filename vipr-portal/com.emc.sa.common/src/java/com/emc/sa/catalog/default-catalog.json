@@ -273,43 +273,43 @@
       "categories": [
         {
           "title": "remotereplicationservices.title",
-          "image": "icon_remotereplicationservices.png",
+          "image": "icon_remote_replication_services.png",
           "description": "remotereplicationservices.description",
           "services": [
             {
-              "image": "icon_CreateRemoteReplicationGroup.png",
+              "image": "icon_create_remote_replication_group.png",
               "baseService": "CreateRemoteReplicationGroup"
             },
             {
-              "image": "icon_RemoteReplicationFailover.png",
+              "image": "icon_remote_replication_failover.png",
               "baseService": "RemoteReplicationFailover"
             },
             {
-              "image": "icon_RemoteReplicationFailback.png",
+              "image": "icon_remote_replication_failback.png",
               "baseService": "RemoteReplicationFailback"
             },
             {
-              "image": "icon_RemoteReplicationSwap.png",
+              "image": "icon_remote_replication_swap.png",
               "baseService": "RemoteReplicationSwap"
             },
             {
-              "image": "icon_RemoteReplicationEstablish.png",
+              "image": "icon_remote_replication_establish.png",
               "baseService": "RemoteReplicationEstablish"
             },
             {
-              "image": "icon_RemoteReplicationSplit.png",
+              "image": "icon_remote_replication_split.png",
               "baseService": "RemoteReplicationSplit"
             },
             {
-              "image": "icon_RemoteReplicationStop.png",
+              "image": "icon_remote_replication_stop.png",
               "baseService": "RemoteReplicationStop"
             },
             {
-              "image": "icon_RemoteReplicationSuspend.png",
+              "image": "icon_remote_replication_suspend.png",
               "baseService": "RemoteReplicationSuspend"
             },
             {
-              "image": "icon_RemoteReplicationResume.png",
+              "image": "icon_remote_replication_resume.png",
               "baseService": "RemoteReplicationResume"
             }
           ]

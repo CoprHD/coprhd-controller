@@ -387,7 +387,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         // Now check whether the label used in the storage system or not
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
         // for isilon, duplicate name is handled at driver level..
-        if (system.getSystemType().equals(StorageSystem.Type.isilon.name())) {
+        if (!system.getSystemType().equals(StorageSystem.Type.isilon.name())) {
             List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                     PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
             if (fileShareList != null && fileShareList.isEmpty()) {

@@ -45,7 +45,7 @@
         },
 
         consistencyGroup:{
-            type:"assetType.vipr.consistencyGroupForVarrayVpool",
+            type:"assetType.vipr.consistencyGroup",
             required:false
         },
         remoteReplication:{

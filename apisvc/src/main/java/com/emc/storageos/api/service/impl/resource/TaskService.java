@@ -213,8 +213,8 @@ public class TaskService extends TaggedResource {
     }
 
     // This method uses heap sort to return latest n tasks where n < 10K.
-    private TasksList getLatestTasks(Set<URI> tenantIds, String startTime, String endTime, Integer max_count) {
-        PriorityQueue<TimestampedURIQueryResult.TimestampedURI> taskHeap = new PriorityQueue<>(max_count, new TaskComparator());
+    private TasksList getLatestTasks(Set<URI> tenantIds, String startTime, String endTime, Integer maxCount) {
+        PriorityQueue<TimestampedURIQueryResult.TimestampedURI> taskHeap = new PriorityQueue<>(maxCount, new TaskComparator());
 
         Date startWindowDate = TimeUtils.getDateTimestamp(startTime);
         Date endWindowDate = TimeUtils.getDateTimestamp(endTime);
@@ -231,7 +231,7 @@ public class TaskService extends TaggedResource {
             Iterator<TimestampedURIQueryResult.TimestampedURI> it = taskIds.iterator();
             while (it.hasNext()) {
                 taskCount++;
-                if (taskHeap.size() >= max_count) {
+                if (taskHeap.size() >= maxCount) {
                     taskHeap.poll();
                 }
                 TimestampedURIQueryResult.TimestampedURI timestampedURI = it.next();
@@ -253,7 +253,7 @@ public class TaskService extends TaggedResource {
 
     // Original method to return task list. Will be used when max_count is either NOT specified or set but > max limit like 10K.
     // This could cause out of memory issue
-    private TasksList getAllTasks(Set<URI> tenantIds, String startTime, String endTime, Integer max_count) {
+    private TasksList getAllTasks(Set<URI> tenantIds, String startTime, String endTime, Integer maxCount) {
         // Entries from the index, sorted with most recent first
         Set<TimestampedURIQueryResult.TimestampedURI> sortedIndexEntries = Sets.newTreeSet(new TaskComparator());
 
@@ -275,16 +275,16 @@ public class TaskService extends TaggedResource {
             }
         }
 
-        if (max_count == null || max_count < 0) {
-            max_count = FETCH_ALL;
+        if (maxCount == null || maxCount < 0) {
+            maxCount = FETCH_ALL;
         } else {
-            max_count = Math.min(max_count, sortedIndexEntries.size());
+            maxCount = Math.min(maxCount, sortedIndexEntries.size());
         }
 
         // Produce the requested number of results
         Iterator<TimestampedURIQueryResult.TimestampedURI> it = sortedIndexEntries.iterator();
         int pos = 0;
-        while (it.hasNext() && (max_count == FETCH_ALL || pos < max_count)) {
+        while (it.hasNext() && (maxCount == FETCH_ALL || pos < maxCount)) {
             TimestampedURIQueryResult.TimestampedURI uri = it.next();
 
             RestLinkRep link = new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.TASK, uri.getUri()));

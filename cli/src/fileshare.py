@@ -1674,8 +1674,8 @@ def fileshare_acl(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        if (not args.root):
-            args.root = False
+        if (not args.runasroot):
+            args.runasroot = False
         if(not args.user and not args.permission):
             raise SOSError(SOSError.CMD_LINE_ERR, "Anonymous user should be provided to add/update/delete acl rule")
         if(args.user and args.group):
@@ -1690,7 +1690,7 @@ def fileshare_acl(args):
                            args.permission,
                            args.domain,
                            args.group,
-                           args.root)
+                           args.runasroot)
 
 
     except SOSError as e:

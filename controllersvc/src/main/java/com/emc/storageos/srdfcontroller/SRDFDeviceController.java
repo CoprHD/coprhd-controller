@@ -309,7 +309,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            completer = new SRDFTaskCompleter(sourceURIs, opId);
+            List<URI> combinedVolumeList = new ArrayList<URI>();
+            combinedVolumeList.addAll(sourceURIs);
+            combinedVolumeList.addAll(targetURIs);
+            completer = new SRDFLinkSyncCompleter(combinedVolumeList, opId);
             getRemoteMirrorDevice().doUpdateSourceAndTargetPairings(sourceURIs, targetURIs);
             return completeAsReady(completer, opId);
         } catch (Exception e) {
@@ -1118,7 +1121,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
-            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
+            if (onGroup) {
+                SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
+            }
             completer = new SRDFLinkDetachCompleter(combined, opId);
             getRemoteMirrorDevice().doDetachLink(system, sourceURI, targetURI, onGroup, completer);
         } catch (Exception e) {
@@ -1673,7 +1678,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             Volume target = dbClient.queryObject(Volume.class, targetURI);
             List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
             SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
-            completer = new SRDFLinkPauseCompleter(combined, opId);
+            completer = new SRDFLinkSuspendCompleter(combined, opId);
             getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, false, completer);
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);

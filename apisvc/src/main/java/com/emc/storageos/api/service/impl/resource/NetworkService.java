@@ -124,7 +124,7 @@ public class NetworkService extends TaggedResource {
      * If network systems are discovered, fiber channel networks that are discovered are not initially associated with virtual array. The
      * discovered networks must be updated to associate then with virtual arrays.
      * 
-     * @brief List Networks
+     * @brief List networks
      * @return a list of all networks
      */
     @GET
@@ -178,7 +178,7 @@ public class NetworkService extends TaggedResource {
      * 
      * @param id the URN of a ViPR Network
      * @param force if set to true will delete a network even if it has endpoints
-     * @brief Delete Network
+     * @brief Delete network
      * @return No data returned in response body
      */
     @POST
@@ -403,7 +403,7 @@ public class NetworkService extends TaggedResource {
      * varrays.
      * 
      * @param param object containing the request parameters
-     * @brief Create Network
+     * @brief Create network
      * @return the details of the created network
      */
     @POST
@@ -952,7 +952,7 @@ public class NetworkService extends TaggedResource {
      * with the Network end points.
      * 
      * @param id the URN of a ViPR network
-     * @brief List ipInterfaces
+     * @brief List IP interfaces
      * @return IpInterfaceList
      */
     @GET

@@ -70,6 +70,8 @@ public class RemoveHostFromClusterService extends ViPRService {
             preCheckErrors.append(".  Non-vblock hosts cannot be decommissioned from VCE Vblock catalog services. ");
         }
 
+        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
+
         // Validate all of the boot volumes are still valid.
         if (!validateBootVolumes(hostURIMap)) {
             logError("computeutils.deactivatecluster.deactivate.bootvolumes", cluster.getLabel());
@@ -134,11 +136,14 @@ public class RemoveHostFromClusterService extends ViPRService {
 
         // get boot vols to be deleted (so we can check afterwards)
         List<URI> bootVolsToBeDeleted = Lists.newArrayList();
+        List<Host> hostsToBeDeleted = Lists.newArrayList();
         for (URI hostURI : hostIds) {
             // VBDU TODO, COP-28448, If the boot volume is null for a host, the code goes ahead and runs export update
             // operations on all the export Groups referencing the hosts. Ideally, we should run the exports only for
             // shared export groups, right?
-            URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
+            Host host = BlockStorageUtils.getHost(hostURI);
+            hostsToBeDeleted.add(host);
+            URI bootVolURI = host.getBootVolumeId();
             if (bootVolURI != null) {
                 BlockObjectRestRep bootVolRep = null;
                 try{
@@ -154,6 +159,10 @@ public class RemoveHostFromClusterService extends ViPRService {
                     bootVolsToBeDeleted.add(bootVolURI);
                 }
             }
+        }
+        //acquire host locks before proceeding with deactivating hosts.
+        for (Host host : hostsToBeDeleted) {
+            acquireHostLock(host, cluster);
         }
 
         // removing hosts also removes associated boot volumes and exports

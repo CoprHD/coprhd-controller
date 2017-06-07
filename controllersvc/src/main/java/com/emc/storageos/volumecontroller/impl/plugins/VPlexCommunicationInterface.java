@@ -2592,7 +2592,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             report.append("\tstorage view data fetch: ").append(storageViewFetch).append("ms\n");
             report.append("\tconsistency group data fetch: ").append(consistencyGroupFetch).append("ms\n");
             report.append("\tunmanaged volume processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
-            report.append("\tvpool matching processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
+            report.append("\tvpool matching processing time: ").append(vpoolMatching).append("ms\n");
 
             volumeTimeResults = sortByValue(volumeTimeResults);
             report.append("\nTop 20 Longest-Running Volumes...\n");

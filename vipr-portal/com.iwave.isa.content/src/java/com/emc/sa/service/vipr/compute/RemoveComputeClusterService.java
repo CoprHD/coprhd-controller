@@ -19,6 +19,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateCluster;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.host.HostRestRep;
@@ -43,6 +44,7 @@ public class RemoveComputeClusterService extends ViPRService {
         if (cluster == null) {
             preCheckErrors.append("Cluster doesn't exist for ID " + clusterId);
         }
+        acquireClusterLock(cluster);
         hostURIs = ComputeUtils.getHostURIsByCluster(getClient(), clusterId);
         vblockHostMap = ComputeUtils.getVblockHostURIsByCluster(clusterId);
         vblockHostURIs = Lists.newArrayList(vblockHostMap.keySet());
@@ -58,6 +60,8 @@ public class RemoveComputeClusterService extends ViPRService {
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
             .append(" is a mixed cluster; some hosts do not have UCS components. Cannot decommission a mixed cluster from Vblock catalog services.");
         }
+        
+        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
 
         // Validate all of the boot volumes are still valid.
         if (!validateBootVolumes()) {
@@ -96,11 +100,14 @@ public class RemoveComputeClusterService extends ViPRService {
 
         // get boot vols to be deleted (so we can check afterwards)
         List<URI> bootVolsToBeDeleted = Lists.newArrayList();
+        List<Host> hostsToBeDeleted = Lists.newArrayList();
         for (URI hostURI : vblockHostURIs) {
             // VBDU TODO: COP-28447, We're assuming the volume we're deleting is still the boot volume, but it could
             // have been manually dd'd (migrated) to another volume and this volume could be re-purposed elsewhere.
             // We should verify this is the boot volume on the server before attempting to delete it.
-            URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
+            Host host = BlockStorageUtils.getHost(hostURI);
+            hostsToBeDeleted.add(host);
+            URI bootVolURI = host.getBootVolumeId();
             if (!NullColumnValueGetter.isNullURI(bootVolURI)) {
                 BlockObjectRestRep bootVolRep = null;
                 try{
@@ -112,6 +119,10 @@ public class RemoveComputeClusterService extends ViPRService {
                     bootVolsToBeDeleted.add(bootVolURI);
                 }
             }
+        }
+        //acquire host locks before proceeding with deactivating hosts.
+        for (Host host : hostsToBeDeleted) {
+            acquireHostLock(host, cluster);
         }
 
         // removing hosts also removes associated boot volumes and exports

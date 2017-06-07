@@ -10,6 +10,7 @@
     <bean id="plainDbContext" class="com.emc.storageos.db.client.impl.DbClientContext">
     	<property name="clusterName" value="StorageOS"/>
     	<property name="keyspaceName" value="StorageOS"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
     
     <bean id="dbclient" class="com.emc.storageos.db.client.upgrade.InternalDbClient">
@@ -19,6 +20,7 @@
         <property name="geoContext" ref="geodbclientcontext"/>
         <property name="localContext" ref="plainDbContext"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
     
     <bean id="dbsvc" class="com.emc.storageos.db.server.impl.DbServiceImpl">

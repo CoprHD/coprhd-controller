@@ -125,7 +125,7 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
             Map<URI, NetworkLite> networkMap,
             URI varrayURI, int nInitiatorGroups,
             Map<URI, Map<String, Integer>> switchToPortNumber, 
-            Map<URI, PortAllocationContext> contextMap) {
+            Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {
 
         _log.debug("START - getPortGroups");
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();

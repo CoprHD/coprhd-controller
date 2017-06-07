@@ -109,6 +109,17 @@ public class VNXeUnManagedObjectDiscoverer {
             Map<String, StoragePool> pools = getStoragePoolMap(storageSystem, dbClient);
 
             for (VNXeLun lun : luns) {
+
+                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                    log.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
+                    return;
+                }
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(lun.getName())) {
+                    // skipping this volume because the filter doesn't match
+                    continue;
+                }
+
                 UnManagedVolume unManagedVolume = null;
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), lun.getId());
@@ -167,6 +178,17 @@ public class VNXeUnManagedObjectDiscoverer {
             Map<String, StoragePool> pools = getStoragePoolMap(storageSystem, dbClient);
 
             for (VNXeFileSystem fs : filesystems) {
+
+                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                    log.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
+                    return;
+                }
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getName())) {
+                    // skipping this file system because the filter doesn't match
+                    continue;
+                }
+
                 StoragePort storagePort = getStoragePortPool(storageSystem, dbClient, apiClient, fs);
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem.getSystemType(), storageSystem.getSerialNumber(), fs.getId());

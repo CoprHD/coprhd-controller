@@ -698,6 +698,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
+
+            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                _log.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
+                return;
+            }
+
             discoverUmanagedFileSystems(accessProfile);
         } else {
             discoverAll(accessProfile);
@@ -1567,6 +1573,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     totalIsilonFSDiscovered += discoveredFS.size();
 
                     for (FileShare fs : discoveredFS) {
+
+                        if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                            _log.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
+                            return;
+                        }
+
+                        if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getName())) {
+                            // skipping this file system because the filter doesn't match
+                            continue;
+                        }
+
                         if (!checkStorageFileSystemExistsInDB(fs.getNativeGuid())) {
 
                             // Create UnManaged FS

@@ -712,6 +712,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap,
             Set<String> recoverPointExportMasks, UnmanagedDiscoveryPerformanceTracker tracker) throws BaseCollectionException {
 
+        if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+            s_logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
+            return;
+        }
+
         String statusMessage = "Starting discovery of Unmanaged VPLEX Volumes.";
         s_logger.info(statusMessage + " Access Profile Details :  IpAddress : "
                 + "PortNumber : {}, namespace : {}",
@@ -767,30 +772,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 }
                 
                 for (String name : allVirtualVolumes.keySet()) {
+
+                    if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                        s_logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
+                        return;
+                    }
+
+                    if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(name)) {
+                        // skipping this volume because the filter doesn't match
+                        continue;
+                    }
+
                     timer = System.currentTimeMillis();
                     s_logger.info("Discovering Virtual Volume {}", name);
 
-                    // UnManagedVolume discover does a pretty expensive
-                    // iterative call into the VPLEX API to get extended details
-                    String discoveryKillSwitch = ControllerUtils
-                            .getPropertyValueFromCoordinator(
-                                    _coordinator, VplexBackendIngestionContext.DISCOVERY_KILL_SWITCH);
-                    if ("stop".equals(discoveryKillSwitch)) {
-                        s_logger.warn("discovery kill switch was set to stop, "
-                                + "so discontinuing unmanaged volume discovery");
-                        return;
-                    }
-                    // on every volume in each cluster. First it gets all the
-                    // volume names/paths (the inexpensive "lite" call), then
-                    // iterates through them getting the details to populate the
-                    String discoveryFilter = ControllerUtils
-                            .getPropertyValueFromCoordinator(
-                                    _coordinator, VplexBackendIngestionContext.DISCOVERY_FILTER);
-                    if ((discoveryFilter != null && !discoveryFilter.isEmpty())
-                            && !(name.matches(discoveryFilter))) {
-                        s_logger.warn("name {} doesn't match discovery filter {}", name, discoveryFilter);
-                        continue;
-                    }
                     // VPlexVirtualVolumeInfo objects with extended details
                     VPlexVirtualVolumeInfo info = allVirtualVolumes.get(name);
                     // needed for unmanaged volume discovery.
@@ -1595,6 +1590,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             for (String clusterName : clusterIdToNameMap.values()) {
                 List<VPlexStorageViewInfo> storageViews = client.getStorageViewsForCluster(clusterName);
                 for (VPlexStorageViewInfo storageView : storageViews) {
+
+                    if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                        s_logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
+                        return;
+                    }
+
                     s_logger.info("discovering storage view: " + storageView.toString());
                     List<Initiator> knownInitiators = new ArrayList<Initiator>();
                     List<StoragePort> knownPorts = new ArrayList<StoragePort>();

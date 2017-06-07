@@ -372,6 +372,11 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
 
+            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                _log.warn("Discovery kill switch is on, discontinuing unmanaged file discovery.");
+                return;
+            }
+
             discoverUnManagedFileSystems(ddClient, storageSystem);
             discoverUnManagedNewExports(ddClient, storageSystem);
             discoverUnManagedCifsShares(ddClient, storageSystem);
@@ -630,6 +635,17 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         try {
             DDMTreeList mtreeList = ddClient.getMTreeList(storageSystem.getNativeGuid());
             for (DDMTreeInfo mtreeInfo : mtreeList.mtree) {
+
+                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                    _log.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
+                    return;
+                }
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(mtreeInfo.getName())) {
+                    // skipping this file system because the filter doesn't match
+                    continue;
+                }
+
                 mtree = ddClient.getMTree(storageSystem.getNativeGuid(), mtreeInfo.getId());
                 if (mtree == null || mtree.delStatus == DataDomainApiConstants.FILE_DELETED) {
                     continue;

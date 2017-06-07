@@ -52,20 +52,45 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.PartitionManager;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
 public class DiscoveryUtils {
 
     private static final Logger _log = LoggerFactory.getLogger(DiscoveryUtils.class);
-    public static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
-    public static final String UNMANAGED_VOLUME = "UnManagedVolume";
-    public static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
+    private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
+    private static final String UNMANAGED_VOLUME = "UnManagedVolume";
+    private static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
+    private static final String UNMANAGED_VOLUME_DISCOVERY_FILTER = "controller_unmanaged_object_discovery_filter";
+    private static final String UNMANAGED_VOLUME_DISCOVERY_KILL_SWITCH = "controller_unmanaged_object_discovery_kill_switch";
+    private static final String UNMANAGED_VOLUME_DISCOVERY_KILL_SWITCH_STOP = "stop";
     private static final String TRUE = "true";
+
+    private static CoordinatorClient _coordinator;
+
+    /**
+     * Get the CoordinatorClient.
+     * 
+     * @return the CoordinatorClient
+     */
+    public CoordinatorClient getCoordinator() {
+        return _coordinator;
+    }
+
+    /**
+     * Set the CoordinatorClient.
+     * 
+     * @param coordinator the CoordinatorClient
+     */
+    public void setCoordinator(CoordinatorClient coordinator) {
+        DiscoveryUtils._coordinator = coordinator;
+    }
 
     /**
      * get Matched Virtual Pools For Pool.
@@ -999,5 +1024,63 @@ public class DiscoveryUtils {
         }
 
         return objectPaths;
+    }
+
+    /**
+     * Returns true if the system config setting value of controller_unmanaged_volume_discovery_kill_switch
+     * is set to "stop". This can be used to determine if any currently running UnManagedVolume discovery
+     * process should be stopped.
+     * 
+     * Discovery interfaces that use this method probably would want to do the check once at the very
+     * beginning of discovery (so that the whole process can be short circuited in the case of multi-array
+     * discovery running in a single Order) and once at the beginning of every volume discovery iteration 
+     * (so that discovery can be exited after individual volume discovery is underway).
+     * 
+     * @return true if currently running UnManagedVolume discovery process(es) should be stopped
+     */
+    public static boolean isUnmanagedDiscoveryKillSwitchOn() {
+        if (_coordinator != null) {
+            String discoveryKillSwitch = ControllerUtils
+                    .getPropertyValueFromCoordinator(
+                            _coordinator, DiscoveryUtils.UNMANAGED_VOLUME_DISCOVERY_KILL_SWITCH);
+            if (UNMANAGED_VOLUME_DISCOVERY_KILL_SWITCH_STOP.equals(discoveryKillSwitch)) {
+                _log.warn("discovery kill switch is set to 'stop'!");
+                return true;
+            }
+        } else {
+            _log.error("Bean wiring error: Coordinator not set, therefore discovery kill switch will default to 'run'.");
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if the given unmanaged object property String matches the Regex pattern defined in
+     * controller_unmanaged_object_discovery_filter. Only those objects matching the filter should 
+     * be processed for discovery. Most likely this will be filtering based on the value that 
+     * would end up as the object label (name) after ingestion, but this filter is not 
+     * guaranteed to be used the same (or at all) on all storage array platforms.
+     * 
+     * @param propertyToFilter the object property String to check against the system unmanaged discovery filter Regex pattern
+     * @return true if the property String is a match and the object should be processed for unmanaged discovery
+     */
+    public static boolean isUnmanagedVolumeFilterMatching(String propertyToFilter) {
+        if (_coordinator != null ) {
+            if (!Strings.isNullOrEmpty(propertyToFilter)) {
+                String systemFilterString = ControllerUtils
+                        .getPropertyValueFromCoordinator(
+                                _coordinator, DiscoveryUtils.UNMANAGED_VOLUME_DISCOVERY_FILTER);
+                if (!Strings.isNullOrEmpty(systemFilterString)
+                        && !(propertyToFilter.matches(systemFilterString))) {
+                    _log.warn("unmanaged object property {} doesn't match system unmanaged object discovery filter: {}", 
+                            propertyToFilter, systemFilterString);
+                    return false;
+                }
+            }
+        } else {
+            _log.error("Bean wiring error: Coordinator not set, therefore unmanaged volume discovery name filter has no effect.");
+        }
+
+        return true;
     }
 }

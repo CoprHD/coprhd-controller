@@ -180,6 +180,12 @@ public class NetAppClusterModeCommIntf extends
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
+
+            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                _logger.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
+                return;
+            }
+
             discoverUmanagedFileSystems(accessProfile);
             discoverUmanagedFileQuotaDirectory(accessProfile);
             discoverUnManagedCifsShares(accessProfile);
@@ -240,6 +246,12 @@ public class NetAppClusterModeCommIntf extends
             List<StorageVirtualMachineInfo> svms = netAppCApi.listSVM();
 
             for (Map<String, String> fileSystemChar : fileSystemInfo) {
+
+                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                    _logger.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
+                    return;
+                }
+
                 String poolName = fileSystemChar
                         .get(SupportedNtpFileSystemInformation
                                 .getFileSystemInformation(SupportedNtpFileSystemInformation.STORAGE_POOL
@@ -249,6 +261,11 @@ public class NetAppClusterModeCommIntf extends
                         .get(SupportedNtpFileSystemInformation
                                 .getFileSystemInformation(SupportedNtpFileSystemInformation.NAME
                                         .toString()));
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(filesystem)) {
+                    // skipping this file system because the filter doesn't match
+                    continue;
+                }
 
                 boolean isSVMRootVolume = Boolean.valueOf(fileSystemChar
                         .get(SupportedNtpFileSystemInformation

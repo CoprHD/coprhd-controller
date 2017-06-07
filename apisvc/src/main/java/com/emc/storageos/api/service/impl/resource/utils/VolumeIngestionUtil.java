@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
@@ -91,6 +92,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceAndUUIDNameGenerator;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.block.SRMVolumeInfo;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.responses.GetCopyResponse.GetCopyAccessStateResponse;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -102,7 +104,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
-import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
@@ -5049,5 +5050,77 @@ public class VolumeIngestionUtil {
             }
         }
     }
+    
+    /**
+     * Check if Pool exists in DB.
+     * 
+     * @param poolInstance
+     * @param _dbClient
+     * @param profile
+     * @return
+     * @throws IOException
+     */
+    public static StoragePool checkStoragePoolExistsInDB(String nativeGuid, DbClient _dbClient) throws IOException {
+        StoragePool pool = null;
+        // use NativeGuid to lookup Pools in DB
+        List<StoragePool> poolInDB = CustomQueryUtility.getActiveStoragePoolByNativeGuid(_dbClient, nativeGuid);
+        if (poolInDB != null && !poolInDB.isEmpty()) {
+            pool = poolInDB.get(0);
+        }
+        return pool;
+    }
+    
+    /**
+     * Get matched vpool for a storage pool
+     * 
+     * @param dbClient
+     * @param poolUri
+     * @param isThinlyProvisionedUnManagedObject
+     * @param volumeType
+     * @return
+     */
+    public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, StoragePool storagePool,
+            String isThinlyProvisionedUnManagedObject, String volumeType) {
+        StringSet vpoolUriSet = new StringSet();
+        // We should match all virtual pools as below:
+        // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools
+        // 2) Virtual pools which have the storage pool in their assigned pools
+
+        List<VirtualPool> vPoolsMatchedPools = getMatchedVPoolsOfAPool(storagePool.getId(), dbClient);
+        String provisioningTypeUnManagedObject = SRMVolumeInfo.SupportedProvisioningType
+                .getProvisioningType(isThinlyProvisionedUnManagedObject);
+        for (VirtualPool vPool : vPoolsMatchedPools) {
+            if (!VirtualPool.vPoolSpecifiesHighAvailability(vPool)) {
+                
+                List<StoragePool> validPools = VirtualPool.getValidStoragePools(vPool, dbClient, true);
+
+                for (StoragePool sPool : validPools) {
+                    if (sPool.getId().equals(storagePool.getId()) &&
+                            provisioningTypeUnManagedObject.equalsIgnoreCase(vPool.getSupportedProvisioningType())) {
+                        vpoolUriSet.add(vPool.getId().toString());
+                        break;
+                    }
+                }
+            }
+        }
+
+        return vpoolUriSet;
+    }
+    
+    /**
+     * Return the Matched VirtualPools of a given physical pool.
+     * 
+     * @param poolUri
+     *            - Physical Pool URI.
+     * @param dbClient
+     * @return
+     */
+    private static List<VirtualPool> getMatchedVPoolsOfAPool(URI poolUri, DbClient dbClient) {
+        URIQueryResultList vpoolMatchedPoolsResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
+        return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
+    }
+
 
 }

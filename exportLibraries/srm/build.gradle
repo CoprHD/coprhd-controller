@@ -1,0 +1,7 @@
+dependencies {
+	compile "commons-collections:commons-collections:3.2.1",
+			library(commons_logging),        
+			library(log4j),
+			library(slf4j),
+			library(spring)
+}

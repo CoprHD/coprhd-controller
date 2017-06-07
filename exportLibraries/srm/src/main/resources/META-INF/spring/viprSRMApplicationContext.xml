@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:beans="http://www.springframework.org/schema/beans"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+    <!-- Bean to get hold of the App context file -->
+    <beans:bean id="appContextUtil"
+        class="com.emc.vipr.srm.common.utils.ApplicationContextUtils" />
+
+    <util:properties id="srmAppProps" location="classpath:/META-INF/properties/srm.properties"/>
+    <util:properties id="srmQueries" location="classpath:/META-INF/properties/srmQueries.properties"/>
+
+    <!--  bean id="srmDataAccessor" class="com.emc.vipr.srm.webservice.accessors.dataaccessors.impl.SRMDataAccessor" depends-on="wsDataAccessorService"/-->
+    <beans:bean id="wsDataAccessorService" class="com.emc.vipr.srm.webservice.accessors.DatabaseAccessorService" depends-on="srmAppProps">
+        <!-- property name="targetClass" value="com.emc.vipr.srm.webservice.accessors.DatabaseAccessorService" />
+        <property name="targetMethod" value="initSRMAppProperties" /-->
+    </beans:bean>
+
+    <beans:bean id="srmDataAccessor" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <beans:property name="targetClass" value="com.emc.vipr.srm.webservice.accessors.dataaccessors.impl.SRMDataAccessor" />
+        <beans:property name="targetMethod" value="setDatabaseAccessorService" />
+        <beans:property name="arguments" ref="wsDataAccessorService"/>
+    </beans:bean>
+    
+    
+    <!-- below definitions work in progress -->
+    <util:map id="srmToViprVolumeMapper" map-class="java.util.Hashtable">
+        <beans:entry key="label"                    value="alias" />
+        <beans:entry key="storagePool"              value="poolname" />
+        <beans:entry key="storageGroup"             value="sgname" />
+        <beans:entry key="purpose"                  value="purpose" />
+        <beans:entry key="arraylunid"               value="luntagid" />
+        <beans:entry key="volumeType"               value="dgstype" />
+        <beans:entry key="volumeConfig"             value="config" />
+        <beans:entry key="servicelevel"             value="svclevel" />
+        <beans:entry key="pooltype"                 value="pooltype" />
+        <beans:entry key="storageDevice"            value="device" />
+        <beans:entry key="wwn"                      value="partsn" />
+
+
+
+        <!-- volumeCharacterstics -->
+        <beans:entry key="IS_METAVOLUME"            value="ismetah" />
+        <beans:entry key="IS_BOUND"                 value="isbound" />
+        <beans:entry key="IS_VOLUME_EXPORTED"       value="ismasked" />
+        <beans:entry key="IS_MAPPED"                value="ismapped" />
+        <beans:entry key="IS_THINLY_PROVISIONED"    value="dgstype" />
+        
+        <!-- optional not for all 
+        <beans:entry key="HAS_REPLICAS"             value="HAS_REPLICAS" />
+        <beans:entry key="IS_REPLICA"               value="IS_REPLICA" /-->
+        
+        <!-- volumeInformation -->
+        <beans:entry key="RAID_LEVEL"                       value="dgraid" />
+        <beans:entry key="DEVICE_LABEL"                     value="alias" />
+        <beans:entry key="NATIVE_ID"                        value="partid" />
+        <beans:entry key="DATA_FORMAT"                      value="poolemul" />
+        <beans:entry key="SYSTEM_TYPE"                      value="SYSTEM_TYPE" />
+        <beans:entry key="NAME"                             value="partid" />
+        <beans:entry key="DISK_TECHNOLOGY"                  value="disktype" />
+        <beans:entry key="SYSTEM_TYPE"                      value="model" />
+        <beans:entry key="STORAGE_POOL"                     value="poolname" />
+
+
+        <!-- optional not for all 
+        <beans:entry key="REPLICA_LUNS"                     value="REPLICA_LUNS" /-->
+        
+        
+    </util:map>
+    
+    <util:map id="optionalValues" map-class="java.util.Hashtable">
+        <!-- optional not for all -->
+        <beans:entry key="HAS_REPLICAS"                     value="HAS_REPLICAS" />
+        <beans:entry key="IS_REPLICA"                       value="IS_REPLICA" />
+        <beans:entry key="REPLICA_LUNS"                     value="REPLICA_LUNS" />
+       <beans:entry key=" LOCAL_REPLICA_SOURCE_VOLUME"      value="LOCAL_REPLICA_SOURCE_VOLUME" />
+    </util:map>
+
+</beans>

@@ -33,8 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.functions.MapUnmanagedVolume;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestVolumesExportedSchedulingThread;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestVolumesExportedSchedulingThread;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestVolumesUnexportedSchedulingThread;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockCGIngestDecorator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockRPCGIngestDecorator;
@@ -60,6 +60,8 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -74,6 +76,8 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.SRMVolumeInfo;
+import com.emc.storageos.model.block.SRMVolumeIngestParam;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.UnManagedVolumesBulkRep;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
@@ -282,6 +286,145 @@ public class UnManagedVolumeService extends TaskResourceService {
             throw APIException.internalServerErrors.genericApisvcError(ExceptionUtils.getExceptionMessage(e), e);
         }
         return taskList;
+    }
+    
+    
+    /**
+     * UnManaged volumes are volumes, which are present within ViPR
+     * storage systems, but have not been ingested by ViPR. 
+     * 
+     * This method provides the ingestion preview of the volume by looking-up SRM for all
+     * volume information.
+     * 
+     * @param volumeWWN WWN of the volume to be ingested
+     * @param projectId URI of the project in which volume needs to be ingested
+     * @return
+     * @throws InternalException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/ingest/preview/{volume_wwn}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskList ingestVolumePreview(@PathParam("volume_wwn") String volumeWWN, SRMVolumeIngestParam param) throws InternalException {
+        
+        //validate the project to be used
+        Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
+        ArgValidator.checkEntity(project, param.getProject(), false);
+        
+        //Get volume information from SRM - web-service call
+        
+        //Mock Data TODO - get this data from SRM
+        String poolName = "SR+SRP_1";
+        String nativeGUIDForPool = "SYMMETRIX+000197000143+POOL+SR+SRP_1";
+        String isThinprovisioningType = "TRUE";
+        long volumeSize = 2;
+        
+        VirtualPool vpoolForVolumeCreate = null;
+        URI varrayForVolumeCreate = null;
+        //Find if the storage pool on which volume is present is available in ViPR
+        try {
+            
+            StoragePool pool = VolumeIngestionUtil.checkStoragePoolExistsInDB(nativeGUIDForPool, _dbClient);
+            if(null == pool) {
+                _logger.error(
+                        "Skipping unmanaged volume ingestion as the storage pool" + 
+                        "with name {} doesn't exist in ViPR",
+                        poolName);
+                //TODO - throw exception                
+            }
+            
+          //Using storage pool on which the volume is present, find the virtual pool
+          StringSet matchedVPools = VolumeIngestionUtil.getMatchedVirtualPoolsForPool(_dbClient, pool,
+                  isThinprovisioningType, SRMVolumeInfo.Type.REGULAR.toString());
+          
+          if(null == matchedVPools || matchedVPools.isEmpty()) {
+              //TODO throw exception - Not matching virtual pool
+          }
+          
+          StringSet storagePoolsVirtualArrays = pool.getTaggedVirtualArrays();
+          boolean isVarrayFound = false;
+          //Using the virtual pool, find the associated virtual arrays and pick the desired ( the
+          //one having the storage system/storage pool mapping )
+          for(String vpoolURI : matchedVPools) {
+              
+              VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, URI.create(vpoolURI));
+              if(null!=vpool) {
+                  StringSet vpoolVirtualArrays = vpool.getVirtualArrays();
+                  
+                  if(null == vpoolVirtualArrays || vpoolVirtualArrays.isEmpty()) {
+                      //TODO throw exception no virtual arrays mapped to vpool
+                  }
+                  
+                  for(String vpoolVirtualArray : vpoolVirtualArrays) {
+                      if(storagePoolsVirtualArrays.contains(vpoolVirtualArray)) {
+                          vpoolForVolumeCreate = vpool;
+                          varrayForVolumeCreate = URI.create(vpoolVirtualArray);
+                          isVarrayFound = true;
+                          break;
+                      }
+                  }
+              }
+              
+              if(isVarrayFound) {
+                  break;
+              }
+          }
+          
+          if(null == varrayForVolumeCreate) {
+              //TODO throw exception - Not matching varray
+          }
+          
+          //validate virtual array
+          VolumeIngestionUtil.getVirtualArrayForVolumeCreateRequest(project, varrayForVolumeCreate,
+                  _permissionsHelper, _dbClient);
+          
+          TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+          CapacityUtils.validateQuotasForProvisioning(_dbClient, vpoolForVolumeCreate, project, tenant, volumeSize, "volume");
+          _logger.info("UnManagedVolume provisioning quota validation successful for {}", volumeSize);
+            
+        } catch (Exception e) {
+            _logger.error("Unexpected ingestion exception:", e);
+            throw APIException.internalServerErrors.genericApisvcError(ExceptionUtils.getExceptionMessage(e), e);
+        }
+        
+        //Check if there are full copies? If yes - get all necessary information to do full copy ingestion
+        
+        //Check if there are snapshots? If yes - get all necessary information to do snapshot ingestion
+        
+        //Check if the volume belongs to CG?If yes - get CG information
+        
+        //Create a volume into DB
+        
+        //Create a CG into DB and add a volume into it
+        
+        //Create a full copy into DB
+        
+        //Create a snapshot into DB
+        return null;
+    }
+
+    
+    /**
+     * UnManaged volumes are volumes, which are present within ViPR
+     * storage systems, but have not been ingested by ViPR. 
+     * 
+     * This method ingests the volume by looking-up SRM for all
+     * volume information.
+     * 
+     * @param volumeWWN WWN of the volume to be ingested
+     * @param projectId URI of the project in which volume needs to be ingested
+     * @return
+     * @throws InternalException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/ingest/{volume_wwn}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskList ingestVolume(@PathParam("volume_wwn") String volumeWWN, SRMVolumeIngestParam param) throws InternalException {
+        
+        return null;
     }
 
     /**

@@ -23,6 +23,7 @@ addProjects(
 	"exportLibraries/glance",
         "exportLibraries/keystone",
         "exportLibraries/scaleio",
+		"exportLibraries/srm",
         "exportLibraries/xtremio",
 	"exportLibraries/ecs",
 	"exportLibraries/ceph",

@@ -541,11 +541,7 @@ public class PerformanceParamsUtils {
 
         // Override the dedup capable setting.
         Boolean dedupCapable = getIsDedupCapable(performanceParams, role, vpool, dbClient);
-        if (dedupCapable) {
-            overrideCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
-        } else {
-            overrideCapabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.DEDUP);
-        }
+        overrideCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
 
         return overrideCapabilities;
     }

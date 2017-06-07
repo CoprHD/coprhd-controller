@@ -1905,6 +1905,7 @@ public class RecoverPointScheduler implements Scheduler {
 
             container.setHaVarray(tempVarray);
             container.setHaVpool(tempVpool);
+            container.setCapabilities(capabilities);
         }
 
         return container;

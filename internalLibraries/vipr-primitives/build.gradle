@@ -1,0 +1,26 @@
+apply plugin: 'java'
+
+dependencies {
+  compile library(guava),
+          project(":primitives"),
+          project(":dbclient")
+}
+
+sourceSets {
+  main {
+    java {
+      srcDir 'src/main/generated/'
+    }
+  }
+}
+
+clean {
+  delete 'src/main/generated/'
+}
+
+compileJava {
+  dependsOn {
+    ":api-primitive-maker:generatePrimitives"
+  }
+}
+

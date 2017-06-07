@@ -398,13 +398,14 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
      </file>
      </example>
      */
-    inputText: function() {
+    inputText: function($compile) {
         return {
             require: "^vField",
             restrict: "E",
             replace: true,
             template: '<input type="text" name="{{field.name}}" id="{{field.id}}" ng-model="field.value" class="form-control" autocomplete="off">',
             link: function (scope, element, attrs) {
+                var content = angular.element('<input type="text" name="{{field.name}}" value="{{field.value}}"/>');
             	content.attr("ng-disabled",attrs.ngDisabled);
                 scope.disabled = scope.$eval(attrs.ngDisabled);
                 $compile(content)(scope);

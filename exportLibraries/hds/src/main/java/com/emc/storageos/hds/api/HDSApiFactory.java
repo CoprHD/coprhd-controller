@@ -113,12 +113,14 @@ public class HDSApiFactory {
         params.setMaxTotalConnections(_maxConn);
         params.setDefaultMaxConnectionsPerHost(_maxConnPerHost);
         params.setConnectionTimeout(_connTimeoutMs);
+        params.setSoTimeout(socketConnectionTimeoutMs);
         params.setTcpNoDelay(true);
 
         // Create the HTTP connection manager for managing the set of HTTP
         // connections.
         MultiThreadedHttpConnectionManager mgr = new MultiThreadedHttpConnectionManager();
         mgr.setParams(params);
+        mgr.closeIdleConnections(0);  // close idle connections immediately
 
         // Create the HTTP client and set the handler for determining if an
         // HttpMethod should be retried after a recoverable exception during
@@ -172,30 +174,4 @@ public class HDSApiFactory {
         return hdsApiClient;
     }
 
-    /*
-     * public static void main(String ar[]) {
-     * System.out.println("starting");
-     * URI uri = URI.create(String.format("http://%1$s:%2$s/service/StorageManager",
-     * "lglak148", "2001"));
-     * StringBuffer queryMessage = new StringBuffer(
-     * "<?xml version=\"1.0\"?><HiCommandServerMessage><APIInfo version=\"5.0\"/><Request><SessionManager><Get target=\"RequestStatus\"><RequestStatus messageID=\"574741551\"/></Get></SessionManager></Request></HiCommandServerMessage>"
-     * );
-     * HDSApiFactory factory = new HDSApiFactory();
-     * factory.init();
-     * HDSApiClient hdsClient = factory.getClient(uri, "system", "manager");
-     * 
-     * ClientResponse response = hdsClient.post(uri, queryMessage.toString());
-     * System.out.println("status:"+response.getStatus());
-     * StringWriter writer = new StringWriter();
-     * try {
-     * IOUtils.copy(response.getEntityInputStream(), writer, "UTF-8");
-     * } catch (IOException e) {
-     * // TODO Auto-generated catch block
-     * e.printStackTrace();
-     * }
-     * String theString = writer.toString();
-     * System.out.println(theString);
-     * 
-     * }
-     */
 }

@@ -1292,18 +1292,20 @@ public class VPlexApiClient {
     }
 
     /**
-     * Detaches the mirror specified by the passed mirror info from the
-     * distributed VPLEX volume with the passed name.
+     * Detaches mirror from the distributed VPLEX volume with the passed name. Can specify the
+     * cluster to detach from but preferred to leave it as null so the mirror to detach will be
+     * based on the rule-set-name on the distributed device.
      * 
      * @param virtualVolumeName The name of the VPLEX distributed volume.
-     * @param clusterId The cluster of the mirror to detach.
+     * @param clusterId The cluster to detach the mirror from. Preferred null so the mirror 
+     *                  to detach will be based on the rule-set-name on the distributed device.
      * 
      * @return The name of the detached mirror for use when reattaching the mirror.
      * 
      * @throws VPlexApiException When an error occurs detaching the mirror from
      *             the volume.
      */
-    public String detachMirrorFromDistributedVolume(String virtualVolumeName,
+    public String detachMirrorFromDistributedVolume(String virtualVolumeName, 
             String clusterId) throws VPlexApiException {
         s_logger.info("Request to detach a mirror from a distributed volume at {}",
                 _baseURI);
@@ -1432,7 +1434,7 @@ public class VPlexApiClient {
     public String getClusterNameForId(String clusterId) {
         String clusterName = getClusterIdToNameMap().get(clusterId);
         if (clusterName != null && !clusterName.isEmpty()) {
-            s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
+            s_logger.info("Found cluster name {} for cluster id {}", clusterName, clusterId);
             return clusterName;
         }
 
@@ -1709,7 +1711,7 @@ public class VPlexApiClient {
             vvinfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName);
         }
 
-        s_logger.info("returning virtual volume: ");
+        s_logger.info("returning virtual volume: " + vvinfo);
         return vvinfo;
     }
 
@@ -2145,5 +2147,4 @@ public class VPlexApiClient {
             _discoveryMgr.getInitiatorWwnToNameMap(clusterName, true);
         }
     }
-
 }

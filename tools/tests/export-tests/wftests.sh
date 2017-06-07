@@ -494,6 +494,7 @@ vmax3_sim_setup() {
     SMIS_PASSWD=$SMIS_PASSWD
     VMAX_SMIS_SSL=true
     VMAX_NATIVEGUID=$SIMULATOR_VMAX3_NATIVEGUID
+    VMAX_FAST_POLICY=$SIMULATOR_VMAX3_FAST_POLICY
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
@@ -537,6 +538,8 @@ vmax3_setup() {
     
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
+  --system_type vmax                     \
+  --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 2				            \
@@ -547,6 +550,8 @@ vmax3_setup() {
 
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
+  --system_type vmax                     \
+  --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 4				            \
@@ -1236,8 +1241,9 @@ srdf_setup() {
          --protocols FC 		        \
          --numpaths 1				\
          --max_snapshots 10			\
-                 --provisionType 'Thin'	        \
-                     --system_type vmax                     \
+         --provisionType 'Thin'	        \
+         --system_type vmax                     \
+         --multiVolumeConsistency		\
          --neighborhoods $NH
 
     run cos update block ${VPOOL_CHANGE} --storage ${SRDF_V3_VMAXA_NATIVEGUID}
@@ -1539,7 +1545,7 @@ snap_db() {
     column_families=$2
     escape_seq=$3
 
-    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"allocatedCapacity = \" | grep -v \"capacity = \" | grep -v \"provisionedCapacity = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"allocatedCapacity = \" | grep -v \"capacity = \" | grep -v \"provisionedCapacity = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" | grep -v \"compositionType = \" | grep -v \"metaMemberCount = \" | grep -v \"metaMemberSize = \" $escape_seq"
     
     secho "snapping column families [set $slot]: ${column_families}"
 
@@ -1824,7 +1830,7 @@ test_2() {
     if [ "${SS}" = "srdf" ]
     then
     # Ensure empty RDF groups
-    volume delete --project ${PROJECT}
+    volume delete --project ${PROJECT} --wait
 
 	common_failure_injections="failure_004_final_step_in_workflow_complete \
 			       failure_005_BlockDeviceController.createVolumes_before_device_create \
@@ -1838,10 +1844,8 @@ test_2() {
 
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
                                     failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
-                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
 	                            failure_015_SmisCommandHelper.invokeMethod_CreateGroupReplica \
-                                    failure_015_SmisCommandHelper.invokeMethod_EMCRefreshSystem\
                                     failure_004:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
                                     failure_004:failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
                                     failure_004:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"    
@@ -1851,7 +1855,7 @@ test_2() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -1906,6 +1910,12 @@ test_2() {
         # Verify injected failures were hit
         verify_failures ${failure}
 
+        if [ "${SS}" = "srdf" ]
+        then
+            # run discovery to update RemoteDirectorGroups
+            runcmd storagedevice discover_all
+        fi
+
         # Let the async jobs calm down
         sleep 5
       fi
@@ -1916,6 +1926,9 @@ test_2() {
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
 
+      # Rerun the command
+      set_artificial_failure none
+
       # Should be able to delete the CG and recreate it.
       runcmd blockconsistencygroup delete ${CGNAME}
 
@@ -1924,9 +1937,6 @@ test_2() {
 
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"
-
-      # Rerun the command
-      set_artificial_failure none
 
       # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
       if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -3289,6 +3299,118 @@ test_13() {
     done
 }
 
+# Test 14
+#
+# Test deleting CGs that require deleting the CG on the array, failure, and retry-ability
+#
+# 1. Save off state of DB (1)
+# 2. Create a CG, create two volumes
+# 3. Delete the volumes
+# 4. Set artificial failure to fail delete of CG
+# 5. Shut off failure injection
+# 6. Retry delete CG operation
+# 7. Save off state of DB (2)
+# 8. Compare state (1) and (2)
+#
+test_14() {
+    echot "Test 14 Begins"
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    storage_failure_injections=""
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections="failure_085_VPlexApiDiscoveryManager_find_consistency_group \
+                                    failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete"
+    elif [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete"
+    elif [ "${SS}" = "vmax3" ]
+    then
+      storage_failure_injections="failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete"
+    elif [ "${SS}" = "vnx" ]
+    then
+	storage_failure_injections=""
+    elif [ "${SS}" = "xio" ]
+    then
+	storage_failure_injections=""
+    elif [ "${SS}" = "srdf" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete"
+
+    cfs=("Volume BlockConsistencyGroup")
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 14 with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      
+      # Create a new CG
+      CGNAME=wf-test2-cg-${item}
+      if [ "${SS}" = "srdf" ]
+      then
+          CGNAME=cg${item}
+      fi
+
+      # Check the state of the volume that doesn't exist
+      snap_db 1 "${cfs[@]}"
+
+      # Create the CG
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      # Make sure it fails with additional errors accounted for in the error message
+      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count=2 --consistencyGroup=${CGNAME}
+
+      # Delete one volume
+      runcmd volume delete ${PROJECT}/${volname}-1 --wait
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Delete the other volume
+      fail volume delete ${PROJECT}/${volname}-2 --wait
+
+      # Try to delete the CG.  A failure will occur.
+      fail blockconsistencygroup delete ${CGNAME}
+
+      # Shut off the artifical failure
+      set_artificial_failure none
+
+      # In some failure cases, the volume is not actually deleted.  It would be ideal if the Volume record
+      # persisted if the volume delete operation failed, but for this test case, it's the replication group
+      # that wasn't deleted, so the Volume record goes away and the BlockConsistencyGroup artifact is left
+      # behind.  Best to check to see if the volume is still there.
+      runcmd volume show ${PROJECT}/${volname}-2
+      if [ $? -eq 0 ]
+      then
+	  # Volume remained after failed volume delete.  Delete now.
+	  runcmd volume delete ${PROJECT}/${volname}-2 --vipronly --wait
+      fi
+
+      # Retry the command after removing the artificial failure
+      runcmd blockconsistencygroup delete ${CGNAME}
+
+      # Perform any DB validation in here
+      snap_db 2 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 2 1 ${cfs}
+
+      # Report results
+      report_results test_14 ${failure}
+    done
+}
+
 test_vpool_change_add_srdf() {
     echot "Test VPool Change for Adding SRDF Begins"
 
@@ -3344,6 +3466,251 @@ test_vpool_change_add_srdf() {
     done
 }
 
+test_vpool_change_add_srdf_cg() {
+    echot "Test VPool Change for Adding SRDF in CG Begins"
+    # Ensure empty RDF groups
+    volume delete --project ${PROJECT} --wait
+    # Setup
+    cfs=("Volume BlockConsistencyGroup RemoteDirectorGroup")
+    item=${RANDOM}
+    volname="test-add_srdf-${item}"
+    mkdir -p results/${item}
+    snap_db_esc=" | grep -Ev \"^Volume:|srdfLinkStatus = OTHER|personality = null\""
+
+    # Create a new CG
+    CGNAME=cg${item}
+
+    runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+    # Failures
+    failure_injections="failure_004_final_step_in_workflow_complete \
+        failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
+        failure_015_SmisCommandHelper.invokeMethod_* \
+        failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+        failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
+        failure_015_SmisCommandHelper.invokeMethod_CreateGroupReplica \
+        failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_004:failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running Test with failure scenario: ${failure}..."
+        item=${RANDOM}
+        volname="test-add_srdf-${item}"
+        mkdir -p results/${item}
+
+        # Create a new CG
+        CGNAME=cg${item}
+        runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+        #Create a non SRDF volume in CG
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_CHANGE} 1GB --consistencyGroup=${CGNAME}
+
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+
+        # Snap the state before the vpool change
+        snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+        fail volume change_cos ${PROJECT}/${volname} ${VPOOL_BASE}
+
+        # Verify injected failures were hit
+	verify_failures ${failure}
+
+        # Validate the DB is back to the original state
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 "${cfs[@]}"
+
+        # Turn off failures
+        set_artificial_failure none
+
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+
+        # Rerun the command
+        runcmd volume change_cos ${PROJECT}/${volname} ${VPOOL_BASE}
+
+        # Remove the volume
+        runcmd volume delete ${PROJECT}/${volname} --wait
+
+        #Remove the CG
+        runcmd blockconsistencygroup delete ${CGNAME}
+
+        # Report results
+        report_results test_vpool_change_add_srdf_cg ${failure}
+    done
+}
+
+test_add_to_existing_cg_srdf() {
+    _add_to_cg_srdf "existing"
+}
+
+test_add_to_empty_cg_srdf() {
+    # Ensure empty RDF groups
+    volume delete --project ${PROJECT} --wait
+    _add_to_cg_srdf "empty"
+}
+
+# Main logic for add_to_[empty|existing]_cg_srdf.
+# Used by test_add_to_existing_cg_srdf, test_add_to_empty_cg_srdf
+_add_to_cg_srdf() {
+    srdf_cg_test=$1
+    echot "Test add_to_${srdf_cg_test}_cg_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # FIXME: 076 requires manual cleanup of the RDF groups, so run this last.
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_005_BlockDeviceController.createVolumes_before_device_create \
+                               failure_006_BlockDeviceController.createVolumes_after_device_create \
+                               failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                               failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete
+                               failure_078_SRDFDeviceController.createSrdfCgPairsStep_before_cg_pairs_create \
+                               failure_004:failure_077_SRDFDeviceController.rollbackSRDFLinksStep_after_link_rollback \
+                               failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
+
+    # Test specific failures (empty or existing)
+    empty_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroupReplica \
+                              failure_078_SRDFDeviceController.createSrdfCgPairsStep_before_cg_pairs_create \
+                              failure_079_SRDFDeviceController.createSrdfCgPairsStep_after_cg_pairs_create"
+    existing_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateListReplica"
+
+    failure_injections="${common_failure_injections}"
+    [ "${srdf_cg_test}" = "empty" ] && failure_injections="${failure_injections} ${empty_failure_injections}"
+    [ "${srdf_cg_test}" = "existing" ] && failure_injections="${failure_injections} ${existing_failure_injections}"
+
+    cfs=("Volume BlockConsistencyGroup RemoteDirectorGroup")
+    snap_db_esc=" | grep -Ev \"^sourceGroup = null|targetGroup = null\""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    # Placeholder when a specific failure case is being worked...
+    #failure_injections="failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test add_to_cg_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      # Create a new CG
+      CGNAME=ib${item}
+
+      if [ "${SIM}" = "0" ]
+      then
+        symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+      fi
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      if [ "${srdf_cg_test}" = "existing" ]
+      then
+        runcmd volume create ${volname}-existing ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+      fi
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Check the state of the volume that doesn't exist
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      # If this is a rollback inject, make sure we get the "additional message"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
+      if [ $? -eq 0 ]
+      then
+        # Make sure it fails with additional errors accounted for in the error message
+        fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      else
+        # Create the volume
+        fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      fi
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      # Perform any DB validation in here
+      snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+
+      if [ "${srdf_cg_test}" = "existing" ]
+      then
+        runcmd volume delete ${PROJECT}/${volname}-existing --wait
+      fi
+
+      # Should be able to delete the CG and recreate it.
+      runcmd blockconsistencygroup delete ${CGNAME}
+
+      if [ "${failure}" = "failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback" ]
+      then
+        # At this point, the volumes have been created in their respective CGs.  Instead of simply retrying, the
+        # user must instead discover & ingest the volumes (target first).  Then add the source volume into the source
+        # CG; ViPR will know to place the source volume into the source CG and recreate the target CG for the target
+        # volume.
+        echo "failure_076 requires ingestion as the retry method, so skipping automated recreation steps"
+
+        # Report results
+        report_results "test_add_to_${srdf_cg_test}_cg_srdf" ${failure}
+        continue
+      fi
+
+      # Let providers sync up...
+      echo "Sleeping to allow for providers to sync up"
+      sleep 60
+
+      # Change the CG name, but re-use the same RDF group.
+      item=${RANDOM}
+      volname=${VOLNAME}-${item}
+      # Create a new CG
+      CGNAME=ib${item}
+
+      # Re-create the consistency group
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      if [ "${srdf_cg_test}" = "existing" ]
+      then
+        runcmd volume create ${volname}-existing ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+      fi
+
+      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      # Remove the volume
+      runcmd volume delete ${PROJECT}/${volname} --wait
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      if [ "${srdf_cg_test}" = "existing" ]
+      then
+        runcmd volume delete ${PROJECT}/${volname}-existing --wait
+      fi
+
+      runcmd blockconsistencygroup delete ${CGNAME}
+
+      # Report results
+      report_results "test_add_to_${srdf_cg_test}_cg_srdf" ${failure}
+    done
+}
 
 cleanup() {
     if [ "${DO_CLEANUP}" = "1" ]; then

@@ -249,8 +249,10 @@ public class FileStorageUtils {
         logInfo("file.storage.task", response.getOpId());
     }
 
-    public static String createCifsShare(URI fileSystemId, String shareName, String shareComment, String subDirectory) {
-        Task<FileShareRestRep> task = execute(new CreateFileSystemShare(shareName, shareComment, fileSystemId, subDirectory));
+    public static String createCifsShare(URI fileSystemId, String shareName, String shareComment, String subDirectory,
+            String directoryAcls) {
+        Task<FileShareRestRep> task = execute(new CreateFileSystemShare(shareName, shareComment, fileSystemId,
+                subDirectory, directoryAcls));
         addAffectedResource(task);
         String shareId = task.getResourceId().toString();
         addRollback(new DeactivateFileSystemShare(fileSystemId, shareId));

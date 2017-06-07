@@ -390,6 +390,15 @@ public class FileProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("fileCIFSDirectoryAcls")
+    public List<AssetOption> getFileCIFSDirectoryAcls(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (FileSMBShare.SMBDirectoryPermissionOption style : FileSMBShare.SMBDirectoryPermissionOption.values()) {
+            options.add(newAssetOption(style.name(), String.format("file.SMB.SMBDirectoryPermissionOption.%s", style.name())));
+        }
+        return options;
+    }
+
     @Asset("fileExportsWithRootPermissions")
     @AssetDependencies("fileUnmountedFilesystem")
     public List<AssetOption> getFileExportsWithRootPermissions(AssetOptionsContext ctx, URI fileFilesystem) {

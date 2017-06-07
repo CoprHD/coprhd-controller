@@ -1434,6 +1434,9 @@ public class FileService extends TaskResourceService {
         smbShare.setStoragePortNetworkId(sport.getPortNetworkId());
         smbShare.setStoragePortGroup(sport.getPortGroup());
         smbShare.setSubDirPath(isSubDirPath);
+        if (param.getDirectoryAclsOptions() != null && !param.getDirectoryAclsOptions().isEmpty()) {
+            smbShare.setDirectoryAclsOptions(param.getDirectoryAclsOptions());
+        }
 
         _log.info(String.format(
                 "Create file system share --- File system id: %1$s, Share name: %2$s, StoragePort: %3$s, PermissionType: %4$s, " +
@@ -2343,7 +2346,7 @@ public class FileService extends TaskResourceService {
 
         return toTask(fs, task, op);
     }
-    
+
     /**
      * Get File Share ACLs
      * 
@@ -2385,7 +2388,7 @@ public class FileService extends TaskResourceService {
         return acls;
 
     }
-    
+
     /**
      * Delete File Share ACL
      * 
@@ -2614,9 +2617,9 @@ public class FileService extends TaskResourceService {
      * Change File System Virtual Pool
      * 
      * @param id
-     *          the URN of a ViPR fileSystem
+     *            the URN of a ViPR fileSystem
      * @param param
-     * 			File System Virtual Pool Change parameter
+     *            File System Virtual Pool Change parameter
      * @brief Change a file systems virtual pool
      * @desc Add the file system to a different virtual pool.
      * @return TaskResponse
@@ -2737,14 +2740,14 @@ public class FileService extends TaskResourceService {
         }
         return fileSystemTask;
     }
-    
+
     /**
      * Create Continuous Copies
      * 
      * @param id
-     *          the URN of a ViPR fileSystem
+     *            the URN of a ViPR fileSystem
      * @param param
-     * 			File Replication Create parameter
+     *            File Replication Create parameter
      * @brief Define continuous copies
      * @return TaskResponse
      * @throws InternalException
@@ -2871,9 +2874,9 @@ public class FileService extends TaskResourceService {
      * Deactivate Continuous Copies
      * 
      * @param id
-     *          the URN of a ViPR fileSystem
+     *            the URN of a ViPR fileSystem
      * @param param
-     * 			File System Delete parameter
+     *            File System Delete parameter
      * @brief Delete continuous copies
      * @return TaskResponse
      * @throws InternalException

@@ -147,6 +147,7 @@ public interface ServiceParams {
     public String OPLOCK = "oplock";
     public String SECURITY_STYLE = "securityStyle";
     public String QUOTA_DIRECTORIES = "quotaDirectories";
+    public String DIRECTORY_ACLS = "directoryAcls";
 
     public String SOFT_QUOTA = "softQuota";
     public String HARD_QUOTA = "hardQuota";
@@ -177,7 +178,7 @@ public interface ServiceParams {
     public String FILESYSTEM_NAME = "fileSystemName";
     public String MOUNT_LIST = "mountList";
     public String FS_TYPE = "fsType";
- 
+
     public String ARTIFICIAL_FAILURE = "artificialFailure";
     public String BYPASS_DNS_CHECK = "bypassDnsCheck";
 }

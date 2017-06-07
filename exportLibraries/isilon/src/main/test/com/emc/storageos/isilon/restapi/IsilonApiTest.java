@@ -78,13 +78,60 @@ public class IsilonApiTest {
         }
 
         // Step 2: Create the SMB share for directory
-        String shareId = _client
-                .createShare(new IsilonSMBShare(testSMBDirShareName, testSMBDirPath, "smb test share", "allow", "full"));
+        IsilonSMBShare isilonShare = new IsilonSMBShare(testSMBDirShareName, testSMBDirPath, "smb test share", "allow", "full");
+        isilonShare.setInheritablePathAcl(true);
+        String shareId = _client.createShare(isilonShare);
         Assert.assertTrue("SMB share create failed.", (shareId != null && !shareId.isEmpty()));
         System.out.println("SMB Share created: id: " + shareId);
 
         IsilonSMBShare share = _client.getShare(shareId);
         Assert.assertTrue("SMB share create failed.", share != null);
+        Assert.assertTrue("SMB share create with Do not change existing permissions.", share.getInheritablePathAcl());
+
+        // Step 2: modify SMB share
+        _client.modifyShare(shareId, new IsilonSMBShare(testSMBDirShareName, testSMBDirPath, "smb test share modify", "allow", "read"));
+
+        List<IsilonSMBShare> lShares = _client.listShares(null).getList();
+        System.out.println("listShares: count: " + lShares.size() + " : " + lShares.toString());
+
+        // Step 3: delete the SMB share
+
+        _client.deleteShare(shareId);
+        try {
+            share = _client.getShare(shareId);
+            Assert.assertTrue("Deleted SMB share still gettable.", false);
+        } catch (IsilonException e) {
+            _log.error(e.getMessage(), e);
+        }
+
+        // Step 3: delete the directory.
+
+        _client.deleteDir(testSMBDirPath, true);
+        Assert.assertFalse("Directory delete failed.", _client.existsDir(testSMBDirPath));
+    }
+
+    @Test
+    public void testSMBShares2() throws Exception {
+
+        // Step 1: Create directory
+        String testSMBDirPath = testPath + "/testSMBDir02";
+        String testSMBDirShareName = "testSMBShare2" + dateSuffix;
+        _client.createDir(testSMBDirPath, true);
+
+        if (!_client.existsDir(testSMBDirPath)) {
+            throw new Exception("existsDir for " + testSMBDirPath + ": failed");
+        }
+
+        // Step 2: Create the SMB share for directory
+        IsilonSMBShare isilonShare = new IsilonSMBShare(testSMBDirShareName, testSMBDirPath, "smb test share2", "allow", "full");
+        isilonShare.setInheritablePathAcl(false);
+        String shareId = _client.createShare(isilonShare);
+        Assert.assertTrue("SMB share create failed.", (shareId != null && !shareId.isEmpty()));
+        System.out.println("SMB Share created: id: " + shareId);
+
+        IsilonSMBShare share = _client.getShare(shareId);
+        Assert.assertTrue("SMB share create failed.", share != null);
+        Assert.assertTrue("SMB share create with Apply Windows Default ACLs.", !share.getInheritablePathAcl());
 
         // Step 2: modify SMB share
         _client.modifyShare(shareId, new IsilonSMBShare(testSMBDirShareName, testSMBDirPath, "smb test share modify", "allow", "read"));
@@ -128,14 +175,12 @@ public class IsilonApiTest {
             throw new Exception("Createa sub directory --- " + subDir1 + ": failed");
         }
 
-
         /* snapshot tests - start */
 
         // Step 3 create a Snapshot with unique name
         String testSnapName = "testSnap01" + dateSuffix;
         String snapId = _client.createSnapshot(testSnapName, testDirPath);
-        
-        
+
         List<IsilonSnapshot> snaps = _client.listSnapshots(null).getList();
         System.out.println("listSnaps: count: " + snaps.size() + " : " + snaps.toString());
         IsilonSnapshot snap = _client.getSnapshot(snapId);
@@ -300,8 +345,6 @@ public class IsilonApiTest {
 
     }
 
-
-
     @Test
     public void testNFSExports() throws Exception {
 
@@ -399,8 +442,6 @@ public class IsilonApiTest {
         _client.modifyExport(export2Id, exp_modified, false);
         Assert.assertTrue(_client.getExport(export2Id).getComment().equals("modified export"));
 
-
-
         // Step 11 Create nfs exports tests - with fqdn bypass
         IsilonExport ie3 = new IsilonExport();
         ie3.addPath(testExportDirPath);
@@ -423,7 +464,6 @@ public class IsilonApiTest {
         Assert.assertTrue(exp3.getClients().get(0).equals("abcd" + dateSuffix));
         System.out.println("Export created: " + exp3);
 
-
         // Step 13 clean up export and other resource
         _client.deleteExport(export1Id);
         try {
@@ -434,7 +474,6 @@ public class IsilonApiTest {
             Assert.assertTrue("Getting Deleted export result in excpetion ", true);
         }
 
-
         _client.deleteExport(snapExport1Id);
         try {
             _client.getExport(snapExport1Id);
@@ -442,7 +481,6 @@ public class IsilonApiTest {
         } catch (IsilonException ex) {
             _log.error(ex.getMessage(), ex);
         }
-
 
         _client.deleteExport(export2Id);
         try {
@@ -454,7 +492,6 @@ public class IsilonApiTest {
             Assert.assertTrue("Getting Deleted export result in  excpetion", true);
         }
 
-
         _client.deleteExport(export3Id);
         try {
             _client.getExport(export3Id);
@@ -463,7 +500,6 @@ public class IsilonApiTest {
             // if we get exception means export is not available.
             Assert.assertTrue("Getting Deleted export result in excpetion ", true);
         }
-
 
         _client.deleteSnapshot(snap_id);
         _client.deleteDir(testExportDirPath, true);

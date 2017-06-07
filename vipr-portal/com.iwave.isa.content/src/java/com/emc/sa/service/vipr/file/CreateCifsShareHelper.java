@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
+import static com.emc.sa.service.ServiceParams.DIRECTORY_ACLS;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SHARE_COMMENT;
@@ -54,6 +55,9 @@ public class CreateCifsShareHelper {
     @Bindable(itemType = FileStorageUtils.FileSystemACLs.class)
     protected FileStorageUtils.FileSystemACLs[] fileSystemShareACLs;
 
+    @Param(value = DIRECTORY_ACLS, required = false)
+    protected String directoryAcls;
+
     protected URI fileSystemId;
 
     public void precheckFileACLs() {
@@ -73,7 +77,7 @@ public class CreateCifsShareHelper {
 
         this.fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, tempAdvisoryLimit,
                 tempSoftLimit, tempGracePeriod);
-        FileStorageUtils.createCifsShare(this.fileSystemId, shareName, shareComment, null);
+        FileStorageUtils.createCifsShare(this.fileSystemId, shareName, shareComment, null, directoryAcls);
         return FileStorageUtils.getFileSystem(this.fileSystemId);
     }
 

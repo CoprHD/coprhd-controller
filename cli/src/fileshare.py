@@ -404,7 +404,7 @@ class Fileshare(object):
     def export(
             self, name, security_type, permission, root_user,
             endpoints, protocol, share_name, share_description,
-            permission_type, sub_dir, sync,synctimeout,bypassdnscheck):
+            permission_type, sub_dir, sync,synctimeout,bypassdnscheck, def_wind_acls):
         '''
         Makes REST API call to export fileshare to a host
         Parameters:
@@ -435,6 +435,11 @@ class Fileshare(object):
                     request["permission_type"] = permission_type
                 if(permission and permission in ["read", "change", "full"]):
                     request["permission"] = permission
+                if(def_wind_acls is not None and def_wind_acls == "false"):
+				    request["directoryAclsOptions"] = "DoNotChangeExistingPermissions"
+                else:
+                    request["directoryAclsOptions"] = "ApplyWindowsDefaultACLs"
+					
 
                 body = json.dumps(request)
 
@@ -2003,6 +2008,11 @@ def export_parser(subcommand_parsers, common_parser):
                                choices=['allow', 'deny'],
                                help='Type of permission of SMB share',
                                dest='permission_type')
+    export_parser.add_argument('-def_win_acls', '-dwacls',
+                               help='true - Default Windows ACLs; false - Do not change existing permissions',
+                               dest='def_win_acls',
+							   choices=["true", "false"],
+							   default="true")
     export_parser.add_argument('-subdir',
                                metavar="<sub directory>",
                                help='Export to FileSystem subdirectory',
@@ -2067,7 +2077,7 @@ def fileshare_export(args):
             args.tenant + "/" + args.project + "/" + args.name,
             args.security, args.permission, args.root_user, args.endpoint,
             args.protocol, args.share, args.desc,
-            args.permission_type, args.subdir, args.sync,args.synctimeout,args.bypassdnscheck)
+            args.permission_type, args.subdir, args.sync,args.synctimeout,args.bypassdnscheck, args.def_win_acls)
 
 #        if(args.sync == False):
 #            return common.format_json_object(res)

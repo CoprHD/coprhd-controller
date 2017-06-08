@@ -4,9 +4,10 @@
  */
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
+import java.beans.Transient;
 import java.net.URI;
-import java.util.Map;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cf;
@@ -168,7 +169,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         RP_MANAGED_SOURCE_VOLUME("rpManagedSourceVolume", "rpManagedSourceVolume"),
         RP_ACCESS_STATE("rpAccessState", "rpAccessState"),
         SNAPSHOT_CONSISTENCY_GROUP_NAME("snapshotConsistencyGroupName", "snapshotConsistencyGroupName"),
-        FULL_COPY_CONSISTENCY_GROUP_NAME("fullCopyConsistencyGroupName", "fullCopyConsistencyGroupName");
+        FULL_COPY_CONSISTENCY_GROUP_NAME("fullCopyConsistencyGroupName", "fullCopyConsistencyGroupName"),
+        TRANSIENT_TENANT_ID("transientTenantId", "transientTenantId");
 
         private final String _infoKey;
         private final String _alternateKey;
@@ -335,6 +337,42 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
 
         public static boolean isRegularVolume(Types types) {
             return REGULAR == types;
+        }
+    }
+
+    /**
+     * A transient tenant URI for use while the volume is being ingested. Required
+     * by Task framework so that a tenant can be assigned to the ingestion task.
+     * 
+     * @return the transient tenant URI
+     */
+    @Transient
+    public URI getTransientTenantId() {
+        URI tenantId = null;
+        StringSet availableValueSet = getVolumeInformation().get(SupportedVolumeInformation.TRANSIENT_TENANT_ID.name());
+        if (null != availableValueSet) {
+            for (String value : availableValueSet) {
+                if (URIUtil.isValid(value)) {
+                    tenantId = URI.create(value);
+                }
+            }
+        }
+
+        return tenantId;
+    }
+
+    /**
+     * Sets the transient tenant URI for use while the volume is being ingested. Required
+     * by Task framework so that a tenant can be assigned to the ingestion task.
+     * 
+     * @param transientTenantId the transient tenant URI String
+     */
+    @Transient
+    public void setTransientTenantId(String transientTenantId) {
+        if (URIUtil.isValid(transientTenantId)) {
+            StringSet transientTenantIdSet = new StringSet();
+            transientTenantIdSet.add(transientTenantId);
+            putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.TRANSIENT_TENANT_ID.toString(), transientTenantIdSet);
         }
     }
 

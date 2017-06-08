@@ -1881,8 +1881,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _log.info(entryLogMsgBuilder.toString());
             if (!volumes.isEmpty()) {
                 WorkflowStepCompleter.stepExecuting(opId);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_087);
                 getDevice(storageSystem.getSystemType()).doDeleteVolumes(storageSystem, opId,
                         volumes, completer);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_088);
             } else {
                 doSuccessTask(Volume.class, volumeURIs, opId);
                 WorkflowStepCompleter.stepSucceded(opId);

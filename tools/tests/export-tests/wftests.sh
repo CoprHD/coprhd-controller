@@ -1143,27 +1143,29 @@ srdf_setup() {
     # Create the target first so it exists when we create the source vpool
     # Workaround for COP-25718, switch to use matchedPools once it is fixed
     run cos create block ${VPOOL_BASE}_SRDF_TARGET		          \
-	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+      --description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
 			 --provisionType 'Thin'	          \
 			 --neighborhoods $NH                      \
-                         --multiVolumeConsistency                  \
-                         --system_type vmax			
+                         --multiVolumeConsistency
     
     run cos update block ${VPOOL_BASE}_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${VPOOL_BASE}_SRDF_TARGET block $TENANT
 
     # As above, but without multivolume consistency
     run cos create block ${VPOOL_BASE_NOCG}_SRDF_TARGET		          \
-	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+      --description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
 			 --provisionType 'Thin'	          \
-			 --neighborhoods $NH                      \
-                         --system_type vmax
+			 --neighborhoods $NH                     
 
     run cos update block ${VPOOL_BASE_NOCG}_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${VPOOL_BASE_NOCG}_SRDF_TARGET block $TENANT
@@ -1172,12 +1174,13 @@ srdf_setup() {
         async)
             echo "Setting up the virtual pool for SRDF sync mode"
     	    run cos create block ${VPOOL_BASE}                 \
+        --system_type vmax                     \
+        --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
                          --multiVolumeConsistency		\
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE}_SRDF_TARGET:ASYNCHRONOUS"
@@ -1187,12 +1190,13 @@ srdf_setup() {
 
            echo "Setting up the virtual pool for SRDF sync mode (nocg)"
     	    run cos create block ${VPOOL_BASE_NOCG}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE_NOCG}_SRDF_TARGET:ASYNCHRONOUS"
 
@@ -1202,12 +1206,13 @@ srdf_setup() {
 	sync)
         echo "Setting up the virtual pool for SRDF sync mode"
 	    run cos create block ${VPOOL_BASE}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
                          --multiVolumeConsistency		\
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE}_SRDF_TARGET:SYNCHRONOUS"
@@ -1217,12 +1222,13 @@ srdf_setup() {
 
 	    echo "Setting up the virtual pool for SRDF sync mode (nocg)"
 	    run cos create block ${VPOOL_BASE_NOCG}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE_NOCG}_SRDF_TARGET:SYNCHRONOUS"
 
@@ -1237,12 +1243,13 @@ srdf_setup() {
 
     echo "Setting up the virtual pool for VPool change (Add SRDF)"
     run cos create block ${VPOOL_CHANGE}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
          --description 'Source-Virtual-Pool-for-VPoolChange' false \
          --protocols FC 		        \
          --numpaths 1				\
          --max_snapshots 10			\
          --provisionType 'Thin'	        \
-         --system_type vmax                     \
          --multiVolumeConsistency		\
          --neighborhoods $NH
 
@@ -3714,6 +3721,91 @@ _add_to_cg_srdf() {
 
       # Report results
       report_results "test_add_to_${srdf_cg_test}_cg_srdf" ${failure}
+    done
+}
+
+test_delete_srdf() {
+    echot "Test test_delete_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    volume delete --project ${PROJECT} --wait
+
+    common_failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes&1 \
+                        failure_087_BlockDeviceController.before_doDeleteVolumes&2 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&1 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&2 \
+                        failure_089_SRDFDeviceController.before_doSuspendLink \
+                        failure_090_SRDFDeviceController.after_doSuspendLink \
+                        failure_091_SRDFDeviceController.before_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+                        failure_092_SRDFDeviceController.after_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
+
+    async_only="failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
+                failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization"
+    sync_only="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization"
+
+    cfs=("Volume BlockConsistencyGroup")
+    snap_db_esc=" | grep -Ev \"^sourceGroup = null|targetGroup = null\""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    if [ "${SRDF_MODE}" = "async" ];
+    then
+      failure_injections="${common_failure_injections} ${async_only}"
+    else
+      failure_injections="${common_failure_injections} ${sync_only}"
+    fi
+
+    # Placeholder when a specific failure case is being worked...
+    #failure_injections=""
+
+    for failure in ${failure_injections}
+    do
+        item=${RANDOM}
+        TEST_OUTPUT_FILE=test_output_${item}.log
+        secho "Running Test test_delete_srdf with failure scenario: ${failure}..."
+        reset_counts
+        mkdir -p results/${item}
+        volname=${VOLNAME}-${item}
+
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+
+        snap_db 1 "${cfs[@]}" #"${snap_db_esc}"
+
+        set_artificial_failure ${failure}
+
+        # Remove the volume
+        fail volume delete ${PROJECT}/${volname} --wait
+
+        snap_db 2 "${cfs[@]}" #"${snap_db_esc}"
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Validate volume was left for retry
+        validate_db 1 2 ${cfs}
+
+        set_artificial_failure none
+
+        # Retry the delete operation
+        runcmd volume delete ${PROJECT}/${volname} --wait
+
+        if [ "${SIM}" = "0" ]
+        then
+          symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+        fi
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+
+        report_results "test_delete_srdf" ${failure}
     done
 }
 

@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import org.apache.cassandra.io.sstable.Descriptor;
 import org.apache.cassandra.tools.NodeProbe;
+import org.apache.cassandra.tools.SSTableExport;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1589,18 +1590,27 @@ public class DbIndexTest extends DbsvcTestBase {
             }
         });
 
+
+        PrintStream stdOut = System.out;
+
         String outFileName = String.format("%s/data.json", dirPath);
         PrintStream outs = new PrintStream(outFileName);
-        outs.println("[");
+
+        System.setOut(outs);
+
+//        outs.println("[");
         for (int i = 0; i < dataFiles.length; i++) {
             String fileName = dataFiles[i];
-            Descriptor desc = Descriptor.fromFilename(String.format("%s/%s", dirPath, fileName));
-            //SSTableExport.export(desc, outs, null, null);
-            if (i + 1 < dataFiles.length) {
+//            Descriptor desc = Descriptor.fromFilename(String.format("%s/%s", dirPath, fileName));
+            SSTableExport.main(new String[] {fileName});
+/*            if (i + 1 < dataFiles.length) {
                 outs.println(",");
             }
-        }
-        outs.println("]");
+ */       }
+        //outs.println("]");
+
+        System.setOut(stdOut);
+
     }
 
     // Commented out for now as the required changed to DbSvcTestBase is not merged from release-2.1 now.

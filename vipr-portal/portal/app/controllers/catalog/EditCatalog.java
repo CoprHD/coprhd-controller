@@ -406,16 +406,6 @@ public class EditCatalog extends ServiceCatalog {
         edit(service);
     }
 
-    public static void createServiceFromBase(String baseService) {
-        CatalogCategoryRestRep parentCategory = CatalogCategoryUtils.getRootCategory();
-
-        ServiceForm service = new ServiceForm();
-        service.owningCategoryId = getId(parentCategory);
-        service.fromId = service.owningCategoryId;
-        service.baseService = baseService;
-        edit(service);
-    }
-
     public static void editService(String serviceId, String fromId) {
         CatalogServiceRestRep catalogService = CatalogServiceUtils.getCatalogService(uri(serviceId));
 

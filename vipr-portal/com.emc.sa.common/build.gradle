@@ -1,8 +1,7 @@
 dependencies {
     compile project(":com.iwave.ext.windows"),
             project(":com.emc.sa.model"),
-            project(":authsvc"),
-            project(":primitives")
+            project(":authsvc")
 
     testCompile "org.javassist:javassist:3.15.0-GA"
 }

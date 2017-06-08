@@ -56,9 +56,4 @@ public class ExtendVmfsDatastoreService extends VMwareHostService {
         }
         vmware.setMultipathPolicy(host, cluster, multipathPolicy, volume);
     }
-
-    @Override
-    public boolean checkClusterConnectivity() {
-        return false;
-    }
 }

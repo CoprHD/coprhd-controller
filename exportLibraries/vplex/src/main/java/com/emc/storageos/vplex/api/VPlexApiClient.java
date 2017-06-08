@@ -1711,7 +1711,7 @@ public class VPlexApiClient {
             vvinfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName);
         }
 
-        s_logger.info("returning virtual volume: " + vvinfo);
+        s_logger.info("returning virtual volume: ");
         return vvinfo;
     }
 

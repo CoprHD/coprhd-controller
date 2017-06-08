@@ -261,8 +261,10 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
         try {
             String[] deviceIds = _helper.getBlockObjectNativeIds(replicaList);
             if (storage.checkIfVmax3()) {
-                _helper.removeVolumeFromParkingSLOStorageGroup(storage, deviceIds, false);
-                _log.info("Done invoking remove volumes from parking SLO storage group");
+                for (String deviceId : deviceIds) {
+                    _helper.removeVolumeFromParkingSLOStorageGroup(storage, deviceId, false);
+                    _log.info("Done invoking remove volume {} from parking SLO storage group", deviceId);
+                }
             }
 
             CIMObjectPath[] devicePaths = _cimPath.getVolumePaths(storage, deviceIds);

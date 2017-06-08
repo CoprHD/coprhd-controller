@@ -313,8 +313,7 @@ public enum ServiceCode {
     VPLEX_API_RESPONSE_TIMEOUT_ERROR(180009),
     VPLEX_API_FIRMWARE_UPDATE_NEEDED(180010),
     VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION(180011),
-    VPLEX_CG_NOT_FOUND(180012),
-    
+
     // Recover Point errors (19000 - 19999):
     RECOVER_POINT_ERROR(19000),
     RECOVER_POINT_LICENSE_ERROR(19001),
@@ -673,10 +672,6 @@ public enum ServiceCode {
     XIV_REST_CREATE_FAILURE(68003),
     XIV_REST_DELETE_FAILURE(68004),
     XIV_REST_HOST_PARTOF_CLUSTER(68010),
-
-    //Custom Service Exception code
-    CUSTOM_SERVICE_EXCEPTION(69000),
-    CUSTOM_SERVICE_NOTASK(69001),
 
     // ****************************
     // Old style of Service codes

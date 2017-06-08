@@ -98,9 +98,7 @@ public class HDSApiVolumeManager {
                 responseStream = response.getEntityInputStream();
                 JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
                 EchoCommand command = result.getBean(EchoCommand.class);
-                log.info("command Status :{} MessageId :{}", command.getStatus(), command.getMessageID());
-                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())
-                        || HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
                     asyncTaskMessageId = command.getMessageID();
                 } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                     Error error = result.getBean(Error.class);
@@ -173,9 +171,7 @@ public class HDSApiVolumeManager {
                 responseStream = response.getEntityInputStream();
                 JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
                 EchoCommand command = result.getBean(EchoCommand.class);
-                log.info("command Status :{} MessageId :{}", command.getStatus(), command.getMessageID());
-                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())
-                        || HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
                     asyncTaskMessageId = command.getMessageID();
                 } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                     Error error = result.getBean(Error.class);
@@ -183,6 +179,7 @@ public class HDSApiVolumeManager {
                     log.error("Thin Volume creation failed with error code: {} with message: {}", error.getCode(), error.getDescription());
                     throw HDSException.exceptions.notAbleToCreateVolume(
                             error.getCode(), error.getDescription());
+
                 }
             } else {
                 log.error("Thin Volume creation failed with invalid response code {}",
@@ -237,9 +234,7 @@ public class HDSApiVolumeManager {
                 responseStream = response.getEntityInputStream();
                 JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
                 EchoCommand command = result.getBean(EchoCommand.class);
-                log.info("command Status :{} MessageId :{}", command.getStatus(), command.getMessageID());
-                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())
-                        || HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
                     asyncTaskMessageId = command.getMessageID();
                 } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                     Error error = result.getBean(Error.class);
@@ -302,15 +297,14 @@ public class HDSApiVolumeManager {
                 responseStream = response.getEntityInputStream();
                 JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
                 EchoCommand command = result.getBean(EchoCommand.class);
-                log.info("command Status :{} MessageId :{}", command.getStatus(), command.getMessageID());
-                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())
-                        || HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
                     asyncTaskMessageId = command.getMessageID();
                 } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                     Error error = result.getBean(Error.class);
                     log.error("Query to format LogicalUnit: failed status messageID: {}", command.getMessageID());
                     log.error("LogicalUnit formatting failed with error code: {} with message: {}", error.getCode(), error.getDescription());
                     throw HDSException.exceptions.notAbleToCreateVolume(error.getCode(), error.getDescription());
+
                 }
             } else {
                 log.error("LogicalUnit format failed with invalid response code {}",
@@ -357,7 +351,7 @@ public class HDSApiVolumeManager {
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
 
-            log.info("volume delete payload :{}", deleteVolumesInputXML);
+            log.debug("volume delete payload :{}", deleteVolumesInputXML);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI,
                     deleteVolumesInputXML);
@@ -366,9 +360,7 @@ public class HDSApiVolumeManager {
                 JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream,
                         HDSConstants.SMOOKS_CONFIG_FILE);
                 EchoCommand command = result.getBean(EchoCommand.class);
-                log.info("command Status :{} MessageId :{}", command.getStatus(), command.getMessageID());
-                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())
-                        || HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
                     asyncTaskMessageId = command.getMessageID();
                 } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                     Error error = result.getBean(Error.class);
@@ -376,6 +368,7 @@ public class HDSApiVolumeManager {
                     log.info("Command failed: messageID: {} {}", command.getMessageID(),
                             error.getDescription());
                     throw HDSException.exceptions.notAbleToDeleteVolume(error.getCode(), error.getDescription());
+
                 }
             } else {
                 log.error("LogicalUnit deletion failed with invalid response code {}",
@@ -429,17 +422,15 @@ public class HDSApiVolumeManager {
                 JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream,
                         HDSConstants.SMOOKS_CONFIG_FILE);
                 EchoCommand command = result.getBean(EchoCommand.class);
-                log.info("command Status :{} MessageId :{}", command.getStatus(), command.getMessageID());
-                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())
-                        || HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
                     asyncTaskMessageId = command.getMessageID();
-                    log.info("Async task id : {}", asyncTaskMessageId);
                 } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                     Error error = result.getBean(Error.class);
                     log.info("command failed error code: {}", error.getCode());
                     log.info("Command failed: messageID: {} {}", command.getMessageID(),
                             error.getDescription());
                     throw HDSException.exceptions.notAbleToDeleteVolume(error.getCode(), error.getDescription());
+
                 }
             } else {
                 log.error("LogicalUnit deletion failed with invalid response code {}",
@@ -837,9 +828,7 @@ public class HDSApiVolumeManager {
             responseStream = response.getEntityInputStream();
             JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
             EchoCommand command = result.getBean(EchoCommand.class);
-            log.info("command Status :{} MessageId :{}", command.getStatus(), command.getMessageID());
-            if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())
-                    || HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+            if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
                 asyncTaskMessageId = command.getMessageID();
             } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                 Error error = result.getBean(Error.class);
@@ -848,6 +837,7 @@ public class HDSApiVolumeManager {
                         error.getDescription());
                 throw HDSException.exceptions.notAbleToCreateVolume(
                         error.getCode(), error.getDescription());
+
             }
         } else {
             log.error("Modify Volume TieringPolicy failed with invalid response code {}",
@@ -896,9 +886,7 @@ public class HDSApiVolumeManager {
                 responseStream = response.getEntityInputStream();
                 JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
                 EchoCommand command = result.getBean(EchoCommand.class);
-                log.info("command Status :{} MessageId :{}", command.getStatus(), command.getMessageID());
-                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())
-                        || HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
                     asyncTaskMessageId = command.getMessageID();
                 } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                     Error error = result.getBean(Error.class);
@@ -961,9 +949,7 @@ public class HDSApiVolumeManager {
                     responseStream = response.getEntityInputStream();
                     JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
                     EchoCommand command = result.getBean(EchoCommand.class);
-                    log.info("command Status :{} MessageId :{}", command.getStatus(), command.getMessageID());
-                    if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())
-                            || HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                    if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
                         asyncTaskMessageId = command.getMessageID();
                     } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                         Error error = result.getBean(Error.class);

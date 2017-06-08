@@ -37,12 +37,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
@@ -234,7 +232,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     // remove snapshot from them before deleting it.
                     _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storage, snap);
 
-                    _helper.removeVolumeFromParkingSLOStorageGroup(storage, new String[] { snap.getNativeId() }, false);
+                    _helper.removeVolumeFromParkingSLOStorageGroup(storage, snap.getNativeId(), false);
                     _log.info("Done invoking remove volume {} from parking SLO storage group", snap.getNativeId());
 
                     // If VMAX3 linked target (both copy and no copy mode), detach the element synchronization before deleting it.
@@ -512,14 +510,12 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
                     // remove targets from parking SLO group
                     if (storage.checkIfVmax3()) {
-                        Set<String> nativeIds = new HashSet<String>();
                         Iterator<BlockSnapshot> iter = snapshotList.iterator();
                         while (iter.hasNext()) {
                             BlockSnapshot blockSnapshot = iter.next();
-                            nativeIds.add(blockSnapshot.getNativeId());
+                            _helper.removeVolumeFromParkingSLOStorageGroup(storage, blockSnapshot.getNativeId(), false);
+                            _log.info("Done invoking remove volume {} from parking SLO storage group", blockSnapshot.getNativeId());
                         }
-                        _helper.removeVolumeFromParkingSLOStorageGroup(storage, nativeIds.toArray(new String[] {}), false);
-                        _log.info("Done invoking remove volumes from parking SLO storage group");
 
                         // If VMAX3 linked target (both copy and no copy mode), detach the element synchronization before deleting it.
                         // COP-21476 - 'no copy' mode target too needs to be detached when snap session has linked copy mode target.
@@ -1019,8 +1015,14 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
         try {
             if (storageSystem.checkIfVmax3()) {
-                _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceIds, false);
-                _log.info("Done invoking remove volumes from parking SLO storage group");
+                for (String deviceId : deviceIds) {
+                    try {
+                        _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceId, false);
+                    } catch (Exception e) {
+                        _log.info("Failed to remove device {} from SLO SG.  It may have already been removed", deviceId);
+                    }
+                    _log.info("Done invoking remove volume {} from parking SLO storage group", deviceId);
+                }
             }
 
             final CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);

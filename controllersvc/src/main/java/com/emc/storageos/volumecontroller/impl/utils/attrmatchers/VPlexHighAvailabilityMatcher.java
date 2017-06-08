@@ -173,10 +173,7 @@ public class VPlexHighAvailabilityMatcher extends AttributeMatcher {
                 Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
 
         if (CollectionUtils.isEmpty(matchedPools)) {
-            String message = "No matching storage pool found for VPLEX high availability. ";
-            if (errorMessage != null && !errorMessage.toString().contains(message)) {
-                errorMessage.append(message);
-            }
+            errorMessage.append("No matching stoarge pool found for VPLEX high availability. ");
             _logger.error(errorMessage.toString());
         }
         return matchedPools;

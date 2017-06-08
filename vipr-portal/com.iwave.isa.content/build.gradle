@@ -57,10 +57,8 @@ dependencies {
     compile project(":com.iwave.ext.windows")
     compile project(":com.emc.sa.engine")
     compile project(":com.emc.sa.common")
-    compile project(":vipr-client") 
-    compile project(":oe")
-    compile project(":primitives")
-
+    compile project(":vipr-client")
+    
     testCompile project(":apisvc")
     
 }

@@ -4,19 +4,7 @@
  */
 package com.emc.apidocs;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Properties;
-
-import org.apache.commons.io.IOUtils;
-
 import com.emc.apidocs.differencing.DifferenceEngine;
-import com.emc.apidocs.generating.PageGenerator;
 import com.emc.apidocs.model.ApiDifferences;
 import com.emc.apidocs.model.ApiErrorCode;
 import com.emc.apidocs.model.ApiMethod;
@@ -28,6 +16,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.google.common.collect.Lists;
 import com.sun.javadoc.*;
 import org.apache.commons.io.IOUtils;
+
 import java.io.*;
 import java.util.*;
 
@@ -155,7 +144,7 @@ public class ApiDoclet {
     }
 
     /** Processes the list of classes looking for ones that represent an API Service, and parsing them if found */
-    public static synchronized List<ApiService> findApiServices(ClassDoc[] classes) {
+    private static synchronized List<ApiService> findApiServices(ClassDoc[] classes) {
         List<ApiService> apiServices = new ArrayList<ApiService>();
         for (ClassDoc classDoc : classes) {
             if (DATASERVICES_CLASSES.contains(classDoc.name())) {
@@ -181,11 +170,9 @@ public class ApiDoclet {
             }
         }
 
-        if( null != portalSource) {
-            // Add All Services from the Portal API
-            apiServices.addAll(PlayRoutesParser.getPortalServices(portalSource));
-        }
-        
+        // Add All Services from the Portal API
+        apiServices.addAll(PlayRoutesParser.getPortalServices(portalSource));
+
         return apiServices;
     }
 

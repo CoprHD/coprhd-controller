@@ -3310,22 +3310,7 @@
         controlNodeOnly : true,
         value : "TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA",
     },
-    {
-        key : "custom_services_available",
-        label : "Custom Services Available to this Deployment",
-        description : "Custom Services Available to this Deployment",
-        type : "boolean",
-        userConfigurable : true,
-        userMutable : true,
-        hidden : true,
-        advanced : true,
-        tag : "Other",
-        reconfigRequired : false,
-        rebootRequired : false,
-        controlNodeOnly : true,
-        value : "false",
-	},
-    {
+       {
         key : "controller_ucs_communication_timeout",
         label : "Cisco UCS Command Timeout",
         description : "Timeout value for Cisco UCS command in seconds",
@@ -3339,7 +3324,7 @@
         controlNodeOnly : false,
         value : "600",
     },
-    {
+       {
         key : "controller_ucs_device_operation_pollfrequency",
         label : "Cisco UCS Device Operation Poll Frequency",
         description : "Poll frequency value for Cisco UCS device operation in seconds",

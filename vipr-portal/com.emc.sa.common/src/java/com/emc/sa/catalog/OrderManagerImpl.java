@@ -1,20 +1,7 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
  */
-
 package com.emc.sa.catalog;
 
 import static com.emc.storageos.db.client.URIUtil.uri;
@@ -39,7 +26,6 @@ import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.AssetOptionsManager;
-import com.emc.sa.asset.AssetOptionsProvider;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
@@ -94,9 +80,6 @@ public class OrderManagerImpl implements OrderManager {
     private ServiceDescriptors serviceDescriptors;
 
     @Autowired
-    private WorkflowServiceDescriptor workflowServiceDescriptor;
-
-    @Autowired
     private AssetOptionsManager assetOptionsManager;
 
     @PostConstruct
@@ -124,7 +107,7 @@ public class OrderManagerImpl implements OrderManager {
 
     public Order createOrder(Order order, List<OrderParameter> orderParameters, StorageOSUser user) {
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(order.getCatalogServiceId());
-        ServiceDescriptor serviceDescriptor = ServiceDescriptorUtil.getServiceDescriptorByName(serviceDescriptors, workflowServiceDescriptor, catalogService.getBaseService());
+        ServiceDescriptor serviceDescriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), catalogService.getBaseService());
 
         order.setOrderNumber(getNextOrderNumber());
         order.setSummary(catalogService.getTitle());
@@ -276,13 +259,6 @@ public class OrderManagerImpl implements OrderManager {
                 return s;
             }
             else {
-
-                // if provider prefers raw labels (because retrieval is too slow) use raw value
-                final AssetOptionsProvider assetProvider = assetOptionsManager.getProviderForAssetType(assetType);
-                if(assetProvider != null && assetProvider.useRawLabels()){
-                    return key;
-                }
-
                 // Defer to AssetOptions if it's not a ViPR resource
                 log.info(String.format("AssetType %s not a ViPR resource, deferring to AssetOptions to get value.", key));
                 AssetOptionsContext context = assetOptionsManager.createDefaultContext(user);
@@ -508,17 +484,9 @@ public class OrderManagerImpl implements OrderManager {
         return (now - createdTime) < noDeletePeriod;
     }
 
-
-    public void cancelOrder(Order order) {
-        deleteOrderInDb(order);
-    }
-
     public void deleteOrder(Order order) {
         canBeDeleted(order, null);
-        deleteOrderInDb(order);
-    }
 
-    private void deleteOrderInDb(Order order) {
         URI orderId = order.getId();
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
         client.delete(approvalRequests);
@@ -726,11 +694,7 @@ public class OrderManagerImpl implements OrderManager {
 
     private void processApprovedOrder(Order order, CatalogService service) {
         ApprovalRequest approval = approvalManager.findFirstApprovalsByOrderId(order.getId());
-        try {
-            notificationManager.notifyUserOfApprovalStatus(order, service, approval);
-        } catch (Exception e) {
-            log.error(String.format("Unable to notify user of approved order %s", order.getId()), e);
-        }
+        notificationManager.notifyUserOfApprovalStatus(order, service, approval);
 
         if (order.getScheduledEventId() != null) {
             // orders always need to be scheduled via scheduledEvent.

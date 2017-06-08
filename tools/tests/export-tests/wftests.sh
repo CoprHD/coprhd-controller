@@ -494,7 +494,6 @@ vmax3_sim_setup() {
     SMIS_PASSWD=$SMIS_PASSWD
     VMAX_SMIS_SSL=true
     VMAX_NATIVEGUID=$SIMULATOR_VMAX3_NATIVEGUID
-    VMAX_FAST_POLICY=$SIMULATOR_VMAX3_FAST_POLICY
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
@@ -538,8 +537,6 @@ vmax3_setup() {
     
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
-  --system_type vmax                     \
-  --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 2				            \
@@ -550,8 +547,6 @@ vmax3_setup() {
 
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
-  --system_type vmax                     \
-  --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 4				            \
@@ -3211,15 +3206,10 @@ test_13() {
 	storage_failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
-    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-      storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
-    fi
-
-    if [ "${SS}" = "vnx" ]
-    then
-      storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_* \
-                                 failure_018_Export_doRollbackExportCreate_before_delete"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_* \
+                                    failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"

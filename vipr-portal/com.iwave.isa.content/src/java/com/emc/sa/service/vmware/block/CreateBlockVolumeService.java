@@ -38,9 +38,7 @@ public class CreateBlockVolumeService extends VMwareHostService {
     public void execute() throws Exception {
         hostService.execute();
         super.connectAndInitializeHost();
-
         vmware.refreshStorage(host, cluster);
-        vmware.attachLuns(host, cluster, hostService.getVolumes());
     }
 
 }

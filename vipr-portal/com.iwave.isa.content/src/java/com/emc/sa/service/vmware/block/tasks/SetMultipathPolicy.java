@@ -33,12 +33,8 @@ public class SetMultipathPolicy extends ExecutionTask<Void> {
     public void execute() throws Exception {
         debug("Executing: %s", getDetail());
         for (HostSystem host : hostDisks.keySet()) {
-            try {
-                HostStorageAPI storageAPI = new HostStorageAPI(host);
-                storageAPI.setMultipathPolicy(hostDisks.get(host), multipathPolicy);
-            } catch (Exception e) {
-                logWarn("vmware.support.multipath.policy.failed", multipathPolicy, hostDisks.get(host).getCanonicalName(), host.getName());
-            }
+            HostStorageAPI storageAPI = new HostStorageAPI(host);
+            storageAPI.setMultipathPolicy(hostDisks.get(host), multipathPolicy);
         }
     }
 }

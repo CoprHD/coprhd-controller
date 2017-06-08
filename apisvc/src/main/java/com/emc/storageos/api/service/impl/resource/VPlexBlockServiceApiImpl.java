@@ -1366,12 +1366,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // Check if any of the volumes passed is a VPLEX volume
         // in a VPLEX CG with corresponding local consistency
         // group(s) for the backend volumes.
-        Volume changeVPoolVolume = isVPlexVolumeInCgWithLocalType(volumes);
-        if (changeVPoolVolume != null) {
-            s_logger.info("Change vpool request has volumes in VPLEX CG with backing local CGs");
-            // If any of the volumes is a CG and if this is a data
-            // migration of the volumes, then the volumes passed must 
-            // contain all the volumes in that CG.           
+        BlockConsistencyGroup cg = isVPlexVolumeInCgWithLocalType(volumes);
+        if (cg != null) {
+            s_logger.info("Change vpool request for volume in VPLEX CG with backing local CGs");
+            // If any of the volumes is in such a CG and if this is a data
+            // migration of the volumes, then the volumes passed must be all
+            // the volumes in the CG and only the volumes in the CG.
+            Volume changeVPoolVolume = volumes.get(0);
+            URI cguri = changeVPoolVolume.getConsistencyGroup();
+            cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
             VirtualPool currentVPool = _dbClient.queryObject(VirtualPool.class, changeVPoolVolume.getVirtualPool());
             VirtualPoolChangeOperationEnum vpoolChange = VirtualPoolChangeAnalyzer
                     .getSupportedVPlexVolumeVirtualPoolChangeOperation(changeVPoolVolume, currentVPool, vpool,
@@ -4325,15 +4328,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     }
 
     /**
-     * Determines if any of the passed volumes is A VPLEX volume in a VPLEX
+     * Determines in any of the passed volumes is A VPLEX volume in a VPLEX
      * consistency group with corresponding consistency group(s) for the backend
      * storage.
      *
      * @param volumes The list of volumes to check
      *
-     * @return one of the volumes that are in the CG, null otherwise.
+     * @return A reference to the CG if any of the passed volumes is A VPLEX
+     *         volume in a VPLEX consistency group with corresponding
+     *         consistency group(s) for the backend storage, null otherwise.
      */
-    private Volume isVPlexVolumeInCgWithLocalType(List<Volume> volumes) {       
+    private BlockConsistencyGroup isVPlexVolumeInCgWithLocalType(List<Volume> volumes) {
+        BlockConsistencyGroup cg = null;
         for (Volume volume : volumes) {
             URI systemURI = volume.getStorageController();
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
@@ -4343,13 +4349,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 if (!NullColumnValueGetter.isNullURI(cgURI)) {
                     BlockConsistencyGroup volCG = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                     if (volCG.checkForType(Types.LOCAL)) {
-                       return volume;
+                        cg = volCG;
+                        break;
                     }
                 }
             }
         }
 
-        return null;
+        return cg;
     }
 
     /**

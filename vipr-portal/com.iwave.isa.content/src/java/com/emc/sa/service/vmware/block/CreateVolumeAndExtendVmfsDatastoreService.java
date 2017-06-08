@@ -54,9 +54,4 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
         vmware.extendVmfsDatastore(host, cluster, hostId, volume, datastore);
         vmware.setMultipathPolicy(host, cluster, multipathPolicy, volume);
     }
-
-    @Override
-    public boolean checkClusterConnectivity() {
-        return false;
-    }
 }

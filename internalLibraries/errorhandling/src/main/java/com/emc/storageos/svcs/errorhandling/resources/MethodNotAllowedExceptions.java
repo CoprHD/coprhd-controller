@@ -78,7 +78,4 @@ public interface MethodNotAllowedExceptions {
 
     @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
     public MethodNotAllowedException notSupportedForCeph();
-    
-    @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
-    public MethodNotAllowedException notSupportedForUnpublishedWorkflow(final String state);
 }

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_NEW_TARGET_VALUE;
@@ -634,8 +635,10 @@ public class ReplicationUtils {
 
         try {
             if (storageSystem.checkIfVmax3()) {
-                helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceIds, false);
-                _log.info("Done invoking remove volumes from parking SLO storage group");
+                for (String deviceId : deviceIds) {
+                    helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceId, false);
+                    _log.info("Done invoking remove volume {} from parking SLO storage group", deviceId);
+                }
             }
 
             CIMArgument[] outArgs = new CIMArgument[5];

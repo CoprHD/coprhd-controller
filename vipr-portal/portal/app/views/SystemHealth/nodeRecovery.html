@@ -4,6 +4,23 @@
 #{get 'moreScripts'/}
 
 
+<div class="container">
+
+    #{Form.header titleKey:'system.noderecovery.title' /}
+    #{alerts/}
+    
+    <div id="clusterHealthPanel">
+        #{include 'SystemHealth/clusterHealth.html'/}
+    </div>
+
+    <div id="message"></div>
+    <div id="nodeRecoveryReady">
+        <div class="loading-box">
+            &{'systemHealth.fetchingRecoveryStatus'}&nbsp;&nbsp;#{loading /}
+        </div>
+    </div>
+</div>
+
 <script>
 
     $(document).ready(function() {
@@ -148,19 +165,4 @@
     
 </script>
 #{/set}
-<div class="container">
 
-    #{Form.header titleKey:'system.noderecovery.title' /}
-    #{alerts/}
-
-    <div id="clusterHealthPanel">
-        #{include 'SystemHealth/clusterHealth.html'/}
-    </div>
-
-    <div id="message"></div>
-    <div id="nodeRecoveryReady">
-        <div class="loading-box">
-            &{'systemHealth.fetchingRecoveryStatus'}&nbsp;&nbsp;#{loading /}
-        </div>
-    </div>
-</div>

@@ -2052,10 +2052,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                 for (IsilonExport exp : exports) {
                     _log.info("Discovered fS export {}", exp.toString());
-                    if (exp.getPaths() == null || exp.getPaths().isEmpty()) {
-                        _log.info("Ignoring export {} as it is not having any path", exp.getId().toString());
-                        continue;
-                    }
                     HashSet<Integer> exportIds = new HashSet<>();
                     // Ignore Export with multiple paths
                     if (exp.getPaths().size() > 1) {

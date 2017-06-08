@@ -23,7 +23,7 @@ public class CatalogServiceFieldParam {
         this.name = name;
     }
 
-    @XmlElement(name = "value", nillable=true)
+    @XmlElement(name = "value")
     public String getValue() {
         return value;
     }

@@ -66,9 +66,4 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }
     }
-
-    @Override
-    public boolean checkClusterConnectivity() {
-        return false;
-    }
 }

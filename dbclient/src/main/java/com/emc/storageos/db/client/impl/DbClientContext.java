@@ -5,6 +5,7 @@
 
 package com.emc.storageos.db.client.impl;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -16,6 +17,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.netflix.astyanax.connectionpool.*;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.KsDef;
@@ -34,10 +36,6 @@ import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.KeyspaceTracerFactory;
-import com.netflix.astyanax.connectionpool.ConnectionContext;
-import com.netflix.astyanax.connectionpool.ConnectionPool;
-import com.netflix.astyanax.connectionpool.Host;
-import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolType;
@@ -252,7 +250,9 @@ public class DbClientContext {
             int hostCount = hosts == null ? 0 : hosts.size();
             log.info(String.format("number of hosts in the hostsupplier for %s is %d", svcName, hostCount));
         }
-        Partitioner murmur3partitioner = Murmur3Partitioner.get();
+//        Partitioner murmur3partitioner = Murmur3Partitioner.get();
+        Partitioner murmur3partitioner = new CustomMurmur3Partitioner();
+
         Map<String, Partitioner> partitioners = new HashMap<>();
         partitioners.put("org.apache.cassandra.dht.Murmur3Partitioner.class.getCanonicalName()",
                 murmur3partitioner);
@@ -655,6 +655,44 @@ public class DbClientContext {
             } else {
                 otherOperations.getAndIncrement();
             }
+        }
+    }
+
+    private class CustomMurmur3Partitioner implements Partitioner {
+
+        private Partitioner  astyanaxPartitioner = Murmur3Partitioner.get();
+
+
+        private final org.apache.cassandra.dht.Murmur3Partitioner cassandraPartitioner = new org.apache.cassandra.dht.Murmur3Partitioner();
+
+        @Override
+        public String getMinToken() {
+            return astyanaxPartitioner.getMinToken();
+        }
+
+        @Override
+        public String getMaxToken() {
+            return astyanaxPartitioner.getMaxToken();
+        }
+
+        @Override
+        public String getTokenMinusOne(String token) {
+            return astyanaxPartitioner.getTokenMinusOne(token);
+        }
+
+        @Override
+        public List<TokenRange> splitTokenRange(String first, String last, int count) {
+            return astyanaxPartitioner.splitTokenRange(first, last, count);
+        }
+
+        @Override
+        public List<TokenRange> splitTokenRange(int count) {
+            return astyanaxPartitioner.splitTokenRange(count);
+        }
+
+        @Override
+        public String getTokenForKey(ByteBuffer key) {
+            return cassandraPartitioner.getToken(key).toString();
         }
     }
 }

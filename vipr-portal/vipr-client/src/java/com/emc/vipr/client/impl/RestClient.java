@@ -222,6 +222,11 @@ public class RestClient {
         return webMyRes.post(responseType, request);
     }
 
+    public <T> T postURIOctet(Class<T> responseType, Object request, URI uri) {
+        WebResource.Builder webMyRes = getClient().resource(uri).accept(config.getMediaType()).type(MediaType.APPLICATION_OCTET_STREAM);
+        return webMyRes.post(responseType, request);
+    }
+
     public void post(Object request, String path, Object... args) {
         resource(path, args).post(request);
     }

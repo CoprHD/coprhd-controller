@@ -3211,10 +3211,15 @@ test_13() {
 	storage_failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_* \
-                                    failure_018_Export_doRollbackExportCreate_before_delete"
+      storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
+    fi
+
+    if [ "${SS}" = "vnx" ]
+    then
+      storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_* \
+                                 failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"

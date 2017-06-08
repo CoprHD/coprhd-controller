@@ -65,12 +65,13 @@
         }
       }
     },
-    shareSettings:{
+    smartQuota:{
       type:"group",
       collapsed:"true",
       items:{
           directoryAcls:{
-            type:"assetType.vipr.fileCIFSDirectoryAcls"
+            type:"assetType.vipr.fileCIFSDirectoryAcls",
+            initialValue:"ApplyWindowsDefaultACLs"
           }
         }
       }

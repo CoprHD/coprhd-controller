@@ -189,7 +189,7 @@ public class FileSystemExportParam {
         this.bypassDnsCheck = bypassDnsCheck;
     }
     
-    @XmlElement(name = "all_dirs", required = false)
+    @XmlElement(name = "mount_sub_dirs", required = false)
     public boolean isMountSubDirectory() {
         return mountSubDirectory;
     }

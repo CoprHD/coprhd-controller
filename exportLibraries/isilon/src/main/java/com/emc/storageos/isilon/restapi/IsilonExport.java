@@ -223,19 +223,19 @@ public class IsilonExport {
         this.security_flavors = securityFlavors;
     }
     
-    public boolean isMap_lookup_uid() {
+    public boolean isMapLookupUid() {
         return map_lookup_uid;
     }
 
-    public void setMap_lookup_uid(boolean map_lookup_uid) {
+    public void setMapLookupUid(boolean map_lookup_uid) {
         this.map_lookup_uid = map_lookup_uid;
     }
 
-    public boolean isReturn_32bit_file_ids() {
+    public boolean isReturn32bitFileIds() {
         return return_32bit_file_ids;
     }
 
-    public void setReturn_32bit_file_ids(boolean return_32bit_file_ids) {
+    public void setReturn32bitFileIds(boolean return_32bit_file_ids) {
         this.return_32bit_file_ids = return_32bit_file_ids;
     }
 

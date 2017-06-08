@@ -1564,7 +1564,7 @@ public class StorageScheduler implements Scheduler {
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vPoolUri);
 
         String label = name + (volumeCounter > 0 ? ("-" + volumeCounter) : "");
-        // TBD Heg - Pass the performance params of parent. The FC reflects the vpool of
+        // Pass the performance params of parent. The FC reflects the vpool of
         // the parent, so should probably also reflect the performance params.
         Volume volume = prepareVolume(dbClient, null, size, project, vArray, vPool,
                 parentVolume.getPerformanceParams(), recommendation, label, null, capabilities, createInactive);

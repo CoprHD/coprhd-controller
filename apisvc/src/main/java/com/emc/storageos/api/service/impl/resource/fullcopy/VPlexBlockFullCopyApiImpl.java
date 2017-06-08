@@ -471,12 +471,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 }
                 allNewVolumes.addAll(vplexCopyHAVolumes);
 
-                // For each copy to be created, place and prepare a volume for the
-                // primary backend volume copy. When copying a distributed VPLEX
-                // volume, we also must place and prepare a volume for the HA
-                // backend volume copy. Lastly, we must prepare a volume for the
-                // VPLEX volume copy. Create descriptors for these prepared volumes
-                // and add them to the volume descriptors list.
+                // For each copy to be created, prepare a volume for the VPLEX volume copy.
+                // Create descriptors for these prepared volumes and add them to the volume 
+                // descriptors list.
                 for (int i = 0; i < count; i++) {
                     // Prepare a new VPLEX volume for each copy.
                     Volume vplexCopyPrimaryVolume = vplexCopyPrimaryVolumes.get(i);
@@ -485,8 +482,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                         vplexCopyHAVolume = vplexCopyHAVolumes.get(i);
                     }
                     Volume vplexCopyVolume = prepareFullCopyVPlexVolume(copyName, name, count, i, size, fcSourceObj,
-                            vplexSrcProject, varray, vpool, vplexSrcSystemId, vplexCopyPrimaryVolume, vplexCopyHAVolume,
-                            taskId, volumeDescriptors);
+                            vplexSrcProject, varray, vpool, capabilities, vplexSrcSystemId, vplexCopyPrimaryVolume,
+                            vplexCopyHAVolume, taskId, volumeDescriptors);
                     vplexCopyVolumes.add(vplexCopyVolume);
                     allNewVolumes.addAll(vplexCopyHAVolumes);
                 }
@@ -603,7 +600,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                     nameBuilder.append(copyIndex++);
                 }
                 
-                // This is done when creating a simple block full copy. After getting recommendations
+                // This is done for the primary side volume as well. After getting recommendations
                 // using the current allocated capacity, we reset the pre-allocation size to that of the
                 // source, so that the prepared copy volume reflects the same value as the source.
                 if (null != srcHAVolume.getThinVolumePreAllocationSize()) {
@@ -653,14 +650,29 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     private Volume prepareFullCopyVPlexVolume(String name, String fullCopySetName, int copyCount, int copyIndex,
             long size, BlockObject fcSourceObject, Project srcProject, VirtualArray srcVarray,
-            VirtualPool srcVpool, URI srcSystemURI, Volume primaryVolume, Volume haVolume,
-            String taskId, List<VolumeDescriptor> volumeDescriptors) {
+            VirtualPool srcVpool, VirtualPoolCapabilityValuesWrapper capabilities, URI srcSystemURI,
+            Volume primaryVolume, Volume haVolume, String taskId, List<VolumeDescriptor> volumeDescriptors) {
 
         // Determine the VPLEX volume copy name.
         StringBuilder nameBuilder = new StringBuilder(name);
         if (copyCount > 1) {
             nameBuilder.append("-");
             nameBuilder.append(copyIndex + 1);
+        }
+        
+        // Auto tiering policy not reflected in VPLEX volume
+        VirtualPoolCapabilityValuesWrapper vplexCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
+        vplexCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
+        
+        // This is done for the primary and HA side volumes as well. After getting recommendations
+        // for the primary and HA sides using the current allocated capacity of the volume, the
+        // pre-allocation size is set to that of its source, so that the prepared copy volume 
+        // reflects the same value as its source. We do the same for the VPLEX copy.
+        if (fcSourceObject instanceof Volume) {
+            Long preAllocSize = ((Volume)fcSourceObject).getThinVolumePreAllocationSize();
+            if (null != preAllocSize) {
+                vplexCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, preAllocSize);
+            }
         }
 
         // Prepare the VPLEX volume copy.
@@ -701,7 +713,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
 
         // Persist the copy.
-        _dbClient.persistObject(vplexCopyVolume);
+        _dbClient.updateObject(vplexCopyVolume);
 
         return vplexCopyVolume;
     }

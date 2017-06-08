@@ -5102,7 +5102,7 @@ recoverpoint_export_bookmark_tests()
     
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
         secho 'Verifying the access state of the target volume is set to READWRITE'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE        
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state READWRITE        
 
         export_group show ${rpexport}
         secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
@@ -5114,7 +5114,7 @@ recoverpoint_export_bookmark_tests()
 
         run export_group delete ${rpexport}
         secho 'Verifying the access state of the target volume is set to NOT_READY'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY   
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state NOT_READY   
 
         secho 'Finished running export RP bookmark failure tests'
 
@@ -5123,19 +5123,19 @@ recoverpoint_export_bookmark_tests()
         run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}2"        
 
         secho 'Verifying the access state of the target volume is set to READWRITE'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state READWRITE
 
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}2
         run export_group delete ${rpexport}2
 
         secho 'Verifying the access state of the target volume is set to READWRITE'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state READWRITE
 
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}1
         run export_group delete ${rpexport}
 
         secho 'Verifying the access state of the target volume is set to NOT_READY'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state NOT_READY
 
         secho 'Finished with export RP bookmark tests, cleaning up'
 
@@ -6520,7 +6520,7 @@ recoverpoint_tests()
                 fi
 
                 # Failover Test
-                recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}
+                recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]}
 
                 # Direct Access Failover Test
                 recoverpoint_direct_access_test ${rpvolume}${volume_name_modifier} ${rp_tgt_varrays} ${rp_src_varray} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP} "" 
@@ -6555,7 +6555,7 @@ recoverpoint_tests()
                 recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]} ${rpvplex_tgt_varrays[0]} ${RP_VPLEX_CONSISTENCY_GROUP}
 
                 # Failover Test
-                recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}
+                recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]}
 
                 # Direct Access Failover Test
                 recoverpoint_direct_access_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_tgt_varrays} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} "vplex"
@@ -6586,7 +6586,7 @@ recoverpoint_tests()
                 recoverpoint_auto_snapshot_cleanup_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]} ${rpmp_tgt_varrays[0]} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
                 # Failover Test
-                recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}
+                recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]}
 
                 # Direct Access Failover Test
                 recoverpoint_direct_access_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_varrays} ${rpmp_src_varray} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP} "mp"

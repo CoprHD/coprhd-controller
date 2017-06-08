@@ -545,6 +545,7 @@ public class DbServiceImpl implements DbService {
         // See https://docs.datastax.com/en/cassandra/2.0/cassandra/operations/ops_add_dc_to_cluster_t.html
         if (_schemaUtil.isStandby()) {
             System.setProperty("cassandra.auto_bootstrap", "false");
+            System.setProperty("cassandra.consistent.rangemovement", "false");
         }
         InterProcessLock lock = null;
         Configuration config = null;

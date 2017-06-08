@@ -1,0 +1,62 @@
+<div ng-controller="tabController" ng-repeat="workflowTab in workflowTabs" class="tab-pane" id="{{workflowTab.elementid}}" ng-init="initializeWorkflowData(workflowTab)">
+    <div class="builder-button-bar">
+        <div class="button-bar-container">
+            <button ng-disabled="!modified|| workflowData.state == 'PUBLISHED'" id="Save" type="button" class="btn btn-default" value="Save" ng-click="saveWorkflow();" />
+                <span ng-class="{'glyphicon-ok-sign success-icon':!modified,
+                'glyphicon-exclamation-sign warning-icon':modified && workflowData.state != 'SAVING',
+                'glyphicon-refresh rotate':workflowData.state == 'SAVING'}" class="glyphicon "></span>
+                Save
+            </button>
+            <button ng-disabled="modified || workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED'|| workflowData.state == 'TESTING'" id="Validate" type="button" class="btn btn-default" value="Validate" ng-click="validateWorkflow();" />
+                <span ng-class="{'failure-icon button-icon':workflowData.state == 'INVALID',
+                'glyphicon-ok-sign success-icon':workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED'|| workflowData.state == 'TESTING',
+                'glyphicon-refresh rotate':workflowData.state == 'VALIDATING'}" class="glyphicon"></span>
+                Validate
+            </button>
+            <button ng-disabled="modified || workflowData.state != 'VALID'" id="Test" type="button" class="btn btn-default" value="Test" ng-click="testWorkflow();" />
+                <span ng-class="{'glyphicon-ok-sign success-icon':workflowData.state == 'PUBLISHED',
+                'glyphicon-refresh rotate':workflowData.state == 'TESTING'}" class="glyphicon"></span>
+                Test
+            </button>
+            <button ng-if="workflowData.state !== 'PUBLISHED'" ng-disabled="modified || workflowData.state != 'VALID'" id="Publish" type="button" class="btn btn-default" value="Publish" ng-click="publishorkflow();" />
+                <span ng-class="{'glyphicon-ok-sign success-icon':workflowData.state == 'PUBLISHED',
+                'glyphicon-refresh rotate':workflowData.state == 'PUBLISHING'}" class="glyphicon"></span>
+                Publish
+            </button>
+            <button ng-if="workflowData.state === 'PUBLISHED'" id="Unpublish" type="button" class="btn btn-default" value="Unpublish" ng-click="unpublishWorkflow();" />
+                <span ng-class="{'glyphicon-refresh rotate':workflowData.state == 'UNPUBLISHING'}" class="glyphicon"></span>
+                Unpublish
+            </button>
+        </div>
+    </div>
+    <div class="message-bar">
+        <div class="message-bar-success" ng-if="alert.status=='SUCCESS' && showAlert">
+            <a class="glyphicon glyphicon-remove message-bar-closebtn" ng-click="closeAlert()"></a>
+            <span class="message-bar-icon glyphicon glyphicon-ok-sign" style="padding-right: 10px;"></span>
+            <div style="display:table-cell">
+                <div>{{alert.success.successMessage}}</div>
+                <div>{{alert.success.details}}</div>
+            </div>
+        </div>
+        <div class="message-bar-failure" ng-if="alert.status=='INVALID' && showAlert">
+            <a class="glyphicon glyphicon-remove message-bar-closebtn" ng-click="closeAlert()"></a>
+            <span class="message-bar-icon message-failure-icon" style="padding-right: 10px;"></span>
+            <div style="display:table-cell">
+                <div>{{alert.error.errorMessage}}</div>
+                <div>{{alert.error.details}}</div>
+            </div>
+        </div>
+    </div>
+    <div class="builder-container">
+        #{workflowDesignerMenu/}
+        <div id="sb-site" >
+            <div class="row">
+                <div class="col s12" style="padding: 0 !important;">
+                    <div class="parent">
+                        <div id="diagramContainer" class="jsPlumb-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

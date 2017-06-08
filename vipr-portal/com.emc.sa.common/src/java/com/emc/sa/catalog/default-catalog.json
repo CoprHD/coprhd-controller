@@ -698,9 +698,9 @@
           "image": "icon_delete_bucket.png",
           "baseService": "DeleteBucket"
         }
-      ]
-    },
-    {
+      ] 
+    }, 
+    { 
       "title": "guide.title",
       "image": "icon_host.png",
       "description": "guide.description",
@@ -727,7 +727,7 @@
         },
 		{
           "image": "Service_Remove_Block_Snapshot.png",
-          "baseService": "RemoveBlockSnapshot"
+          "baseService": "RemoveBlockSnapshot" 
         },
         {
           "image": "icon_host_add.png",

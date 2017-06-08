@@ -22,14 +22,14 @@ import org.apache.log4j.Logger;
 
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.util.Messages;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
 import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerForApplicationServicesMigration;
 import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigration;
-import com.emc.sa.model.dao.ModelClient;
-import com.emc.sa.util.Messages;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 

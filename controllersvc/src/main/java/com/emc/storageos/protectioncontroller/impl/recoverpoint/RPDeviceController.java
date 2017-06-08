@@ -2616,14 +2616,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     _log.info(String.format("VPLEX %s Volume [%s] to be removed from RP export group.", volume.getPersonality(), associatedVolURI));
                     Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolURI));
                     String internalSiteName = associatedVolume.getInternalSiteName();
+                    URI virtualArray = associatedVolume.getVirtualArray();
                     
-                    if (NullColumnValueGetter.isNullValue(internalSiteName)) {
-                    	// Only MetroPoint associated volumes will have the internalSiteNameSet. For VPlex distributed volumes
+                    if (!VirtualPool.vPoolSpecifiesMetroPoint(virtualPool)) {
+                    	// Only MetroPoint associated volumes will have the internalSiteName set. For VPlex distributed volumes
                     	// the parent (virtual volume) internal site name should be used.
                     	internalSiteName = volume.getInternalSiteName();
+                    	// If we are using the parent volume's internal site name, we also need to use the parent volume's virtual array.
+                    	// Again, only in the case of MetroPoint volumes would we want to use the associated volume's virtual array.
+                    	virtualArray = volume.getVirtualArray();
                     }
                     
-                    ExportGroup exportGroup = getExportGroup(rpSystem, volume.getId(), associatedVolume.getVirtualArray(),
+                    ExportGroup exportGroup = getExportGroup(rpSystem, volume.getId(), virtualArray,
                     		internalSiteName);
                     if (exportGroup != null) {
                         _log.info(String.format("Removing volume [%s] from RP export group [%s].", volume.getLabel(),

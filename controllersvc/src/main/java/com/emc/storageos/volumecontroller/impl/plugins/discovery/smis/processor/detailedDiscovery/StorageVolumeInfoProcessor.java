@@ -103,6 +103,12 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         CIMObjectPath storagePoolPath = null;
         WBEMClient client = null;
         try {
+
+            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                _logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
+                return;
+            }
+
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             client = SMICommunicationInterface.getCIMClient(keyMap);
             _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
@@ -244,8 +250,26 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             CIMInstance volumeViewInstance = null;
             try {
                 volumeViewInstance = it.next();
-                String volumeNativeGuid = getVolumeViewNativeGuid(volumeViewInstance.getObjectPath(), keyMap);
 
+                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
+                    _logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
+                    return;
+                }
+
+                String deviceId = null;
+                if (system.getUsingSmis80()) {
+                    deviceId = volumeViewInstance.getObjectPath().getKey(DEVICE_ID).getValue().toString();
+                } else {
+                    deviceId = volumeViewInstance.getObjectPath().getKey(SVDEVICEID).getValue().toString();
+                }
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(deviceId)
+                        && !DiscoveryUtils.isUnmanagedVolumeFilterMatching(getCIMPropertyValue(volumeViewInstance, "ElementName"))) {
+                    // skipping this volume because the filter doesn't match
+                    continue;
+                }
+
+                String volumeNativeGuid = getVolumeViewNativeGuid(volumeViewInstance.getObjectPath(), keyMap);
                 Volume volume = checkStorageVolumeExistsInDB(volumeNativeGuid, _dbClient);
                 // don't delete UnManaged volume object for volumes ingested with NO Public access.
                 // check for all 3 flags, just checking NO_PUBLIC_ACCESS/INTERNAL_OBJECT flag may
@@ -273,12 +297,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
 
                 // skip non-bound volumes for this pool
                 if (boundVolumes != null) {
-                    String deviceId = null;
-                    if (system.getUsingSmis80()) {
-                        deviceId = volumeViewInstance.getObjectPath().getKey(DEVICE_ID).getValue().toString();
-                    } else {
-                        deviceId = volumeViewInstance.getObjectPath().getKey(SVDEVICEID).getValue().toString();
-                    }
                     if (!boundVolumes.contains(deviceId)) {
                         _logger.info("Skipping volume, as this Volume {} is not bound to this Thin Storage Pool {}",
                                 volumeNativeGuid, pool.getLabel());

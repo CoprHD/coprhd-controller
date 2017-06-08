@@ -4,18 +4,38 @@
  */
 package com.emc.sa.model.dao;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.model.uimodels.*;
-import com.google.common.collect.Maps;
-
 import java.net.URI;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.ModelObject;
+import com.emc.storageos.db.client.model.UserPreferences;
+import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.uimodels.ApprovalRequest;
+import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionState;
+import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
+import com.emc.storageos.db.client.model.uimodels.InitialSetup;
+import com.emc.storageos.db.client.model.uimodels.ModelObjectWithACLs;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.OrderParameter;
+import com.emc.storageos.db.client.model.uimodels.RecentService;
+import com.emc.storageos.db.client.model.uimodels.VirtualMachine;
+import com.google.common.collect.Maps;
 
 /**
  * @author Chris Dail
@@ -57,6 +77,10 @@ public class ModelClient {
     private IpInterfaceFinder ipInterfaceDAO;
     private ClusterFinder clusterDAO;
     private ActionableEventFinder actionableEventDAO;
+    private CustomServicesWorkflowFinder customServicesWorkflowDAO;
+    private CustomServicesPrimitiveResourceFinder customServicesPrimitiveDAO;
+
+    private WFDirectoryFinder wfDirectoryDAO;
 
     public ModelClient(DBClientWrapper client) {
         this.client = client;
@@ -322,6 +346,28 @@ public class ModelClient {
             tenantPreferencesDAO = new TenantPreferencesFinder(client);
         }
         return tenantPreferencesDAO;
+    }
+    
+    public CustomServicesWorkflowFinder customServicesWorkflows() {
+        if(customServicesWorkflowDAO == null) {
+            customServicesWorkflowDAO = new CustomServicesWorkflowFinder(client);
+        }
+        
+        return customServicesWorkflowDAO;
+    }
+    
+    public CustomServicesPrimitiveResourceFinder customServicesPrimitiveResources() {
+        if( customServicesPrimitiveDAO == null ) {
+            customServicesPrimitiveDAO = new CustomServicesPrimitiveResourceFinder(client);
+        }
+        return customServicesPrimitiveDAO;
+    }
+
+    public WFDirectoryFinder wfDirectory() {
+        if (wfDirectoryDAO == null) {
+            wfDirectoryDAO = new WFDirectoryFinder(client);
+        }
+        return wfDirectoryDAO;
     }
 
     private <T extends DataObject> boolean isNew(T model) {

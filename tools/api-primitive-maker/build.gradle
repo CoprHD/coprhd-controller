@@ -1,0 +1,32 @@
+apply plugin:'java'
+
+ext {
+    internalLibrary = true
+}
+
+dependencies {
+    compile library(javapoet),
+            library(guava),
+            rootProject.toolsJar,
+            project(":apidocs"),
+            project(":primitives")
+}
+
+task generatePrimitives(type: Javadoc, dependsOn: [jar]) {
+    title = 'ViPR'
+    source = [
+        project(":apisvc").sourceSets.main.java.srcDirs
+    ]
+    classpath = sourceSets.main.compileClasspath
+
+    // Exclude impl directory that only contains internal tools
+    include '**/*.java'
+
+    options.doclet "com.emc.vipr.primitives.PrimitiveDoclet"
+    options.docletpath sourceSets.main.runtimeClasspath as File[]
+    options.addStringOption("subpackages", "com.emc.storageos")
+    options.addStringOption("c", "${rootProject.projectDir}/tools/apidocs/src/content")
+    options.addStringOption("d", "${rootProject.projectDir}/internalLibraries/vipr-primitives/")
+    options.quiet()
+}
+

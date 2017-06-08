@@ -17,7 +17,7 @@
     }
   }
   controlWidth = _width ?: 6
-  labelWidth = 3
+  labelWidth = _labelWidth ?: 3
   errorWidth = 12 - (controlWidth + labelWidth)
 }%
 <div id="${field.id}ControlGroup" class="form-group ${field.error ? "has-error" : ""} ${field.required ? "required" : ""}">

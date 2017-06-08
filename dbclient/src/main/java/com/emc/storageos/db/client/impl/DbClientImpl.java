@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.db.client.model.Token;
 import com.emc.storageos.db.client.model.VdcVersion;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
@@ -2043,6 +2044,8 @@ public class DbClientImpl implements DbClient {
             URI hostURI = ((HostInterface) dataObject).getHost();
             Host host = queryObject(Host.class, hostURI);
             return host == null ? null : host.getTenant();
+        } else if (dataObject instanceof UnManagedVolume) {
+            return ((UnManagedVolume) dataObject).getTransientTenantId();
         }
 
         return null;

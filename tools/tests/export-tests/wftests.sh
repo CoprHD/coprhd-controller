@@ -3724,6 +3724,17 @@ _add_to_cg_srdf() {
     done
 }
 
+# Test test_delete_srdf
+#
+# Test deleting SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Delete the SRDF volume pair
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry delete operation
 test_delete_srdf() {
     echot "Test test_delete_srdf Begins"
 

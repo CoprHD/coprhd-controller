@@ -289,7 +289,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         List<URI> allVolumes = new ArrayList<URI>();
         List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool, 
-                performanceParams, VolumeTopologySite.SOURCE, null, volRecommendations, task, vPoolCapabilities,
+                performanceParams, VolumeTopologySite.SOURCE, VolumeTopologyRole.PRIMARY, volRecommendations, task, vPoolCapabilities,
                 vPoolCapabilities.getBlockConsistencyGroup(), taskList, allVolumes, true);
         for (VolumeDescriptor desc : descriptors) {
             s_logger.info("Vplex Root Descriptors: " + desc.toString());

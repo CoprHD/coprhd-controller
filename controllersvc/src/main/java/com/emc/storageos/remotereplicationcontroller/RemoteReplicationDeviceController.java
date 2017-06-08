@@ -152,6 +152,14 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
     }
 
     @Override
+    public void stop(RemoteReplicationElement replicationElement, String opId) {
+        RemoteReplicationSuspendCompleter taskCompleter = new RemoteReplicationSuspendCompleter(replicationElement, opId);
+
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.stop(replicationElement, taskCompleter);
+    }
+
+    @Override
     public void establish(RemoteReplicationElement replicationElement, String opId) {
 
     }

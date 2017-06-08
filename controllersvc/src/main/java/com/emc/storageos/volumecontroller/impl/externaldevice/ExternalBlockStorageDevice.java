@@ -2437,6 +2437,13 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
+    public void stop(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+
+        // Todo: call deleteReplicationPairs(List<URI>, taskCompleter);
+    }
+
+
+    @Override
     public void split(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
         ElementType elementType = null;
         URI elementURI = null;

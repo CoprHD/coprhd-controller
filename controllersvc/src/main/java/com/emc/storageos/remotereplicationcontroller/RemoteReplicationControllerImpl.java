@@ -100,6 +100,11 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
     }
 
     @Override
+    public void stop(RemoteReplicationElement replicationElement, String opId) {
+        exec("stop", replicationElement, opId);
+    }
+
+    @Override
     public void establish(RemoteReplicationElement replicationElement, String opId) {
 
     }

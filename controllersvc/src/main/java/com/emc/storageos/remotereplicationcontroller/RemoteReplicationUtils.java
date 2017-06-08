@@ -548,6 +548,62 @@ public class RemoteReplicationUtils {
     }
 
     /**
+     * Delete remote replication pairs for srdf volumes.
+     *
+     * @param srdfSrcVolumes list of srdf source volumes
+     * @param srdfTgtVolumes list of srdf target volumes
+     * @param dbClient
+     */
+    public static void deleteRemoteReplicationPairForSrdfPairs(Collection<Volume> srdfSrcVolumes, Collection<Volume> srdfTgtVolumes, DbClient dbClient) {
+        List<RemoteReplicationPair> rrPairsToDelete = new ArrayList<>();
+        String logMsg;
+        try {
+            List srcUris = URIUtil.toUris(srdfSrcVolumes);
+            List tgtUris = URIUtil.toUris(srdfTgtVolumes);
+            logMsg = String.format("Delete remote replication pairs for srdf volumes --- srdf source volumes %s ; " +
+                    " \n\t\t srdf target volumes: %s ;", srcUris, tgtUris);
+            _log.info(logMsg);
+
+            for (Volume srdfSrcVolume : srdfSrcVolumes) {
+                List<RemoteReplicationPair> rrPairs;
+                URI srcUri = srdfSrcVolume.getId();
+                if (isSwapped(srcUri, dbClient)) {
+                    // this is target in rr pair
+                    // get all rr pairs where this volume is target volume (we expect only one such pair)
+                    rrPairs = getRemoteReplicationPairsForTargetElement(srcUri, dbClient);
+                    if (rrPairs != null) {
+                        for (RemoteReplicationPair rrPair : rrPairs) {
+                            if (srcUris.contains(rrPair.getSourceElement().getURI())) {
+                                rrPairsToDelete.add(rrPair);
+                            }
+                        }
+                    }
+                } else {
+                    // this is source element in rr pair
+                    // get all rr pairs where this volume is source volume (can be more than one, star replication as example)
+                    rrPairs = getRemoteReplicationPairsForSourceElement(srcUri, dbClient);
+                    if (rrPairs != null) {
+                        for (RemoteReplicationPair rrPair : rrPairs) {
+                            if (tgtUris.contains(rrPair.getTargetElement().getURI())) {
+                                rrPairsToDelete.add(rrPair);
+                            }
+                        }
+                    }
+                }
+            }
+            logMsg = String.format("Found replication pairs to delete: \n \t\t %s ", StringUtils.join(rrPairsToDelete, "\n\t\t"));
+            _log.info(logMsg);
+            // delete pairs
+            dbClient.markForDeletion(rrPairsToDelete);
+        } catch (Exception ex) {
+            String msg = String.format("Failed to delete remote replication pairs for srdf volumes .");
+            _log.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        }
+    }
+
+
+    /**
      * Builds sb sdk remote replication pair for srdf source and target volumes.
      *
      * @param inSourceUri

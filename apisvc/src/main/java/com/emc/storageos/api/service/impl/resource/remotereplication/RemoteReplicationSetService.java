@@ -651,6 +651,40 @@ public class RemoteReplicationSetService extends TaskResourceService {
         return toTask(rrSet, taskId, op);
     }
 
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/stop")
+    public TaskResourceRep stopRemoteReplicationSetLink(@PathParam("id") URI id) throws InternalException {
+        _log.info("Called: stopRemoteReplicationSetLink() with id {}", id);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
+        RemoteReplicationSet rrSet = queryResource(id);
+
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.STOP);
+
+        // Create a task for the stop remote replication set operation
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
+                taskId, ResourceOperationTypeEnum.STOP_REMOTE_REPLICATION_SET_LINK);
+
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.stopRemoteReplicationElementLink(rrElement, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            _dbClient.error(RemoteReplicationSet.class, rrSet.getId(), taskId, e);
+        }
+
+        auditOp(OperationTypeEnum.STOP_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                rrSet.getDeviceLabel(), rrSet.getStorageSystemType());
+
+        return toTask(rrSet, taskId, op);
+    }
+
+
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

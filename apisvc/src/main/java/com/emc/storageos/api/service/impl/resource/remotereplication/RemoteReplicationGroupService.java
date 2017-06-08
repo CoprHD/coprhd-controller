@@ -671,6 +671,39 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/stop")
+    public TaskResourceRep stopRemoteReplicationGroupLink(@PathParam("id") URI id) throws InternalException {
+        _log.info("Called: stopRemoteReplicationGroupLink() with id {}", id);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
+        RemoteReplicationGroup rrGroup = queryResource(id);
+
+
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.STOP);
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
+                taskId, ResourceOperationTypeEnum.STOP_REMOTE_REPLICATION_GROUP_LINK);
+
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.stopRemoteReplicationElementLink(rrElement, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
+        }
+
+        auditOp(OperationTypeEnum.STOP_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                rrGroup.getDisplayName(), rrGroup.getStorageSystemType(), rrGroup.getReplicationMode());
+
+        return toTask(rrGroup, taskId, op);
+    }
+
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/change-replication-mode")
     public TaskResourceRep changeRemoteReplicationGroupMode(@PathParam("id") URI id,
                                                             final RemoteReplicationModeChangeParam param) throws InternalException {

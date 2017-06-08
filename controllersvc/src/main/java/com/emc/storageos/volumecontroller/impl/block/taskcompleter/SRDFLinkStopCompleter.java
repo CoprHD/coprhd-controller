@@ -7,12 +7,16 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +78,7 @@ public class SRDFLinkStopCompleter extends SRDFTaskCompleter {
                         recordSRDFOperation(dbClient, OperationTypeEnum.STOP_SRDF_LINK, status, source.getId().toString(), target
                                 .getId().toString());
                     }
+                    break;
                 default:
                     _log.info("Unable to handle SRDF Link Stop Operational status: {}", status);
             }
@@ -82,8 +87,20 @@ public class SRDFLinkStopCompleter extends SRDFTaskCompleter {
             _log.error("Failed updating status. SRDFMirrorStop {}, for task " + getOpId(), getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
+            if (status.equals(Operation.Status.ready)) {
+                _log.info("Process remote replication pairs for srdf link stop. Status: {}", status);
+                try {
+                    // at this point we are done with all db updates for SRDF volumes, now delete remote replication pairs
+                    RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPairs(srcVolumes, tgtVolumes, dbClient);
+                } catch (Exception ex) {
+                    ServiceError error = SmisException.errors.jobFailed(ex.getMessage());
+                    this.error(dbClient, error);
+                }
+            }
         }
     }
+
+
 
     @Override
     protected Volume.LinkStatus getVolumeSRDFLinkStatusForSuccess() {

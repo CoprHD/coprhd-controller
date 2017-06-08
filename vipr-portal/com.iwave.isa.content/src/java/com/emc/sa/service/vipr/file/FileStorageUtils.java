@@ -124,6 +124,13 @@ public class FileStorageUtils {
                 shareAcl.setDomain(fileSystemACL.aclDomain);
             }
             shareAcl.setPermission(fileSystemACL.aclPermission);
+
+            if (StringUtils.isEmpty(fileSystemACL.runAsRoot)) {
+                shareAcl.setRunAsRoot(false);
+            } else {
+                shareAcl.setRunAsRoot(Boolean.valueOf(fileSystemACL.runAsRoot));
+            }
+
             aclList.add(shareAcl);
         }
         aclsToAdd.setShareACLs(aclList);
@@ -249,7 +256,7 @@ public class FileStorageUtils {
         addAffectedResource(response);
         logInfo("file.storage.task", response.getOpId());
     }
-    
+
     public static void reduceFileSystem(URI fileSystemId, double sizeInGb) {
         String newSize = String.valueOf(DiskSizeConversionUtils.gbToBytes(sizeInGb));
         Task<FileShareRestRep> response = execute(new ReduceFileSystem(fileSystemId, newSize));
@@ -733,6 +740,9 @@ public class FileStorageUtils {
 
         @Param
         public String aclPermission;
+
+        @Param
+        public String runAsRoot;
     }
 
     public static class FileExportRule {

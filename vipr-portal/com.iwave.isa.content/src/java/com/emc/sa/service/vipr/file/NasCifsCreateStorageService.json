@@ -70,7 +70,13 @@
         aclPermission:{
           type:"assetType.vipr.fileShareACLPermission",
           initialValue:"CHANGE"
-        }
+        },
+        
+        runAsRoot: {
+          type: "boolean",
+          initialValue: "false",
+          required: false,
+          lockable: true
       }
     },
     

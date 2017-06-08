@@ -1666,12 +1666,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // and it's using cascading storage groups.
                             if (rule == 2) {
                                 // if it is a cascaded SG, mask need to be selected
-                                if (!policy.simpleMask) {
+                                // VMAX3: Phantom SGs are not created for VMAX3, so ignore the mask
+                                if (!policy.simpleMask &&
+                                        !(isVMAX3 && ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType()))) {
                                     _log.info("Pre-existing mask Matched rule 2A: volume has FAST policy and masking view has cascaded storage group");
-                                    // No need to check for phantom SGs for VMAX3
-                                    // Host IO limits cannot be associated to
-                                    // phantom SGs, hence verify if IO limit set on the SG within MV if not we need to create a new Masking
-                                    // view.
+                                    // Host IO limits cannot be associated to phantom SGs,
+                                    // hence verify if IO limit set on the SG within MV if not we need to create a new Masking view.
                                     if (!isVMAX3 && ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType())) {
                                         if (virtualPool != null) {
                                             if (HostIOLimitsParam.isEqualsLimit(policy.getHostIOLimitBandwidth(),

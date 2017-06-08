@@ -1967,7 +1967,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         OperationToolkit toolkit = new OperationToolkit() {
             @Override
             protected DriverTask doOperation() {
-                return driver.split(Collections.unmodifiableList(driverRRPairs), context, null);
+                return getDriver().split(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
         toolkit.processSyncTask(replicationElement, taskCompleter, "split");
@@ -1980,7 +1980,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         OperationToolkit toolkit = new OperationToolkit() {
             @Override
             protected DriverTask doOperation() {
-                return driver.suspend(Collections.unmodifiableList(driverRRPairs), context, null);
+                return getDriver().suspend(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
         toolkit.processSyncTask(replicationElement, taskCompleter, "suspend");
@@ -1993,7 +1993,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         OperationToolkit toolkit = new OperationToolkit() {
             @Override
             protected DriverTask doOperation() {
-                return driver.resume(Collections.unmodifiableList(driverRRPairs), context, null);
+                return getDriver().resume(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
         toolkit.processSyncTask(replicationElement, taskCompleter, "resume");
@@ -2006,7 +2006,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         OperationToolkit toolkit = new OperationToolkit() {
             @Override
             protected DriverTask doOperation() {
-                return driver.failover(Collections.unmodifiableList(driverRRPairs), context, null);
+                return getDriver().failover(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
         toolkit.processSyncTask(replicationElement, taskCompleter, "failover");
@@ -2019,7 +2019,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         OperationToolkit toolkit = new OperationToolkit() {
             @Override
             protected DriverTask doOperation() {
-                return driver.failback(Collections.unmodifiableList(driverRRPairs), context, null);
+                return getDriver().failback(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
         toolkit.processSyncTask(replicationElement, taskCompleter, "failback");
@@ -2032,7 +2032,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         OperationToolkit toolkit = new OperationToolkit() {
             @Override
             protected DriverTask doOperation() {
-                return driver.swap(Collections.unmodifiableList(driverRRPairs), context, null);
+                return getDriver().swap(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
         toolkit.processSyncTask(replicationElement, taskCompleter, "swap");
@@ -2351,15 +2351,27 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
         private URI elementURI;
         private ElementType elementType;
-        protected TaskCompleter taskCompleter;
+        private TaskCompleter taskCompleter;
         private String operation;
 
-        protected RemoteReplicationDriver driver;
-        protected RemoteReplicationOperationContext context;
+        private RemoteReplicationDriver driver;
+        private RemoteReplicationOperationContext context;
         private RemoteReplicationSet replicationSet;
         private RemoteReplicationGroup replicationGroup;
         private List<RemoteReplicationPair> systemRRPairs;
-        protected List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
+        private List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
+
+        protected List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> getDriverRRPairs() {
+            return driverRRPairs;
+        }
+
+        protected RemoteReplicationDriver getDriver() {
+            return driver;
+        }
+
+        protected RemoteReplicationOperationContext getContext() {
+            return context;
+        }
 
         /**
          * Get all necessary parameters prepared to do the operation.
@@ -2378,7 +2390,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 case REPLICATION_GROUP:
                     replicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
                     StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, replicationGroup.getSourceSystem());
-                    driver = (RemoteReplicationDriver) getDriver(sourceSystem.getSystemType());
+                    driver = (RemoteReplicationDriver) ExternalBlockStorageDevice.this.getDriver(sourceSystem.getSystemType());
                     systemRRPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
                             RemoteReplicationPair.class, "replicationGroup");
                     validateSystemPairs(systemRRPairs);
@@ -2393,7 +2405,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     URI sourceVolumeURI = replicationPair.getSourceElement().getURI();
                     Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeURI);
                     sourceSystem = dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
-                    driver = (RemoteReplicationDriver) getDriver(sourceSystem.getSystemType());
+                    driver = (RemoteReplicationDriver) ExternalBlockStorageDevice.this.getDriver(sourceSystem.getSystemType());
                     context = initializeContext(systemRRPairs.get(0),
                             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR);
                     break;
@@ -2401,7 +2413,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 case CONSISTENCY_GROUP:
                     BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, elementURI);
                     sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
-                    driver = (RemoteReplicationDriver) getDriver(sourceSystem.getSystemType());
+                    driver = (RemoteReplicationDriver) ExternalBlockStorageDevice.this.getDriver(sourceSystem.getSystemType());
                     systemRRPairs = RemoteReplicationUtils.getRemoteReplicationPairsForSourceCG(cg, dbClient);
                     validateSystemPairs(systemRRPairs);
                     context = initializeContext(systemRRPairs.get(0),
@@ -2410,7 +2422,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
                 case REPLICATION_SET:
                     replicationSet = dbClient.queryObject(RemoteReplicationSet.class, elementURI);
-                    driver = (RemoteReplicationDriver) getDriver(replicationSet.getStorageSystemType());
+                    driver = (RemoteReplicationDriver) ExternalBlockStorageDevice.this.getDriver(replicationSet.getStorageSystemType());
                     systemRRPairs = RemoteReplicationUtils.findAllRemoteRepliationPairsByRrSet(elementURI, dbClient);
                     validateSystemPairs(systemRRPairs);
                     context = initializeContext(systemRRPairs.get(0),

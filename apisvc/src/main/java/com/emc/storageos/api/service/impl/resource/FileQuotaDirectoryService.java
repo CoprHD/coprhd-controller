@@ -277,22 +277,33 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         if (param.getSoftLimit() != 0L) {
             ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
         }
+        
+        int fsSoftLimit = -1;
+        if(null != fs.getSoftLimit()) {
+        	fsSoftLimit = fs.getSoftLimit().intValue();
+        }
+        
+        int fsNotifiLimit = -1;
+        if(null != fs.getNotificationLimit()) {
+        	fsNotifiLimit = fs.getNotificationLimit().intValue();
+        }
+        
         quotaDir.setSoftLimit(param.getSoftLimit()>0 ? param.getSoftLimit()
-                : quotaDir.getSoftLimit()>0 ? quotaDir.getSoftLimit() : fs.getSoftLimit().intValue()>0 ? fs.getSoftLimit().intValue() : 0);
+                : quotaDir.getSoftLimit()>0 ? quotaDir.getSoftLimit() : fsSoftLimit>0 ? fsSoftLimit : 0);
         quotaDir.setSoftGrace(param.getSoftGrace()>0 ? param.getSoftGrace()
                 : quotaDir.getSoftGrace()>0? quotaDir.getSoftGrace()
                         : fs.getSoftGracePeriod()>0 ? fs.getSoftGracePeriod() : 0);
         quotaDir.setNotificationLimit(param.getNotificationLimit()>0 ? param.getNotificationLimit()
                 : quotaDir.getNotificationLimit()>0 ? quotaDir.getNotificationLimit()
-                        : fs.getNotificationLimit().intValue()>0 ? fs.getNotificationLimit().intValue() : 0);
+                        : fsNotifiLimit>0 ? fsNotifiLimit : 0);
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR);
         quotaDir.getOpStatus().createTaskStatus(task, op);
         fs.setOpStatus(new OpStatusMap());
         fs.getOpStatus().createTaskStatus(task, op);
-        _dbClient.persistObject(fs);
-        _dbClient.persistObject(quotaDir);
-
+        _dbClient.updateObject(fs);
+        _dbClient.updateObject(quotaDir);
+        
         // Create an object of type "FileShareQtree" to be passed into the south-bound layers.
         FileShareQuotaDirectory qt = new FileShareQuotaDirectory(quotaDir);
 

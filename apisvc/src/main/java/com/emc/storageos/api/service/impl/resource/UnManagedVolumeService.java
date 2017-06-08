@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -263,6 +264,10 @@ public class UnManagedVolumeService extends TaskResourceService {
                             requestContext.getCurrentUnManagedVolumeUri());
                     continue;
                 }
+
+                unManagedVolume.setTransientTenantId(tenant.getId().toString());
+                _dbClient.updateObject(unManagedVolume);
+
                 String taskId = UUID.randomUUID().toString();
                 Operation operation = _dbClient.createTaskOpStatus(UnManagedVolume.class,
                         unManagedVolume.getId(), taskId, ResourceOperationTypeEnum.INGEST_VOLUMES);
@@ -389,6 +394,9 @@ public class UnManagedVolumeService extends TaskResourceService {
                             requestContext.getCurrentUnManagedVolumeUri());
                     continue;
                 }
+
+                unManagedVolume.setTransientTenantId(tenant.getId().toString());
+                _dbClient.updateObject(unManagedVolume);
 
                 String taskId = UUID.randomUUID().toString();
                 Operation operation = _dbClient.createTaskOpStatus(UnManagedVolume.class,

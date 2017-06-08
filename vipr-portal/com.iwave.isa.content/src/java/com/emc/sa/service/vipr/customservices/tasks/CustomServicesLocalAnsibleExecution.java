@@ -74,7 +74,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getFriendlyName());
         this.orderDir = orderDir;
         final String folderUniqueStep = step.getId().replace("-", "");
         this.chrootOrderDir = String.format("%s%s/%s/", CustomServicesConstants.CHROOT_ORDER_DIR_PATH,

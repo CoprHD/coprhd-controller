@@ -70,7 +70,7 @@ public class WorkflowServiceDescriptor {
         log.debug("Getting workflow descriptor for {}", serviceName);
         List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(serviceName);
         if (null == results || results.isEmpty()) {
-            return null;
+            throw new IllegalStateException(String.format("No workflow with the name %s", serviceName));
         }
         if (results.size() > 1) {
             throw new IllegalStateException(String.format("Multiple workflows with the name %s", serviceName));
@@ -79,7 +79,7 @@ public class WorkflowServiceDescriptor {
         return mapWorkflowToServiceDescriptor(customServicesWorkflow);
     }
 
-    // This method will only return service descriptors for PUBLISHED workflwos
+    // This method will only return service descriptors for PUBLISHED workflows
     public Collection<ServiceDescriptor> listDescriptors() {
         List<ServiceDescriptor> wfServiceDescriptors = new ArrayList<>();
         List<NamedElement> oeElements = customServicesWorkflowManager.listByStatus(CustomServicesWorkflowStatus.PUBLISHED);

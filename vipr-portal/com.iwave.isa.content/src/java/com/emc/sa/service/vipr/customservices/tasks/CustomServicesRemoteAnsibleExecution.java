@@ -54,7 +54,7 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getFriendlyName());
     }
 
     @Override

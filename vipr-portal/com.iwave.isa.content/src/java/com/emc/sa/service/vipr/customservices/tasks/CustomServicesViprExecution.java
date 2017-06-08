@@ -72,7 +72,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         }
         this.primitive = (CustomServicesViPRPrimitive) primitive;
         this.client = client;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getFriendlyName());
     }
 
     @Override

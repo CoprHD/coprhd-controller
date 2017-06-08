@@ -188,7 +188,7 @@ public class CustomServicesService extends ViPRService {
                 next = getNext(false, null, step);
             }
             if (next == null) {
-                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id" + step.getId()
+                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id" + step.getId() + "\t Step Name:" + step.getFriendlyName()
                 + "Failed. Failing the Workflow");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Workflow Execution failed");
             }
@@ -264,12 +264,12 @@ public class CustomServicesService extends ViPRService {
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
         if (status) {
-            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step.getId(), result.getReturnCode());
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step.getId()+ "\t Step Name:" + step.getFriendlyName(), result.getReturnCode());
 
             return step.getNext().getDefaultStep();
         }
 
-        ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId());
+        ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId()+ "\t Step Name:" + step.getFriendlyName());
 
         return step.getNext().getFailedStep();
     }

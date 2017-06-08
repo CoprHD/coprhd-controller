@@ -55,7 +55,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         this.step = step;
         this.coordinator = coordinator;
         this.dbClient = dbClient;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getFriendlyName());
     }
 
     @Override

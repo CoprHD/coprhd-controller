@@ -60,7 +60,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getFriendlyName());
     }
 
 

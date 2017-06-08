@@ -668,18 +668,27 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // for the primary and HA sides using the current allocated capacity of the volume, the
         // pre-allocation size is set to that of its source, so that the prepared copy volume 
         // reflects the same value as its source. We do the same for the VPLEX copy.
+        URI performanceParamsURI = null;
         if (fcSourceObject instanceof Volume) {
             Long preAllocSize = ((Volume)fcSourceObject).getThinVolumePreAllocationSize();
             if (null != preAllocSize) {
                 vplexCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, preAllocSize);
             }
+            
+            // Also, set performance params of VPLEX source volume.
+            performanceParamsURI = ((Volume)fcSourceObject).getPerformanceParams();
+        } else {
+            // Set performance params URI to that of snapshot parent, which will be the
+            // same as that of the snapshot source VPLEX volume.
+            URI parentURI = ((BlockSnapshot)fcSourceObject).getParent().getURI();
+            Volume parentVolume = _dbClient.queryObject(Volume.class, parentURI);
+            performanceParamsURI = parentVolume.getPerformanceParams();
         }
 
         // Prepare the VPLEX volume copy.
-        Volume vplexCopyVolume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
-                srcProject, srcVarray, srcVpool, srcSystemURI,
-                NullColumnValueGetter.getNullURI(), nameBuilder.toString(),
-                ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY, taskId, _dbClient);
+        Volume vplexCopyVolume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size, srcProject, srcVarray, 
+                srcVpool, performanceParamsURI, vplexCapabilities, srcSystemURI, NullColumnValueGetter.getNullURI(),
+                nameBuilder.toString(), ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY, taskId, _dbClient);
 
         // Create a volume descriptor and add it to the passed list.
         VolumeDescriptor vplexCopyVolumeDescr = new VolumeDescriptor(

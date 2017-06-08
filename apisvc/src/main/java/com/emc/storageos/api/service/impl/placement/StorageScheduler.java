@@ -1549,11 +1549,10 @@ public class StorageScheduler implements Scheduler {
         URI projectUri = sourceSnapshot.getProject().getURI();
         long size = sourceSnapshot.getProvisionedCapacity();
         long preAllocateSize = sourceSnapshot.getAllocatedCapacity();
-        // TBD Heg - Hmmmm, seems it should already be set to this? Also, when preparing the 
-        // full copy volume from a volume source, the pre-allocation size is set to that 
-        // of the source volume, so that the FC volume would reflect the same preallocation
-        // size as the source. So, why not do the same here and use the preallocation size
-        // of the parent volume of the snapshot.
+        // TBD Heg - When preparing the full copy volume from a volume source, the pre-allocation size is 
+        // set to that of the source volume, so that the FC volume would reflect the same preallocation
+        // size as the source. So, why not do the same here and use the preallocation size of the parent
+        // volume of the snapshot.
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, preAllocateSize);
 
         Project project = dbClient.queryObject(Project.class, projectUri);

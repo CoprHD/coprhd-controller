@@ -127,4 +127,12 @@ public interface IsilonExceptions {
     public IsilonException processErrorResponseFromIsilonMsg(final String opKey, final String objKey,
             final int httpStatus, final URI baseUrl, final String errorEntity);
 
+    @DeclareServiceCode(ServiceCode.ISILON_INFO_ERROR)
+    public IsilonException unableToGetIsilonLicenseInfo(final String respone, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.ISILON_INFO_ERROR)
+    public IsilonException unableToGetIsilonResourceSettingInfo(final String respone, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.ISILON_INFO_ERROR)
+    public IsilonException unableToGetIsilonSmartConnectInfo(final String msg, final Throwable cause);
 }

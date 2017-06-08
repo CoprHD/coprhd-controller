@@ -444,6 +444,7 @@ public class IsilonMirrorOperations {
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("doStartReplicationPolicy failed.", e);
+            e.getServiceCode().getSummary();
             return BiosCommandResult.createErrorResult(e);
         }
     }

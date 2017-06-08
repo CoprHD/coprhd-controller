@@ -1583,8 +1583,11 @@ public class IsilonApi {
                     IsilonSmartConnectInfo.class);
             return info;
         } catch (Exception e) {
+            if (e.getCause() instanceof ConnectException) {
+                throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            }
             String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
-            throw IsilonException.exceptions.getStorageConnectionInfoFailedOnIsilonArrayExc(response, e);
+            throw IsilonException.exceptions.unableToGetIsilonSmartConnectInfo(response, e);
         } finally {
             if (clientResp != null) {
                 clientResp.close();
@@ -1596,9 +1599,9 @@ public class IsilonApi {
         ClientResponse clientResp = null;
         try {
             clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_PORTS));
-            if (clientResp.getStatus() != 200) {
-                sLogger.debug("Response: Exception :" + clientResp.toString());
-                throw new IsilonException(clientResp.getStatus() + "");
+            if (null !=clientResp && clientResp.getStatus() != 200 && clientResp.getStatus() != 204 ) {
+                processErrorResponse("get", "smartconnect_zones", clientResp.getStatus(),
+                        clientResp.hasEntity() ? clientResp.getEntity(JSONObject.class) : null);
             }
 
             IsilonSmartConnectInfoV2 info = null;
@@ -1618,8 +1621,11 @@ public class IsilonApi {
             }
             return info;
         } catch (Exception e) {
+            if (e.getCause() instanceof ConnectException) {
+                throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            }
             String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
-            throw new IsilonException(response, e);
+            throw IsilonException.exceptions.unableToGetIsilonSmartConnectInfo(response, e);
         } finally {
             if (clientResp != null) {
                 clientResp.close();
@@ -1954,7 +1960,10 @@ public class IsilonApi {
                 resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
             }
             sLogger.debug("IsilonApi check nfsV4 support retrieve global status - complete");
-
+            if (resp.getStatus() != 200 && resp.getStatus() != 204 ) {
+                processErrorResponse("get", "nfs-settings", resp.getStatus(),
+                        resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);
+            }
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
 
             isNfsv4Enabled = Boolean.parseBoolean(jsonResp.getJSONObject(
@@ -1964,12 +1973,17 @@ public class IsilonApi {
                     isNfsv4Enabled);
 
         } catch (Exception e) {
-            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            if (e.getCause() instanceof ConnectException) {
+                throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            }
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.unableToGetIsilonResourceSettingInfo(response, e);
         } finally {
             if (resp != null) {
                 resp.close();
             }
         }
+        sLogger.info("Isilon Nfsv4 is enabled : {}", String.valueOf(isNfsv4Enabled));
         return isNfsv4Enabled;
     }
 
@@ -1986,6 +2000,10 @@ public class IsilonApi {
             // Verify the Sync service is enable or not
             // JSON response for the below should have service=on
             resp = _client.get(_baseUrl.resolve(URI_SYNCIQ_SERVICE_STATUS));
+            if (null !=resp && resp.getStatus() != 200 && resp.getStatus() != 204 ) {
+                processErrorResponse("get", "sync-settings", resp.getStatus(),
+                        resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);
+            }
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
             if (jsonResp.has("settings") && jsonResp.getJSONObject("settings") != null) {
                 if (jsonResp.getJSONObject("settings").has("service")) {
@@ -1999,12 +2017,17 @@ public class IsilonApi {
                 }
             }
         } catch (Exception e) {
-            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            if (e.getCause() instanceof ConnectException) {
+                throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            }
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.unableToGetIsilonResourceSettingInfo(response, e);
         } finally {
             if (resp != null) {
                 resp.close();
             }
         }
+        sLogger.info("Isilon SynqIQ is enabled : {}", String.valueOf(isSyncIqEnabled));
         return isSyncIqEnabled;
     }
 
@@ -2018,12 +2041,31 @@ public class IsilonApi {
 
     public String getReplicationLicenseInfo() throws IsilonException, JSONException {
         String licenseStatus = "Unknown";
-        ClientResponse clientResp = _client.get(_baseUrl.resolve(URI_REPLICATION_LICENSE_INFO));
-        JSONObject jsonResp = clientResp.getEntity(JSONObject.class);
-        if (jsonResp.has("status")) {
-            licenseStatus = jsonResp.get("status").toString();
-            return licenseStatus;
+        ClientResponse clientResp = null;
+        JSONObject jsonResp = null;
+        try {
+            clientResp = _client.get(_baseUrl.resolve(URI_REPLICATION_LICENSE_INFO));
+            if (clientResp.getStatus() != 200 && clientResp.getStatus() != 204 ) {
+                processErrorResponse("get", "sync-license", clientResp.getStatus(),
+                        clientResp.hasEntity() ? clientResp.getEntity(JSONObject.class) : null);
+            }
+            jsonResp = clientResp.getEntity(JSONObject.class);
+            if (jsonResp.has("status")) {
+                licenseStatus = jsonResp.get("status").toString();
+                return licenseStatus;
+            }
+        } catch (Exception e) {
+            if (e.getCause() instanceof ConnectException) {
+                throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            }
+            String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
+            throw IsilonException.exceptions.unableToGetIsilonLicenseInfo(response, e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
         }
+        sLogger.info("Isilon SynqIQ license status is  {}", licenseStatus);
         return licenseStatus;
     }
 
@@ -2227,18 +2269,27 @@ public class IsilonApi {
         try {
             // Verify whether specified license is activated on ISILON array or not
             resp = _client.get(_baseUrl.resolve(licenseMap.get(licenseType)));
+            if (resp.getStatus() != 200 && resp.getStatus() != 204 ) {
+                processErrorResponse("get", "license", resp.getStatus(),
+                        resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);
+            }
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
             if (jsonResp.has("status")) {
                 licenseStatus = jsonResp.get("status").toString();
                 return licenseStatus;
             }
         } catch (Exception e) {
-            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            if (e.getCause() instanceof ConnectException) {
+                throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            }
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.unableToGetIsilonLicenseInfo(response, e);
         } finally {
             if (resp != null) {
                 resp.close();
             }
         }
+        sLogger.info("Isilon {} license status is  {}", licenseType.toString(), licenseStatus);
         return licenseStatus;
     }
 
@@ -2256,12 +2307,20 @@ public class IsilonApi {
         try {
             // Verify whether SnapshotIQ service is enabled on ISILON array or not
             resp = _client.get(_baseUrl.resolve(URI_SNAPSHOTIQ_LICENSE_INFO));
+            if (resp.getStatus() != 200 && resp.getStatus() != 204 ) {
+                processErrorResponse("get", "snapshot-license", resp.getStatus(),
+                        resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);
+            }
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
             if (jsonResp.has("status")) {
                 licenseStatus = jsonResp.get("status").toString();
             }
         } catch (Exception e) {
-            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            if (e.getCause() instanceof ConnectException) {
+                throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            }
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.unableToGetIsilonLicenseInfo(response, e);
         } finally {
             if (resp != null) {
                 resp.close();

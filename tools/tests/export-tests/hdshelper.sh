@@ -10,7 +10,8 @@
 #
 # Usage: ./hdshelper.sh verify_export <HOST_STORAGE_DOMAIN (hds1 hsd2 ...)> <SYS_NATIVE_ID> <SYS_MODEL> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
 #        ./hdshelper.sh get_hlus <HOST_STORAGE_DOMAIN (hds1 hsd2 ...)> <SYS_NATIVE_ID> <SYS_MODEL>
-#
+#        ./hdshelper.sh create_volume <NAME> <SIZE> <IS_THIN_VOL> <POOL_ID> <SYS_NATIVE_ID> <SYS_MODEL>
+#        ./hdshelper.sh delete_volume <DEVICE_ID> <SYS_NATIVE_ID> <SYS_MODEL>
 #set -x
 
 TMPFILE1=/tmp/verify-${RANDOM}
@@ -130,6 +131,26 @@ get_hlus() {
     echo $hlus
 }
 
+create_volume() {
+    volume_name=$1
+    size=$2
+	thin_vol=$3
+    pool=$4
+	sys=$5
+	model=$6
+
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method create_volume -params "${volume_name},${size},${thin_vol},${pool},${sys},${model}" > ${TMPFILE1} 2> ${TMPFILE2}
+    echo `tail -1 ${TMPFILE1}`
+}
+
+delete_volume() {
+    device_id=$1
+	thin_vol=$2
+	sys=$3
+	model=$4
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method delete_volume -params "${device_id},${thin_vol},${sys},${model}" > ${TMPFILE1} 2> ${TMPFILE2}
+}
+
 # Check to see if this is an operational request or a verification of export request
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tools_file="${DIR}/tools.yml"
@@ -154,7 +175,7 @@ fi
 
 if [[ $# -lt 4 ]]; then
     echo "Missing operation/params"
-    echo "Usage: $0 [verify_export | get_hlus] {params}"
+    echo "Usage: $0 [verify_export | get_hlus | create_volume | delete_volume] {params}"
     exit 1
 fi
 
@@ -164,6 +185,12 @@ if [ "$1" = "verify_export" ]; then
 elif [ "$1" = "get_hlus" ]; then
     shift
     get_hlus "$1" "$2" "$3"
+elif [ "$1" = "create_volume" ]; then
+    shift
+    create_volume "$1" "$2" "$3" "$4" "$5" "$6"
+elif [ "$1" = "delete_volume" ]; then
+    shift
+    delete_volume "$1" "$2" "$3" "$4"
 else
-    echo "Usage: $0 [verify_export | get_hlus] {params}"
+    echo "Usage: $0 [verify_export | get_hlus | create_volume | delete_volume] {params}"
 fi

@@ -2359,7 +2359,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         private RemoteReplicationSet replicationSet;
         private RemoteReplicationGroup replicationGroup;
         private List<RemoteReplicationPair> systemRRPairs;
-        protected List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs;
+        protected List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
 
         /**
          * Get all necessary parameters prepared to do the operation.

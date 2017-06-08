@@ -254,7 +254,7 @@ public class DbClientContext {
         Partitioner murmur3partitioner = new CustomMurmur3Partitioner();
 
         Map<String, Partitioner> partitioners = new HashMap<>();
-        partitioners.put("org.apache.cassandra.dht.Murmur3Partitioner.class.getCanonicalName()",
+        partitioners.put(org.apache.cassandra.dht.Murmur3Partitioner.class.getCanonicalName(),
                 murmur3partitioner);
 
         ConsistencyLevel readCL = ConsistencyLevel.CL_LOCAL_QUORUM;

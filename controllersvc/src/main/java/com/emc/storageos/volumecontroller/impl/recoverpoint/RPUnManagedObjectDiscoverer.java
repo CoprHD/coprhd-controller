@@ -125,11 +125,6 @@ public class RPUnManagedObjectDiscoverer {
                     return;
                 }
 
-                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(cg.getCgName())) {
-                    // skipping this ConsistencyGroup because the filter doesn't match
-                    continue;
-                }
-
                 log.info("Processing returned CG: " + cg.getCgName());
                 boolean newCG = false;
 

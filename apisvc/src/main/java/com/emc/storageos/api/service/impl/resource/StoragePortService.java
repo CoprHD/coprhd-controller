@@ -838,9 +838,9 @@ public class StoragePortService extends TaggedResource {
                                 mask.getId(), ExportGroup.class, "exportMasks");
                         for (ExportGroup group : groups) {
                             // Determine the Varray of the ExportMask.
-                            URI varray = group.getVirtualArray();
-                            if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varray)) {
-                                _log.info("not all target ports of {} are tagged for varray {}", mask, varray);
+                            URI varrayUri = group.getVirtualArray();
+                            if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varrayUri)) {
+                                _log.info("not all target ports of {} are tagged for varray {}", mask, varrayUri);
                                 // See if in alternate virtual array
                                 if (group.getAltVirtualArrays() != null) {
                                     String altVarray = group.getAltVirtualArrays().get(storagePort.getStorageDevice().toString());
@@ -848,21 +848,22 @@ public class StoragePortService extends TaggedResource {
                                         URI altVarrayUri = URI.create(altVarray);
                                         if (ExportMaskUtils.exportMaskInVarray(_dbClient, mask, altVarrayUri)) {
                                             _log.info("using the export group's alternate varray: {}", altVarrayUri);
-                                            varray = altVarrayUri;
+                                            varrayUri = altVarrayUri;
                                         }
                                     }
                                 }
                             }
-                            _log.info("the virtual array found for this port is {}", varray);
+                            _log.info("the virtual array found for this port is {}", varrayUri);
 
                             // only error if the ports ends up in a state where it can no longer be used in the varray
                             // if removing the varrays reverts the port to using implicit varrays which contains the
                             // export, then it is all good.
-                            if (!group.getInactive() && !storagePort.getTaggedVirtualArrays().contains(varray.toString())) {
-                                VirtualArray virtualArray = _dbClient.queryObject(VirtualArray.class, varray);
+                            if (!group.getInactive() && !storagePort.getTaggedVirtualArrays().contains(varrayUri.toString())) {
+                                VirtualArray virtualArray = _dbClient.queryObject(VirtualArray.class, varrayUri);
                                 _log.warn("The port {} is in use by export group {} in virtual array {} " +
                                         "which will no longer be in the port's tagged varrays",
-                                        storagePort.forDisplay(), group.forDisplay(), virtualArray.forDisplay());
+                                        storagePort.forDisplay(), group.forDisplay(), 
+                                        virtualArray != null ? virtualArray.forDisplay() : varrayUri);
                                 boolean isEmptyVplexBackendExport = 
                                         ExportMaskUtils.isBackendExportMask(_dbClient, mask)
                                             && !mask.hasAnyUserAddedVolumes();

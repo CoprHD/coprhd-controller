@@ -586,15 +586,8 @@ vplex_sim_setup() {
     FC_ZONE_A=${CLUSTER1NET_NAME}
     FC_ZONE_B=${CLUSTER2NET_NAME}
     run neighborhood create $VPLEX_VARRAY1
-    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
-    run transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
     secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
     run neighborhood create $VPLEX_VARRAY2
-    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-    run transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-    # Assign both networks to both transport zones
-    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY2
-    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY1
 
     secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
     run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
@@ -605,14 +598,15 @@ vplex_sim_setup() {
     run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
     run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
     run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
+    run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH
 
     run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
     run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
     run storageport update $VPLEX_GUID FC --group director-2-2-A --addvarrays $VPLEX_VARRAY2
     run storageport update $VPLEX_GUID FC --group director-2-2-B --addvarrays $VPLEX_VARRAY2
-    run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
     run storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
-    #run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    run storageport update $VPLEX_SIM_VMAX6_NATIVEGUID FC --addvarrays $NH2
+    run storageport update $VPLEX_SIM_VMAX7_NATIVEGUID FC --addvarrays $NH2
 
     common_setup
 
@@ -697,9 +691,6 @@ vplex_sim_setup() {
                              --max_mirrors 0                                        \
                              --expandable true
 
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
-
             secho "Setting up the virtual pool for distributed VPLEX change vpool"
             run cos create block $VPOOL_CHANGE true                                \
                              --description 'vpool-change-for-vplex-distributed-volumes'    \
@@ -713,9 +704,6 @@ vplex_sim_setup() {
                              --max_snapshots 1                                      \
                              --max_mirrors 0                                        \
                              --expandable true
-
-            run cos update block $VPOOL_CHANGE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
-            run cos update block $VPOOL_CHANGE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
         ;;
         *)
             secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"

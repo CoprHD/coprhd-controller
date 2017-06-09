@@ -4074,7 +4074,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // A new task will be generated to track each Journal migration.
             Set<URI> cgURIs = BlockConsistencyGroupUtils.getAllCGsFromVolumes(volumes);
             rpVPlexJournalMigrations(journalMigrationsExist, journalVpoolMigrations, singleMigrations,
-                    cgURIs, logMigrations, taskList, taskId);
+                    cgURIs, logMigrations);
 
             logMigrations.append("\n");
             _log.info(logMigrations.toString());
@@ -4307,13 +4307,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param journalVpoolMigrations List of RPVPlexMigrations for Journals
      * @param singleMigrations Container to store all single migrations
      * @param cgURIs Set of URIs of all the CGs from the request
-     * @param logMigrations String buffer for logging
-     * @param taskList Task list
-     * @param taskId Task id
+     * @param logMigrations String buffer for logging    
      */
     private void rpVPlexJournalMigrations(boolean journalMigrationsExist, List<RPVPlexMigration> journalVpoolMigrations,
             Map<Volume, VirtualPool> singleMigrations,
-            Set<URI> cgURIs, StringBuffer logMigrations, TaskList taskList, String taskId) {
+            Set<URI> cgURIs, StringBuffer logMigrations) {
         if (journalMigrationsExist) {
             for (URI cgURI : cgURIs) {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
@@ -4342,13 +4340,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // be thrown.
                         BlockServiceUtils.checkForPendingTasks(journalVolume.getTenant().getURI(),
                                 Arrays.asList(journalVolume), _dbClient);
-
-                        Operation op = new Operation();
-                        op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
-                        op.setDescription("Change vpool operation - Migrate RP+VPLEX Journal");
-                        op = _dbClient.createTaskOpStatus(Volume.class, journalVolume.getId(), taskId, op);
-                        taskList.addTask(toTask(journalVolume, taskId, op));
-
+                        
                         VirtualPool migrateToVpool = journalMigration.getMigrateToVpool();
 
                         logMigrations.append(String.format("\tRP+VPLEX migrate JOURNAL [%s](%s) to vpool [%s](%s)\n",

@@ -357,7 +357,7 @@ public class RemoteReplicationUtils {
                 }
                 if (!rrSet.supportMode(newMode)) {
                     validationResult = getInvalidResult(
-                            String.format("remote replication set does not support mode: %s", newMode));
+                            String.format("remote replication set does not support replication mode: %s", newMode));
                 }
                 break;
             case REPLICATION_SET:
@@ -371,7 +371,7 @@ public class RemoteReplicationUtils {
                 }
                 if (!rrSet.supportMode(newMode)) {
                     validationResult = getInvalidResult(
-                            String.format("remote replication set does not support mode: %s", newMode));
+                            String.format("remote replication set does not support replication mode: %s", newMode));
                 }
                 break;
             default:
@@ -397,14 +397,14 @@ public class RemoteReplicationUtils {
             return getInvalidResult(String.format("remote replication set %s is unreachable", rrSet.getNativeId()));
         }
         if (!rrSet.supportRemoteReplicationPairOperation()) {
-            return getInvalidResult(String.format("remote replication set does not support pair operation", rrSet.getNativeId()));
+            return getInvalidResult(String.format("remote replication set %s does not support pair operation", rrSet.getNativeId()));
         }
         if (rrPair.isGroupPair()) {
-            return getInvalidResult(String.format("remote replication pair is contained in a remote replication group",
+            return getInvalidResult(String.format("remote replication pair %s is contained in a remote replication group",
                     rrPair.getNativeId()));
         }
         if (!rrSet.supportMode(newMode)) {
-            return getInvalidResult(String.format("remote replication set does not support mode: %s", newMode));
+            return getInvalidResult(String.format("remote replication set does not support replication mode: %s", newMode));
         }
         return VALID_RESULT;
     }

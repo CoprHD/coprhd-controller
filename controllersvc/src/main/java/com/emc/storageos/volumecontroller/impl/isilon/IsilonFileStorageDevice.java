@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
@@ -1101,8 +1102,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                  IsilonSmartQuota quota = isi.getQuota(quotaId);
                  //new capacity should be less than usage capacity of a filehare
                  if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
-                	 String msg = String.format("as requested reduced size %s is lesser than used capacity %d for filesystem %s", 
-                			 capacity.toString(), quota.getUsagePhysical(), args.getFs().getName());
+                	 
+                	 Double dUsageSize = SizeUtil.translateSize(quota.getUsagePhysical(), SizeUtil.SIZE_GB);
+                	 Double dNewCapacity = SizeUtil.translateSize(capacity, SizeUtil.SIZE_GB);
+                	 
+                	 String msg = String.format("as requested reduced size [%sGB] is smaller than used capacity (%sGB) for filesystem %s", 
+                			 String.valueOf(dNewCapacity), String.valueOf(dUsageSize), args.getFs().getName());
+                	 
                      _log.error(msg);
                      final ServiceError serviceError = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
                      return BiosCommandResult.createErrorResult(serviceError);
@@ -1436,8 +1442,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 } else {
-                	String msg = String.format("as requested reduced size %s is lesser than used capacity %d for filesystem %s", 
-                			qDirSize.toString(), quotaUsageSpace, args.getFs().getName());
+                	Double dUsage = SizeUtil.translateSize(quotaUsageSpace, SizeUtil.SIZE_GB);
+                	Double dQuotaSize = SizeUtil.translateSize(qDirSize, SizeUtil.SIZE_GB);
+                	String msg = String.format("as requested reduced size [%sGB] is smaller than used capacity [%sGB] for filesystem %s", 
+                			dQuotaSize.toString(), dUsage.toString(), args.getFs().getName());
                 	_log.error("doUpdateQuotaDirectory : " + msg);
                 	ServiceError error = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
                 	return BiosCommandResult.createErrorResult(error);

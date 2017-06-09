@@ -1860,20 +1860,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             
             String fsName = fsObj.getName();
-            quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsName));
             
             if (!result.isCommandSuccess()) {
             	fsObj = _dbClient.queryObject(FileShare.class, fs);
             	quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
                 _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successfull");
             }
+            quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsName));
             
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
             quotaDirObj.getOpStatus().updateTaskStatus(task, result.toOperation());
             // save the task status into db
         	_dbClient.updateObject(quotaDirObj);
         	_dbClient.updateObject(fsObj);
-
            
             fsObj = _dbClient.queryObject(FileShare.class, fs);
             _log.debug(

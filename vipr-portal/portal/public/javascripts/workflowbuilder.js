@@ -29,11 +29,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $http.get(routes.Workflow_getAssetOptions()).then(function (resp) {
         if (resp.status == 200) {
-		console.log('status is 200');
             ASSET_TYPE_OPTIONS = resp.data;
-		console.log(ASSET_TYPE_OPTIONS);
         }
-		console.log('status is not 200');
     });
  })
 

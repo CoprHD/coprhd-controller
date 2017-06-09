@@ -337,9 +337,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 }
                 // volumes
                 List<URI> initiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-                generateExportGroupRemoveVolumesCleanup(workflow,
-                        // If we've generated any steps, use this step group name.
-                        previousStep != null ? EXPORT_GROUP_MASKING_TASK : null, 
+                generateExportGroupRemoveVolumesCleanup(workflow, previousStep,
                         storage, exportGroup, volumes, initiators);
 
                 String successMessage = String.format(

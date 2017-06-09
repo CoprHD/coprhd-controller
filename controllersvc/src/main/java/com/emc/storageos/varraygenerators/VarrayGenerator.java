@@ -204,7 +204,23 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
         List<StoragePool> pools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(dbClient, addedPorts, removedPorts, true);
         StoragePortAssociationHelper.runUpdatePortAssociationsProcess(addedPorts, removedPorts, dbClient, coordinator, pools);
     }
-
+    
+    /**
+     * Get or create the "parking varray" which is associated with all ports to avoid
+     * implicit port assignments
+     * @return VirtualArray"
+     */
+    protected VirtualArray getParkingVarray() {
+        String name = "@parkingVarray";
+        VirtualArray varray = getVirtualArray(name);
+        if (varray != null && !varray.getInactive()) {
+            return varray;
+        }
+        VirtualArray newVarray = newVirtualArray(name);
+        dbClient.createObject(newVarray);
+        return newVarray;
+    }
+    
     public CoordinatorClient getCoordinator() {
         return coordinator;
     }

@@ -181,12 +181,15 @@ def port_display_v(p):
         tz = p['network']['id']
         net = bourne.transportzone_show(tz)
         network = net['name']
+    except:
+        network = '---'
+
+    try:
         varrays = p['tagged_varrays']
         varraynames = ''
         for va in varrays:
             varraynames = varraynames + bourne.neighborhood_name(va) + ' ';
     except:
-        network = '---'
         varraynames = ''
         
     print port_display_v_fmt.format(p['port_name'], p['port_group'], p['transport_type'], p['port_network_id'], alias, p['operational_status'], network, varraynames ) 

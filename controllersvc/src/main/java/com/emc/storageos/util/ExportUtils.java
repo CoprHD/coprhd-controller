@@ -1260,17 +1260,7 @@ public class ExportUtils {
         List<String> notInPathParams = new ArrayList<String>();
         while (it.hasNext()) {
             StoragePort sp = dbClient.queryObject(StoragePort.class, it.next());
-            if (sp.getInactive() || sp.getNetwork() == null
-                    || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(sp.getCompatibilityStatus())
-                    || !DiscoveryStatus.VISIBLE.name().equals(sp.getDiscoveryStatus())
-                    || !sp.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name())
-                    || StoragePort.OperationalStatus.NOT_OK.equals(StoragePort.OperationalStatus.valueOf(sp.getOperationalStatus()))
-                    || StoragePort.PortType.valueOf(sp.getPortType()) != StoragePort.PortType.frontend) {
-                _log.debug(
-                        "Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, "
-                                +
-                                "is not registered, has a status other than OK, or is not a frontend port",
-                        sp.getLabel());
+            if (!portHasAssignableStatus(sp)) {
                 notRegisteredOrOk.add(sp.qualifiedPortName());
             } else if (sp.getTaggedVirtualArrays() == null || !sp.getTaggedVirtualArrays().contains(varrayURI.toString())) {
                 _log.debug("Storage port {} not selected because it is not connected " +
@@ -1298,6 +1288,30 @@ public class ExportUtils {
                     + Joiner.on(" ").join(notInPathParams));
         }
         return spList;
+    }
+    
+    /**
+     * Return true if port has an assignable status:
+     * must be COMPATIBLE, VISIBLE, REGISTERED, not NOT_OK status, and PortType.frontend
+     * @param sp -- Storage Port
+     * @return true iff the port is assignible
+     */
+    public static boolean portHasAssignableStatus(StoragePort sp) {
+        if (sp.getInactive() || sp.getNetwork() == null
+                || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(sp.getCompatibilityStatus())
+                || !DiscoveryStatus.VISIBLE.name().equals(sp.getDiscoveryStatus())
+                || !sp.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name())
+                || StoragePort.OperationalStatus.NOT_OK.equals(StoragePort.OperationalStatus.valueOf(sp.getOperationalStatus()))
+                || StoragePort.PortType.valueOf(sp.getPortType()) != StoragePort.PortType.frontend) {
+            _log.debug(
+                    "Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, "
+                            +
+                            "is not registered, has a status other than OK, or is not a frontend port",
+                            sp.getLabel());
+            return false;
+        } else {
+            return true;
+        }
     }
 
     /**

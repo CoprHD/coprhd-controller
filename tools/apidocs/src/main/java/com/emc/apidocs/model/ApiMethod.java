@@ -4,14 +4,15 @@
  */
 package com.emc.apidocs.model;
 
-import com.emc.apidocs.Utils;
-import com.google.common.collect.Lists;
+import java.security.MessageDigest;
+import java.util.List;
+
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
 
-import java.security.MessageDigest;
-import java.util.List;
+import com.emc.apidocs.Utils;
+import com.google.common.collect.Lists;
 
 /**
  * Describes an API method
@@ -19,7 +20,8 @@ import java.util.List;
 public class ApiMethod {
     private static String XML_EXTENSION = "_xml_example.txt";
     private static String JSON_EXTENSION = "_json_example.txt";
-
+    private String fqReturnType;
+    private String fqRequestType;
     public String javaMethodName;
     public boolean isDataService = false;
     public String httpMethod;
@@ -134,5 +136,21 @@ public class ApiMethod {
         }
 
         return Hex.encodeHexString(digest.digest());
+    }
+
+    public String getFqReturnType() {
+        return fqReturnType;
+    }
+
+    public void setFqReturnType(final String fqReturnType) {
+        this.fqReturnType = fqReturnType;
+    }
+
+    public String getFqRequestType() {
+        return fqRequestType;
+    }
+    
+    public void setFqRequestType(final String fqRequestType) {
+        this.fqRequestType = fqRequestType;
     }
 }

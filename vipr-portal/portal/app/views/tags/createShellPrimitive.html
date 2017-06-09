@@ -1,0 +1,278 @@
+%{
+nameDescTabID = 'nameDescContent';
+uploadFileTabID = 'uploadFileContent';
+inputOutputTabID = 'inputOutputContent';
+}%
+
+<div ng-controller="shellPrimitiveController" id="scriptModal">
+    #{Modal.dialog id:'shellPrimitiveDialog', cssClass:'wide', titleKey:'{{modalTitle}}'}
+    <div class="row">
+        #{form @saveShellScriptPrimitive(), id:'shellScriptPrimitiveForm', enctype:'multipart/form-data', class:'form form-horizontal',
+        autocomplete:"off"}
+        <input type="hidden" name="shellPrimitive.wfDirID" id="shellPrimitive_wfDirID" ng-value="shellPrimitive.wfDirID"/>
+        <input type="hidden" name="shellPrimitive.id" id="shellPrimitive_id" ng-value="shellPrimitive.id"/>
+
+        <div class="col-md-3 tabbable scriptTabbable">
+            <ul class="nav nav-pills nav-stacked primitivesNav">
+                <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
+                    &{'primitive.menu.nameDescription'}</a></li>
+                <li class=""><a href="${'#'+uploadFileTabID}" data-toggle="tab"><span class="badge">2</span>
+                    &{'primitive.menu.uploadFile'}</a>
+                </li>
+                <li class=""><a href="${'#'+inputOutputTabID}" data-toggle="tab"><span class="badge">3</span>
+                    &{'primitive.menu.inputsOutputs'}</a></li>
+            </ul>
+        </div>
+        <div class="col-md-9">
+            <div class="tab-content">
+                <div class="tab-pane active" id="${nameDescTabID}">
+                    #{Modal.body}
+                        <control-group v-field='shellPrimitive.name' labelWidth="1" required >
+                            <input-text class="initialFocus" maxlength="50"></input-text>
+                        </control-group>
+                        <control-group v-field='shellPrimitive.description' labelWidth="1" >
+                            <input-text maxlength="200"></input-text>
+                        </control-group>
+                    #{/Modal.body}
+                </div>
+                <div class="tab-pane" id="${uploadFileTabID}">
+                    #{Modal.body}
+                        <control-group v-field="shellPrimitive.newScript">
+                            <boolean-checkbox></boolean-checkbox>
+                        </control-group>
+
+                        <div ng-if="shellPrimitive.newScript">
+                            #{field 'shellPrimitive.script'}
+                                %{
+                                field.required = true
+                                }%
+                                #{Form.fileUploadControlGroup field:field/}
+                            #{/field}
+                        </div>
+
+                        <control-group v-field='shellPrimitive.scriptName' labelWidth="1" ng-if="!shellPrimitive.newScript">
+                            <input-text disabled></input-text>
+                        </control-group>
+
+                    #{/Modal.body}
+                </div>
+                <div class="tab-pane" id="${inputOutputTabID}">
+                    #{Modal.body}
+                        <div>
+                            <ul id="" class="nav nav-tabs" role="tablist">
+                                <li class="active"><a href="#inputContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.input'}</a>
+                                </li>
+                                <li><a href="#outputContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.output'}</a>
+                                </li>
+                            </ul>
+                            <div class="tab-content">
+                                <div class="tab-pane active" id="inputContent" style="width: 300px;">
+                                    <!-- Input Tab -->
+                                    <div class="row" ng-repeat="info in scriptIOs.inputs" style="margin-bottom:5px;">
+                                        <div class="pull-left col-sm-11" v-field="info.input">
+                                            <input-text></input-text>
+                                        </div>
+                                        <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                            <button type="button" ng-click="deleteInput($index)" class="close">&times;</button>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="pull-left col-sm-11">
+                                            <button type="button" ng-click="addInput()" class="btn btn-sm btn-success"><i
+                                                    v-icon=plus></i> &{'button.add'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <div class="tab-pane" id="outputContent" style="width: 300px;">
+                                    <!-- Output Tab -->
+                                    <div class="row" ng-repeat="info in scriptIOs.outputs" style="margin-bottom:5px;">
+                                        <div class="pull-left col-sm-11" v-field="info.output">
+                                            <input-text></input-text>
+                                        </div>
+                                        <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                            <button type="button" ng-click="deleteOutput($index)" class="close">&times;</button>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="pull-left col-sm-11">
+                                            <button type="button" ng-click="addOutput()" class="btn btn-sm btn-success"><i
+                                                    v-icon=plus></i> &{'button.add'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="shellPrimitive.inputs" ng-value="inputs"/>
+                                <input type="hidden" name="shellPrimitive.outputs" ng-value="outputs"/>
+                            </div>
+                        </div>
+                    #{/Modal.body}
+
+                </div>
+            </div>
+
+            #{Modal.footer}
+            #{Form.button name:'button.back', id:'backButton', icon:'arrow-left'/}
+            #{Form.button name:'button.next', id:'nextButton', class:'primary', icon:'arrow-right'/}
+            #{Form.button name:'button.finish', id:'finishButton', class:'primary', icon:'check',
+            submit:'shellScriptPrimitiveForm'/}
+
+            #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+            #{/Modal.footer}
+        </div>
+        #{/form}
+    </div>
+    #{/Modal.dialog}
+</div>
+
+<script>
+    function checkScriptFinish() {
+        var complete = true;
+        if (isBlank($('#shellPrimitive_name').val())) {
+            complete = false;
+        }
+
+        if( isBlank($('#shellPrimitive_script').val()) ) {
+            if ( $('[name="shellPrimitive.newScript"]').val() === "true" ) {
+                complete = false;
+            }
+        }
+
+        // If form is complete, enable FINISH button
+        if (complete) {
+            $('#finishButton').prop('disabled', false);
+        }
+        else {
+            $('#finishButton').prop('disabled', true);
+        }
+    }
+
+    $(function() {
+        // Reset data on modal close
+        $('#shellPrimitiveDialog').on('hidden.bs.modal', function(e) {
+            $('#shellScriptPrimitiveForm')[0].reset();
+            // Select first tab
+            $('.scriptTabbable a:first').tab('show')
+        });
+
+        //on start hiding finish and back buttons
+        $('#finishButton').hide();
+        $('#backButton').hide();
+
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var activeTabID = $(e.target).attr('href');
+            if (activeTabID.indexOf("${nameDescTabID}") >=0 ) {
+                $('#backButton').hide();
+                $('#nextButton').show();
+                $('#finishButton').hide();
+            }
+            else if (activeTabID.indexOf("${uploadFileTabID}") >=0 ) {
+                $('#backButton').show();
+                $('#nextButton').show();
+                $('#finishButton').hide();
+            }
+            else if (activeTabID.indexOf("${inputOutputTabID}") >=0 ) {
+                $('#backButton').show();
+                $('#nextButton').hide();
+                $('#finishButton').show();
+                checkScriptFinish();
+            }
+        });
+
+        var $tabs = $('.scriptTabbable li');
+        $('#backButton').on('click', function() {
+            var prevTabAnchor = $tabs.filter('.active').prev('li').find('a[data-toggle="tab"]');
+            if(prevTabAnchor.length == 1) {
+                prevTabAnchor.tab('show');
+            }
+            else if(prevTabAnchor.length == 0) {
+                //if there is no previous tab, disable back button
+                $('#backButton').prop("disabled",true);
+            }
+        });
+
+        $('#nextButton').on('click', function() {
+            $tabs.filter('.active').next('li').find('a[data-toggle="tab"]').tab('show');
+        });
+
+    });
+
+    angular.module("portalApp").controller('shellPrimitiveController', function($element, $scope, $compile, $http, translate) {
+
+        var resetVars = function(){
+            $scope.shellPrimitive = {};
+            $scope.scriptIOs = {};
+            $scope.scriptIOs.inputs = [];
+            $scope.scriptIOs.outputs = [];
+        }
+
+        resetVars();
+        $scope.addI = {input:''};
+        $scope.deleteInput = function(idx) {
+            $scope.scriptIOs.inputs.splice(idx, 1);
+        }
+        $scope.addInput = function() {
+            $scope.scriptIOs.inputs.push(angular.copy($scope.addI));
+        }
+
+        $scope.addO = {output:''};
+        $scope.deleteOutput = function(idx) {
+            $scope.scriptIOs.outputs.splice(idx, 1);
+        }
+        $scope.addOutput = function() {
+            $scope.scriptIOs.outputs.push(angular.copy($scope.addO));
+        }
+
+        $scope.$watch('scriptIOs', function(newVal) {
+            var inputs = [], outputs = [];
+            angular.forEach($scope.scriptIOs.inputs, function(obj) {
+                if (obj.input !== '') inputs.push(obj.input);
+            });
+            angular.forEach($scope.scriptIOs.outputs, function(obj) {
+                if (obj.output !== '') outputs.push(obj.output);
+            });
+
+            $scope.inputs = inputs.toString();
+            $scope.outputs = outputs.toString();
+       }, true);
+
+       // for edit functionality
+       $scope.populateModal = function(edit, id, type) {
+            resetVars();
+            if (edit) {
+                $scope.modalTitle=translate('shell.primitive.edit.title');
+                $('#shellPrimitive_newScriptControlGroup').show();
+
+                $http.get(routes.Primitive_get({primitiveId: id, primitiveType: type})).then(function (resp) {
+                    if (resp.status == 200) {
+                        $scope.shellPrimitive = resp.data;
+                        // converting inputs/outputs to local format
+                        if($scope.shellPrimitive.inputs){
+                            var arr = $scope.shellPrimitive.inputs.split(',');
+                            $.each( arr, function( index, value ){
+                                $scope.scriptIOs.inputs.push({input:$.trim(value)})
+                            });
+                        }
+                        if($scope.shellPrimitive.outputs){
+                            var arr = $scope.shellPrimitive.outputs.split(',');
+                            $.each( arr, function( index, value ){
+                                $scope.scriptIOs.outputs.push({output:$.trim(value)})
+                            });
+                        }
+                    }
+                });
+
+            }
+            else {
+                $scope.modalTitle=translate('shell.primitive.add.title');
+                $('#shellPrimitive_newScriptControlGroup').hide();
+                $scope.shellPrimitive.newScript = true;
+
+                // Setting selected workflow directory ID
+                $scope.shellPrimitive.wfDirID = $('#jstree_demo').jstree(true).get_selected()[0]
+            }
+       }
+    });
+</script>
+

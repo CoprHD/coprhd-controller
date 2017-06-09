@@ -150,11 +150,17 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
                 lock.acquire();
                 _log.info("Got token cleaner lock ...");
                 int deletedCount = 0;
+                int nLongLiveTokens = 0;  // Come from TokenIndex;
                 try {
                     List<URI> tokens = getOldTokens();
                     Iterator<Token> tokenIterator = _dbClient.queryIterativeObjects(Token.class, tokens);
                     while (tokenIterator.hasNext()) {
+                        nLongLiveTokens++;
                         Token tokenObj = tokenIterator.next();
+                        if (tokenObj == null) {
+                            _log.warn("Inconsistency found between Token and TokenIndex.");
+                            continue;
+                        }
                         if (!checkExpiration(tokenObj, false)) {
                             deletedCount++;
                             cleanUpRequestedTokenMap(tokenObj);
@@ -175,7 +181,7 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
                 } catch (DatabaseException ex) {
                     _log.error("DatabaseException in token cleanup executor: ", ex);
                 }
-                _log.info("Done token cleanup executor, deleted {} tokens", deletedCount);
+                _log.info("Done token cleanup executor, long live tokens {}, deleted {} tokens", nLongLiveTokens, deletedCount);
             } catch (Exception e) {
                 _log.warn("Unexpected exception during db maintenance", e);
             } finally {

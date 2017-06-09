@@ -5,20 +5,18 @@
 
 package com.emc.storageos.services.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.StringBuilder;
-import java.lang.Thread;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.services.util.Strings;
 
 public class Exec {
     private static final Logger _log = LoggerFactory.getLogger(Exec.class);
@@ -173,6 +171,21 @@ public class Exec {
         return exec(timeout, maskFilter, newArray);
     }
 
+    /**
+     *  maskFilter is for masking any matched string when printing stdOutput in log file.
+     */
+    public static Result sudo(File file, long timeout, Pattern maskFilter, Map<String,String> env, String... args) {
+        String userName = System.getProperty("user.name");
+        if (userName.equals("root")) {
+            // Root user does not need SUDO.
+            return exec(file, timeout, maskFilter, env, args);
+        }
+        List<String> tmpList = new ArrayList(Arrays.asList(args));
+        tmpList.add(0, "sudo");
+        String[] newArray = tmpList.toArray(new String[tmpList.size()]);
+        return exec(file, timeout, maskFilter, env, newArray);
+    }
+
     /***
      * Exec an external command providing exitStatus, stdOutput and stdError.
      * 
@@ -184,9 +197,11 @@ public class Exec {
     public static Result exec(long timeout, String... args) {
         return exec(timeout, null, args);
     }
-
-
     public static Result exec(long timeout, Pattern maskFilter, String... args) {
+        return exec(null, timeout,maskFilter,new HashMap<String,String>(),args);
+    }
+
+    public static Result exec(File file, long timeout, Pattern maskFilter, Map<String,String> env, String... args) {
         List<String> cmdList = new ArrayList(Arrays.asList(args));
 
         final String[] cmd = cmdList.toArray(new String[cmdList.size()]);
@@ -202,7 +217,10 @@ public class Exec {
         try {
 
             boolean destroyed = false;
-            Process p = new ProcessBuilder(cmd).start();
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.environment().putAll(env);
+            pb.directory(file);
+            Process p = pb.start();
             stdOutputStream = new InputStreamReader(p.getInputStream());
             stdErrorStream = new InputStreamReader(p.getErrorStream());
 

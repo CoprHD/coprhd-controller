@@ -693,9 +693,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             // Remove storage group from cascading storage group
                             groupName = (String) operation.getArgs().get(0);
                             forceFlag = (boolean) operation.getArgs().get(2);
-                            List<CIMObjectPath> volumeGroupPathList = (List<CIMObjectPath>) operation.getArgs().get(1);
+                            CIMObjectPath[] volumeGroupPathList = (CIMObjectPath[]) operation.getArgs().get(1);
                             inArgs = _helper.modifyCascadedStorageGroupInputArguments(
-                                    storage, groupName, (CIMObjectPath[]) volumeGroupPathList.toArray(), forceFlag);
+                                    storage, groupName, (CIMObjectPath[]) volumeGroupPathList, forceFlag);
                             outArgs = new CIMArgument[5];
                             _helper.invokeMethodSynchronously(storage,
                                     _cimPath.getControllerConfigSvcPath(storage), "RemoveMembers", inArgs,
@@ -1090,10 +1090,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                         if (isVmax3) {
                             // Remove volumes from the parking storage group
+                            Set<String> nativeIds = new HashSet<String>();
                             for (VolumeURIHLU volURIHLU : newVolumesToAdd) {
-                                BlockObject bo = BlockObject.fetch(_dbClient, volURIHLU.getVolumeURI());
-                                _helper.removeVolumeFromParkingSLOStorageGroup(storage, bo.getNativeId(), forceFlag);
+                                nativeIds.add(_helper.getBlockObjectNativeId(volURIHLU.getVolumeURI()));
                             }
+                            _helper.removeVolumeFromParkingSLOStorageGroup(storage, nativeIds.toArray(new String[] {}), forceFlag);
                         }
 
                         _log.info("Adding Volumes to non cascaded Storage Group {} START",
@@ -2475,10 +2476,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
         CIMArgument[] inArgs = null;
         String truncatedGroupName = groupName.length() >= 64 ? StringUtils.substring(groupName, 0, 63) : groupName;
         if (storage.checkIfVmax3()) {
-            for (String nativeId : volumeNames) {
-                _helper.removeVolumeFromParkingSLOStorageGroup(storage, nativeId, forceFlag);
-                _log.info("Done invoking remove volume {} from storage group before export.", nativeId);
-            }
+            _helper.removeVolumeFromParkingSLOStorageGroup(storage, volumeNames, forceFlag);
+            _log.info("Done invoking remove volumes from parking SLO storage group before export");
 
             policyName = _helper.getVMAX3FastSettingWithRightNoneString(storage, policyName);
             String[] tokens = policyName.split(Constants.SMIS_PLUS_REGEX);
@@ -4498,6 +4497,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         // Remove volumes from the old parking storage group
         Set<String> volumeDeviceIds = new HashSet<String>();
         String fastSetting = null;
+        boolean forceFlag = false;
         for (URI volURI : volumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, volURI);
             volumeDeviceIds.add(volume.getNativeId());
@@ -4507,9 +4507,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
             // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
             // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
             // operation on these volumes would fail otherwise.
-            boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volURI);
-            _helper.removeVolumeFromParkingSLOStorageGroup(storage, volume.getNativeId(), forceFlag);
+            if (!forceFlag) {
+                forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volURI);
+            }
         }
+        _helper.removeVolumeFromParkingSLOStorageGroup(storage, volumeDeviceIds.toArray(new String[0]), forceFlag);
 
         // Add volumes to the new parking storage group.
         addVolumesToParkingStorageGroup(storage, fastSetting, volumeDeviceIds);

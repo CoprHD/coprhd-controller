@@ -269,7 +269,14 @@ public class CustomServicesService extends ViPRService {
             return step.getNext().getDefaultStep();
         }
 
-        ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId()+ "\t Step Name:" + step.getFriendlyName());
+        if (result!= null) {
+            ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId()+ "\t Step Name:" + step.getFriendlyName()
+            + "Output:" + result.getOut() + "Error:" + result.getErr() + "ReturnCode:" + result.getReturnCode());
+
+        } else {
+            ExecutionUtils.currentContext()
+                    .logError("customServicesService.stepFailedStatus", step.getId() + "\t Step Name:" + step.getFriendlyName());
+        }
 
         return step.getNext().getFailedStep();
     }

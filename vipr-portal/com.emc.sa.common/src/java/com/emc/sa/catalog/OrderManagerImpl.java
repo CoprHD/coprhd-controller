@@ -726,7 +726,11 @@ public class OrderManagerImpl implements OrderManager {
 
     private void processApprovedOrder(Order order, CatalogService service) {
         ApprovalRequest approval = approvalManager.findFirstApprovalsByOrderId(order.getId());
-        notificationManager.notifyUserOfApprovalStatus(order, service, approval);
+        try {
+            notificationManager.notifyUserOfApprovalStatus(order, service, approval);
+        } catch (Exception e) {
+            log.error(String.format("Unable to notify user of approved order %s", order.getId()), e);
+        }
 
         if (order.getScheduledEventId() != null) {
             // orders always need to be scheduled via scheduledEvent.

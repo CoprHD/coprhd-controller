@@ -1452,7 +1452,7 @@ public class MDSDialog extends SSHDialog {
         List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId);
         _log.info("Creating new zoneset clone : " + newZoneset	);
         
-        boolean retryNeeded = false;
+        boolean retryNeeded = true;
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
         for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
             lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);

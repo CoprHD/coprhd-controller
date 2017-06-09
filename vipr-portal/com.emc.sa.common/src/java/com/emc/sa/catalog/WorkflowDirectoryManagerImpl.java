@@ -16,14 +16,16 @@
  */
 package com.emc.sa.catalog;
 
-import com.emc.sa.model.dao.ModelClient;
-import com.emc.storageos.db.client.model.uimodels.WFDirectory;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import java.net.URI;
+import java.util.List;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.util.List;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.storageos.db.client.model.uimodels.WFDirectory;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @Component
 public class WorkflowDirectoryManagerImpl implements WorkflowDirectoryManager {
@@ -48,18 +50,54 @@ public class WorkflowDirectoryManagerImpl implements WorkflowDirectoryManager {
     }
 
     public void deactivateWFDirectory(URI id) {
+        // validate that the children are empty before deleting
+        checkChildren(id);
+
+        // delete empty children
+        deleteDirectoryAndChildren(id);
+    }
+
+    private void checkChildren(URI id) {
         WFDirectory wfDirectory = client.wfDirectory().findById(id);
         if (null == wfDirectory) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
 
-        // Disallow operation if this node has children
+        // Disallow operation if this node has children that contain workflows/ primitives
         List<WFDirectory> children = getWFDirectoryChildren(id);
-        if ((null != children && children.size() > 0) || (null != wfDirectory.getWorkflows() && wfDirectory.getWorkflows().size() > 0)) {
-            throw APIException.methodNotAllowed.notSupportedWithReason("Directory has children. Cannot be deleted");
+        if (CollectionUtils.isNotEmpty(wfDirectory.getWorkflows())) {
+            throw APIException.methodNotAllowed.notSupportedWithReason("Directory has workflows. Cannot be deleted");
+        }
+        for (final WFDirectory child : children) {
+            if (CollectionUtils.isNotEmpty(child.getWorkflows())) {
+                throw APIException.methodNotAllowed
+                        .notSupportedWithReason("Directory has children that contain workflows. Cannot be deleted");
+            }
+            // check the children
+            checkChildren(child.getId());
+        }
+    }
+
+    private boolean deleteDirectoryAndChildren(URI id) {
+        WFDirectory wfDirectory = client.wfDirectory().findById(id);
+        if (null == wfDirectory) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
         }
 
-        client.delete(wfDirectory);
+        List<WFDirectory> children = getWFDirectoryChildren(id);
+        // start deleting from inner nodes
+        if (CollectionUtils.isEmpty(children)) {
+            //delete only if the wfDirectory does not have any children
+            client.delete(wfDirectory);
+            return true;
+        } else {
+            for (final WFDirectory child : children) {
+                deleteDirectoryAndChildren(child.getId());
+            }
+            //all children deleted. delete the empty folder
+            client.delete(wfDirectory);
+        }
+        return true;
     }
 
     public void updateWFDirectory(WFDirectory wfDirectory) {

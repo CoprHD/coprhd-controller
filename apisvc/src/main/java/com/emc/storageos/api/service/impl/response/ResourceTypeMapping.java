@@ -36,8 +36,8 @@ import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGESERVER;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_CONFIG;
-import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICES_PRIMTIVES;
-import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICES_PRIMTIVE_RESOURCES;
+import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICES_PRIMITIVES;
+import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICES_PRIMITIVE_RESOURCES;
 import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICES_WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.DATA_STORE;
 import static com.emc.storageos.model.ResourceTypeEnum.EXECUTION_WINDOW;
@@ -243,8 +243,8 @@ public class ResourceTypeMapping {
         classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
         classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
         classMapping.put(CUSTOM_SERVICES_WORKFLOW, CustomServicesWorkflow.class);
-        classMapping.put(CUSTOM_SERVICES_PRIMTIVES, CustomServicesPrimitiveModel.class);
-        classMapping.put(CUSTOM_SERVICES_PRIMTIVE_RESOURCES, CustomServicesPrimitiveResourceModel.class);
+        classMapping.put(CUSTOM_SERVICES_PRIMITIVES, CustomServicesPrimitiveModel.class);
+        classMapping.put(CUSTOM_SERVICES_PRIMITIVE_RESOURCES, CustomServicesPrimitiveResourceModel.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping
@@ -263,18 +263,19 @@ public class ResourceTypeMapping {
     }
 
     public static ResourceTypeEnum getResourceType(final Class<?> objectClazz) {
-        ResourceTypeEnum type = getResourceTypeInternal(objectClazz); 
-        if(null == type ) {
+        ResourceTypeEnum type = getResourceTypeInternal(objectClazz);
+        if (null == type) {
             _log.error("No resourceMapping for type " + objectClazz.getName());
             return null;
         }
         return type;
     }
-    
+
     private static ResourceTypeEnum getResourceTypeInternal(final Class<?> objectClazz) {
-        if(objectClazz == null ) {
+        if (objectClazz == null) {
             return null;
-        } else if (!resourceMapping.containsKey(objectClazz)) {
+        }
+        if (!resourceMapping.containsKey(objectClazz)) {
             return getResourceTypeInternal(objectClazz.getSuperclass());
         } else {
             return resourceMapping.get(objectClazz);

@@ -78,6 +78,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -6861,6 +6862,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 // update any properties that were changed after migration including deviceLabel, nativeGuid, and nativeId.
                 // also, if the updated volume isn't thin-enabled, it is thin-capable, and the target vpool supports thin
                 // provisioning, then a call should be made to the VPLEX to flip the thin-enabled flag on for this volume.
+                URI targetVolumeUri = migration.getTarget();
+                Volume targetVolume = getDataObject(Volume.class, targetVolumeUri, _dbClient);
                 if (updatedVirtualVolumeInfo != null) {
                     _log.info(String.format("New virtual volume is %s", updatedVirtualVolumeInfo.toString()));
 
@@ -6870,8 +6873,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     boolean isThinEnabled = updatedVirtualVolumeInfo.isThinEnabled();
                     if (!isThinEnabled && VPlexApiConstants.TRUE.equalsIgnoreCase(updatedVirtualVolumeInfo.getThinCapable())) {
                         if (verifyVplexSupportsThinProvisioning(vplexSystem)) {
-                            URI targetVolumeUri = migration.getTarget();
-                            Volume targetVolume = getDataObject(Volume.class, targetVolumeUri, _dbClient);
                             if (null != targetVolume) {
                                 _log.info(String.format("migration target Volume is %s", targetVolume.forDisplay()));
                                 VirtualPool targetVirtualPool = getDataObject(VirtualPool.class, targetVolume.getVirtualPool(), _dbClient);
@@ -6904,8 +6905,27 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // be no associated volumes. However, when the second
                     // completes, there will be associated volumes. However,
                     // the migration source could be null.
-                    if (migration.getSource() != null) {
-                        assocVolumes.remove(migration.getSource().toString());
+                    URI sourceVolumeUri = migration.getSource();
+                    if (sourceVolumeUri != null) {
+                        assocVolumes.remove(sourceVolumeUri.toString());
+                        
+                        // Retain any previous RP fields on the new target volume.
+                        Volume sourceVolume = getDataObject(Volume.class, sourceVolumeUri, _dbClient);
+                        if (sourceVolume != null) {
+                            boolean targetUpdated = false;
+                            if (NullColumnValueGetter.isNotNullValue(sourceVolume.getRpCopyName())) {
+                                targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
+                                targetUpdated = true;
+                            }
+    
+                            if (NullColumnValueGetter.isNotNullValue(sourceVolume.getInternalSiteName())) {
+                                targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
+                                targetUpdated = true;
+                            }
+                            if (targetUpdated) {
+                                _dbClient.updateObject(targetVolume);
+                            }
+                        }
                     }
                     assocVolumes.add(migration.getTarget().toString());
                 } else {
@@ -9862,11 +9882,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
-     * Returns the Varray that are hosting a set of Volumes.
+     * Returns the VirtualArray that is hosting a set of Volumes.
      *
+     * @param array
+     *            The backend StorageSystem whose volumes are being checked.
      * @param volumes
      *            Collection of volume URIs
-     * @return Varray of these volumes
+     * @return VirtualArray URI of these volumes
+     * @throws ControllerException if multiple varrays found
      */
     private URI getVolumesVarray(StorageSystem array, Collection<Volume> volumes)
             throws ControllerException {
@@ -9876,8 +9899,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 if (varray == null) {
                     varray = volume.getVirtualArray();
                 } else if (!varray.equals(volume.getVirtualArray())) {
+                    VirtualArray varray1 = _dbClient.queryObject(VirtualArray.class, varray);
+                    VirtualArray varray2 = _dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
                     DeviceControllerException ex = DeviceControllerException.exceptions.multipleVarraysInVPLEXExportGroup(
-                            array.getId().toString(), varray.toString(), volume.getVirtualArray().toString());
+                            array.forDisplay(), 
+                            varray1 != null ? varray1.forDisplay() : varray.toString(), 
+                            varray2 != null ? varray2.forDisplay() : volume.getVirtualArray().toString());
                     _log.error("Multiple varrays connecting VPLEX to array", ex);
                     throw ex;
                 }

@@ -140,9 +140,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                   'show_only_matches' : true
             }
         }).on('ready.jstree', function() {
-            jstreeContainer.find( ".draggable-card" ).draggable({delay: 200,handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});
+            jstreeContainer.find( ".draggable-card" ).draggable({delay: 200,handle: ".jstree-anchor",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});
         }).bind("rename_node.jstree clear_search.jstree search.jstree open_node.jstree", function() {
-            jstreeContainer.find( ".draggable-card" ).draggable({delay: 200,handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
+            jstreeContainer.find( ".draggable-card" ).draggable({delay: 200,handle: ".jstree-anchor",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
         }).on('search.jstree', function (nodes, str) {
               if (str.nodes.length === 0) {
                   $('#jstree_demo').jstree(true).hide_all();
@@ -401,7 +401,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     };
 
-    $scope.hoverOptionsClick = function(nodeId){
+    $scope.hoverOptionsClick = function(event, nodeId){
         jstreeContainer.jstree("deselect_node", $scope.selNodeId);
         jstreeContainer.jstree("select_node", nodeId);
         event.stopPropagation();
@@ -416,7 +416,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         if (showOptions(nodeId, data.node.parents) && $scope.selNodeId !== nodeId) {
             var optionsHoverHTML =
                 "<div id='treeMoreOptionsHover' class='btn-group treeMoreOptions'>"+
-                   "<button id='optionsHoverBtn' type='button' class='btn btn-xs btn-default' title='Options' ng-click=\"hoverOptionsClick('" + nodeId + "');\">"+
+                   "<button id='optionsHoverBtn' type='button' class='btn btn-xs btn-default' title='Options' ng-click=\"hoverOptionsClick($event, '" + nodeId + "');\">"+
                        "<span class='glyphicon'><img src='/public/img/customServices/ThreeDotsMenu.svg' height='20' width='20'></span>"+
                    "</button>"+
                 "</div>";

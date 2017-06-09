@@ -24,6 +24,7 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockVolumeMachineTag;
@@ -250,6 +251,28 @@ public class VMwareSupport {
             }
         }
 
+    }
+
+    /**
+     * Attach the given list of luns on the host or hosts in the cluster
+     * 
+     * @param host host to attach luns
+     * @param cluster cluster to attach luns
+     * @param volumes list of volumes to attach
+     */
+    public void attachLuns(HostSystem hostSystem, ClusterComputeResource cluster, List<URI> volumes) {
+        List<HostSystem> hosts = cluster == null ? Lists.newArrayList(hostSystem) : Lists.newArrayList(cluster.getHosts());
+        for (URI volumeId : volumes) {
+            BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
+            for (HostSystem host : hosts) {
+                if (VMwareSupport.isHostConnected(host)) {
+                    final HostScsiDisk disk = findScsiDisk(host, null, volume);
+                    if (VMwareUtils.isDiskOff(disk)) {
+                        execute(new AttachScsiDisk(host, Collections.singletonList(disk)));
+                    }
+                }
+            }
+        }
     }
 
     public void detachLuns(HostSystem host, List<HostScsiDisk> disks) {
@@ -911,6 +934,59 @@ public class VMwareSupport {
                     detachLuns(host, Collections.singletonList(disk));
                 }
             });
+        }
+    }
+
+    /**
+     * Rescan Vmfs for a list of hosts
+     * 
+     * @param hosts the list of hosts
+     * @throws Exception if an error occurs
+     */
+    public void rescanVmfs(List<HostSystem> hosts) throws Exception {
+        for (HostSystem hostSystem : hosts) {
+            if (VMwareSupport.isHostConnected(hostSystem)) {
+                hostSystem.getHostStorageSystem().rescanVmfs();
+            }
+        }
+    }
+
+    /**
+     * Mount datastores that are backed by the list of volumes
+     * 
+     * @param host the host to mount the datastore on, or null if cluster is being used
+     * @param cluster the cluster to mount the datastore on, or null if host is being used
+     * @param datacenterName name of the datacenter
+     * @param volumeIds the list of volumes
+     * @throws Exception thrown if an error occurs
+     */
+    public void mountDatastores(HostSystem host, ClusterComputeResource cluster, String datacenterName, List<URI> volumeIds)
+            throws Exception {
+        List<HostSystem> hosts = cluster == null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
+        rescanVmfs(hosts);
+        for (URI volumeId : volumeIds) {
+            BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
+            Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
+            for (String datastoreName : datastoreNames) {
+                Datastore datastore = getDatastore(datacenterName, datastoreName);
+                mountDatastore(datastore, hosts);
+            }
+        }
+    }
+
+    /**
+     * Mount a datastore on a given list of hosts if the datastore is not yet mounted
+     * 
+     * @param datastore the datastore to mount
+     * @param hosts list of hosts
+     */
+    public void mountDatastore(Datastore datastore, List<HostSystem> hosts) {
+        for (HostSystem hostSystem : hosts) {
+            if (VMwareSupport.isHostConnected(hostSystem)) {
+                if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                    execute(new MountDatastore(hostSystem, datastore));
+                }
+            }
         }
     }
 }

@@ -85,9 +85,6 @@ import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
 
-/**
- * @author Nick Aquino
- */
 @With(Common.class)
 public class WorkflowBuilder extends Controller {
     private static final String NO_PARENT = "#";
@@ -625,7 +622,7 @@ public class WorkflowBuilder extends Controller {
                     shellPrimitive.getId());
             if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
                 if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
-                    flash.error("Primitive %s is being used in Workflow", shellPrimitive.getName());
+                    flash.error("Operation %s is being used in Workflow", shellPrimitive.getName());
                     return;
                 }
             }

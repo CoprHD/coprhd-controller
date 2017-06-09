@@ -30,6 +30,7 @@
 										<collapse id="{{stepData.id}}_{{input.name}}_collapsible" title-key={{input.name}} icon="error-icon"
 												  ng-class="{'required':input.required && stepData.type==='vipr',
 												  'input-error-icon':alert.error.errorSteps[stepData.id].errorInputGroups[inputGroupName].errorInputs[input.name].errorMessages}">
+											<div><p style="word-wrap:break-word;">{{input.name}}</p></div>
 											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.type" ng-if="!isInventoryFile(stepData, inputGroupName, input)">
 												<select-one auto-default options="getUserInputTypeOption(input.required)" ng-change="setWorkflowModified('true')"></select-one>
 											</control-group>
@@ -75,7 +76,7 @@
 							<div ng-show="isEmpty(stepData.output)">
 								<span style="padding-left:10px;">&{'workflow.step.noOutputs'}</span>
 							</div>
-							<div ng-repeat="output in stepData.output" class="panel-heading">
+							<div ng-repeat="output in stepData.output" class="panel-heading" style="word-wrap:break-word;">
 								{{output.name}}
 							</div>
 						</div>

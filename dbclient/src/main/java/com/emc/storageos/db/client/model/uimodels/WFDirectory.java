@@ -16,14 +16,14 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
+import java.net.URI;
+import java.util.Set;
+
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.Name;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.RelationIndex;
-
-import java.net.URI;
-import java.util.Set;
+import com.emc.storageos.db.client.model.StringSet;
 
 /**
  * DB model class for holding workflow directory structure.
@@ -56,18 +56,21 @@ public class WFDirectory extends ModelObject {
 
     public void setWorkflows(final StringSet workflows) {
         _workflows = workflows;
+        setChanged("workflows");
     }
 
     public void addWorkflows(final Set<URI> workflowIDs) {
         for (URI u : workflowIDs) {
             getWorkflows().add(u.toString());
         }
+        setChanged("workflows");
     }
 
     public void removeWorkflows(final Set<URI> workflowIDs) {
         for (URI u : workflowIDs) {
             getWorkflows().remove(u.toString());
         }
+        setChanged("workflows");
     }
 
 }

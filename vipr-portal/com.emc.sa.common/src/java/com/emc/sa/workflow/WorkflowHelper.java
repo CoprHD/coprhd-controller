@@ -141,7 +141,7 @@ public final class WorkflowHelper {
      * @throws JsonMappingException
      * @throws JsonGenerationException
      */
-    public static CustomServicesWorkflow update(final CustomServicesWorkflow oeWorkflow, final CustomServicesWorkflowDocument document)
+    public static void update(final CustomServicesWorkflow oeWorkflow, final CustomServicesWorkflowDocument document)
             throws JsonGenerationException, JsonMappingException, IOException {
 
         if (document.getDescription() != null) {
@@ -157,8 +157,6 @@ public final class WorkflowHelper {
             oeWorkflow.removePrimitives(StringSetUtil.stringSetToUriList(oeWorkflow.getPrimitives()));
             oeWorkflow.addPrimitives(StringSetUtil.stringSetToUriList(getPrimitives(document)));
         }
-
-        return oeWorkflow;
     }
 
     public static CustomServicesWorkflow updateState(final CustomServicesWorkflow oeWorkflow, final String state) {
@@ -201,7 +199,7 @@ public final class WorkflowHelper {
     private static StringSet getPrimitives(
             final CustomServicesWorkflowDocument document) {
         final StringSet primitives = new StringSet();
-        if(CollectionUtils.isEmpty(document.getSteps())){
+        if (CollectionUtils.isEmpty(document.getSteps())) {
             return primitives;
         }
         for (final Step step : document.getSteps()) {
@@ -211,7 +209,10 @@ public final class WorkflowHelper {
                     case VIPR_REST:
                         break;
                     default:
-                        primitives.add(step.getOperation().toString());
+                        if (step.getOperation() != null) {
+                            primitives.add(step.getOperation().toString());
+                        }
+
                 }
             }
         }

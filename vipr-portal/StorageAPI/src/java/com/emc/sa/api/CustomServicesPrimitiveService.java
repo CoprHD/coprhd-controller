@@ -78,10 +78,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimaps;
 
-@Path("/primitives")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
-        ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = {
-                ACL.OWN, ACL.ALL })
+@Path("/customservices/primitives")
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+        Role.SYSTEM_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 public class CustomServicesPrimitiveService extends CatalogTaggedResourceService {
     private static final Logger _log = LoggerFactory
             .getLogger(CustomServicesPrimitiveManager.class);
@@ -333,7 +332,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
 
     @Override
     protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.CUSTOM_SERVICES_PRIMTIVES;
+        return ResourceTypeEnum.CUSTOM_SERVICES_PRIMITIVES;
 
     }
 

@@ -32,12 +32,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class CustomServicesWorkflowDocument {
 
     public static final long DEFAULT_STEP_TIMEOUT = 600000; // Setting default to 10 mins
-    
+
     private String name;
     private String description;
     private List<Step> steps;
 
-    @XmlElement(name = "name")
+    @XmlElement(name = "name", nillable = true)
     public String getName() {
         return name;
     }
@@ -45,8 +45,8 @@ public class CustomServicesWorkflowDocument {
     public void setName(String name) {
         this.name = name;
     }
-    
-    @XmlElement(name = "description" )
+
+    @XmlElement(name = "description", nillable = true)
     public String getDescription() {
         return description;
     }
@@ -56,7 +56,7 @@ public class CustomServicesWorkflowDocument {
     }
 
     @XmlElementWrapper(name = "steps")
-    @XmlElement(name="step")
+    @XmlElement(name = "step")
     public List<Step> getSteps() {
         return steps;
     }
@@ -69,27 +69,27 @@ public class CustomServicesWorkflowDocument {
 
         private List<Input> inputGroup;
 
-        public void setInputGroup(List<Input> inputGroup) {
-            this.inputGroup = inputGroup;
-        }
-
-        @XmlElement(name="input")
+        @XmlElement(name = "input")
         public List<Input> getInputGroup() {
             return inputGroup;
+        }
+
+        public void setInputGroup(List<Input> inputGroup) {
+            this.inputGroup = inputGroup;
         }
     }
 
     public static class Input {
 
         private String name;
-        //type of CustomServicesConstants.InputType
+        // type of CustomServicesConstants.InputType
         private String type;
         private String friendlyName;
         private String defaultValue;
         private String value;
         private String group;
         private String description;
-        //type of the value e.g (STRING, INTEGER ...etc)
+        // type of the value e.g (STRING, INTEGER ...etc)
         private String inputFieldType;
         private String tableName;
         private boolean required = true;
@@ -97,50 +97,56 @@ public class CustomServicesWorkflowDocument {
         // Use this to set "key,value" pairs for type "InputFromUserMulti"
         private Map<String, String> options;
 
-        @XmlElement(name = "name")
+        @XmlElement(name = "name", nillable = true)
         public String getName() {
             return name;
         }
+
         public void setName(String name) {
             this.name = name;
         }
 
-        @XmlElement(name = "type")
+        @XmlElement(name = "type", nillable = true)
         public String getType() {
             return type;
         }
+
         public void setType(String type) {
             this.type = type;
         }
 
-        @XmlElement(name = "friendly_name")
+        @XmlElement(name = "friendly_name", nillable = true)
         public String getFriendlyName() {
             return friendlyName;
         }
+
         public void setFriendlyName(String friendlyName) {
             this.friendlyName = friendlyName;
         }
-        
-        @XmlElement(name = "default_value")
+
+        @XmlElement(name = "default_value", nillable = true)
         public String getDefaultValue() {
             return defaultValue;
         }
+
         public void setDefaultValue(String defaultValue) {
             this.defaultValue = defaultValue;
         }
 
-        @XmlElement(name = "value")
+        @XmlElement(name = "value", nillable = true)
         public String getValue() {
             return value;
         }
+
         public void setValue(String assetValue) {
             this.value = assetValue;
         }
 
-        @XmlElement(name = "group")
+        @XmlElement(name = "group", nillable = true)
         public String getGroup() {
             return group;
         }
+
         public void setGroup(String group) {
             this.group = group;
         }
@@ -149,6 +155,7 @@ public class CustomServicesWorkflowDocument {
         public boolean getRequired() {
             return required;
         }
+
         public void setRequired(boolean required) {
             this.required = required;
         }
@@ -157,35 +164,39 @@ public class CustomServicesWorkflowDocument {
         public boolean getLocked() {
             return locked;
         }
+
         public void setLocked(boolean locked) {
             this.locked = locked;
         }
 
-        @XmlElement(name = "description")
+        @XmlElement(name = "description", nillable = true)
         public String getDescription() {
             return description;
         }
+
         public void setDescription(String description) {
             this.description = description;
         }
 
-        @XmlElement(name = "input_field_type")
+        @XmlElement(name = "input_field_type", nillable = true)
         public String getInputFieldType() {
             return inputFieldType;
         }
+
         public void setInputFieldType(String inputfieldtype) {
             this.inputFieldType = inputfieldtype;
         }
 
-        @XmlElement(name = "table_name")
+        @XmlElement(name = "table_name", nillable = true)
         public String getTableName() {
             return tableName;
         }
+
         public void setTableName(String tablename) {
             this.tableName = tablename;
         }
 
-        @XmlElement(name = "options")
+        @XmlElementWrapper(name = "options")
         public Map<String, String> getOptions() {
             return options;
         }
@@ -201,26 +212,29 @@ public class CustomServicesWorkflowDocument {
         private String type;
         private String table;
 
-        @XmlElement(name = "name")
+        @XmlElement(name = "name", nillable = true)
         public String getName() {
             return name;
         }
+
         public void setName(String name) {
             this.name = name;
         }
 
-        @XmlElement(name = "type")
+        @XmlElement(name = "type", nillable = true)
         public String getType() {
             return type;
         }
+
         public void setType(String type) {
             this.type = type;
         }
 
-        @XmlElement(name = "table")
+        @XmlElement(name = "table", nillable = true)
         public String getTable() {
             return table;
         }
+
         public void setTable(String table) {
             this.table = table;
         }
@@ -230,31 +244,25 @@ public class CustomServicesWorkflowDocument {
 
         private boolean waitForTask = true;
         private long timeout = DEFAULT_STEP_TIMEOUT;
-        private String playbook;
-        
+
         @XmlElement(name = "wait_for_task")
         public boolean getWaitForTask() {
             return waitForTask;
         }
+
         public void setWaitForTask(boolean waitForTask) {
             this.waitForTask = waitForTask;
         }
-        
+
         @XmlElement(name = "timeout")
         public long getTimeout() {
             return timeout;
         }
+
         public void setTimeout(long timeout) {
             this.timeout = timeout;
         }
 
-        @XmlElement(name = "playbook")
-        public String getPlaybook() {
-            return playbook;
-        }
-        public void setPlaybook(String playbook) {
-            this.playbook = playbook;
-        }
     }
 
     public static class Step {
@@ -271,19 +279,22 @@ public class CustomServicesWorkflowDocument {
         private StepAttribute attributes;
         private String successCriteria;
         private NextStep next;
-        
-        @XmlElement(name = "id")
+
+        @XmlElement(name = "id", required = true)
         public String getId() {
             return id;
         }
+
         public void setId(String stepId) {
             this.id = stepId;
         }
 
-        @XmlElement(name = "friendly_name")
+        //ALl steps should have friendly_name
+        @XmlElement(name = "friendly_name", required = true)
         public String getFriendlyName() {
             return friendlyName;
         }
+
         public void setFriendlyName(String friendlyName) {
             this.friendlyName = friendlyName;
         }
@@ -292,6 +303,7 @@ public class CustomServicesWorkflowDocument {
         public Integer getPositionY() {
             return positionY;
         }
+
         public void setPositionY(Integer positionY) {
             this.positionY = positionY;
         }
@@ -300,6 +312,7 @@ public class CustomServicesWorkflowDocument {
         public Integer getPositionX() {
             return positionX;
         }
+
         public void setPositionX(Integer positionX) {
             this.positionX = positionX;
         }
@@ -308,22 +321,26 @@ public class CustomServicesWorkflowDocument {
         public URI getOperation() {
             return operation;
         }
+
         public void setOperation(URI operation) {
             this.operation = operation;
         }
-        
-        @XmlElement(name = "description")
+
+        @XmlElement(name = "description", nillable = true)
         public String getDescription() {
             return description;
         }
+
         public void setDescription(String description) {
             this.description = description;
         }
-        
-        @XmlElement(name = "type")
+
+        //Start and end does not have type
+        @XmlElement(name = "type", nillable = true)
         public String getType() {
             return type;
         }
+
         public void setType(String type) {
             this.type = type;
         }
@@ -341,29 +358,34 @@ public class CustomServicesWorkflowDocument {
         public List<Output> getOutput() {
             return output;
         }
+
         public void setOutput(List<Output> output) {
             this.output = output;
         }
-        
+
         @XmlElement(name = "attributes")
         public StepAttribute getAttributes() {
             return attributes;
         }
+
         public void setAttributes(StepAttribute attributes) {
             this.attributes = attributes;
         }
-        
-        @XmlElement(name = "success_criteria")
+
+        @XmlElement(name = "success_criteria", nillable = true)
         public String getSuccessCriteria() {
             return successCriteria;
         }
+
         public void setSuccessCriteria(String successCriteria) {
             this.successCriteria = successCriteria;
         }
+
         @XmlElement(name = "next")
         public NextStep getNext() {
             return next;
         }
+
         public void setNext(NextStep next) {
             this.next = next;
         }
@@ -372,19 +394,22 @@ public class CustomServicesWorkflowDocument {
     public static class NextStep {
         private String defaultStep;
         private String failedStep;
-        
-        @XmlElement(name = "default")
+
+        //End does not have next steps
+        @XmlElement(name = "default", nillable = true)
         public String getDefaultStep() {
             return defaultStep;
         }
+
         public void setDefaultStep(String defaultStep) {
             this.defaultStep = defaultStep;
         }
-        
-        @XmlElement(name = "failed")
+
+        @XmlElement(name = "failed", nillable = true)
         public String getFailedStep() {
             return failedStep;
         }
+
         public void setFailedStep(String failedStep) {
             this.failedStep = failedStep;
         }

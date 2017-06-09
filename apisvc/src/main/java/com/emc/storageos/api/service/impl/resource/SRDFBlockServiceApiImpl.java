@@ -141,17 +141,24 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 clazz.getSimpleName());
     }
 
+    /**
+     * Gets recommendations for the target volume for a vpool change to to add
+     * SRDF protection to an unprotected VMAX volume.
+     * 
+     * @param volume The unprotected VMAX volume
+     * @param vpool The new vpool specifying SDRDF protection
+     * @param vpoolChangeParam The vpool change request parameter.
+     * 
+     * @return The recommendations for the SRDF target.
+     */
     private List<Recommendation> getRecommendationsForVirtualPoolChangeRequest(final Volume volume,
-            final VirtualPool cos, final VirtualPoolChangeParam cosChangeParam) {
+            final VirtualPool vpool, final VirtualPoolChangeParam vpoolChangeParam) {
         Project project = _dbClient.queryObject(Project.class, volume.getProject());
 
         // SRDF volume placement is requested.
-        return getBlockScheduler().scheduleStorageForCosChangeUnprotected(
-                volume,
-                cos,
-                SRDFScheduler.getTargetVirtualArraysForVirtualPool(project, cos, _dbClient,
-                        _permissionsHelper),
-                cosChangeParam);
+        return getBlockScheduler().scheduleStorageForVpoolChangeUnprotected(volume, vpool,
+                SRDFScheduler.getTargetVirtualArraysForVirtualPool(project, vpool, _dbClient, _permissionsHelper),
+                vpoolChangeParam);
     }
 
     /**
@@ -624,7 +631,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         Volume.determineFastExpansionForVolume(sourceVolume, _dbClient), null);
                 MetaVolumeRecommendation targetVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(targetSystem, targetPool,
                         targetVolume.getCapacity(), targetVolume.getThinlyProvisioned(),
-                        Volume.determineFastExpansionForVolume(targetVolume, _dbClient), null); // TBD Heg: Was using passed source vpool?? Will now use target vpool
+                        Volume.determineFastExpansionForVolume(targetVolume, _dbClient), null); // // TBD Heg: Was using passed source vpool?? Will now use target vpool
                 isCapacityReset = computeCapacityforSRDFV3ToV2Meta(sourcePool, targetPool, sourceVolume, targetVolume,
                         sourceVolumeRecommendation, targetVolumeRecommendation);
             }
@@ -980,6 +987,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     private void upgradeToTargetVolume(final Volume volume, final VirtualPool vpool,
             final VirtualPoolChangeParam cosChangeParam, final String taskId)
                     throws InternalException {
+        // TBD Heg - This is only called by the changeVolumeVirtualPool method that does not appear to be
+        // used at all, so can this go too?
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
         List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(
@@ -1015,7 +1024,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
-        // TBD Heg
         createVolumes(param, project, varray, vpool, new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(),
                 recommendationMap, null, taskId, capabilities);
 
@@ -1028,16 +1036,18 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      *            -- srdf source volume (existing).
      * @param vpool
      *            -- Requested vpool.
+     * @param vpoolChangeParam
+     *            -- vpool change request parameter
      * @param taskId
      * @throws InternalException
      */
     private List<VolumeDescriptor> upgradeToSRDFTargetVolume(final Volume volume, final VirtualPool vpool,
-            final VirtualPoolChangeParam cosChangeParam, final String taskId)
+            final VirtualPoolChangeParam vpoolChangeParam, final String taskId)
                     throws InternalException {
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
         List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(
-                volume, vpool, cosChangeParam);
+                volume, vpool, vpoolChangeParam);
 
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolume();
@@ -1051,8 +1061,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         // Generate a VolumeCreate object that contains the information that createVolumes likes to
         // consume.
         VolumeCreate param = new VolumeCreate(volume.getLabel(), String.valueOf(volume
-                .getCapacity()), 1, vpool.getId(), volume.getVirtualArray(), volume.getProject()
-                        .getURI());
+                .getCapacity()), 1, vpool.getId(), volume.getVirtualArray(), volume.getProject().getURI());
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
 
@@ -1080,10 +1089,14 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 : _dbClient.queryObject(BlockConsistencyGroup.class,
                         capabilities.getBlockConsistencyGroup());
 
+        // No performance parameters for the copies for vpool change to add SRDF protection.
+        // Note also we don't have to update the capabilities here to reflect the source vpool
+        // and performance parameters because the volume alreay exists a new one is not prepared.
+        Map<URI, Map<VolumeTopologyRole, URI>> copyParamsMap = new HashMap<>();
+        
         // prepare the volumes
-        // TBD Heg revisit when vpool changes addressed.
         List<URI> volumeURIs = prepareRecommendedVolumes(taskId, taskList, project, varray,
-                vpool, null, null, capabilities, recommendations, consistencyGroup,
+                vpool, volume.getPerformanceParams(), copyParamsMap, capabilities, recommendations, consistencyGroup,
                 volumeLabel, param.getSize());
         List<VolumeDescriptor> resultListVolumeDescriptors = new ArrayList<>();
         // Execute the volume creations requests for each recommendation.
@@ -1091,9 +1104,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         while (recommendationsIter.hasNext()) {
             Recommendation recommendation = recommendationsIter.next();
             try {
-                // TBD Heg revisit when vpool changes addressed.
                 List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(
-                        (SRDFRecommendation) recommendation, volumeURIs, capabilities, null);
+                        (SRDFRecommendation) recommendation, volumeURIs, capabilities, copyParamsMap);
                 // Log volume descriptor information
                 logVolumeDescriptorPrecreateInfo(volumeDescriptors, taskId);
                 resultListVolumeDescriptors.addAll(volumeDescriptors);
@@ -1143,6 +1155,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     public TaskList changeVolumeVirtualPool(final URI systemURI, final Volume volume,
             final VirtualPool vpool, final VirtualPoolChangeParam vpoolChangeParam, String taskId)
                     throws InternalException {
+        
+        // TBD Heg - Seems like nothing calls this. BlockService always calls the other form of this overloaded method.
         _log.debug("Volume {} VirtualPool change.", volume.getId());
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.

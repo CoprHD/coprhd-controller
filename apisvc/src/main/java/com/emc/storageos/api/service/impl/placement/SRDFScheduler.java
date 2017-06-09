@@ -589,9 +589,11 @@ public class SRDFScheduler implements Scheduler {
      *            vpool requested to change to (must be protected)
      * @param targetVarrays
      *            Varrays to protect this volume to.
+     * @param param
+     *            The virtual pool change request parameter.
      * @return list of Recommendation objects to satisfy the request
      */
-    public List<Recommendation> scheduleStorageForCosChangeUnprotected(final Volume volume,
+    public List<Recommendation> scheduleStorageForVpoolChangeUnprotected(final Volume volume,
             final VirtualPool vpool, final List<VirtualArray> targetVarrays,
             final VirtualPoolChangeParam param) {
         _log.debug("Schedule storage for vpool change to vpool {} for volume {}.",
@@ -611,24 +613,43 @@ public class SRDFScheduler implements Scheduler {
         }
         if (sourcePool == null) {
             // We could not verify the source pool exists in the new vpool and existing varray, return appropriate error
-            _log.error(
-                    "Volume's storage pool does not belong to vpool {} .", vpool.getLabel());
+            _log.error("Volume's storage pool does not belong to vpool {} .", vpool.getLabel());
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(
                     vpool.getLabel(), volume.getVirtualArray().toString());
         }
-        VirtualPoolCapabilityValuesWrapper wrapper = new VirtualPoolCapabilityValuesWrapper();
-        wrapper.put(VirtualPoolCapabilityValuesWrapper.SIZE, volume.getCapacity());
-        wrapper.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-        wrapper.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
 
         // Schedule storage based on source volume storage pool
         List<StoragePool> sourcePools = new ArrayList<StoragePool>();
         sourcePools.add(sourcePool);
-        // TBD Heg pass null performance params for now and revisit for change vpool.
+
+        // We need to build a performance parameters map that reflects the performance parameters,
+        // if any, for the passed source volume and no performance parameters for the copies and pass
+        // this in the call. The newly provisioned copy targets will be placed strictly on the copy
+        // vpool and not any performance parameters for a vpool change that adds SRDF targets to an
+        // existing unprotected source. We also need to make sure the capabilities are initialized to 
+        // reflect the source capabilities. We are calling the same placement code that is called for 
+        // new SRDF protected volumes, so we need to make sure the calling conditions are the same 
+        // even though the volume actually already exists. When new volumes are created the capabilities 
+        // reflect the source vpool and take into any passed performance parameters for the source.
+        Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams = new HashMap<>();
+        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = new HashMap<>();
+        Map<VolumeTopologyRole, URI> sourceParams = new HashMap<>();
+        sourceParams.put(VolumeTopologyRole.PRIMARY, volume.getPerformanceParams());
+        sourceParamsMap.put(volume.getVirtualArray(), sourceParams);
+        performanceParams.put(VolumeTopologySite.SOURCE, sourceParamsMap);
+        Map<URI, Map<VolumeTopologyRole, URI>> copyParamsMap = new HashMap<>();
+        performanceParams.put(VolumeTopologySite.COPY, copyParamsMap);
+        
+        VirtualPoolCapabilityValuesWrapper capabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                vpool, sourceParams, VolumeTopologyRole.PRIMARY, new VirtualPoolCapabilityValuesWrapper(), _dbClient);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volume.getCapacity());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
+        
         return scheduleStorageSourcePoolConstraint(
                 _dbClient.queryObject(VirtualArray.class, volume.getVirtualArray()),
                 _dbClient.queryObject(Project.class, volume.getProject().getURI()), vpool, 
-                null, wrapper, sourcePools, volume, volume.getConsistencyGroup());
+                performanceParams, capabilities, sourcePools, volume, volume.getConsistencyGroup());
     }
 
     /**

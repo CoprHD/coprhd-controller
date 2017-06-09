@@ -1342,10 +1342,11 @@ public class FileService extends TaskResourceService {
                     for (QuotaDirectory quotaDir : quotaDirs) {
                         qdsize = newFSsize - quotaDir.getSize();
                         Double quotasize = SizeUtil.translateSize(quotaDir.getSize(), SizeUtil.SIZE_GB);
+                        Double newFScapacity = SizeUtil.translateSize(newFSsize, SizeUtil.SIZE_GB);
                         if (qdsize < MIN_EXPAND_SIZE) {
                             String msg = String
-                                    .format("as requested reduced size [%sGB] is smaller than its quota size [%sGB] for filesystem %s", 
-                                    		param.getNewSize(), quotasize.toString(), fs.getName());
+                                    .format("as requested reduced size [%.1fGB] is smaller than its quota size [%.1fGB] for filesystem %s", 
+                                    		newFScapacity.toString(), quotasize.toString(), fs.getName());
                             
                             throw APIException.badRequests.reduceFileSystemNotSupported(msg);
                         }

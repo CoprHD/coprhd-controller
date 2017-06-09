@@ -1106,7 +1106,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 	 Double dUsageSize = SizeUtil.translateSize(quota.getUsagePhysical(), SizeUtil.SIZE_GB);
                 	 Double dNewCapacity = SizeUtil.translateSize(capacity, SizeUtil.SIZE_GB);
                 	 
-                	 String msg = String.format("as requested reduced size [%sGB] is smaller than used capacity (%sGB) for filesystem %s", 
+                	 String msg = String.format("as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s", 
                 			 String.valueOf(dNewCapacity), String.valueOf(dUsageSize), args.getFs().getName());
                 	 
                      _log.error(msg);
@@ -1444,8 +1444,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 } else {
                 	Double dUsage = SizeUtil.translateSize(quotaUsageSpace, SizeUtil.SIZE_GB);
                 	Double dQuotaSize = SizeUtil.translateSize(qDirSize, SizeUtil.SIZE_GB);
-                	String msg = String.format("as requested reduced size [%sGB] is smaller than used capacity [%sGB] for filesystem %s", 
-                			dQuotaSize.toString(), dUsage.toString(), args.getFs().getName());
+                	String msg = String.format("as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s", 
+                			dQuotaSize, dUsage, args.getFs().getName());
                 	_log.error("doUpdateQuotaDirectory : " + msg);
                 	ServiceError error = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
                 	return BiosCommandResult.createErrorResult(error);

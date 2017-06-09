@@ -944,9 +944,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         	fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
             if (!result.isCommandSuccess()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
-            } else {
-             	_dbClient.updateObject(fs);
-            }
+            } 
+            _dbClient.updateObject(fs);
 
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.EXPAND_FILE_SYSTEM,
@@ -1002,9 +1001,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             if (!result.isCommandSuccess()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
-            } else {
-            	_dbClient.updateObject(fs);
-            }
+            } 
+            _dbClient.updateObject(fs);
+
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();

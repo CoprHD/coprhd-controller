@@ -1107,7 +1107,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 	 Double dNewCapacity = SizeUtil.translateSize(capacity, SizeUtil.SIZE_GB);
                 	 
                 	 String msg = String.format("as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s", 
-                			 String.valueOf(dNewCapacity), String.valueOf(dUsageSize), args.getFs().getName());
+                			 dNewCapacity, dUsageSize, args.getFs().getName());
                 	 
                      _log.error(msg);
                      final ServiceError serviceError = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);

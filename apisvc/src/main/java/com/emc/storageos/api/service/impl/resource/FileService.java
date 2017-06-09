@@ -3273,7 +3273,8 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList failoverProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
 
-        doMirrorOperationValidation(id, ProtectionOp.FAILOVER.toString());
+        // TODO: add proper validation for higher order failover
+        // doMirrorOperationValidation(id, ProtectionOp.FAILOVER.toString());
         TaskResourceRep taskResp = null;
         StoragePort storageportNFS = null;
         StoragePort storageportCIFS = null;

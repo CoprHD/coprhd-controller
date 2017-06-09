@@ -4510,13 +4510,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param args
      * @return
      */
-    public String createMethod(Workflow workflow, String waitFor, String methodName, String stepGroup, String stepId,
-            String stepDescription, URI storage,
-            Object[] args) {
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
-        Workflow.Method method = new Workflow.Method(methodName, args);
-        return workflow.createStep(stepGroup, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null, stepId);
-    }
+    // public String createMethod(Workflow workflow, String waitFor, String methodName, String stepGroup, String stepId,
+    // String stepDescription, URI storage,
+    // Object[] args) {
+    // StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+    // Workflow.Method method = new Workflow.Method(methodName, args);
+    // return workflow.createStep(stepGroup, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null, stepId);
+    // }
 
     /**
      * Acquire Work flow Distributed Owner Lock for a Step.

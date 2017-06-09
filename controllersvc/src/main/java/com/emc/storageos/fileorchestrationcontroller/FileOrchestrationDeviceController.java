@@ -1042,7 +1042,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, sourceFsId);
             FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsId);
             FilePolicy sourceFilePolicy = s_dbClient.queryObject(FilePolicy.class, sourceFp);
-            String HIGHER_ORDER_FAILOVER_STEP_GROUP = "higherOrderFailoverStepGroup";
+            // String HIGHER_ORDER_FAILOVER_STEP_GROUP = "higherOrderFailoverStepGroup";
             String waitFor = null;
             // Temporary directory created to failover the
             URI tempTargetFsId = FileOrchestrationUtils.createFsObj(s_dbClient, targetFileShare.getId());
@@ -1060,23 +1060,22 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String stepDescription = String.format("Create the temp target FileShare : %s ", tempFileShare.getLabel());
             Object[] fsArgs = new Object[] { tempFileShare.getStorageDevice(), tempFileShare.getPool(), tempFileShare.getId(),
                     tempFileShare.getNativeId() };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "createFS", HIGHER_ORDER_FAILOVER_STEP_GROUP, tempFsStep,
-                    stepDescription,
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "createFS", tempFsStep, stepDescription,
                     tempFileShare.getStorageDevice(), fsArgs);
 
             // Step2: create Sync Policy apply at targetFs
             String tempPolicyStep = workflow.createStepId();
             stepDescription = String.format("Create File Policy : %s ");
             Object[] policyArgs = new Object[] { targetFileShare.getId(), tempFileShare.getId(), tempSyncPolicyName };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "createRepPolicyForFsHigherOrder",
-                    HIGHER_ORDER_FAILOVER_STEP_GROUP, tempPolicyStep, stepDescription, tempFileShare.getStorageDevice(), policyArgs);
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "createRepPolicyForFsHigherOrder", tempPolicyStep,
+                    stepDescription, tempFileShare.getStorageDevice(), policyArgs);
 
             // Step3: Start the Policy
             String startPolicy = workflow.createStepId();
             stepDescription = String.format("Start the SyncIQ Policy : %s", tempSyncPolicyName);
             Object[] startPolicyArgs = new Object[] { tempSyncPolicyName, targetFileShare.getId() };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "startSyncIQPolicy",
-                    HIGHER_ORDER_FAILOVER_STEP_GROUP, startPolicy, stepDescription, targetFileShare.getStorageDevice(), startPolicyArgs);
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "startSyncIQPolicy", startPolicy, stepDescription,
+                    targetFileShare.getStorageDevice(), startPolicyArgs);
 
             // Step4: Failover
             String failoverStep = workflow.createStepId();
@@ -1085,8 +1084,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             MirrorFileFailoverTaskCompleter failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined,
                     failoverStep);
             Object[] failoverArgs = new Object[] { tempSyncPolicyName, targetFileShare.getId(), failoverCompleter };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "failoverFsHigherOrder", HIGHER_ORDER_FAILOVER_STEP_GROUP,
-                    failoverStep, stepDescription, targetFileShare.getStorageDevice(), failoverArgs);
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "failoverFsHigherOrder", failoverStep, stepDescription,
+                    targetFileShare.getStorageDevice(), failoverArgs);
 
             String successMessage = String.format("Successfully failed over File System : %s", sourceFileShare.getLabel());
             workflow.executePlan(completer, successMessage);

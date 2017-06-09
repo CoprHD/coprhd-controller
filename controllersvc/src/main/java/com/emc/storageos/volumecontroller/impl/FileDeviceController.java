@@ -940,12 +940,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else if (!result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
-            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+             // Set status
+        	fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            if (!result.isCommandSuccess()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            } else {
+             	_dbClient.updateObject(fs);
             }
-            // Set status
-            fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
-            _dbClient.updateObject(fs);
 
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.EXPAND_FILE_SYSTEM,
@@ -999,13 +1000,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else if (!result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
-            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+            if (!result.isCommandSuccess()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            } else {
+            	_dbClient.updateObject(fs);
             }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
-            _dbClient.updateObject(fs);
-
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.REDUCE_FILE_SYSTEM,
                     result.isCommandSuccess(), eventMsg, "", fs, String.valueOf(newFSsize));
@@ -1866,11 +1867,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (!result.isCommandSuccess()) {
                 _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successfull");
+            } else {
+            	// save the task status into db
+            	_dbClient.updateObject(quotaDirObj);
+            	_dbClient.updateObject(fsObj);
             }
-            // save the task status into db
-            _dbClient.updateObject(quotaDirObj);
-            _dbClient.updateObject(fsObj);
-
+           
             fsObj = _dbClient.queryObject(FileShare.class, fs);
             _log.debug(
                     "FileDeviceController::updateQtree: After QuotaDirectory updated and fs persisted, Task Stauts {} -- Operation Details : {}",

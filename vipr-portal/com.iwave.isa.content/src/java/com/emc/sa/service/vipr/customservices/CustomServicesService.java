@@ -36,7 +36,6 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.xml.bind.annotation.XmlElement;
 
-import com.emc.sa.catalog.CustomServicesWorkflowManager;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
@@ -44,6 +43,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.emc.sa.catalog.CustomServicesWorkflowManager;
 import com.emc.sa.catalog.primitives.CustomServicesViprPrimitiveDAO;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;

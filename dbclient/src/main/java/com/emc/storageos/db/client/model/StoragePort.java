@@ -418,4 +418,9 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         }
         return result;
     }
+
+    @Override
+    public String forDisplay() {
+        return String.format("%s/%s (%s)", getPortGroup(), getPortName(), getPortNetworkId());
+    }
 }

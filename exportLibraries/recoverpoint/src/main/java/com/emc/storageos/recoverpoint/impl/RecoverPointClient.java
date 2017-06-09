@@ -579,7 +579,7 @@ public class RecoverPointClient {
                         volume.setRpCopyName(copySettings.getName());
                         volume.setInternalSiteName(clusterIdToInternalSiteNameMap.get(journal.getClusterUID().getId()));
 
-                        // Need to extract the rawUids to format: 600601608D20370089260942815CE511
+                        // Need to extract the naaUids to format: 600601608D20370089260942815CE511
                         volume.setWwn(RecoverPointUtils.getGuidBufferAsString(journal.getVolumeInfo().getNaaUids(), false).toUpperCase(
                                 Locale.ENGLISH));
                         if (copy.getJournals() == null) {
@@ -626,7 +626,7 @@ public class RecoverPointClient {
                             volResp.setProduction(false);
                         }
 
-                        // Need to extract the rawUids to format: 600601608D20370089260942815CE511
+                        // Need to extract the naaUids to format: 600601608D20370089260942815CE511
                         volResp.setWwn(RecoverPointUtils.getGuidBufferAsString(volume.getVolumeInfo().getNaaUids(), false).toUpperCase(
                                 Locale.ENGLISH));
 

@@ -2679,12 +2679,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doResyncLink(final StorageSystem system, final URI sourceURI,
-            final URI targetURI, final TaskCompleter completer) {
-        _srdfOperations.reSyncSRDFSyncVolumePair(system, sourceURI, targetURI, completer);
-    }
-
-    @Override
     public void doRemoveVolumePair(final StorageSystem system, final URI sourceURI,
             final URI targetURI, final boolean rollback, final TaskCompleter completer) {
         _srdfOperations.removeSRDFSyncPair(system, sourceURI, targetURI, rollback, completer);

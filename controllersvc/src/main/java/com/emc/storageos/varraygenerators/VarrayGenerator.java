@@ -211,7 +211,7 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
      * @return VirtualArray"
      */
     protected VirtualArray getParkingVarray() {
-        String name = "@parkingVarray";
+        String name = "All Storage Arrays";
         VirtualArray varray = getVirtualArray(name);
         if (varray != null && !varray.getInactive()) {
             return varray;

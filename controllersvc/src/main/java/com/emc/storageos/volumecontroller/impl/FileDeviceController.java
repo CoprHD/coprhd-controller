@@ -1001,11 +1001,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             if (!result.isCommandSuccess()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
-            } 
-            _dbClient.updateObject(fs);
-
+            }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.updateObject(fs);
+           
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.REDUCE_FILE_SYSTEM,
                     result.isCommandSuccess(), eventMsg, "", fs, String.valueOf(newFSsize));

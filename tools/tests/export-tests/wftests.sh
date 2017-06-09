@@ -3762,8 +3762,8 @@ test_delete_srdf() {
                 failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization"
     sync_only="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization"
 
-    cfs=("Volume BlockConsistencyGroup")
-    snap_db_esc=" | grep -Ev \"^sourceGroup = null|targetGroup = null\""
+    cfs=("Volume")
+    snap_db_esc=" | grep -Ev \"srdfLinkStatus = |^Volume\:|accessState = READWRITE|accessState = NOT_READY\""
     symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
 
     if [ "${SRDF_MODE}" = "async" ];
@@ -3774,7 +3774,7 @@ test_delete_srdf() {
     fi
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections=""
+    #failure_injections="failure_091_SRDFDeviceController.before_doDetachLink"
 
     for failure in ${failure_injections}
     do
@@ -3789,32 +3789,39 @@ test_delete_srdf() {
         # run discovery to update RemoteDirectorGroups
         runcmd storagedevice discover_all
 
-        snap_db 1 "${cfs[@]}" #"${snap_db_esc}"
+        snap_db 1 "${cfs[@]}" "${snap_db_esc}"
 
         set_artificial_failure ${failure}
 
         # Remove the volume
-        fail volume delete ${PROJECT}/${volname} --wait
+        if [ "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ];
+        then
+          runcmd volume delete ${PROJECT}/${volname} --wait
 
-        snap_db 2 "${cfs[@]}" #"${snap_db_esc}"
+          # Verify injected failures were hit
+          verify_failures ${failure}
+        else
+          fail volume delete ${PROJECT}/${volname} --wait
 
-        # Verify injected failures were hit
-        verify_failures ${failure}
+          runcmd storagedevice discover_all
+          snap_db 2 "${cfs[@]}" "${snap_db_esc}"
 
-        # Validate volume was left for retry
-        validate_db 1 2 ${cfs}
+          # Verify injected failures were hit
+          verify_failures ${failure}
 
-        set_artificial_failure none
+          # Validate volume was left for retry
+          validate_db 1 2 ${cfs}
 
-        # Retry the delete operation
-        runcmd volume delete ${PROJECT}/${volname} --wait
+          set_artificial_failure none
+
+          # Retry the delete operation
+          runcmd volume delete ${PROJECT}/${volname} --wait
+        fi
 
         if [ "${SIM}" = "0" ]
         then
           symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
         fi
-        # run discovery to update RemoteDirectorGroups
-        runcmd storagedevice discover_all
 
         report_results "test_delete_srdf" ${failure}
     done

@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
@@ -76,6 +77,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -857,12 +859,19 @@ public class StoragePortService extends TaggedResource {
                             // if removing the varrays reverts the port to using implicit varrays which contains the
                             // export, then it is all good.
                             if (!group.getInactive() && !storagePort.getTaggedVirtualArrays().contains(varray.toString())) {
-                                _log.info("The port is in use by export group {} in virtual array {} " +
-                                        "which will no longer in the port's tagged varray",
-                                        group.getLabel(), group.getVirtualArray().toString());
-                                throw APIException.badRequests.cannotChangePortVarraysExportExists(
-                                        storagePort.getNativeGuid(), group.getVirtualArray().toString(),
-                                        group.getId().toString());
+                                VirtualArray virtualArray = _dbClient.queryObject(VirtualArray.class, varray);
+                                _log.warn("The port {} is in use by export group {} in virtual array {} " +
+                                        "which will no longer be in the port's tagged varrays",
+                                        storagePort.forDisplay(), group.forDisplay(), virtualArray.forDisplay());
+                                boolean isEmptyVplexBackendExport = 
+                                        ExportMaskUtils.isBackendExportMask(_dbClient, mask)
+                                            && !mask.hasAnyUserAddedVolumes();
+                                // if this is not an empty vplex backend export, then we should throw an exception
+                                if (!isEmptyVplexBackendExport) {
+                                    throw APIException.badRequests.cannotChangePortVarraysExportExists(
+                                            storagePort.forDisplay(), virtualArray.forDisplay(),
+                                            group.forDisplay());
+                                }
                             }
                         }
                     }
@@ -881,7 +890,7 @@ public class StoragePortService extends TaggedResource {
                             "which will no longer in the port's tagged varray",
                             fileShare.getLabel(), fileShare.getVirtualArray().toString());
                     throw APIException.badRequests.cannotChangePortVarraysExportExists(
-                            storagePort.getNativeGuid(), fileShare.getVirtualArray().toString(),
+                            storagePort.forDisplay(), fileShare.getVirtualArray().toString(),
                             fileShare.getId().toString());
                 }
             }

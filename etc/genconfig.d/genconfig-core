@@ -293,7 +293,7 @@ _get_all_nodes_in_my_vdc() {
 _genconfig_custom_mount() {
    mount -t proc -o ro proc /opt/storageos/customroot/proc
    mount -t sysfs -o ro sysfs /opt/storageos/customroot/sys
-   mount -t devtmpfs -o ro devtmpfs /opt/storageos/customroot/dev
+   mount -t devtmpfs devtmpfs /opt/storageos/customroot/dev
    mount -t tmpfs tmpfs /opt/storageos/customroot/dev/shm
    mount -t devpts devpts /opt/storageos/customroot/dev/pts
 

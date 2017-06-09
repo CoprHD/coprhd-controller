@@ -301,9 +301,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         quotaDir.getOpStatus().createTaskStatus(task, op);
         fs.setOpStatus(new OpStatusMap());
         fs.getOpStatus().createTaskStatus(task, op);
-        _dbClient.updateObject(fs);
-        _dbClient.updateObject(quotaDir);
-        
+                        
         // Create an object of type "FileShareQtree" to be passed into the south-bound layers.
         FileShareQuotaDirectory qt = new FileShareQuotaDirectory(quotaDir);
 

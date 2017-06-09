@@ -136,8 +136,14 @@ public class MethodProcessor {
     public static void addInputs(MethodDoc method, ApiMethod apiMethod) {
         for (Parameter parameter : method.parameters()) {
             if (!AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.PathParam")
-                    && !AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.QueryParam")) {
-                apiMethod.input = JaxbClassProcessor.convertToApiClass(parameter.type().asClassDoc());
+                    && !AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.QueryParam")
+                    && !AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.HeaderParam")
+                    && !AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.core.Context")) {
+                
+                if(!TypeUtils.isPrimitiveType(parameter.type())) {
+                    apiMethod.setFqRequestType(parameter.type().qualifiedTypeName());
+                    apiMethod.input = JaxbClassProcessor.convertToApiClass(parameter.type().asClassDoc());
+                }
             }
         }
     }

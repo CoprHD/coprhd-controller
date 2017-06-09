@@ -108,6 +108,11 @@ public final class ApiPrimitiveMaker {
             .addModifiers(Modifier.PUBLIC).addStatement("return BODY")
             .returns(String.class).build();
     
+    private static final MethodSpec REQUEST_METHOD = MethodSpec
+            .methodBuilder("request").addAnnotation(Override.class)
+            .addModifiers(Modifier.PUBLIC).addStatement("return REQUEST")
+            .returns(String.class).build();
+    
     private static final MethodSpec RESPONSE_METHOD = MethodSpec
             .methodBuilder("response").addAnnotation(Override.class)
             .addModifiers(Modifier.PUBLIC).addStatement("return RESPONSE")
@@ -117,7 +122,8 @@ public final class ApiPrimitiveMaker {
             .<MethodSpec> builder()
             .add(FRIENDLY_NAME_METHOD, DESCRIPTION_METHOD, SUCCESS_CRITERIA_METHOD,
                     INPUT_METHOD, OUTPUT_METHOD, ATTRIBUTES_METHOD,
-                    PATH_METHOD, METHOD_METHOD, BODY_METHOD, RESPONSE_METHOD).build();
+                    PATH_METHOD, METHOD_METHOD, BODY_METHOD, REQUEST_METHOD,
+                    RESPONSE_METHOD).build();
 
     private static final ImmutableList<String> METHOD_BLACK_LIST = ImmutableList
             .<String> builder().add("assignTags").add("getTags").add("search")
@@ -166,6 +172,15 @@ public final class ApiPrimitiveMaker {
         return builder.build();
     }
 
+    /**
+     * Filters out methods that are black listed so that primitives are not generated for them.
+     * 
+     * For example, if there is a method such as "search" that is duplicated for every ApiService
+     * 
+     * @param method The method to check against the black list
+     * 
+     * @return true if the method is black listed
+     */
     private static boolean blackListed(final ApiMethod method) {
         return (METHOD_BLACK_LIST.contains(method.javaMethodName) || METHOD_BLACK_LIST
                 .contains(method.apiService.getFqJavaClassName() + "::"
@@ -201,8 +216,15 @@ public final class ApiPrimitiveMaker {
     private static Iterable<FieldSpec> makeFields(final ApiMethod method,
             final String friendlyName) {
         final ImmutableMap.Builder<String, FieldSpec> requestFields = ImmutableMap.<String, FieldSpec>builder();
-        final String body = makeBody(method.input, requestFields);
-        
+        final String body;
+        final String requestType;
+        if( method.hasRequestPayload()) {
+            requestType = method.getFqRequestType(); 
+            body = makeBody(method.input, requestFields);
+        } else {
+            requestType = org.apache.commons.lang.StringUtils.EMPTY;
+            body = org.apache.commons.lang.StringUtils.EMPTY;
+        }
         return ImmutableList
                 .<FieldSpec> builder()
                 .add(makeStringConstant("FRIENDLY_NAME", friendlyName))
@@ -212,6 +234,7 @@ public final class ApiPrimitiveMaker {
                 .add(makeStringConstant("PATH", method.path))
                 .add(makeStringConstant("METHOD", method.httpMethod))
                 .add(makeStringConstant("BODY", body))
+                .add(makeStringConstant("REQUEST", requestType))
                 .addAll(makeInput(method, requestFields.build()))
                 .addAll(makeOutput(method))
                 .add(makeAttributes()).build();
@@ -459,13 +482,7 @@ public final class ApiPrimitiveMaker {
             builder.add(makeOutputParameter(fieldName, parameterName, field));
         } else {
             for (ApiField subField : field.type.fields) {
-                final String subPrefix;
-                if (!field.collection && subField.hasChildElements()) {
-                    subPrefix = makeOutputParameterName(parameterName, subField);
-                } else {
-                    subPrefix = parameterName;
-                }
-                builder.addAll(makeResponseParameters(fieldName, subPrefix,
+                builder.addAll(makeResponseParameters(fieldName, parameterName,
                         subField));
             }
         }
@@ -616,16 +633,13 @@ public final class ApiPrimitiveMaker {
             name.append(prefix + ".");
         }
 
-        if (field.wrapperName != null && !field.wrapperName.isEmpty()) {
-            name.append(field.wrapperName);
-            name.append('.');
-        }
-
         if (field.collection) {
-            name.append('@');
+            final String fieldName = (org.apache.commons.lang.StringUtils.isEmpty(field.wrapperName) ? 
+                    field.name : field.wrapperName);
+            name.append("@"+fieldName);
+        } else {
+            name.append(field.name);
         }
-
-        name.append(field.name);
 
         return name.toString();
     }

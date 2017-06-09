@@ -1667,12 +1667,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             if (rule == 2) {
                                 // if it is a cascaded SG, mask need to be selected
                                 // VMAX3: Phantom SGs are not created for VMAX3, so ignore the mask
-                                if (!policy.simpleMask &&
-                                        !(isVMAX3 && ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType()))) {
+                                if (!policy.simpleMask && checkIfRule2SatisfiesForVMAX3(isVMAX3, policy)) {
                                     _log.info("Pre-existing mask Matched rule 2A: volume has FAST policy and masking view has cascaded storage group");
-                                    // Host IO limits cannot be associated to phantom SGs,
+                                    // VMAX2: Host IO limits cannot be associated to phantom SGs,
                                     // hence verify if IO limit set on the SG within MV if not we need to create a new Masking view.
-                                    if (!isVMAX3 && ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType())) {
+                                    if (ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType())) {
                                         if (virtualPool != null) {
                                             if (HostIOLimitsParam.isEqualsLimit(policy.getHostIOLimitBandwidth(),
                                                     virtualPool.getHostIOLimitBandwidth())
@@ -1786,6 +1785,19 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
+        return true;
+    }
+
+    /**
+     * Check if rule-2 satisfies for VMAX3.
+     * If it is not simple mask, it could either be cascaded or Phantom SG.
+     * Phantom SGs are not created for VMAX3, so rule-2 does not satisfy for this case.
+     */
+    private boolean checkIfRule2SatisfiesForVMAX3(boolean isVMAX3, ExportMaskPolicy policy) {
+        if (isVMAX3 &&
+                ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType())) {
+            return false;
+        }
         return true;
     }
 

@@ -130,7 +130,7 @@ public class CustomServicesService extends ViPRService {
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
-            ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId() + "\t Step Name:" + step.getFriendlyName(), step.getType());
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getFriendlyName(), step.getType());
 
             updateInputPerStep(step);
 
@@ -233,18 +233,18 @@ public class CustomServicesService extends ViPRService {
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
         if (status) {
-            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step.getId()+ "\t Step Name:" + step.getFriendlyName(), result.getReturnCode());
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step.getId(), step.getFriendlyName(), result.getReturnCode());
 
             return step.getNext().getDefaultStep();
         }
 
         if (result!= null) {
-            ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId()+ "\t Step Name:" + step.getFriendlyName()
-            + "Output:" + result.getOut() + "Error:" + result.getErr() + "ReturnCode:" + result.getReturnCode());
+            ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId(), step.getFriendlyName(),
+            result.getOut(), result.getErr(), result.getReturnCode());
 
         } else {
             ExecutionUtils.currentContext()
-                    .logError("customServicesService.stepFailedStatus", step.getId() + "\t Step Name:" + step.getFriendlyName());
+                    .logError("customServicesService.stepFailedStatus", step.getId(), step.getFriendlyName(), "", "", "");
         }
 
         return step.getNext().getFailedStep();

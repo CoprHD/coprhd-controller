@@ -3360,7 +3360,7 @@
         type : "text",
         userConfigurable : true,
         userMutable : true,
-        hidden : false,
+        hidden : true,
         advanced : true,
         tag : "Other",
         reconfigRequired : false,

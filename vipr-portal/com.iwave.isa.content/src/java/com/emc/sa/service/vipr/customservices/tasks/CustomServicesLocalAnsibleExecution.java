@@ -231,11 +231,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                 .setExtraVars(extraVars)
                 .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
                 .build();
-        //default to no host key checking
-        final Map<String,String> environment = new HashMap<String,String>();
-        environment.put("ANSIBLE_HOST_KEY_CHECKING", "false");
 
-        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
+        return Exec.sudo(new File(orderDir), timeout, null, null, cmds);
     }
 
     private String[] softLinkCmd(final List <String> fileAbsolutePath) {

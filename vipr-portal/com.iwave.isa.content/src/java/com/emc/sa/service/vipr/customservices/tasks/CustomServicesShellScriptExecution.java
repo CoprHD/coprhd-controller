@@ -97,7 +97,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             final byte[] bytes = Base64.decodeBase64(script.getResource());
             AnsibleHelper.writeResourceToFile(bytes, scriptFileName);
 
-            final String exeScriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
+            final String exeScriptFileName = String.format("%s%s.sh", chrootOrderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
             result = executeCmd(exeScriptFileName);
 
         } catch (final Exception e) {
@@ -125,13 +125,13 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     private Exec.Result executeCmd(final String shellScript) throws Exception {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, shellScript);
-       // cmd.setChrootCmd(CustomServicesConstants.CHROOT_CMD);
+        cmd.setChrootCmd(CustomServicesConstants.CHROOT_CMD);
         final String[] cmds = cmd.build();
 
         //default to no host key checking
         final Map<String,String> environment = makeParam(input);
 
-        return Exec.exec(new File(orderDir), timeout, null, environment, cmds);
+        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
     }
 
     private Map<String,String> makeParam(final Map<String, List<String>> input) throws Exception {

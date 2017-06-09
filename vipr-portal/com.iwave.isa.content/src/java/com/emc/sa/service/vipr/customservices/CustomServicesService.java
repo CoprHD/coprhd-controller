@@ -244,7 +244,7 @@ public class CustomServicesService extends ViPRService {
 
         } else {
             ExecutionUtils.currentContext()
-                    .logError("customServicesService.stepFailedStatus", step.getId(), step.getFriendlyName(), "", "", "");
+                    .logError("customServicesService.stepFailedWithoutStatus", step.getId(), step.getFriendlyName());
         }
 
         return step.getNext().getFailedStep();

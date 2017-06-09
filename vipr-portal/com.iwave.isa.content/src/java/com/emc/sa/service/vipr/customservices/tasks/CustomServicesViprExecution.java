@@ -59,14 +59,14 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         this.step = step;
         if (daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) == null) {
             logger.error("ViPR operation DAO not found");
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId()+ "\t Step Name:" + step.getFriendlyName(), "ViPR operation DAO not found");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), "ViPR operation DAO not found");
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("ViPR operation DAO not found: " + step.getOperation());
         }
         final CustomServicesPrimitiveType primitive = daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE).get(step.getOperation());
 
         if (null == primitive) {
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId()+ "\t Step Name:" + step.getFriendlyName(), "Primitive not found: " + step.getOperation());
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), "Primitive not found: " + step.getOperation());
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
         }

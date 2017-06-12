@@ -270,22 +270,23 @@ public class RemoteReplicationUtils {
     }
 
     public static List<RemoteReplicationGroup> getRemoteReplicationGroupsForRrSet(DbClient dbClient, RemoteReplicationSet rrSet) {
+        List<RemoteReplicationGroup> result = new ArrayList<RemoteReplicationGroup>();
         if (rrSet.getSourceSystems().isEmpty() || rrSet.getTargetSystems().isEmpty()) {
-            return new ArrayList<RemoteReplicationGroup>();
+            return result;
         }
         List<RemoteReplicationGroup> rrGroups =
                 queryActiveResourcesByAltId(dbClient, RemoteReplicationGroup.class, "storageSystemType", rrSet.getStorageSystemType());
         for (RemoteReplicationGroup rrGroup : rrGroups) {
             if (rrGroup.getSourceSystem() == null || rrGroup.getTargetSystem() == null) {
-                rrGroups.remove(rrGroup);
                 continue;
             }
-            if (!rrSet.getSourceSystems().contains(rrGroup.getSourceSystem().toString())
-                    || !rrSet.getTargetSystems().contains(rrGroup.getTargetSystem().toString())) {
-                rrGroups.remove(rrGroup);
+            if (!rrSet.getSystemToRolesMap().containsKey(rrGroup.getSourceSystem().toString())
+                    || !rrSet.getSystemToRolesMap().containsKey(rrGroup.getTargetSystem().toString())) {
+                continue;
             }
+            result.add(rrGroup);
         }
-        return rrGroups;
+        return result;
     }
 
     /**

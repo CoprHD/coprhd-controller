@@ -1303,7 +1303,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     public boolean rollbackSRDFLinksStep(URI systemURI, List<URI> sourceURIs,
             List<URI> targetURIs, boolean isGroupRollback, boolean isVpoolChange, String opId) {
         log.info("START rollback multiple SRDF links");
-        TaskCompleter completer = null;
+        SRDFMirrorRollbackCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
@@ -1311,13 +1311,17 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_076);
             getRemoteMirrorDevice().doRollbackLinks(system, sourceURIs, targetURIs, isGroupRollback, isVpoolChange, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_077);
-
-            return completeAsReady(completer, opId);
         } catch (Exception e) {
             log.error("Exception while rolling back SRDF sources: {}", sourceURIs, e);
             // Succeed here, to allow other rollbacks to run
             cleanupCGsOnRollbackError(sourceURIs, targetURIs, systemURI, isVpoolChange);
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
+        } finally {
+            if (completer.hasRollbackFailures()) {
+                return completeAsError(completer, DeviceControllerException.errors.unforeseen(), opId);
+            } else {
+                return completeAsReady(completer, opId);
+            }
         }
     }
 
@@ -1333,17 +1337,20 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         try {
             Volume srcVol = dbClient.queryObject(Volume.class, sourceURIs.get(0));
             Volume tgtVol = dbClient.queryObject(Volume.class, targetURIs.get(0));
-            // Clean up target and source CGs since this is a rollback
-            BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, tgtVol.getConsistencyGroup());
-            BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, srcVol.getConsistencyGroup());
 
-            List<Volume> sourceVolumes = queryActiveResourcesByConstraint(dbClient, Volume.class,
-                    getVolumesByConsistencyGroup(sourceCG.getId()));
+            if (srcVol.hasConsistencyGroup()) {
+                // Clean up target and source CGs since this is a rollback
+                BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, tgtVol.getConsistencyGroup());
+                BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, srcVol.getConsistencyGroup());
 
-            log.info("Rolling back {}/{} volumes in CG...", sourceVolumes.size(), sourceURIs.size());
-            if (sourceVolumes.size() == sourceURIs.size()) {
-                log.info("Cleaning up source and target CGs");
-                SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, systemURI, isVpoolChange, dbClient);
+                List<Volume> sourceVolumes = queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        getVolumesByConsistencyGroup(sourceCG.getId()));
+
+                log.info("Rolling back {}/{} volumes in CG...", sourceVolumes.size(), sourceURIs.size());
+                if (sourceVolumes.size() == sourceURIs.size()) {
+                    log.info("Cleaning up source and target CGs");
+                    SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, systemURI, isVpoolChange, dbClient);
+                }
             }
             SRDFUtils.cleanupRDG(srcVol, tgtVol, dbClient);
         } catch (Exception e) {

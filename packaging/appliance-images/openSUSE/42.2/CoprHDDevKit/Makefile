@@ -66,7 +66,7 @@ ifeq ($(USE_CACHE),false)
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-monitoring --no-gpgcheck http://download.opensuse.org/repositories/server:/monitoring/openSUSE_Leap_42.2 suse-42.2-monitoring
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-http --no-gpgcheck http://download.opensuse.org/repositories/server:/http/openSUSE_Leap_42.2 suse-42.2-http
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-seife --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_Leap_42.2 suse-42.2-seife
-	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_Leap_42.2 suse-42.2-python
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.3-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_Leap_42.3 suse-42.3-python
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-network --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_Leap_42.2 suse-42.2-network
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.3-filesystems-ceph --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph/openSUSE_Leap_42.3 suse-42.3-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-electronics --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_Leap_42.2 suse-42.2-electronics
@@ -74,7 +74,7 @@ ifeq ($(USE_CACHE),false)
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-42.2-monitoring
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-42.2-http
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-42.2-seife
-	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.2-python
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.3-python
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.2-network
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.3-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.2-electronics

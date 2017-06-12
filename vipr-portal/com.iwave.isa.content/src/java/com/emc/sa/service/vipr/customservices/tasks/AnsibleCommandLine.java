@@ -124,11 +124,10 @@ public class AnsibleCommandLine {
         }
 
         if (!StringUtils.isEmpty(shellArgs)) {
-            final String[] splited = shellArgs.split("\\s+");
+            builder.add("bash").add("-c").add("\""+shellArgs).add(ansiblePath).add(playbook).add("\"");
+            final ImmutableList<String> cmdList = builder.build();
 
-            for (final String part : splited) {
-                builder.add(part);
-            }
+            return cmdList.toArray(new String[cmdList.size()]);
         }
 
         final ImmutableList<String> opt = optionalParam.build();

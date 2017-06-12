@@ -239,7 +239,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                 .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
                 .build();
 
-        return Exec.sudo(new File(orderDir), timeout, null, null, cmds);
+        return Exec.sudo(new File(orderDir), timeout, null, new HashMap<String,String>(), cmds);
     }
 
     private String[] softLinkCmd(final List <String> fileAbsolutePath) {

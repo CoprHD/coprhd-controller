@@ -71,6 +71,12 @@ public class DbClientContext {
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
     private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
 
+    private static final String SYSTEM_DISTRIBUTED_KS = "system_distributed";
+    private static final String SYSTEM_TRACES_KS = "system_traces";
+    private static final String SYSTEM_AUTH_KS = "system_auth";
+
+    private static final String[] SYSTEM_KEYSPACES = new String[] {SYSTEM_DISTRIBUTED_KS, SYSTEM_TRACES_KS, SYSTEM_DISTRIBUTED_KS};
+
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
     public static final String GEO_CLUSTER_NAME = "GeoStorageOS";
@@ -396,27 +402,78 @@ public class DbClientContext {
             update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
             update.setStrategyOptions(strategyOptions);
 
-            // ensure a schema agreement before updating the strategy options
-            // or else it's destined to fail due to SchemaDisagreementException
-            boolean hasUnreachableNodes = ensureSchemaAgreement();
-
-            String schemaVersion;
-            if (hasUnreachableNodes) {
-                schemaVersion = alterKeyspaceWithThrift(kd, update);
-            } else if (kd != null) {
-                schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
-            } else {
-                schemaVersion = cluster.addKeyspace(update).getResult().getSchemaId();
-            }
-    
-            if (wait && !hasUnreachableNodes) {
-                waitForSchemaAgreement(schemaVersion);
-            }
+            createOrUpdateKsDef(kd, update, wait);
         } catch (ConnectionException ex) {
             log.error("Fail to update strategy option", ex);
             throw DatabaseException.fatals.failedToChangeStrategyOption(ex.getMessage());
         }
     }
+
+    private void createOrUpdateKsDef(KeyspaceDefinition originalKsDef, KeyspaceDefinition updatedKsDef, boolean wait) throws ConnectionException {
+
+        // ensure a schema agreement before updating the strategy options
+        // or else it's destined to fail due to SchemaDisagreementException
+        boolean hasUnreachableNodes = ensureSchemaAgreement();
+
+        String schemaVersion;
+        if (hasUnreachableNodes) {
+            schemaVersion = alterKeyspaceWithThrift(originalKsDef, updatedKsDef);
+        } else if (originalKsDef != null) {
+            schemaVersion = cluster.updateKeyspace(updatedKsDef).getResult().getSchemaId();
+        } else {
+            schemaVersion = cluster.addKeyspace(updatedKsDef).getResult().getSchemaId();
+        }
+
+        if (wait && !hasUnreachableNodes) {
+            waitForSchemaAgreement(schemaVersion);
+        }
+
+    }
+
+    /**
+     *  set some system keyspaces' replication strategy to NetworkTopologyStrategy, otherwise,
+     *  dbsvc will not start when adding a standby.
+     *
+     *  This is specific to Cassandra 3.
+     */
+    public void initRepStrategyForSystemKS(Map<String, String> initNetworkStrategyOptions) throws ConnectionException {
+
+        log.info("beginning setting replication strategy for system keyspaces to NetworkTopologyStrategy");
+
+        for(String keyspace : SYSTEM_KEYSPACES){
+            this.setRepForKSToNetworkTopology(keyspace, initNetworkStrategyOptions);
+        }
+
+        log.info("finishing setting replication strategy for system keyspaces to NetworkTopologyStrategy");
+
+    }
+
+    private KeyspaceDefinition createTargetSysKsDef(String keyspaceName, Map<String, String> networkStrategyOptions) {
+
+        KeyspaceDefinition targetKsDef = cluster.makeKeyspaceDefinition();
+        targetKsDef.setName(keyspaceName);
+        targetKsDef.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+        targetKsDef.setStrategyOptions(networkStrategyOptions);
+
+        return targetKsDef;
+    }
+
+    private void setRepForKSToNetworkTopology(String keyspace, Map<String, String> networkStrategyOptions) throws ConnectionException {
+
+        KeyspaceDefinition originalKsDef = getOriginalKsDef(keyspace);
+        KeyspaceDefinition targetKsDef = createTargetSysKsDef(keyspaceName, networkStrategyOptions);
+
+        createOrUpdateKsDef(originalKsDef, targetKsDef, true);
+
+    }
+
+    private KeyspaceDefinition getOriginalKsDef(String keyspace) throws ConnectionException {
+
+        Cluster cluster = getCluster();
+        return cluster.describeKeyspace(keyspace);
+
+    }
+
 
     /**
      * Update the keyspace definition using low-level thrift API
@@ -612,7 +669,8 @@ public class DbClientContext {
         AstyanaxConfigurationImpl config = (AstyanaxConfigurationImpl)keyspaceContext.getAstyanaxConfiguration();
         config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);
     }
-    
+
+
     class KeyspaceTracerFactoryImpl implements KeyspaceTracerFactory {
         private AtomicLong readOperations = new AtomicLong(0);
         private AtomicLong writeOperations = new AtomicLong(0);

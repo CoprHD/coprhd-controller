@@ -105,6 +105,7 @@ public class SchemaUtil {
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
 
+
     private CoordinatorClient _coordinator;
     private Service _service;
     private DataObjectScanner _doScanner;
@@ -329,6 +330,7 @@ public class SchemaUtil {
                     }
                 };
                 clientContext.setCassandraStrategyOptions(strategyOptions, true);
+                clientContext.initRepStrategyForSystemKS(strategyOptions);
             }
         } else {
             _log.info("keyspace exist already");

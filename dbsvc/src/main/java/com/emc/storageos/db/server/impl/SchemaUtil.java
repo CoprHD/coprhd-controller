@@ -433,7 +433,7 @@ public class SchemaUtil {
 
         clientContext.setRepStrategyForSystemKS(targetRepOptions);
 
-        _log.info("in standby site, beginning setting replication strategy for system keyspaces");
+        _log.info("in standby site, finishing setting replication strategy for system keyspaces");
     }
 
     private Map<String,String> createTargetRepOptions() {

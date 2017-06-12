@@ -962,23 +962,23 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         }
     }
-    
+
     @Override
     public void reduceFS(URI storage, URI uri, long newFSsize, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         FileShare fs = null;
         StoragePool pool = null;
         StorageSystem storageObj = null;
-        
+
         FileDeviceInputOutput args = new FileDeviceInputOutput();
         try {
-        	fs = _dbClient.queryObject(FileShare.class, uri);
-        	pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
-        	storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            
+            fs = _dbClient.queryObject(FileShare.class, uri);
+            pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+
             args.addFSFileObject(fs);
             args.addStoragePool(pool);
-            
+
             args.setFileOperation(true);
             args.setNewFSCapacity(newFSsize);
             args.setOpId(opId);
@@ -3764,8 +3764,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 getDeviceType(descriptor.getDeviceURI()),
                                 this.getClass(),
                                 createFileSharesMethod(descriptor),
-                                rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
-                                        .getURI()), sourceDescriptors),
+                                rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(),
+                                        asList(fileShare.getParentFileShare().getURI()), sourceDescriptors),
                                 null);
                     }
                 }
@@ -3864,7 +3864,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
-    
+
     /*
      * Reduce filesystem
      * (non-Javadoc)
@@ -3990,7 +3990,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
-    
+
     /**
      * Reduce File System Step
      *
@@ -4005,9 +4005,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         _log.info("START Reduce file system");
         Map<URI, Long> filesharesToReduce = new HashMap<URI, Long>();
         for (FileDescriptor descriptor : fileDescriptors) {
-        	FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
             if (fileShare.getCapacity() != null && fileShare.getCapacity().longValue() != 0) {
-            	filesharesToReduce.put(fileShare.getId(), descriptor.getFileSize());
+                filesharesToReduce.put(fileShare.getId(), descriptor.getFileSize());
             }
         }
 
@@ -4026,10 +4026,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
-    
-    
-    
-    
 
     /**
      * Return a WorkFlow.Method for expandFileShares
@@ -4042,7 +4038,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     Workflow.Method expandFileSharesMethod(URI uriStorage, URI fileURI, long size) {
         return new Workflow.Method("expandFS", uriStorage, fileURI, size);
     }
-    
+
     /**
      * Return a WorkFlow.Method for reduceFileShares
      *

@@ -354,6 +354,10 @@
           "baseService": "NasExpandFileSystem"
         },
         {
+          "image": "icon_NASstorage_reduce.png",
+          "baseService": "NasReduceFileSystem"
+        },
+        {
           "image": "icon_NASstorage_remove.png",
           "baseService": "NasRemoveFileSystem"
         },
@@ -769,6 +773,10 @@
 		{
           "image": "Service_Remove_Block_Snapshot.png",
           "baseService": "RemoveBlockSnapshot"
+        },
+        {
+          "image": "icon_host_add.png",
+          "baseService": "ExportVolume"
         }
       ]
     }

@@ -2339,9 +2339,16 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void swap(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+     public void swap(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
 
     }
+
+    @Override
+    public void stop(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+
+        // Todo: call deleteReplicationPairs(List<URI>, taskCompleter);
+    }
+
 
     @Override
     public void split(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {

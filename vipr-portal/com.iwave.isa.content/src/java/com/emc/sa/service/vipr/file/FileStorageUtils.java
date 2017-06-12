@@ -60,6 +60,7 @@ import com.emc.sa.service.vipr.file.tasks.GetQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.GetSharesForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.MountFSExport;
 import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
+import com.emc.sa.service.vipr.file.tasks.ReduceFileSystem;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
@@ -245,6 +246,13 @@ public class FileStorageUtils {
     public static void expandFileSystem(URI fileSystemId, double sizeInGb) {
         String newSize = String.valueOf(DiskSizeConversionUtils.gbToBytes(sizeInGb));
         Task<FileShareRestRep> response = execute(new ExpandFileSystem(fileSystemId, newSize));
+        addAffectedResource(response);
+        logInfo("file.storage.task", response.getOpId());
+    }
+    
+    public static void reduceFileSystem(URI fileSystemId, double sizeInGb) {
+        String newSize = String.valueOf(DiskSizeConversionUtils.gbToBytes(sizeInGb));
+        Task<FileShareRestRep> response = execute(new ReduceFileSystem(fileSystemId, newSize));
         addAffectedResource(response);
         logInfo("file.storage.task", response.getOpId());
     }

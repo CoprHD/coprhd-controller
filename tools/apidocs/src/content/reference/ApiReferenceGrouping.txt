@@ -138,6 +138,7 @@ MeteringService
 WorkflowService
 TaskService
 DisasterRecoveryService
+StorageSystemDataCollectionService
 
 =API Differences
 Block Services

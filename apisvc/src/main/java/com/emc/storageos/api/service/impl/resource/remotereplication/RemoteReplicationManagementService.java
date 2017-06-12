@@ -470,6 +470,58 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         return taskList;
     }
 
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/stop")
+    public TaskList stopRemoteReplicationLink(RemoteReplicationOperationParam operationParam) {
+        validateOperationParam(operationParam);
+        _log.info("Called: stopRemoteReplicationLink() with context {} and ids {}",
+                operationParam.getOperationContext(), operationParam.getIds());
+
+        validateContainmentForContext(operationParam);
+
+        RemoteReplicationOperationParam.OperationContext operationContext =
+                RemoteReplicationOperationParam.OperationContext.valueOf(operationParam.getOperationContext());
+
+        TaskResourceRep task = null;
+        TaskList taskList = new TaskList();
+        RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
+
+        precheckVmaxOperation(rrPair, operationContext, operationParam, ProtectionOp.STOP);
+
+        switch (operationContext) {
+            case RR_PAIR:
+                String taskID = UUID.randomUUID().toString();
+                for (URI rrPairURI : operationParam.getIds()) {
+                    TaskResourceRep rrPairTaskResourceRep = rrPairService.stopRemoteReplicationPairLink(rrPairURI, taskID);
+                    taskList.addTask(rrPairTaskResourceRep);
+                }
+                break;
+
+            case RR_GROUP_CG:
+            case RR_SET_CG:
+                taskList = rrPairService.stopRemoteReplicationCGLink(operationParam.getIds());
+                break;
+
+            case RR_GROUP:
+                URI groupURI = rrPair.getReplicationGroup();
+                RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
+                task =  rrGroupService.stopRemoteReplicationGroupLink(rrGroup.getId());
+                taskList.addTask(task);
+                break;
+
+            case RR_SET:
+                URI setURI = rrPair.getReplicationSet();
+                RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
+                task = rrSetService.stopRemoteReplicationSetLink(rrSet.getId());
+                taskList.addTask(task);
+                break;
+        }
+        return taskList;
+    }
+
+
     private void validateOperationParam(RemoteReplicationOperationParam param) {
         ArgValidator.checkFieldNotNull(param, "remote replication operation parameter");
         ArgValidator.checkFieldNotNull(param.getOperationContext(), "remote replication operation context");

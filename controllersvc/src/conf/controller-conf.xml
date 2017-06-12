@@ -1471,6 +1471,7 @@
                 <property name="localContext" ref="dbclientcontext"/>
                 <property name="geoContext" ref="geodbclientcontext"/>
                 <property name="drUtil" ref="drUtil"/>
+                <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
             </bean>
         </property>
         <property name="coordinator" ref="coordinator" />
@@ -1795,6 +1796,12 @@
         <property name="config" ref="validatorConfig"/>
         <property name="cimPath" ref="vnxCIMObjectPathFactoryAdapter"/>
     </bean>
+    
+    <bean id="hdsValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.hds.HDSSystemValidatorFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="config" ref="validatorConfig"/>
+        <property name="clientFactory" ref="hdsApiFactory"/>
+    </bean>
 
     <bean id="validatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory">
         <property name="dbClient" ref="dbclient"/>
@@ -1806,6 +1813,7 @@
                 <entry key="unity" value-ref="vnxeValidatorFactory"/>
                 <entry key="vplex" value-ref="vplexValidatorFactory"/>
                 <entry key="vnxblock" value-ref="vnxValidatorFactory"/>
+                <entry key="hds" value-ref="hdsValidatorFactory"/>
             </map>
         </property>
     </bean>

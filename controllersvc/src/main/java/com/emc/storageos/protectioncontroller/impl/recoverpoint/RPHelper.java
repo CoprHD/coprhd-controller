@@ -2431,8 +2431,8 @@ public class RPHelper {
     public static boolean isValidRecoverPointExpandState(String copyState) {
         // Expand for RP is not valid if any of the target copies in the CG are in direct or logged access mode.
         if (copyState != null && 
-        		copyState.equalsIgnoreCase(Copy.ImageAccessMode.DIRECT_ACCESS.name()) || 
-        		copyState.equalsIgnoreCase(Copy.ImageAccessMode.LOGGED_ACCESS.name())) {
+        		(copyState.equalsIgnoreCase(Copy.ImageAccessMode.DIRECT_ACCESS.name()) || 
+        		copyState.equalsIgnoreCase(Copy.ImageAccessMode.LOGGED_ACCESS.name()))) {
             return false;
         }
         

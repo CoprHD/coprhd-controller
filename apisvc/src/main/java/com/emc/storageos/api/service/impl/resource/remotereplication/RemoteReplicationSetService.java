@@ -320,7 +320,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         BlockConsistencyGroupList result = new BlockConsistencyGroupList();
         RemoteReplicationSet rrSet = queryResource(id);
 
-        List<URI> srcStorageSystemsForSet = URIUtil.toURIList(rrSet.getSourceSystems());  //TODO: why not target systems??????????
+        List<URI> srcStorageSystemsForSet = URIUtil.toURIList(rrSet.getSourceSystems());
         if (srcStorageSystemsForSet == null) {
             _log.info("No storage systems found for Remote Replication Set while getting CGs for set '" +
                     rrSet.getLabel() + "' [" + rrSet.getId() + "]");

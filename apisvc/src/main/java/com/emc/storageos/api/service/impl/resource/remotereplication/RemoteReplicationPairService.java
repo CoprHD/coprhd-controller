@@ -1163,7 +1163,8 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 param.getCopies().add(copy);
                 // Specific to srdf implementation of establish for cg: block service will handle volume in cg by executing
                 // operation for complete cg.
-                taskList = blockService.startContinuousCopies(sourceVolume.getId(), param);
+                // Call srdf resume method (srdf start is internal api method used by service catalog for ingestion use case).
+                taskList = blockService.resumeContinuousCopies(sourceVolume.getId(), param);
                 break;
             case SPLIT_REMOTE_REPLICATION_CG_LINK:
                 copy.setCopyID(targetVolume.getId());
@@ -1250,7 +1251,8 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 break;
             case ESTABLISH_REMOTE_REPLICATION_PAIR_LINK:
                 param.getCopies().add(copy);
-                taskList = blockService.startContinuousCopies(sourceVolumeURI, param);
+                // Call srdf resume method (srdf start is internal api method used by service catalog for ingestion use case).
+                taskList = blockService.resumeContinuousCopies(sourceVolumeURI, param);
                 break;
             case SPLIT_REMOTE_REPLICATION_PAIR_LINK:
                 copy.setSync("true"); // srdf does split for sync == true when called pauseContinuousCopies()

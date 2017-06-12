@@ -270,9 +270,16 @@ public class RemoteReplicationUtils {
     }
 
     public static List<RemoteReplicationGroup> getRemoteReplicationGroupsForRrSet(DbClient dbClient, RemoteReplicationSet rrSet) {
+        if (rrSet.getSourceSystems().isEmpty() || rrSet.getTargetSystems().isEmpty()) {
+            return new ArrayList<RemoteReplicationGroup>();
+        }
         List<RemoteReplicationGroup> rrGroups =
                 queryActiveResourcesByAltId(dbClient, RemoteReplicationGroup.class, "storageSystemType", rrSet.getStorageSystemType());
         for (RemoteReplicationGroup rrGroup : rrGroups) {
+            if (rrGroup.getSourceSystem() == null || rrGroup.getTargetSystem() == null) {
+                rrGroups.remove(rrGroup);
+                continue;
+            }
             if (!rrSet.getSourceSystems().contains(rrGroup.getSourceSystem().toString())
                     || !rrSet.getTargetSystems().contains(rrGroup.getTargetSystem().toString())) {
                 rrGroups.remove(rrGroup);

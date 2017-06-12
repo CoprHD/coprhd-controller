@@ -1,0 +1,363 @@
+#!/bin/bash
+#
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Importing the network settings file which contains the network properties
+# like IP, GATEWAY, NETMASK & DNS
+. /opt/ADG/conf/ovf.properties
+
+function getNetworkProps()
+{
+  echo "Retrieving Network Properties..."
+  eval search=\$"network_DOM_${key_vmname}"
+  eval hostname=\$"network_hostname_${key_vmname}"
+  eval dns=\$"network_DNS_${key_vmname}"
+  eval gateway=\$"network_gateway_${key_vmname}"
+  eval ip=\$"network_ip${eth}_${key_vmname}"
+  eval netmask=\$"network_netmask${eth}_${key_vmname}"
+}
+
+function getAlternateNetworkProps()
+{
+  echo "Retrieving Network Properties..."
+  eval search=\$"network_DOM_${key_vmname}"
+  eval hostname=\$"network_hostname_${key_vmname}"
+  eval dns=\$"network_ipv4dns_${key_vmname}"
+  eval gateway=\$"network_ipv4gateway_${key_vmname}"
+  eval ip=\$"network_ipv4${eth}_${key_vmname}"
+  eval netmask=\$"network_ipv4netmask${eth}_${key_vmname}"
+  eval ipv6=\$"network_ipv6${eth}_${key_vmname}"
+  eval ipv6gateway=\$"network_ipv6gateway_${key_vmname}"
+  eval ipv6prefix=\$"network_ipv6prefix_${key_vmname}"
+  eval ipv6dns=\$"network_ipv6dns_${key_vmname}"
+}
+
+function validateIPv4()
+{
+  result=$(echo $1 | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$')
+  [ "$result" == "" ] && return 1
+  fields=$(echo $1 | tr "." "\n")
+  for num in $fields
+  do
+    [[ $num -gt 255 ]] && return 1
+  done
+
+  return 0
+}
+
+function validateDNS()
+{
+  if [ "$(echo $1 | grep ',')" != "" ]; then
+    ipAddress=$(echo $1 | tr "," "\n")
+
+    for addr in $ipAddress
+    do
+      validateIPv4 $addr || return 1
+    done
+  else
+    validateIPv4 $1 || return 1
+  fi
+}
+
+function validateIPv6()
+{
+  address="[0-9A-Fa-f]\{1,4\}"
+
+  # flat address, no compressed addresses
+  flatAddress="^${address}\(:${address}\)\{7\}$"
+
+  # ::'s compressions excluding beginning and end edge cases
+  compressedAdd2="^\(${address}:\)\{1,1\}\(:${address}\)\{1,6\}$"
+  compressedAdd3="^\(${address}:\)\{1,2\}\(:${address}\)\{1,5\}$"
+  compressedAdd4="^\(${address}:\)\{1,3\}\(:${address}\)\{1,4\}$"
+  compressedAdd5="^\(${address}:\)\{1,4\}\(:${address}\)\{1,3\}$"
+  compressedAdd6="^\(${address}:\)\{1,5\}\(:${address}\)\{1,2\}$"
+  compressedAdd7="^\(${address}:\)\{1,6\}\(:${address}\)\{1,1\}$"
+
+  # Trailing :: edge case, includes case of only :: (all 0's)
+  edge_tail="^\(\(${address}:\)\{1,7\}\|:\):$"
+
+  # Leading :: edge case
+  edge_lead="^:\(:${address}\)\{1,7\}$"
+
+  echo $1 | grep --silent "\(${flatAddress}\)\|\(${compressedAdd2}\)\|\(${compressedAdd3}\)\|\(${compressedAdd4}\)\|\(${compressedAdd5}\)\|\(${compressedAdd6}\)\|\(${compressedAdd7}\)\|\(${edge_tail}\)\|\(${edge_lead}\)"
+  return $?
+}
+
+function validateIPv4Settings()
+{
+  echo "Validating IPv4 address... ($1)"
+  validateIPv4 $1 || return 1
+  echo "Successful."
+
+  echo "Validating Gateway... ($2)"
+  validateIPv4 $2 || return 2
+  echo "Successful."
+
+  if [ ! -z "$3" ]; then
+    echo "Validating Netmask... ($3)"
+    validateIPv4 $3
+    if [ $? -ne 0 ]; then
+      echo "Netmask is not a valid IPv4 address."
+      echo "Validating prefix length... ($3)"
+      if [[ $3 -ge 1 && $3 -le 128 ]] ; then
+        echo "Successful."
+      else
+        return 3
+      fi
+    else
+      echo "Successful."
+    fi
+  fi
+
+  echo "Validating DNS... ($4)"
+  validateDNS $4 || return 4
+  echo "Successful."
+
+  [ "$system_timezone" == "" ] && return 6
+  [ ! -f "/usr/share/zoneinfo/$system_timezone" ] && return 6
+  return 0
+}
+
+function validateIPv6Settings()
+{
+  echo "Validating Ipv6 address... ($1)"
+  validateIPv6 $1 || return 1
+  echo "Successful."
+
+  echo "Validating Gateway... ($2)"
+  validateIPv6 $2|| return 2
+  echo "Successful."
+
+  echo "Validating prefix length... ($3)"
+  if [[ $3 -ge 1 && $3 -le 128 ]] ; then
+    echo "Successful."
+  else
+    echo "Warning: Prefix length not in 1-128 range"
+  fi
+
+  [ "$system_timezone" == "" ] && return 6
+  [ ! -f "/usr/share/zoneinfo/$system_timezone" ] && return 6
+  return 0
+}
+
+function singleModeIPConfigure()
+{
+  broadcast=${ip%.*}.255
+
+  echo "Setting host name... $hostname"
+  echo "$hostname" > /etc/HOSTNAME
+
+  echo "Setting gateway... $gateway"
+  routeFile="/etc/sysconfig/network/routes"
+  [ ! -f $routeFile ] && touch $routeFile
+  echo "default $gateway - -" > $routeFile
+
+  echo "Setting hosts... $hostname"
+  echo "$ip $hostname ${hostname%%.*}" > /etc/hosts
+  echo "127.0.0.1	localhost" >> /etc/hosts
+  echo "Setting network configuration..."
+  interface=$( ip addr | grep BROADCAST,MULTICAST | head -n $nic | tail -n 1 | cut -d':' -f2 | tr -d ' ' )
+  ifcfgFile="/etc/sysconfig/network/ifcfg-$interface"
+  [ ! -f $ifcfgFile ] && touch $ifcfgFile
+
+cat > $ifcfgFile <<EOF
+DEVICE=$interface
+BOOTPROTO='static'
+STARTMODE='auto'
+TYPE='Ethernet'
+USERCONTROL='no'
+IPADDR=$ip
+BROADCAST=$broadcast
+EOF
+  if [ ! -z "$netmask" ]; then
+    validateIPv4 $netmask
+    if [ $? -ne 0 ]; then
+      echo "PREFIXLEN='$netmask'" >> $ifcfgFile
+    else
+      echo "NETMASK=$netmask" >> $ifcfgFile
+    fi
+  fi
+
+  echo "Setting DNS... $dns"
+  echo "Setting DNS suffixes... $search"
+
+  resolvFile="/etc/resolv.conf"
+  [ ! -f $resolvFile ] && touch $resolvFile
+
+  resolvFileText=""
+  dnsServers=$(echo $dns | tr "," "\n")
+  for dns in $dnsServers
+  do
+  resolvFileText+="nameserver $dns\n"
+  done
+  resolvFileText+="search $search"
+
+  echo -e $resolvFileText > $resolvFile
+}
+
+function dualModeIPConfigure()
+{
+  interface=$( ip addr | grep BROADCAST,MULTICAST | head -n $nic | tail -n 1 | cut -d':' -f2 | tr -d ' ' )
+  resolvFileText=""
+  resolvFile="/etc/resolv.conf"
+  [ ! -f $resolvFile ] && touch $resolvFile
+
+  hostname=$(echo $hostname | sed 's/" "//g')
+  if [ "$hostname" != "" ]; then
+    echo "Setting host name..."
+    echo "$hostname" > /etc/HOSTNAME
+  else
+    exitCheck 5
+  fi
+
+  validateIPv4Settings "$ip" "$gateway" "$netmask" "$dns"
+  result=$?
+  exitCheck $result
+
+  if [ $result -eq 0 ]; then
+    broadcast=${ip%.*}.255
+    echo
+    echo "Starting IPv4 network configuration..."
+    echo "Setting gateway..."
+    routeFile="/etc/sysconfig/network/routes"
+    [ ! -f $routeFile ] && touch $routeFile
+    echo "default $gateway - -" >> $routeFile
+
+    echo "Setting hosts... $hostname"
+    echo "$ip $hostname ${hostname%%.*}" > /etc/hosts
+    echo "127.0.0.1	localhost" >> /etc/hosts
+
+    dnsServers=$(echo $dns | tr "," "\n")
+    for dns in $dnsServers
+    do
+      resolvFileText+="nameserver $dns\n"
+    done
+
+    echo "Setting network..."
+    ifcfgFile="/etc/sysconfig/network/ifcfg-$interface"
+    [ ! -f $ifcfgFile ] && touch $ifcfgFile
+
+    cat > $ifcfgFile <<EOF
+DEVICE=$interface
+BOOTPROTO='static'
+STARTMODE='auto'
+TYPE='Ethernet'
+USERCONTROL='no'
+IPADDR=$ip
+BROADCAST=$broadcast
+EOF
+    if [ ! -z "$netmask" ]; then
+      validateIPv4 $netmask
+      if [ $? -ne 0 ]; then
+        echo "PREFIXLEN='$netmask'" >> $ifcfgFile
+      else
+        echo "NETMASK=$netmask" >> $ifcfgFile
+      fi
+    fi
+
+    echo "IPv4 network configuration done."
+    echo
+  fi
+
+  validateIPv6Settings "$ipv6" "$ipv6gateway" "$ipv6prefix"
+  result=$?
+
+  if [ $result -eq 0 ]; then
+    echo
+    echo "Starting IPv6 network configuration..."
+    echo "Setting gateway..."
+    if [ "$ipv6gateway" != "" ]; then
+      echo "default $ipv6gateway - -" >> $routeFile
+    fi
+
+    echo "Setting hosts... $hostname"
+    echo "$ip $hostname ${hostname%%.*}" > /etc/hosts
+
+    if [ "$ipv6dns" != "" ]; then
+      dnsIpv6Servers=$(echo $ipv6dns | tr "," "\n")
+      for dns in $dnsIpv6Servers
+      do
+        resolvFileText+="nameserver $dns\n"
+      done
+    fi
+
+    echo "Setting network..."
+    cat >> $ifcfgFile <<EOF
+LABEL_0='0'
+IPADDR_0=$ipv6
+PREFIXLEN_0='$ipv6prefix'
+EOF
+    echo "IPv6 network configuration done."
+  else
+    case $result in
+      1) echo "Invalid IPv6 address format. Your IPv6 network will not be configured properly."
+        ;;
+      2) echo "Invalid gateway IPv6 address format. Your network will not be configured properly."
+        ;;
+    esac
+  fi
+
+  if [ "$resolvFileText" != "" ]; then
+    echo "Setting DNS servers & suffixes..."
+    resolvFileText+="search $search"
+    echo -e $resolvFileText > $resolvFile
+  fi
+}
+
+function exitCheck()
+{
+  case $1 in
+  1) echo "Invalid IP address format. Your network will not be configured properly."
+    exit 1
+    ;;
+  2) echo "Invalid gateway IP address format. Your network will not be configured properly."
+    exit 1
+    ;;
+  3) echo "Invalid netmask IP address or prefixlen format. Your network will not be configured properly."
+    exit 1
+    ;;
+  4) echo "Invalid DNS address format. Your network will not be configured properly."
+    exit 1
+    ;;
+  5) echo "Warning: Host name is empty. The host will not have any name configured."
+    ;;
+  6) echo "Warning: Timezone is empty or Invalid. The host will not have date/time configured properly for desired Timezone"
+    ;;
+  esac
+}
+
+eth=$1
+nic=$(( $eth + 1 ))
+var="network_ip${eth}_${key_vmname}"
+if [[ -z ${!var} ]]; then
+  getAlternateNetworkProps
+  dualModeIPConfigure
+else
+  getNetworkProps
+
+  hostname=$(echo $hostname | sed 's/" "//g')
+  [ "$hostname" == "" ] && exitCheck 5
+
+  if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+    validateIPv4Settings "$ip" "$gateway" "$netmask" "$dns"
+    exitCheck $?
+    singleModeIPConfigure
+  else
+    validateIPv6Settings "$ip" "$gateway" "$netmask"
+    exitCheck $?
+    singleModeIPConfigure
+  fi
+fi
+
+echo "Setting hostname until restart"
+hostname ${hostname%%.*}
+
+echo "Setting Timezone... $system_timezone"
+timezoneFile="/etc/localtime"
+[ -h $timezoneFile ] && rm -f $timezoneFile
+[ -f $timezoneFile ] && mv -f $timezoneFile $timezoneFile.orig
+[ -d $timezoneFile ] && mv -f $timezoneFile $timezoneFile-orig
+ln -s "/usr/share/zoneinfo/$system_timezone" $timezoneFile
+

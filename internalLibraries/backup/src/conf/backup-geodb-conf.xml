@@ -22,6 +22,9 @@
             <list value-type="java.lang.String">
                 <value>GeoStorageOS</value>
                 <value>system</value>
+                <value>system_distributed</value>
+                <value>system_auth</value>
+                <value>system_schema</value>
             </list>
         </property>
         <property name="ignoreCfList">

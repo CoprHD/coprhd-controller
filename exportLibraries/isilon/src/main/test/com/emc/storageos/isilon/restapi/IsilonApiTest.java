@@ -89,6 +89,14 @@ public class IsilonApiTest {
         // Step 2: modify SMB share
         _client.modifyShare(shareId, new IsilonSMBShare(testSMBDirShareName, testSMBDirPath, "smb test share modify", "allow", "read"));
 
+        // Set user ACL to run as root
+        IsilonSMBShare isilonSMBShare = new IsilonSMBShare(testSMBDirShareName, testSMBDirPath, "smb test share modify");
+        ArrayList<IsilonSMBShare.Persona> runAsRootList = new ArrayList<IsilonSMBShare.Persona>();
+        IsilonSMBShare.Persona rootUser = isilonSMBShare.new Persona(null, null, "root");
+        runAsRootList.add(rootUser);
+        isilonSMBShare.setRunAsRoot(runAsRootList);
+        _client.modifyShare(shareId, isilonSMBShare);
+
         List<IsilonSMBShare> lShares = _client.listShares(null).getList();
         System.out.println("listShares: count: " + lShares.size() + " : " + lShares.toString());
 
@@ -128,14 +136,12 @@ public class IsilonApiTest {
             throw new Exception("Createa sub directory --- " + subDir1 + ": failed");
         }
 
-
         /* snapshot tests - start */
 
         // Step 3 create a Snapshot with unique name
         String testSnapName = "testSnap01" + dateSuffix;
         String snapId = _client.createSnapshot(testSnapName, testDirPath);
-        
-        
+
         List<IsilonSnapshot> snaps = _client.listSnapshots(null).getList();
         System.out.println("listSnaps: count: " + snaps.size() + " : " + snaps.toString());
         IsilonSnapshot snap = _client.getSnapshot(snapId);
@@ -300,8 +306,6 @@ public class IsilonApiTest {
 
     }
 
-
-
     @Test
     public void testNFSExports() throws Exception {
 
@@ -399,8 +403,6 @@ public class IsilonApiTest {
         _client.modifyExport(export2Id, exp_modified, false);
         Assert.assertTrue(_client.getExport(export2Id).getComment().equals("modified export"));
 
-
-
         // Step 11 Create nfs exports tests - with fqdn bypass
         IsilonExport ie3 = new IsilonExport();
         ie3.addPath(testExportDirPath);
@@ -423,7 +425,6 @@ public class IsilonApiTest {
         Assert.assertTrue(exp3.getClients().get(0).equals("abcd" + dateSuffix));
         System.out.println("Export created: " + exp3);
 
-
         // Step 13 clean up export and other resource
         _client.deleteExport(export1Id);
         try {
@@ -434,7 +435,6 @@ public class IsilonApiTest {
             Assert.assertTrue("Getting Deleted export result in excpetion ", true);
         }
 
-
         _client.deleteExport(snapExport1Id);
         try {
             _client.getExport(snapExport1Id);
@@ -442,7 +442,6 @@ public class IsilonApiTest {
         } catch (IsilonException ex) {
             _log.error(ex.getMessage(), ex);
         }
-
 
         _client.deleteExport(export2Id);
         try {
@@ -454,7 +453,6 @@ public class IsilonApiTest {
             Assert.assertTrue("Getting Deleted export result in  excpetion", true);
         }
 
-
         _client.deleteExport(export3Id);
         try {
             _client.getExport(export3Id);
@@ -463,7 +461,6 @@ public class IsilonApiTest {
             // if we get exception means export is not available.
             Assert.assertTrue("Getting Deleted export result in excpetion ", true);
         }
-
 
         _client.deleteSnapshot(snap_id);
         _client.deleteDir(testExportDirPath, true);

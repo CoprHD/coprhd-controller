@@ -22,7 +22,6 @@ import java.util.List;
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.IndexByKey;
-import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StringSet;
@@ -32,7 +31,7 @@ import com.emc.storageos.model.valid.EnumType;
  * DB model to represent an custom services workflow document
  */
 @Cf("CustomServicesWorkflow")
-public class CustomServicesWorkflow extends ModelObject {
+public class CustomServicesWorkflow extends ModelObjectWithACLs {
 
     private static final long serialVersionUID = 1L;
 
@@ -116,6 +115,11 @@ public class CustomServicesWorkflow extends ModelObject {
             getPrimitives().remove(primitiveUri.toString());
         }
         setChanged(PRIMITIVES);
+    }
+
+    @Override
+    public Object[] auditParameters() {
+        return null;
     }
 
 }

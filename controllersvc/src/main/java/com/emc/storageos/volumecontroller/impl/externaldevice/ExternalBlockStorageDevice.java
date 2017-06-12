@@ -1964,78 +1964,78 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     public void split(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
         _log.info("Split remote replication element {} with system id {}", replicationElement.getType(), replicationElement.getElementUri());
 
-        OperationToolkit toolkit = new OperationToolkit() {
+        RemoteReplicationOperationHandler splitHandler = new RemoteReplicationOperationHandler() {
             @Override
             protected DriverTask doOperation() {
                 return getDriver().split(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        toolkit.processSyncTask(replicationElement, taskCompleter, "split");
+        splitHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "split");
     }
 
     @Override
     public void suspend(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
         _log.info("Suspend remote replication element {} with system id {}", replicationElement.getType(), replicationElement.getElementUri());
 
-        OperationToolkit toolkit = new OperationToolkit() {
+        RemoteReplicationOperationHandler suspendHandler = new RemoteReplicationOperationHandler() {
             @Override
             protected DriverTask doOperation() {
                 return getDriver().suspend(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        toolkit.processSyncTask(replicationElement, taskCompleter, "suspend");
+        suspendHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "suspend");
     }
 
     @Override
     public void resume(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
         _log.info("Resume remote replication element {} with system id {}", replicationElement.getType(), replicationElement.getElementUri());
 
-        OperationToolkit toolkit = new OperationToolkit() {
+        RemoteReplicationOperationHandler resumeHandler = new RemoteReplicationOperationHandler() {
             @Override
             protected DriverTask doOperation() {
                 return getDriver().resume(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        toolkit.processSyncTask(replicationElement, taskCompleter, "resume");
+        resumeHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "resume");
     }
 
     @Override
     public void failover(RemoteReplicationElement replicationElement, RemoteReplicationFailoverCompleter taskCompleter) {
         _log.info("Failover remote replication element {} with system id {}", replicationElement.getType(), replicationElement.getElementUri());
 
-        OperationToolkit toolkit = new OperationToolkit() {
+        RemoteReplicationOperationHandler failoverHandler = new RemoteReplicationOperationHandler() {
             @Override
             protected DriverTask doOperation() {
                 return getDriver().failover(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        toolkit.processSyncTask(replicationElement, taskCompleter, "failover");
+        failoverHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "failover");
     }
 
     @Override
     public void failback(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
         _log.info("Failback remote replication element {} with system id {}", replicationElement.getType(), replicationElement.getElementUri());
 
-        OperationToolkit toolkit = new OperationToolkit() {
+        RemoteReplicationOperationHandler failbackHandler = new RemoteReplicationOperationHandler() {
             @Override
             protected DriverTask doOperation() {
                 return getDriver().failback(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        toolkit.processSyncTask(replicationElement, taskCompleter, "failback");
+        failbackHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "failback");
     }
 
     @Override
     public void swap(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
         _log.info("Swap remote replication element {} with system id {}", replicationElement.getType(), replicationElement.getElementUri());
 
-        OperationToolkit toolkit = new OperationToolkit() {
+        RemoteReplicationOperationHandler swapHandler = new RemoteReplicationOperationHandler() {
             @Override
             protected DriverTask doOperation() {
                 return getDriver().swap(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        toolkit.processSyncTask(replicationElement, taskCompleter, "swap");
+        swapHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "swap");
     }
 
     @Override
@@ -2301,6 +2301,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         if (systemSet != null) {
             systemSet.setReplicationState(context.getRemoteReplicationSetState());
             dbClient.updateObject(systemSet);
+            // update all rr groups' state within this rr set
+            for (RemoteReplicationGroup rrGroup : RemoteReplicationUtils.getRemoteReplicationGroupsForRrSet(dbClient, systemSet)) {
+                rrGroup.setReplicationState(context.getRemoteReplicationSetState());
+                dbClient.updateObject(rrGroup);
+            }
         }
 
         if (systemGroup != null) {
@@ -2342,10 +2347,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     /**
-     * Every remote replication operation (such as suspend resume etc.) should
-     * extend this class, override processSyncTask method, and then run it.s
+     * Every remote replication operation (such as suspend resume etc.) should extend
+     * this class, override processRemoteReplicationTask method, and then run it.
      */
-    private abstract class OperationToolkit {
+    private abstract class RemoteReplicationOperationHandler {
         private static final String OPERATION_SUCCESS_MSG_FMT = "Operation %s succeeded for remote replication element %s (system id: %s), message: %s";
         private static final String OPEARTION_FAILURE_MSG_FMT = "Operation %s failed for remote replication element %s (system id %s), message: %s";
 
@@ -2444,7 +2449,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         /**
          * Do operation and complete returned the driver task.
          */
-        public void processSyncTask(RemoteReplicationElement element, TaskCompleter taskCompleter, String operation)  {
+        public void processRemoteReplicationTask(RemoteReplicationElement element, TaskCompleter taskCompleter, String operation)  {
             try {
                 init(element, taskCompleter, operation);
                 DriverTask task = doOperation();

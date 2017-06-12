@@ -269,6 +269,18 @@ public class RemoteReplicationUtils {
         return null;
     }
 
+    public static List<RemoteReplicationGroup> getRemoteReplicationGroupsForRrSet(DbClient dbClient, RemoteReplicationSet rrSet) {
+        List<RemoteReplicationGroup> rrGroups =
+                queryActiveResourcesByAltId(dbClient, RemoteReplicationGroup.class, "storageSystemType", rrSet.getStorageSystemType());
+        for (RemoteReplicationGroup rrGroup : rrGroups) {
+            if (!rrSet.getSourceSystems().contains(rrGroup.getSourceSystem().toString())
+                    || !rrSet.getTargetSystems().contains(rrGroup.getTargetSystem().toString())) {
+                rrGroups.remove(rrGroup);
+            }
+        }
+        return rrGroups;
+    }
+
     /**
      * @return valid result if rr pair is in cg and if rr set of given rr pair support rr pair granularity
      *         operation, and if this rr pair is in a rr group, the rr group

@@ -22,7 +22,8 @@ public interface RemoteReplicationController extends Controller {
         FAIL_OVER,
         FAIL_BACK,
         SWAP,
-        STOP
+        STOP,
+        CHANGE_REPLICATION_MODE
     }
 
     /**

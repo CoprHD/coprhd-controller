@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
@@ -127,21 +128,24 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     // Execute Shell Script resource
 
+    // chroot / bash -c 'arg1=5 arg2=3 sh +x /root/t.sh'
     private Exec.Result executeCmd(final String shellScript) throws Exception {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, shellScript);
         cmd.setChrootCmd(CustomServicesConstants.CHROOT_CMD);
+        cmd.setShellArgs(makeParam(input));
         final String[] cmds = cmd.build();
 
         //default to no host key checking
-        final Map<String,String> environment = makeParam(input);
+        //final Map<String,String> environment = makeParam(input);
 
-        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
+        return Exec.sudo(new File(orderDir), timeout, null, new HashMap<String,String>(), cmds);
     }
 
-    private Map<String,String> makeParam(final Map<String, List<String>> input) throws Exception {
-        final Map<String,String> environment = new HashMap<String,String>();
+    //arg1=5 arg2=3
+    private String makeParam(final Map<String, List<String>> input) throws Exception {
+        final StringBuilder str = new StringBuilder();
         if (input == null) {
-            return environment;
+            return null;
         }
 
         for(Map.Entry<String, List<String>> e : input.entrySet()) {
@@ -156,9 +160,10 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
                 prefix = ",";
                 sb.append(val.replace("\"", ""));
             }
-            environment.put(e.getKey(), sb.toString().trim());
+            str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
         }
+        logger.info("CS: Shell arguments:{}", str.toString());
 
-        return environment;
+        return str.toString();
     }
 }

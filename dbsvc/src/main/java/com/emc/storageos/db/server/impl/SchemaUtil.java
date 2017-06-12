@@ -18,10 +18,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.CassandraOperationType;
-import com.netflix.astyanax.Cluster;
-import com.netflix.astyanax.KeyspaceTracerFactory;
+import com.netflix.astyanax.*;
 import com.netflix.astyanax.connectionpool.ConnectionContext;
 import com.netflix.astyanax.connectionpool.ConnectionPool;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -330,11 +327,12 @@ public class SchemaUtil {
                     }
                 };
                 clientContext.setCassandraStrategyOptions(strategyOptions, true);
-                clientContext.initRepStrategyForSystemKS(strategyOptions);
+                clientContext.setRepStrategyForSystemKS(strategyOptions);
             }
         } else {
             _log.info("keyspace exist already");
             checkStrategyOptions();
+            checkSystemKsRepOptionsForActive();
         }
 
         // create CF's
@@ -356,6 +354,7 @@ public class SchemaUtil {
 
         return false;
     }
+
 
     private boolean checkAndInitSchemaOnStandby(KeyspaceDefinition kd) throws ConnectionException {
         _log.info("try scan and setup db on standby site ...");
@@ -384,8 +383,74 @@ public class SchemaUtil {
                 }
             }
             checkStrategyOptions();
+            checkSystemKsRepOptionsForStandby();
             return true;
         }
+    }
+
+    private void checkSystemKsRepOptionsForActive() throws ConnectionException {
+        // on active site, make usre NetworkTopologyStrategy is set
+
+        if (clientContext.networkStrategyIsSetForSysKs()) {
+
+            _log.info("in active site, no need to set replication strategy for system keyspaces");
+            return;
+        }
+
+        _log.info("in active site, beginning setting replication strategy for system keyspaces");
+
+        Map<String, String> strategyOptions = new HashMap<String, String>() {
+            {
+                put(_vdcShortId, Integer.toString(getReplicationFactor()));
+            }
+        };
+
+        clientContext.setRepStrategyForSystemKS(strategyOptions);
+
+        _log.info("in active site, finishing setting replication strategy for system keyspaces");
+    }
+
+
+    private void checkSystemKsRepOptionsForStandby() throws ConnectionException {
+        // on standby site, make sure NetworkTopologyStretegy is set,
+        // also, repliaction factor for active site is added to strategy options
+
+        KeyspaceDefinition currentDef = clientContext.getKeyspaceDefinition(clientContext.SYSTEM_DISTRIBUTED_KS);
+
+        Map<String, String> targetRepOptions = createTargetRepOptions();
+
+
+        KeyspaceDefinition targetDef = clientContext.createTargetSysKsDef(clientContext.SYSTEM_DISTRIBUTED_KS, targetRepOptions);
+
+        if (!clientContext.replicationStrategyToChange(currentDef, targetDef)) {
+
+            _log.info("in standby site, no need to set replication strategy for system keyspaces");
+
+            return;
+        }
+
+        _log.info("in standby site, beginning setting replication strategy for system keyspaces, replication options is:{} ", targetRepOptions );
+
+        clientContext.setRepStrategyForSystemKS(targetRepOptions);
+
+        _log.info("in standby site, beginning setting replication strategy for system keyspaces");
+    }
+
+    private Map<String,String> createTargetRepOptions() {
+
+        String currentDcId = drUtil.getCassandraDcId(drUtil.getLocalSite());
+        String currentRepFactor = Integer.toString(getReplicationFactor());
+
+        Site activeSite = drUtil.getActiveSite();
+        String activeSiteDcId = drUtil.getCassandraDcId(activeSite);
+        String activeSiteRepFactor = Integer.toString(activeSite.getNodeCount());
+
+        Map<String, String> targetRepOptions = new HashMap<>();
+
+        targetRepOptions.put(currentDcId, currentRepFactor);
+        targetRepOptions.put(activeSiteDcId, activeSiteRepFactor);
+
+        return targetRepOptions;
     }
 
     private int getReachableDcCount() {
@@ -427,6 +492,7 @@ public class SchemaUtil {
      * @return true to indicate keyspace strategy option is changed
      */
     private boolean checkStrategyOptionsForDROnActive(Map<String, String> strategyOptions) {
+
         boolean changed = false;
 
         // iterate through all the sites and exclude the paused ones

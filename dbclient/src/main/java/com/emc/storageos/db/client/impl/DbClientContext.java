@@ -71,11 +71,11 @@ public class DbClientContext {
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
     private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
 
-    private static final String SYSTEM_DISTRIBUTED_KS = "system_distributed";
-    private static final String SYSTEM_TRACES_KS = "system_traces";
-    private static final String SYSTEM_AUTH_KS = "system_auth";
+    public static final String SYSTEM_DISTRIBUTED_KS = "system_distributed";
+    public static final String SYSTEM_TRACES_KS = "system_traces";
+    public static final String SYSTEM_AUTH_KS = "system_auth";
 
-    private static final String[] SYSTEM_KEYSPACES = new String[] {SYSTEM_DISTRIBUTED_KS, SYSTEM_TRACES_KS, SYSTEM_DISTRIBUTED_KS};
+    private static final String[] SYSTEM_KEYSPACES = new String[] {SYSTEM_DISTRIBUTED_KS, SYSTEM_TRACES_KS, SYSTEM_AUTH_KS};
 
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
@@ -394,8 +394,7 @@ public class DbClientContext {
      */
     public void setCassandraStrategyOptions(Map<String, String> strategyOptions, boolean wait) {
         try {
-            Cluster cluster = getCluster();
-            KeyspaceDefinition kd = cluster.describeKeyspace(keyspaceName);
+            KeyspaceDefinition kd = getKeyspaceDefinition(keyspaceName);
     
             KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
             update.setName(getKeyspaceName());
@@ -430,13 +429,27 @@ public class DbClientContext {
 
     }
 
+    public boolean networkStrategyIsSetForSysKs() throws ConnectionException {
+
+        KeyspaceDefinition sysKsDef = getKeyspaceDefinition(SYSTEM_DISTRIBUTED_KS);
+
+        return KEYSPACE_NETWORK_TOPOLOGY_STRATEGY.equals(sysKsDef.getStrategyClass());
+
+    }
+    public KeyspaceDefinition getKeyspaceDefinition(String keyspace) throws ConnectionException {
+
+        Cluster cluster = getCluster();
+        return cluster.describeKeyspace(keyspace);
+
+    }
+
     /**
      *  set some system keyspaces' replication strategy to NetworkTopologyStrategy, otherwise,
      *  dbsvc will not start when adding a standby.
      *
      *  This is specific to Cassandra 3.
      */
-    public void initRepStrategyForSystemKS(Map<String, String> initNetworkStrategyOptions) throws ConnectionException {
+    public void setRepStrategyForSystemKS(Map<String, String> initNetworkStrategyOptions) throws ConnectionException {
 
         log.info("beginning setting replication strategy for system keyspaces to NetworkTopologyStrategy");
 
@@ -448,7 +461,7 @@ public class DbClientContext {
 
     }
 
-    private KeyspaceDefinition createTargetSysKsDef(String keyspaceName, Map<String, String> networkStrategyOptions) {
+    public KeyspaceDefinition createTargetSysKsDef(String keyspaceName, Map<String, String> networkStrategyOptions) {
 
         KeyspaceDefinition targetKsDef = cluster.makeKeyspaceDefinition();
         targetKsDef.setName(keyspaceName);
@@ -668,6 +681,12 @@ public class DbClientContext {
         log.info("Service {} of quorum nodes on all standby sites are up. Reset default write consistency level back to EACH_QUORUM", svcName);
         AstyanaxConfigurationImpl config = (AstyanaxConfigurationImpl)keyspaceContext.getAstyanaxConfiguration();
         config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);
+    }
+
+    public boolean replicationStrategyToChange(KeyspaceDefinition currentDef, KeyspaceDefinition targetDef) {
+
+        return !currentDef.getStrategyClass().equals(targetDef.getStrategyClass()) ||
+                !currentDef.getStrategyOptions().equals(targetDef.getStrategyOptions());
     }
 
 

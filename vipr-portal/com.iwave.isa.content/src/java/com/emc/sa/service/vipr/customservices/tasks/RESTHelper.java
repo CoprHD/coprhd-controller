@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.xml.bind.annotation.XmlElement;
 
@@ -297,7 +298,7 @@ public final class RESTHelper {
             return null;
         }
         
-        if( Collection.class.isAssignableFrom(returnType)) {
+        if( returnType.isArray() || Collection.class.isAssignableFrom(returnType)) {
             return getCollectionValue(method, bits, i, className);
         } else {
             // 1) primitive
@@ -323,36 +324,41 @@ public final class RESTHelper {
 
     private static List<String> getCollectionValue(final Method method, final String[] bits, final int i, final Object className)
             throws Exception {
+        final Type objectType;
 
-        final Type returnType = method.getGenericReturnType();
-        if (returnType instanceof ParameterizedType) {
-            final ParameterizedType paramType = (ParameterizedType) returnType;
+        final Collection<?> arrayValue;
+        if( method.getReturnType().isArray() ) {
+            objectType = method.getReturnType().getComponentType();
+            arrayValue = Arrays.asList((Object[]) method.invoke(className));
+        } else if(method.getGenericReturnType() instanceof ParameterizedType){
+            objectType = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[0];
+            arrayValue = (Collection<?>) method.invoke(className);
+        } else {
+            logger.warn("Parsing vipr output failed unknown collection type: " + method.getReturnType() + " field " + bits[i] + " in " + bits);
+            return null;
+        }
+        
+        if (i == bits.length - 1) {
+            logger.debug("array value:{}", arrayValue);
+            return arrayValue.stream().map(Object::toString).collect(Collectors.toList());
+        } else if (objectType instanceof Class<?>) {
+            return parseObjectCollection(bits, i, arrayValue);
+        } else {
+            logger.warn("Parsing vipr output failed.  Unexpected primitive before end of output: " + objectType + " field " + bits[i] + " in " + bits);
+            return null;
+        }
+    }
 
-            if (i == bits.length - 1) {
-
-                logger.debug("array value:{}", method.invoke(className));
-                final List<String> listStringOut = new ArrayList<String>();
-                for (final Object val : (Collection<?>) method.invoke(className)) {
-                    listStringOut.add(val.toString());
-                }
-                return listStringOut;
-            }
-            final Type o = paramType.getActualTypeArguments()[0];
-            if (o instanceof Class<?>) {
-                final List<String> list = new ArrayList<String>();
-                for (final Object o1 : (Collection<?>) method.invoke(className)) {
-                    final List<String> value = parserOutput(bits, i + 1, o1);
-                    if (value != null) {
-                        list.addAll(value);
-                    }
-                }
-
-                if (!list.isEmpty()) {
-                    return list;
-                }
+    private static List<String> parseObjectCollection(final String[] bits, final int i, final Collection<?> arrayValue) throws Exception {
+        final List<String> list = new ArrayList<String>();
+        for (final Object o1 : arrayValue) {
+            final List<String> value = parserOutput(bits, i + 1, o1);
+            if (value != null) {
+                list.addAll(value);
             }
         }
-        return null;
+        
+        return !list.isEmpty() ? list : null; 
     }
 
     private static Method findMethod(final String str, final Object className) throws Exception {

@@ -47,6 +47,7 @@ import play.data.validation.Valid;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
+import plugin.StorageOsPlugin;
 import util.MessagesUtils;
 import util.StringOption;
 
@@ -69,6 +70,7 @@ import com.emc.storageos.model.customservices.InputUpdateParam;
 import com.emc.storageos.model.customservices.InputUpdateParam.InputUpdateList;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesConstants.AuthType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
@@ -114,6 +116,7 @@ public class WorkflowBuilder extends Controller {
         renderArgs.put("ansibleResourceNames", ansibleResourceNames);
     }
 
+
     private static void setRestCallResources() {
         final List<StringOption> restCallAuthTypes = new ArrayList<StringOption>();
         restCallAuthTypes.add(new StringOption(AuthType.NONE.toString(), Messages.get("rest.authType.noAuth")));
@@ -157,6 +160,20 @@ public class WorkflowBuilder extends Controller {
             this.anchorAttr.put("style", "font-weight:bold;");
         }
     }
+
+
+    public static void getAssetOptions() {
+        PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
+        if (propInfo != null) {
+            final String assetOptions = propInfo.getProperty("custom_services_assetoptions");
+            if (assetOptions != null) {
+                renderJSON(Arrays.asList(assetOptions.split("\\s*,\\s*")));
+            }
+        }
+
+        renderJSON(new ArrayList<String>());
+    }
+
 
     public static void getWFDirectories() {
 

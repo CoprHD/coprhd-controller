@@ -60,13 +60,13 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getId(), step.getFriendlyName());
     }
 
 
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId(), step.getFriendlyName());
         final Exec.Result result;
         try {
             final URI scriptid = step.getOperation();
@@ -75,7 +75,8 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             final CustomServicesDBScriptPrimitive primitive = dbClient.queryObject(CustomServicesDBScriptPrimitive.class, scriptid);
             if (null == primitive) {
                 logger.error("Error retrieving script primitive from DB. {} not found in DB", scriptid);
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Error retrieving script primitive from DB.");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Error retrieving script primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
             }
 
@@ -85,7 +86,8 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
                 logger.error("Error retrieving resource for the script primitive from DB. {} not found in DB",
                         primitive.getResource());
 
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Error retrieving resource for the script primitive from DB.");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Error retrieving resource for the script primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
             }
@@ -102,16 +104,18 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
         } catch (final Exception e) {
             logger.error("CS: Could not execute shell script step:{}. Exception:", step.getId(), e);
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Could not execute shell script step"+e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Could not execute shell script step"+e);
 
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId(), step.getFriendlyName());
 
         if (result == null) {
             logger.error("CS: Script Execution result is null for step:{}", step.getId());
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId()," Script Execution result is null");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    " Script Execution result is null");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
         }
 

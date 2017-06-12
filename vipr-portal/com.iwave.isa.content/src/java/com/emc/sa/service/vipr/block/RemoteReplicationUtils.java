@@ -55,32 +55,27 @@ public class RemoteReplicationUtils {
                     Arrays.asList(ViPRService.uri(remoteReplicationGroup)));
             break;
         case PAIRS_IN_SET:
-            _log.info("Operating on selected pairs in Remote Replication Set");
-            validatePairsSelected(remoteReplicationCgOrPair, remoteReplicationPairsOrCGs);
-            paramsForApi = new RemoteReplicationOperationParam(
-                    RemoteReplicationOperationParam.OperationContext.RR_PAIR.name(),
-                    Arrays.asList(ViPRService.uri(remoteReplicationGroup)));
-            break;
         case PAIRS_IN_GROUP:
             _log.info("Operating on selected pairs in Remote Replication Group");
             validatePairsSelected(remoteReplicationCgOrPair, remoteReplicationPairsOrCGs);
             paramsForApi = new RemoteReplicationOperationParam(
                     RemoteReplicationOperationParam.OperationContext.RR_PAIR.name(),
-                    Arrays.asList(ViPRService.uri(remoteReplicationGroup)));
+                    ViPRService.uris(remoteReplicationPairsOrCGs));
             break;
         case CGS_IN_SET:
             _log.info("Operating on selected Consistency Groups");
             validatePairsSelected(remoteReplicationCgOrPair, remoteReplicationPairsOrCGs);
             paramsForApi = new RemoteReplicationOperationParam(
                     RemoteReplicationOperationParam.OperationContext.RR_SET_CG.name(),
-                    Arrays.asList(ViPRService.uri(remoteReplicationGroup)));
+                    ViPRService.uris(remoteReplicationPairsOrCGs));
             break;
         case CGS_IN_GROUP:
             _log.info("Operating on selected Consistency Groups");
             validatePairsSelected(remoteReplicationCgOrPair, remoteReplicationPairsOrCGs);
             paramsForApi = new RemoteReplicationOperationParam(
                     RemoteReplicationOperationParam.OperationContext.RR_GROUP_CG.name(),
-                    Arrays.asList(ViPRService.uri(remoteReplicationGroup)));
+                    ViPRService.uris(remoteReplicationPairsOrCGs));
+            break;
         default:
             throw new IllegalStateException("Invalid Remote Replication Management operation target: " +
                     rrServiceContext.toString());

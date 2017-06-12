@@ -479,6 +479,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="remoteReplicationServiceApi" ref="remoteReplicationBlockServiceApiImpl"/>
+        <property name="rrGroupService" ref="remoteReplicationGroupService"/>
     </bean>
 
     <bean id="remoteReplicationGroupService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationGroupService">
@@ -486,6 +487,8 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="remoteReplicationServiceApi" ref="remoteReplicationBlockServiceApiImpl"/>
         <property name="blockService" ref="blockService"/>
+        <property name="rrPairService" ref="remoteReplicationPairService"/>
+        <property name="rrSetService" ref="remoteReplicationSetService"/>
     </bean>
 
     <bean id="remoteReplicationPairService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationPairService">

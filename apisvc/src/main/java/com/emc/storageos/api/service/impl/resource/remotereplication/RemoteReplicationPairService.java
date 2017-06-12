@@ -36,7 +36,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
@@ -166,7 +165,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
      * @param storageElementURI uri of a storage element (e.g.: a Volume)
      * @return
      */
-    private RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(URI storageElementURI) {
+    RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(URI storageElementURI) {
         _log.info("Called: getRemoteReplicationPairsForStorageElement() for for storage element {}", storageElementURI);
 
         ArgValidator.checkUri(storageElementURI);

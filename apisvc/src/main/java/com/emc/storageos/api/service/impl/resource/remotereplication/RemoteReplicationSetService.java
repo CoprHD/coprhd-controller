@@ -44,6 +44,7 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
@@ -53,6 +54,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
@@ -84,6 +86,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
 
     // remote replication service api implementations
     private RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi;
+    private RemoteReplicationGroupService rrGroupService;
 
     public RemoteReplicationBlockServiceApiImpl getRemoteReplicationServiceApi() {
         return remoteReplicationServiceApi;
@@ -96,6 +99,14 @@ public class RemoteReplicationSetService extends TaskResourceService {
     @Override
     public String getServiceType() {
         return SERVICE_TYPE;
+    }
+
+    public RemoteReplicationGroupService getRrGroupService() {
+        return rrGroupService;
+    }
+
+    public void setRrGroupService(RemoteReplicationGroupService groupService) {
+        this.rrGroupService = groupService;
     }
 
     /**
@@ -309,13 +320,15 @@ public class RemoteReplicationSetService extends TaskResourceService {
         BlockConsistencyGroupList result = new BlockConsistencyGroupList();
         RemoteReplicationSet rrSet = queryResource(id);
 
-        List<URI> storageSystemsForSet = URIUtil.toURIList(rrSet.getSourceSystems());
-        if (storageSystemsForSet == null) {
+        List<URI> srcStorageSystemsForSet = URIUtil.toURIList(rrSet.getSourceSystems());  //TODO: why not target systems??????????
+        if (srcStorageSystemsForSet == null) {
+            _log.info("No storage systems found for Remote Replication Set while getting CGs for set '" +
+                    rrSet.getLabel() + "' [" + rrSet.getId() + "]");
             return result;
         }
 
         List<URI> cgs = new ArrayList<>();
-        for(URI storageSystemUri : storageSystemsForSet ) {
+        for(URI storageSystemUri : srcStorageSystemsForSet ) {
             URIQueryResultList cgsForStorageSystem = new URIQueryResultList();
             _dbClient.queryByConstraint(ContainmentConstraint.Factory.
                     getStorageSystemConsistencyGroupConstraint(storageSystemUri),cgsForStorageSystem);
@@ -328,10 +341,45 @@ public class RemoteReplicationSetService extends TaskResourceService {
         for (URI uri : cgs) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, uri);
 
+            // skip CGs whose targets' systems are not all in the RR Set's target systems
             Set<String> targetCGSystemsSet = ConsistencyGroupUtils
                     .findAllRRConsistencyGroupSystemsByAlternateLabel(cg.getLabel(), _dbClient);
             if (!rrSet.getTargetSystems().containsAll(targetCGSystemsSet)) {
-                continue; // CG systems not all in RR Set's target systems
+                _log.info("Removing CG from list for Remote Replication Set '" + rrSet.getLabel() +
+                        "' [" + rrSet.getId() + "]. CGs target systems not all in RR Set's target " +
+                        "systems for CG '" + cg.getLabel() + "' [" + cg.getId() + "]");
+                continue;
+            }
+
+            // skip CG if volumes not all in pairs that are in same set
+            QueryResultList<URI> volsInCg = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                    getVolumesByConsistencyGroup(cg.getId()), volsInCg);
+            QueryResultList<URI> pairsInSet = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                    getRemoteReplicationPairSetConstraint(rrSet.getId()),pairsInSet);
+            List<URI> srcVolsInPairs = new ArrayList<>();
+            for ( URI pairId : pairsInSet) {
+                RemoteReplicationPair pair = _dbClient.queryObject(RemoteReplicationPair.class, pairId);
+                srcVolsInPairs.add(pair.getSourceElement().getURI());
+            }
+            if(!srcVolsInPairs.containsAll(volsInCg)) {
+                _log.info("Consistency Group disqualified from RemoteReplicationSet because not all " +
+                        "volumes in CG are in Set. CG:'" + cg.getLabel() + "' [" + cg.getId() + "] " +
+                        "RR Set:'" + rrSet.getLabel() + "' [" + rrSet.getId() + "]. Volumes in CG: " +
+                        srcVolsInPairs + "  RR Pairs in set: " + pairsInSet);
+                continue;
+            }
+
+            // skip CG if it's also in an RR_Group (which is not permitted)
+            List<NamedRelatedResourceRep> groupsContainingCg =
+                    rrGroupService.getRemoteReplicationGroupsForCG(cg.getId()).getRemoteReplicationGroups();
+            if (!groupsContainingCg.isEmpty()) {
+                _log.info("Consistency Group disqualified from RemoteReplicationSet because it is also " +
+                        "in an RemoteReplicationGroup.  CG:'" + cg.getLabel() + "' [" + cg.getId() + "] " +
+                        "RR Set:'" + rrSet.getLabel() + "' [" + rrSet.getId() + "]. RR Group(s): " +
+                        groupsContainingCg);
+                continue;
             }
 
             result.getConsistencyGroupList().add(

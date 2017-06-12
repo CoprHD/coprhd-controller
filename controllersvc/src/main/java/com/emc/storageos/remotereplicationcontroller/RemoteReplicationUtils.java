@@ -421,13 +421,11 @@ public class RemoteReplicationUtils {
 
     public static Iterator<RemoteReplicationSet> findAllRemoteReplicationSetsIteratively(DbClient dbClient) {
         List<URI> ids = dbClient.queryByType(RemoteReplicationSet.class, true);
-        _log.info("Found sets: {}", ids);
         return dbClient.queryIterativeObjects(RemoteReplicationSet.class, ids);
     }
 
     public static Iterator<RemoteReplicationGroup> findAllRemoteReplicationGroupsIteratively(DbClient dbClient) {
         List<URI> ids = dbClient.queryByType(RemoteReplicationGroup.class, true);
-        _log.info("Found groups: {}", ids);
         return dbClient.queryIterativeObjects(RemoteReplicationGroup.class, ids);
     }
 

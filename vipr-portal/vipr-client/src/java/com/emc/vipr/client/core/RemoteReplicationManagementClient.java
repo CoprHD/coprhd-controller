@@ -10,14 +10,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationOperationParam;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
@@ -31,7 +32,7 @@ import com.emc.vipr.client.impl.RestClient;
 public class RemoteReplicationManagementClient {
 
     private final static Logger _log = LoggerFactory.getLogger(RemoteReplicationManagementClient.class);
-    
+
     private RestClient client;
     private ViPRCoreClient coreClient;
     private TaskList taskListResult;
@@ -96,8 +97,7 @@ public class RemoteReplicationManagementClient {
         if (operationParam.getIds().isEmpty()) {
             throw new IllegalStateException("No IDs supplied for operation");
         }
-        
-        
+
         taskListResult = new TaskList();
 
         switch (getContext(operationParam)) {
@@ -111,17 +111,14 @@ public class RemoteReplicationManagementClient {
             operateOnPairs(operationParam,operation);
             break;
         case RR_SET_CG:
-            operateOnSetCG(operationParam,operation);
-            break;
         case RR_GROUP_CG:
-            operateOnGroupCG(operationParam,operation);
-            break;
+            operateOnCG(operationParam,operation);
         }
         return taskListResult;
     }
 
     private void operateOnSet(RemoteReplicationOperationParam operationParam, Operation operation) {
-        _log.info("Operating on sets");
+        _log.info("Operating on sets " + operationParam.getIds());
         for(URI setId : operationParam.getIds()) { // assume all IDs are RR Set IDs
 
             List<NamedRelatedResourceRep> pairs = coreClient.remoteReplicationSets().
@@ -140,13 +137,12 @@ public class RemoteReplicationManagementClient {
                     new RemoteReplicationOperationParam(
                             RemoteReplicationOperationParam.OperationContext.RR_SET.name(),
                             new ArrayList<URI>(pairMap.keySet()));
-
             callApi(pairParam,operation);
         }
     }
 
     private void operateOnGroup(RemoteReplicationOperationParam operationParam, Operation operation) {
-        _log.info("Operating on group");
+        _log.info("Operating on group " + operationParam.getIds());
         for(URI groupId : operationParam.getIds()) { // assume all IDs are RR Group IDs
 
             List<NamedRelatedResourceRep> pairs = coreClient.remoteReplicationGroups().
@@ -170,28 +166,45 @@ public class RemoteReplicationManagementClient {
     }
 
     private void operateOnPairs(RemoteReplicationOperationParam operationParam, Operation operation) {
-        _log.info("Operating on pairs");
+        _log.info("Operating on pairs " + operationParam.getIds());
         callApi(operationParam,operation);
     }
 
-    private void operateOnSetCG(RemoteReplicationOperationParam operationParam, Operation operation) {
-        _log.info("Operating on CG in set");
-        callApi(operationParam,operation);
-    }
-
-    private void operateOnGroupCG(RemoteReplicationOperationParam operationParam, Operation operation) {
-        _log.info("Operating on CG in group");
+    private void operateOnCG(RemoteReplicationOperationParam operationParam, Operation operation) {
+        _log.info("Operating on CGs in set " + operationParam.getIds());
+        // get pairs in CG for API
+        List<NamedRelatedResourceRep> pairsInCgs = new ArrayList<>();
+        for(URI cgId : operationParam.getIds()) { // assume all IDs are CG IDs
+            for( RelatedResourceRep volume : coreClient.blockConsistencyGroups().get(cgId).getVolumes()) {
+                RemoteReplicationPairList pairList = coreClient.remoteReplicationPairs().
+                        listRelatedRemoteReplicationPairs(volume.getId());
+                pairsInCgs.addAll(pairList.getRemoteReplicationPairs());
+            }
+        }
+        List<URI> pairIds = new ArrayList<>();
+        for(NamedRelatedResourceRep pairInCg : pairsInCgs) {
+            pairIds.add(pairInCg.getId());
+        }
+        operationParam.setIds(pairIds);
         callApi(operationParam,operation);
     }
 
     private void callApi(RemoteReplicationOperationParam params,Operation op) {
+
+        _log.info("Calling API " + op.getPath() + " with context " +
+                params.getOperationContext() + " and IDs " + params.getIds());
+
         TaskList tasks = client.post(TaskList.class, params, 
                 PathConstants.BLOCK_REMOTE_REPLICATION_MANAGEMENT_URL + op.getPath());
-        _log.info("API returned " + taskListResult.getTaskList().size() + " tasks");
+
         taskListResult.addTasks(tasks);
+
+        _log.info("API returned " + taskListResult.getTaskList().size() + " tasks");
     }
 
-    private RemoteReplicationOperationParam.OperationContext getContext(RemoteReplicationOperationParam operationParam) {
-        return RemoteReplicationOperationParam.OperationContext.valueOf(operationParam.getOperationContext());
+    private RemoteReplicationOperationParam.OperationContext getContext(
+            RemoteReplicationOperationParam operationParam) {
+        return RemoteReplicationOperationParam.OperationContext.
+                valueOf(operationParam.getOperationContext());
     }
 }

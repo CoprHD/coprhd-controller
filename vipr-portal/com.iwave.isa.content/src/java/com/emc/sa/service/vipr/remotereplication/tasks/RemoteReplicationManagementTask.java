@@ -60,9 +60,13 @@ public class RemoteReplicationManagementTask extends ViPRExecutionTask<List<Task
                     operation.name());        
         }
 
+        logInfo("Created " + createdTasks.getTaskList().size() + " tasks for operation " + operation.name());
+
         ViPRExecutionUtils.addAffectedResources(createdTasks.getTaskList());
 
-        logInfo("Created " + createdTasks.getTaskList().size() + " tasks for operation " + operation.name());
+        for(TaskResourceRep task : createdTasks.getTaskList()) {
+            addOrderIdTag(task.getId()); // link task to order
+        }
         
         return createdTasks.getTaskList();
     } 

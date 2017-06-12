@@ -461,7 +461,7 @@ public class DbClientContext {
     private void setRepForKSToNetworkTopology(String keyspace, Map<String, String> networkStrategyOptions) throws ConnectionException {
 
         KeyspaceDefinition originalKsDef = getOriginalKsDef(keyspace);
-        KeyspaceDefinition targetKsDef = createTargetSysKsDef(keyspaceName, networkStrategyOptions);
+        KeyspaceDefinition targetKsDef = createTargetSysKsDef(keyspace, networkStrategyOptions);
 
         createOrUpdateKsDef(originalKsDef, targetKsDef, true);
 

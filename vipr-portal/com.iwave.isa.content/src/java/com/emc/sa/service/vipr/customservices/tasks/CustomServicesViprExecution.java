@@ -59,20 +59,20 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         this.step = step;
         if (daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) == null) {
             logger.error("ViPR operation DAO not found");
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "ViPR operation DAO not found");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), "ViPR operation DAO not found");
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("ViPR operation DAO not found: " + step.getOperation());
         }
         final CustomServicesPrimitiveType primitive = daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE).get(step.getOperation());
 
         if (null == primitive) {
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Primitive not found: " + step.getOperation());
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), "Primitive not found: " + step.getOperation());
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
         }
         this.primitive = (CustomServicesViPRPrimitive) primitive;
         this.client = client;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getId(), step.getFriendlyName());
     }
 
     @Override
@@ -92,12 +92,12 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         String path = RESTHelper.makePath(templatePath, input, primitive);
 
-        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.startInfo", primitive.friendlyName());
+        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.startInfo", step.getId(), primitive.friendlyName());
 
         CustomServicesTaskResult result = makeRestCall(path, requestBody, method);
 
         logger.info("result is:{}", result.getOut());
-        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.doneInfo", primitive.friendlyName());
+        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.doneInfo", step.getId(), primitive.friendlyName());
 
         return result;
     }
@@ -154,7 +154,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             }
 
             if (response == null) {
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
                         "REST Execution Failed. Response returned is null");
 
                 throw InternalServerErrorException.internalServerErrors.
@@ -175,12 +175,12 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             if (e.getServiceCode().getCode() == ServiceCode.CUSTOM_SERVICE_NOTASK.getCode()) {
                 return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), null);
             }
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), e);
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Failed to Execute REST request" + e.getMessage());
         } catch (final Exception e) {
             logger.warn("Exception:", e);
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), e);
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }

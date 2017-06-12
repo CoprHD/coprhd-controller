@@ -360,7 +360,7 @@ public class SRDFOperations implements SmisConstants {
                 @Override
                 protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
                         throws DeviceControllerException {
-                    completer.updateDetachStatus(source, target, status, coded);
+                    completer.addRollbackStatus(source, target, status, coded);
                 }
             };
 

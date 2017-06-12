@@ -165,7 +165,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
      * @param storageElementURI uri of a storage element (e.g.: a Volume)
      * @return
      */
-    RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(URI storageElementURI) {
+    private RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(URI storageElementURI) {
         _log.info("Called: getRemoteReplicationPairsForStorageElement() for for storage element {}", storageElementURI);
 
         ArgValidator.checkUri(storageElementURI);

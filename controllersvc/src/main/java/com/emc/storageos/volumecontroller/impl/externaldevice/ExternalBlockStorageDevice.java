@@ -1957,7 +1957,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     @Override
     public void establish(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+        _log.info("Establish remote replication element {} with system id {}", replicationElement.getType(), replicationElement.getElementUri());
 
+        RemoteReplicationOperationHandler establishHandler = new RemoteReplicationOperationHandler() {
+            @Override
+            protected DriverTask doOperation() {
+                return getDriver().establish(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
+            }
+        };
+        establishHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "establish");
     }
 
     @Override

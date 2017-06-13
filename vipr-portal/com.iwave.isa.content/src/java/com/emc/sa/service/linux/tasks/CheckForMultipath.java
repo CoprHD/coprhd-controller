@@ -6,7 +6,6 @@ package com.emc.sa.service.linux.tasks;
 
 import com.iwave.ext.command.CommandOutput;
 import com.iwave.ext.linux.command.MultipathCommand;
-import com.iwave.ext.linux.command.MultipathException;
 
 public class CheckForMultipath extends LinuxExecutionTask<String> {
 
@@ -14,15 +13,15 @@ public class CheckForMultipath extends LinuxExecutionTask<String> {
     public String executeTask() throws Exception {
         MultipathCommand command = new MultipathCommand();
         command.addArgument("-l");
-        executeCommand(command, SHORT_TIMEOUT);
 
         try {
+            executeCommand(command, SHORT_TIMEOUT);
             CommandOutput output = command.getOutput();
             if (output.getExitValue() != 0) {
                 return getMessage("CheckForMultipath.noMultipath");
             }
             return null;
-        } catch (MultipathException e) {
+        } catch (Exception e) {
             return e.getMessage();
         }
     }

@@ -365,7 +365,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
 
             // skip CG if any of its vols are in RR pairs that are also in RR set(s) (not allowed)
             for (URI volInCg : volsInCg) {
-                RemoteReplicationPairList pairsContainingCgVols = rrPairService.getRemoteReplicationPairsForStorageElement(volInCg);
+                RemoteReplicationPairList pairsContainingCgVols = rrPairService.getRemoteReplicationPairs(volInCg);
                 for(NamedRelatedResourceRep pair : pairsContainingCgVols.getRemoteReplicationPairs()) {
                     if(!rrSetService.getRemoteReplicationPairs(pair.getId()).getRemoteReplicationPairs().isEmpty()) {
                         // CG has vol in pair that is in both a RR Group *and* an RR Set (not allowed)

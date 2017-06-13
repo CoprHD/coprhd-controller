@@ -124,7 +124,8 @@ public class AnsibleCommandLine {
         }
 
         if (!StringUtils.isEmpty(shellArgs)) {
-            builder.add("bash").add("-c").add("\""+shellArgs).add(ansiblePath).add(playbook).add("\"");
+            final ImmutableList<String> opt = optionalParam.build();
+	    builder.add("/bin/bash").add("-c").add(shellArgs + " " + ansiblePath + " " + playbook);
             final ImmutableList<String> cmdList = builder.build();
 
             return cmdList.toArray(new String[cmdList.size()]);

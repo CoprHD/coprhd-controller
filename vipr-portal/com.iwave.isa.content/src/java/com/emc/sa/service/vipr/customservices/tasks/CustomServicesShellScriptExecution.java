@@ -19,6 +19,7 @@ package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.io.File;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -137,7 +138,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
         //default to no host key checking
         //final Map<String,String> environment = makeParam(input);
-
+        logger.info("cmd to exec:{}", Arrays.toString(cmds));
         return Exec.sudo(new File(orderDir), timeout, null, new HashMap<String,String>(), cmds);
     }
 

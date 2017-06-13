@@ -33,6 +33,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.Rem
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationResumeCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSplitCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSuspendCompleter;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSwapCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -167,7 +168,6 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
     public void failover(RemoteReplicationElement remoteReplicationElement, String opId) {
         RemoteReplicationFailoverCompleter taskCompleter = new RemoteReplicationFailoverCompleter(remoteReplicationElement, opId);
 
-        // call device
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
         rrDevice.failover(remoteReplicationElement, taskCompleter);
     }
@@ -176,14 +176,16 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
     public void failback(RemoteReplicationElement remoteReplicationElement, String opId) {
         RemoteReplicationFailbackCompleter taskCompleter = new RemoteReplicationFailbackCompleter(remoteReplicationElement, opId);
 
-        // call device
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
         rrDevice.failback(remoteReplicationElement, taskCompleter);
     }
 
     @Override
-    public void swap(RemoteReplicationElement replicationElement, String opId) {
+    public void swap(RemoteReplicationElement remoteReplicationElement, String opId) {
+        RemoteReplicationSwapCompleter taskCompleter = new RemoteReplicationSwapCompleter(remoteReplicationElement, opId);
 
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.swap(remoteReplicationElement, taskCompleter);
     }
 
     @Override

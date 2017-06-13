@@ -491,7 +491,7 @@ public interface CoordinatorClient {
     public ClusterInfo.ClusterState getControlNodesState();
 
     /**
-     * check if all dbsvc up
+     * check if all dbsvc up 
      */
     public Boolean isAllDbsvcUp();
 

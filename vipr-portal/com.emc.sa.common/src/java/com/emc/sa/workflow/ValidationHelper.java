@@ -367,14 +367,7 @@ public class ValidationHelper {
                     case CustomServicesConstants.ANSIBLE_PRIMITIVE_TYPE:
                     case CustomServicesConstants.REST_API_PRIMITIVE_TYPE:
                     case CustomServicesConstants.REMOTE_ANSIBLE_PRIMTIVE_TYPE:
-                        if (step.getOperation() != null) {
-                            final Class modelClass = URIUtil.getModelClass(step.getOperation());
-                            DataObject dataObject = client.findById(modelClass, step.getOperation());
-                            if (dataObject == null || dataObject.getInactive()) {
-                                return CustomServicesConstants.ERROR_MSG_STEP_OPERATION_DOES_NOT_EXISTS;
-                            }
-                        }
-                        return EMPTY_STRING;
+                        return checkOperationExists(client, step.getOperation());
                     default:
                         return CustomServicesConstants.ERROR_MSG_STEP_TYPE_INVALID;
 
@@ -383,6 +376,17 @@ public class ValidationHelper {
 
         }
 
+        return EMPTY_STRING;
+    }
+
+    private String checkOperationExists(final ModelClient client, final URI operation){
+        if (operation != null) {
+            final Class modelClass = URIUtil.getModelClass(operation);
+            DataObject dataObject = client.findById(modelClass, operation);
+            if (dataObject == null || dataObject.getInactive()) {
+                return CustomServicesConstants.ERROR_MSG_STEP_OPERATION_DOES_NOT_EXISTS;
+            }
+        }
         return EMPTY_STRING;
     }
 

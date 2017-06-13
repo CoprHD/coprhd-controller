@@ -384,7 +384,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                         if (fsCheck) {
                             String errMsg = new String(
-                                    "delete file system from DB failed due to either snapshots or quota directories exist for file system " + fsObj.getLabel());
+                                    "delete file system from DB failed due to either snapshots or quota directories exist for file system "
+                                            + fsObj.getLabel());
                             _log.error(errMsg);
 
                             final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
@@ -3426,7 +3427,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (vNASURI != null) {
             VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
             args.setvNAS(vNAS);
-	 }
+        }
     }
 
     /**
@@ -3487,8 +3488,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 getDeviceType(descriptor.getDeviceURI()),
                                 this.getClass(),
                                 createFileSharesMethod(descriptor),
-                                rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
-                                        .getURI())),
+                                rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(),
+                                        asList(fileShare.getParentFileShare().getURI()), sourceDescriptors),
                                 null);
                     }
                 }
@@ -3563,10 +3564,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
             throws InternalException {
-        List<FileDescriptor> sourceDescriptors =
-                FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                        FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
-                        FileDescriptor.Type.FILE_MIRROR_TARGET);
+        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
+                FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
+                FileDescriptor.Type.FILE_MIRROR_TARGET);
         if (sourceDescriptors == null || sourceDescriptors.isEmpty()) {
             return waitFor;
         } else {
@@ -3593,7 +3593,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param fileURIs
      * @return Workflow.Method
      */
-    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs) {
+    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs,
+            List<FileDescriptor> sourceDes) {
+        // This case comes when we are creating target FS for existing source,
+        // and if target FS creation fails we should not delete source FS
+        if (sourceDes == null || sourceDes.isEmpty()) {
+            return new Workflow.Method(ROLLBACK_METHOD_NULL);
+        }
         return new Workflow.Method("rollBackCreateFileShares", systemURI, fileURIs);
     }
 

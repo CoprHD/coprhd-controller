@@ -332,7 +332,7 @@ public class SchemaUtil {
         } else {
             _log.info("keyspace exist already");
             checkStrategyOptions();
-            checkSystemKsRepOptionsForActive();
+//            checkSystemKsRepOptionsForActive();
         }
 
         // create CF's
@@ -383,7 +383,7 @@ public class SchemaUtil {
                 }
             }
             checkStrategyOptions();
-            checkSystemKsRepOptionsForStandby();
+//            checkSystemKsRepOptionsForStandby();
             return true;
         }
     }

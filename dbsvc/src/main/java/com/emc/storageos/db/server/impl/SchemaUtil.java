@@ -419,7 +419,6 @@ public class SchemaUtil {
 
         Map<String, String> targetRepOptions = createTargetRepOptions();
 
-
         KeyspaceDefinition targetDef = clientContext.createTargetSysKsDef(clientContext.SYSTEM_DISTRIBUTED_KS, targetRepOptions);
 
         if (!clientContext.replicationStrategyToChange(currentDef, targetDef)) {
@@ -438,16 +437,22 @@ public class SchemaUtil {
 
     private Map<String,String> createTargetRepOptions() {
 
+        Map<String, String> targetRepOptions = new HashMap<>();
+
         String currentDcId = drUtil.getCassandraDcId(drUtil.getLocalSite());
         String currentRepFactor = Integer.toString(getReplicationFactor());
 
+        targetRepOptions.put(currentDcId, currentRepFactor);
+
         Site activeSite = drUtil.getActiveSite();
+
+        if(activeSite == null){
+            return targetRepOptions;
+        }
+
         String activeSiteDcId = drUtil.getCassandraDcId(activeSite);
         String activeSiteRepFactor = Integer.toString(activeSite.getNodeCount());
 
-        Map<String, String> targetRepOptions = new HashMap<>();
-
-        targetRepOptions.put(currentDcId, currentRepFactor);
         targetRepOptions.put(activeSiteDcId, activeSiteRepFactor);
 
         return targetRepOptions;

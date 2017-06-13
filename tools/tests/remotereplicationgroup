@@ -120,6 +120,18 @@ def remotereplicationgroup_swap(args):
     else:
         print 'Failed to swap remote replication group.'
 
+def remotereplicationgroup_establish(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_establish(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Establish links for remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to establish links for remote replication group.'
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -202,6 +214,9 @@ try:
     elif (cmd == "swap"):
         args = operation.parse_args()
         remotereplicationgroup_swap(args)
+    elif (cmd == "establish"):
+        args = operation.parse_args()
+        remotereplicationgroup_establish(args)
     else:
         parser.print_help()
 

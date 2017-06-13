@@ -394,7 +394,7 @@ unity_setup()
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -404,7 +404,7 @@ unity_setup()
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 2				            \
+	--numpaths 4				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -2458,7 +2458,11 @@ test_7() {
         echo -e "\e[91mERROR\e[0m: Could not find a zone corresponding to host ${HOST1} and initiator ${initiator}"
         incr_fail_count
       else
-        verify_zone ${zone1} ${FC_ZONE_A} exists  
+        # Only verify that the zone exists on the switch if the zone is newly created.  
+        # Newly created zone names will contain the current host name.  
+        if newly_created_zone_for_host $zone1 $HOST1; then  
+            verify_zone ${zone1} ${FC_ZONE_A} exists
+        fi      
       fi    
       
       # Snsp the DB so we can validate after failures later
@@ -2501,7 +2505,11 @@ test_7() {
         echo -e "\e[91mERROR\e[0m: Could not find a ViPR zone corresponding to host ${HOST1} and initiator ${H1PI2}. COP-30518 has been created to track this issue"
         incr_fail_count
       else
-        verify_zone ${zone2} ${FC_ZONE_A} exists  
+        # Only verify that the zone exists on the switch if the zone is newly created.  
+        # Newly created zone names will contain the current host name.  
+        if newly_created_zone_for_host $zone2 $HOST1; then      
+            verify_zone ${zone2} ${FC_ZONE_A} exists
+        fi      
       fi
 
       # Perform any DB validation in here
@@ -2512,6 +2520,8 @@ test_7() {
 
       # Only verify the zone has been removed if it is a newly created zone
       if [ "${zone1}" != "" ]; then
+        # Only verify that the zone is removed from the switch if the zone was newly created.  
+        # Newly created zone names will contain the current host name.    
         if newly_created_zone_for_host $zone1 $HOST1; then
             verify_zone ${zone1} ${FC_ZONE_A} gone    
         fi          
@@ -2519,6 +2529,8 @@ test_7() {
 
       # Only verify the zone has been removed if it is a newly created zone
       if [ "${zone2}" != "" ]; then
+        # Only verify that the zone is removed from the switch if the zone was newly created.  
+        # Newly created zone names will contain the current host name.    
         if newly_created_zone_for_host $zone2 $HOST1; then
             verify_zone ${zone2} ${FC_ZONE_A} gone    
         fi          

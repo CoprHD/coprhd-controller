@@ -537,25 +537,11 @@ public class UCSMServiceImpl implements UCSMService {
                     serviceProfileNameIsDuplicate = isServiceProfileDuplicate(
                             existingLsServers, serviceProfileNameToUse);
                 }
+            } else if (serviceProfileNameIsDuplicate) {
+                errorMessage.append("Service Profile name" + serviceProfileName + "is already in use");
+                throw new RuntimeException("Service Profile template duplicate");
             }
-            while (serviceProfileNameIsDuplicate) {
-                index++;
-                serviceProfileNameToUse = serviceProfileName + "_"
-                        + Integer.toString(index);
-                if (serviceProfileNameToUse.length() > 32) {
-                    serviceProfileNameToUse = StringUtils.substringBefore(
-                            serviceProfileName, ".")
-                            + "_"
-                            + Integer.toString(index);
-                    if (serviceProfileNameToUse.length() > 32) {
-                        serviceProfileNameToUse = StringUtils.substring(
-                                serviceProfileNameToUse, 0, 32 - (Integer
-                                        .toString(index).length() + 1));
-                    }
-                }
-                serviceProfileNameIsDuplicate = isServiceProfileDuplicate(
-                        existingLsServers, serviceProfileNameToUse);
-            }
+            
 
             try {
                 ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);

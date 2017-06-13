@@ -70,7 +70,7 @@ public class WorkflowServiceDescriptor {
         log.debug("Getting workflow descriptor for {}", serviceName);
         List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(serviceName);
         if (null == results || results.isEmpty()) {
-            return null;
+            throw new IllegalStateException(String.format("No workflow with the name %s", serviceName));
         }
         if (results.size() > 1) {
             throw new IllegalStateException(String.format("Multiple workflows with the name %s", serviceName));
@@ -79,7 +79,7 @@ public class WorkflowServiceDescriptor {
         return mapWorkflowToServiceDescriptor(customServicesWorkflow);
     }
 
-    // This method will only return service descriptors for PUBLISHED workflwos
+    // This method will only return service descriptors for PUBLISHED workflows
     public Collection<ServiceDescriptor> listDescriptors() {
         List<ServiceDescriptor> wfServiceDescriptors = new ArrayList<>();
         List<NamedElement> oeElements = customServicesWorkflowManager.listByStatus(CustomServicesWorkflowStatus.PUBLISHED);
@@ -98,6 +98,17 @@ public class WorkflowServiceDescriptor {
         final ServiceDescriptor to = new ServiceDescriptor();
         try {
             final CustomServicesWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
+            final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByName(wfDocument.getName());
+            if (wfs.isEmpty() || wfs.size()>1) {
+                log.error("Cannot get workflow or more than one workflow mapped per workflow name:{}", wfDocument.getName());
+                throw new IllegalStateException(String.format("ECannot get workflow or more than one workflow mapped per workflow name %s", wfDocument.getName()));
+            }
+            if (StringUtils.isEmpty(wfs.get(0).getState()) || wfs.get(0).getState().equals(CustomServicesWorkflowStatus.NONE) ||
+                    wfs.get(0).getState().equals(CustomServicesWorkflowStatus.INVALID)) {
+                log.error("Workflow state is not valid. State:{} Workflow name:{}", wfs.get(0).getState(), wfDocument.getName());
+                throw new IllegalStateException(String.format("Workflow state is not valid. State %s", wfs.get(0).getState()));
+            }
+
             to.setCategory(CUSTOM_SERVICE_CATEGORY);
             to.setDescription(wfDocument.getDescription());
             to.setDestructive(false);

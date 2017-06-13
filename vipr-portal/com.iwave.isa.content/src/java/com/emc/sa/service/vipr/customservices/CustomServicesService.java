@@ -35,6 +35,7 @@ import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.sa.catalog.CustomServicesWorkflowManager;
 import com.emc.sa.catalog.primitives.CustomServicesViprPrimitiveDAO;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
@@ -75,6 +76,8 @@ public class CustomServicesService extends ViPRService {
     private CustomServicesExecutors executor;
     @Autowired
     private CustomServicesViprPrimitiveDAO customServicesViprDao;
+    @Autowired
+    private CustomServicesWorkflowManager customServicesWorkflowManager;
 
     protected String decrypt(final String value) {
         if (StringUtils.isNotBlank(value)) {
@@ -127,7 +130,7 @@ public class CustomServicesService extends ViPRService {
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
-            ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getFriendlyName(), step.getType());
 
             updateInputPerStep(step);
 
@@ -154,7 +157,7 @@ public class CustomServicesService extends ViPRService {
                 next = getNext(false, null, step);
             }
             if (next == null) {
-                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id" + step.getId()
+                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id" + step.getId() + "\t Step Name:" + step.getFriendlyName()
                 + "Failed. Failing the Workflow");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Workflow Execution failed");
             }
@@ -168,18 +171,29 @@ public class CustomServicesService extends ViPRService {
 
         final String raw;
 
-        if (uri == null) {
-            raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
-        } else {
-            // Get it from DB
-            final CustomServicesWorkflow wf = dbClient.queryObject(CustomServicesWorkflow.class, uri);
-            raw = WorkflowHelper.toWorkflowDocumentJson(wf);
-        }
+        raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
+
         if (null == raw) {
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
         }
         final CustomServicesWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
+
+        final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByName(obj.getName());
+        if (wfs == null  || wfs.isEmpty() || wfs.size() > 1) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Workflow list is null or empty or more than one workflow per Workflow name:" + obj.getName());
+        }
+        if (wfs.get(0) == null || StringUtils.isEmpty(wfs.get(0).getState())) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Workflow state is null or empty for workflow:" + obj.getName());
+        }
+
+        if(wfs.get(0).getState().equals(CustomServicesWorkflow.CustomServicesWorkflowStatus.NONE.toString()) ||
+                wfs.get(0).getState().equals(CustomServicesWorkflow.CustomServicesWorkflowStatus.INVALID.toString())) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Workflow state is not valid. Cannot run workflow" + obj.getName() + "State:" + wfs.get(0).getState());
+        }
 
         final List<Step> steps = obj.getSteps();
         final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
@@ -219,12 +233,19 @@ public class CustomServicesService extends ViPRService {
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
         if (status) {
-            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step.getId(), result.getReturnCode());
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step.getId(), step.getFriendlyName(), result.getReturnCode());
 
             return step.getNext().getDefaultStep();
         }
 
-        ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId());
+        if (result!= null) {
+            ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId(), step.getFriendlyName(),
+            result.getOut(), result.getErr(), result.getReturnCode());
+
+        } else {
+            ExecutionUtils.currentContext()
+                    .logError("customServicesService.stepFailedWithoutStatus", step.getId(), step.getFriendlyName());
+        }
 
         return step.getNext().getFailedStep();
     }

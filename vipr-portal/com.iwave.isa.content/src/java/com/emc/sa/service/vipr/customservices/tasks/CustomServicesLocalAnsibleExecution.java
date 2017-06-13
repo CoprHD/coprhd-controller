@@ -74,7 +74,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getId(), step.getFriendlyName());
         this.orderDir = orderDir;
         final String folderUniqueStep = step.getId().replace("-", "");
         this.chrootOrderDir = String.format("%s%s/%s/", CustomServicesConstants.CHROOT_ORDER_DIR_PATH,
@@ -84,7 +84,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
 
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId(), step.getFriendlyName());
         final URI scriptid = step.getOperation();
         final List<String> fileSoftLink = new ArrayList<String>();
         final List<String> fileAbsolutePath = new ArrayList<String>();
@@ -96,7 +96,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                     scriptid);
             if (null == ansiblePrimitive) {
                 logger.error("Error retrieving the ansible primitive from DB. {} not found in DB", scriptid);
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "\"Error retrieving the ansible primitive from DB.");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Error retrieving ansible primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
             }
             final CustomServicesDBAnsibleResource ansiblePackageId = dbClient.queryObject(CustomServicesDBAnsibleResource.class,
@@ -104,7 +105,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             if (null == ansiblePackageId) {
                 logger.error("Error retrieving the resource for the ansible primitive from DB. {} not found in DB",
                         ansiblePrimitive.getResource());
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Error retrieving the resource for the ansible primitive from DB. ");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Error retrieving the resource for the ansible primitive from DB. ");
 
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(ansiblePrimitive.getResource() + " not found in DB");
@@ -124,7 +126,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
 
             if (StringUtils.isBlank(hostFileFromStep)) {
                 logger.error("CS: Inventory file not set in operation:{}", step.getId());
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Inventory file not set");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),"Inventory file not set");
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed("Inventory file not set");
             }
@@ -135,7 +137,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             if (null == inventoryResource) {
                 logger.error("Error retrieving the inventory resource for the ansible primitive from DB. {} not found in DB",
                         hostFileFromStep);
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Error retrieving the inventory resource  from DB");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Error retrieving the inventory resource  from DB");
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(hostFileFromStep + " not found in DB");
             }
@@ -154,14 +157,16 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             // Soft link all files from ansible tar
             final Exec.Result softlinkResult = Exec.exec(new File(CustomServicesConstants.CHROOT_DIR),timeout,null,new HashMap<String,String>(), softLinkCmd(fileAbsolutePath));
             if (softlinkResult == null) {
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Local Ansible execution Failed");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Local Ansible execution Failed");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Softlinking failed for scripts");
             }
 
             // Make sure we have all permission for soft link files
             final Exec.Result chmodResult = Exec.exec(new File(CustomServicesConstants.CHROOT_DIR),timeout,null,new HashMap<String,String>(), chmodCmd(fileSoftLink));
             if (chmodResult == null) {
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Local Ansible execution Failed");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Local Ansible execution Failed");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("chmod command failed for scripts");
             }
 
@@ -173,15 +178,17 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                 Exec.exec(timeout, unlinkFiles);
             }
         } catch (final Exception e) {
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Custom Service Task Failed" + e);
             logger.error("Exception:", e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId(), step.getFriendlyName());
 
         if (result == null) {
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Local Ansible execution Failed");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Local Ansible execution Failed");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Local Ansible execution Failed");
         }
 
@@ -215,7 +222,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                 entry = tarIn.getNextTarEntry();
             }
         } catch (final IOException e) {
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Invalid ansible archive");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),"Invalid ansible archive");
             logger.error("Exception:", e);
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
@@ -231,11 +238,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                 .setExtraVars(extraVars)
                 .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
                 .build();
-        //default to no host key checking
-        final Map<String,String> environment = new HashMap<String,String>();
-        environment.put("ANSIBLE_HOST_KEY_CHECKING", "false");
 
-        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
+        return Exec.sudo(new File(orderDir), timeout, null, new HashMap<String,String>(), cmds);
     }
 
     private String[] softLinkCmd(final List <String> fileAbsolutePath) {

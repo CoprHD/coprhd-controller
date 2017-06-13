@@ -88,4 +88,10 @@ public class XtremIOConsistencyGroup {
 		this.guid = guid;
 	}
 
+	@Override
+	public String toString() {
+		return "XtremIOConsistencyGroup [guid=" + guid + ", name=" + name + ", cgName=" + cgName + ", numOfVols="
+				+ numOfVols + "]";
+	}
+
 }

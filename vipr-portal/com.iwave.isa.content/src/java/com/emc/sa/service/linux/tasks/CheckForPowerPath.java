@@ -4,7 +4,6 @@
  */
 package com.emc.sa.service.linux.tasks;
 
-import com.iwave.ext.linux.command.powerpath.PowerPathException;
 import com.iwave.ext.linux.command.powerpath.PowermtCheckRegistrationCommand;
 
 public class CheckForPowerPath extends LinuxExecutionTask<String> {
@@ -15,7 +14,7 @@ public class CheckForPowerPath extends LinuxExecutionTask<String> {
         try {
             executeCommand(command, SHORT_TIMEOUT);
             return null;
-        } catch (PowerPathException e) {
+        } catch (Exception e) {
             return e.getMessage();
         }
     }

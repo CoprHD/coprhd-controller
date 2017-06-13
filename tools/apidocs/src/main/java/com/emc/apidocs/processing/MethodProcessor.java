@@ -4,6 +4,10 @@
  */
 package com.emc.apidocs.processing;
 
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.emc.apidocs.AnnotationUtils;
 import com.emc.apidocs.DocReporter;
 import com.emc.apidocs.KnownAnnotations;
@@ -13,11 +17,13 @@ import com.emc.apidocs.model.ApiField;
 import com.emc.apidocs.model.ApiMethod;
 import com.emc.apidocs.model.ApiService;
 import com.google.common.collect.Lists;
-import com.sun.javadoc.*;
-
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.sun.javadoc.AnnotationDesc;
+import com.sun.javadoc.AnnotationValue;
+import com.sun.javadoc.FieldDoc;
+import com.sun.javadoc.MethodDoc;
+import com.sun.javadoc.ParamTag;
+import com.sun.javadoc.Parameter;
+import com.sun.javadoc.Tag;
 
 /**
  */
@@ -130,8 +136,14 @@ public class MethodProcessor {
     public static void addInputs(MethodDoc method, ApiMethod apiMethod) {
         for (Parameter parameter : method.parameters()) {
             if (!AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.PathParam")
-                    && !AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.QueryParam")) {
-                apiMethod.input = JaxbClassProcessor.convertToApiClass(parameter.type().asClassDoc());
+                    && !AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.QueryParam")
+                    && !AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.HeaderParam")
+                    && !AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.core.Context")) {
+                
+                if(!TypeUtils.isPrimitiveType(parameter.type())) {
+                    apiMethod.setFqRequestType(parameter.type().qualifiedTypeName());
+                    apiMethod.input = JaxbClassProcessor.convertToApiClass(parameter.type().asClassDoc());
+                }
             }
         }
     }
@@ -220,6 +232,7 @@ public class MethodProcessor {
                 !TypeUtils.isPrimitiveType(method.returnType())) {
 
             if (AnnotationUtils.hasAnnotation(method.returnType().asClassDoc(), KnownAnnotations.XMLRoot_Annotation)) {
+                apiMethod.setFqReturnType(method.returnType().qualifiedTypeName());
                 apiMethod.output = JaxbClassProcessor.convertToApiClass(method.returnType().asClassDoc());
                 apiMethod.isTaskResponse = method.returnType().asClassDoc().name().equals("TaskResourceRep") ||
                         method.returnType().asClassDoc().name().equals("TaskList");

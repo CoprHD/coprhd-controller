@@ -16,13 +16,18 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
+import com.emc.sa.catalog.CustomServicesWorkflowManager;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.google.common.collect.Maps;
 
 @Component
 public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, ApplicationContextAware {
     private static final Logger LOG = Logger.getLogger(DefaultExecutionServiceFactory.class);
+
+    @Autowired
+    private CustomServicesWorkflowManager customServicesWorkflowManager;
 
     private Map<String, Class<? extends ExecutionService>> services = Maps.newHashMap();
     private ApplicationContext applicationContext;
@@ -52,12 +57,36 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
 
     @Override
     public ExecutionService createService(Order order, CatalogService catalogService) throws ServiceNotFoundException {
-        String serviceName = catalogService.getBaseService();
+        String serviceName;
+        if (null == catalogService) {
+            // This is case of "Test Orders".
+            // Getting service name from workflow (as there is no catalog service)
+            final CustomServicesWorkflow customServicesWorkflow = customServicesWorkflowManager.getById(order.getCatalogServiceId());
+            serviceName = customServicesWorkflow.getLabel();
+        }
+        else {
+            serviceName = catalogService.getBaseService();
+        }
         Class<? extends ExecutionService> serviceClass = services.get(serviceName);
         if (serviceClass == null) {
-            throw new ServiceNotFoundException(String.format("Service '%s' not found", serviceName));
+            // Check if service is created from workflow base service.
+            // For these services there is only one executor - CustomServicesService
+            if (isWorkflowService(serviceName)) {
+                serviceClass = services.get("CustomServicesService");
+            }
+            else {
+                throw new ServiceNotFoundException(String.format("Service '%s' not found", serviceName));
+            }
         }
         return newInstance(serviceClass, serviceName);
+    }
+
+    private boolean isWorkflowService(String serviceName) {
+        List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(serviceName);
+        if (null != results && !results.isEmpty()) {
+            return true;
+        }
+        return false;
     }
 
     protected ExecutionService newInstance(Class<? extends ExecutionService> serviceClass, String serviceName) {

@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import javax.xml.bind.annotation.XmlElement;
 
@@ -340,13 +339,21 @@ public final class RESTHelper {
         
         if (i == bits.length - 1) {
             logger.debug("array value:{}", arrayValue);
-            return arrayValue.stream().map(Object::toString).collect(Collectors.toList());
+            return toStringList(arrayValue);
         } else if (objectType instanceof Class<?>) {
             return parseObjectCollection(bits, i, arrayValue);
         } else {
             logger.warn("Parsing vipr output failed.  Unexpected primitive before end of output: " + objectType + " field " + bits[i] + " in " + bits);
             return null;
         }
+    }
+
+    private static List<String> toStringList(final Collection<?> arrayValue) {
+        final List<String> list = new ArrayList<String>();
+        for( final Object value : arrayValue) {
+            list.add(value.toString());
+        }
+        return list;
     }
 
     private static List<String> parseObjectCollection(final String[] bits, final int i, final Collection<?> arrayValue) throws Exception {

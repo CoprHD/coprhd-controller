@@ -26,6 +26,7 @@ import com.emc.storageos.db.common.VdcUtil;
 
 public class URIUtil {
     private static final Logger log = LoggerFactory.getLogger(URIUtil.class);
+    private static final int CLASS_PARTS_COUNT = 2;
     private static final int UUID_PARTS_COUNT = 3;
     private static final int VDC_PARTS_COUNT = 4;
 
@@ -166,6 +167,16 @@ public class URIUtil {
             return null;
         }
         return TYPE_PATTERN.split(id.toString())[1].split(":");
+    }
+
+    /**
+     * Get the Class name embedded in the URI string, or null if none
+     *
+     * @param id a DataObject URI string
+     * @return the Class name
+     */
+    public static String parseClassFromURI(URI id) {
+        return (id != null) ? parsePartFromURI(id.toString(), CLASS_PARTS_COUNT) : null;
     }
 
     /**

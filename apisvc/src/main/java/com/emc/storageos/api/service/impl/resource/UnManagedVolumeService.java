@@ -43,9 +43,11 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.B
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BaseIngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.unmanaged.UnmanagedVolumeReportingUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -591,4 +593,57 @@ public class UnManagedVolumeService extends TaskResourceService {
         return operationType;
     }
 
+    
+    
+    
+    
+    
+    
+    
+
+    /**
+     *
+     * Show the dependency details of unmanaged volume.
+     *
+     * @param id the URN of a ViPR unmanaged volume
+     */
+    @GET
+    @Produces({ MediaType.TEXT_PLAIN, MediaType.TEXT_HTML })
+    @Path("/{id}/tree")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public String getUnManagedVolumeTree(@PathParam("id") URI id) {
+        UnManagedVolume unmanagedVolume = _dbClient.queryObject(UnManagedVolume.class, id);
+        ArgValidator.checkEntityNotNull(unmanagedVolume, id, isIdEmbeddedInURL(id));
+        return UnmanagedVolumeReportingUtils.renderUnmanagedVolumeDependencyTree(_dbClient, _coordinator, unmanagedVolume);
+    }
+
+    /**
+     *
+     * Show all the unmanaged volumes in a tree format.
+     *
+     */
+    @GET
+    @Produces({ MediaType.TEXT_PLAIN, MediaType.TEXT_HTML })
+    @Path("/tree")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public String getUnManagedVolumeTreeList() {
+        return UnmanagedVolumeReportingUtils.renderUnmanagedVolumeDependencyTreeList(_dbClient, _coordinator, null);
+    }
+    
+
+    /**
+     *
+     * Show the dependency details of unmanaged volume.
+     *
+     * @param searchString label filter
+     */
+    @GET
+    @Produces({ MediaType.TEXT_PLAIN, MediaType.TEXT_HTML })
+    @Path("/tree/{searchString}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public String getUnManagedVolumeTreeListSearch(@PathParam("searchString") String searchString) {
+        return UnmanagedVolumeReportingUtils.renderUnmanagedVolumeDependencyTreeList(_dbClient, _coordinator, searchString);
+    }
+    
+    
 }

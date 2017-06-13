@@ -22,9 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.functions.MapUnmanagedExportMask;
+import com.emc.storageos.api.service.impl.resource.unmanaged.UnmanagedVolumeReportingUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.UnManagedExportMaskBulkRep;
@@ -107,6 +109,30 @@ public class UnManagedExportMaskService extends TaggedResource {
     public UnManagedExportMaskBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         verifySystemAdmin();
         return queryBulkResourceReps(ids);
+    }
+
+    
+    
+    
+    
+    
+    
+    
+
+    /**
+     *
+     * Show the dependency details of unmanaged volume.
+     *
+     * @param id the URN of a ViPR unmanaged volume
+     */
+    @GET
+    @Produces({ MediaType.TEXT_PLAIN, MediaType.TEXT_HTML })
+    @Path("/{id}/tree")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public String getUnManagedExportMaskTree(@PathParam("id") URI id) {
+        UnManagedExportMask unmanagedExportMask = _dbClient.queryObject(UnManagedExportMask.class, id);
+        ArgValidator.checkEntityNotNull(unmanagedExportMask, id, isIdEmbeddedInURL(id));
+        return UnmanagedVolumeReportingUtils.renderUnmanagedExportMaskDependencyTree(_dbClient, _coordinator, unmanagedExportMask);
     }
 
 }

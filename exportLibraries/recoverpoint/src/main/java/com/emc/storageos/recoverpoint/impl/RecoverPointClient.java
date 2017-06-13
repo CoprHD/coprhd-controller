@@ -579,8 +579,8 @@ public class RecoverPointClient {
                         volume.setRpCopyName(copySettings.getName());
                         volume.setInternalSiteName(clusterIdToInternalSiteNameMap.get(journal.getClusterUID().getId()));
 
-                        // Need to extract the naaUids to format: 600601608D20370089260942815CE511
-                        volume.setWwn(RecoverPointUtils.getGuidBufferAsString(journal.getVolumeInfo().getNaaUids(), false).toUpperCase(
+                        // Need to extract the rawUids to format: 600601608D20370089260942815CE511
+                        volume.setWwn(RecoverPointUtils.getGuidBufferAsString(journal.getVolumeInfo().getRawUids(), false).toUpperCase(
                                 Locale.ENGLISH));
                         if (copy.getJournals() == null) {
                             copy.setJournals(new ArrayList<GetVolumeResponse>());
@@ -626,8 +626,8 @@ public class RecoverPointClient {
                             volResp.setProduction(false);
                         }
 
-                        // Need to extract the naaUids to format: 600601608D20370089260942815CE511
-                        volResp.setWwn(RecoverPointUtils.getGuidBufferAsString(volume.getVolumeInfo().getNaaUids(), false).toUpperCase(
+                        // Need to extract the rawUids to format: 600601608D20370089260942815CE511
+                        volResp.setWwn(RecoverPointUtils.getGuidBufferAsString(volume.getVolumeInfo().getRawUids(), false).toUpperCase(
                                 Locale.ENGLISH));
 
                         if (rset.getVolumes() == null) {
@@ -1502,7 +1502,7 @@ public class RecoverPointClient {
                                 ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                                     logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(),
-                                            RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false)));
+                                            RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false)));
                                 }
                             }
                             throw RecoverPointException.exceptions
@@ -1552,7 +1552,7 @@ public class RecoverPointClient {
                                 ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                                     logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(),
-                                            RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false)));
+                                            RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false)));
                                 }
                             }
                             throw RecoverPointException.exceptions
@@ -2047,7 +2047,7 @@ public class RecoverPointClient {
                 // See if it is a production source, or an RP target
                 for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
                     for (UserVolumeSettings uvSettings : rsSettings.getVolumes()) {
-                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getNaaUids(), false);
+                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
                         if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
                             ConsistencyGroupUID cgID = uvSettings.getGroupCopyUID().getGroupUID();
                             ConsistencyGroupState state = functionalAPI.getGroupState(cgID);
@@ -2091,7 +2091,7 @@ public class RecoverPointClient {
                     List<JournalVolumeSettings> journalVolumeSettingsList = cgJournal.getJournalVolumes();
                     for (JournalVolumeSettings journalVolumeSettings : journalVolumeSettingsList) {
                         String journalVolUID =
-                                RecoverPointUtils.getGuidBufferAsString(journalVolumeSettings.getVolumeInfo().getNaaUids(), false);
+                                RecoverPointUtils.getGuidBufferAsString(journalVolumeSettings.getVolumeInfo().getRawUids(), false);
                         if (journalVolUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
                             ConsistencyGroupUID cgID = journalVolumeSettings.getGroupCopyUID().getGroupUID();
                             List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgID)
@@ -3799,7 +3799,7 @@ public class RecoverPointClient {
                 // See if it is a production source, or an RP target
                 for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
                     for (UserVolumeSettings uvSettings : rsSettings.getVolumes()) {
-                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getNaaUids(), false);
+                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
                         if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
                             return true;
                         }
@@ -3817,10 +3817,10 @@ public class RecoverPointClient {
     }
 
     /**
-     * Gets the copy access states for the copies associated with the given volume WWNs.  
+     * Checks to see if the given copy is in direct access state.
      *
-     * @param rpWWNs target volume WWNs
-     * @return a mapping of volume WWNs to copy access states
+     * @param copyToExamine the copy to check for direct access state
+     * @return true if the given copy is in direct access state, false otherwise
      */
     public Map<String, String> getCopyAccessStates(Set<String> rpWWNs) {
         Map<String, String> copyAccessStates = new HashMap<String, String>();

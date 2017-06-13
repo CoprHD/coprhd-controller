@@ -145,7 +145,7 @@ public class WindowsUtils {
         }
         error = StringUtils.substringAfter(output, DISKPART_VIRTUAL_DISK_ERROR);
         if (StringUtils.isNotBlank(error)) {
-            return StringUtils.trim(StringUtils.substringBefore(error, DISKPART_VIRTUAL_DISK_ERROR));
+            return StringUtils.trim(StringUtils.substringBefore(error, DISKPART_PROMPT));
         }
         return null;
     }

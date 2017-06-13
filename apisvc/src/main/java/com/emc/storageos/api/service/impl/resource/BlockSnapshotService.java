@@ -955,7 +955,7 @@ public class BlockSnapshotService extends TaskResourceService {
         } catch (Exception e) {
             _log.error("Exception importing snapshot to VPLEX", e);
             backendVolume.setInactive(true);
-            _dbClient.persistObject(backendVolume);
+            _dbClient.updateObject(backendVolume);
             throw e;
         }
 
@@ -1020,19 +1020,31 @@ public class BlockSnapshotService extends TaskResourceService {
         volume.setCapacity(sourceVolume.getCapacity());
 
         // The snapshot target should be thin if the source volume was
-        // thinly provisioned. This will control be used to control whether
-        // or not thin rebuilds occur when the volume we create is
-        // distributed.
+        // thinly provisioned. This will whether or not thin rebuilds
+        // occur when the volume we create is distributed.
         volume.setThinlyProvisioned(sourceVolume.getThinlyProvisioned());
+        
+        // TBD Heg - This operation is similar to creating a full copy of 
+        // a VPLEX snapshot. In that case, which I also questioned, the
+        // pre-allocation size is set to the allocation capacity of the 
+        // parent. I was not sure why, but seems maybe these should be 
+        // consistent.
+        volume.setThinVolumePreAllocationSize(sourceVolume.getThinVolumePreAllocationSize());
 
         // The source side backend volume for a VPLEX volume always
         // has the same virtual pool as the VPLEX volume, and we will
         // use the source volume virtual pool for the VPLEX volume.
         volume.setVirtualPool(sourceVolume.getVirtualPool());
+        
+        // Set performance parameters
+        volume.setPerformanceParams(sourceVolume.getPerformanceParams());
 
         // Set auto tier policy from the source volume. This comes
         // into play in vmax3 export operations.
         volume.setAutoTieringPolicyUri(sourceVolume.getAutoTieringPolicyUri());
+        
+        // Set Deduplication.
+        volume.setIsDeduplicated(sourceVolume.getIsDeduplicated());
 
         // The pool is not currently set as the BlockSnapshot does not
         // keep the storage pool for the target volume. This did not

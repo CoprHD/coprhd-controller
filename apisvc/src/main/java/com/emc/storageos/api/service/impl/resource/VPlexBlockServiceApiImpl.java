@@ -1104,14 +1104,26 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 s_logger.error("URISyntaxException", ex);
             }
 
-            VirtualPoolCapabilityValuesWrapper cosCapabilities = new VirtualPoolCapabilityValuesWrapper();
-            cosCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, getVolumeCapacity(importVolume));
-            cosCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-            cosCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, importVolume.getThinlyProvisioned());
+            // Set capabilities for volume placement and preparation. Note that there are no 
+            // performance parameters to account for when placing a new HA volume.
+            // TBD Heg - Thin provisioning was gotten from the import volume and not the value for the requested HA vpool
+            // which seems wrong???
+            // TBD Heg - Seems auto tiering name should be set in capabilities for pool matching, which it was not.
+            // TBD Heg - This is another place where it would seem that maybe we need to set pre-allocation size
+            // based on allocated capacity of the source volume. I saw this was done for full copy, but not really
+            // elsewhere. Further, after placing the volume the value is reset in the capabilities to be based on 
+            // the thin volume pre-allocation percentage so that the value in the prepare volume reflects the 
+            // pre-allocation percentage. Need to determine why that was done and if it needs to be carried over 
+            // everywhere you placing a volume based on the size of some other "source" volume.
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper();
+            vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, getVolumeCapacity(importVolume));
+            vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+            vpoolCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                    requestedHaVirtualPool, null, null, vpoolCapabilities, _dbClient);
 
             // Get the recommendations and pick one.
             List<Recommendation> recommendations = getBlockScheduler().scheduleStorageForImport(
-                    neighborhood, vplexes, requestedHaVarray, requestedHaVirtualPool, cosCapabilities);
+                    neighborhood, vplexes, requestedHaVarray, requestedHaVirtualPool, vpoolCapabilities);
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noStorageFoundForVolumeMigration(requestedHaVirtualPool.getLabel(),
                         requestedHaVarray.getLabel(), importVolume.getId());
@@ -1122,19 +1134,21 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             vplexURI = vplexRecommendation.getVPlexStorageSystem();
             vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexURI);
             vplexProject = getVplexProject(vplexSystem, _dbClient, _tenantsService);
-
+            
             // Prepare the created volume.
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class,
                     vplexRecommendation.getVirtualArray());
+            // TBD Heg - vpool was passed, but seems it should be the request HA virtual pool since this
+            // is the HA backend volume????
             createVolume = prepareVolumeForRequest(getVolumeCapacity(importVolume),
-                    vplexProject, haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
-                    vplexRecommendation.getSourceStoragePool(), importVolume.getLabel() + "-1",
-                    ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
+                    vplexProject, haVirtualArray, requestedHaVirtualPool, null, vpoolCapabilities, 
+                    vplexRecommendation.getSourceStorageSystem(), vplexRecommendation.getSourceStoragePool(),
+                    importVolume.getLabel() + "-1", ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.updateObject(createVolume);
             VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
                     createVolume.getStorageController(), createVolume.getId(),
-                    createVolume.getPool(), cosCapabilities);
+                    createVolume.getPool(), vpoolCapabilities);
             descriptors.add(desc);
 
         } else {
@@ -1142,10 +1156,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexURI);
             vplexProject = getVplexProject(vplexSystem, _dbClient, _tenantsService);
         }
+        
+        // Set capabilities so that the prepared volume is initialized in the same manner
+        // as a created VPLEX volume and pass the performance parameters of the import
+        // volume as the VPLEX volume should have the same value. Note that the auto
+        // tiering policy is not reflected in the VPLEX volume.
+        VirtualPoolCapabilityValuesWrapper vplexVpoolCapabilities = new VirtualPoolCapabilityValuesWrapper();
+        vplexVpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
+                    importVolume.getThinVolumePreAllocationSize());
+        vplexVpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, importVolume.getIsDeduplicated());
 
         // Prepare the VPLEX Virtual volume.
         Volume vplexVolume = prepareVolumeForRequest(getVolumeCapacity(importVolume), project,
-                neighborhood, vpool, vplexURI, nullPoolURI, importVolume.getLabel(),
+                neighborhood, vpool, importVolume.getPerformanceParams(),
+                vplexVpoolCapabilities, vplexURI, nullPoolURI, importVolume.getLabel(),
                 ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
         vplexVolume.setAssociatedVolumes(new StringSet());
         vplexVolume.getAssociatedVolumes().add(importVolume.getId().toString());
@@ -1217,13 +1241,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 throw new ServiceCodeException(ServiceCode.UNFORSEEN_ERROR,
                         "Existing volume inactive", new Object[] {});
             }
-            VirtualPoolCapabilityValuesWrapper cosCapabilities = new VirtualPoolCapabilityValuesWrapper();
-            cosCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, getVolumeCapacity(existingVolume));
-            cosCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-            cosCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, existingVolume.getThinlyProvisioned());
 
-            // Get a recommendation.
-            // Then create the volume.
             List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
             Volume createVolume = null;
             // Determine if the user requested a specific HA VirtualArray and an associated HA VirtualPool.
@@ -1243,10 +1261,37 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     break;
                 }
             }
+            
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper();
+            vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, getVolumeCapacity(existingVolume));
+            vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+            // TBD Heg - Thin was gotten from the existing volume and not the value for the requested HA vpool???
+            if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                    requestedHaVirtualPool.getSupportedProvisioningType())) {
+                vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+                
+                // TBD Heg - To guarantee that storage pool for the HA side has enough 
+                // physical space use the current allocated capacity of the existing volume
+                // when placing the volume. This is done when creating full copies and thought
+                // it should be done here for the same reason.
+                vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
+                        BlockFullCopyUtils.getAllocatedCapacityForFullCopySource(existingVolume, _dbClient));
+            }
+
+            // TBD Heg - Seems auto tiering name should be set in capabilities for pool matching.
+            String autoTierPolicyName = requestedHaVirtualPool.getAutoTierPolicyName();
+            if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
+                vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
+            }
+            
+            // Add deduplication setting to capabilities so it is set properly in the prepared volume.
+            if (requestedHaVirtualPool.getDedupCapable()) {
+                vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, requestedHaVirtualPool.getDedupCapable());
+            }
 
             // Get the recommendations and pick one.
             List<Recommendation> recommendations = getBlockScheduler().scheduleStorageForImport(neighborhood, vplexes,
-                    requestedHaVarray, requestedHaVirtualPool, cosCapabilities);
+                    requestedHaVarray, requestedHaVirtualPool, vpoolCapabilities);
 
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noStorageFoundForVolumeMigration(requestedHaVirtualPool.getLabel(),
@@ -1261,21 +1306,31 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexURI);
             Project vplexProject = getVplexProject(vplexSystem, _dbClient, _tenantsService);
 
+            // TBD Heg - Now that the volume is placed, reset the thin volume pre-allocation to
+            // reflect the thin volume preallocation in the requested HA virtual pool. Again,
+            // this is done in full copy creation, so thought it should be done here.
+            Integer thinVolumePreAllocPercentage = requestedHaVirtualPool.getThinVolumePreAllocationPercentage();
+            if (null != thinVolumePreAllocPercentage && 0 < thinVolumePreAllocPercentage) {
+                vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
+                        .getThinVolumePreAllocationSize(thinVolumePreAllocPercentage, getVolumeCapacity(existingVolume)));
+            }
+
             // Prepare the created volume.
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class,
                     vplexRecommendation.getVirtualArray());
             createVolume = prepareVolumeForRequest(getVolumeCapacity(existingVolume), vplexProject,
-                    haVirtualArray, requestedHaVirtualPool, vplexRecommendation.getSourceStorageSystem(),
+                    haVirtualArray, requestedHaVirtualPool, null, vpoolCapabilities, 
+                    vplexRecommendation.getSourceStorageSystem(),
                     vplexRecommendation.getSourceStoragePool(), vplexVolume.getLabel() + "-1",
                     ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.updateObject(createVolume);
             VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                    createVolume.getStorageController(), createVolume.getId(), createVolume.getPool(), cosCapabilities);
+                    createVolume.getStorageController(), createVolume.getId(), createVolume.getPool(), vpoolCapabilities);
             descriptors.add(desc);
             // Add a descriptor for the VPlex Virtual Volume.
             desc = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
-                    vplexVolume.getStorageController(), vplexVolume.getId(), vplexVolume.getPool(), cosCapabilities);
+                    vplexVolume.getStorageController(), vplexVolume.getId(), vplexVolume.getPool(), vpoolCapabilities);
             descriptors.add(desc);
 
             // Now send the command to the controller.
@@ -1442,8 +1497,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE,
                         vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
                 List<VolumeDescriptor> descriptors = createChangeVirtualPoolDescriptors(storageSystem, volume, vpool,
-                        taskId, null, null,
-                        operationsWrapper, true);
+                        taskId, null, operationsWrapper, true);
 
                 // Now we get the Orchestration controller and use it to change the virtual pool of the volumes.
                 orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
@@ -1506,7 +1560,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
                     for (Volume volume : volumesNotInRG) {
                         StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-                        descriptors.addAll(createChangeVirtualPoolDescriptors(vplexStorageSystem, volume, vpool, taskId, null, null,
+                        descriptors.addAll(createChangeVirtualPoolDescriptors(vplexStorageSystem, volume, vpool, taskId, null,
                                 operationsWrapper, true));
                     }
                    
@@ -1606,7 +1660,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
             for (Volume volume : volumesInRGRequest) {
                 descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
-                        volume, vpool, taskId, null, null, controllerOperationValues, true));
+                        volume, vpool, taskId, null, controllerOperationValues, true));
             }
             
             // Create a task object associated with the CG
@@ -1722,7 +1776,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     protected List<VolumeDescriptor> createChangeVirtualPoolDescriptors(StorageSystem vplexSystem, Volume volume,
             VirtualPool newVpool, String taskId, List<Recommendation> recommendations,
-            VirtualPoolCapabilityValuesWrapper capabilities,
             ControllerOperationValuesWrapper operationsWrapper, boolean allowHighAvailabilityMigrations) throws InternalException {
         // Get the varray and current vpool for the virtual volume.
         URI volumeVarrayURI = volume.getVirtualArray();
@@ -1773,7 +1826,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             Volume migSrcVolume = getAssociatedVolumeInVArray(volume, volumeVarrayURI);
             descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem, volume,
                     migSrcVolume, volumeVarray, newVpool, getVolumeCapacity(migSrcVolume != null ? migSrcVolume : volume),
-                    taskId, recommendations, false, capabilities));
+                    taskId, recommendations, false));
         }
 
         if (allowHighAvailabilityMigrations) {
@@ -1789,7 +1842,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     Volume migSrcVolume = getAssociatedVolumeInVArray(volume, haVarrayURI);
                     descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem, volume,
                             migSrcVolume, haVarray, newHaVpool, getVolumeCapacity(migSrcVolume != null ? migSrcVolume : volume),
-                            taskId, recommendations, true, capabilities));
+                            taskId, recommendations, true));
                 }
             }
         }
@@ -1850,6 +1903,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI sourceVolumeURI = null;
         Project targetProject = null;
         String targetLabel = null;
+        URI performanceParamsURI = null;
+        boolean isHA = !virtualVolume.getVirtualArray().equals(varray.getId());
         if (sourceVolume != null) {
             // Since we know the source volume, this is not an ingested
             // VPLEX volume that is being migrated. Ideally we would just
@@ -1880,6 +1935,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             } else {
                 targetLabel = targetLabel.substring(0, targetLabel.length() - 1);
             }
+            
+            // Set the URI of the performance parameters for the migration source.
+            performanceParamsURI = sourceVolume.getPerformanceParams();            
         } else {
             // The VPLEX volume must be ingested and now the backend
             // volume(s) are being migrated. We have no idea what the
@@ -1903,16 +1961,28 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         Set<URI> requestedVPlexSystems = new HashSet<URI>();
         requestedVPlexSystems.add(vplexSystem.getId());
-        VirtualPoolCapabilityValuesWrapper cosWrapper = new VirtualPoolCapabilityValuesWrapper();
-        cosWrapper.put(VirtualPoolCapabilityValuesWrapper.SIZE, capacity);
-        cosWrapper.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+
+        // Make sure the capabilities reflect the new vpool and performance parameters of the
+        // source volume of the Migration.
+        VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper();
+        vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, capacity);
+        vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         if (cgURI != null) {
-            cosWrapper.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, cgURI);
+            vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, cgURI);
         }
-        // TBD Heg Migration
+        Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
+        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = new HashMap<>();
+        Map<VolumeTopologyRole, URI> performanceParams = new HashMap<>();
+        VolumeTopologyRole role = isHA ? VolumeTopologyRole.HA : VolumeTopologyRole.PRIMARY;
+        performanceParams.put(role, performanceParamsURI);
+        sourceParamsMap.put(varray.getId(), performanceParams);
+        performanceParamsMap.put(VolumeTopologySite.SOURCE, sourceParamsMap);
+        vpoolCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                vpool, performanceParams, role, vpoolCapabilities, _dbClient);
+        
         List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(varray, requestedVPlexSystems,
-                null, vpool, new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), false, null, null,
-                cosWrapper, targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
+                null, vpool, performanceParamsMap, false, null, null, vpoolCapabilities, targetProject,
+                VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
         }
@@ -1922,10 +1992,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // data will be migrated.
         URI targetStorageSystem = recommendations.get(0).getSourceStorageSystem();
         URI targetStoragePool = recommendations.get(0).getSourceStoragePool();
-        Volume targetVolume = prepareVolumeForRequest(capacity,
-                targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
-                targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
-                taskId, _dbClient);
+        Volume targetVolume = prepareVolumeForRequest(capacity, targetProject, varray, vpool, 
+                performanceParamsURI, vpoolCapabilities, targetStorageSystem, targetStoragePool,
+                targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
         if (cgURI != null) {
             targetVolume.setConsistencyGroup(cgURI);
         }
@@ -1957,7 +2026,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param vplexSystem A reference to the Vplex storage system
      * @param virtualVolume A reference to the virtual volume.
      * @param sourceVolume A reference to the backend volume to be migrated.
-     * @param nh A reference to the varray for the backend volume.
+     * @param varray A reference to the varray for the backend volume.
      * @param vpool A reference to the VirtualPool for the new volume.
      * @param capacity The capacity for the migration target.
      * @param taskId The task identifier.
@@ -1968,8 +2037,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     private List<VolumeDescriptor> createBackendVolumeMigrationDescriptors(StorageSystem vplexSystem,
             Volume virtualVolume, Volume sourceVolume, VirtualArray varray, VirtualPool vpool,
-            Long capacity, String taskId, List<Recommendation> recommendations, boolean isHA,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            Long capacity, String taskId, List<Recommendation> recommendations, boolean isHA) {
 
         // If we know the backend source volume, the new backend volume
         // will have the same label and project. Otherwise, the volume
@@ -1980,6 +2048,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI sourceVolumeURI = null;
         Project targetProject = null;
         String targetLabel = null;
+        URI performanceParamsURI = null;
         if (sourceVolume != null) {
             // Since we know the source volume, this is not an ingested
             // VPLEX volume that is being migrated. Ideally we would just
@@ -2010,6 +2079,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             } else {
                 targetLabel = targetLabel.substring(0, targetLabel.length() - 1);
             }
+            
+            // Set the URI of the performance parameters for the migration source.
+            performanceParamsURI = sourceVolume.getPerformanceParams();
         } else {
             targetProject = getVplexProject(vplexSystem, _dbClient, _tenantsService);
             targetLabel = virtualVolume.getLabel();
@@ -2024,33 +2096,36 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Set<URI> requestedVPlexSystems = new HashSet<URI>();
         requestedVPlexSystems.add(vplexSystem.getId());
 
-        URI cgURI = null;
-        // Check to see if the VirtualPoolCapabilityValuesWrapper have been passed in, if not, create a new one.
-        if (capabilities != null) {
-            // The consistency group or null when not specified.
-            final BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null : _dbClient
-                    .queryObject(BlockConsistencyGroup.class, capabilities.getBlockConsistencyGroup());
-
-            // If the consistency group is created but does not specify the LOCAL
-            // type, the CG must be a CG created prior to 2.2 or an ingested CG. In
-            // this case, we don't want a volume creation to result in backend CGs
-            if ((consistencyGroup != null) && ((!consistencyGroup.created()) ||
-                    (consistencyGroup.getTypes().contains(Types.LOCAL.toString())))) {
-                cgURI = consistencyGroup.getId();
-            }
-        } else {
-            capabilities = new VirtualPoolCapabilityValuesWrapper();
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, capacity);
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-        }
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, capacity);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        
+        // Make sure the capabilities reflect the new vpool and performance parameters of the
+        // source volume of the Migration. We are migrating to a new vpool, but not a new
+        // performance parameters and the capabilities must reflect these when placing and 
+        // preparing the volume. Note that the role passed here is really irrelevant since we
+        // are setting up the map.
+        // TBD Heg - This is another place where it would seem that maybe we need to set pre-allocation size
+        // based on allocated capacity of the source volume. I saw this was done for full copy, but not really
+        // elsewhere. Further, after placing the volume the value is reset in the capabilities to be based on 
+        // the thin volume pre-allocation percentage so that the value in the prepare volume reflects the 
+        // pre-allocation percentage. Need to determine why that was done and if it needs to be carried over 
+        // everywhere you placing a volume based on the size of some other "source" volume. 
+        Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
+        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = new HashMap<>();
+        Map<VolumeTopologyRole, URI> performanceParams = new HashMap<>();
+        VolumeTopologyRole role = isHA ? VolumeTopologyRole.HA : VolumeTopologyRole.PRIMARY;
+        performanceParams.put(role, performanceParamsURI);
+        sourceParamsMap.put(varray.getId(), performanceParams);
+        performanceParamsMap.put(VolumeTopologySite.SOURCE, sourceParamsMap);
+        capabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                vpool, performanceParams, role, capabilities, _dbClient);
 
         boolean premadeRecs = false;
-
-        // TBD Heg Migration
         if (recommendations == null || recommendations.isEmpty()) {
             recommendations = getBlockScheduler().scheduleStorage(varray, requestedVPlexSystems, null, vpool,
-                    new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), false, null, null,
-                    capabilities, targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
+                    performanceParamsMap, false, null, null, capabilities, targetProject, VpoolUse.ROOT,
+                    new HashMap<VpoolUse, List<Recommendation>>());
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
             }
@@ -2067,17 +2142,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // data will be migrated.
         URI targetStorageSystem = recommendations.get(recIndex).getSourceStorageSystem();
         URI targetStoragePool = recommendations.get(recIndex).getSourceStoragePool();
-        Volume targetVolume = prepareVolumeForRequest(capacity,
-                targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
+        Volume targetVolume = prepareVolumeForRequest(capacity, targetProject, varray, vpool, 
+                performanceParamsURI, capabilities,targetStorageSystem, targetStoragePool,
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
                 taskId, _dbClient);
 
         // If the cgURI is null, try and get it from the source volume.
-        if (cgURI == null) {
-            if ((sourceVolume != null) && (!NullColumnValueGetter.isNullURI(sourceVolume.getConsistencyGroup()))) {
-                cgURI = sourceVolume.getConsistencyGroup();
-                targetVolume.setConsistencyGroup(cgURI);
-            }
+        URI cgURI = null;
+        if ((sourceVolume != null) && (!NullColumnValueGetter.isNullURI(sourceVolume.getConsistencyGroup()))) {
+            cgURI = sourceVolume.getConsistencyGroup();
+            targetVolume.setConsistencyGroup(cgURI);
         }
 
         if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getReplicationGroupInstance())) {
@@ -2204,38 +2278,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         dbClient.createObject(volume);
 
         return volume;
-    }
-
-
-    /**
-     * Prepare a new Bourne volume.
-     *
-     * TODO: Use existing function (prepareVolume) when VirtualPool capabilities change
-     * completed by Stalin. Just pass size instead of getting from VolumeCreate
-     * parameter.
-     * 
-     * TBD Heg - Need to handle for other callers beside full copy.
-     * Migrations and vpool changes.
-     *
-     * @param size The volume size.
-     * @param project A reference to the volume's Project.
-     * @param neighborhood A reference to the volume's varray.
-     * @param vpool A reference to the volume's VirtualPool.
-     * @param storageSystemURI The URI of the volume's storage system.
-     * @param storagePoolURI The URI of the volume's storage pool.
-     * @param label The volume label.
-     * @param opType The operation type.
-     * @param token The task id for volume creation.
-     * @param dbClient A reference to a database client.
-     *
-     * @return A reference to the new volume.
-     */
-    public static Volume prepareVolumeForRequest(Long size, Project project,
-            VirtualArray neighborhood, VirtualPool vpool, URI storageSystemURI,
-            URI storagePoolURI, String label, ResourceOperationTypeEnum opType,
-            String token, DbClient dbClient) {
-        return prepareVolumeForRequest(size, project, neighborhood, vpool, null, null, 
-                storagePoolURI, storagePoolURI, label, opType, token, dbClient); 
     }
 
     /**
@@ -2578,7 +2620,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         assocVolume.getVirtualPool());
                 descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem,
                         vplexVolume, assocVolume, newVarray, assocVolumeVPool,
-                        getVolumeCapacity(assocVolume), taskId, null, false, null));
+                        getVolumeCapacity(assocVolume), taskId, null, false));
             }
         }
 

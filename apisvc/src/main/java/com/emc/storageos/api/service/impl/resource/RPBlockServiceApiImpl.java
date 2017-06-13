@@ -4190,7 +4190,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, migrateVolume.getStorageController());
                 migrateVolumeDescriptors.addAll(vplexBlockServiceApiImpl
                         .createChangeVirtualPoolDescriptors(vplexStorageSystem, migrateVolume, migrateToVpool, taskId,
-                                null, null, null, allowHighAvailabilityMigrations));
+                                null, null, allowHighAvailabilityMigrations));
             }            
 
             // Step 5

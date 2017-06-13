@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.BlockMigrationMapper;
 import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
+import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -163,9 +164,9 @@ public class MigrationService extends TaskResourceService {
                 migrateParam.getTgtStorageSystem());
 
         // Get the VirtualPool for the migration target.
-        VirtualPool migrationTgtCos = getVirtualPoolForMigrationTarget(migrateParam.getVirtualPool(),
+        VirtualPool migrationTgtVpool = getVirtualPoolForMigrationTarget(migrateParam.getVirtualPool(),
                 vplexVolume, migrationSrc);
-        s_logger.debug("Migration target VirtualPool is {}", migrationTgtCos.getId());
+        s_logger.debug("Migration target VirtualPool is {}", migrationTgtVpool.getId());
 
         // Get the VPlex storage system for the virtual volume.
         URI vplexSystemURI = vplexVolume.getStorageController();
@@ -175,16 +176,40 @@ public class MigrationService extends TaskResourceService {
         // Get a placement recommendation on the requested target storage
         // system connected to the VPlex storage system of the VPlex volume.
         VPlexScheduler vplexScheduler = _vplexBlockServiceApi.getBlockScheduler();
-        VirtualPoolCapabilityValuesWrapper cosWrapper = new VirtualPoolCapabilityValuesWrapper();
-        cosWrapper.put(VirtualPoolCapabilityValuesWrapper.SIZE, migrationSrc.getCapacity());
-        cosWrapper.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-        List<Recommendation> recommendations = vplexScheduler.scheduleStorage(
-                migrationTargetVarray, requestedVPlexSystems, migrateParam.getTgtStorageSystem(), migrationTgtCos,
-                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), false, null, null, cosWrapper,
-                migrationTgtProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
+        VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper();
+        vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, migrationSrc.getCapacity());
+        vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        
+        // Make sure the capabilities reflect the new vpool and performance parameters of the
+        // source volume of the Migration. We are migrating to a new vpool, but not a new
+        // performance parameters and the capabilities must reflect these when placing and 
+        // preparing the volume. Note that the role passed here is really irrelevant since we
+        // are setting up the map.
+        // TBD Heg - This is another place where it would seem that maybe we need to set pre-allocation size
+        // based on allocated capacity of the source volume. I saw this was done for full copy, but not really
+        // elsewhere. Further, after placing the volume the value is reset in the capabilities to be based on 
+        // the thin volume pre-allocation percentage so that the value in the prepare volume reflects the 
+        // pre-allocation percentage. Need to determine why that was done and if it needs to be carried over 
+        // everywhere you placing a volume based on the size of some other "source" volume. 
+        boolean isHA = !vplexVolume.getVirtualArray().equals(migrationTargetVarray.getId());
+        URI performanceParamsURI = migrationSrc.getPerformanceParams();
+        Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
+        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = new HashMap<>();
+        Map<VolumeTopologyRole, URI> performanceParams = new HashMap<>();
+        VolumeTopologyRole role = isHA ? VolumeTopologyRole.HA : VolumeTopologyRole.PRIMARY;
+        performanceParams.put(role, performanceParamsURI);
+        sourceParamsMap.put(migrationTargetVarray.getId(), performanceParams);
+        performanceParamsMap.put(VolumeTopologySite.SOURCE, sourceParamsMap);
+        vpoolCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                migrationTgtVpool, performanceParams, role, vpoolCapabilities, _dbClient);        
+        
+        List<Recommendation> recommendations = vplexScheduler.scheduleStorage(migrationTargetVarray, 
+                requestedVPlexSystems, migrateParam.getTgtStorageSystem(), migrationTgtVpool,
+                performanceParamsMap, false, null, null, vpoolCapabilities, migrationTgtProject,
+                VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
 
         if (recommendations.isEmpty()) {
-            throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtCos.getLabel(), migrationTargetVarray.getLabel(),
+            throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtVpool.getLabel(), migrationTargetVarray.getLabel(),
                     vplexVolume.getId());
         }
         s_logger.debug("Got recommendation for migration target");
@@ -201,8 +226,8 @@ public class MigrationService extends TaskResourceService {
         Map<URI, URI> poolTgtMap = new HashMap<URI, URI>();
         Long size = _vplexBlockServiceApi.getVolumeCapacity(migrationSrc);
         Volume migrationTgt = VPlexBlockServiceApiImpl.prepareVolumeForRequest(
-                size, migrationTgtProject, migrationTargetVarray,
-                migrationTgtCos, recommendedSystem, recommendedPool,
+                size, migrationTgtProject, migrationTargetVarray, migrationTgtVpool, 
+                performanceParamsURI, vpoolCapabilities, recommendedSystem, recommendedPool,
                 migrationSrc.getLabel(), ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
                 taskId, _dbClient);
         URI migrationTgtURI = migrationTgt.getId();
@@ -245,9 +270,9 @@ public class MigrationService extends TaskResourceService {
             _dbClient.updateTaskOpStatus(Volume.class, task.getResource()
                     .getId(), taskId, opStatus);
             migrationTgt.setInactive(true);
-            _dbClient.persistObject(migrationTgt);
+            _dbClient.updateObject(migrationTgt);
             migration.setInactive(true);
-            _dbClient.persistObject(migration);
+            _dbClient.updateObject(migration);
 
             throw e;
         }

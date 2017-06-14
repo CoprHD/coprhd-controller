@@ -9,9 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.aix.SecureShellSupport;
 import com.google.common.collect.Lists;
 import com.iwave.ext.command.Command;
 import com.iwave.ext.command.CommandOutput;
+import com.iwave.ext.command.HostRescanAdapter;
 import com.iwave.ext.linux.command.AddToFSTabCommand;
 import com.iwave.ext.linux.command.FindMaxLunIdCommand;
 import com.iwave.ext.linux.command.FindMountPointCommand;
@@ -27,7 +29,7 @@ import com.iwave.ext.linux.command.ListWWNsCommand;
 import com.iwave.ext.linux.command.MkdirCommand;
 import com.iwave.ext.linux.command.Mke2fsCommand;
 import com.iwave.ext.linux.command.MountCommand;
-import com.iwave.ext.linux.command.RescanDevicesCommand;
+import com.iwave.ext.linux.command.RescanHBAsCommand;
 import com.iwave.ext.linux.command.fdisk.FdiskListCommand;
 import com.iwave.ext.linux.command.iscsi.ListIQNsCommand;
 import com.iwave.ext.linux.command.rbd.MapRBDCommand;
@@ -43,7 +45,7 @@ import com.iwave.utility.ssh.SSHCommandExecutor;
  * 
  * @author Chris Dail
  */
-public class LinuxSystemCLI {
+public class LinuxSystemCLI implements HostRescanAdapter {
     /** The SSH host address. */
     private String host;
     /** The SSH port (defaults to 22). */
@@ -111,10 +113,15 @@ public class LinuxSystemCLI {
         this.hostId = hostId;
     }
 
-    public void executeCommand(Command command) {
+    public void executeCommand(Command command, int timeout) {
         SSHCommandExecutor executor = new SSHCommandExecutor(host, port, username, password);
+        executor.setCommandTimeout(timeout);
         command.setCommandExecutor(executor);
         command.execute();
+    }
+
+    public void executeCommand(Command command) {
+        executeCommand(command, SecureShellSupport.NO_TIMEOUT);
     }
 
     public Set<String> getAllDiskDevices() {
@@ -213,9 +220,14 @@ public class LinuxSystemCLI {
         return command.getResults();
     }
 
-    public void rescanDevices() {
-        RescanDevicesCommand command = new RescanDevicesCommand();
-        executeCommand(command);
+    @Override
+    public void rescan() throws Exception {
+        ListHBAInfoCommand hbaCommand = new ListHBAInfoCommand();
+        executeCommand(hbaCommand, SecureShellSupport.SHORT_TIMEOUT);
+
+        RescanHBAsCommand command = new RescanHBAsCommand();
+        command.setHbas(hbaCommand.getResults());
+        executeCommand(command, SecureShellSupport.SHORT_TIMEOUT);
     }
 
     public Map<String, Integer> getDeviceToLunMapping(String mpathName) {

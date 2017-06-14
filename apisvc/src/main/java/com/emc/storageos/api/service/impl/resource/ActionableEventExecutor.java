@@ -170,6 +170,12 @@ public class ActionableEventExecutor {
                         || ComputeSystemHelper.isClusterInExport(_dbClient, clusterId))) {
             // Clustered host being moved to another cluster
             computeController.addHostsToExport(eventId, Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
+        } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+                && !NullColumnValueGetter.isNullURI(clusterId)
+                && oldClusterURI.equals(clusterId)
+                && ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)) {
+            // Cluster hasn't changed but we should add host to the shared exports in case they weren't added to all of them
+            computeController.addHostsToExport(eventId, Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
         } else {
             ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
             ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
@@ -497,12 +503,12 @@ public class ActionableEventExecutor {
             URI blockURI = details.getBlockURI();
             if (gainAccess) {
                 result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostGainAccess",
-                        (projectName == null ? "N/A" : projectName),
-                        (volumeName == null ? "N/A" : volumeName), blockURI));
+                        (volumeName == null ? "N/A" : volumeName), (projectName == null ? "N/A" : projectName),
+                        blockURI));
             } else {
                 result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostLoseAccess",
-                        (projectName == null ? "N/A" : projectName),
-                        (volumeName == null ? "N/A" : volumeName), blockURI));
+                        (volumeName == null ? "N/A" : volumeName), (projectName == null ? "N/A" : projectName),
+                        blockURI));
             }
         }
         return result;
@@ -622,8 +628,16 @@ public class ActionableEventExecutor {
      */
     public List<String> hostClusterChangeDeclineDetails(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
         Host host = _dbClient.queryObject(Host.class, hostId);
-        return Lists
-                .newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDeclineDetails", host.getLabel()));
+        if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+            return Lists
+                    .newArrayList(
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDeclineDetails", host.getLabel()));
+        } else {
+            return Lists
+                    .newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostNotInClusterChangeDeclineDetails",
+                            host.getLabel()));
+
+        }
     }
 
     /**

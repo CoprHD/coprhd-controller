@@ -31,6 +31,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 
 public class VPlexBackEndOrchestratorUtil {
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackEndOrchestratorUtil.class);
@@ -39,33 +40,45 @@ public class VPlexBackEndOrchestratorUtil {
 
     public static List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
             List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI,
-            boolean simulation, BlockStorageScheduler blockScheduler, DbClient dbClient) {
+            boolean simulation, BlockStorageScheduler blockScheduler, DbClient dbClient,
+            Map<String, Integer> switchToPortNumber, PortAllocationContext context) {
         Collections.shuffle(candidatePorts);
         if (simulation) {
-            StoragePortsAllocator.PortAllocationContext context = StoragePortsAllocator
-                    .getPortAllocationContext(net, "arrayX", allocator.getContext());
-            for (StoragePort port : candidatePorts) {
-                context.addPort(port, null, null, null, null);
+            if (context == null) {
+                context = StoragePortsAllocator.getPortAllocationContext(net, "arrayX", allocator.getContext());
+                for (StoragePort port : candidatePorts) {
+                    context.addPort(port, null, null, null, null);
+                }
             }
+            
             List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested,
-                    context, false, null, false);
+                    context, false, null, false, switchToPortNumber);
             allocator.setContext(context);
             return portsAllocated;
         } else {
             Map<StoragePort, Long> sportMap = blockScheduler
                     .computeStoragePortUsage(candidatePorts);
             List<StoragePort> portsAllocated = allocator.selectStoragePorts(dbClient, sportMap,
-                    net, varrayURI, portsRequested, null, false);
+                    net, varrayURI, portsRequested, null, false, switchToPortNumber);
             return portsAllocated;
         }
     }
 
     public static StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap,
-            StoragePortsAssigner assigner) {
+            StoragePortsAssigner assigner, Map<URI, String> initiatorSwitchMap,
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap) {
         StringSetMap zoningMap = new StringSetMap();
         // Set up a map to track port usage so that we can use all ports more or less equally.
         Map<StoragePort, Integer> portUsage = new HashMap<StoragePort, Integer>();
+        
+        // check if switch affinity is on
+        boolean isSwitchAffinity = false;
+        if (initiatorSwitchMap != null && !initiatorSwitchMap.isEmpty() &&
+                switchStoragePortsMap != null && !switchStoragePortsMap.isEmpty()) {
+            isSwitchAffinity = true;
+        }
         // Iterate through each of the directors, matching each of its initiators
         // with one port. This will ensure not to violate four paths per director.
         for (String director : initiatorGroup.keySet()) {
@@ -80,12 +93,30 @@ public class VPlexBackEndOrchestratorUtil {
                     }
 
                     // find a port for the initiator
+                    List<StoragePort> assignablePorts = portGroup.get(networkURI).iterator().next();
+                    if (isSwitchAffinity) {
+                        // find the ports with the same switch as the initiator
+                        String switchName = initiatorSwitchMap.get(initiator.getId());
+                        if (!switchName.equals(NullColumnValueGetter.getNullStr())) {
+                            Map<String, List<StoragePort>>switchMap = switchStoragePortsMap.get(networkURI);
+                            if (switchMap != null) {
+                                List<StoragePort> switchPorts = switchMap.get(switchName);
+                                if (switchPorts != null && !switchPorts.isEmpty()) {
+                                    _log.info(String.format("Found the same switch ports, switch is %s", switchName));
+                                    assignablePorts = switchPorts;
+                                } else {
+                                    _log.info(String.format("Switch affinity is not honored, because no storage port from the switch %s for the initiator %s", 
+                                            switchName, initiator.getInitiatorPort()));
+                                }
+                            }
+                        }
+                    }
                     StoragePort storagePort = assignPortToInitiator(assigner,
-                            portGroup.get(networkURI).iterator().next(), net, initiator, portUsage, null);
+                            assignablePorts, net, initiator, portUsage, null);
                     if (storagePort != null) {
-                        _log.info(String.format("%s %s   %s -> %s  %s", director, net.getLabel(),
-                                initiator.getInitiatorPort(), storagePort.getPortNetworkId(),
-                                storagePort.getPortName()));
+                        _log.info(String.format("%s %s   %s %s -> %s  %s %s", director, net.getLabel(),
+                                initiator.getInitiatorPort(), initiatorSwitchMap.get(initiator.getId()),storagePort.getPortNetworkId(),
+                                storagePort.getPortName(), portSwitchMap.get(storagePort.getId())));
                         StringSet ports = new StringSet();
                         ports.add(storagePort.getId().toString());
                         zoningMap.put(initiator.getId().toString(), ports);
@@ -98,20 +129,27 @@ public class VPlexBackEndOrchestratorUtil {
         }
         return zoningMap;
     }
-    
+
     /**
      * Validates that an ExportMask can be used.
      * There are comments for each rule that is validated below.
      * 
-     * @param map of Network to Vplex StoragePort list.
-     * @param mask
-     * @param invalidMaskscontains
-     * @param returns true if passed validation
+     * @param varrayURI the varray URI
+     * @param initiatorPortMap map of Network to Vplex StoragePort list
+     * @param mask the ExportMask to validate
+     * @param invalidMasks a set of known invalidMask URIs
+     * @param directorToInitiatorIds a map of directors to initiator port strings
+     * @param idToInitiatorMap a map of initiator ports to Initiator objects
+     * @param dbClient a reference to the database client
+     * @param coordinator the system coordinator client
+     * @param portWwnToClusterMap a map of port wwns to VPLEX cluster
+     * @param errorMessages an error message builder
+     * @return true if the given ExportMask can be used
      */
     public static boolean validateExportMask(URI varrayURI,
             Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
-            DbClient dbClient, CoordinatorClient coordinator, Map<String, String> portWwnToClusterMap) {
+            DbClient dbClient, CoordinatorClient coordinator, Map<String, String> portWwnToClusterMap, StringBuilder errorMessages) {
 
         boolean passed = true;
         Integer directorMinPortCount = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
@@ -134,18 +172,26 @@ public class VPlexBackEndOrchestratorUtil {
             }
             if (portsInDirector < directorMinPortCount) {
                 if (mask.getCreatedBySystem()) {    // ViPR created
-                    _log.info(String.format(
-                            "ExportMask %s disqualified because it only has %d back-end ports from %s (requires two)",
-                            mask.getMaskName(), portsInDirector, director));
+                    String msg = String.format(
+                            "ExportMask %s disqualified because it only has %d back-end ports from %s (requires two). \n",
+                            mask.getMaskName(), portsInDirector, director);
+                    _log.info(msg);
+                    if (errorMessages != null) {
+                        errorMessages.append(msg);
+                    }
                     if(null!=invalidMasks) {
                         invalidMasks.add(mask.getId());
                     }
                     
                     passed = false;
                 } else {    // non ViPR created
-                    _log.info(String.format(
-                            "Warning: ExportMask %s only has %d back-end ports from %s (should have at least two)",
-                            mask.getMaskName(), portsInDirector, director));
+                    String msg = String.format(
+                            "ExportMask %s only has %d back-end ports from %s (should have at least two). \n",
+                            mask.getMaskName(), portsInDirector, director);
+                    _log.info(msg);
+                    if (errorMessages != null) {
+                        errorMessages.append(msg);
+                    }
                 }
             }
         }
@@ -169,13 +215,21 @@ public class VPlexBackEndOrchestratorUtil {
         }
 
         if (usablePorts.size() < 2) {
-            _log.info(String.format("ExportMask %s disqualified because it has less than two usable target ports;"
-                    + " usable ports: %s", mask.getMaskName(), usablePorts.toString()));
+            String msg = String.format("ExportMask %s disqualified because it has less than two usable target ports;"
+                    + " usable ports: %s \n", mask.getMaskName(), usablePorts.toString());
+            _log.warn(msg);
+            if (errorMessages != null) {
+                errorMessages.append(msg);
+            }
             passed = false;
         }
         else if (usablePorts.size() < 4) {  // This is a warning
-            _log.info(String.format("Warning: ExportMask %s has only %d usable target ports (best practice is at least four);"
-                    + " usable ports: %s", mask.getMaskName(), usablePorts.size(), usablePorts.toString()));
+            String msg = String.format("Warning: ExportMask %s has only %d usable target ports (best practice is at least four);"
+                    + " usable ports: %s \n", mask.getMaskName(), usablePorts.size(), usablePorts.toString());
+            _log.warn(msg);
+            if (errorMessages != null) {
+                errorMessages.append(msg);
+            }
         }
 
         // Rule 3. No mixing of WWNs from both VPLEX clusters.
@@ -187,15 +241,23 @@ public class VPlexBackEndOrchestratorUtil {
             }
         }
         if (clusters.size() > 1) {
-            _log.info(String.format("ExportMask %s disqualified because it contains wwns from both Vplex clusters",
-                    mask.getMaskName()));
+            String msg = String.format("ExportMask %s disqualified because it contains wwns from both VPLEX clusters. \n",
+                    mask.getMaskName());
+            _log.warn(msg);
+            if (errorMessages != null) {
+                errorMessages.append(msg);
+            }
             passed = false;
         }
 
         // Rule 4. The ExportMask name should not have NO_VIPR in it.
         if (mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
-            _log.info(String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
-                    mask.getMaskName(), ExportUtils.NO_VIPR));
+            String msg = String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it. \n",
+                    mask.getMaskName(), ExportUtils.NO_VIPR);
+            _log.warn(msg);
+            if (errorMessages != null) {
+                errorMessages.append(msg);
+            }
             passed = false;
         }
         
@@ -221,8 +283,12 @@ public class VPlexBackEndOrchestratorUtil {
             if (virtualArray != null) {
                 virtualArrayName = virtualArray.getLabel();
             }
-            _log.warn(String.format("Validation of ExportMask %s failed; the mask has ports which are not in varray %s;\n" +
-                    " \tPorts not in varray: %s", mask.getMaskName(), virtualArrayName, portsNotInVarray));
+            String msg = String.format("Validation of ExportMask %s failed; the mask has ports which are not in varray %s;\n" +
+                    " \tPorts not in varray: %s \n", mask.getMaskName(), virtualArrayName, portsNotInVarray);
+            _log.warn(msg);
+            if (errorMessages != null) {
+                errorMessages.append(msg);
+            }
             passed = false;
         }
 
@@ -234,7 +300,7 @@ public class VPlexBackEndOrchestratorUtil {
             _log.info(String.format("Validation of ExportMask %s passed; it has %d volumes",
                     mask.getMaskName(), volumeCount));
         } else {
-            if(null!=invalidMasks) {
+            if (null != invalidMasks) {
                 invalidMasks.add(mask.getId());
             }
         }

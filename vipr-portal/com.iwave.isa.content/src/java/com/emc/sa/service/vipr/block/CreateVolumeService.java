@@ -26,6 +26,10 @@ public class CreateVolumeService extends ViPRService {
     
     protected List<CreateBlockVolumeHelper> createBlockVolumeHelpers = Lists.newArrayList();
 
+    @Override
+    public void precheck() {
+        BlockStorageUtils.checkVolumeLimit(getClient(), volumeParams.project);
+    }
     
     @Override
     public void init() throws Exception {

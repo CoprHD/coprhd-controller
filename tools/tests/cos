@@ -63,17 +63,17 @@ def cos_create(args):
    	 autotierPolicy = ' '.join(args.auto_tiering_policy_name)
     
     cos = bourne.cos_create(args.type, args.name, args.description, args.useMatchedPools,
-                            args.protocols, args.numpaths, args.minpaths, args.pathsperinitiator, args.systemtype,
-                            args.highavailability, haNhUri,
+                            args.protocols, args.numpaths, args.minpaths, args.pathsperinitiator, 
+                            args.systemtype, args.highavailability, haNhUri,
                             haCosUri, args.activeProtectionAtHASite, args.metropoint, file_cos_uri, args.provisionType,
                             mirrorCosUri, args.neighborhoods, args.expandable,
                             args.sourceJournalSize, args.journalVarray, args.journalVpool, 
 			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
                             args.protectionCoS, args.multiVolumeConsistency,
                             args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
-                            args.long_term_retention, args.system_type, args.srdf, args.auto_tiering_policy_name, 
+                            args.long_term_retention, args.drive_type, args.system_type, args.srdf, autotierPolicy,
                             args.host_io_limit_bandwidth, args.host_io_limit_iops, args.auto_cross_connect, args.placement_policy,
-                            args.compressionEnabled)
+                            args.compressionEnabled, args.schedule_snapshot, args.replication_support, args.filepolicy_at_project, args.filepolicy_at_fs)
     
     print cos
 
@@ -99,7 +99,7 @@ def cos_match(args):
                             args.sourceJournalSize, args.journalVarray, args.journalVpool, 
 			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
 			    args.protectionCoS, args.multiVolumeConsistency,
-                            args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
+                            args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage, args.drive_type,
                             args.system_type, args.srdf, args.compressionEnabled)
 
     
@@ -185,15 +185,24 @@ def cos_update_pools(args):
     # Filter the pool, so that only those array pools that match the CoS are in the
     # update list
     pools = []
-    for it in args.pools.split(','):
-        storagepool_uri = bourne.storagepool_query(it);
-        if (storagepool_uri in matched_pool_uris):
-            pooladd.append(storagepool_uri)
-        else:
-            raise Exception(str(it) + " pool is not in the matching pools list for the CoS.") 
+    if (args.add):
+        for it in args.add.split(','):
+            storagepool_uri = bourne.storagepool_query(it);
+            if (storagepool_uri in matched_pool_uris):
+                pooladd.append(storagepool_uri)
+            else:
+                raise Exception(str(it) + " pool is not in the matching pools list for the CoS.") 
+
+    if (args.rem):
+        for it in args.rem.split(','):
+            storagepool_uri = bourne.storagepool_query(it);
+            if (storagepool_uri in matched_pool_uris):
+                poolrem.append(storagepool_uri)
+            else:
+                raise Exception(str(it) + " pool is not in the matching pools list for the CoS.") 
 
     if (args.name):
-        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, None, None, None, None, None, None)
+        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, None, None, None, None, None, None, None)
     
 
 def cos_delete(args):
@@ -336,7 +345,7 @@ except:
 
 # cos <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | query | list | allow | errorhandling)')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | query | list | allow | errorhandling | update | update_pools)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # cos create label
@@ -352,7 +361,8 @@ create.add_argument('--minpaths',      help = 'Minimum number of paths created f
 create.add_argument('--pathsperinitiator',      help = 'Desired paths per initiator to be created for block Storage')
 create.add_argument('--file_cos',   help = 'file equivalent cos for object storage')
 create.add_argument('--highavailability',   help = 'high availability')
-create.add_argument('--system_type',   help = 'system type such as vmax or vnx')
+create.add_argument('--drive_type',   help = 'drive type such as vmax or vnx')
+create.add_argument('--system_type',   help = 'system type such as SATA or SSD')
 create.add_argument('--haNeighborhood', help = 'high availability neighborhood')
 create.add_argument('--haCos', help = 'high availability CoS')
 create.add_argument('--activeProtectionAtHASite', help = 'Use the haNeighborhood as the active RP protected site')
@@ -376,6 +386,7 @@ create.add_argument('--max_snapshots', help = 'Maximum number of native snapshot
 create.add_argument('--max_mirrors', help = 'Maximum number of native continuous copies.  -1=disabled, 0=infinite (default)')
 create.add_argument('--thin_volume_preallocation_percentage', help = 'Thin volume preallocation percentage.')
 create.add_argument('--long_term_retention', help = 'Virtual pool attribute to be set to true for archiving and backup')
+create.add_argument('--drive_type', help = 'Drive type')
 create.add_argument('--systemtype', help = 'System type')
 create.add_argument('--auto_tiering_policy_name', help = 'AutoTiering Policy Name can be specified, only if system_type is specified.', nargs='*') 
 create.add_argument('--host_io_limit_bandwidth', help = 'VMAX host io limit bandwidth in Mb/second')
@@ -383,6 +394,10 @@ create.add_argument('--host_io_limit_iops', help = 'VMAX host io limit IOPs')
 create.add_argument('--auto_cross_connect', help='Enable auto cross connect export')
 create.add_argument('--placement_policy', help='Resource placement policy')
 create.add_argument('--compressionEnabled', help='Enable compression on VMAX All Flash array')
+create.add_argument('--schedule_snapshot', help='Snapshot schedule')
+create.add_argument('--replication_support',help='replication supported')
+create.add_argument('--filepolicy_at_project', help='Apply filepolicy at project')
+create.add_argument('--filepolicy_at_fs',help='Apply filepolicy at fs')						   
 create.set_defaults(multiVolumeConsistency=False)
 create.set_defaults(max_snapshots=-1)
 create.set_defaults(max_mirrors=0)
@@ -396,6 +411,7 @@ match.add_argument('--protocols',     help = 'Storage protocols supported by thi
 match.add_argument('--numpaths',      help = 'number of paths for block storage: min,max,default')
 match.add_argument('--file_cos',   help = 'file equivalent cos for object storage')
 match.add_argument('--highavailability',   help = 'high availability')
+match.add_argument('--drive_type',   help = 'drive type such as SATA or SSD')
 match.add_argument('--system_type',   help = 'system type such as vmax or vnx')
 match.add_argument('--haNeighborhood', help = 'high availability neighborhood')
 match.add_argument('--haCos', help = 'high availability CoS')
@@ -444,7 +460,8 @@ update.add_argument('--compressionEnabled', help='Enable Compression on VMAX All
 update_pools = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 update_pools.add_argument('type',   help = 'type of cos, {file | block | object}, default=file', default='file')
 update_pools.add_argument('name',   help = 'name of cos to be deleted')
-update_pools.add_argument('pools',  help = 'Comma delimited list of storage pool URIs')
+update_pools.add_argument('--add',  help = 'Comma delimited list of storage pool URIs')
+update_pools.add_argument('--rem',  help = 'Comma delimited list of storage pool URIs')
 
 # cos delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

@@ -13,9 +13,11 @@ import java.net.URI;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.vmware.vim25.mo.Datastore;
 
 @Service("VMware-ExpandVmfsDatastore")
@@ -30,24 +32,43 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
     @Param(SIZE_IN_GB)
     protected Double sizeInGb;
 
-    private BlockObjectRestRep volume;
     private Datastore datastore;
 
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        volume = BlockStorageUtils.getVolume(volumeId);
+        BlockStorageUtils.getVolume(volumeId);
         acquireHostLock();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+
+        vmware.verifyVolumesBackingDatastore(host, hostId, datastore);
+
+        vmware.disconnect();
     }
 
     @Override
     public void execute() throws Exception {
-        BlockStorageUtils.expandVolume(volumeId, sizeInGb);
+    	BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
+    	
+    	// Skip the expand if the current volume capacity is larger than the requested expand size
+    	if (BlockStorageUtils.isVolumeExpanded(volume, sizeInGb)) {
+    		logWarn("expand.vmfs.datastore.skip", volumeId, BlockStorageUtils.getCapacity(volume));
+    	} else {
+    		BlockStorageUtils.expandVolume(volumeId, sizeInGb);
+    	}
+
+        connectAndInitializeHost();
+        datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         vmware.refreshStorage(host, cluster);
+        artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_VMWARE_EXPAND_DATASTORE);
         vmware.expandVmfsDatastore(host, cluster, hostId, volume, datastore);
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }
+    }
+
+    @Override
+    public boolean checkClusterConnectivity() {
+        return false;
     }
 }

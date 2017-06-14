@@ -29,10 +29,16 @@ public interface IsilonErrors {
     public ServiceError doExpandFSFailed(final URI id);
     
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError doReduceFSFailed(final URI id);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToUpdateFileSystem(final URI id);
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToExpandFileSystem();
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToReduceFileSystem();
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToCreateFileShare();
@@ -46,4 +52,17 @@ public interface IsilonErrors {
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unSupportedOperation(final String oprationName);
 
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unAssignPolicyFailed(final URI policyId);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToCreateSnapshotPolicy(final String storageSystem);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToCreateReplicationPolicy(final String storageSystem);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableUpdateQuotaDirectory(String msg);
+    
+    
 }

@@ -131,12 +131,14 @@ fi
 /etc/genconfig.d/ssh_auth_key
 /etc/genconfig.d/ssl
 /etc/genconfig.d/syslog
+/etc/genconfig.d/logretention
 /etc/genconfig.d/system
 /etc/genconfig.d/syssvc
 /etc/genconfig.d/vasa
 /etc/genconfig.d/ipsec
 /etc/genconfig.d/test
 /etc/genconfig.d/boot.manifest
+/etc/customservices/ansible_log.py
 /etc/gentmpl
 /etc/systool
 /etc/diagtool
@@ -173,6 +175,7 @@ fi
 %config /etc/nginx/locations.conf
 %config /etc/nginx/upstream.conf
 %config /etc/nginx/upstream-template.conf
+%config /etc/customservices/ansible_log.py
 /etc/nginx/api-error.conf
 /etc/nginx/portal-error.conf
 %attr(100,root,root) /etc/nginx/nginx.wrapper

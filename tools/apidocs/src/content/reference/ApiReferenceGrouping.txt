@@ -10,6 +10,7 @@ BlockSnapshotSessionService
 FileService
 FileSnapshotService
 FileQuotaDirectoryService
+FilePolicyService
 
 =Object Service
 BucketService
@@ -83,6 +84,7 @@ com.emc.sa.api.OrderService
 com.emc.sa.api.ScheduledEventService
 com.emc.sa.api.ServiceDescriptorService
 com.emc.sa.api.UserPreferenceService
+com.emc.sa.api.WFDirectoryService
 
 =UI Services (Deprecated)
 api.AssetOptionsApi.AssetOptionsService
@@ -105,6 +107,7 @@ com.emc.storageos.systemservices.impl.resource.PasswordService
 com.emc.storageos.systemservices.impl.resource.UpgradeService
 com.emc.storageos.systemservices.impl.resource.DbConsistencyService
 com.emc.storageos.systemservices.impl.resource.IPsecService
+com.emc.storageos.systemservices.impl.resource.StorageDriverService
 
 =Block Services For OpenStack
 com.emc.storageos.api.service.impl.resource.cinder.ExportService
@@ -130,6 +133,9 @@ MeteringService
 WorkflowService
 TaskService
 DisasterRecoveryService
+CustomServicesPrimitiveService
+CustomServicesWorkflowService
+StorageSystemDataCollectionService
 
 =API Differences
 Block Services

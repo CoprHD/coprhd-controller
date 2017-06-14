@@ -13,6 +13,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -35,6 +36,7 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
         createBlockVolumeHelper.precheck();
         acquireHostLock();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+        vmware.verifyVolumesBackingDatastore(host, hostId, datastore);
         vmware.disconnect();
     }
 
@@ -48,7 +50,13 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
 
         connectAndInitializeHost();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+        artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_VMWARE_EXTEND_DATASTORE);
         vmware.extendVmfsDatastore(host, cluster, hostId, volume, datastore);
         vmware.setMultipathPolicy(host, cluster, multipathPolicy, volume);
+    }
+
+    @Override
+    public boolean checkClusterConnectivity() {
+        return false;
     }
 }

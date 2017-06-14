@@ -2,19 +2,23 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
@@ -100,6 +104,16 @@ public interface FileServiceApi {
     public void expandFileShare(FileShare fileshare, Long newSize, String taskId)
             throws InternalException;
 
+    /**
+     * Reduction of file system quota, supported only on Isilon
+     *
+     * @param fileshare
+     * @param newSize
+     * @param taskId
+     * @throws InternalException
+     */
+    public void  reduceFileShareQuota(FileShare fileshare, Long newSize, String taskId)
+            throws InternalException;
     /**
      * Create Continuous Copies for existing source file system
      * 
@@ -273,4 +287,37 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws InternalException;
+
+    void assignFilePolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign,
+            String taskId);
+
+    void assignFilePolicyToProjects(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs, URI filePolicyToAssign,
+            String taskId);
+
+    void updateFileProtectionPolicy(URI policy, FilePolicyUpdateParam param, String taskId);
+
+    void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
+            List<URI> vpoolURIs, URI filePolicyToAssign, String taskId);
+
+    void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId);
+
+    /**
+     * 
+     * @param fs
+     * @param filePolicy
+     * @param project
+     * @param vpool
+     * @param varray
+     * @param taskList
+     * @param task
+     * @param recommendations
+     * @param vpoolCapabilities
+     * @return
+     * @throws InternalException
+     */
+    void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException;
 }

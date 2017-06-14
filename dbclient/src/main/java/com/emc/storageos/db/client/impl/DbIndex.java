@@ -4,25 +4,22 @@
  */
 package com.emc.storageos.db.client.impl;
 
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Column;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.emc.storageos.db.client.model.DataObject;
-
 import java.util.Map;
 import java.util.List;
 
-public abstract class DbIndex {
-    private static final Logger _log = LoggerFactory.getLogger(DbIndex.class);
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.Column;
+
+import com.emc.storageos.db.client.model.DataObject;
+
+public abstract class DbIndex <T extends CompositeIndexColumnName> {
 
     protected String fieldName;
-    protected ColumnFamily<String, IndexColumnName> indexCF;
+    protected ColumnFamily<String, T> indexCF;
 
     protected boolean indexByKey = false;
 
-    DbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
+    DbIndex(ColumnFamily<String, T> indexCF) {
         this.indexCF = indexCF;
     }
 
@@ -34,23 +31,22 @@ public abstract class DbIndex {
         this.indexByKey = indexByKey;
     }
 
-    ColumnFamily<String, IndexColumnName> getIndexCF() {
+    ColumnFamily<String, T> getIndexCF() {
         return indexCF;
     }
 
-    public void setIndexCF(ColumnFamily<String, IndexColumnName> cf) {
+    public void setIndexCF(ColumnFamily<String, T> cf) {
         indexCF = cf;
     }
 
     abstract boolean addColumn(String recordKey, CompositeColumnName column, Object value, String className,
-            RowMutator mutator, Integer ttl, DataObject obj);
+                               RowMutator mutator, Integer ttl, DataObject obj);
 
     abstract boolean removeColumn(String recordKey, Column<CompositeColumnName> column, String className,
-            RowMutator mutator, Map<String, List<Column<CompositeColumnName>>> fieldColumnMap);
+                                  RowMutator mutator, Map<String, List<Column<CompositeColumnName>>> fieldColumnMap);
 
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column, String className,
-            RowMutator mutator, Map<String, List<Column<CompositeColumnName>>> fieldColumnMap,
-            DataObject obj) {
+                         RowMutator mutator, Map<String, List<Column<CompositeColumnName>>> fieldColumnMap, DataObject obj) {
         return removeColumn(recordKey, column, className, mutator, fieldColumnMap);
     }
 

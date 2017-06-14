@@ -1,0 +1,27 @@
+//  JRE Rhino javascript based tool to generate cassandra tombstones. It calls vipr java client
+//  API.
+//
+//  It depends on jjs command in JRE only. Simply copy this scripts to any coprhd nodes and run
+//  it as the following
+//  
+//  Usage:
+//  jjs vcbulkapi.jjs -- <host ip> <project id>
+//
+//  Example usage:   
+// /usr/lib64/jvm/jre/bin/jjs -J-Djava.class.path="/opt/storageos/conf/:$(echo /opt/storageos/lib/*.jar | tr ' ' ':')" -J-Dlog4j.configuration=dbutils-log4j.properties -J-DbuildType=emc volbulkapi.jjs -- 10.247.97.81 urn:storageos:Project:3b9367bf-f68a-40b5-a496-289876cd57d4:global 
+
+
+host = arguments[0];
+projectId = arguments[1];
+
+client = new Packages.com.emc.vipr.client.ViPRCoreClient(host, true);
+client.withLogin("root", "ChangeMe");
+vols = client.blockVolumes().findByProject(new Packages.java.net.URI(projectId));
+for(var i = 0; i < vols.size(); i++) {
+   vol = vols.get(i);
+   print("Checking volume " + vol);
+   try {
+     print("   supportsSnapshotSessions: " + vol.getSupportsSnapshotSessions());
+   } catch(ex) {}
+}
+

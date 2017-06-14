@@ -29,6 +29,9 @@ public class BlockSnapshotSessionRelinkTargetsWorkflowCompleter extends BlockSna
     public static final String SNAPSHOT_SESSION_RELINK_TARGETS_SUCCESS_MSG = "Re-linked targets for Block Snapshot Session %s for source %s";
     public static final String SNAPSHOT_SESSION_RELINK_TARGETS_FAIL_MSG = "Failed to re-link targets for Block Snapshot Session %s for source %s";
 
+    // Flag indicates if the completer should update and record the status when it completes.
+    private Boolean _updateOpStatus = Boolean.TRUE;
+
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionRelinkTargetsWorkflowCompleter.class);
 
@@ -36,10 +39,12 @@ public class BlockSnapshotSessionRelinkTargetsWorkflowCompleter extends BlockSna
      * Constructor
      * 
      * @param snapSessionURI The URI of the target BlockSnapshotSession instance.
+     * @param updateOpStatus Indicates if  the completer should update and record the status when it completes
      * @param taskId The unique task identifier.
      */
-    public BlockSnapshotSessionRelinkTargetsWorkflowCompleter(URI snapSessionURI, String taskId) {
+    public BlockSnapshotSessionRelinkTargetsWorkflowCompleter(URI snapSessionURI, Boolean updateOpStatus, String taskId) {
         super(snapSessionURI, taskId);
+        _updateOpStatus = updateOpStatus;
     }
 
     /**
@@ -49,32 +54,34 @@ public class BlockSnapshotSessionRelinkTargetsWorkflowCompleter extends BlockSna
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         URI tgtSnapSessionURI = getId();
         try {
-            // Update the status map of the snapshot session.
-            BlockSnapshotSession tgtSnapSession = dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
-            List<BlockObject> allSources = getAllSources(tgtSnapSession, dbClient);
-            BlockObject sourceObj = allSources.get(0);
-
-            // Record the results.
-            recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGET,
-                    status, tgtSnapSession, sourceObj);
-
-            switch (status) {
-                case error:
-                    setErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI, coded);
-                    break;
-                case ready:
-                    setReadyOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);
-                    break;
-                case suspended_error:
-                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI, coded);
-                    break;
-                case suspended_no_error:
-                    setSuspendedNoErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);
-                    break;
-                default:
-                    String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
-                    s_logger.info(errMsg);
-                    throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
+            if (_updateOpStatus) {
+                // Update the status map of the snapshot session.
+                BlockSnapshotSession tgtSnapSession = dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
+                List<BlockObject> allSources = getAllSources(tgtSnapSession, dbClient);
+                BlockObject sourceObj = allSources.get(0);
+    
+                // Record the results.
+                recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGET,
+                        status, tgtSnapSession, sourceObj);
+    
+                switch (status) {
+                    case error:
+                        setErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI, coded);
+                        break;
+                    case ready:
+                        setReadyOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);
+                        break;
+                    case suspended_error:
+                        setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI, coded);
+                        break;
+                    case suspended_no_error:
+                        setSuspendedNoErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);
+                        break;
+                    default:
+                        String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
+                        s_logger.info(errMsg);
+                        throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
+                }
             }
             s_logger.info("Done re-link target volumes task {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {

@@ -1,0 +1,7 @@
+apply plugin: 'java'
+
+dependencies {
+  compile library(guava)
+  compile library(reflections)
+  compile project(":dbclient")
+}

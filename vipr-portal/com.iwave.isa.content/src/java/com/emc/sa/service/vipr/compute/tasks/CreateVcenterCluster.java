@@ -7,6 +7,8 @@ package com.emc.sa.service.vipr.compute.tasks;
 import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.WaitForTask;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.model.compute.VcenterClusterParam;
 import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 import com.emc.vipr.client.Task;
@@ -20,6 +22,12 @@ public class CreateVcenterCluster extends WaitForTask<VcenterDataCenterRestRep> 
         this.cluster = cluster;
         this.datacenter = datacenter;
         provideDetailArgs(cluster, datacenter);
+    }
+
+    public CreateVcenterCluster(Cluster cluster, VcenterDataCenter datacenter) {
+        this.cluster = cluster.getId();
+        this.datacenter = datacenter.getId();
+        provideDetailArgs(cluster.getLabel(), datacenter.getLabel());
     }
 
     @Override

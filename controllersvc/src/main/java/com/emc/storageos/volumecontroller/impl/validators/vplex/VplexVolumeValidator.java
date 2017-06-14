@@ -34,6 +34,7 @@ import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
+import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 
 public class VplexVolumeValidator extends AbstractVplexValidator {
@@ -102,8 +103,11 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                 if (storageVolume != null) {
                     StorageSystem system = getDbClient().queryObject(StorageSystem.class, storageVolume.getStorageController());
                     // Look up the corresponding device name to our Storage Volume
-                    String deviceName = client.getDeviceForStorageVolume(storageVolume.getNativeId(),
-                            storageVolume.getWWN(), system.getSerialNumber());
+                    VolumeInfo volumeInfo = new VolumeInfo(system.getNativeGuid(), system.getSystemType(),
+                            storageVolume.getWWN().toUpperCase().replaceAll(":", ""), storageVolume.getNativeId(),
+                            storageVolume.getThinlyProvisioned().booleanValue(), VPlexControllerUtils.getVolumeITLs(storageVolume));
+                    String deviceName = client.getDeviceForStorageVolume(volumeInfo);
+                    log.info("device name is " + deviceName);
                     if (deviceName == null) {
                         if (!delete) {
                             // We didn't find a device name for the storage volume. Error if not deleting.
@@ -113,7 +117,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                             return;
                         }
                     }
-                    if (!deviceName.matches(VPlexApiConstants.STORAGE_VOLUME_NOT_IN_USE)) {
+                    if (null != deviceName && !deviceName.trim().matches(VPlexApiConstants.STORAGE_VOLUME_NOT_IN_USE)) {
                         String volumeType = VPlexApiConstants.LOCAL_VIRTUAL_VOLUME;
                         if (virtualVolume.getAssociatedVolumes() != null && virtualVolume.getAssociatedVolumes().size() > 1) {
                             volumeType = VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME;

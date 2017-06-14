@@ -54,9 +54,7 @@ public class RemoteConnCollectionToVolumeProcessor extends StorageProcessor {
                 RemoteMirrorObject rmObj = new RemoteMirrorObject();
                 addPath(keyMap, operation.getResult(), volumePath);
                 String unManagedVolumeNativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(volumePath);
-                // @TODO Currently we are setting the RDFGroup copy mode as REMOTE_COPY_MODE for ingested adaptive copy srdf unmanaged
-                // volumes.
-                // This won't be any impact on these volumes and all other srdf operations should work normally.
+                // Changes to copy mode in RemoteDirectorGroup is updated in StorageSynchronizedProcessor
                 rmObj.setCopyMode(remoteGroup.getSupportedCopyMode());
                 rmObj.setSourceRaGroupUri(remoteGroup.getId());
                 if (targetRemoteGroup != null) {

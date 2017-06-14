@@ -8,7 +8,6 @@ package com.emc.storageos.db.server.impl;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -53,30 +52,30 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
-import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
-import com.emc.storageos.db.client.impl.DbClientContext;
-import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
-import com.emc.storageos.db.client.impl.TimeSeriesType;
-import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.LongMap;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
-import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VdcVersion;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.impl.ClassNameTimeSeriesSerializer;
+import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.client.impl.TimeSeriesColumnNameSerializer;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.TimeSeriesType;
+import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
@@ -84,7 +83,6 @@ import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.security.password.PasswordUtils;
-import com.google.common.collect.Lists;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -102,6 +100,7 @@ public class SchemaUtil {
     private static final int DBINIT_RETRY_INTERVAL = 5;
     // waiting 5 mins to init schema
     private static final int DBINIT_RETRY_MAX = 60;
+    public static final String PERCENTILE = "99.0PERCENTILE";
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
@@ -567,9 +566,9 @@ public class SchemaUtil {
         String strVal = _dbCommonInfo == null ? null : _dbCommonInfo.getProperty(key);
         if (strVal == null) {
             return defValue;
-        } else {
-            return Integer.parseInt(strVal);
         }
+
+        return Integer.parseInt(strVal);
     }
 
     /**
@@ -598,17 +597,23 @@ public class SchemaUtil {
         String latestSchemaVersion = null;
         while (it.hasNext()) {
             ColumnFamily cf = it.next();
-            ColumnFamilyDefinition cfd = kd.getColumnFamily(cf.getName());
             String comparator = cf.getColumnSerializer().getComparatorType().getTypeName();
             if (comparator.equals("CompositeType")) {
                 if (cf.getColumnSerializer() instanceof CompositeColumnNameSerializer) {
                     comparator = CompositeColumnNameSerializer.getComparatorName();
                 } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer) {
                     comparator = IndexColumnNameSerializer.getComparatorName();
+                } else if (cf.getColumnSerializer() instanceof ClassNameTimeSeriesSerializer) {
+                    comparator = ClassNameTimeSeriesSerializer.getComparatorName();
+                } else if (cf.getColumnSerializer() instanceof TimeSeriesColumnNameSerializer) {
+                    comparator = TimeSeriesColumnNameSerializer.getComparatorName();
                 } else {
                     throw new IllegalArgumentException();
                 }
             }
+
+            ThriftColumnFamilyDefinitionImpl cfd = (ThriftColumnFamilyDefinitionImpl)kd.getColumnFamily(cf.getName());
+            CfDef cdef = null;
 
             // The CF's gc_grace_period will be set if it's an index CF
             Integer cfGcGrace = cf.getColumnSerializer() instanceof IndexColumnNameSerializer ? indexGcGrace : null;
@@ -616,11 +621,24 @@ public class SchemaUtil {
             cfGcGrace = getIntProperty(DbClientImpl.DB_CASSANDRA_GC_GRACE_PERIOD_PREFIX + cf.getName(), cfGcGrace);
 
             if (cfd == null) {
-                cfd = cluster.makeColumnFamilyDefinition()
+                cfd = (ThriftColumnFamilyDefinitionImpl)cluster.makeColumnFamilyDefinition()
                         .setKeyspace(_keyspaceName)
                         .setName(cf.getName())
                         .setComparatorType(comparator)
                         .setKeyValidationClass(cf.getKeySerializer().getComparatorType().getTypeName());
+
+                if (_keyspaceName.equals(DbClientContext.LOCAL_KEYSPACE_NAME)) {
+                    cdef = cfd.getThriftColumnFamilyDefinition();
+                    String retry = cdef.getSpeculative_retry();
+                    if (!retry.equals(PERCENTILE)) {
+                        try {
+                            cdef.setSpeculative_retry(PERCENTILE);
+                        } catch (Exception e) {
+                            _log.info("Failed to set speculative_retry e=", e);
+                        }
+                    }
+                }
+
                 TimeSeriesType tsType = TypeMap.getTimeSeriesType(cf.getName());
                 if (tsType != null &&
                         tsType.getCompactOptimized() &&
@@ -673,6 +691,20 @@ public class SchemaUtil {
                     cfd.setGcGraceSeconds(cfGcGrace.intValue());
                     modified = true;
                 }
+
+                if (_keyspaceName.equals(DbClientContext.LOCAL_KEYSPACE_NAME)) {
+                    cdef = cfd.getThriftColumnFamilyDefinition();
+                    String retry = cdef.getSpeculative_retry();
+                    if (!retry.equals(PERCENTILE)) {
+                        try {
+                            cdef.setSpeculative_retry(PERCENTILE);
+                            modified = true;
+                        } catch (Exception e) {
+                            _log.info("Failed to set speculative retry e=", e);
+                        }
+                    }
+                }
+
                 if (modified) {
                     latestSchemaVersion = updateColumnFamily(cfd);
                 }
@@ -716,7 +748,7 @@ public class SchemaUtil {
 
     /**
      * Update migration checkpoint to ZK. Assume migration lock is acquired when entering this call.
-     * 
+     *
      * @param checkpoint
      */
     void setMigrationCheckpoint(String checkpoint) {
@@ -735,7 +767,7 @@ public class SchemaUtil {
 
     /**
      * Get migration check point from ZK. Db migration is supposed to start from this point.
-     * 
+     *
      */
     String getMigrationCheckpoint() {
         Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), getDbConfigPath(), Constants.GLOBAL_ID);
@@ -750,7 +782,7 @@ public class SchemaUtil {
 
     /**
      * Remove migration checkpoint from ZK. Assume migration lock is acquired when entering this call.
-     * 
+     *
      */
     void removeMigrationCheckpoint() {
         Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), getDbConfigPath(), Constants.GLOBAL_ID);
@@ -882,7 +914,7 @@ public class SchemaUtil {
 
     /**
      * initialize PasswordHistory CF
-     * 
+     *
      * @param dbClient
      */
     private void insertPasswordHistory(DbClient dbClient) {
@@ -1004,7 +1036,7 @@ public class SchemaUtil {
 
     /**
      * Matches comparator names from db against code schema
-     * 
+     *
      * @param dbschema
      * @param codeschema
      * @return
@@ -1020,16 +1052,16 @@ public class SchemaUtil {
 
     /**
      * Adds CF to keyspace
-     * 
+     *
      * @param def
      * @return
      */
     @SuppressWarnings("unchecked")
-    public String addColumnFamily(final ColumnFamilyDefinition def) {
+    public String addColumnFamily(final ThriftColumnFamilyDefinitionImpl def) {
         AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
-        String cfname = def.getName();
+        final String cfname = def.getName();
         _log.info("Adding CF: {}", cfname);
         try {
             return pool.executeWithFailover(
@@ -1051,8 +1083,7 @@ public class SchemaUtil {
                             }
 
                             _log.info("To create CF {}", cfname);
-                            return client.system_add_column_family(((ThriftColumnFamilyDefinitionImpl) def)
-                                    .getThriftColumnFamilyDefinition());
+                            return client.system_add_column_family(def.getThriftColumnFamilyDefinition());
                         }
                     }, context.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
         } catch (final OperationException e) {
@@ -1064,12 +1095,12 @@ public class SchemaUtil {
 
     /**
      * Updates CF
-     * 
+     *
      * @param def
      * @return
      */
     @SuppressWarnings("unchecked")
-    public String updateColumnFamily(final ColumnFamilyDefinition def) {
+    public String updateColumnFamily(final ThriftColumnFamilyDefinitionImpl def) {
         AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
@@ -1081,8 +1112,7 @@ public class SchemaUtil {
                         @Override
                         public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
                             client.set_keyspace(_keyspaceName);
-                            return client.system_update_column_family(((ThriftColumnFamilyDefinitionImpl) def)
-                                    .getThriftColumnFamilyDefinition());
+                            return client.system_update_column_family(def.getThriftColumnFamilyDefinition());
                         }
                     }, context.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
         } catch (final OperationException e) {
@@ -1094,7 +1124,7 @@ public class SchemaUtil {
 
     /**
      * Drop CF
-     * 
+     *
      * @param cfName column family name
      * @param context
      * @return
@@ -1125,7 +1155,7 @@ public class SchemaUtil {
      * Get replication factor. By default, 5 is the maximum replication factor we will use.
      * If there are less than 5 nodes (where N is the number of nodes), we set replication
      * factor to N
-     * 
+     *
      * @return
      */
     private int getReplicationFactor() {

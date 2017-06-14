@@ -244,8 +244,8 @@ public class RPRecommendation extends Recommendation {
 		final String TAB = "\t";
 	
 		String printTabs = TAB;		   
-    	if (noOfTabs.length> 0 && noOfTabs[0] > 0) {
-    		for(int i = 0; i < noOfTabs[0]; i++) {
+    	if (noOfTabs.length > 0 && noOfTabs[0] > 0) {
+    		for (int i = 0; i < noOfTabs[0]; i++) {
     			printTabs += TAB;
     		}
     	}
@@ -255,7 +255,7 @@ public class RPRecommendation extends Recommendation {
 		StoragePool storagePool = dbClient.queryObject(StoragePool.class, getSourceStoragePool());		
 		StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getSourceStorageSystem());
 		buff.append(String.format("%n"));
-		buff.append(printTabs + String.format("Resource Count	: %s %n", this.getResourceCount()));
+		buff.append(printTabs + String.format("Resource Count \t\t: %s %n", this.getResourceCount()));
 		String siteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(this.getInternalSiteName()) : "");	
 		String siteId =  this.getInternalSiteName();
 		if (this.getInternalSiteName() == null) {

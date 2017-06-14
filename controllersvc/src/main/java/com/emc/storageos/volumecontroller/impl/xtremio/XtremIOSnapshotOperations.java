@@ -91,7 +91,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 .get(XtremIOConstants.SNAPSHOT_KEY);
         String snapshotType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
 
-        client.createVolumeSnapshot(parentVolume.getLabel(), snapLabel, snapFolderName, snapshotType, clusterName);
+        client.createVolumeSnapshot(parentVolume.getDeviceLabel(), snapLabel, snapFolderName, snapshotType, clusterName);
         XtremIOVolume createdSnap = client.getSnapShotDetails(snap.getLabel(), clusterName);
 
         return createdSnap;
@@ -106,7 +106,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         String snapTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage), clusterName)
                 .get(XtremIOConstants.SNAPSHOT_KEY);
         String snapshotType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
-        client.createVolumeSnapshot(parentVolume.getLabel(), snapLabel, snapTagName, snapshotType, clusterName);
+        client.createVolumeSnapshot(parentVolume.getDeviceLabel(), snapLabel, snapTagName, snapshotType, clusterName);
         // Get the snapset details
         XtremIOConsistencyGroup snapset = client.getSnapshotSetDetails(snapLabel, xioClusterName);
         List<Object> snapDetails = snapset.getVolList().get(0);
@@ -265,7 +265,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             Volume sourceVol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
-            client.restoreVolumeFromSnapshot(clusterName, sourceVol.getLabel(), snapshotObj.getDeviceLabel());
+            client.restoreVolumeFromSnapshot(clusterName, sourceVol.getDeviceLabel(), snapshotObj.getDeviceLabel());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot restore failed", e);
@@ -312,7 +312,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             Volume sourceVol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
-            client.refreshSnapshotFromVolume(clusterName, sourceVol.getLabel(), snapshotObj.getDeviceLabel());
+            client.refreshSnapshotFromVolume(clusterName, sourceVol.getDeviceLabel(), snapshotObj.getDeviceLabel());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot resync failed", e);
@@ -352,7 +352,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             String newSnapsetName = null;
             // Now get the new snapshot set name by querying back the snapshot
             XtremIOVolume xioSnap = client.getSnapShotDetails(snapshotObj.getDeviceLabel(), clusterName);
-            if (xioSnap.getSnapSetList() != null && !xioSnap.getSnapSetList().isEmpty()) {
+            if (xioSnap != null && xioSnap.getSnapSetList() != null && !xioSnap.getSnapSetList().isEmpty()) {
                 List<Object> snapsetDetails = xioSnap.getSnapSetList().get(0);
                 // The REST response for the snapsetList will contain 3 elements.
                 // Example - {"00a07269b55e42fa91c1aabadb6ea85c","SnapshotSet.1458111462198",27}

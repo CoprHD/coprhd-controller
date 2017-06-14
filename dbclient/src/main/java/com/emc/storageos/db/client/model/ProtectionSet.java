@@ -145,7 +145,8 @@ public class ProtectionSet extends DataObject {
         for (String volumeStr : protectionSet.getVolumes()) {
             Volume volume = _dbClient.queryObject(Volume.class, new URI(volumeStr));
             // Find the volume that is from the specified site and the source volume's replication set
-            if ((volume.getRSetName() != null) && // removes any journals. journals aren't in a replication set.
+            if (volume != null && !volume.getInactive() &&
+                    (volume.getRSetName() != null) && // removes any journals. journals aren't in a replication set.
                     (volume.getRSetName().equals(sourceVolume.getRSetName()) &&
                             (volume.getInternalSiteName().equals(emInternalSiteName)) &&
                     (!volume.getId().equals(sourceVolume.getId())))) {
@@ -169,7 +170,8 @@ public class ProtectionSet extends DataObject {
             ProtectionSet protectionSet, Volume sourceVolume) {
         for (String volumeStr : protectionSet.getVolumes()) {
             Volume volume = _dbClient.queryObject(Volume.class, URI.create(volumeStr));
-            if ((volume.getRSetName() != null) && // removes any journals. journals aren't in a replication set.
+            if (volume != null && !volume.getInactive() &&
+                    (volume.getRSetName() != null) && // removes any journals. journals aren't in a replication set.
                     (volume.getRSetName().equals(sourceVolume.getRSetName()) &&
                             (volume.getPersonality().toString().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.name())) &&
                     (!volume.getId().equals(sourceVolume.getId())))) {

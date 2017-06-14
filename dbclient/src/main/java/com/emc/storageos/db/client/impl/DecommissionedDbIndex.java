@@ -16,7 +16,7 @@ import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
-public class DecommissionedDbIndex extends DbIndex {
+public class DecommissionedDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(DecommissionedDbIndex.class);
 
     DecommissionedDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
@@ -30,7 +30,7 @@ public class DecommissionedDbIndex extends DbIndex {
         ColumnListMutation<IndexColumnName> indexColList =
                 mutator.getIndexColumnList(indexCF, className);
 
-        IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, mutator.getTimeUUID());
+        IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

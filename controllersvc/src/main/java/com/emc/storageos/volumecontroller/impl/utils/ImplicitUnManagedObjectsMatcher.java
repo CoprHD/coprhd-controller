@@ -42,6 +42,7 @@ import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 public class ImplicitUnManagedObjectsMatcher {
     private static final String LOCAL = "LOCAL";
@@ -258,6 +259,17 @@ public class ImplicitUnManagedObjectsMatcher {
                                 volume.setSupportedVpoolUris(new StringSet());
                             }
                             volume.getSupportedVpoolUris().add(vpool.getId().toString());
+                            List<UnManagedVolume> backendVols = 
+                                    VplexBackendIngestionContext.findBackendUnManagedVolumes(volume, dbClient);
+                            if (backendVols != null) {
+                                for (UnManagedVolume backendVol : backendVols) {
+                                    if (backendVol.getSupportedVpoolUris() == null) {
+                                        backendVol.setSupportedVpoolUris(new StringSet());
+                                    }
+                                    backendVol.getSupportedVpoolUris().add(vpool.getId().toString());
+                                    modifiedUnManagedVolumes.add(backendVol);
+                                }
+                            }
                             modifiedUnManagedVolumes.add(volume);
                             break;
                         }
@@ -335,6 +347,21 @@ public class ImplicitUnManagedObjectsMatcher {
                     _log.debug(String.format(msg, new Object[] { virtualPool.getId(), unManagedObject.getId(),
                             autoTierPolicyId, virtualPool.getAutoTierPolicyName() }));
                     return false;
+                }
+            }
+
+            // don't add vplex virtual pools to non vplex volumes
+            if (VirtualPool.vPoolSpecifiesHighAvailability(virtualPool) && (unManagedObject instanceof UnManagedVolume)) {
+                UnManagedVolume unManagedVolume = (UnManagedVolume) unManagedObject;
+                if (null != unManagedVolume.getVolumeCharacterstics()) {
+                    String isVplexVolume = unManagedVolume.getVolumeCharacterstics()
+                            .get(SupportedVolumeCharacterstics.IS_VPLEX_VOLUME.toString());
+                    if (isVplexVolume == null || isVplexVolume.isEmpty() || !TRUE.equals(isVplexVolume)) {
+                        _log.debug(String.format("VPool %s is not added to UnManaged Volume's (%s) supported vPool list "
+                                + "since the vpool has high availability set and the volume is non VPLEX.", 
+                                new Object[] { virtualPool.getId(), unManagedVolume.forDisplay() }));
+                        return false;
+                    }
                 }
             }
 

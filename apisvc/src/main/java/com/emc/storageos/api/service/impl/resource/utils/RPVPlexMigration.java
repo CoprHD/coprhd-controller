@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource.utils;
 
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 import java.net.URI;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -48,6 +49,9 @@ public class RPVPlexMigration {
     }
 
     public URI getVarray() {
+        if (varrayId == null) {
+            varrayId = NullColumnValueGetter.getNullURI();
+        }
         return varrayId;
     }
 

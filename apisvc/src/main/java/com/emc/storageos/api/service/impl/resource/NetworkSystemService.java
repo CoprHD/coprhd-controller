@@ -350,7 +350,7 @@ public class NetworkSystemService extends TaskResourceService {
             device.setSmisUseSSL(param.getSmisUseSsl());
         }
         device.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(device));
-        _dbClient.persistObject(device);
+        _dbClient.updateObject(device);
         startNetworkSystem(device);
         auditOp(OperationTypeEnum.UPDATE_NETWORK_SYSTEM, true, null,
                 device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
@@ -445,7 +445,7 @@ public class NetworkSystemService extends TaskResourceService {
                     for (FCZoneReference zone : zones) {
                         zone.setNetworkSystemUri(nsUri);
                     }
-                    _dbClient.persistObject(zones);
+                    _dbClient.updateObject(zones);
                 }
             }
         }
@@ -507,7 +507,7 @@ public class NetworkSystemService extends TaskResourceService {
         }
         zone.setNetworkSystemUri(networkSystemURI);
 
-        _dbClient.persistObject(zone);
+        _dbClient.updateObject(zone);
     }
 
     /**
@@ -588,11 +588,11 @@ public class NetworkSystemService extends TaskResourceService {
                     continue;
                 }
                 network.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-                _dbClient.persistObject(network);
+                _dbClient.updateObject(network);
                 auditOp(OperationTypeEnum.REGISTER_NETWORK, true, null, network.getId().toString());
             }
             networkSystem.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-            _dbClient.persistObject(networkSystem);
+            _dbClient.updateObject(networkSystem);
             auditOp(OperationTypeEnum.REGISTER_NETWORK_SYSTEM, true, null,
                     networkSystem.getId().toString(), networkSystem.getLabel(), networkSystem.getPortNumber(), networkSystem.getUsername(),
                     networkSystem.getSmisProviderIP(), networkSystem.getSmisPortNumber(), networkSystem.getSmisUserName(),
@@ -641,12 +641,12 @@ public class NetworkSystemService extends TaskResourceService {
                 // Only unregister Network if it is not managed by other registered NetworkSystems
                 if (registeredNetworkSystems.isEmpty()) {
                     network.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-                    _dbClient.persistObject(network);
+                    _dbClient.updateObject(network);
                     auditOp(OperationTypeEnum.DEREGISTER_NETWORK, true, null, id.toString());
                 }
             }
             networkSystem.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-            _dbClient.persistObject(networkSystem);
+            _dbClient.updateObject(networkSystem);
             auditOp(OperationTypeEnum.DEREGISTER_NETWORK_SYSTEM, true, null,
                     networkSystem.getId().toString(), networkSystem.getLabel(), networkSystem.getPortNumber(), networkSystem.getUsername(),
                     networkSystem.getSmisProviderIP(), networkSystem.getSmisPortNumber(), networkSystem.getSmisUserName(),
@@ -810,19 +810,6 @@ public class NetworkSystemService extends TaskResourceService {
 
     /**
      * Returns true if valid zone name.
-     * 
-     * @param name
-     * @return
-     */
-    private void validateZoneName(String name) {
-        if (name.matches("[a-zA-Z0-9_]+")) {
-            return;
-        }
-        throw APIException.badRequests.illegalZoneName(name);
-    }
-
-    /**
-     * Returns true if valid zone name.
      * Throw exception if zone name is invalid based on device type
      *
      * @param name
@@ -867,7 +854,6 @@ public class NetworkSystemService extends TaskResourceService {
         }
 
         validateWWNAlias(alias.getName());
-
     }
 
     /**
@@ -1089,8 +1075,7 @@ public class NetworkSystemService extends TaskResourceService {
      * @param fabricId The name of the VSAN or fabric as returned by
      *            /vdc/network-systems/{id}/san-fabrics or the WWN of the VSAN or fabric
      * @prereq none
-     * @brief Activate the current active zoneset of the VSA or fabric which effect all
-     *        zoning changes made since the last activation.
+     * @brief Activate all zoning changes made since the last activation
      * @return A task description structure.
      * @throws InternalException
      */

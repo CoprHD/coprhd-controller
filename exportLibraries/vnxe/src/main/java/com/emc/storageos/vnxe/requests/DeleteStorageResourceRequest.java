@@ -18,7 +18,7 @@ import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.emc.storageos.vnxe.models.VNXeLun;
 
 public class DeleteStorageResourceRequest extends KHRequests<StorageResource> {
-    private static final Logger _logger = LoggerFactory.getLogger(FileSystemActionRequest.class);
+    private static final Logger _logger = LoggerFactory.getLogger(DeleteStorageResourceRequest.class);
     private static final String URL = "/api/instances/storageResource/";
 
     public DeleteStorageResourceRequest(KHClient client) {

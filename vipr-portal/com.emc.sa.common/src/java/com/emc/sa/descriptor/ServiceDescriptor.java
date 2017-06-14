@@ -1,6 +1,18 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.sa.descriptor;
 
@@ -11,15 +23,21 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.MissingResourceException;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
+
+import com.emc.sa.util.Messages;
 
 /**
  */
 public class ServiceDescriptor implements ServiceItemContainer, Serializable {
     private static final long serialVersionUID = 7165847559597979106L;
+    
+    private static Messages MESSAGES = new Messages("com.emc.sa.descriptor.ServiceDescriptors");
 
     /** The ID of the service. */
     private String serviceId;
@@ -32,6 +50,9 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
 
     /** The service description. */
     private String description;
+    
+    /** The ID of the workflow */
+    private String workflowId;
 
     /** The items in the service. */
     private Map<String, ServiceItem> items = new LinkedHashMap<>();
@@ -44,6 +65,12 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
 
     /** Indicates if the operation can result in data loss (Warn the user) */
     private boolean destructive = false;
+    
+    /** Indicated if the order will display a modal option */
+    private boolean useModal = false;
+    
+    /** The service modal title. */
+    private String modalTitle;
 
     public String getServiceId() {
         return serviceId;
@@ -77,6 +104,14 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
         this.description = description;
     }
 
+    public String getWorkflowId() {
+        return workflowId;
+    }
+    
+    public void setWorkflowId(final String workflowId) {
+        this.workflowId = workflowId;
+    }
+    
     @Override
     public Map<String, ServiceItem> getItems() {
         return items;
@@ -112,6 +147,25 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
 
     public void setDestructive(boolean destructive) {
         this.destructive = destructive;
+    }
+    
+    public boolean isUseModal() {
+        return useModal;
+    }
+    
+    public void setUseModal(boolean useModal) {
+        this.useModal = useModal;
+    }
+    
+    public String getModalTitle() {
+        if (modalTitle == null) {
+            return modalTitle;
+        }
+        return getMessage(modalTitle);
+    }
+    
+    public void setModalTitle(String modalTitle) {
+        this.modalTitle = modalTitle;
     }
 
     public ServiceField getField(String name) {
@@ -156,8 +210,22 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
         builder.append("description", description);
         builder.append("category", category);
         builder.append("destructive", destructive);
+        builder.append("useModal", useModal);
+        builder.append("modalTitle", modalTitle);
         builder.append("roles", roles);
         builder.append("items", items);
         return builder.toString();
+    }
+    
+    public static String getMessage(String key, Object... args) {
+        try {
+            String message = MESSAGES.get(key, args);
+            if (StringUtils.isNotBlank(message)) {
+                return message;
+            }
+        } catch (MissingResourceException e) {
+            // fall out and return the original key
+        }
+        return key;
     }
 }

@@ -67,7 +67,6 @@ public class LinuxMountUtils {
 
     public void mountPath(String path) throws InternalException {
         MountCommand command = new MountCommand(STD_TIMEOUT);
-        command.addArgument("-v");
         command.setPath(path);
         command.addArgument("; if [ $? -eq 124 ] ; then >&2 echo TIMEOUT ; else >&2 echo SUCCESSFUL ; fi");
         _log.info("mount command:" + command.getResolvedCommandLine());

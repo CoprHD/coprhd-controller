@@ -1,11 +1,74 @@
-#{extends 'main.html' /}
-#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.viewOrders'] /}
+#{extends 'main.html' /} #{set navSelected: ['nav.orders', 'nav.catalog', 'nav.viewOrders'] /}
 
-#{DataTable.header titleKey:'orders.title'/}
-#{DataTable.table id:'orders', dataTable:dataTable, source:@listJson(), cssClass:'editableRows'/}
+#{DataTable.header titleKey:'myOrders.title'/}
+<div class="max-days-selector" ng-controller="MyOrdersCtrl" id="orderSelector"
+#{if maxDays == 0 }  style="width: 780px; margin-left: -600px;margin-right:120px" #{/if}
+#{else} style="margin-left: -170px;margin-right:170px" #{/else} >
+    <div class="description">&{'orders.maxDays'}#{if maxDays != 0 } <span class="notForRange">&{'orders.maxDays.last'}</span>#{/if}</div>
+    <div class="control" style="width:110px;">
+    #{field 'maxDays'}
+    %{
+        field.cssClass = 'input-sm'
+        field.options = maxDaysOptions
+        field.disableSearch = true
+        }%
+        #{Form.selectOne field:field/}
+    #{/field}
+    </div>
+
+    <label class="description forRange">&{"orders.startDate"}:</label>
+
+    <div class="control forRange" style="width:150px;">
+        <date-picker ng-model="rangeStartDate" close="true"></date-picker>
+        <input type="hidden" name="rangeStartDate" value="{{rangeStartDate}}"/>
+    </div>
+
+    <label class="description forRange">&{"orders.endDate"}:</label>
+
+    <div class="control forRange" style="width:150px;">
+        <date-picker id="endDatePicker" ng-model="rangeEndDate" close="true"></date-picker>
+        <input type="hidden" name="rangeEndDate" value="{{rangeEndDate}}"/>
+    </div>
+
+    <div class="clearfix"></div>
+
+</div>
+
+#{DataTable.table
+id:'orders', dataTable:dataTable, source:@listJson(), cssClass:'editableRows', options: ['fnServerParams': 'addParams']/}
 <script type="text/javascript">
-table.orders.dataTable.afterCreate(function(dataTable) {
-    var itemsJson = #{jsAction @itemsJson(':ids')/};
-    watchOrderStatus(dataTable.getDataTable(), itemsJson);
-});
+    table.orders.dataTable.afterCreate(function (dataTable) {
+        var itemsJson = #{jsAction @itemsJson(':ids')/};
+        watchOrderStatus(dataTable.getDataTable(), itemsJson);
+    });
+
+    function addParams(aoData) {
+        aoData.push({"name": "startDate", "value": "${startDate}"});
+        aoData.push({"name": "endDate", "value": "${endDate}"});
+        aoData.push({"name": "maxDays", "value": "${maxDays}"});
+        aoData.push({"name": "offsetInMinutes", "value": getTimeZoneOffset()});
+    }
+
+    $(document).ready(function () {
+        console.info("ordercount" + "${orderCount}");
+        var requestMaxDays = "${maxDays}";
+        if (requestMaxDays != 0) {
+            $(".forRange").hide();
+            $(".notForRange").show();
+        }
+
+        $('#maxDays').on('change', function () {
+            var maxDays = $(this).val();
+            if (maxDays == 0) {
+                $(".forRange").show();
+                $(".notForRange").hide();
+                $('.max-days-selector').css({'width': '780px', 'margin-left': '-600px', 'margin-right': '120px'});
+            } else {
+                var url = #{jsAction @list()/}() + "?maxDays=" + maxDays +
+                        "&offsetInMinutes=" + getTimeZoneOffset();
+                window.location.href = url;
+            }
+        });
+    });
+    
 </script>

@@ -209,9 +209,66 @@ public class ExportGroupState implements Serializable {
         this.removedClusters.add(id);
     }
 
+    /**
+     * Returns Removed Initiators
+     * 
+     * @return {@link Collection}{@link URI}
+     */
+    public Collection<URI> getRemovedInitiators() {
+        return removedInitiators;
+    }
+
+    /**
+     * Returns Removed Hosts
+     * 
+     * @return {@link Collection}{@link URI}
+     */
+    public Collection<URI> getRemovedHosts() {
+        return removedHosts;
+    }
+
+    /**
+     * Returns Removed Clusters
+     * 
+     * @return {@link Collection}{@link URI}
+     */
+    public Collection<URI> getRemovedClusters() {
+        return removedClusters;
+    }
+
+    /**
+     * Returns Added Initiators
+     * 
+     * @return {@link Collection}{@link URI}
+     */
+    public Collection<URI> getAddedInitiators() {
+        return addedInitiators;
+    }
+
+    /**
+     * Returns Added Hosts
+     * 
+     * @return {@link Collection}{@link URI}
+     */
+    public Collection<URI> getAddedHosts() {
+        return addedHosts;
+    }
+
+    /**
+     * Returns Added Clusters
+     * 
+     * @return {@link Collection}{@link URI}
+     */
+    public Collection<URI> getAddedClusters() {
+        return addedClusters;
+    }
+
     @Override
     public String toString() {
         return "ExportGroupState: [ExportId: " + this.id + ", Initiators: " + this.initiators + ", Hosts: "
-                + this.hosts + ", Clusters: " + this.clusters + ", Volumes: " + this.volumesMap + "]";
+                + this.hosts + ", Clusters: " + this.clusters + ", Volumes: " + this.volumesMap + ", Added Initiators: "
+                + this.addedInitiators + ", Removed Initiators: " + this.removedInitiators + ", Added Hosts: " + this.addedHosts +
+                ", Removed Hosts: " + this.removedHosts + ", Added Clusters: " + this.addedClusters + ", Removed Clusters: "
+                + this.removedClusters + "]";
     }
 }

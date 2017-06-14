@@ -26,6 +26,7 @@ public class ComputeVirtualPoolElementDataTable extends DataTable {
         addColumn("processorSpeed");
         addColumn("ram").hidden();
         addColumn("ramString");
+        addColumn("hostName");
         addColumn("available").setRenderFunction("renderBoolean");
         addColumn("uuid").hidden();
         setDefaultSort("name", "asc");
@@ -46,6 +47,7 @@ public class ComputeVirtualPoolElementDataTable extends DataTable {
         public Long ram;
         public String ramString;
         public String uuid;
+        public String hostName;
 
         public boolean assigned;
 
@@ -68,6 +70,7 @@ public class ComputeVirtualPoolElementDataTable extends DataTable {
             this.ramString = SizeUtils.humanReadableMegaByteCount(computeElement.getRam());
             this.uuid = computeElement.getUuid();
             this.numberOfCores = computeElement.getNumOfCores();
+            this.hostName = computeElement.getHostName();
         }
 
         // Suppressing Sonar violation of Method name FormatSpeed should comply with naming convention

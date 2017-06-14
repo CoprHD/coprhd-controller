@@ -4,7 +4,19 @@
  */
 package com.emc.apidocs;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.commons.io.IOUtils;
+
 import com.emc.apidocs.differencing.DifferenceEngine;
+import com.emc.apidocs.generating.PageGenerator;
 import com.emc.apidocs.model.ApiDifferences;
 import com.emc.apidocs.model.ApiErrorCode;
 import com.emc.apidocs.model.ApiMethod;
@@ -16,7 +28,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.google.common.collect.Lists;
 import com.sun.javadoc.*;
 import org.apache.commons.io.IOUtils;
-
 import java.io.*;
 import java.util.*;
 
@@ -144,7 +155,7 @@ public class ApiDoclet {
     }
 
     /** Processes the list of classes looking for ones that represent an API Service, and parsing them if found */
-    private static synchronized List<ApiService> findApiServices(ClassDoc[] classes) {
+    public static synchronized List<ApiService> findApiServices(ClassDoc[] classes) {
         List<ApiService> apiServices = new ArrayList<ApiService>();
         for (ClassDoc classDoc : classes) {
             if (DATASERVICES_CLASSES.contains(classDoc.name())) {
@@ -170,9 +181,11 @@ public class ApiDoclet {
             }
         }
 
-        // Add All Services from the Portal API
-        apiServices.addAll(PlayRoutesParser.getPortalServices(portalSource));
-
+        if( null != portalSource) {
+            // Add All Services from the Portal API
+            apiServices.addAll(PlayRoutesParser.getPortalServices(portalSource));
+        }
+        
         return apiServices;
     }
 
@@ -259,7 +272,7 @@ public class ApiDoclet {
         TemporaryCleanup.applyCleanups(apiService);
 
         // Process ALL methods on EMC classes, including super classes
-        List<String> methodsAdded = Lists.newArrayList();
+        Set<String> methodsAdded = new HashSet<>();
         ClassDoc currentClass = classDoc;
         while (currentClass != null && currentClass.containingPackage().name().startsWith("com.emc")) {
             for (MethodDoc method : currentClass.methods()) {
@@ -272,7 +285,12 @@ public class ApiDoclet {
 
                     // Some methods are marked internal via brief comments, but we only know that after processing it
                     if (!apiMethod.brief.toLowerCase().startsWith("internal")) {
-                        apiService.addMethod(apiMethod);
+                        // Add method to service only if it is not overridden by subclass
+                        if (methodsAdded.add(apiMethod.javaMethodName + ":" + apiMethod.httpMethod + ":" + apiMethod.path)) {
+                            apiService.addMethod(apiMethod);
+                        } else {
+                            System.out.println("Service " + classDoc.name() + ": skip overridden method " + currentClass.name() + "::" + method.name());
+                        }
                     }
                 }
 

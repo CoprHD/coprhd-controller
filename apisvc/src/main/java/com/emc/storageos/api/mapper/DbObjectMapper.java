@@ -197,6 +197,9 @@ public class DbObjectMapper {
             to.setAssignedVNasServers(from.getAssignedVNasServers());
         }
 
+        if (from.getFilePolicies() != null && !from.getFilePolicies().isEmpty()) {
+            to.setFileProtectionPolicies(from.getFilePolicies());
+        }
         return to;
     }
 
@@ -223,11 +226,11 @@ public class DbObjectMapper {
         if (from.getNamespace() != null && !"null".equals(from.getNamespace())) {
             to.setNamespace(from.getNamespace());
         }
-        
+
         if (from.getNamespaceStorage() != null) {
             to.setNamespaceStorage(from.getNamespaceStorage());
         }
-        
+
         return to;
     }
 
@@ -245,8 +248,7 @@ public class DbObjectMapper {
         to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(from)));
         // build the config type Link
         String service = ResourceTypeEnum.CONFIG_TYPE.getService();
-        StringBuilder build = (new StringBuilder(service)).
-                append('/').append(from.getConfigType());
+        StringBuilder build = (new StringBuilder(service)).append('/').append(from.getConfigType());
         try {
             RelatedConfigTypeRep type = new RelatedConfigTypeRep();
             type.setConfigName(from.getConfigType());

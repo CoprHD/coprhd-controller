@@ -27,6 +27,7 @@ public enum ResourceType {
     CLUSTER("Cluster"),
     VCENTER("Vcenter"),
     VCENTER_DATA_CENTER("VcenterDataCenter"),
+    COMPUTE_VIRTUAL_POOL("ComputeVirtualPool"),
 
     VIRTUAL_ARRAY("VirtualArray"),
     VIRTUAL_POOL("VirtualPool"),
@@ -46,6 +47,8 @@ public enum ResourceType {
 
     BUCKET("Bucket"),
     
+    STORAGE_PORT("StoragePort"),
+
     UNKNOWN("Unknown");
 
     private static final Pattern RESOURCE_ID = Pattern.compile("urn\\:storageos\\:([^\\:]+)");

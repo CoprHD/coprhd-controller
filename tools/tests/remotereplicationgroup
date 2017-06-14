@@ -116,7 +116,7 @@ def remotereplicationgroup_swap(args):
 
     s = bourne.replicationgroup_swap(replicationgroup_uri)
     if (s['state'] == 'ready'):
-        print 'Swap remote replication group with id ' + s['resource']['id']
+        print 'Swapped remote replication group with id ' + s['resource']['id']
     else:
         print 'Failed to swap remote replication group.'
 
@@ -128,7 +128,7 @@ def remotereplicationgroup_establish(args):
 
     s = bourne.replicationgroup_establish(replicationgroup_uri)
     if (s['state'] == 'ready'):
-        print 'Establish links for remote replication group with id ' + s['resource']['id']
+        print 'Established links for remote replication group with id ' + s['resource']['id']
     else:
         print 'Failed to establish links for remote replication group.'
 

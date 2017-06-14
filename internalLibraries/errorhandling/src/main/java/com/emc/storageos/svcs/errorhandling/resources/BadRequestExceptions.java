@@ -3348,18 +3348,22 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException portGroupNotInVarray(String port, String portGroup, String varray);
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException pathAdjustmentPortGroupNoExistingPaths();
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException pathAdjustementPortGroupNoOverlap(String newPortGroup);
+    public BadRequestException changePortGroupPortGroupNoOverlap(String newPortGroup);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException pathAdjustmentPortGroupInvalid(String newPortGroup, String storageSystem);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException pathAdjustmentPortGroupNotInVarray(String port, String portGroup, String varray);
+    public BadRequestException changePortGroupNotSupportedforHostIOLimit(String volume);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException pathAdjustementChangePortGroupNotSupportedforHostIOLimit(String volume);
+    public BadRequestException exportPathAdjustementNoPathParameters();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupInvalidPortGroup(String portGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupExistingVolumes(String exportMask, String volumes);
 }

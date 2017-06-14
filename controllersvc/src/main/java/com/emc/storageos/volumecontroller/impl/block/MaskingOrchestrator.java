@@ -168,35 +168,16 @@ public interface MaskingOrchestrator {
             Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception;
     
     /**
-     * Add paths for change port group
+     * Change port group
      * 
      * @param workflow - Workflow
      * @param storageSystem - StorageSystem URI
      * @param exportGroup - ExportGroup URI the port rebalance will happen
-     * @param varray - URI of virtual array
-     * @param exportMask - Export mask URI
-     * @param addPaths - New paths
-     * @param removedPaths - Paths going to removed
      * @param portGroupURI - The new port group URI
+     * @param waitForApproval - If need to suspend before remove paths
      * @param token - Operation token for completer
      * @throws Exception
      */
-    public void changePortGroupAddPaths(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> addPaths,
-            Map<URI, List<URI>> removedPaths, URI portGroupURI, String token) throws Exception;
+    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, boolean waitForApproval, String token);
     
-    /**
-     * remove paths for change port group
-     * 
-     * @param workflow - Workflow
-     * @param storageSystem - StorageSystem URI
-     * @param exportGroup - ExportGroup URI the port rebalance will happen
-     * @param exportMask - Export mask URI
-     * @param adjustedPaths - New paths
-     * @param removedPaths - Paths going to removed
-     * @param portGroupURI - The new port group URI
-     * @param token - Operation token for completer
-     * @throws Exception
-     */
-    public void changePortGroupRemovePaths(URI storageSystem, URI exportGroup, URI exportMask, Map<URI, List<URI>> adjustedPaths,
-            Map<URI, List<URI>> removedPaths, URI portGroupURI, String token) throws Exception;
 }

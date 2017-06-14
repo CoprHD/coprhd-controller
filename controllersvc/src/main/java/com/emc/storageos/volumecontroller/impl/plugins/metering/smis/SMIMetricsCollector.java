@@ -57,6 +57,7 @@ public class SMIMetricsCollector {
      * @throws Exception
      */
     public void collectMetrics(StorageSystem system, DbClient dbClient) throws Exception {
+    	log.info("Collecting statistics for vmax system {}", system.getNativeGuid());
     	//collect all the statistics necessary for the VMAX port selection procedure.
     	boolean isVmax = StorageSystem.Type.vmax.name().equals(system.getSystemType());
     	

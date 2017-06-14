@@ -39,6 +39,7 @@ import com.emc.sa.service.linux.tasks.FindPowerPathEntryForVolume;
 import com.emc.sa.service.linux.tasks.FormatVolume;
 import com.emc.sa.service.linux.tasks.GetDirectoryContents;
 import com.emc.sa.service.linux.tasks.GetDirectoryContentsNoFail;
+import com.emc.sa.service.linux.tasks.GetFilesystemBlockSize;
 import com.emc.sa.service.linux.tasks.GetMountedFilesystem;
 import com.emc.sa.service.linux.tasks.GetMultipathBlockDevices;
 import com.emc.sa.service.linux.tasks.GetMultipathPrimaryPartitionDeviceParentDmName;
@@ -449,6 +450,10 @@ public class LinuxSupport {
         execute(new CheckFileSystem(device, true));
         execute(new ResizeFileSystem(device));
         execute(new CheckFileSystem(device, true));
+    }
+
+    public String getFilesystemBlockSize(String path) {
+        return execute(new GetFilesystemBlockSize(path));
     }
 
     public <T extends BlockObjectRestRep> String getDevice(T volume, boolean usePowerPath) {

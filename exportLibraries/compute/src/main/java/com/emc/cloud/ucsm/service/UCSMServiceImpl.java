@@ -537,7 +537,8 @@ public class UCSMServiceImpl implements UCSMService {
                     serviceProfileNameIsDuplicate = isServiceProfileDuplicate(
                             existingLsServers, serviceProfileNameToUse);
                 }
-            } else if (serviceProfileNameIsDuplicate) {
+            }
+	    if (serviceProfileNameIsDuplicate) {
                 errorMessage.append("Service Profile name" + serviceProfileName + "is already in use");
                 throw new RuntimeException("Service Profile template duplicate");
             }

@@ -1064,7 +1064,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     String.format("removeVolume failed - maskURI: %s",
                             exportMaskURI.toString()),
                     e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(e.getMessage(), e);
             taskCompleter.error(dbClient, serviceError);
         }
         log.info("{} removeVolumes END...", storage.getSerialNumber());

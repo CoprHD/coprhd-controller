@@ -297,6 +297,29 @@ public class IsilonApi {
     }
 
     /**
+     * Checks to see if the file system directory has some data or not
+     * 
+     * @param fspath
+     *            directory path to check
+     * @return boolean true if directory has data, false otherwise
+     */
+    public boolean fsDirHasData(String fspath) throws IsilonException {
+        try {
+            IsilonList<String> fsData = listDir(fspath, null);
+            if (fsData != null && fsData.size() > 0) {
+                sLogger.info("file system {} has content", fspath);
+                return true;
+            } else {
+                sLogger.info("file system {} does not have content", fspath);
+                return false;
+            }
+        } catch (Exception e) {
+            sLogger.warn("dirHasData - Unable to get the content of fs {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Create a directory with the path specified, will fail if parent does not
      * exist
      * 

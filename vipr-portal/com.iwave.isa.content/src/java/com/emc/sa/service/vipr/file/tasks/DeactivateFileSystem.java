@@ -14,7 +14,7 @@ import com.emc.vipr.client.Task;
 
 public class DeactivateFileSystem extends WaitForTask<FileShareRestRep> {
     private final URI fileSystemId;
-    
+
     private FileControllerConstants.DeleteTypeEnum fileDeletionType;
 
     public DeactivateFileSystem(String fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
@@ -34,7 +34,7 @@ public class DeactivateFileSystem extends WaitForTask<FileShareRestRep> {
     @Override
     protected Task<FileShareRestRep> doExecute() throws Exception {
         FileSystemDeleteParam param = new FileSystemDeleteParam();
-        param.setForceDelete(true);
+        param.setForceDelete(false);
         param.setDeleteType(fileDeletionType.toString());
         return getClient().fileSystems().deactivate(fileSystemId, param);
     }

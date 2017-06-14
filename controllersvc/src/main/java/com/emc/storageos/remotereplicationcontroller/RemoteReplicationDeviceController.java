@@ -26,6 +26,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDevice;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationEstablishCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailbackCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailoverCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationGroupCompleter;
@@ -161,7 +162,10 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public void establish(RemoteReplicationElement replicationElement, String opId) {
+        RemoteReplicationEstablishCompleter taskCompleter = new RemoteReplicationEstablishCompleter(replicationElement, opId);
 
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.establish(replicationElement, taskCompleter);
     }
 
     @Override

@@ -84,9 +84,20 @@ def remotereplicationset_swap(args):
     print 'Replication set uri: ' + replicationset_uri
     s = bourne.replicationset_swap(replicationset_uri)
     if (s['state'] == 'ready'):
-        print 'Swap remote replication set with id ' + s['resource']['id']
+        print 'Swapped remote replication set with id ' + s['resource']['id']
     else:
         print 'Failed to swap remote replication set.'
+
+def remotereplicationset_establish(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_establish(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Established links for remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to etablish links for remote replication set.'
 
 #----------------------------------------------------------------------
 # command-line parsing
@@ -143,6 +154,9 @@ try:
     elif (cmd == "swap"):
         args = operation.parse_args()
         remotereplicationset_swap(args)
+    elif (cmd == "establish"):
+        args = operation.parse_args()
+        remotereplicationset_establish(args)
     else:
         parser.print_help()
 

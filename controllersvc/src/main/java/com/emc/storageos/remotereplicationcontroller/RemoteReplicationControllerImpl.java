@@ -106,12 +106,11 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
 
     @Override
     public void establish(RemoteReplicationElement replicationElement, String opId) {
-
+        exec("establish", replicationElement, opId);
     }
 
     @Override
     public void failover(RemoteReplicationElement replicationElement, String opId) {
-
         exec("failover", replicationElement, opId);
     }
 

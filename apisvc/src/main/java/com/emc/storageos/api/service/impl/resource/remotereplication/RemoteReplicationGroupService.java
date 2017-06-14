@@ -34,6 +34,7 @@ import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
 
 import org.apache.commons.lang3.StringUtils;
@@ -448,6 +449,13 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         URI targetSystem = param.getTargetSystem();
         precheckStorageSystem(sourceSystem, "source system");
         precheckStorageSystem(targetSystem, "target system");
+
+        StorageSystem sourceSystemObject = _dbClient.queryObject(StorageSystem.class, sourceSystem);
+        StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext().getBean(
+                StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        if (storageDriverManager != null && !storageDriverManager.isDriverManaged(sourceSystemObject.getSystemType())) {
+            throw APIException.badRequests.unsupportedSystemType(sourceSystemObject.getSystemType());
+        }
 
         List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> rrGroupsForSystem =
                 queryActiveResourcesByRelation(_dbClient, sourceSystem, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class,

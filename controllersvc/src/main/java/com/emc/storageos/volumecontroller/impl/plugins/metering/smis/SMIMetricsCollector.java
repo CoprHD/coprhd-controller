@@ -66,7 +66,7 @@ public class SMIMetricsCollector {
             // Step 4: if port in db is null just continue.
             if (null == port) {
                 continue;
-            } else if (!port.getInactive() && metrics[0].endsWith(port.getPortName())) {
+            } else if (!port.getInactive()) // && metrics[0].endsWith(port.getPortName())) {
                 // Step 5: Check whether provider returned port
                 // exists in db or not. if port exists in db,
                 // then create a PortStat object for it.

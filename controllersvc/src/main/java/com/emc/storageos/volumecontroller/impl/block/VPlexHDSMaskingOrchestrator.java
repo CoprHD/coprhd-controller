@@ -335,12 +335,6 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 for (String targetId : exportMask.getStoragePorts()) {
                     targets.add(URI.create(targetId));
                 }
-                // Set the volumes to added to the exportMask.
-                if (volumeMap != null) {
-                    for (URI volume : volumeMap.keySet()) {
-                        exportMask.addVolume(volume, volumeMap.get(volume));
-                    }
-                }
                 device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {

@@ -793,13 +793,8 @@ public class SRDFUtils implements SmisConstants {
      * @return
      */
     public static boolean containsRaGroupName(StringSet grpNames, String label) {
-        // check on each name instead of .contains() as we need to ignore case difference.
-        for (String name : grpNames) {
-            if (name.equalsIgnoreCase(label)) {
-                return true;
-            }
-        }
-        return false;
+        // COP-30432 match RDF group name with case sensitive check
+        return grpNames.contains(label);
     }
 
     /**

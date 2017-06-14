@@ -135,6 +135,43 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
     }
     
     @Test
+    public void testCheckIndexingCF_SkipRecordWithNoInactiveColumn() throws Exception {
+    	ColumnFamily<String, CompositeColumnName> cf = new ColumnFamily<String, CompositeColumnName>("FileShare",
+                StringSerializer.get(),
+                CompositeColumnNameSerializer.get());
+        
+        FileShare testData = new FileShare();
+        testData.setId(URIUtil.createId(FileShare.class));
+        testData.setPath("path1");
+        testData.setMountPath("mountPath1");
+        getDbClient().updateObject(testData);
+        
+        Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
+        keyspace.prepareQuery(cf)
+                .withCql(String.format(
+                        "delete from \"FileShare\" where key='%s' and column1='inactive'",
+                        testData.getId().toString()))
+                .execute();
+        
+        CheckResult checkResult = new CheckResult();
+        helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+        assertEquals(0, checkResult.getTotal());
+        
+        testData = new FileShare();
+        testData.setId(URIUtil.createId(FileShare.class));
+        testData.setPath("path1");
+        testData.setMountPath("mountPath1");
+        getDbClient().updateObject(testData);
+        
+        testData = (FileShare)getDbClient().queryObject(testData.getId());
+        testData.setInactive(true);
+        getDbClient().updateObject(testData);
+        
+        helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+        assertEquals(0, checkResult.getTotal());
+    }
+    
+    @Test
     public void testCheckIndexingCF() throws Exception {
         ColumnFamily<String, CompositeColumnName> cf = new ColumnFamily<String, CompositeColumnName>("FileShare",
                 StringSerializer.get(),

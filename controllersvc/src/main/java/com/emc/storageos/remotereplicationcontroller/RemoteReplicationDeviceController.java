@@ -33,6 +33,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.Rem
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationPairCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationResumeCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSplitCompleter;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationStopCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSuspendCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSwapCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -154,7 +155,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public void stop(RemoteReplicationElement replicationElement, String opId) {
-        RemoteReplicationSuspendCompleter taskCompleter = new RemoteReplicationSuspendCompleter(replicationElement, opId);
+        RemoteReplicationStopCompleter taskCompleter = new RemoteReplicationStopCompleter(replicationElement, opId);
 
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
         rrDevice.stop(replicationElement, taskCompleter);

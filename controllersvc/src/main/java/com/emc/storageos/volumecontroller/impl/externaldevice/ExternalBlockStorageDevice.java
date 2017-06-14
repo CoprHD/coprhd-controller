@@ -2049,8 +2049,17 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     @Override
     public void stop(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+        _log.info("Stop remote replication element {} with system id {}", replicationElement.getType(), replicationElement.getElementUri());
 
-        // Todo: call deleteReplicationPairs(List<URI>, taskCompleter);
+        RemoteReplicationOperationHandler stopHandler = new RemoteReplicationOperationHandler() {
+            @Override
+            protected DriverTask doOperation() {
+                DriverTask task = getDriver().split(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
+                deleteReplicationPairs(getSystemRRPairURIs(), taskCompleter);
+                return task;
+            }
+        };
+        stopHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.SWAP);
     }
 
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
@@ -2385,6 +2394,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
         protected RemoteReplicationOperationContext getContext() {
             return context;
+        }
+
+        protected List<URI> getSystemRRPairURIs() {
+            List<URI> uris = new ArrayList<>();
+            for (RemoteReplicationPair pair : systemRRPairs) {
+                uris.add(pair.getId());
+            }
+            return uris;
         }
 
         /**

@@ -64,9 +64,7 @@
         <package name="configure-network"/>
         <package name="createrepo"/>
         <package name="curl"/>
-        <package name="dhcp"/>
-        <package name="dhcp-client"/>
-        <package name="dhcp-server"/>
+        <package name="dhcpcd"/>
         <package name="expect"/>
         <package name="fontconfig"/>
         <package name="fonts-config"/>
@@ -98,7 +96,7 @@
         <package name="libgcrypt-devel"/>
         <package name="libGeoIP1"/>
         <package name="libgpg-error-devel"/>
-        <package name="libmng1"/>
+        <package name="libmng2"/>
         <package name="libopenssl-devel"/>
         <package name="libpcrecpp0"/>
         <package name="libpcreposix0"/>
@@ -172,11 +170,12 @@
         <package name="xorg-x11-server"/>
         <package name="xz-devel"/>
         <package name="zlib-devel"/>
-        <package name="boost-license1_58_0"/>
-        <package name="libboost_system1_58_0"/>
-        <package name="libboost_thread1_58_0"/>
+        <package name="boost-license1_63_0"/>
+        <package name="libboost_system1_63_0"/>
+        <package name="libboost_thread1_63_0"/>
         <package name="librados2"/>
         <package name="librbd1"/>
+        <package name="ansible"/>
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>

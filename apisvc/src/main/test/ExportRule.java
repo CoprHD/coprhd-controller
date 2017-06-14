@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
@@ -9,6 +10,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
 import com.emc.storageos.model.file.FileExportUpdateParams.ExportOperationErrorType;
 
 @XmlRootElement
@@ -25,6 +27,7 @@ public class ExportRule {
     private boolean isToProceed = false;
     private ExportOperationErrorType errorTypeIfNotToProceed;
 
+    @JsonIgnore
     public boolean isToProceed() {
         return isToProceed;
     }

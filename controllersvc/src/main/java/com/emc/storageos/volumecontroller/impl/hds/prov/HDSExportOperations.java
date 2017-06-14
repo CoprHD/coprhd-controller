@@ -2124,7 +2124,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                             volumeURIs);
             log.error(errMsg, e);
             ServiceError serviceError = DeviceControllerException.errors
-                    .jobFailedMsg(errMsg, e);
+                    .jobFailedMsg(e.getMessage(), e);
             taskCompleter.error(dbClient, serviceError);
         }
 

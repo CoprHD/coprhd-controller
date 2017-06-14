@@ -53,6 +53,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.HDSConstants;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController.RemoteReplicationOperations;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
@@ -1965,7 +1966,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 return getDriver().establish(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        establishHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "establish");
+        establishHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.ESTABLISH);
     }
 
     @Override
@@ -1978,7 +1979,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 return getDriver().split(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        splitHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "split");
+        splitHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.SPLIT);
     }
 
     @Override
@@ -1991,7 +1992,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 return getDriver().suspend(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        suspendHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "suspend");
+        suspendHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.SUSPEND);
     }
 
     @Override
@@ -2004,7 +2005,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 return getDriver().resume(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        resumeHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "resume");
+        resumeHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.RESUME);
     }
 
     @Override
@@ -2017,7 +2018,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 return getDriver().failover(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        failoverHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "failover");
+        failoverHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.FAIL_OVER);
     }
 
     @Override
@@ -2030,7 +2031,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 return getDriver().failback(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        failbackHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "failback");
+        failbackHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.FAIL_BACK);
     }
 
     @Override
@@ -2043,7 +2044,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 return getDriver().swap(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        swapHandler.processRemoteReplicationTask(replicationElement, taskCompleter, "swap");
+        swapHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.SWAP);
     }
 
     @Override
@@ -2365,7 +2366,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         private URI elementURI;
         private ElementType elementType;
         private TaskCompleter taskCompleter;
-        private String operation;
+        private RemoteReplicationOperations operation;
 
         private RemoteReplicationDriver driver;
         private RemoteReplicationOperationContext context;
@@ -2389,7 +2390,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         /**
          * Get all necessary parameters prepared to do the operation.
          */
-        private void init(RemoteReplicationElement element, TaskCompleter taskCompleter, String operation) {
+        private void init(RemoteReplicationElement element, TaskCompleter taskCompleter, RemoteReplicationOperations operation) {
             this.taskCompleter = taskCompleter;
             this.operation = operation;
             this.elementURI = element.getElementUri();
@@ -2457,7 +2458,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         /**
          * Do operation and complete returned the driver task.
          */
-        public void processRemoteReplicationTask(RemoteReplicationElement element, TaskCompleter taskCompleter, String operation)  {
+        public void processRemoteReplicationTask(RemoteReplicationElement element, TaskCompleter taskCompleter,
+                RemoteReplicationOperations operation) {
             try {
                 init(element, taskCompleter, operation);
                 DriverTask task = doOperation();
@@ -2483,7 +2485,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             String errorMsg = String.format(OPEARTION_FAILURE_MSG_FMT, operation, elementType, elementURI, message);
             _log.error(errorMsg);
             ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed(
-                    operation, Strings.repr(elementType), Strings.repr(elementURI), errorMsg);
+                    operation.toString().toLowerCase(), Strings.repr(elementType), Strings.repr(elementURI), errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
 

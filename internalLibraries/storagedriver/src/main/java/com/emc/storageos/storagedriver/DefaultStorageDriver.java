@@ -652,22 +652,67 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
 
     @Override
     public DriverTask suspend(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        return null;
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "suspend", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "suspend");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
     public DriverTask resume(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        return null;
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "resume", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "resume");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
     public DriverTask split(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        return null;
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "split", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "split");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
+    public DriverTask stop(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "stop", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "stop");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
     public DriverTask establish(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        return null;
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "establish", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "establish");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
@@ -698,7 +743,15 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
 
     @Override
     public DriverTask swap(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        return null;
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "swap", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "swap");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override

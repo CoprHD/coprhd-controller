@@ -124,7 +124,13 @@ public class CustomServicesViprPrimitiveDAO implements
     }
 
     @Override
+    public CustomServicesViPRPrimitive export(URI id) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+    
+    @Override
     public boolean hasResource() {
         return false;
     }
+
 }

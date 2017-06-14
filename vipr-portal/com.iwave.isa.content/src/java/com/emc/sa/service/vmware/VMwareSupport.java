@@ -318,7 +318,7 @@ public class VMwareSupport {
     public void setStorageIOControl(Datastore datastore, Boolean enabled, Boolean failIfErrorDuringEnable) {
         if (enabled != null && datastore != null) {
             if (datastore.getCapability() != null && datastore.getCapability().storageIORMSupported) {
-                execute(new SetStorageIOControl(datastore, enabled));
+                execute(new SetStorageIOControl(datastore, enabled, failIfErrorDuringEnable));
             } else if (enabled && failIfErrorDuringEnable) {
                 ExecutionUtils.fail("failTask.SetStorageIOControl", new Object[] {}, datastore.getName());
             } else {

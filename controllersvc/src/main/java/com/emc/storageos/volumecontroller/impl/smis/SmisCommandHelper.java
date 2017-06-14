@@ -6009,7 +6009,8 @@ public class SmisCommandHelper implements SmisConstants {
     public void updateHostIOLimitBandwidth(WBEMClient client, CIMObjectPath storageGroupPath, Integer hostIOLimitBandwidth)
             throws WBEMException {
         if (hostIOLimitBandwidth == null) {
-            return;
+            // If there is no value provided, consider it as 0 which resets the limit.
+            hostIOLimitBandwidth = 0;
         }
 
         _log.info("Attempting to update Host IO Limit Bandwidth for Storage Group : {} to {}", storageGroupPath.toString(),
@@ -6032,7 +6033,8 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public void updateHostIOLimitIOPs(WBEMClient client, CIMObjectPath storageGroupPath, Integer hostIOLimitIOPs) throws WBEMException {
         if (hostIOLimitIOPs == null) {
-            return;
+            // If there is no value provided, consider it as 0 which resets the limit.
+            hostIOLimitIOPs = 0;
         }
         _log.info("Attempting to update Host IO Limit IOPs for Storage Group : {} to {}", storageGroupPath.toString(), hostIOLimitIOPs);
         CIMPropertyFactory factoryRef = (CIMPropertyFactory) ControllerServiceImpl.getBean("CIMPropertyFactory");

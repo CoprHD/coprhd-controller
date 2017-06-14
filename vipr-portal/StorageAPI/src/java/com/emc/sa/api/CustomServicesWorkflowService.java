@@ -258,7 +258,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         try {
             final CustomServicesWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(getCustomServicesWorkflow(id));
             final ValidationHelper customServicesValidationHelper = new ValidationHelper(wfDocument);
-            final CustomServicesValidationResponse validationResponse = customServicesValidationHelper.validate(id);
+            final CustomServicesValidationResponse validationResponse = customServicesValidationHelper.validate(id,client);
             // update the status of workflow VALID / INVALID in the DB
             final CustomServicesWorkflow wfstatusUpdated = WorkflowHelper.updateState(getCustomServicesWorkflow(id),
                     validationResponse.getStatus());

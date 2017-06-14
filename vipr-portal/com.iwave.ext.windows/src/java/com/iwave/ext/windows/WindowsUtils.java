@@ -15,6 +15,7 @@ import com.iwave.ext.command.CommandOutput;
 public class WindowsUtils {
     /** Message indicating that there was an error in DiskPart. */
     private static final String DISKPART_ERROR = "DiskPart has encountered an error:";
+    private static final String DISKPART_VIRTUAL_DISK_ERROR = "Virtual Disk Service error:";
     /** DiskPart prompt in the output. */
     private static final String DISKPART_PROMPT = "DISKPART>";
     /** FAT drive labels are limited to 11 chars. */
@@ -139,6 +140,10 @@ public class WindowsUtils {
 
     public static String getDiskPartError(String output) {
         String error = StringUtils.substringAfter(output, DISKPART_ERROR);
+        if (StringUtils.isNotBlank(error)) {
+            return StringUtils.trim(StringUtils.substringBefore(error, DISKPART_PROMPT));
+        }
+        error = StringUtils.substringAfter(output, DISKPART_VIRTUAL_DISK_ERROR);
         if (StringUtils.isNotBlank(error)) {
             return StringUtils.trim(StringUtils.substringBefore(error, DISKPART_PROMPT));
         }

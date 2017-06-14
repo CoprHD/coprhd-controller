@@ -74,6 +74,18 @@ public class CustomServicesAnsiblePrimitiveDAO implements
 
     };
     
+    private static final Function<CustomServicesDBAnsiblePrimitive, CustomServicesAnsiblePrimitive> EXPORT_MAPPER = 
+            new Function<CustomServicesDBAnsiblePrimitive, CustomServicesAnsiblePrimitive>() {
+        @Override
+        public CustomServicesAnsiblePrimitive apply(final CustomServicesDBAnsiblePrimitive primitive) {
+            final Map<String, List<InputParameter>> input = CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput());
+            final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
+            final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
+            return new CustomServicesAnsiblePrimitive(primitive, input, attributes, output);
+        }
+
+    };
+    
     @Override
     public String getType() {
         return CustomServicesAnsiblePrimitive.TYPE;
@@ -141,5 +153,11 @@ public class CustomServicesAnsiblePrimitiveDAO implements
     @Override
     public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation) {
         return CustomServicesDBHelper.importDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation, client);
+    }
+
+
+    @Override
+    public CustomServicesAnsiblePrimitive export(URI id) {
+        return CustomServicesDBHelper.exportDBPrimitive(CustomServicesDBAnsiblePrimitive.class, id, primitiveManager, EXPORT_MAPPER);
     }
 }

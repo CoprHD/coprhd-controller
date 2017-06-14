@@ -466,7 +466,11 @@ public class DbClientContext {
         KeyspaceDefinition targetKsDef = cluster.makeKeyspaceDefinition();
         targetKsDef.setName(keyspaceName);
         targetKsDef.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-        targetKsDef.setStrategyOptions(networkStrategyOptions);
+
+        if(networkStrategyOptions != null){
+            targetKsDef.setStrategyOptions(networkStrategyOptions);
+        }
+
 
         return targetKsDef;
     }

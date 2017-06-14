@@ -13,6 +13,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -507,9 +509,16 @@ public class XtremIOProvUtils {
      */
     public static boolean isXtremIOVersion402OrGreater(String version) {
         if (NullColumnValueGetter.isNotNullValue(version)) {
-            // the version will be in the format - 4.0.2-80_ndu.
-            String xioVersion = version.replace(".", "").substring(0, 3);
-            return (Integer.valueOf(xioVersion) >= XIO_4_0_2_VERSION);
+            // the version will be in the format: 4.0.2-80_ndu. Extract the third number between dot and dash
+            // and verify that the numerical value is greater than 2
+            Pattern pattern = Pattern.compile("([0-9]*?\\.[0-9]*?)\\.([0-9]*?)-");
+            Matcher matcher = pattern.matcher(version);
+            while (matcher.find()) {
+                float xioVersion = Float.parseFloat(matcher.group(1));
+                boolean isVersion4 = xioVersion == 4.0;
+                boolean isVersionGreater = xioVersion > 4.0;
+                return isVersionGreater || (isVersion4 && (Integer.valueOf(matcher.group(2)) >= 2));
+            }
         }
 
         return false;

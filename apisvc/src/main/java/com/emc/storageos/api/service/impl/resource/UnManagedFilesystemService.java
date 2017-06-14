@@ -446,10 +446,9 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 // Check for same name File Share in this project
                 if (FileSystemIngestionUtil.checkForDuplicateFSName(_dbClient, project.getId(), deviceLabel, filesystems)) {
-                    _logger.info("File System with name: {}  already exists in given project: {} so, appending id to its name",
+                    _logger.info("File System with name: {}  already exists in given project: {} so, ingnoring it..",
                             filesystem.getLabel(), project.getLabel());
-                    filesystem.setLabel(null == deviceLabel ? "" : deviceLabel.concat(filesystem.getId().toString()));
-                    filesystem.setName(null == fsName ? "" : fsName.concat(filesystem.getId().toString()));
+                    continue;
                 } else {
                     filesystem.setLabel(null == deviceLabel ? "" : deviceLabel);
                     filesystem.setName(null == fsName ? "" : fsName);

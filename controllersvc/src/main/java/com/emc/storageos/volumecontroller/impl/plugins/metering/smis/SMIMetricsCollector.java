@@ -71,8 +71,8 @@ public class SMIMetricsCollector {
                 // exists in db or not. if port exists in db,
                 // then create a PortStat object for it.
             	Stat portStat = new Stat();
-                Long kbytes = 10L;
-                Long iops = 10L;
+                Long kbytes = 10000L;
+                Long iops = 100L;
                 String statisticTime = "20170614113630.666666+000";
                 //write code to get the above values from SRM.
                 
@@ -83,9 +83,9 @@ public class SMIMetricsCollector {
     	
         for (StoragePort port : systemPorts) {
 			Double percentBusy = 0.0;
-			Long idleTicks = 0L;
-			Long cumTicks = 0L;			
-			Long iops = 0L;
+			Long idleTicks = 10L;
+			Long cumTicks = 20L;			
+			Long iops = 100L;
 			String statisticTime = "20170614113630.666666+000";
 			StorageHADomain haDomain = null;
 			

@@ -1628,7 +1628,9 @@ public class FileService extends TaskResourceService {
                 param.getForceDelete(), param.getDeleteType()));
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        if (!param.getForceDelete()) {
+        // Do not delete file system if it has some references to it.
+        if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(param.getDeleteType())
+                || !param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
             if (!fs.getFilePolicies().isEmpty()) {
                 throw APIException.badRequests

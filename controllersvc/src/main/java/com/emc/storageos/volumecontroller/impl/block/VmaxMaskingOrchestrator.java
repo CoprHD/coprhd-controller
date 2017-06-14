@@ -2336,7 +2336,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         }
                     }
                 }
-                String maskName = String.format("%s_%s", oldName, portGroup.getLabel());
+                String maskName = null;
+                if (oldName.endsWith("_")) {
+                    maskName = String.format("%s%s", oldName, portGroup.getLabel());
+                } else {
+                    maskName = String.format("%s_%s", oldName, portGroup.getLabel());
+                }
                 List<Initiator> initiators = _dbClient.queryObject(Initiator.class, 
                         StringSetUtil.stringSetToUriList(oldMask.getInitiators()));
                 newMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,

@@ -1638,9 +1638,9 @@ public class VirtualArrayService extends TaggedResource {
      * get storage port group list for export related catalog services 
      * 
      * @param id - Virtual array URI
-     * @param storageURI - Storage system URI
-     * @param exportGroupURI - Export group URI
-     * @param vpoolURI - virtual pool URI
+     * @param storageURI - OPTIONAL Storage system URI
+     * @param exportGroupURI - OPTIONAL Export group URI
+     * @param vpoolURI - OPTIONAL virtual pool URI
      * @return - Storage port group list
      */
     @GET
@@ -1656,7 +1656,7 @@ public class VirtualArrayService extends TaggedResource {
         ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
         VirtualArray varray = _dbClient.queryObject(VirtualArray.class, id);
         ArgValidator.checkEntity(varray, id, isIdEmbeddedInURL(id));
-        Set<URI> portURIs = new HashSet<URI> ();
+        Set<URI> portURIs = new HashSet<URI>();
 
         // Query the database for the storage ports associated with the
         // VirtualArray. 
@@ -1746,7 +1746,7 @@ public class VirtualArrayService extends TaggedResource {
 
         // return the result.
         for (URI uri : portGroupURIs) {
-            StoragePortGroup portGroup= _dbClient.queryObject(StoragePortGroup.class, uri);
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, uri);
             if (portGroup != null && portGroup.isUsable()) {
                 if (portURIs.containsAll(StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()))) {
                     StoragePortGroupRestRep pgRep = MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);

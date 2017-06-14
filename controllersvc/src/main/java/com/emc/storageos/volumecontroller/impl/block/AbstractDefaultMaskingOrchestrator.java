@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -331,9 +332,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (pathParams.getPortGroup() != null) {
             portGroupURI = pathParams.getPortGroup();
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
-            _log.info("port group is " + portGroup.getLabel());
+            _log.info(String.format("port group is %s" , portGroup.getLabel()));
             List<URI> storagePorts = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
-            if (storagePorts != null && !storagePorts.isEmpty()) {
+            if (!CollectionUtils.isEmpty(storagePorts)) {
                 pathParams.setStoragePorts(StringSetUtil.uriListToStringSet(storagePorts));
             } else {
                 _log.error(String.format("The port group %s does not have any port members", portGroup));
@@ -664,8 +665,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         
         URI pgURI = exportMask.getPortGroup();
         if (!NullColumnValueGetter.isNullURI(pgURI)) {
-            // It has port group
-            
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
             if (!portGroup.getInactive() && !portGroup.getMutable()) {
                 _log.info(String.format("Using the port group %s for allocate ports for adding initiators", 
@@ -1907,7 +1906,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         _log.info(String.format("determineInitiatorToExportMaskPlacements - ExportGroup=%s, exportPathParams=%s",
                 exportGroup.getId().toString(), exportPathParams));
         URI portGroup = exportPathParams.getPortGroup();
-        _log.info("Port group:" + portGroup);
+        _log.info(String.format("Port group: %s" , portGroup));
         // Update mapping based on what is seen on the array
         for (Map.Entry<String, Set<URI>> entry : initiatorToExportMapOnArray.entrySet()) {
             String portName = entry.getKey();

@@ -114,6 +114,20 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
         }
         
     };
+    
+    private static Function<CustomServicesDBRESTApiPrimitive, CustomServicesRESTApiPrimitive> EXPORT_MAPPER = 
+            new Function<CustomServicesDBRESTApiPrimitive, CustomServicesRESTApiPrimitive>() {
+
+        @Override
+        public CustomServicesRESTApiPrimitive apply(CustomServicesDBRESTApiPrimitive primitive) {
+            final Map<String, List<InputParameter>> input = CustomServicesDBHelper.mapInput(RESPONSE_INPUT_TYPES, primitive.getInput());               
+            final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
+            final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
+            return new CustomServicesRESTApiPrimitive(primitive, input, attributes, output);
+        }
+        
+    };
+    
             
     @Override
     public String getType() {
@@ -198,6 +212,11 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     @Override
     public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation) {
         return CustomServicesDBHelper.importDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation, client);
+    }
+    
+    @Override
+    public CustomServicesRESTApiPrimitive export(URI id) {
+        return CustomServicesDBHelper.exportDBPrimitive(CustomServicesDBRESTApiPrimitive.class, id, primitiveManager, EXPORT_MAPPER);
     }
     
     @Override

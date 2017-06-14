@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +78,7 @@ public class DbConsistencyCheckerHelper {
     private static final int INDEX_OBJECTS_BATCH_SIZE = 1000;
     private static final int THREAD_POOL_QUEUE_SIZE = 50;
     private static final int WAITING_TIME_FOR_QUEUE_FULL_MS = 3000;
+    private static final int THRESHHOLD_FOR_OUTPUT_DEBUG = 10000;
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
@@ -172,8 +174,11 @@ public class DbConsistencyCheckerHelper {
         ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
         OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows().setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
 
+        int scannedRows = 0;
+        long beginTime = System.currentTimeMillis();
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
             boolean inactiveObject = false;
+            scannedRows++;
 
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
                 if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
@@ -220,8 +225,15 @@ public class DbConsistencyCheckerHelper {
                             true, toConsole);
                     DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
                             String.format("id:%s, cfName:%s", objRow.getKey(),
-                                    indexedField.getDataObjectType().getSimpleName()));
+                                    doType.getCF().getName()));
                 }
+            }
+            
+            if (scannedRows >= THRESHHOLD_FOR_OUTPUT_DEBUG) {
+            	_log.info("{} data objects have been check with time {}", scannedRows,
+            			DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginTime));
+            	scannedRows = 0;
+            	beginTime = System.currentTimeMillis();
             }
         }
     }
@@ -253,6 +265,8 @@ public class DbConsistencyCheckerHelper {
                 .withColumnRange(new RangeBuilder().setLimit(0).build())
                 .execute();
 
+        int scannedRows = 0;
+        long beginTime = System.currentTimeMillis();
         for (Row<String, IndexColumnName> row : result.getResult()) {
             RowQuery<String, IndexColumnName> rowQuery = indexAndCf.keyspace.prepareQuery(indexAndCf.cf).getKey(row.getKey())
                     .autoPaginate(true)
@@ -261,6 +275,7 @@ public class DbConsistencyCheckerHelper {
             
             while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
                 for (Column<IndexColumnName> column : columns) {
+                	scannedRows++;
                     ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
                             column.getName(), indexAndCf.indexType, toConsole);
                     if (objEntry == null) {
@@ -300,6 +315,13 @@ public class DbConsistencyCheckerHelper {
                         processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
                     }
                     objsToCheck = new HashMap<>();
+                }
+                
+                if (scannedRows >= THRESHHOLD_FOR_OUTPUT_DEBUG) {
+                	_log.info("{} data objects have been check with time {}", scannedRows,
+                			DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginTime));
+                	scannedRows = 0;
+                	beginTime = System.currentTimeMillis();
                 }
             }
         }

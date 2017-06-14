@@ -5536,6 +5536,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
      public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
              TaskCompleter completer) {
          try {
+             ExportOperationContext context = new VmaxExportOperationContext();
+             // Prime the context object
+             completer.updateWorkflowStepContext(context);
+             
              StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
              ExportMask newMask = _dbClient.queryObject(ExportMask.class, newMaskURI);
              ExportMask oldMask = _dbClient.queryObject(ExportMask.class, oldMaskURI);

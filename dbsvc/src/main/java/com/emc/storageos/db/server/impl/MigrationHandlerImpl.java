@@ -14,6 +14,7 @@ import com.emc.storageos.db.common.*;
 import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.Logger;
@@ -196,6 +197,17 @@ public class MigrationHandlerImpl implements MigrationHandler {
             // dbsvcs
             log.warn("Migration is not supported for Geodbsvc. Wait till migration is done");
             statusChecker.waitForMigrationDone();
+
+            // even though migration callbacks are not supported for geodbsvc, cassandra 3 upgrade needs
+            // a slot to update replication strategy for some system keyspaces so that DR will work.
+            try {
+                DbClientContext geoDbContext = dbClient.getGeoContext();
+                geoDbContext.setRepStrategyForSystemKS(null);
+
+            } catch (ConnectionException e) {
+                log.error("Fail to update replication strategy for system keyspaces", e);
+                throw DatabaseException.fatals.failedToChangeStrategyOption(e.getMessage());
+            }
 
             // Update vdc version
             if (schemaVersionChanged) {

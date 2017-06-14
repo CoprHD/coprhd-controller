@@ -27,7 +27,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
  */
 @SuppressWarnings("serial")
 public abstract class AbstractRemoteReplicationOperationCompleter extends TaskCompleter {
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private static Logger log = LoggerFactory.getLogger(AbstractRemoteReplicationOperationCompleter.class);
 
     private DbClient dbClient;
     private RemoteReplicationSet.ElementType elementType;

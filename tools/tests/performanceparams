@@ -75,7 +75,7 @@ def pp_search(args):
     else:
         print 'Result: ', array
 
-pp_display_fmt = '{0:16s} {1:8s} {2:60s} {3:s}'
+pp_display_fmt = '{0:16s} {1:8s} {2:75s} {3:s}'
 
 def pp_display_hdr():
     print pp_display_fmt.format('name', 'active', 'id', 'description')

@@ -156,6 +156,7 @@ public class VNXeApiClient {
     public static int STANDALONE_LUN_TYPE = 2;
     public String netBios;
     private static final String VIPR_TMP_HOST_PREFIX = "VIPR_INTERNAL_";
+    private static final long UNITY_FS_MIN_USED_SIZE = 0;
 
     // the client to invoke VNXe requests
     private KHClient _khClient;
@@ -396,6 +397,9 @@ public class VNXeApiClient {
     public VNXeCommandJob deleteFileSystem(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
+        if (isFileSystemHasData(fsId)) {
+            throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system with data for id: " + fsId);
+        }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);
         return req.deleteFileSystemAsync(fsId, forceSnapDeletion);
     }
@@ -413,8 +417,32 @@ public class VNXeApiClient {
     public VNXeCommandResult deleteFileSystemSync(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
+        if (isFileSystemHasData(fsId)) {
+            throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system with data for id: " + fsId);
+        }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);
         return req.deleteFileSystemSync(fsId, forceSnapDeletion);
+    }
+
+    /**
+     * Checks to see if the file system has some data or not
+     * 
+     * @param fsId
+     *            fsID to check
+     * @return boolean true if directory has data, false otherwise
+     */
+    public boolean isFileSystemHasData(String fsId) {
+        FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
+        VNXeFileSystem fs = fsRequest.get();
+        if (fs != null) {
+            if (fs.getSizeUsed() > UNITY_FS_MIN_USED_SIZE) {
+                return true;
+            } else {
+
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

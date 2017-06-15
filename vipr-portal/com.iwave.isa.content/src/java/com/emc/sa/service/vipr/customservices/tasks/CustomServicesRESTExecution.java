@@ -143,17 +143,21 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
         final String target = AnsibleHelper.getOptions(CustomServicesConstants.TARGET, input);
         final String path = primitive.getAttributes().get(CustomServicesConstants.PATH);
-        final String port = AnsibleHelper.getOptions(CustomServicesConstants.PORT, input);
+        String port = AnsibleHelper.getOptions(CustomServicesConstants.PORT, input);
         final String protocol =  primitive.getAttributes().get(CustomServicesConstants.PROTOCOL);
 
 
-        if (StringUtils.isEmpty(target) || StringUtils.isEmpty(path) || StringUtils.isEmpty(port) || StringUtils.isEmpty(protocol)) {
-            logger.error("target/path/port is not defined. target:{}, path:{}, port:{}", target, path, port);
+        if (StringUtils.isEmpty(target) || StringUtils.isEmpty(path) || StringUtils.isEmpty(protocol)) {
+            logger.error("target/path/port is not defined. target:{}, path:{}, port:{}", target, path);
 
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), "Cannot build URL");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot build URL");
         }
 
+        if (StringUtils.isEmpty(port)) {
+            logger.debug("port is not set. use default port: {}", CustomServicesConstants.DEFAULT_HTTPS_PORT);
+            port = CustomServicesConstants.DEFAULT_HTTPS_PORT;
+        }
         return String.format("%s://%s:%s/%s", protocol, target, port, RESTHelper.makePath(path, input, null));
     }
 }

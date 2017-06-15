@@ -68,6 +68,9 @@ public final class RESTHelper {
     public static String makePostBody(final String body, final int pos, final Map<String, List<String>> input) {
 
         logger.info("make body for" + body);
+        if (StringUtils.isEmpty(body)) {
+            return "";
+        }
         final String[] strs = body.split("(?<=:)");
 
         for (int j = 0; j < strs.length; j++) {

@@ -14636,7 +14636,7 @@ performanceparams_setup()
 performanceparams_tests()
 {
     # Create a performance parameters instance.
-    pp1=PerformanceParams-${RANDOM}
+    pp1=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp1}"
     run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name FAST \
          --host_io_limit_bandwidth 10000 --host_io_limit_iops 20000 --thin_vol_prealloc_percentage 25 \
@@ -14651,7 +14651,7 @@ performanceparams_tests()
     performanceparams show ${pp1_update_name}
 
     # Create a performance parameters instance without passing all params so that defaults are used.
-    pp2=PerformanceParams-${RANDOM}
+    pp2=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp2}"
     run performanceparams create ${pp2} --description "${pp2}-Description"
     performanceparams show ${pp2}

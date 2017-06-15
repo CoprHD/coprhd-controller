@@ -140,7 +140,7 @@ public final class CustomServicesConstants {
     public static final String TARGET = "target";
     public static final String PATH = "path";
     public static final String PORT = "port";
-    public static final String DEFAULT_HTTPS_PORT = "4443";
+    public static final String DEFAULT_HTTPS_PORT = "443";
 
     // Execution Result
     public static final String OPERATION_OUTPUT = "operation_output";

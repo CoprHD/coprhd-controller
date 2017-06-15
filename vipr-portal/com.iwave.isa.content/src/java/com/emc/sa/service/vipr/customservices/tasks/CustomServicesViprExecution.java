@@ -201,8 +201,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             logger.info("uri:{} value:{}", e.getKey(), e.getValue());
             final URI uri = e.getKey();
             for (final ViprOperation.ViprTask t : tasks) {
-                if(t.getResource()!=null && !StringUtils.isEmpty(t.getResource().getId()) &&
-                        t.getResource().getId().equals(uri.toString())) {
+                if(!StringUtils.isEmpty(t.getId()) && t.getId().equals(uri.toString())) {
                     logger.info("Update the state");
                     t.setState(e.getValue());
                 }

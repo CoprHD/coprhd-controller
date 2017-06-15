@@ -20,6 +20,7 @@ public class ViprOperation {
         private String inactive;
         private String global;
         private String remote;
+        private String vdc;
         private String internal;
         private Resource resource;
         private Tenant tenant;
@@ -50,6 +51,10 @@ public class ViprOperation {
 
         public String getRemote() {
             return remote;
+        }
+
+        public String getVdc() {
+            return vdc;
         }
 
         public String getInternal() {
@@ -126,6 +131,19 @@ public class ViprOperation {
         public String getName() {
             return name;
         }
+
+        public String getId() {
+            return id;
+        }
+
+        public Link getLink() {
+            return link;
+        }
+    }
+
+    public static class Vdc {
+        private String id;
+        private Link link;
 
         public String getId() {
             return id;

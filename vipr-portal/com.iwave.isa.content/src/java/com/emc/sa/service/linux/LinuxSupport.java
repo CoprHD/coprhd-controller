@@ -452,8 +452,14 @@ public class LinuxSupport {
         execute(new CheckFileSystem(device, true));
     }
 
-    public String getFilesystemBlockSize(String path) {
-        return execute(new GetFilesystemBlockSize(path));
+    /**
+     * Get the block size of the given filesystem device
+     * 
+     * @param device the device to check the partition size
+     * @return block size of the device or null if not found
+     */
+    public String getFilesystemBlockSize(String device) {
+        return execute(new GetFilesystemBlockSize(device));
     }
 
     public <T extends BlockObjectRestRep> String getDevice(T volume, boolean usePowerPath) {

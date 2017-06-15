@@ -10,20 +10,25 @@ import java.util.regex.Pattern;
 import com.iwave.ext.linux.command.CommandConstants;
 import com.iwave.ext.linux.command.LinuxResultsCommand;
 
+/**
+ * Linux command for getting the block size of the filesystem device
+ * This command runs the fdisk -l device command and gets the block size of the partition
+ * 
+ */
 public class GetFilesystemBlockSizeCommand extends LinuxResultsCommand<String> {
-    private static final Pattern diskPattern = Pattern.compile("\\w+\\s+[0-9]+\\s+[0-9]+\\s+([0-9]+)");
 
-    public GetFilesystemBlockSizeCommand(String path) {
+    private static final Pattern partitionPattern = Pattern.compile("\\w+\\s+[0-9]+\\s+[0-9]+\\s+([0-9]+)");
+
+    public GetFilesystemBlockSizeCommand(String device) {
         setCommand(CommandConstants.FDISK);
         addArguments("-l");
-        addArguments(path);
+        addArguments(device);
         setRunAsRoot(true);
     }
 
     @Override
     public void parseOutput() {
-        Matcher matcher = diskPattern.matcher(getOutput().getStdout());
-        System.out.println(getOutput().getStdout());
+        Matcher matcher = partitionPattern.matcher(getOutput().getStdout());
         while (matcher.find()) {
             results = matcher.group(1);
         }

@@ -27,6 +27,7 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import com.emc.storageos.security.authorization.Role;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.commons.lang.StringUtils;
@@ -110,11 +111,12 @@ public class WorkflowServiceDescriptor {
             }
 
             to.setCategory(CUSTOM_SERVICE_CATEGORY);
-            to.setDescription(wfDocument.getDescription());
+            to.setDescription(StringUtils.isNotBlank(wfDocument.getDescription()) ?  wfDocument.getDescription() : wfDocument.getName());
             to.setDestructive(false);
             to.setServiceId(wfDocument.getName());
             to.setTitle(wfDocument.getName());
             to.setWorkflowId(wfDocument.getName());
+            to.setRoles(new ArrayList<String>(Arrays.asList(Role.SYSTEM_ADMIN.toString())));
 
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {

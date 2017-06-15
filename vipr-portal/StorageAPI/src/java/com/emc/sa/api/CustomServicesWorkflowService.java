@@ -77,7 +77,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+@DefaultPermissions(readRoles = {Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
         Role.SYSTEM_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 @Path("/customservices/workflows")
 public class CustomServicesWorkflowService extends CatalogTaggedResourceService {

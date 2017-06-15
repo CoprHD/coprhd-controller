@@ -65,7 +65,7 @@ import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
  * WF Directory API service
  */
 
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
         Role.SYSTEM_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 @Path("/customservices/workflows/directory")
 public class WFDirectoryService extends TaggedResource {

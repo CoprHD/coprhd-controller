@@ -36,6 +36,7 @@ import models.customservices.LocalAnsiblePrimitiveForm;
 import models.customservices.RemoteAnsiblePrimitiveForm;
 import models.customservices.RestAPIPrimitiveForm;
 import models.customservices.ShellScriptPrimitiveForm;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -379,12 +380,14 @@ public class WorkflowBuilder extends Controller {
                 workflowURI);
 
         // Delete this reference in WFDirectory
-        final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
-        final Set<URI> removeWorkflows = new HashSet<URI>();
-        removeWorkflows.add(workflowURI);
-        param.setWorkflows(new WFDirectoryWorkflowsUpdateParam(null,
-                removeWorkflows));
-        getCatalogClient().wfDirectories().edit(new URI(dirID), param);
+        if (!StringUtils.equals(MY_LIBRARY_ROOT, dirID)) {
+            final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
+            final Set<URI> removeWorkflows = new HashSet<URI>();
+            removeWorkflows.add(workflowURI);
+            param.setWorkflows(new WFDirectoryWorkflowsUpdateParam(null,
+                    removeWorkflows));
+            getCatalogClient().wfDirectories().edit(new URI(dirID), param);
+        }
     }
 
     public static void deletePrimitive(final String primitiveId,

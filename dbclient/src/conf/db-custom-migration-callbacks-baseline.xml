@@ -10,7 +10,7 @@
     dbsvc\src\conf\db-custom-migration-callbacks.xml
     If you have any concern about this file, feel free to contact infrastructure team.
     -->
-    <util:map id="versionedCustomMigrationCallbacks">
+        <util:map id="versionedCustomMigrationCallbacks">
         <entry key="1.0">
             <list>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.DataObjectInactiveFieldScrubber"/>

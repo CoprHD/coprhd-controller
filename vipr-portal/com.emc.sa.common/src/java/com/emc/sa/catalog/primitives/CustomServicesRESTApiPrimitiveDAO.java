@@ -38,7 +38,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRESTApiPrimitive;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
@@ -114,6 +113,20 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
         }
         
     };
+    
+    private static Function<CustomServicesDBRESTApiPrimitive, CustomServicesRESTApiPrimitive> EXPORT_MAPPER = 
+            new Function<CustomServicesDBRESTApiPrimitive, CustomServicesRESTApiPrimitive>() {
+
+        @Override
+        public CustomServicesRESTApiPrimitive apply(CustomServicesDBRESTApiPrimitive primitive) {
+            final Map<String, List<InputParameter>> input = CustomServicesDBHelper.mapInput(RESPONSE_INPUT_TYPES, primitive.getInput());               
+            final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
+            final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
+            return new CustomServicesRESTApiPrimitive(primitive, input, attributes, output);
+        }
+        
+    };
+    
             
     @Override
     public String getType() {
@@ -197,7 +210,12 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     
     @Override
     public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation) {
-        return CustomServicesDBHelper.importDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation, client);
+        return CustomServicesDBHelper.importDBPrimitive(CustomServicesDBRESTApiPrimitive.class, operation, client);
+    }
+    
+    @Override
+    public CustomServicesRESTApiPrimitive export(URI id) {
+        return CustomServicesDBHelper.exportDBPrimitive(CustomServicesDBRESTApiPrimitive.class, id, primitiveManager, EXPORT_MAPPER);
     }
     
     @Override

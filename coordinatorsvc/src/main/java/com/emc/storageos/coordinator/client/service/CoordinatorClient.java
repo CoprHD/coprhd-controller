@@ -491,6 +491,16 @@ public interface CoordinatorClient {
     public ClusterInfo.ClusterState getControlNodesState();
 
     /**
+     * check if all dbsvc up 
+     */
+    public Boolean isAllDbsvcUp();
+
+    /**
+     * check if all geodbsvc up
+     */
+    public Boolean isAllGeodbsvcUp();
+
+    /**
      * Get control nodes state for specified site
      * 
      * @param siteId

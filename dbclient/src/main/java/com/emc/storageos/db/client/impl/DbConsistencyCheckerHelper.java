@@ -190,6 +190,9 @@ public class DbConsistencyCheckerHelper {
             }
             
             if (hasInactiveColumn || inactiveObject) {
+            	if (hasInactiveColumn) {
+            		_log.warn("Data object with key {} has NO inactive column, don't rebuild index for it.", objRow.getKey());
+            	}
             	continue;
             }
 

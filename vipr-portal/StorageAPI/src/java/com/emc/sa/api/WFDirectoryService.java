@@ -34,6 +34,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.security.authorization.CheckPermission;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +91,9 @@ public class WFDirectoryService extends TaggedResource {
      * @return List of workflow directories
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+
     public WFDirectoryList getWorkflowDirectories() {
         List<WFDirectory> wfDirectories = wfDirectoryManager.getWFDirectories();
         WFDirectoryList wfDirectoryList = new WFDirectoryList();
@@ -111,6 +114,7 @@ public class WFDirectoryService extends TaggedResource {
      * @return list of representations
      */
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/bulk")
     @Override
@@ -126,6 +130,7 @@ public class WFDirectoryService extends TaggedResource {
      * @return Workflow directory
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public WFDirectoryRestRep getWFDirectory(@PathParam("id") URI id) {
@@ -141,6 +146,7 @@ public class WFDirectoryService extends TaggedResource {
      * @return Created workflow directory
      */
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public WFDirectoryRestRep createWFDirectory(WFDirectoryParam wfDirectoryParam) {
@@ -185,6 +191,7 @@ public class WFDirectoryService extends TaggedResource {
      * @return No data returned in response body
      */
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     public Response deactivateWFDirectory(@PathParam("id") URI id) {
@@ -201,6 +208,7 @@ public class WFDirectoryService extends TaggedResource {
      * @return Updated workflow directory
      */
     @PUT
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public WFDirectoryRestRep updateWFDirectory(@PathParam("id") URI id, WFDirectoryUpdateParam param) {

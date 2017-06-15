@@ -40,6 +40,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.security.authorization.CheckPermission;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,6 +100,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     private CoordinatorClient coordinator;
 
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status, @QueryParam("primitiveId") String primitiveId) {
         List<NamedElement> elements;
@@ -120,6 +122,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep getWorkflow(@PathParam("id") final URI id) {
@@ -127,6 +130,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep addWorkflow(final CustomServicesWorkflowCreateParam workflow) {
         if (StringUtils.isNotBlank(workflow.getDocument().getName())) {
@@ -147,6 +151,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @PUT
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep updateWorkflow(@PathParam("id") final URI id, final CustomServicesWorkflowUpdateParam workflow) {
@@ -189,6 +194,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivateWorkflow(@PathParam("id") final URI id) {
@@ -205,6 +211,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Path("/{id}/publish")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep publishWorkflow(@PathParam("id") final URI id) {
@@ -226,6 +233,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Path("/{id}/unpublish")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep unpublishWorkflow(@PathParam("id") final URI id) {
@@ -252,6 +260,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Path("/{id}/validate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesValidationResponse validateWorkflow(@PathParam("id") final URI id) {
@@ -271,6 +280,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Path("/bulk")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowBulkRep bulkGetWorkflows(final BulkIdParam ids) {
@@ -278,6 +288,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/import")
@@ -308,6 +319,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
      * @return Response containing the octet stream of the primitive resource
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN})
     @Path("{id}/export")
     public Response download(@PathParam("id") final URI id,
             @Context final HttpServletResponse response) {

@@ -1557,7 +1557,7 @@ filter_backend_vplex_masks() {
   slot=$1
   column_families="ExportMask ExportGroup"
 
-  rem_trailing_spaces="| sed -e 's/^\s*//' "
+  rem_leading_spaces="| sed -e 's/^\s*//' "
   grep_by_id_and_label="| grep -E '^label = VPLEX_([[:digit:]]{4}_){2}_|id: ' "
   grep_by_id="| grep -E '^id: ' "
   print_id="| awk '{ print \$NF }' "
@@ -1569,7 +1569,7 @@ filter_backend_vplex_masks() {
     # Skip if the file does not exist.
     [ ! -f ${result_file} ] && continue
 
-    execute="cat ${result_file} ${rem_trailing_spaces} ${grep_by_id_and_label} ${grep_by_id} ${print_id}"
+    execute="cat ${result_file} ${rem_leading_spaces} ${grep_by_id_and_label} ${grep_by_id} ${print_id}"
     ids=`eval $execute`
     
     for id in $ids

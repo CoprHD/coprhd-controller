@@ -320,6 +320,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
              */
             isiDeleteSnapshotSchedules(isi, args);
         } else {
+
+            /**
+             * Delete quota on this path, if one exists
+             */
+            if (args.getFsExtensions() != null && args.getFsExtensions().containsKey(QUOTA)) {
+                isi.deleteQuota(args.getFsExtensions().get(QUOTA));
+                // delete from extensions
+                args.getFsExtensions().remove(QUOTA);
+            }
+
             /**
              * Delete the directory associated with the file share.
              * with recursive flag false

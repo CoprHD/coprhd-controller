@@ -443,12 +443,34 @@ public class DbClientContext {
 
     }
 
+    public Map<String, String> createSystemKsRepOptions(DrUtil drUtil) {
+
+        Map<String, String> targetRepOptions = new HashMap<>();
+
+        List<Site> sites = drUtil.listSites();
+
+        for (Site site : sites) {
+            String siteCassandraDcId = drUtil.getCassandraDcId(site);
+            String siteRepFactor = Integer.toString(site.getNodeCount());
+
+            targetRepOptions.put(siteCassandraDcId, siteRepFactor);
+        }
+
+        return targetRepOptions;
+    }
+
     /**
      *  set some system keyspaces' replication strategy to NetworkTopologyStrategy, otherwise,
      *  dbsvc will not start when adding a standby.
      *
      *  This is specific to Cassandra 3.
      */
+    public void setRepStrategyForSystemKS(DrUtil drUtil) throws ConnectionException {
+
+        setRepStrategyForSystemKS(createSystemKsRepOptions(drUtil));
+
+    }
+
     public void setRepStrategyForSystemKS(Map<String, String> initNetworkStrategyOptions) throws ConnectionException {
 
         log.info("beginning setting replication strategy for system keyspaces to NetworkTopologyStrategy");
@@ -692,6 +714,7 @@ public class DbClientContext {
         return !currentDef.getStrategyClass().equals(targetDef.getStrategyClass()) ||
                 !currentDef.getStrategyOptions().equals(targetDef.getStrategyOptions());
     }
+
 
 
     class KeyspaceTracerFactoryImpl implements KeyspaceTracerFactory {

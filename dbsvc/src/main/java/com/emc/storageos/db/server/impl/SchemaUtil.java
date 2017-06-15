@@ -332,6 +332,7 @@ public class SchemaUtil {
         } else {
             _log.info("keyspace exist already");
             checkStrategyOptions();
+            //on active site, do not change replication strategy for system keyspaces, as upgrade will fail
 //            checkSystemKsRepOptionsForActive();
         }
 
@@ -383,7 +384,7 @@ public class SchemaUtil {
                 }
             }
             checkStrategyOptions();
-//            checkSystemKsRepOptionsForStandby();
+            checkSystemKsRepOptionsForStandby();
             return true;
         }
     }
@@ -413,20 +414,9 @@ public class SchemaUtil {
 
     private void checkSystemKsRepOptionsForStandby() throws ConnectionException {
         // on standby site, make sure NetworkTopologyStretegy is set,
-        // also, repliaction factor for active site is added to strategy options
+        // also, repliaction factor for every site is added to strategy options
 
-        KeyspaceDefinition currentDef = clientContext.getKeyspaceDefinition(clientContext.SYSTEM_DISTRIBUTED_KS);
-
-        Map<String, String> targetRepOptions = createTargetRepOptions();
-
-        KeyspaceDefinition targetDef = clientContext.createTargetSysKsDef(clientContext.SYSTEM_DISTRIBUTED_KS, targetRepOptions);
-
-        if (!clientContext.replicationStrategyToChange(currentDef, targetDef)) {
-
-            _log.info("in standby site, no need to set replication strategy for system keyspaces");
-
-            return;
-        }
+        Map<String, String> targetRepOptions = clientContext.createSystemKsRepOptions(drUtil);
 
         _log.info("in standby site, beginning setting replication strategy for system keyspaces, replication options is:{} ", targetRepOptions );
 
@@ -435,28 +425,6 @@ public class SchemaUtil {
         _log.info("in standby site, finishing setting replication strategy for system keyspaces");
     }
 
-    private Map<String,String> createTargetRepOptions() {
-
-        Map<String, String> targetRepOptions = new HashMap<>();
-
-        String currentDcId = drUtil.getCassandraDcId(drUtil.getLocalSite());
-        String currentRepFactor = Integer.toString(getReplicationFactor());
-
-        targetRepOptions.put(currentDcId, currentRepFactor);
-
-        Site activeSite = drUtil.getActiveSite();
-
-        if(activeSite == null){
-            return targetRepOptions;
-        }
-
-        String activeSiteDcId = drUtil.getCassandraDcId(activeSite);
-        String activeSiteRepFactor = Integer.toString(activeSite.getNodeCount());
-
-        targetRepOptions.put(activeSiteDcId, activeSiteRepFactor);
-
-        return targetRepOptions;
-    }
 
     private int getReachableDcCount() {
         Set<String> dcNames = new HashSet<>();

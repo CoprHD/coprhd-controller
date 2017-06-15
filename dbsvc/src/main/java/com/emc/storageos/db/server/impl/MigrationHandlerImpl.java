@@ -202,7 +202,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             // a slot to update replication strategy for some system keyspaces so that DR will work.
             try {
                 DbClientContext geoDbContext = dbClient.getGeoContext();
-                geoDbContext.setRepStrategyForSystemKS(null);
+                geoDbContext.setRepStrategyForSystemKS(dbClient.getDrUtil());
 
             } catch (ConnectionException e) {
                 log.error("Fail to update replication strategy for system keyspaces", e);

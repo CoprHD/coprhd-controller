@@ -1,5 +1,6 @@
 package com.emc.storageos.db.client.upgrade.callbacks;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.TimeSeriesType;
@@ -31,11 +32,13 @@ public class Cassandra3UpgradeHandler extends BaseCustomMigrationCallback {
 		
 		DbClientImpl dbClient = (DbClientImpl)getDbClient();
 
+
 		DbClientContext dbContext = dbClient.getLocalContext();
 
+		DrUtil drUtil = dbClient.getDrUtil();
 		try {
 
-			dbContext.setRepStrategyForSystemKS(null);
+			dbContext.setRepStrategyForSystemKS(drUtil);
 
 		} catch (Exception e) {
 			log.error("Exception in Cassandra 3 upgrade handler", e);

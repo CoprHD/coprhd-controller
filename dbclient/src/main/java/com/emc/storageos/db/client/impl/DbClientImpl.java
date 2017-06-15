@@ -239,6 +239,10 @@ public class DbClientImpl implements DbClient {
         this.drUtil = drUtil;
     }
 
+    public DrUtil getDrUtil(){
+        return drUtil;
+    }
+
     @Override
     public synchronized void start() {
         if (initDone) {

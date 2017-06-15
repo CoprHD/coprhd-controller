@@ -43,6 +43,7 @@ import javax.wbem.WBEMException;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorRollbackCompleter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1156,7 +1157,16 @@ public class SRDFOperations implements SmisConstants {
             log.info("Swapping Volume Pair {} succeeded ", sourceVolume.getId());
 
             log.info("Changing R1 and R2 characteristics after swap");
-            changeSRDFVolumeBehaviors(sourceVolume, target, dbClient, LinkStatus.SWAPPED.toString());
+            LinkStatus successLinkStatus = LinkStatus.SWAPPED;
+            if (LinkStatus.SWAPPED.name().equalsIgnoreCase(target.getLinkStatus())) {
+                // Already swapped. Move back to CONSISTENT or IN_SYNC.
+                if (Mode.ASYNCHRONOUS.name().equalsIgnoreCase(target.getSrdfCopyMode())) {
+                    successLinkStatus = LinkStatus.CONSISTENT;
+                } else {
+                    successLinkStatus = LinkStatus.IN_SYNC;
+                }
+            }
+            changeSRDFVolumeBehaviors(sourceVolume, target, dbClient, successLinkStatus.toString());
             log.info("Updating RemoteDirectorGroup after swap");
             changeRemoteDirectorGroup(target.getSrdfGroup());
 

@@ -58,6 +58,7 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
@@ -285,10 +286,10 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
             @Context final HttpServletRequest request,
             @QueryParam("directory") final URI directory) {
         final WFDirectory wfDirectory;
-        if (null != directory) {
-            wfDirectory = wfDirectoryManager.getWFDirectoryById(directory);
-        } else {
+        if (URIUtil.isNull(directory) || directory.toString().isEmpty()) {
             wfDirectory = NO_DIR;
+        } else {
+            wfDirectory = wfDirectoryManager.getWFDirectoryById(directory);    
         }
         final InputStream in;
         try {

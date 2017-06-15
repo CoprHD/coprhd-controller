@@ -178,16 +178,21 @@ public class DbConsistencyCheckerHelper {
         long beginTime = System.currentTimeMillis();
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
             boolean inactiveObject = false;
+            boolean hasInactiveColumn = false;
             scannedRows++;
 
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
-                if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
-                	inactiveObject = true;
+                if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME)){
+                	hasInactiveColumn = true;
+                	inactiveObject = column.getBooleanValue();
                 	break;
                 }
             }
             
-            if (inactiveObject) {
+            if (!hasInactiveColumn || inactiveObject) {
+            	if (!hasInactiveColumn) {
+            		_log.warn("Data object with key {} has NO inactive column, don't rebuild index for it.", objRow.getKey());
+            	}
             	continue;
             }
 

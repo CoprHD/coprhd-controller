@@ -510,7 +510,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getCopyNameByConsistencyGroup(AssetOptionsContext ctx, URI consistencyGroupId) {
         ViPRCoreClient client = api(ctx);
         List<RelatedResourceRep> volumes = client.blockConsistencyGroups().get(consistencyGroupId).getVolumes();
-        List<VolumeRestRep> volumeReps = client.blockVolumes().getByRefs(volumes);
+        List<URI> ids = new ArrayList<URI>();
+        
+        for (RelatedResourceRep volume : volumes) {
+        	ids.add(volume.getId());
+        }
+        
+        List<VolumeRestRep> volumeReps = client.blockVolumes().getByIds(ids, null);
         Set<String> copyNames = Sets.newHashSet();
 
         for (VolumeRestRep volumeRep : volumeReps) {

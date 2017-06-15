@@ -1798,7 +1798,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception e) {
-            String errorMsg = String.format("createRemoteReplicationGroup -- Failed to create remote replication group: %s .", systemGroup.getLabel());
+            String errorMsg = String.format("createRemoteReplicationGroup -- Failed to create remote replication group: %s . %s",
+                    systemGroup.getLabel(), e.getMessage());
             _log.error(errorMsg, e);
             ServiceError serviceError = ExternalDeviceException.errors.createRemoteReplicationGroupFailed(systemGroup.getLabel(), errorMsg);
             taskCompleter.error(dbClient, serviceError);

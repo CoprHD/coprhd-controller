@@ -12,6 +12,7 @@ import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreatePar
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
+import com.emc.vipr.client.Task;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.core.impl.TaskUtil;
 import com.emc.vipr.client.impl.RestClient;
@@ -57,12 +58,13 @@ public class RemoteReplicationGroups {
                 PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/" + uuid + "/pairs-not-in-cg");
     }
 
-    public TaskResourceRep createRemoteReplicationGroup(RemoteReplicationGroupCreateParams params) {
+    public Task<TaskResourceRep> createRemoteReplicationGroup(RemoteReplicationGroupCreateParams params) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL +
                 "/create-group");
         TaskResourceRep task = client.postURI(TaskResourceRep.class, params, uriBuilder.build());
         task = TaskUtil.waitForTask(client, task, 0);
-        return task;
+
+        return new Task<TaskResourceRep>(client, task, TaskResourceRep.class);
     }
 
     public BlockConsistencyGroupList listConsistencyGroups(String groupId) {

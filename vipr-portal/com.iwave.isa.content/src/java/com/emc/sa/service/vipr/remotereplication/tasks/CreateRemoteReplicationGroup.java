@@ -4,12 +4,12 @@
  */
 package com.emc.sa.service.vipr.remotereplication.tasks;
 
-import com.emc.sa.service.vipr.ViPRExecutionUtils;
-import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
+import com.emc.vipr.client.Task;
 
-public class CreateRemoteReplicationGroup extends ViPRExecutionTask<TaskResourceRep> {
+public class CreateRemoteReplicationGroup extends WaitForTask<TaskResourceRep> {
 
     RemoteReplicationGroupCreateParams params;
     
@@ -19,19 +19,12 @@ public class CreateRemoteReplicationGroup extends ViPRExecutionTask<TaskResource
     }
 
     @Override
-    public TaskResourceRep executeTask() throws Exception {
+    protected Task<TaskResourceRep> doExecute() throws Exception {
 
         // API expects name for storage type
         params.setStorageSystemType(getClient().storageSystemType().
                 getStorageSystemTypeRestRep(params.getStorageSystemType()).getStorageTypeName());
 
-        TaskResourceRep task = getClient().remoteReplicationGroups().createRemoteReplicationGroup(params);
-
-        if ((task != null) && (task.getResource() != null) ) {
-            ViPRExecutionUtils.addAffectedResource(task.getResource().getId());
-        }
-
-        return task;
-    } 
-
+        return getClient().remoteReplicationGroups().createRemoteReplicationGroup(params);
+    }
 }

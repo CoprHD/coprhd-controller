@@ -1329,11 +1329,6 @@ public class NetworkDeviceController implements NetworkController {
             List<NetworkFCZoneInfo> rollbackList = new ArrayList<NetworkFCZoneInfo>();
             for (NetworkFCZoneInfo info : context.getZoneInfos()) {
                 if (info.canBeRolledBack()) {
-                    // If we were adding zones, we set lastReference so it will be deleted.
-                    if (context.isAddingZones()) {
-                        info.setLastReference(true);
-                        lastReferenceZoneInfo.add(info);
-                    }
                     rollbackList.add(info);
                 }
             }
@@ -1625,11 +1620,7 @@ public class NetworkDeviceController implements NetworkController {
             List<NetworkFCZoneInfo> rollbackList = new ArrayList<NetworkFCZoneInfo>();
             for (NetworkFCZoneInfo info : context.getZoneInfos()) {
                 if (info.canBeRolledBack()) {
-                    // If we were adding zones, we set lastReference so it will be deleted.
-                    if (context.isAddingZones()) {
-                        info.setLastReference(true);
-                        lastReferenceZoneInfo.add(info);
-                    }
+                    //We should not blindly set last reference to true, removed code which does that earlier.
                     rollbackList.add(info);
                 }
             }

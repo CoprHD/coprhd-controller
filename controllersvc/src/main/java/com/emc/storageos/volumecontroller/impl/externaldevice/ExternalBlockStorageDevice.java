@@ -2054,7 +2054,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         RemoteReplicationOperationHandler stopHandler = new RemoteReplicationOperationHandler() {
             @Override
             protected DriverTask doOperation() {
-                DriverTask task = getDriver().split(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
+                DriverTask task = getDriver().stop(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
                 deleteReplicationPairs(getSystemRRPairURIs(), taskCompleter);
                 return task;
             }

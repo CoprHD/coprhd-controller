@@ -319,7 +319,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // File the request with force delete
         if (args.getForceDelete()) {
             _log.error("File System delete operation is not supported with force delete {} ", args.getForceDelete());
-            throw DeviceControllerException.exceptions.deleteFileSystemNotSupported();
+            throw IsilonException.exceptions.deleteFileSystemNotSupported();
 
         } else {
 
@@ -328,7 +328,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (isi.fsDirHasData(args.getFsMountPath())) {
                 // Fail to delete file system directory which has data in it!!!
                 _log.error("File system delation failed as it's directory {} has content in it", args.getFsMountPath());
-                throw DeviceControllerException.exceptions.failToDeleteFileSystem(args.getFsMountPath());
+                throw IsilonException.exceptions.failToDeleteFileSystem(args.getFsMountPath());
             }
 
             /**

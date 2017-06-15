@@ -297,26 +297,42 @@ public class IsilonApi {
     }
 
     /**
-     * Checks to see if the file system directory has some data or not
+     * Checks to see if the file system directory has some files or directories
      * 
      * @param fspath
      *            directory path to check
-     * @return boolean true if directory has data, false otherwise
+     * @return true - if there are some files or folders, false otherwise
      */
     public boolean fsDirHasData(String fspath) throws IsilonException {
+        fspath = scrubPath(fspath);
+        ClientResponse clientResp = null;
         try {
-            IsilonList<String> fsData = listDir(fspath, null);
-            if (fsData != null && fsData.size() > 0) {
-                sLogger.info("file system {} has content", fspath);
-                return true;
+            clientResp = _client.get(_baseUrl.resolve(URI_IFS.resolve(fspath)));
+
+            if (clientResp.getStatus() != 200) {
+                processErrorResponse("list", "files", clientResp.getStatus(),
+                        clientResp.getEntity(JSONObject.class));
             } else {
+                JSONObject resp = clientResp.getEntity(JSONObject.class);
+                sLogger.debug("fsDirHasData: Output from Server {}", resp.get("children"));
+
+                JSONArray ar = (JSONArray) resp.get("children");
+                if (ar != null && ar.length() > 0) {
+                    sLogger.info("file system {} has content", fspath);
+                    return true;
+                }
                 sLogger.info("file system {} does not have content", fspath);
                 return false;
             }
         } catch (Exception e) {
-            sLogger.warn("dirHasData - Unable to get the content of fs {}", e.getMessage());
+            sLogger.warn("fsDirHasData - Unable to get the content of fs {}", e.getMessage());
             return true;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
         }
+        return true;
     }
 
     /**

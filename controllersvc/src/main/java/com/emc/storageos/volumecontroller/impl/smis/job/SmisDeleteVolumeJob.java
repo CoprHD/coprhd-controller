@@ -60,7 +60,7 @@ public class SmisDeleteVolumeJob extends SmisJob
             Set<URI> poolURIs = new HashSet<URI>();
             for (URI id : getTaskCompleter().getIds()) {
                 Volume volume = dbClient.queryObject(Volume.class, id);
-                if (volume != null) {
+                if (volume != null && !volume.getInactive()) {
                     volumes.add(volume);
                     poolURIs.add(volume.getPool());
                 }

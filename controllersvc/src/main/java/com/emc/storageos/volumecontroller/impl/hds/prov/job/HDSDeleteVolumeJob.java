@@ -67,7 +67,7 @@ public class HDSDeleteVolumeJob extends HDSJob
             for (URI id : getTaskCompleter().getIds()) {
                 // Volume volume = dbClient.queryObject(Volume.class, id);
                 Volume volume = (Volume) BlockObject.fetch(dbClient, id);
-                if (volume != null) {
+                if (volume != null && !volume.getInactive()) {
                     volumes.add(volume);
                     poolURIs.add(volume.getPool());
                 }

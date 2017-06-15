@@ -184,7 +184,7 @@
       #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
           #{nav.item 'viewImage', href: @catalog.CatalogImages.list() /}
       #{/deadbolt.restrict}
-      #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
+      #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
           #{if isCustomServicesEnabled }
             #{nav.item 'workflowBuilder', href: @catalog.WorkflowBuilder.view()/}
           #{/if}

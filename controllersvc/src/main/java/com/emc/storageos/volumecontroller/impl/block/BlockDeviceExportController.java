@@ -52,6 +52,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportPortRebalanceCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateCompleter;
@@ -958,7 +959,7 @@ public class BlockDeviceExportController implements BlockExportController {
             List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
                     _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
                     StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), systemURI);
-            /*boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
+            boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
                     workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
                 _log.error("Paths adjustment could not require locks");
@@ -966,10 +967,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 taskCompleter.error(_dbClient, serviceError);
                 return;
 
-            }*/
-            
-            boolean portGroupChange = false;
-            URI pgURI = exportPathParam.getPortGroup();
+            }
             
             String stepId = null;
             Map<URI, Map<URI, List<URI>>> maskAdjustedPathMap = new HashMap<URI, Map<URI, List<URI>>>();
@@ -977,18 +975,16 @@ public class BlockDeviceExportController implements BlockExportController {
             List<ExportMask> affectedMasks = new ArrayList<ExportMask>();
             for (ExportMask mask : exportMasks) {
                 if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varray)) {
-                	_log.info(String.format("Export mask %s (%s, args) is not in the designated varray %s ... skipping", 
-                			mask.getMaskName(), mask.getId(), varray));
-                	continue;
+                    _log.info(String.format("Export mask %s (%s, args) is not in the designated varray %s ... skipping", 
+                            mask.getMaskName(), mask.getId(), varray));
+                    continue;
                 }
                 affectedMasks.add(mask);
                 Map<URI, List<URI>> adjustedPathForMask = ExportMaskUtils.getAdjustedPathsForExportMask(mask, adjustedPaths, _dbClient);
                 Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(mask, removedPaths);
                 maskAdjustedPathMap.put(mask.getId(), adjustedPathForMask);
                 maskRemovePathMap.put(mask.getId(), removedPathForMask);
-                if (pgURI != null && !pgURI.equals(mask.getPortGroup())) {
-                    portGroupChange = true;
-                }
+                
             }
             
             List<URI> maskURIs = new ArrayList<URI> ();
@@ -996,21 +992,17 @@ public class BlockDeviceExportController implements BlockExportController {
             if (!newPaths.isEmpty()) {
                 for (ExportMask mask : affectedMasks) {                    
                     URI maskURI = mask.getId();
-                    if (pgURI == null || pgURI.equals(mask.getPortGroup())) {
-                        stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
+                    stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
                             varray, mask, maskAdjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
-                    } else {
-                        stepId = _wfUtils.generateExportChangePortGroupAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
-                                varray, mask, maskAdjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI), pgURI);
-                    }
                 }
-                if (!portGroupChange) {
-                    stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskAdjustedPathMap,
+    
+                stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskAdjustedPathMap,
                         newPaths, stepId);
-                }
+                
                 stepId = _wfUtils.generateHostRescanWorkflowSteps(workflow, newPaths, stepId);
                 
-            }
+                }
+
             
             
             if (removedPaths != null && !removedPaths.isEmpty() ) {
@@ -1032,18 +1024,13 @@ public class BlockDeviceExportController implements BlockExportController {
                 for (ExportMask mask : affectedMasks) {
                     URI maskURI = mask.getId();
                     Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
-                    if (!removingPaths.isEmpty() && !portGroupChange) {
+                    if (!removingPaths.isEmpty()) {
                         stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
                                 systemURI, exportGroupURI, varray, mask, maskAdjustedPathMap.get(maskURI), removingPaths);
-                    } else {
-                        stepId = _wfUtils.generateExportChangePortGroupRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
-                                systemURI, exportGroupURI, varray, mask, maskAdjustedPathMap.get(maskURI), removingPaths, pgURI);
                     }
                 }
-                if (!portGroupChange) {
-                    stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, maskAdjustedPathMap,
-                            maskRemovePathMap, stepId);
-                }
+                stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, maskAdjustedPathMap,
+                        maskRemovePathMap, stepId);
                 
                 stepId = _wfUtils.generateHostRescanWorkflowSteps(workflow, removedPaths, stepId);
             }
@@ -1084,5 +1071,59 @@ public class BlockDeviceExportController implements BlockExportController {
      */
     private ProtectionExportController getProtectionExportController() {
         return new RPDeviceExportController(_dbClient, _wfUtils);
+    }
+    
+    @Override
+    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, 
+            URI newPortGroupURI, boolean waitForApproval, String opId) {
+        _log.info("Received request for paths adjustment. Creating master workflow.");
+        ExportTaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI, opId);
+        Workflow workflow = null;
+        try {
+            workflow = _wfUtils.newWorkflow("export change port group", false, opId);
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            if (exportGroup == null || exportGroup.getExportMasks() == null) {
+                _log.info("No export group or export mask");
+                taskCompleter.ready(_dbClient);
+                return;
+            }
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, systemURI);
+            if (exportMasks == null || exportMasks.isEmpty()) {
+                _log.info(String.format("No export mask found for this system %s", systemURI));
+                taskCompleter.ready(_dbClient);
+                return;
+            }
+            // Acquire all necessary locks for the workflow:
+            // For each export group lock initiator's hosts and storage array keys.
+            List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
+                    _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
+                    StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), systemURI);
+            /*boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
+                    workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
+            if (!acquiredLocks) {
+                _log.error("Change port group could not require locks");
+                ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("change port group", "Could not acquire workflow loc");
+                taskCompleter.error(_dbClient, serviceError);
+                return;
+
+            }*/
+            _wfUtils.generateExportGroupChangePortWorkflow(workflow, "change port group", exportGroupURI, newPortGroupURI,
+                    waitForApproval);
+        
+
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                _log.info("The updateExportWorkflow has {} steps. Starting the workflow.", workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter, "Update the export group on all storage systems successfully.");
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+        } catch (Exception e) {
+            _log.error("Unexpected exception: ", e);
+            if (workflow != null) {
+                _wfUtils.getWorkflowService().releaseAllWorkflowLocks(workflow);
+            }
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, serviceError);
+        }
     }
 }

@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -868,36 +869,18 @@ public class ExportWorkflowUtils {
      * @return
      * @throws ControllerException
      */
-    public String generateExportChangePortGroupAddPathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
-            URI storageURI, URI exportGroupURI, URI varray, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, 
-            Map<URI, List<URI>> removedPaths, URI portGroupURI) throws ControllerException {
-        DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
-
-        Workflow.Method method = ExportWorkflowEntryPoints.exportChangePortGroupAddPathsMethod(
-                storageURI, exportGroupURI, varray, exportMask.getId(), adjustedPaths, removedPaths, portGroupURI);
+    public String generateExportGroupChangePortWorkflow(Workflow workflow, String wfGroupId,
+            URI exportGroupURI, URI portGroupURI, boolean waitForApproval) throws ControllerException {
             
         Workflow.Method rollbackMethod =rollbackMethodNullMethod();
+        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+        DiscoveredSystemObject system = _dbClient.queryObject(StorageSystem.class, portGroup.getStorageDevice());
         
-        String stepDescription = String.format("Export port group change mask %s hosts %s", exportMask.getMaskName(), 
-                ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
-        return newWorkflowStep(workflow, wfGroupId, stepDescription,
-                storageSystem, method, rollbackMethod, waitFor);
+        Workflow.Method method = ExportWorkflowEntryPoints.exportChangePortGroupMethod(system.getId(), exportGroupURI, 
+                portGroupURI, waitForApproval);
+        String stepDescription = String.format("Port group change  for the export group", exportGroup.getLabel());
+        return newWorkflowStep(workflow, wfGroupId, stepDescription, system, method, rollbackMethod, null);
     }
-    
-    public String generateExportChangePortGroupRemovePathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
-            URI storageURI, URI exportGroupURI, URI varray, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, 
-            Map<URI, List<URI>> removedPaths, URI portGroupURI) throws ControllerException {
-        DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
-
-        Workflow.Method method = ExportWorkflowEntryPoints.exportChangePortGroupRemovePathsMethod(
-                storageURI, exportGroupURI, exportMask.getId(), adjustedPaths, removedPaths, portGroupURI);
-            
-        Workflow.Method rollbackMethod =rollbackMethodNullMethod();
-        
-        String stepDescription = String.format("Export remove paths for port group change mask %s hosts %s", exportMask.getMaskName(), 
-                ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
-        return newWorkflowStep(workflow, wfGroupId, stepDescription,
-                storageSystem, method, rollbackMethod, waitFor);
-    }
-    
+      
 }

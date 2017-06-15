@@ -37,6 +37,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RollbackExpor
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
+import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
@@ -640,6 +641,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
         }
+    }
+    
+    /**
+     * No-op workflow step to allow rollback to continue.
+     *
+     * @param stepId    The workflow step ID.
+     * @throws WorkflowException
+     */
+    public void rollbackMethodNull(String stepId) throws WorkflowException {
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
     
 }

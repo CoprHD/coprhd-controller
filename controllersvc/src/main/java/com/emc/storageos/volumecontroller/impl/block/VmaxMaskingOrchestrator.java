@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import com.emc.storageos.computecontroller.impl.HostRescanDeviceController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
@@ -38,6 +39,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePortGroup;
@@ -52,11 +54,14 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockTimeoutValue;
+import com.emc.storageos.locking.LockType;
 import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
+import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
@@ -73,6 +78,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
@@ -2288,103 +2294,144 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
     
     @Override
-    public void changePortGroupAddPaths(URI storageURI, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
-            Map<URI, List<URI>> removedPaths, URI portGroupURI, String token) throws Exception {
+    public void changePortGroup(URI storageURI, URI exportGroupURI, URI portGroupURI, boolean waitForApproval, String token) {
         ExportOrchestrationTask taskCompleter = null;
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-            ExportMask oldMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
             logExportGroup(exportGroup, storageURI);
 
-            String workflowKey = "exporChangePortGroupAddPaths";
+            String workflowKey = "changePortGroup";
             if (_workflowService.hasWorkflowBeenCreated(token, workflowKey)) {
                 return;
             }
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(), workflowKey, true, token);
             
-            // create a new masking view using the new port group
-            SmisStorageDevice device = (SmisStorageDevice) getDevice();
-            InitiatorHelper initiatorHelper = new InitiatorHelper(StringSetUtil.stringSetToUriList(oldMask.getInitiators())).process(exportGroup);
-            List<String> initiatorNames = initiatorHelper.getPortNames();
-            if (oldMask.getExistingInitiators() != null && !oldMask.getExistingInitiators().isEmpty()) {
-                initiatorNames.addAll(oldMask.getExistingInitiators());
-            }
-            ExportMask newMask = device.findExportMasksForPortGroupChange(storage, initiatorNames, portGroupURI);
-            Map<URI, Integer> volumesToAdd = StringMapUtil.stringMapToVolumeMap(oldMask.getVolumes());
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);
             String previousStep = null;
-            if (newMask != null) {
-                updateZoningMap(exportGroup, newMask, true);
-                _log.info(String.format("adding these volumes %s to mask %s",
-                        Joiner.on(",").join(volumesToAdd.keySet()), newMask.getMaskName()));
-                previousStep = generateZoningAddVolumesWorkflow(workflow, previousStep,
-                        exportGroup, Arrays.asList(newMask), new ArrayList<URI>(volumesToAdd.keySet()));
-                previousStep = generateExportMaskAddVolumesWorkflow
-                        (workflow, previousStep, storage, exportGroup, newMask, volumesToAdd, null);
-            } else {
-                String oldName = oldMask.getMaskName();
-                URI oldPGURI = oldMask.getPortGroup();
-                if (oldPGURI != null) {
-                    StoragePortGroup oldPG = _dbClient.queryObject(StoragePortGroup.class, oldPGURI);
-                    if (oldPG != null) {
-                        String pgName = oldPG.getLabel();
-                        if (oldName.contains(pgName)) {
-                            oldName = oldName.replaceAll(pgName, "");
-                        }
+            Set<URI> hostURIs = new HashSet<URI>();
+            for (ExportMask oldMask : exportMasks) {
+                // create a new masking view using the new port group
+                SmisStorageDevice device = (SmisStorageDevice) getDevice();
+                InitiatorHelper initiatorHelper = new InitiatorHelper(StringSetUtil.stringSetToUriList(oldMask.getInitiators())).process(exportGroup);
+                List<String> initiatorNames = initiatorHelper.getPortNames();
+                if (oldMask.getExistingInitiators() != null && !oldMask.getExistingInitiators().isEmpty()) {
+                    initiatorNames.addAll(oldMask.getExistingInitiators());
+                }
+                List<URI> volumes = StringSetUtil.stringSetToUriList(oldMask.getVolumes().keySet());
+                ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                        volumes, 0, storageURI, exportGroupURI);
+                pathParams.setStoragePorts(portGroup.getStoragePorts());
+                List<Initiator> initiators = ExportUtils.getExportMaskInitiators(oldMask, _dbClient);
+                for (Initiator init : initiators) {
+                    if (!NullColumnValueGetter.isNullURI(init.getHost())) {
+                        hostURIs.add(init.getHost());
                     }
                 }
-                String maskName = null;
-                if (oldName.endsWith("_")) {
-                    maskName = String.format("%s%s", oldName, portGroup.getLabel());
+                Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
+                        null, pathParams, volumes, _networkDeviceController, exportGroup.getVirtualArray(), token);
+                ExportMask newMask = device.findExportMasksForPortGroupChange(storage, initiatorNames, portGroupURI);
+                Map<URI, Integer> volumesToAdd = StringMapUtil.stringMapToVolumeMap(oldMask.getVolumes());
+                
+                if (newMask != null) {
+                    updateZoningMap(exportGroup, newMask, true);
+                    _log.info(String.format("adding these volumes %s to mask %s",
+                            Joiner.on(",").join(volumesToAdd.keySet()), newMask.getMaskName()));
+                    previousStep = generateZoningAddVolumesWorkflow(workflow, previousStep,
+                            exportGroup, Arrays.asList(newMask), new ArrayList<URI>(volumesToAdd.keySet()));
+                    previousStep = generateExportMaskAddVolumesWorkflow
+                            (workflow, previousStep, storage, exportGroup, newMask, volumesToAdd, null);
                 } else {
-                    maskName = String.format("%s_%s", oldName, portGroup.getLabel());
+                    String oldName = oldMask.getMaskName();
+                    URI oldPGURI = oldMask.getPortGroup();
+                    if (oldPGURI != null) {
+                        StoragePortGroup oldPG = _dbClient.queryObject(StoragePortGroup.class, oldPGURI);
+                        if (oldPG != null) {
+                            String pgName = oldPG.getLabel();
+                            if (oldName.contains(pgName)) {
+                                oldName = oldName.replaceAll(pgName, "");
+                            }
+                        }
+                    }
+                    String maskName = null;
+                    if (oldName.endsWith("_")) {
+                        maskName = String.format("%s%s", oldName, portGroup.getLabel());
+                    } else {
+                        maskName = String.format("%s_%s", oldName, portGroup.getLabel());
+                    }
+
+                    newMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
+                            initiators, 
+                            volumesToAdd, 
+                            getStoragePortsInPaths(assignments), assignments, maskName, _dbClient);
+        
+                    newMask.setPortGroup(portGroupURI);
+                
+                    List<BlockObject> vols = new ArrayList<BlockObject>();
+                    for (URI boURI : volumesToAdd.keySet()) {
+                        BlockObject bo = BlockObject.fetch(_dbClient, boURI);
+                        vols.add(bo);
+                    }
+                    newMask.addToUserCreatedVolumes(vols);
+                    _dbClient.updateObject(newMask);
+                    _log.info(String.format("Creating new exportMask %s", maskName));
+                    // Make a new TaskCompleter for the exportStep. It has only one subtask.
+                    // This is due to existing requirements in the doExportGroupCreate completion
+                    // logic.
+                    String maskingStep = workflow.createStepId();
+                    ExportTaskCompleter exportTaskCompleter = new ExportMaskCreateCompleter(
+                            exportGroupURI, newMask.getId(), StringSetUtil.stringSetToUriList(oldMask.getInitiators()), 
+                            volumesToAdd, maskingStep);
+        
+                    Workflow.Method maskingExecuteMethod = new Workflow.Method(
+                            "doExportChangePortGroupAddPaths", storageURI, exportGroupURI, newMask.getId(),
+                            oldMask.getId(), portGroupURI, exportTaskCompleter);
+        
+                    Workflow.Method maskingRollbackMethod = new Workflow.Method(
+                            "rollbackExportGroupCreate",
+                            storageURI, exportGroupURI, newMask.getId(), maskingStep);
+        
+                    maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
+                            String.format("Export mask(%s) change to port group %s",
+                                    newMask.getMaskName(), portGroup.getNativeGuid()),
+                            previousStep, storageURI, storage.getSystemType(),
+                            MaskingWorkflowEntryPoints.class, maskingExecuteMethod,
+                            maskingRollbackMethod, maskingStep);
+                    String zoningStep = workflow.createStepId();
+                    List<URI> masks = new ArrayList<URI>();
+                    masks.add(newMask.getId());
+                    previousStep = generateZoningCreateWorkflow(workflow, maskingStep, exportGroup, masks, volumesToAdd, zoningStep);
                 }
-                List<Initiator> initiators = _dbClient.queryObject(Initiator.class, 
-                        StringSetUtil.stringSetToUriList(oldMask.getInitiators()));
-                newMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
-                        initiators, 
-                        volumesToAdd, 
-                        getStoragePortsInPaths(adjustedPaths), adjustedPaths, maskName, _dbClient);
-    
-                newMask.setPortGroup(portGroupURI);
-            
-                List<BlockObject> vols = new ArrayList<BlockObject>();
-                for (URI boURI : volumesToAdd.keySet()) {
-                    BlockObject bo = BlockObject.fetch(_dbClient, boURI);
-                    vols.add(bo);
+                previousStep = generateHostRescanWorkflowSteps(workflow, hostURIs, previousStep, true);
+                
+                if (waitForApproval) {
+                    // Insert a step that will be suspended. When it resumes, it will re-acquire the lock keys,
+                    // which are released when the workflow suspends.
+                    List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
+                            _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
+                            StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), storageURI);
+                    String suspendMessage = "Adjust/rescan host/cluster paths. Press \"Resume\" to start removal of unnecessary paths."
+                            + "\"Rollback\" will terminate the order and roll back";
+                    Workflow.Method method = WorkflowService.acquireWorkflowLocksMethod(lockKeys, 
+                            LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
+                    Workflow.Method rollbackNull = Workflow.NULL_METHOD;
+                    previousStep =  workflow.createStep("AcquireLocks", 
+                            "Suspending for user verification of host/cluster connectivity.",
+                            previousStep, storage.getId(),
+                            storage.getSystemType(), 
+                            WorkflowService.class, method, rollbackNull, waitForApproval, null);
+                    workflow.setSuspendedStepMessage(previousStep, suspendMessage);
+                    
                 }
-                newMask.addToUserCreatedVolumes(vols);
-                _dbClient.updateObject(newMask);
-                _log.info(String.format("Creating new exportMask %s", maskName));
-                // Make a new TaskCompleter for the exportStep. It has only one subtask.
-                // This is due to existing requirements in the doExportGroupCreate completion
-                // logic.
-                String maskingStep = workflow.createStepId();
-                ExportTaskCompleter exportTaskCompleter = new ExportMaskCreateCompleter(
-                        exportGroupURI, newMask.getId(), StringSetUtil.stringSetToUriList(oldMask.getInitiators()), 
-                        volumesToAdd, maskingStep);
-    
-                Workflow.Method maskingExecuteMethod = new Workflow.Method(
-                        "doExportChangePortGroupAddPaths", storageURI, exportGroupURI, newMask.getId(),
-                        oldMask.getId(), portGroupURI, exportTaskCompleter);
-    
-                Workflow.Method maskingRollbackMethod = new Workflow.Method(
-                        "rollbackExportGroupCreate",
-                        storageURI, exportGroupURI, newMask.getId(), maskingStep);
-    
-                maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
-                        String.format("Export mask(%s) change to port group %s",
-                                newMask.getMaskName(), portGroup.getNativeGuid()),
-                        null, storageURI, storage.getSystemType(),
-                        MaskingWorkflowEntryPoints.class, maskingExecuteMethod,
-                        maskingRollbackMethod, maskingStep);
-                String zoningStep = workflow.createStepId();
-                List<URI> masks = new ArrayList<URI>();
-                masks.add(newMask.getId());
-                generateZoningCreateWorkflow(workflow, maskingStep, exportGroup, masks, volumesToAdd, zoningStep);
+                for (ExportMask exportMask : exportMasks) {
+                    previousStep = generateChangePortGroupDeleteMaskWorkflowstep(storageURI, exportGroup, exportMask, previousStep, workflow);
+                }
+                
+                generateHostRescanWorkflowSteps(workflow, hostURIs, previousStep, false);
+                
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
@@ -2404,80 +2451,52 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
     }
     
-    @Override
-    public void changePortGroupRemovePaths(URI storageURI, URI exportGroupURI, URI oldMaskURI, Map<URI, List<URI>> adjustedPaths,
-            Map<URI, List<URI>> removedPaths, URI portGroupURI, String token) throws Exception {
-        ExportOrchestrationTask taskCompleter = null;
-        try {
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-            ExportMask oldMask = _dbClient.queryObject(ExportMask.class, oldMaskURI);
-            taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
-            logExportGroup(exportGroup, storageURI);
-            String workflowKey = "exporChangePortGroupRemovePaths";
-            if (_workflowService.hasWorkflowBeenCreated(token, workflowKey)) {
-                return;
-            }
-            Workflow workflow = _workflowService.getNewWorkflow(
-                    MaskingWorkflowEntryPoints.getInstance(), workflowKey, true, token);
+   
+    /**
+     * Generate change port group delete old mask steps
+     * 
+     * @param storageURI - Storage system URI
+     * @param exportGroupURI - Export group URI
+     * @param oldMaskURI - Old export mask URI
+     * @param waitFor - The previous step
+     * @param workflow - Workflow
+     * @return - The last step it generates
+     * @throws Exception
+     */
+    private String generateChangePortGroupDeleteMaskWorkflowstep(URI storageURI, ExportGroup exportGroup, ExportMask oldMask, String waitFor,
+            Workflow workflow) throws Exception {
+        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+                        
+        // Remove the old export mask.
             
-            // Remove the old export mask.
-            
-            String maskingStep = workflow.createStepId();
-            ExportTaskCompleter exportTaskCompleter = new ExportMaskDeleteCompleter(exportGroupURI,
-                    oldMaskURI, maskingStep);
-            StringMap volMap = oldMask.getVolumes();
-            List<URI> volumes = null;
-            if (volMap != null) {
-                volumes = StringSetUtil.stringSetToUriList(volMap.keySet());
-            }
-            List<URI> inits = StringSetUtil.stringSetToUriList(oldMask.getInitiators());
-            Workflow.Method maskingExecuteMethod = new Workflow.Method(
-                    "doExportGroupDelete", storageURI, exportGroupURI, oldMaskURI, volumes, inits,
-                    exportTaskCompleter);
-            _log.info("Mask to be deleted:" + oldMask.getMaskName());
-            // Find the newly added export mask. it should have the maskName = oldMask name + pgName
-            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, storageURI);
-            ExportMask newMask = null;
-            for (ExportMask mask : exportMasks) {
-                _log.info("export group mask name:" +mask.getMaskName());
-                if (mask.getPortGroup().equals(portGroupURI)) {
-                    newMask = mask;
-                    break;
-                }
-            }
-            if (newMask == null) {
-                _log.error("Could not find the newly added mask");
-            }
-            Workflow.Method maskinkRollbackMethod = new Workflow.Method(
-                    "doExportChangePortGroupAddPaths", storageURI, exportGroupURI, oldMaskURI,
-                    newMask.getId(), oldMask.getPortGroup(), exportTaskCompleter);
-            maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
-                    String.format("Deleting mask %s (%s)", oldMask.getMaskName(),
-                            oldMask.getId().toString()),
-                    null, storageURI, storage.getSystemType(),
-                    MaskingWorkflowEntryPoints.class, maskingExecuteMethod, maskinkRollbackMethod,
-                    maskingStep);
-            
-            List<ExportMask> masks = new ArrayList<ExportMask>();
-            masks.add(oldMask);
-            generateZoningDeleteWorkflow(workflow, maskingStep, exportGroup, masks);
-            if (!workflow.getAllStepStatus().isEmpty()) {
-                _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
-                        workflow.getAllStepStatus().size());
-                workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
-                _workflowService.markWorkflowBeenCreated(token, workflowKey);
-            } else {
-                taskCompleter.ready(_dbClient);
-            }
-        } catch (Exception e) {
-            _log.error("Export remove paths change port group Orchestration failed.", e);
-            if (taskCompleter != null) {
-                ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(e.getMessage(), e);
-                taskCompleter.error(_dbClient, serviceError);
-            }
-
+        String maskingStep = workflow.createStepId();
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskDeleteCompleter(exportGroup.getId(),
+                oldMask.getId(), maskingStep);
+        StringMap volMap = oldMask.getVolumes();
+        List<URI> volumes = null;
+        if (volMap != null) {
+            volumes = StringSetUtil.stringSetToUriList(volMap.keySet());
         }
+        List<URI> inits = StringSetUtil.stringSetToUriList(oldMask.getInitiators());
+        Workflow.Method maskingExecuteMethod = new Workflow.Method(
+                "doExportGroupDelete", storageURI, exportGroup.getId(), oldMask.getId(), volumes, inits,
+                exportTaskCompleter);
+        _log.info(String.format("ExportMask %s is to be deleted:", oldMask.getMaskName()));
+
+        Workflow.Method maskinkRollbackMethod = new Workflow.Method(
+                "rollbackMethodNull");
+        maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
+                String.format("Deleting mask %s (%s)", oldMask.getMaskName(),
+                        oldMask.getId().toString()),
+                waitFor, storageURI, storage.getSystemType(),
+                MaskingWorkflowEntryPoints.class, maskingExecuteMethod, maskinkRollbackMethod,
+                maskingStep);
+            
+        List<ExportMask> masks = new ArrayList<ExportMask>();
+        masks.add(oldMask);
+        String zoningStep = generateZoningDeleteWorkflow(workflow, maskingStep, exportGroup, masks);
+        return zoningStep;
+        
     }
     
     private List<URI> getStoragePortsInPaths(Map<URI, List<URI>> paths) {
@@ -2488,6 +2507,46 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
         return new ArrayList<URI>(results);
+    }
+    
+    /**
+     * Generate host scan step
+     * 
+     * @param workflow - Workflow
+     * @param hostURIs - Host URIs
+     * @param waitFor - Previous step
+     * @param rollBack - If rollback if failed
+     * @return - The generated step
+     */
+    private String generateHostRescanWorkflowSteps(Workflow workflow, Set<URI> hostURIs, String waitFor, boolean rollBack) { 
+        
+        // Loop through each Host. Generate a step to rescan the host if it is not type Other.
+        String stepGroup = "hostRescan" + (waitFor != null ? waitFor : "");
+        boolean queuedStep = false;
+        for (URI hostURI : hostURIs) {
+            Host host = _dbClient.queryObject(Host.class, hostURI);
+            if (host == null || host.getInactive()) {
+                _log.info(String.format("Host not found or inactive: %s", hostURI));
+                continue;
+            }
+            if (!host.getDiscoverable()) {
+                _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
+                continue;
+            }
+            Workflow.Method rescan = new Workflow.Method("rescanHostStorage", hostURI);
+            Workflow.Method nullMethod = null;
+            if (rollBack) {
+                nullMethod = new Workflow.Method("nullWorkflowStepMethod");
+            }
+            workflow.createStep(stepGroup,
+                    String.format("Rescan Host Storage: %s", host.getHostName()),
+                    waitFor, NullColumnValueGetter.getNullURI(),
+                    "host-rescan", HostRescanDeviceController.class,
+                    rescan, nullMethod, null);
+            
+            queuedStep = true;
+        }
+        return (queuedStep ? stepGroup : waitFor);
     }
 
     /**

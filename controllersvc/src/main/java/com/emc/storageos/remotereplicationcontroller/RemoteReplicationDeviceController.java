@@ -26,6 +26,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDevice;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationEstablishCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailbackCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailoverCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationGroupCompleter;
@@ -33,6 +34,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.Rem
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationResumeCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSplitCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSuspendCompleter;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSwapCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -160,14 +162,16 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public void establish(RemoteReplicationElement replicationElement, String opId) {
+        RemoteReplicationEstablishCompleter taskCompleter = new RemoteReplicationEstablishCompleter(replicationElement, opId);
 
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.establish(replicationElement, taskCompleter);
     }
 
     @Override
     public void failover(RemoteReplicationElement remoteReplicationElement, String opId) {
         RemoteReplicationFailoverCompleter taskCompleter = new RemoteReplicationFailoverCompleter(remoteReplicationElement, opId);
 
-        // call device
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
         rrDevice.failover(remoteReplicationElement, taskCompleter);
     }
@@ -176,14 +180,16 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
     public void failback(RemoteReplicationElement remoteReplicationElement, String opId) {
         RemoteReplicationFailbackCompleter taskCompleter = new RemoteReplicationFailbackCompleter(remoteReplicationElement, opId);
 
-        // call device
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
         rrDevice.failback(remoteReplicationElement, taskCompleter);
     }
 
     @Override
-    public void swap(RemoteReplicationElement replicationElement, String opId) {
+    public void swap(RemoteReplicationElement remoteReplicationElement, String opId) {
+        RemoteReplicationSwapCompleter taskCompleter = new RemoteReplicationSwapCompleter(remoteReplicationElement, opId);
 
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.swap(remoteReplicationElement, taskCompleter);
     }
 
     @Override

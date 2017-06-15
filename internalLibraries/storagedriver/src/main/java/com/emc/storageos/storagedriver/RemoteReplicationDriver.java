@@ -292,6 +292,31 @@ public interface RemoteReplicationDriver {
     public DriverTask swap(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
                            StorageCapabilities capabilities);
 
+
+    /**
+     * Stop remote replication link for remote replication pairs.
+     * Should not make any impact on replication state of any other existing replication pairs which are not specified
+     * in the request.
+     * If execution of the request with this constraint is not possible, should return a failure.
+     *
+     *
+     * REFERENCE RECOMMENDATION FOR IMPLEMENTATION:
+     *   Before this operation replication link for each pair in the request should be in split state.
+     *
+     *   At the completion of this operation R1 and R2 elements in each of remote replication pairs specified in this request
+     *   should become independent local read/write enabled storage elements on arrays.
+     *   Any operation executed on storage elements after remote replication link "stop" should produce the same result as
+     *   if it was executed on local storage element without remote replication.
+     *
+     *
+     * @param replicationPairs: remote replication pairs to stop
+     * @param capabilities storage capabilities for this operation
+     * @param context: context information for this operation
+     * @return driver task
+     */
+    public DriverTask stop(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
+                            StorageCapabilities capabilities);
+
     /**
      * Changes remote replication mode for all specified pairs.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified

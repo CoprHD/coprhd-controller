@@ -7273,6 +7273,9 @@ sbsdk_remote_replication_tests()
     echo "**** Resume replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup resume ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
+    echo "**** Swap replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup swap ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
     echo "**** Failover replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup failover ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
@@ -7282,11 +7285,17 @@ sbsdk_remote_replication_tests()
     echo "**** Split replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup split ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
+    echo "**** Establish links for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup establish ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
     echo "**** Suspend replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset suspend ${SBSDK_DRIVER_REPLICATION_SET1}
 
     echo "**** Resume replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset resume ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Swap replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset swap ${SBSDK_DRIVER_REPLICATION_SET1}
 
     echo "**** Failover replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset failover ${SBSDK_DRIVER_REPLICATION_SET1}
@@ -7296,6 +7305,9 @@ sbsdk_remote_replication_tests()
 
     echo "**** Split replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset split ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Establish links for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset establish ${SBSDK_DRIVER_REPLICATION_SET1}
 
     #Delete the volume
     echo "***** Deleting volume $VOLUME_NO_GROUP_NAME *****"

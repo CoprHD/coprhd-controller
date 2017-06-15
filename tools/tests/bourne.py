@@ -5671,6 +5671,8 @@ class Bourne:
             uri = URI_IPINTERFACE.format(id)
         elif resource_type == "initiator":
             uri = URI_INITIATOR.format(id)
+        elif resource_type == "block_performance_params":
+            uri = URI_PERF_PARAMS_INSTANCE.format(id)
         else:
             raise Exception('Unknown resource type ' + resource_type)
         return uri + '/tags'

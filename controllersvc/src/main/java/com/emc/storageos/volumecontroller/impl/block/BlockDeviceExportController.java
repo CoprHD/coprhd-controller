@@ -1080,7 +1080,7 @@ public class BlockDeviceExportController implements BlockExportController {
         ExportTaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI, opId);
         Workflow workflow = null;
         try {
-            workflow = _wfUtils.newWorkflow("export change port group", false, opId);
+            workflow = _wfUtils.newWorkflow("exportChangePortGroup", false, opId);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             if (exportGroup == null || exportGroup.getExportMasks() == null) {
                 _log.info("No export group or export mask");

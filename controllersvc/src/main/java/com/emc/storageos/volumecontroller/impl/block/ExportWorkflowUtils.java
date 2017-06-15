@@ -854,19 +854,14 @@ public class ExportWorkflowUtils {
     }
     
     /**
-     * Generate step for add paths for change port group
+     * Generate step for change port group
      * 
-     * @param workflow
-     * @param wfGroupId
-     * @param waitFor
-     * @param storageURI
-     * @param exportGroupURI
-     * @param varray
-     * @param exportMask
-     * @param adjustedPaths
-     * @param removedPaths
-     * @param portGroupURI
-     * @return
+     * @param workflow - Workflow
+     * @param wfGroupId - Workflow group Id
+     * @param exportGroupURI - Export group URI
+     * @param portGroupURI - New port group URI
+     * @param waitForApproval - if wait until approval 
+     * @return - The generated step
      * @throws ControllerException
      */
     public String generateExportGroupChangePortWorkflow(Workflow workflow, String wfGroupId,
@@ -879,7 +874,8 @@ public class ExportWorkflowUtils {
         
         Workflow.Method method = ExportWorkflowEntryPoints.exportChangePortGroupMethod(system.getId(), exportGroupURI, 
                 portGroupURI, waitForApproval);
-        String stepDescription = String.format("Port group change  for the export group", exportGroup.getLabel());
+        String stepDescription = String.format("Change port group to %s for the export group %s", portGroup.getNativeGuid(),
+                exportGroup.getLabel());
         return newWorkflowStep(workflow, wfGroupId, stepDescription, system, method, rollbackMethod, null);
     }
       

@@ -2661,16 +2661,31 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         String minimumSize = null;
 
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
+        
+        List<URI> sourceVolumeIds = new ArrayList<URI>();
         for (RelatedResourceRep vol : cg.getVolumes()) {
-            VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
+        	sourceVolumeIds.add(vol.getId());
+        }
+        
+        // Get all the CG source volumes
+        List<VolumeRestRep> volumes = api(ctx).blockVolumes().getByIds(sourceVolumeIds, null);
+        
+        for (VolumeRestRep volume : volumes) {
             if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
                     && volume.getProtection().getRpRep().getProtectionSet() != null) {
                 RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
                 ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
+                
+                List<URI> protectionSetVolIds = new ArrayList<URI>();
                 for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
-                    VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
+                	protectionSetVolIds.add(protectionVolume.getId());
+                }
+                
+                List<VolumeRestRep> protectionSetVolumes = api(ctx).blockVolumes().getByIds(protectionSetVolIds, null);
+                
+                for (VolumeRestRep vol1 : protectionSetVolumes) {
                     if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
-                        String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
+                        String capacity = vol1.getCapacity();
                         if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
                             minimumSize = capacity;
                         }

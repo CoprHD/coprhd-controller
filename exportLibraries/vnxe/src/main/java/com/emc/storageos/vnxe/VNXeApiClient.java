@@ -397,8 +397,10 @@ public class VNXeApiClient {
     public VNXeCommandJob deleteFileSystem(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
-        if (isFileSystemHasData(fsId)) {
-            throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system with data for id: " + fsId);
+        if (isFileSystemHasExportOrShare(fsId) || isFileSystemHasData(fsId)) {
+            throw VNXeException.exceptions
+                    .vnxeCommandFailed("Delete file system failed as it conatin data, remove the data and try again for "
+                    + fsId);
         }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);
         return req.deleteFileSystemAsync(fsId, forceSnapDeletion);
@@ -418,7 +420,9 @@ public class VNXeApiClient {
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
         if (isFileSystemHasData(fsId)) {
-            throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system with data for id: " + fsId);
+            throw VNXeException.exceptions
+                    .vnxeCommandFailed("Delete file system failed as it conatin data, remove the data and try again for  "
+                    + fsId);
         }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);
         return req.deleteFileSystemSync(fsId, forceSnapDeletion);
@@ -435,10 +439,36 @@ public class VNXeApiClient {
         FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
         VNXeFileSystem fs = fsRequest.get();
         if (fs != null) {
-            if (fs.getSizeUsed() > UNITY_FS_MIN_USED_SIZE) {
+            long fsUsedSize = fs.getSizeUsed();
+            _logger.info("Getting filesystem used space for fsId {} is {} ", fsId, fsUsedSize);
+            if (fsUsedSize > UNITY_FS_MIN_USED_SIZE) {
                 return true;
             } else {
 
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Checks to see if the file system has export or share.
+     * 
+     * @param fsId
+     *            fsID to check
+     * @return boolean true if it has share or export, false otherwise
+     */
+    public boolean isFileSystemHasExportOrShare(String fsId) {
+        FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
+
+
+        VNXeFileSystem fs = fsRequest.get();
+        if (fs != null) {
+            _logger.info("Getting NfsShare and Cifs Share Count for fsId {} is {}, {} ", fsId, fs.getNfsShareCount(),
+                    fs.getCifsShareCount());
+            if (fs.getNfsShareCount() > 0 || fs.getCifsShareCount() > 0) {
+                return true;
+            } else {
                 return false;
             }
         }

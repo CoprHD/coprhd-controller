@@ -46,6 +46,8 @@ import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.LocalReplicaObject;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIMetricsCollector;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.xtremio.XtremIOMetricsCollector;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.google.common.collect.Sets;
 
@@ -62,7 +64,14 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
     private WBEMClient _wbemClient;
     private boolean debug;
     private NamespaceList namespaces;
+    private SMIMetricsCollector metricsCollector;
 
+    
+    public void setMetricsCollector(SMIMetricsCollector metricsCollector) {
+        this.metricsCollector = metricsCollector;
+    }
+    
+    
     /**
      * To-Do : Argument Changes, to accomodate ProSphere usage
      */
@@ -70,7 +79,13 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
         try {
-            _logger.info("Access Profile Details :" + accessProfile.toString());
+        	
+        	_logger.info("Access Profile Details :" + accessProfile.toString());
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
+            metricsCollector.collectMetrics(storageSystem, _dbClient);
+        	
+        	
+            /*_logger.info("Access Profile Details :" + accessProfile.toString());
             _wbemClient = getCIMClient(accessProfile);
             initMap(accessProfile);
             StorageSystem storageSystem = queryStorageSystem(accessProfile);
@@ -85,7 +100,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             executor.setKeyMap(_keyMap);
             executor.execute(_ns);
             dumpStatRecords();
-            injectStats();
+            injectStats();*/
         } catch (Exception e) {
             throw new SMIPluginException(e.getMessage());
         } finally {

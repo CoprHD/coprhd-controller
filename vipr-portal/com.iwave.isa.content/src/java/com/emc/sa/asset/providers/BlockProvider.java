@@ -2662,15 +2662,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
         
-        List<URI> sourceVolumeIds = new ArrayList<URI>();
-        for (RelatedResourceRep vol : cg.getVolumes()) {
-        	sourceVolumeIds.add(vol.getId());
-        }
-        
-        // Get all the CG source volumes
-        List<VolumeRestRep> volumes = api(ctx).blockVolumes().getByIds(sourceVolumeIds, null);
-        
-        for (VolumeRestRep volume : volumes) {
+        if (cg != null && cg.getVolumes() != null && !cg.getVolumes().isEmpty()) {
+            RelatedResourceRep firstSourceVolRep = cg.getVolumes().get(0);
+            VolumeRestRep volume = api(ctx).blockVolumes().get(firstSourceVolRep);
+            
             if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
                     && volume.getProtection().getRpRep().getProtectionSet() != null) {
                 RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
@@ -2693,7 +2688,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
             }
         }
-
+        
         if (minimumSize == null) {
             return Lists.newArrayList();
         } else {

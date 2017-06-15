@@ -5605,6 +5605,8 @@ class Bourne:
             uri = URI_IPINTERFACES
         elif resource_type == "initiator":
             uri = URI_INITIATORS
+        elif resource_type == "block_performance_params":
+            uri = URI_PERF_PARAMS
         else:
             raise Exception('Unknown resource type ' + resource_type)
         searchuri =  uri + '/search'

@@ -349,6 +349,10 @@ public final class RESTHelper {
     }
 
     private static List<String> toStringList(final Collection<?> arrayValue) {
+        if( null == arrayValue ) {
+            return null;
+        }
+        
         final List<String> list = new ArrayList<String>();
         for( final Object value : arrayValue) {
             list.add(value.toString());

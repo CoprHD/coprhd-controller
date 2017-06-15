@@ -66,7 +66,7 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
             log.info("Released lock: " + lockName);
             return true;
         } catch (Exception e) {
-            log.error(String.format("Acquire of mutex lock: %s failed with Exception: ", lockName), e);
+            log.error(String.format("Release of mutex lock: %s failed with Exception: ", lockName), e);
         }
         return false;
     }

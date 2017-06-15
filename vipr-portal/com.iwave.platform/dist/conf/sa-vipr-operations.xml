@@ -265,7 +265,6 @@
 				<value>com.emc.storageos.primitives.ComputeElementServiceDeregisterComputeElement</value>
 				<value>com.emc.storageos.primitives.ComputeElementServiceRegisterComputeElement</value>
 				<value>com.emc.storageos.primitives.ComputeVirtualPoolServiceGetComputeVirtualPool</value>
-				<value>com.emc.storageos.primitives.ComputeVirtualPoolServiceGetComputeVirtualPool</value>
 				<value>com.emc.storageos.primitives.ComputeVirtualPoolServiceGetMatchingComputeElements</value>
 				<value>com.emc.storageos.primitives.ComputeVirtualPoolServiceCreateComputeVirtualPool</value>
 				<value>com.emc.storageos.primitives.ComputeVirtualPoolServiceUpdateComputeVirtualPool</value>
@@ -439,7 +438,6 @@
 				<value>com.emc.storageos.primitives.UnManagedExportMaskServiceGetUnManagedExportMaskInfo</value>
 				<value>com.emc.storageos.primitives.VirtualArrayServiceGetVirtualArrayList</value>
 				<value>com.emc.storageos.primitives.VirtualArrayServiceGetAutoTierPolicies</value>
-				<value>com.emc.storageos.primitives.VirtualArrayServiceGetAutoTierPolicies</value>
 				<value>com.emc.storageos.primitives.VirtualArrayServiceCreateVirtualArray</value>
 				<value>com.emc.storageos.primitives.VirtualArrayServiceUpdateVirtualArray</value>
 				<value>com.emc.storageos.primitives.VirtualArrayServiceGetVirtualArray</value>
@@ -452,7 +450,6 @@
 				<value>com.emc.storageos.primitives.VirtualArrayServiceGetAcls</value>
 				<value>com.emc.storageos.primitives.VirtualArrayServiceUpdateAcls</value>
 				<value>com.emc.storageos.primitives.VirtualArrayServiceGetVirtualArrayConnectivity</value>
-				<value>com.emc.storageos.primitives.VirtualArrayServiceGetAvailableAttributes</value>
 				<value>com.emc.storageos.primitives.VirtualArrayServiceGetAvailableAttributes</value>
 				<value>com.emc.storageos.primitives.VirtualArrayServiceGetComputeSystems</value>
 				<value>com.emc.storageos.primitives.VirtualDataCenterCapacityServiceGetZoneCapacities</value>
@@ -572,9 +569,7 @@
 				<value>com.emc.storageos.primitives.DisasterRecoveryServiceGetSites</value>
 				<value>com.emc.storageos.primitives.DisasterRecoveryServiceCheckIsActive</value>
 				<value>com.emc.storageos.primitives.DisasterRecoveryServiceGetSite</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceGetSite</value>
 				<value>com.emc.storageos.primitives.DisasterRecoveryServiceIsLocalSiteRemoved</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceRemove</value>
 				<value>com.emc.storageos.primitives.DisasterRecoveryServiceRemove</value>
 				<value>com.emc.storageos.primitives.DisasterRecoveryServiceGetStandbyConfig</value>
 				<value>com.emc.storageos.primitives.DisasterRecoveryServiceCheckIfBehindNat</value>

@@ -2661,34 +2661,23 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         String minimumSize = null;
 
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
-        
-        if (cg != null && cg.getVolumes() != null && !cg.getVolumes().isEmpty()) {
-            RelatedResourceRep firstSourceVolRep = cg.getVolumes().get(0);
-            VolumeRestRep volume = api(ctx).blockVolumes().get(firstSourceVolRep);
-            
-            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
-                    && volume.getProtection().getRpRep().getProtectionSet() != null) {
-                RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
-                ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
-                
-                List<URI> protectionSetVolIds = new ArrayList<URI>();
-                for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
-                	protectionSetVolIds.add(protectionVolume.getId());
-                }
-                
-                List<VolumeRestRep> protectionSetVolumes = api(ctx).blockVolumes().getByIds(protectionSetVolIds, null);
-                
-                for (VolumeRestRep vol1 : protectionSetVolumes) {
-                    if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
-                    	String capacity = api(ctx).blockVolumes().get(vol1.getId()).getCapacity();
-                        if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
-                            minimumSize = capacity;
-                        }
+        RelatedResourceRep vol = cg.getVolumes().get(0);
+        VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
+        if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
+                && volume.getProtection().getRpRep().getProtectionSet() != null) {
+            RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
+            ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
+            for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
+                VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
+                if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
+                    String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
+                    if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
+                        minimumSize = capacity;
                     }
                 }
             }
         }
-        
+
         if (minimumSize == null) {
             return Lists.newArrayList();
         } else {

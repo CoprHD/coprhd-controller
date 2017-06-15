@@ -14,11 +14,71 @@ public class ViprOperation {
     }
 
     public static class ViprTask {
-        private Resource resource;
-        private String state;
-        private String start_time;
-        private String op_id;
+        private String name;
+        private String id;
         private Link link;
+        private String inactive;
+        private String global;
+        private String remote;
+        private String internal;
+        private Resource resource;
+        private Tenant tenant;
+        private String state;
+        private String description;
+        private String progress;
+        private String creation_time;
+        private String op_id;
+        private String[] associated_resources;
+        private String start_time;
+        private String allowed_operations;
+
+        public String getName() {
+            return name;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getInactive() {
+            return inactive;
+        }
+
+        public String getGlobal() {
+            return global;
+        }
+
+        public String getRemote() {
+            return remote;
+        }
+
+        public String getInternal() {
+            return internal;
+        }
+
+        public Tenant getTenant() {
+            return tenant;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public String getProgress() {
+            return progress;
+        }
+
+        public String getCreation_time() {
+            return creation_time;
+        }
+
+        public String[] getAssociated_resources() {
+            return associated_resources;
+        }
+
+        public String getAllowed_operations() {
+            return allowed_operations;
+        }
 
         public Resource getResource() {
             return resource;
@@ -45,9 +105,22 @@ public class ViprOperation {
         }
     }
 
-    public static class Resource {
-        private String name;
+    public static class Tenant {
         private String id;
+        private Link link;
+
+        public String getId() {
+            return id;
+        }
+
+        public Link getLink() {
+            return link;
+        }
+    }
+    public static class Resource {
+
+        private String id;
+        private String name;
         private Link link;
 
         public String getName() {

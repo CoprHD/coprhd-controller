@@ -1148,7 +1148,7 @@ public class FileStorageScheduler implements Scheduler {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                 PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
-        if (fileShareList != null && fileShareList.isEmpty()) {
+        if (fileShareList != null && !fileShareList.isEmpty()) {
             for (FileShare fs : fileShareList) {
                 if (fs.getStorageDevice() != null) {
                     if (fs.getStorageDevice().equals(system.getId())) {

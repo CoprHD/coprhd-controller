@@ -14660,7 +14660,7 @@ performanceparams_tests()
     performanceparams list
 
     # Delete the performance parameter instances
-    run performanceparams delete ${pp1_update_name}
+    #run performanceparams delete ${pp1_update_name}
     run performanceparams delete ${pp2}
 }
 

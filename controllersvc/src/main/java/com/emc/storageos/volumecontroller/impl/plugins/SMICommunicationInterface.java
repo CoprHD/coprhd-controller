@@ -81,6 +81,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         try {
         	
         	_logger.info("Access Profile Details :" + accessProfile.toString());
+        	_logger.info("IN THE FUNCTION collectStatisticsInformation");
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
             metricsCollector.collectMetrics(storageSystem, _dbClient);
         	

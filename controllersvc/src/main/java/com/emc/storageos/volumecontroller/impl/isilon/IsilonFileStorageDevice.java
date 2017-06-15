@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -3205,14 +3206,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     clusterName = sourceCluster.getClusterConfig().getName();
                     // Add source access zone name to cluster name
                     // if the replication happens from user defined access zone to system access zone!!
+                    String nasName;
                     if (sourceFS.getVirtualNAS() != null) {
                         VirtualNAS sourcevNAS = _dbClient.queryObject(VirtualNAS.class, sourceFS.getVirtualNAS());
-                        String vNASName = sourcevNAS.getNasName();
-                        vNASName = getNameWithNoSpecialCharacters(vNASName, args);
-                        clusterName = clusterName + vNASName;
+                        if (sourcevNAS != null) {
+                            nasName = sourcevNAS.getNasName();
+                        } else {
+                            PhysicalNAS sourcepNAS = _dbClient.queryObject(PhysicalNAS.class, sourceFS.getVirtualNAS());
+                            nasName = sourcepNAS.getNasName() != null ? sourcepNAS.getNasName() : null;
+                        }
+                        nasName = getNameWithNoSpecialCharacters(nasName, args);
+                        clusterName = clusterName + nasName;
                     }
                     _log.debug("Generating path for target and the source cluster is is  {}", clusterName);
                 }
+
             }
         } else if (args.isTarget()) {
             if (args.getSourceSystem() != null) {

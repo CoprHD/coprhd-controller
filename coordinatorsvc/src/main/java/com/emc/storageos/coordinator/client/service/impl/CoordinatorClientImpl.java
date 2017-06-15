@@ -1467,7 +1467,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private Boolean isDatabaseServiceUp(String serviceName) {
         try {
             String siteId = _zkConnection.getSiteId();
-            List<Service> services = locateAllServices(serviceName, dbVersionInfo.getSchemaVersion(), siteId, null, null);
+            List<Service> services = locateAllServices(siteId, serviceName, dbVersionInfo.getSchemaVersion(), null, null);
             DrUtil drUtil = new DrUtil(this);
             Site site = drUtil.getSiteFromLocalVdc(siteId);
             log.info("Node count is {}, running {} count is {}", site.getNodeCount(),serviceName, services.size());

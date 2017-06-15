@@ -510,13 +510,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getCopyNameByConsistencyGroup(AssetOptionsContext ctx, URI consistencyGroupId) {
         ViPRCoreClient client = api(ctx);
         List<RelatedResourceRep> volumes = client.blockConsistencyGroups().get(consistencyGroupId).getVolumes();
-        List<URI> ids = new ArrayList<URI>();
+        List<URI> sourceVolumeIds = new ArrayList<URI>();
         
         for (RelatedResourceRep volume : volumes) {
-        	ids.add(volume.getId());
+        	sourceVolumeIds.add(volume.getId());
         }
         
-        List<VolumeRestRep> volumeReps = client.blockVolumes().getByIds(ids, null);
+        List<VolumeRestRep> volumeReps = client.blockVolumes().getByIds(sourceVolumeIds, null);
         Set<String> copyNames = Sets.newHashSet();
 
         for (VolumeRestRep volumeRep : volumeReps) {
@@ -527,8 +527,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
                 if (volumeRep.getHaVolumes() != null) {
                     List<RelatedResourceRep> haVolumes = volumeRep.getHaVolumes();
+                    List<URI> haVolumeIds = new ArrayList<URI>();
+                    
                     for (RelatedResourceRep haVolume : haVolumes) {
-                        VolumeRestRep haVolumeRep = client.blockVolumes().get(haVolume);
+                    	haVolumeIds.add(haVolume.getId());
+                    }
+                    
+                    List<VolumeRestRep> haVolumeReps = client.blockVolumes().getByIds(haVolumeIds, null);
+                    
+                    for (VolumeRestRep haVolumeRep : haVolumeReps) {
                         if (haVolumeRep.getProtection() != null && haVolumeRep.getProtection().getRpRep() != null
                                 && haVolumeRep.getProtection().getRpRep().getCopyName() != null) {
                             String copyName = haVolumeRep.getProtection().getRpRep().getCopyName();
@@ -539,9 +546,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
                 if (volumeRep.getProtection().getRpRep().getRpTargets() != null) {
                     List<VirtualArrayRelatedResourceRep> targetVolumes = volumeRep.getProtection().getRpRep().getRpTargets();
-                    for (VirtualArrayRelatedResourceRep target : targetVolumes) {
-                        VolumeRestRep targetVolume = client.blockVolumes().get(target.getId());
-                        String copyName = targetVolume.getProtection().getRpRep().getCopyName();
+                    
+                    List<URI> targetVolumeIds = new ArrayList<URI>();
+                    
+                    for (VirtualArrayRelatedResourceRep targetVolume : targetVolumes) {
+                    	targetVolumeIds.add(targetVolume.getId());
+                    }
+                    
+                    List<VolumeRestRep> targetVolumeReps = client.blockVolumes().getByIds(targetVolumeIds, null);
+                    
+                    for (VolumeRestRep targetVolumeRep : targetVolumeReps) {
+                        String copyName = targetVolumeRep.getProtection().getRpRep().getCopyName();
                         copyNames.add(copyName);
                     }
                 }

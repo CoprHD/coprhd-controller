@@ -410,6 +410,8 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 }
             }
             
+            _log.info("passedVolumesInMask : {}", passedVolumesInMask);
+            _log.info("remainingVolumes : {}", remainingVolumes);
             // None of the volumes is in the export mask, so we are done.
             if (passedVolumesInMask.isEmpty()) {
                 _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());

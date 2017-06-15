@@ -44,4 +44,6 @@ public class CustomServicesTaskResult {
     public int getReturnCode() {
         return returnCode;
     }
+
+    public Map<URI, String> getTaskState() { return taskState; }
 }

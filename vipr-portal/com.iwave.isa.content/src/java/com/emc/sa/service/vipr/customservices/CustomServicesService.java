@@ -49,6 +49,7 @@ import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
 import com.emc.sa.service.vipr.customservices.tasks.RESTHelper;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
@@ -225,6 +226,19 @@ public class CustomServicesService extends ViPRService {
 
         if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) || step.getType().equals(
                 CustomServicesConstants.REST_API_PRIMITIVE_TYPE)) {
+            final Map<URI, String> states = result.getTaskState();
+            if (states != null) {
+                for (Map.Entry<URI, String> e : states.entrySet()) {
+                    if (!StringUtils.isEmpty(e.getValue())) {
+                        if (e.getValue().equals(Task.Status.error.toString())) {
+                            ExecutionUtils.currentContext().logError("customServicesService.logStatus",
+                                    "Step Id" + step.getId() + "\t Step Name:" + step.getFriendlyName()
+                                            + "Task Failed TaskId:" + e.getKey() + "State:" + e.getValue());
+                            return false;
+                        }
+                    }
+                }
+            }
             return (result.getReturnCode() >= 200 && result.getReturnCode() < 300);
         }
 
@@ -502,7 +516,7 @@ public class CustomServicesService extends ViPRService {
         }
 
         if (StringUtils.isEmpty(primitive.response())) {
-            logger.debug("Vipr primitive" + primitive.name() + " has no repsonse defined.");
+            logger.debug("Vipr primitive" + primitive.name() + " has no response defined.");
             return null;
         }
 
@@ -514,10 +528,12 @@ public class CustomServicesService extends ViPRService {
         final Class<?> clazz = Class.forName(classname);
 
         final Object responseEntity = mapper.readValue(res, clazz.newInstance().getClass());
+
         final Map<String, List<String>> output = parseViprOutput(responseEntity, step);
         logger.info("ViPR output for step ID " + step.getId() + " is " + output);
         return output;
     }
+
 
     private Map<String, List<String>> parseViprOutput(final Object responseEntity, final Step step) throws Exception {
         final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
@@ -525,7 +541,7 @@ public class CustomServicesService extends ViPRService {
         final Map<String, List<String>> output = new HashMap<String, List<String>>();
         for (final CustomServicesWorkflowDocument.Output out : stepOut) {
             final String outName = out.getName();
-            logger.info("output to parse:{}", outName);
+            logger.debug("output to parse:{}", outName);
 
             final String[] bits = outName.split("\\.");
 

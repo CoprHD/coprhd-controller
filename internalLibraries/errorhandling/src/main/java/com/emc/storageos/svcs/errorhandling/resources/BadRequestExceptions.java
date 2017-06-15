@@ -856,8 +856,9 @@ public interface BadRequestExceptions {
     public BadRequestException failedToLoadKeyFromString(final Throwable e);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException trustStoreUpdatePartialSuccess(final int nAdd, final int nFailToAdd, final List<Integer> failedParse, final List<Integer> expired,
-                                                              final int nRemove, final int nFailToRemove, final List<Integer> notInTrustStore);
+    public BadRequestException trustStoreUpdatePartialSuccess(final int nAdd, final int nFailToAdd, final List<Integer> failedParse,
+            final List<Integer> expired,
+            final int nRemove, final int nFailToRemove, final List<Integer> notInTrustStore);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
     public BadRequestException invalidSeverityInURI(final String severity, final String severities);
@@ -1167,6 +1168,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidReplicationType(String copyMode);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidFileSystemDeleteType(String delType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException noReplicationRemoteCopies(String replicationType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1243,6 +1247,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
     public BadRequestException resourceCannotBeDeleted(final String resource);
+
+    @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
+    public BadRequestException filesystemDeleteNotSupported(final String delType, final boolean forceDelete);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException resourcedoesNotBelongToClusterTenantOrg(String resource);

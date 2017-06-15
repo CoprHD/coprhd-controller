@@ -165,6 +165,18 @@ public class FileStorageUtils {
         }
     }
 
+    /**
+     * deleteFileSystem - delete the file system
+     * Till now this function was deleting exports, shares, snapshots
+     * and snapshot shares
+     * 
+     * This behavior has been changed in 3.0 patch(4)
+     * Deactivate catalog service would not delete file system reference objects
+     * and always send force flag 'false' in delete request
+     * 
+     * @param fileSystemId
+     * @param fileDeletionType
+     */
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);

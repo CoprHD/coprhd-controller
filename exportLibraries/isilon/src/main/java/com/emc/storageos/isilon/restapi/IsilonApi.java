@@ -315,7 +315,7 @@ public class IsilonApi {
             }
         } catch (Exception e) {
             sLogger.warn("dirHasData - Unable to get the content of fs {}", e.getMessage());
-            return false;
+            return true;
         }
     }
 
@@ -399,6 +399,10 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteDir(String fspath, boolean recursive) throws IsilonException {
+        if (recursive) {
+            sLogger.warn("Failed to delete directory {0} on Isilon array: Due to recursive delete is not supported", fspath);
+            throw IsilonException.exceptions.forceDeleteNotSupported(fspath);
+        }
         fspath = scrubPath(fspath);
         ClientResponse resp = null;
         try {

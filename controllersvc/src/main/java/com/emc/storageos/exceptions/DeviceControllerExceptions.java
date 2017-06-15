@@ -267,13 +267,16 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
-    public DeviceControllerException failToCreateFileSystem(final String msg);
+    public DeviceControllerException failToCreateFileSystem(final String path);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
-    public DeviceControllerException failToDeleteFileSystem(final String msg);
+    public DeviceControllerException failToDeleteFileSystem(final String path);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
-    public DeviceControllerException failToDeleteQuotaDirectory(final String msg);
+    public DeviceControllerException deleteFileSystemNotSupported();
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failToDeleteQuotaDirectory(final String path);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringDbException(

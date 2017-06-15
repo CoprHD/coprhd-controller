@@ -67,6 +67,9 @@ public interface IsilonExceptions {
     @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)
     public IsilonException deleteDirFailedOnIsilonArray(final String msg, final Throwable cause);
 
+    @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)
+    public IsilonException forceDeleteNotSupported(final String path);
+
     @DeclareServiceCode(ServiceCode.ISILON_RESOURCE_ERROR)
     public IsilonException listResourcesFailedOnIsilonArray(final String key, final String response,
             final Throwable cause);

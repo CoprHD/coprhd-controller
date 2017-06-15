@@ -74,6 +74,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
     @After
     public void cleanup() throws Exception {
         cleanupDataObjectCF(FileShare.class);
+        cleanupDataObjectCF(Order.class);
     }
     
     @Test
@@ -105,7 +106,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("A1");
         testData.setMountPath("A2");
-        getDbClient().updateObject(testData);
+        getDbClient().createObject(testData);
         
         keyspace.prepareQuery(indexCF).withCql(String.format(
                 "delete from \"AltIdIndex\" where key='%s'", "A1")).execute();
@@ -144,7 +145,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("path1");
         testData.setMountPath("mountPath1");
-        getDbClient().updateObject(testData);
+        getDbClient().createObject(testData);
         
         Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
         keyspace.prepareQuery(cf)
@@ -161,7 +162,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("path1");
         testData.setMountPath("mountPath1");
-        getDbClient().updateObject(testData);
+        getDbClient().createObject(testData);
         
         testData = (FileShare)getDbClient().queryObject(testData.getId());
         testData.setInactive(true);
@@ -181,7 +182,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("path1");
         testData.setMountPath("mountPath1");
-        getDbClient().updateObject(testData);
+        getDbClient().createObject(testData);
         
         Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
         
@@ -204,7 +205,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("path2");
         testData.setMountPath("mountPath2");
-        getDbClient().updateObject(testData);
+        getDbClient().createObject(testData);
         
         //create duplicated index
         keyspace.prepareQuery(indexCF)
@@ -240,7 +241,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("path1");
         testData.setMountPath("mountPath1");
-        getDbClient().updateObject(testData);
+        getDbClient().createObject(testData);
         
         ColumnFamily<String, IndexColumnName> indexCF = new ColumnFamily<String, IndexColumnName>(
                 "AltIdIndex", StringSerializer.get(), IndexColumnNameSerializer.get());
@@ -269,7 +270,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         order.setId(URIUtil.createId(Order.class));
         order.setLabel("order1");
         order.setSubmittedByUserId("root");
-        getDbClient().updateObject(order);
+        getDbClient().createObject(order);
         
         Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
         ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> indexCF = new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>(
@@ -303,7 +304,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         order.setLabel("order2");
         order.setTenant("tenant");
         order.setIndexed(true);
-        getDbClient().updateObject(order);
+        getDbClient().createObject(order);
         
         Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
         ColumnFamily<String, TimeSeriesIndexColumnName> indexCF = new ColumnFamily<String, TimeSeriesIndexColumnName>(
@@ -338,7 +339,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         order.setSubmittedByUserId("Tom");
         order.setTenant("urn:storageos:TenantOrg:128e0354-c26e-438b-b1e6-1a6ceaa9b380:global");
         order.setIndexed(true);
-        getDbClient().updateObject(order);
+        getDbClient().createObject(order);
         
         Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
         ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> userToOrdersByTimeStampCF = new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>(

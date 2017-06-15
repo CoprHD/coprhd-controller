@@ -40,6 +40,7 @@ public class UnmountAndDeleteBlockVolumeService extends LinuxService {
     public void execute() {
         unmountVolumeHelper.unmountVolumes();
         BlockStorageUtils.removeVolumes(uris(volumeIds));
+        unmountVolumeHelper.removeDevices();
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }

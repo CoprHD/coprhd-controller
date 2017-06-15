@@ -74,6 +74,7 @@ public class ExpandBlockVolumeHelper {
         String parentDevice = linuxSupport.getParentDevice(mountPoint.getDevice(), usePowerPath);
 
         String initialBlockSize = linuxSupport.getFilesystemBlockSize(parentDevice);
+        logInfo("expand.block.volume.partition.size", initialBlockSize);
 
         List<String> blockDevices = linuxSupport.getBlockDevices(parentDevice, volume, usePowerPath);
         if (blockDevices != null && !blockDevices.isEmpty()) {
@@ -96,6 +97,7 @@ public class ExpandBlockVolumeHelper {
             linuxSupport.resizePartition(parentDevice);
             ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_RESIZE_PARTITION);
             String currentBlockSize = linuxSupport.getFilesystemBlockSize(parentDevice);
+            logInfo("expand.block.volume.partition.size", currentBlockSize);
 
             if (initialBlockSize == null || !StringUtils.equalsIgnoreCase(initialBlockSize, currentBlockSize)
                     || resizeAttempts >= MAX_RESIZE_RETRIES) {

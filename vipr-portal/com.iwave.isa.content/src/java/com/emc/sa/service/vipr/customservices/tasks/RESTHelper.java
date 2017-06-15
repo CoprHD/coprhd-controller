@@ -43,6 +43,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 
 public final class RESTHelper {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RESTHelper.class);
+    public static final String TASKLIST = "TaskList";
     
     private RESTHelper() {
     };

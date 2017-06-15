@@ -98,6 +98,9 @@ public final class CustomServicesConstants {
     public static final String UNTAR_OPTION = "-zxvf";
     public static final String REMOVE = "/bin/rm";
     public static final String REMOVE_OPTION = "-rf";
+    public static final String BIN_BASH = "/bin/bash";
+    public static final String BIN_BASH_OPTION = "-c";
+
     // Ansible Options
     public static final String ANSIBLE_BIN = "remote_ansible_bin";
     public static final String ANSIBLE_PLAYBOOK = "playbook";

@@ -136,13 +136,11 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         cmd.setShellArgs(makeParam(input));
         final String[] cmds = cmd.build();
 
-        //default to no host key checking
-        //final Map<String,String> environment = makeParam(input);
         logger.info("cmd to exec:{}", Arrays.toString(cmds));
         return Exec.sudo(new File(orderDir), timeout, null, new HashMap<String,String>(), cmds);
     }
 
-    //arg1=5 arg2=3
+    //Format: arg1=5 arg2=3
     private String makeParam(final Map<String, List<String>> input) throws Exception {
         final StringBuilder str = new StringBuilder();
         if (input == null) {

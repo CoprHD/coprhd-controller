@@ -406,6 +406,32 @@ $(document).on("click", ".multi-file-upload .remove:not(.disabled)", function() 
     processMultiFileUploadControls(this);
 });
 
+//handler to disable check boxes in nfsacl select-many fullControl
+$(document).on("click", "#info_permission input[value='fullControl']", function() {
+	if($(this).prop('checked')) {
+		$('#info_permission input').each(function() {
+			if($(this).attr('value') != 'fullControl') {
+				$(this).attr({'disabled':'disabled','checked':false});
+			}
+		});
+	} else {
+		$('#info_permission input').removeAttr('disabled');			
+	}
+});
+
+//nfsacl edit - disable checkboxes for fullControl
+$(document).on("click", "#nfsACL_permissions input[value='fullControl']", function() {
+	if($(this).prop('checked')) {
+		$('#nfsACL_permissions input').each(function() {
+			if($(this).attr('value') != 'fullControl') {
+				$(this).attr({'disabled':'disabled','checked':false});
+			}
+		});
+	} else {
+		$('#nfsACL_permissions input').removeAttr('disabled');			
+	}
+});
+
 //on submit handlers
 $(document).on("submit", "form", function(e) {
     //gather selected datatable elements to this element

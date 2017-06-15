@@ -548,6 +548,10 @@ URI_COMPUTE_VIRTUAL_POOLS       = URI_SERVICES_BASE + '/compute/vpools'
 URI_COMPUTE_VIRTUAL_POOL        = URI_COMPUTE_VIRTUAL_POOLS + '/{0}'
 URI_COMPUTE_VIRTUAL_POOL_ASSIGN = URI_COMPUTE_VIRTUAL_POOL + '/assign-matched-elements'
 
+URI_PERF_PARAMS                 = URI_SERVICES_BASE + '/block/performance-params'
+URI_PERF_PARAMS_INSTANCE        = URI_PERF_PARAMS + '/{0}'
+URI_PERF_PARAMS_DEACTIVATE      = URI_PERF_PARAMS_INSTANCE + '/deactivate'
+
 OBJCTRL_INSECURE_PORT           = '9010'
 OBJCTRL_PORT                    = '4443'
 S3_INSECURE_PORT                = '9020'
@@ -9749,3 +9753,81 @@ class Bourne:
             parms['unassign_from'] = unassign_request_projects
         filepolicy = self.filepolicy_query(name)
         return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy), parms)
+
+
+    # Create performance parameters
+    def pp_create(self, name, description, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
+                  thin_vol_prealloc_percentage, compression_enabled, fast_expansion_enabled, deduplication_enabled):
+        parms = dict()
+        parms['name'] = name
+        if (description):
+            parms['description'] = description
+        if (auto_tiering_policy_name):
+            parms['auto_tiering_policy_name'] = auto_tiering_policy_name
+        if (host_io_limit_bandwidth):
+            parms['host_io_limit_bandwidth'] = host_io_limit_bandwidth
+        if (host_io_limit_iops):
+            parms['host_io_limit_iops'] = host_io_limit_iops
+        if (thin_vol_prealloc_percentage):
+            parms['thin_volume_preallocation_percentage'] = thin_vol_prealloc_percentage
+        if (compression_enabled):
+            parms['compression_enabled'] = compression_enabled
+        if (fast_expansion_enabled):
+            parms['fast_expansion'] = fast_expansion_enabled
+        if (deduplication_enabled):
+            parms['dedup_capable'] = deduplication_enabled
+        return self.api('POST', URI_PERF_PARAMS, parms)
+
+    def pp_update(self, uri, newname, description, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
+                  thin_vol_prealloc_percentage, compression_enabled, fast_expansion_enabled, deduplication_enabled):
+        parms = dict()
+        if (newname):
+            parms['name'] = newname
+        if (description):
+            parms['description'] = description
+        if (auto_tiering_policy_name):
+            parms['auto_tiering_policy_name'] = auto_tiering_policy_name
+        if (host_io_limit_bandwidth):
+            parms['host_io_limit_bandwidth'] = host_io_limit_bandwidth
+        if (host_io_limit_iops):
+            parms['host_io_limit_iops'] = host_io_limit_iops
+        if (thin_vol_prealloc_percentage):
+            parms['thin_volume_preallocation_percentage'] = thin_vol_prealloc_percentage
+        if (compression_enabled):
+            parms['compression_enabled'] = compression_enabled
+        if (fast_expansion_enabled):
+            parms['fast_expansion'] = fast_expansion_enabled
+        if (deduplication_enabled):
+            parms['dedup_capable'] = deduplication_enabled
+        return self.api('PUT', URI_PERF_PARAMS_INSTANCE.format(uri), parms)
+
+    def pp_delete(self, uri):
+        return self.api('POST', URI_PERF_PARAMS_DEACTIVATE.format(uri))
+
+    def pp_show(self, uri):
+        return self.api('GET', URI_PERF_PARAMS_INSTANCE.format(uri))
+
+    def pp_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+        pplist = self.pp_list()
+        for pp_res_rep in pplist :
+            try:
+                pp = self.pp_show(pp_res_rep['id'])
+                if (pp['name'] == name):
+                    return pp['id']
+            except:
+                continue
+        raise Exception('Could not find performance params with name ' + name)
+
+    def pp_list(self):
+            pplist = self.api('GET', URI_PERF_PARAMS)
+            if (not pplist):
+                return {};
+            return pplist['performance_params']
+
+
+
+
+
+

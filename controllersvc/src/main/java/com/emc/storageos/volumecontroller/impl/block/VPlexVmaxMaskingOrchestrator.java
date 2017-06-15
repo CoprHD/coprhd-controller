@@ -180,6 +180,15 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                     + "This is not a recommended configuration.");
         }
 
+        if (allocatablePorts.isEmpty()) {
+            String message = "No allocatable ports found for export to VPLEX backend. ";
+            _log.warn(message);
+            if (errorMessages != null) {
+                errorMessages.append(message);
+            }
+            return portGroups;
+        }
+
         // Determine the network with the lowest number of allocatable ports.
         int minPorts = Integer.MAX_VALUE;
         for (URI networkURI : allocatablePorts.keySet()) {

@@ -1,0 +1,210 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import bourne as _bourne
+from bourne import Bourne
+import __builtin__
+
+#----------------------------------------------------------------------
+# performance parameter functions
+#----------------------------------------------------------------------
+
+def pp_create(args):
+    bourne.connect(args.ip)
+    pp = bourne.pp_create(args.name, args.description, args.auto_tiering_policy_name, args.host_io_limit_bandwidth, args.host_io_limit_iops,
+                          args.thin_vol_prealloc_percentage, args.compression_enabled, args.fast_expansion_enabled, args.deduplication_enabled)
+    print pp
+
+def pp_update(args):
+    bourne.connect(args.ip)
+    pp_uri = bourne.pp_query(args.name)
+    pp = bourne.pp_update(pp_uri, args.new_name, args.description, args.auto_tiering_policy_name, args.host_io_limit_bandwidth, args.host_io_limit_iops,
+                          args.thin_vol_prealloc_percentage, args.compression_enabled, args.fast_expansion_enabled, args.deduplication_enabled)
+    print pp
+
+def pp_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.pp_query(args.name)
+    res = bourne.pp_delete(uri)
+    print res
+
+def pp_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.pp_query(args.name)
+    pp = bourne.pp_show(uri)
+    bourne.pretty_print_json(pp)
+
+def pp_query(args):
+    bourne.connect(args.ip)
+    print bourne.pp_query(args.name)
+
+def pp_list(args):
+    bourne.connect(args.ip)
+    pp_display_hdr()
+    pp_list = bourne.pp_list()
+    for pp in pp_list:
+        pp = bourne.pp_show(pp['id'])
+        pp_display(pp)
+
+def pp_allow(args):
+    bourne.connect(args.ip)
+    uri = bourne.pp_query(args.name)
+    res = bourne.pp_add_acl(uri, args.tenant)
+    print res
+
+def pp_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.pp_query(args.name)
+
+    print 'Tagging performance parameters ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def pp_search(args):
+    bourne.connect(args.ip)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching performance parameters with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+pp_display_fmt = '{0:16s} {1:8s} {2:60s} {3:s}'
+
+def pp_display_hdr():
+    print pp_display_fmt.format('name', 'active', 'id', 'description')
+
+def pp_display(pp):
+    try:
+       descr = pp['description']
+	print pp_display_fmt.format(pp['name'], 'NO' if pp['inactive'] else 'YES', pp['id'], descr)
+    except:
+       descr="No description"
+	print pp_display_fmt.format(pp['name'], 'NO' if pp['inactive'] else 'YES', pp['id'], "No Description")
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# pp <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne Performance Parameters cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | update delete | show | query | list | allow | tag | search)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# pp create name
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',	help = 'The name of the performance parameters instance to be created')
+create.add_argument('--description', help = 'Description for the performance parameters instance')
+create.add_argument('--auto_tiering_policy_name', help = 'The auto tiering policy name') 
+create.add_argument('--host_io_limit_bandwidth', help = 'The VMAX host IO bandwidth limit in Mb/second')
+create.add_argument('--host_io_limit_iops', help = 'The VMAX host IO IOPs limit')
+create.add_argument('--thin_vol_prealloc_percentage', help='The pre-allocation percentage for thinly provisioned volumes')
+create.add_argument('--compression_enabled', help='The compression setting for VMAX all FLASH array')
+create.add_argument('--fast_expansion_enabled', help='The fast expansion setting')
+create.add_argument('--deduplication_enabled', help='The deduplication setting')
+
+# pp update name
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('name',	help = 'The name of the performance parameters instance to be updated')
+update.add_argument('--new_name', help = 'The new name for the performance parameters instance')
+update.add_argument('--description', help = 'Description for the performance parameters instance')
+update.add_argument('--auto_tiering_policy_name', help = 'The auto tiering policy name') 
+update.add_argument('--host_io_limit_bandwidth', help = 'The VMAX host IO bandwidth limit in Mb/second')
+update.add_argument('--host_io_limit_iops', help = 'The VMAX host IO IOPs limit')
+update.add_argument('--thin_vol_prealloc_percentage', help='The pre-allocation percentage for thinly provisioned volumes')
+update.add_argument('--compression_enabled', help='The compression setting for VMAX all FLASH array')
+update.add_argument('--fast_expansion_enabled', help='The fast expansion setting')
+update.add_argument('--deduplication_enabled', help='The deduplication setting')
+
+# pp delete name
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'The name of the performance parameters instance to be deleted')
+
+# pp show name
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name', help = 'The name of the performance parameters instance to be shown')
+
+# pp query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name', help = 'The name of the performance parameters instance to be queried')
+
+# pp list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# pp allow name tenant
+allow = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+allow.add_argument('name', help = 'The name of the performance parameters instance')
+allow.add_argument('tenant', help = 'The name of the tenant to allow access to the performance parameter instance')
+
+# pp tag
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('name', metavar = 'name', help = 'The name of the performance parameters instance')
+tag.add_argument('tags', metavar = 'tags', help = 'The tags to be applied to the instance', nargs='+', default=None)
+tag.add_argument('--resource_type', metavar = 'resource_type', help = 'The resource type', default=performanceparams)
+tag.add_argument('--id', metavar = 'id', help = 'The resource id', default=None)
+
+# pp search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('prefix', metavar = 'prefix', help = 'The prefix for search i.e., name or tag')
+search.add_argument('--resource_type', metavar = 'resource_type', help = 'The resource type', default=resource_type)
+search.add_argument('--scope', metavar = 'scope', help = 'The scope for searching i.e., global or tenant', default=None)
+search.add_argument('--tag', metavar = 'tag', help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project', help = 'The project to search', default=None)
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        pp_create(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        pp_update(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        pp_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        pp_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        pp_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        pp_list(args)
+    elif (cmd == "allow"):
+        args = allow.parse_args()
+        pp_allow(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        pp_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        pp_search(args)
+    else:
+        parser.print_help()
+except:
+    raise
+

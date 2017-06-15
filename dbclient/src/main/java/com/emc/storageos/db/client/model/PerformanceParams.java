@@ -79,7 +79,7 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
 
     @Name("compressionEnabled")
     public Boolean getCompressionEnabled() {
-        return compressionEnabled == null ? false : compressionEnabled;
+        return compressionEnabled == null ? PerformanceParams.PP_DFLT_COMPRESSION_ENABLED : compressionEnabled;
     }
 
     public void setCompressionEnabled(final Boolean compressionEnabled) {

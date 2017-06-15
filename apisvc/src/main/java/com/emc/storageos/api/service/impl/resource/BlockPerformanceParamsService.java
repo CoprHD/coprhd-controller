@@ -84,13 +84,13 @@ public class BlockPerformanceParamsService extends TaggedResource {
             throw BadRequestException.badRequests.negativeHostIOLimitBadwidth();
         }
 
-        // Verify host I/O bandwidth limit is non-negative.
+        // Verify host I/O IOPs limit is non-negative.
         Integer hostIOLimitIOPs = param.getHostIOLimitIOPs();
         if ((hostIOLimitIOPs != null) && (hostIOLimitIOPs < 0)) {
             throw BadRequestException.badRequests.negativeHostIOLimitIOPs();
         }
         
-        // Verify host I/O bandwidth limit is non-negative.
+        // Verify thin volume pre-allocation percentage is non-negative.
         Integer thinVolumePreAllocationPercentage = param.getThinVolumePreAllocationPercentage();
         if ((thinVolumePreAllocationPercentage != null) && (thinVolumePreAllocationPercentage < 0)) {
             throw BadRequestException.badRequests.negativeThinVolumePreAllocationPercentage();

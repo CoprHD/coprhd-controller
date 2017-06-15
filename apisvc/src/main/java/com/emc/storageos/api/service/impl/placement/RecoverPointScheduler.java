@@ -334,7 +334,8 @@ public class RecoverPointScheduler implements Scheduler {
         }
                 
         this.initResources();
-        List<Recommendation> recommendations = buildCgRecommendations(capabilities, vpool, protectionVarrays, changeVpoolVolume);
+        List<Recommendation> recommendations = buildCgRecommendations(capabilities, varray, vpool, performanceParams,
+                protectionVarrays, changeVpoolVolume);
 
         if (recommendations.isEmpty()) {
             if (VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
@@ -1867,6 +1868,9 @@ public class RecoverPointScheduler implements Scheduler {
                 haVpool.setRpRpoValue(srcVpool.getRpRpoValue());
                 haVpool.setMultivolumeConsistency(srcVpool.getMultivolumeConsistency());
                 haVpool.setHighAvailability(srcVpool.getHighAvailability());
+                StringMap haVarrayVpoolMap = new StringMap();
+                haVarrayVpoolMap.put(srcVarray.getId().toString(), srcVpool.getId().toString());
+                haVpool.setHaVarrayVpoolMap(srcVpool.getHaVarrayVpoolMap());
                 haVpool.setMetroPoint(srcVpool.getMetroPoint());
                 haVpool.setHaVarrayConnectedToRp(srcVarray.getId().toString());
                 haVpool.setJournalSize(NullColumnValueGetter.isNotNullValue(srcVpool.getJournalSize()) ? srcVpool.getJournalSize() : null);
@@ -2000,13 +2004,20 @@ public class RecoverPointScheduler implements Scheduler {
      * Checks if the existing volume's storage pool is in either the assigned or
      * matched storage pools of the virtual pool being used in the current volume request
      *
+     * @param varray - virtual array being used in the current volume request
      * @param vpool - virtual pool being used in the current volume request
      * @param existingVolume - the existing volume
+     * @param performanceParams - Performance parameters used in the current volume request
+     * @param capabilities - Virtual pool capabilities used in the current volume request
+     * @param role - The role for the volume whose pool is being verified.
+     * @param site - The site (SOURCE or COPY) for the volume whose pool is being verified.
      * @return true or false depending whether the storage pool is in either list
      */
-    private boolean verifyStoragePoolAvailability(VirtualPool vpool, Volume existingVolume) {
-        if (existingVolume.isVPlexVolume(dbClient)) { 
-            // Have to check the backing volumes for VPLEX
+    private boolean verifyStoragePoolAvailability(VirtualArray varray, VirtualPool vpool, Volume existingVolume,
+            Map<VolumeTopologyRole, URI> performanceParams, VirtualPoolCapabilityValuesWrapper capabilities, 
+            VolumeTopologySite site, VolumeTopologyRole role) {
+        // Have to check the backing volumes for VPLEX
+        if (existingVolume.isVPlexVolume(dbClient)) {            
             if (null == existingVolume.getAssociatedVolumes() || existingVolume.getAssociatedVolumes().isEmpty()) {
                 _log.error("VPLEX volume {} has no backend volumes.", existingVolume.forDisplay());
                 throw InternalServerErrorException.
@@ -2016,18 +2027,53 @@ public class RecoverPointScheduler implements Scheduler {
             for (String backingVolumeId : existingVolume.getAssociatedVolumes()) {
                 Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
                 
-                List<StoragePool> pools = new ArrayList<StoragePool>();                
-                if (existingVolume.getVirtualArray().equals(backingVolume.getVirtualArray())) {
-                    // Get the pools from the passed in vpool if the backing volume and existing volume have the
-                    // same internal site or if the passed in vpool does not have a value for getHaVarrayConnectedToRp,
-                    // which would mean we should use the main vpool for the HA vpool since no HA vpool was
-                    // explicitly defined.
-                    pools = VirtualPool.getValidStoragePools(vpool, dbClient, true);
-                } else {
-                    VirtualPool haVpool = VirtualPoolChangeAnalyzer.getHaVpool(vpool, dbClient);
-                    if (haVpool != null) {
-                        pools = VirtualPool.getValidStoragePools(haVpool, dbClient, true);
+                List<StoragePool> pools = new ArrayList<StoragePool>();
+                VirtualPoolCapabilityValuesWrapper capabilitiesForMatch = capabilities;
+                // The passed capabilities have been initialized in the volume creation request 
+                // for the source volume (PRIMARY role). For any other role we need to override 
+                // the capabilities to reflect that role's performance parameters.
+                if (site == VolumeTopologySite.COPY || role == VolumeTopologyRole.JOURNAL) {
+                    capabilitiesForMatch = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                            vpool, performanceParams, role, capabilities, dbClient);                    
+                }
+                
+                if (!VirtualPool.isRPVPlexProtectHASide(vpool)) {
+                    if (existingVolume.getVirtualArray().equals(backingVolume.getVirtualArray())) {
+                        // Get the pools from the passed in vpool if the backing volume and existing volume have the
+                        // same varray.
+                        pools = blockScheduler.getMatchingPools(varray, vpool, capabilitiesForMatch);
+                    } else {
+                        VirtualArray haVarray = dbClient.queryObject(VirtualArray.class, VPlexUtil.getHAVarray(vpool));
+                        VirtualPool haVpool = VirtualPool.getHAVPool(vpool, dbClient);
+                        if (haVpool == null) {
+                            haVpool = vpool;
+                        }
+                        // The passed capabilities have been initialized in the volume creation request 
+                        // for the source volume (PRIMARY role). For any other role we need to override 
+                        // the capabilities to reflect that role's performance parameters. So for the
+                        // HA side, we need to update the capabilities.
+                        capabilitiesForMatch = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                                haVpool, performanceParams, VolumeTopologyRole.HA, capabilities, dbClient);
+                        pools = blockScheduler.getMatchingPools(haVarray, haVpool, capabilitiesForMatch);
                     }
+                } else {
+                    // Here the HA and primary have been swapped and the passed varray, vpool, and 
+                    // capabilities would reflect the HA side.
+                    if (!existingVolume.getVirtualArray().equals(backingVolume.getVirtualArray())) {
+                        // Get the pools from the passed in vpool if the backing volume and existing volume 
+                        // do not have the same varray as that is the HA side backing volume.
+                        pools = blockScheduler.getMatchingPools(varray, vpool, capabilitiesForMatch);
+                    } else {
+                        // This is really the source varray and vpool because the passed vpool, which is really the 
+                        // HA vpool, has been setup so that the HA varray/vpool map contains the source
+                        VirtualArray srcVarray = dbClient.queryObject(VirtualArray.class, VPlexUtil.getHAVarray(vpool));
+                        VirtualPool srcVpool = VirtualPoolChangeAnalyzer.getHaVpool(vpool, dbClient);
+                        // The passed capabilities have been swapped so they represent the HA vpool
+                        // and performance param, so we need to override.
+                        capabilitiesForMatch = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                                srcVpool, performanceParams, VolumeTopologyRole.PRIMARY, capabilities, dbClient);
+                        pools = blockScheduler.getMatchingPools(srcVarray, srcVpool, capabilitiesForMatch);
+                    }                    
                 }
                 
                 if (!pools.isEmpty()) {
@@ -2042,8 +2088,16 @@ public class RecoverPointScheduler implements Scheduler {
                 // All VPLEX backend pools matched up
                 return true;
             }
-        } else {            
-            List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, dbClient, true);
+        } else {
+            // The passed capabilities have been initialized in the volume creation request 
+            // for the source volume (PRIMARY role). For any other role we need to override 
+            // the capabilities to reflect that role's performance parameters.
+            VirtualPoolCapabilityValuesWrapper capabilitiesForMatch = capabilities;
+            if (role != VolumeTopologyRole.PRIMARY) {
+                capabilitiesForMatch = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                        vpool, performanceParams, role, capabilities, dbClient);
+            }
+            List<StoragePool> pools = blockScheduler.getMatchingPools(varray, vpool, capabilitiesForMatch);
             if (!pools.isEmpty()) {
                 for (StoragePool pool : pools) {
                     if (pool.getId().equals(existingVolume.getPool())) {
@@ -2062,13 +2116,18 @@ public class RecoverPointScheduler implements Scheduler {
      *
      * @param volume - existing volume
      * @param vpool - virtual pool being used in the current volume request
+     * @param copyParams - The performance parameters for the target varray
+     * @param capabilities - The vpool capabilities
      * @return true or false depending whether the existing volume's storage pool is available to the current virtual pool of the
      *         request
      */
-    private boolean verifyTargetStoragePoolAvailability(Volume volume, VirtualPool vpool) {    	
+    private boolean verifyTargetStoragePoolAvailability(Volume volume, VirtualPool vpool,
+            Map<VolumeTopologyRole, URI> copyParams, VirtualPoolCapabilityValuesWrapper capabilities) {    	
     	if(volume.checkPersonality(Volume.PersonalityTypes.METADATA.name())) {
+    		VirtualArray journalVarray = dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
     		VirtualPool journalVpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-            if (verifyStoragePoolAvailability(journalVpool, volume)) {
+            if (verifyStoragePoolAvailability(journalVarray, journalVpool, volume, copyParams, capabilities,
+                    VolumeTopologySite.COPY, VolumeTopologyRole.JOURNAL)) {
                 return true;
             }
     	} else {
@@ -2094,11 +2153,16 @@ public class RecoverPointScheduler implements Scheduler {
      * creation request are available to the current request
      *
      * @param srcVolume - existing source volume to examine storage pools for
+     * @param varry - virtual array for the current volume creation request
      * @param vpool - virtual pool for the current volume creation request
+     * @param performanceParamsMap - The performance parameters
+     * @param capabilities - The vpool capabilities.
      * @param cgName - consistency group name of the current volume creation request
      * @return true or false depending whether the storage pools are available
      */
-    private boolean verifyExistingSourceProtectionPools(Volume srcVolume, VirtualPool vpool, String cgName) {
+    private boolean verifyExistingSourceProtectionPools(Volume srcVolume, VirtualArray varray, VirtualPool vpool, 
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap,
+            VirtualPoolCapabilityValuesWrapper capabilities, String cgName) {
         // Check if the storage pools used by the existing source and its journal are available in the current vpool
         List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, srcVolume.getConsistencyGroup(), srcVolume.getRpCopyName());
         Volume sourceJournal = sourceJournals.get(0);         
@@ -2107,22 +2171,55 @@ public class RecoverPointScheduler implements Scheduler {
             return false;
         }
         
-        if (!verifyStoragePoolAvailability(vpool, srcVolume)) {
+        Map<VolumeTopologyRole, URI> sourceParams = null;
+        if (performanceParamsMap != null) {
+            Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = performanceParamsMap.get(VolumeTopologySite.SOURCE);
+            if (sourceParamsMap != null && !sourceParamsMap.isEmpty()) {
+                // Always only 1 entry for the source site.
+                sourceParams = sourceParamsMap.values().iterator().next();
+            }
+        }
+
+        // Check if the storage pools used by the existing source and journal are available in the current vpool
+        if (!verifyStoragePoolAvailability(varray, vpool, srcVolume, sourceParams, capabilities,
+                VolumeTopologySite.SOURCE, VolumeTopologyRole.PRIMARY)) {
             _log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
                     "The storage pool %s used by an existing source volume cannot be used.", cgName, srcVolume.getPool()));
             return false;
-        } else if (!verifyStoragePoolAvailability(vpool, sourceJournal)) {
-            _log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
-                    "The storage pool %s used by an existing source journal volume cannot be used.",
-                    cgName, sourceJournal.getPool()));
-            return false;
+        } else {
+            // Need the journal varray and vpool.
+            VirtualArray journalVarray = varray;
+            if (NullColumnValueGetter.isNotNullValue(vpool.getJournalVarray())) {
+                journalVarray = dbClient.queryObject(VirtualArray.class, URI.create(vpool.getJournalVarray()));
+            }
+            VirtualPool journalVpool = vpool;
+            if (NullColumnValueGetter.isNotNullValue(vpool.getJournalVpool())) {
+                journalVpool = dbClient.queryObject(VirtualPool.class, URI.create(vpool.getJournalVpool()));
+            }
+            if (!verifyStoragePoolAvailability(journalVarray, journalVpool, sourceJournal, sourceParams, capabilities,
+                    VolumeTopologySite.SOURCE, VolumeTopologyRole.JOURNAL)) {
+                _log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
+                        "The storage pool %s used by an existing source journal volume cannot be used.",
+                        cgName, sourceJournal.getPool()));
+                return false;
+            }
         }
 
         // Check if the storage pools used by the existing source RP targets and their journals are available in the current vpool
         Iterator<String> targetVolumes = srcVolume.getRpTargets().iterator();
         while (targetVolumes.hasNext()) {
-            Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(targetVolumes.next()));               
-            if (!verifyTargetStoragePoolAvailability(targetVolume, vpool)) {
+            Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(targetVolumes.next()));
+            
+            Map<VolumeTopologyRole, URI> copyParams = null;
+            if (performanceParamsMap != null) {
+                Map<URI, Map<VolumeTopologyRole, URI>> copyParamsMap = performanceParamsMap.get(VolumeTopologySite.COPY);
+                if (copyParamsMap != null && !copyParamsMap.isEmpty()) {
+                    // Always only 1 entry for the source site.
+                    copyParams = copyParamsMap.get(targetVolume.getVirtualArray());
+                }
+            }
+
+            if (!verifyTargetStoragePoolAvailability(targetVolume, vpool, copyParams, capabilities)) {
                 _log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
                         "The storage pool %s used by an existing target volumes cannot be used.", cgName, targetVolume.getPool()));
                 return false;
@@ -2135,7 +2232,7 @@ public class RecoverPointScheduler implements Scheduler {
                 return false;
             }
             
-            if (!verifyTargetStoragePoolAvailability(targetJournal, vpool)) {
+            if (!verifyTargetStoragePoolAvailability(targetJournal, vpool, copyParams, capabilities)) {
                 _log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
                         "The storage pool %s used by an existing target journal volume cannot be used.", cgName,
                         targetJournal.getPool()));
@@ -2154,14 +2251,17 @@ public class RecoverPointScheduler implements Scheduler {
      * resources that have already been placed in the existing CG.
      *
      * @param capabilities - Virtual Pool capabilities
+     * @param varray - Virtual Array
      * @param vpool - Virtual Pool
+     * @param performanceParamsMap - Performance parameters
      * @param protectionVarrays - List of target copy virtual arrays
      * @param vpoolChangeVolume - change virtual pool volume
      * @return - List of recommendations
      */
     protected List<Recommendation> buildCgRecommendations(VirtualPoolCapabilityValuesWrapper capabilities,
-            VirtualPool vpool, List<VirtualArray> protectionVarrays,
-            Volume vpoolChangeVolume) {
+            VirtualArray varray, VirtualPool vpool, Map<VolumeTopologySite, 
+            Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap,
+            List<VirtualArray> protectionVarrays, Volume vpoolChangeVolume) {
         BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, capabilities.getBlockConsistencyGroup());
         _log.info(String.format("Attempting to align placement (protection system, storage pools, internal site names) with " +
                 "existing volumes in RecoverPoint consistency group %s.", cg.getLabel()));
@@ -2178,7 +2278,8 @@ public class RecoverPointScheduler implements Scheduler {
         }
 
         // Verify that all the underlying protection storage pools used by the existing source volume are available to this request
-        if (!verifyExistingSourceProtectionPools(sourceVolumes.get(0), vpool, cg.getLabel())) {
+        if (!verifyExistingSourceProtectionPools(sourceVolumes.get(0), varray, vpool, performanceParamsMap,
+                capabilities, cg.getLabel())) {
             return recommendations;
         }
 
@@ -2239,6 +2340,7 @@ public class RecoverPointScheduler implements Scheduler {
                     
             VirtualPool sourceJournalVpool = NullColumnValueGetter.isNotNullValue(vpool.getJournalVpool()) ? dbClient.queryObject(
                     VirtualPool.class, URI.create(vpool.getJournalVpool())) : vpool;
+                    // TBD Heg
             Long sourceJournalSize = getJournalCapabilities(vpool.getJournalSize(), capabilities, 1, null, null, false).getSize();
             
             RPRecommendation sourceJournalRecommendation = 

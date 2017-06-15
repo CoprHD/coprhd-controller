@@ -200,7 +200,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @return List of recommendations for change vpool
      */
     private List<Recommendation> getRecommendationsForVirtualPoolChangeRequest(Volume changeVpoolVolume, VirtualPool newVpool,
-            VirtualPoolChangeParam vpoolChangeParam, VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolChangeParam vpoolChangeParam, VirtualPoolCapabilityValuesWrapper capabilities, 
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap) {
         Project project = _dbClient.queryObject(Project.class, changeVpoolVolume.getProject());
 
         List<Recommendation> recommendations = null;
@@ -208,9 +209,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             recommendations = getBlockScheduler().scheduleStorageForVpoolChangeProtected(changeVpoolVolume, newVpool, RecoverPointScheduler
                     .getProtectionVirtualArraysForVirtualPool(project, newVpool, _dbClient, super.getPermissionsHelper()));
         } else {
+            // TBD Heg
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, changeVpoolVolume.getVirtualArray());
             recommendations = getBlockScheduler().getRecommendationsForResources(varray, project, newVpool,
-                    new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), capabilities);
+                    performanceParamsMap, capabilities);
         }
 
         return recommendations;
@@ -2129,10 +2131,34 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, vpoolChangeParam.getConsistencyGroup());
         capabilities.put(VirtualPoolCapabilityValuesWrapper.CHANGE_VPOOL_VOLUME, changeVpoolVolume.getId().toString());
+        
+        // Make sure the capabilities reflect the vpool and performance parameters of the
+        // change vpool volume as if this was a new volume creation as we call the same
+        // placement and ViPR volume creation routines.
+        // TBD Heg - Which vpool old or new? The volume is not changing so for example, it's
+        // auto tiering policy is what it is. If the vpool change is allowed with a different
+        // policy in the new vpool, this would not make sense. Verify what vpool change analyzer allows.
+        // It really should only allow the addition of RP protection fields. All else should be the
+        // same.
+        Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
+        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = new HashMap<>();
+        Map<VolumeTopologyRole, URI> performanceParams = new HashMap<>();
+        performanceParams.put(VolumeTopologyRole.PRIMARY, changeVpoolVolume.getPerformanceParams());
+        sourceParamsMap.put(changeVpoolVolume.getVirtualArray(), performanceParams);
+        if (RPHelper.isVPlexVolume(changeVpoolVolume, _dbClient)) {
+            Volume haVolume = VPlexUtil.getVPLEXBackendVolume(changeVpoolVolume, false, _dbClient, false);
+            if (haVolume != null) {
+                performanceParams.put(VolumeTopologyRole.HA, haVolume.getPerformanceParams());
+            }
+        }
+        performanceParamsMap.put(VolumeTopologySite.SOURCE, sourceParamsMap);
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, changeVpoolVolume.getVirtualPool());
+        capabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                currentVpool, performanceParams, VolumeTopologyRole.PRIMARY, capabilities, _dbClient);
 
-        List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(changeVpoolVolume, newVpool, vpoolChangeParam,
-                capabilities);
-
+        List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(
+                changeVpoolVolume, newVpool, vpoolChangeParam, capabilities, performanceParamsMap);
+        
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolume();
         }
@@ -2148,9 +2174,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         createTaskForVolume(changeVpoolVolume, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, taskList, taskId);
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
-        // TBD Heg
-        createVolumes(param, project, varray, newVpool, new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(),
-                recommendationMap, taskList, taskId, capabilities);
+        createVolumes(param, project, varray, newVpool, performanceParamsMap, recommendationMap, taskList, taskId, capabilities);
     }
 
     /**
@@ -3411,9 +3435,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // The volume will not be persisted just yet but we need to have the new vpool to
         // properly make placement decisions and to add reference to the new vpool to the
         // recommendation objects that will be created.
+        // TBD Heg
         URI currentVpool = volume.getVirtualPool();
         volume.setVirtualPool(newVpool.getId());
-        List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(volume, newVpool, vpoolChangeParam, null);
+        List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(volume, newVpool, vpoolChangeParam, null, 
+                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>());
         volume.setVirtualPool(currentVpool);
 
         if (recommendations.isEmpty()) {

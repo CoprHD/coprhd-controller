@@ -107,13 +107,8 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
             // String resourceId = job.getResourceId();
             VNXeFileSystem vnxeFS = null;
             String resourceId = job.getParametersOut().getStorageResource().getId();
-            if (resourceId == null || resourceId.isEmpty()) {
-                _logger.info("The job did not return the resourceId for created file system.");
-                _logger.info("Getting the fs info by its name: " + fsObj.getName());
-                vnxeFS = vnxeApiClient.getFileSystemByFSName(fsObj.getName());
-            } else {
-                vnxeFS = vnxeApiClient.getFileSystemByStorageResourceId(resourceId);
-            }
+            vnxeFS = vnxeApiClient.getFileSystemByStorageResourceId(resourceId);
+
             if (vnxeFS != null) {
                 fsObj.setNativeId(vnxeFS.getId());
                 fsObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, fsObj));
@@ -131,8 +126,8 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
                         getTaskCompleter().getId()));
 
             } else {
-                logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs name: ");
-                logMsgBuilder.append(fsObj.getName());
+                logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs  resource ID: ");
+                logMsgBuilder.append(resourceId);
             }
         } catch (IOException e) {
             _logger.error("Caught an exception while trying to update file system attributes", e);

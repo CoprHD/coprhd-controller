@@ -2661,16 +2661,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         String minimumSize = null;
 
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
+        // Get the first volume in the consistency group.  All volumes will be source volumes  
         RelatedResourceRep vol = cg.getVolumes().get(0);
         VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
         if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
                 && volume.getProtection().getRpRep().getProtectionSet() != null) {
             RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
             ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
+            List<URI> protectionSetVolumeIds = new ArrayList<URI>();
             for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
-                VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
-                if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
-                    String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
+            	protectionSetVolumeIds.add(protectionVolume.getId());
+            }
+            List<VolumeRestRep> protectionSetVolumes = api(ctx).blockVolumes().withInternal(true).getByIds(protectionSetVolumeIds, null);
+            for (VolumeRestRep protectionVolume : protectionSetVolumes) {
+                if (protectionVolume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
+                    String capacity = protectionVolume.getCapacity();
                     if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
                         minimumSize = capacity;
                     }

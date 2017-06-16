@@ -107,6 +107,7 @@
 				<value>com.emc.storageos.primitives.FileServiceGetFileSystemShareList</value>
 				<value>com.emc.storageos.primitives.FileServiceGetFileSystemShare</value>
 				<value>com.emc.storageos.primitives.FileServiceExpand</value>
+				<value>com.emc.storageos.primitives.FileServiceReduce</value>
 				<value>com.emc.storageos.primitives.FileServiceUpdate</value>
 				<value>com.emc.storageos.primitives.FileServiceShare</value>
 				<value>com.emc.storageos.primitives.FileServiceDeleteShare</value>
@@ -489,8 +490,6 @@
 				<value>com.emc.storageos.primitives.ProjectServiceAssignVNasServersToProject</value>
 				<value>com.emc.storageos.primitives.ProjectServiceUnassignVNasServersFromProject</value>
 				<value>com.emc.storageos.primitives.TenantsServiceGetTenant</value>
-				<value>com.emc.storageos.primitives.TenantsServiceSetTenant</value>
-				<value>com.emc.storageos.primitives.TenantsServiceCreateSubTenant</value>
 				<value>com.emc.storageos.primitives.TenantsServiceListSubTenants</value>
 				<value>com.emc.storageos.primitives.TenantsServiceDeactivateTenant</value>
 				<value>com.emc.storageos.primitives.TenantsServiceGetRoleAssignments</value>
@@ -558,56 +557,6 @@
 				<value>com.emc.storageos.primitives.VolumeGroupServiceLinkTargetVolumesForVolumeGroupSession</value>
 				<value>com.emc.storageos.primitives.VolumeGroupServiceRelinkTargetVolumesForVolumeGroupSession</value>
 				<value>com.emc.storageos.primitives.VolumeGroupServiceUnlinkTargetVolumesForVolumeGroupSession</value>
-				<value>com.emc.storageos.primitives.SnapshotServiceCreateSnapshot</value>
-				<value>com.emc.storageos.primitives.SnapshotServiceUpdateSnapshot</value>
-				<value>com.emc.storageos.primitives.SnapshotServiceActionOnSnapshot</value>
-				<value>com.emc.storageos.primitives.SnapshotServiceUpdateSnapshotMetadata</value>
-				<value>com.emc.storageos.primitives.SnapshotServiceCreatSnapshotMetadata</value>
-				<value>com.emc.storageos.primitives.SnapshotServiceDeleteSnapshotMetadataItem</value>
-				<value>com.emc.storageos.primitives.SnapshotServiceGetSnapshotList</value>
-				<value>com.emc.storageos.primitives.SnapshotServiceDeleteSnapshot</value>
-				<value>com.emc.storageos.primitives.SnapshotServiceGetSnapShot</value>
-				<value>com.emc.storageos.primitives.SnapshotServiceGetSnapShotMetadata</value>
-				<value>com.emc.storageos.primitives.QuotaServiceGetQuotaDetails</value>
-				<value>com.emc.storageos.primitives.QuotaServiceGetQuotaDefaults</value>
-				<value>com.emc.storageos.primitives.QuotaServiceUpdateQuota</value>
-				<value>com.emc.storageos.primitives.QuotaClassServiceUpdateQuotaClass</value>
-				<value>com.emc.storageos.primitives.QuotaClassServiceGetQuotaClass</value>
-				<value>com.emc.storageos.primitives.ConsistencyGroupSnapshotServiceCreateConsistencyGroupSnapshot</value>
-				<value>com.emc.storageos.primitives.ConsistencyGroupSnapshotServiceGetConsistencyGroupSnapshotDetail</value>
-				<value>com.emc.storageos.primitives.ConsistencyGroupSnapshotServiceGetConsistencyGroupSnapshotDetailList</value>
-				<value>com.emc.storageos.primitives.ConsistencyGroupSnapshotServiceDeleteConsistencyGroupSnapshot</value>
-				<value>com.emc.storageos.primitives.TypeServiceGetVolumeTypes</value>
-				<value>com.emc.storageos.primitives.TypeServiceGetVolumeType</value>
-				<value>com.emc.storageos.primitives.TypeServiceGetVolumeTypeEncryption</value>
-				<value>com.emc.storageos.primitives.TypeServiceSetVolumeTypeKey</value>
-				<value>com.emc.storageos.primitives.TypeServiceDeleteVolumeType</value>
-				<value>com.emc.storageos.primitives.ExtensionServiceGetVersion</value>
-				<value>com.emc.storageos.primitives.QosServiceCreateQoS</value>
-				<value>com.emc.storageos.primitives.QosServiceGetQosList</value>
-				<value>com.emc.storageos.primitives.QosServiceGetQosDetails</value>
-				<value>com.emc.storageos.primitives.QosServiceSetUnsetQosKey</value>
-				<value>com.emc.storageos.primitives.QosServiceDeleteQoS</value>
-				<value>com.emc.storageos.primitives.QosServiceAssociateQosWithVolumeType</value>
-				<value>com.emc.storageos.primitives.QosServiceDisassociateQosFromVolumeType</value>
-				<value>com.emc.storageos.primitives.QosServiceDisassociateQosFromAllAssociations</value>
-				<value>com.emc.storageos.primitives.QosServiceGetQosAssociations</value>
-				<value>com.emc.storageos.primitives.ConsistencyGroupServiceGetCosistencyGroup</value>
-				<value>com.emc.storageos.primitives.ConsistencyGroupServiceGetDetailedConsistencyGroupList</value>
-				<value>com.emc.storageos.primitives.ConsistencyGroupServiceCreateConsistencyGroup</value>
-				<value>com.emc.storageos.primitives.ConsistencyGroupServiceDeleteConsistencyGroup</value>
-				<value>com.emc.storageos.primitives.MiscServiceGetLimits</value>
-				<value>com.emc.storageos.primitives.MiscServiceGetExtensions</value>
-				<value>com.emc.storageos.primitives.MiscServiceGetVolumeTransfers</value>
-				<value>com.emc.storageos.primitives.MiscServiceGetOsServices</value>
-				<value>com.emc.storageos.primitives.MiscServiceGetAvailabilityZones</value>
-				<value>com.emc.storageos.primitives.KeystoneServiceListOpenstackTenants</value>
-				<value>com.emc.storageos.primitives.KeystoneServiceGetOpenstackTenant</value>
-				<value>com.emc.storageos.primitives.KeystoneServiceCreateOpenStackTenants</value>
-				<value>com.emc.storageos.primitives.KeystoneServiceUpdateOpenstackTenants</value>
-				<value>com.emc.storageos.primitives.KeystoneServiceListCoprhdOsTenants</value>
-				<value>com.emc.storageos.primitives.KeystoneServiceGetCoprhdOsTenant</value>
-				<value>com.emc.storageos.primitives.KeystoneServiceSynchronizeOpenstackTenants</value>
 				<value>com.emc.storageos.primitives.AuditServiceGetAuditLogs</value>
 				<value>com.emc.storageos.primitives.MonitoringServiceGetEvents</value>
 				<value>com.emc.storageos.primitives.MeteringServiceGetStats</value>
@@ -616,7 +565,8 @@
 				<value>com.emc.storageos.primitives.TaskServiceDeleteTask</value>
 				<value>com.emc.storageos.primitives.TaskServiceResumeTask</value>
 				<value>com.emc.storageos.primitives.TaskServiceRollbackTask</value>
-            </list>
+				<value>com.emc.storageos.primitives.StorageSystemDataCollectionServiceDiscoverScaleIO</value>
+			</list>
         </constructor-arg>
     </bean>
 

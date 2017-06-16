@@ -302,6 +302,45 @@ public class IsilonApi {
     }
 
     /**
+     * Checks to see if the file system directory has some files or directories
+     * 
+     * @param fspath
+     *            directory path to check
+     * @return true - if there are some files or folders, false otherwise
+     */
+    public boolean fsDirHasData(String fspath) throws IsilonException {
+        fspath = scrubPath(fspath);
+        ClientResponse clientResp = null;
+        try {
+            clientResp = _client.get(_baseUrl.resolve(URI_IFS.resolve(fspath)));
+
+            if (clientResp.getStatus() != 200) {
+                processErrorResponse("list", "files", clientResp.getStatus(),
+                        clientResp.getEntity(JSONObject.class));
+            } else {
+                JSONObject resp = clientResp.getEntity(JSONObject.class);
+                sLogger.debug("fsDirHasData: Output from Server {}", resp.get("children"));
+
+                JSONArray ar = (JSONArray) resp.get("children");
+                if (ar != null && ar.length() > 0) {
+                    sLogger.info("file system {} has content", fspath);
+                    return true;
+                }
+                sLogger.info("file system {} does not have content", fspath);
+                return false;
+            }
+        } catch (Exception e) {
+            sLogger.warn("fsDirHasData - Unable to get the content of fs {}", e.getMessage());
+            return true;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+        }
+        return true;
+    }
+
+    /**
      * Create a directory with the path specified, will fail if parent does not
      * exist
      * 
@@ -381,6 +420,10 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteDir(String fspath, boolean recursive) throws IsilonException {
+        if (recursive) {
+            sLogger.warn("Failed to delete directory {0} on Isilon array: Due to recursive delete is not supported", fspath);
+            throw IsilonException.exceptions.forceDeleteNotSupported(fspath);
+        }
         fspath = scrubPath(fspath);
         ClientResponse resp = null;
         try {

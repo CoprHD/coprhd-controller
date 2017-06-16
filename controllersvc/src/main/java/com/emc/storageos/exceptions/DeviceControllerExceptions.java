@@ -281,6 +281,15 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failToCreateFileSystem(final String path);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failToCreateQuotaDirectory(final String path);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failToDeleteQuotaDirectory(final String path);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException noNasServerFoundToAddStepsToApplyPolicy(final String storage);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)

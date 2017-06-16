@@ -262,7 +262,14 @@ public class Orders extends OrderExecution {
     public static void resubmitOrder(@Required String orderId) {
         checkAuthenticity();
         OrderRestRep order = OrderUtils.getOrder(uri(orderId));
-        addParametersToFlash(order);
+        try {
+            addParametersToFlash(order);
+        } catch (Exception e) {
+            Logger.error(e, MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            flash.error(MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            Common.handleError();
+        }
+
         Services.showForm(order.getCatalogService().getId().toString());
     }
 
@@ -273,6 +280,8 @@ public class Orders extends OrderExecution {
 
         if (service==null || service.getServiceDescriptor()==null){
             flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
+            Logger.error("Service descriptor not found");
+            throw new IllegalStateException("No service descriptor found. Might be Customservices Workflow  is deleted ");
         }
 
         for (ServiceItemRestRep item : service.getServiceDescriptor().getItems()) {
@@ -347,6 +356,8 @@ public class Orders extends OrderExecution {
 
         if (descriptor == null){
             flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
+            Logger.error("Service descriptor not found");
+            throw new IllegalStateException("No service descriptor found. Might be Customservices Workflow  is deleted ");
         }
         // Filter out actual Service Parameters
         Map<String, String> parameters = parseParameters(service, descriptor);

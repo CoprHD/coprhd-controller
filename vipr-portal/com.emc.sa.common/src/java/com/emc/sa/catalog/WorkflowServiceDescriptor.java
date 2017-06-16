@@ -102,7 +102,7 @@ public class WorkflowServiceDescriptor {
             if (wfs.isEmpty() || wfs.size() > 1) {
                 log.error("Cannot get workflow or more than one workflow mapped per workflow name:{}", wfDocument.getName());
                 throw new IllegalStateException(
-                        String.format("ECannot get workflow or more than one workflow mapped per workflow name %s", wfDocument.getName()));
+                        String.format("Cannot get workflow or more than one workflow mapped per workflow name %s", wfDocument.getName()));
             }
             if (StringUtils.isEmpty(wfs.get(0).getState()) || wfs.get(0).getState().equals(CustomServicesWorkflowStatus.NONE) ||
                     wfs.get(0).getState().equals(CustomServicesWorkflowStatus.INVALID)) {

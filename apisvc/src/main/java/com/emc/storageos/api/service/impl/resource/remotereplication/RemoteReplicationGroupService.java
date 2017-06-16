@@ -300,8 +300,8 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 srcVolIdsInRrGroup.add(pair.getSourceElement().getURI());
             }
             if(!srcVolIdsInRrGroup.containsAll(volsInCg)) {
-                _log.info("Skipping CG '" + cGroup.getLabel() + "' [" + cGroup.getId() +
-                        "] for Remote Replication Group '" + rrGroup.getLabel() + "' [" + rrGroup.getId() +
+                _log.info("Skipping Remote Replication Group '" + rrGroup.getLabel() + "' [" +
+                        rrGroup.getId() + "] for CG '" + cGroup.getLabel() + "' [" + cGroup.getId() +
                         "] since CG volumes are not all in Remote Replication Group.  CG contains " +
                         volsInCg + " and source volumes in RR Group pairs are " + srcVolIdsInRrGroup);
                 continue;

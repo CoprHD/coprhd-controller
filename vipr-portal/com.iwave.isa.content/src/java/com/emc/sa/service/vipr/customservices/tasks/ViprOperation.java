@@ -36,7 +36,7 @@ public class ViprOperation {
         private String inactive;
         private String global;
         private String remote;
-        private String vdc;
+        private Vdc vdc;
         private String internal;
         private Resource resource;
         private Tenant tenant;
@@ -69,7 +69,7 @@ public class ViprOperation {
             return remote;
         }
 
-        public String getVdc() {
+        public Vdc getVdc() {
             return vdc;
         }
 

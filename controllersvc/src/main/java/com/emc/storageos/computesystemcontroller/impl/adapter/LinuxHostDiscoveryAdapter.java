@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.emc.aix.SecureShellSupport;
 import com.emc.storageos.computesystemcontroller.exceptions.CompatibilityException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.DbClient;
@@ -107,25 +108,29 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         String multipathMessage = null;
         try {
             PowermtCheckRegistrationCommand command = new PowermtCheckRegistrationCommand();
-            cli.executeCommand(command);
+            cli.executeCommand(command, SecureShellSupport.SHORT_TIMEOUT);
             // powerpath is installed
             LOG.info("PowerPath is installed");
             return;
         } catch (PowerPathException e) {
             powerpathMessage = e.getMessage();
             LOG.info("PowerPath is unavailable: " + powerpathMessage);
+        } catch (Exception e) {
+            LOG.info("Error while checking for powerpath: " + e.getMessage(), e);
         }
 
         try {
             MultipathCommand command = new MultipathCommand();
             command.addArgument("-l");
-            cli.executeCommand(command);
+            cli.executeCommand(command, SecureShellSupport.SHORT_TIMEOUT);
             // multipath is installed
             LOG.info("Multipath is installed");
             return;
         } catch (MultipathException e) {
             multipathMessage = e.getMessage();
             LOG.info("Multipath is unavailable: " + multipathMessage);
+        } catch (Exception e) {
+            LOG.info("Error while checking for multipath: " + e.getMessage(), e);
         }
         throw new CompatibilityException("No multipath software available: \n" + powerpathMessage + "\n"
                 + multipathMessage);

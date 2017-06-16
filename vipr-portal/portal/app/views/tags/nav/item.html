@@ -3,7 +3,7 @@
     active = navSelected?.find { it == title }
 }%
 <li class="${active ? 'active' : ''}">
-  <a href="${_href}"#{if _onclick} onclick="${_onclick}"#{/if}>
+  <a href="${_href}"#{if _onclick} onclick="${_onclick}"#{/if} #{if _target} target="${_target}"#{/if}>
     #{icon _icon/}
     &{title}
   </a>

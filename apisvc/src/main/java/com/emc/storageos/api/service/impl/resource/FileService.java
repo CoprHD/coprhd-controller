@@ -1321,7 +1321,9 @@ public class FileService extends TaskResourceService {
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         if (!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-            throw APIException.badRequests.reduceFileSystemNotSupported(id, "Reduction of filesystem quota is supported only on Isilon");
+        	String msg = String
+                    .format("shrink filesystem is not supported for storage system %s", device.getSystemType());
+            throw APIException.badRequests.reduceFileSystemNotSupported(msg);
         }
 
         Long newFSsize = SizeUtil.translateSize(param.getNewSize());
@@ -1342,9 +1344,10 @@ public class FileService extends TaskResourceService {
 
                         if (qdsize < MIN_EXPAND_SIZE) {
                             String msg = String
-                                    .format("filesystem is reduced to a size lesser than sub quota. Quota Path: %s, current capacity: %d",
-                                            quotaDir.getPath(), quotaDir.getSize());
-                            throw APIException.badRequests.reduceFileSystemNotSupported(id, msg);
+                                    .format("as requested reduced size %s is lesser than used capacity %s for filesystem %s", 
+                                    		newFSsize.toString(), quotaDir.getSize().toString(), fs.getName());
+                            
+                            throw APIException.badRequests.reduceFileSystemNotSupported(msg);
                         }
                     }
                 }

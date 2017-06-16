@@ -92,8 +92,8 @@ public class VNXeExpandFileSystemJob extends VNXeJob {
                     getTaskCompleter().getId()));
             dbClient.persistObject(fsObj);
         } else {
-            logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs name: ");
-            logMsgBuilder.append(fsObj.getName());
+            logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs ID: ");
+            logMsgBuilder.append(fsObj.getNativeId());
         }
     }
 

@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StringSet;
@@ -1029,6 +1030,49 @@ public class BasePermissionsHelper {
         }
         Set<String> acls = virtualPool.getAclSet(new PermissionsKey(PermissionsKey.Type.TENANT,
                 tenantUri.toString(), virtualPool.getType()).toString());
+        if (acls != null && acls.contains(ACL.USE.toString())) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if any tenant in the list has a usage ACL on the passed performance parameters.
+     *
+     * @param tenantUris The URIs of the tenants.
+     * @param performanceParams A reference to a performance parameters instance.
+     * 
+     * @return true if any tenant has access, false otherwise.
+     */
+    public boolean tenantHasUsageACL(List<URI> tenantUris, PerformanceParams performanceParams) {
+        for (URI tenantUri : tenantUris) {
+            if (tenantHasUsageACL(tenantUri, performanceParams)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if the user's tenant has a usage ACL on the passed performance parameters.
+     * 
+     * @param tenantUri The URI of the tenant.
+     * @param performanceParams A reference to a performance parameters instance.
+     * 
+     * @return true if the tenant has access, false otherwise.
+     */
+    public boolean tenantHasUsageACL(URI tenantUri, PerformanceParams performanceParams) {
+        if (_disabler != null) {
+            return true;
+        }
+
+        if (CollectionUtils.isEmpty(performanceParams.getAcls())) {
+            return true;
+        }
+        
+        PermissionsKey pKey = new PermissionsKey(PermissionsKey.Type.TENANT, tenantUri.toString());
+        Set<String> acls = performanceParams.getAclSet(pKey.toString());
         if (acls != null && acls.contains(ACL.USE.toString())) {
             return true;
         }

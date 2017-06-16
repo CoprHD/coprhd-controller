@@ -66,6 +66,8 @@ import com.google.common.collect.Lists;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, readAcls = { ACL.USE },
 writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class BlockPerformanceParamsService extends TaggedResource {
+
+    private static final String EVENT_SERVICE_TYPE = "PERFORMANCEPARAMS";
     
     @Autowired
     protected GeoVisibilityHelper _geoHelper;
@@ -571,5 +573,13 @@ public class BlockPerformanceParamsService extends TaggedResource {
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getServiceType() {
+        return EVENT_SERVICE_TYPE;
     }
 }

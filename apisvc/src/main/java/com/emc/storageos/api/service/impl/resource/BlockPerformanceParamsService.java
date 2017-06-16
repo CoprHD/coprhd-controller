@@ -484,7 +484,7 @@ public class BlockPerformanceParamsService extends TaggedResource {
      * 
      * @brief Add or remove performance parameter ACL entries.
      * 
-     * @return Updated ACL assignment details.
+     * @return No data returned in response body.
      */
     @PUT
     @Path("/{id}/acl")

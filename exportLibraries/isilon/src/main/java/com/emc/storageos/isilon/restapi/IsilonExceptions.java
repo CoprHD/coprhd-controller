@@ -38,10 +38,6 @@ public interface IsilonExceptions {
             final Throwable e);
 
     @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)
-    public IsilonException unableToListDir(final String fspath, StatusType resp,
-            final Throwable e);
-
-    @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)
     public IsilonException createDirFailed(final String fspath, StatusType resp,
             final Throwable e);
 

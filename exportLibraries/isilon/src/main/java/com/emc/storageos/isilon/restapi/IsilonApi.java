@@ -297,7 +297,7 @@ public class IsilonApi {
     }
 
     /**
-     * Checks to see if the file system directory has some files or directories
+     * Checks if the file system directory has some files or directories
      * 
      * @param fspath
      *            directory path to check
@@ -416,7 +416,7 @@ public class IsilonApi {
      */
     public void deleteDir(String fspath, boolean recursive) throws IsilonException {
         if (recursive) {
-            sLogger.warn("Failed to delete directory {0} on Isilon array: Due to recursive delete is not supported", fspath);
+            sLogger.warn("Failed to delete directory {} on Isilon array: Due to recursive delete is not supported", fspath);
             throw IsilonException.exceptions.forceDeleteNotSupported(fspath);
         }
         fspath = scrubPath(fspath);

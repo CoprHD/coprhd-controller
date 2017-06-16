@@ -1623,6 +1623,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             String[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
             _log.error("FileDeviceController::createQtree: Unable to create file system quotaDir: storage {}, FS {}, snapshot {}: {}",
                     params);
+            // Failed to create quota directory
+            // remove from DB
             if (quotaDirObj != null) {
                 quotaDirObj.setInactive(true);
                 _dbClient.updateObject(quotaDirObj);
@@ -1698,6 +1700,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /**
+     * Delete NFS exports and shares file system quota directory
+     * 
+     * @param storage
+     * @param fs
+     * @param quotaDirObj
+     * @param task
+     */
     private void deleteQDExportsAndShares(URI storage, FileShare fs, QuotaDirectory quotaDirObj, String task) {
         FSExportMap fsExportMap = fs.getFsExports();
         String quotaName = quotaDirObj.getName();

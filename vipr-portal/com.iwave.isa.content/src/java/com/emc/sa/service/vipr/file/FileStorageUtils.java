@@ -141,6 +141,13 @@ public class FileStorageUtils {
         return fileSystemId;
     }
 
+    /**
+     * Delete the file system dependency objects like
+     * exports, shares , snapshots
+     * 
+     * @param fileSystemId
+     * @param fileDeletionType
+     */
     private static void deleteFileSystemRefObjects(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
         if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
             // Remove snapshots for the volume

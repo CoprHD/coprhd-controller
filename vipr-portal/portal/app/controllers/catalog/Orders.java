@@ -271,6 +271,10 @@ public class Orders extends OrderExecution {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(order.getCatalogService().getId().toString()));
         HashMap<String, String> tableParams = new HashMap<String, String>();
 
+        if (service==null){
+            flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
+        }
+
         for (ServiceItemRestRep item : service.getServiceDescriptor().getItems()) {
             if (item.isTable()) {
                 for (ServiceFieldRestRep tableItem : ((ServiceFieldTableRestRep) item).getItems()) {
@@ -341,6 +345,9 @@ public class Orders extends OrderExecution {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         ServiceDescriptorRestRep descriptor = service.getServiceDescriptor();
 
+        if (descriptor == null){
+            flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
+        }
         // Filter out actual Service Parameters
         Map<String, String> parameters = parseParameters(service, descriptor);
         if (Validation.hasErrors()) {

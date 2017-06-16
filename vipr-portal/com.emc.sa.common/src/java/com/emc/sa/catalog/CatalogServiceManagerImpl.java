@@ -83,6 +83,10 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
         // For "Test Workflow" CustomServiceWorkflow ID is set as CatalogService.
         if (null == catalogService && id.toString().startsWith(CustomServicesWorkflow.ID_PREFIX)) {
             final CustomServicesWorkflow customServicesWorkflow = customServicesWorkflowManager.getById(id);
+            if (customServicesWorkflow == null) {
+                log.debug(String.format("Might be Customservices Workflow [%s] is deleted", id));
+                throw new IllegalStateException("Might be Customservices Workflow  is deleted " + id);
+            }
             catalogService = new CatalogService();
             catalogService.setId(id);
             catalogService.setTitle(customServicesWorkflow.getLabel());

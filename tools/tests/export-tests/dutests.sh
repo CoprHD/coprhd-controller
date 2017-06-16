@@ -1968,6 +1968,8 @@ test_11() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+
+    echo "COP-31191 is opened against dangling FCZoneReference and zones"
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 
     # Report results
@@ -2101,6 +2103,8 @@ test_13() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+
+    echo "COP-31191 is opened against dangling FCZoneReference and zones"
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 
     # Report results
@@ -2603,7 +2607,7 @@ test_19() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Verify zones were not affected
-    echo "Not all zones will likely be here, as this is a export group update that passed.  filter zones?"
+    echo "COP-31206:  Not all zones will likely be here, as this is a export group update that passed.  filter zones needs to be implemented in verification"
     verify_zones ${FC_ZONE_A:7} exists
 
     # Remove initiator from the mask (done differently per array type)
@@ -2809,6 +2813,7 @@ test_21() {
     verify_export ${expname}1 ${HOST1} 1 1
 
     # Verify zones were not affected
+    echo "COP-31206: It is expected that the zone from the remInits call above will be missing in the zone list.  TODO: improve granularity of the verification check"
     verify_zones ${FC_ZONE_A:7} exists
 
     # Delete the export group

@@ -700,6 +700,9 @@ public class DbConsistencyCheckerHelper {
 				preparedStatement.withStringValue((String) indexColumns[i]);
 			} else if (indexColumns[i] instanceof Long) {
 				preparedStatement.withLongValue((Long) indexColumns[i]);
+			} else {
+				//suppose only String or Long, if un-supported type detect, just return true
+				return true;
 			}
 		}
 		

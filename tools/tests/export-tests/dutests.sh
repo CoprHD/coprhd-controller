@@ -1105,12 +1105,13 @@ test_3() {
         return
     fi
 
-
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # TODO: load zones
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
@@ -1160,6 +1161,8 @@ test_3() {
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
 
+    # TODO: Add zone check
+
     # Turn off suspend of export after orchestration
     set_suspend_on_class_method "none"
 
@@ -1197,6 +1200,8 @@ test_4() {
     # Create the mask with the 2 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
+    # TODO load zones
+
     verify_export ${expname}1 ${HOST1} 2 2
 
     if [ "$SS" != "xio" ]; then
@@ -1220,6 +1225,8 @@ test_4() {
 
         # Verify the mask wasn't touched
         verify_export ${expname}1 ${HOST1} 3 2
+
+	# TODO verify zones
 
         # Now remove the initiator from the export mask
         arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1251,6 +1258,8 @@ test_4() {
 
     # Verify the mask wasn't touched
     verify_export ${expname}1 ${HOST1} 3 2
+
+    # TODO: check zones
 
     # Now remove the initiator from the export mask
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1293,6 +1302,8 @@ test_4() {
         # Verify the mask is back to normal
         verify_export ${expname}1 ${HOST1} 2 2
 
+	# Verify zones are OK
+
         # Turn off suspend of export after orchestration
         set_suspend_on_class_method "none"
         
@@ -1308,6 +1319,8 @@ test_4() {
         arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}	
         # Now delete the export mask
         arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}        
+
+	# Verify zones are OK
     fi
 
     # Make sure it really did kill off the mask
@@ -1847,6 +1860,9 @@ test_11() {
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
+    # Find the zones that were created
+    load_zones ${HOST1} 
+
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
@@ -1877,9 +1893,6 @@ test_11() {
     # Follow the task.
     echo "*** Following the export_group update task to verify it FAILS due to the invoked failure"
     fail task follow $task
-
-    # Find the zones that were created
-    load_zones ${HOST1} 
 
     # Verify the zone names, as we know them, are on the switch
     verify_zones ${FC_ZONE_A:7} exists

@@ -1623,6 +1623,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             String[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
             _log.error("FileDeviceController::createQtree: Unable to create file system quotaDir: storage {}, FS {}, snapshot {}: {}",
                     params);
+            if (quotaDirObj != null) {
+                quotaDirObj.setInactive(true);
+                _dbClient.updateObject(quotaDirObj);
+            }
             updateTaskStatus(task, fsObj, e);
             updateTaskStatus(task, quotaDirObj, e);
             if ((fsObj != null) && (quotaDirObj != null)) {
@@ -1773,7 +1777,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (!result.isCommandSuccess()) {
                 _log.error("FileDeviceController::deleteQuotaDirectory: command is not successfull");
+            } else {
+                // If delete operation is successful, then remove obj from ViPR db by setting inactive=true
+                quotaDirObj.setInactive(true);
             }
+
             // save the task status in db
             _dbClient.persistObject(quotaDirObj);
             _dbClient.persistObject(fsObj);

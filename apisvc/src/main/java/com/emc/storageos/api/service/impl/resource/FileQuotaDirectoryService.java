@@ -365,7 +365,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
             // Fail to delete quota directory, if there are any dependency objects like exports, shares
             if (quotaDirectoryHasExportsOrShares(fs, quotaDirectory.getName())) {
                 throw APIException.badRequests
-                        .resourceCannotBeDeleted("Quota directory " + fs.getLabel() + " has exports/shares ");
+                        .resourceCannotBeDeleted("Quota directory " + quotaDirectory.getName() + " has exports/shares ");
             }
         }
 
@@ -382,10 +382,6 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         FileController controller = getController(FileController.class, device.getSystemType());
         try {
             controller.deleteQuotaDirectory(device.getId(), quotaDirectory.getId(), fs.getId(), task);
-            // If delete operation is successful, then remove obj from ViPR db by setting inactive=true
-            quotaDirectory.setInactive(true);
-            _dbClient.persistObject(quotaDirectory);
-
         } catch (InternalException e) {
             // treating all controller exceptions as internal error for now. controller
             // should discriminate between validation problems vs. internal errors

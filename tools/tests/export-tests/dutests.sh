@@ -1884,6 +1884,12 @@ test_11() {
     echo "*** Following the export_group update task to verify it FAILS due to the invoked failure"
     fail task follow $task
 
+    # Find the zones that were created
+    load_zones ${HOST1} 
+
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
+
     # Verify the mask still has the new volume in it (this will fail if rollback removed it)
     verify_export ${expname}1 ${HOST1} 2 2
 

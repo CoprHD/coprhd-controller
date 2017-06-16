@@ -464,6 +464,8 @@ public class NetworkDeviceController implements NetworkController {
             for (NetworkFCZoneInfo info : fabricInfos) {
                 if (NetworkSystemDevice.SUCCESS.equals(map.get(info.getZoneName()))) {
                     info.setCanBeRolledBack(true);
+                } else {
+                    info.setCanBeRolledBack(false);
                 }
             }
             if (!result.isCommandSuccess()) {
@@ -1352,11 +1354,6 @@ public class NetworkDeviceController implements NetworkController {
             List<NetworkFCZoneInfo> rollbackList = new ArrayList<NetworkFCZoneInfo>();
             for (NetworkFCZoneInfo info : context.getZoneInfos()) {
                 if (info.canBeRolledBack()) {
-                    // If we were adding zones, we set lastReference so it will be deleted.
-                    if (context.isAddingZones()) {
-                        info.setLastReference(true);
-                        lastReferenceZoneInfo.add(info);
-                    }
                     rollbackList.add(info);
                 }
             }
@@ -1651,11 +1648,7 @@ public class NetworkDeviceController implements NetworkController {
             List<NetworkFCZoneInfo> rollbackList = new ArrayList<NetworkFCZoneInfo>();
             for (NetworkFCZoneInfo info : context.getZoneInfos()) {
                 if (info.canBeRolledBack()) {
-                    // If we were adding zones, we set lastReference so it will be deleted.
-                    if (context.isAddingZones()) {
-                        info.setLastReference(true);
-                        lastReferenceZoneInfo.add(info);
-                    }
+                    //We should not blindly set last reference to true, removed code which does that earlier.
                     rollbackList.add(info);
                 }
             }
@@ -1663,8 +1656,9 @@ public class NetworkDeviceController implements NetworkController {
             taskCompleter = new ZoneReferencesRemoveCompleter(NetworkUtil.getFCZoneReferences(rollbackList), context.isAddingZones(), taskId);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_020);
+            //Changed this parameter to true, so that the last reference validation runs all the time in placeZones()
             BiosCommandResult result = addRemoveZones(exportGroupURI, rollbackList,
-                    context.isAddingZones());
+                   true);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_021);
 
             if (result.isCommandSuccess() && !lastReferenceZoneInfo.isEmpty()) {

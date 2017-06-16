@@ -399,8 +399,8 @@ public class VNXeApiClient {
         _logger.info("deleting file system: " + fsId);
         if (isFileSystemHasExportOrShare(fsId) || isFileSystemHasData(fsId)) {
             throw VNXeException.exceptions
-                    .vnxeCommandFailed("Delete file system failed as it conatin data, remove the data and try again for "
-                    + fsId);
+                    .vnxeCommandFailed("Delete file system failed as it conatin data or other linked resource, remove the dependency and try again for  "
+                            + fsId);
         }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);
         return req.deleteFileSystemAsync(fsId, forceSnapDeletion);
@@ -419,9 +419,9 @@ public class VNXeApiClient {
     public VNXeCommandResult deleteFileSystemSync(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
-        if (isFileSystemHasData(fsId)) {
+        if (isFileSystemHasExportOrShare(fsId) || isFileSystemHasData(fsId)) {
             throw VNXeException.exceptions
-                    .vnxeCommandFailed("Delete file system failed as it conatin data, remove the data and try again for  "
+                    .vnxeCommandFailed("Delete file system failed as it conatin data or other linked resource, remove the dependency and try again for  "
                     + fsId);
         }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);

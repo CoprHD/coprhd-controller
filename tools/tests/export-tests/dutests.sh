@@ -1111,7 +1111,8 @@ test_3() {
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
-    # TODO: load zones
+    # Find the zones that were created
+    load_zones ${HOST1}
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
@@ -1161,7 +1162,8 @@ test_3() {
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
 
-    # TODO: Add zone check
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Turn off suspend of export after orchestration
     set_suspend_on_class_method "none"
@@ -1200,7 +1202,8 @@ test_4() {
     # Create the mask with the 2 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
-    # TODO load zones
+    # Find the zones that were created
+    load_zones ${HOST1}
 
     verify_export ${expname}1 ${HOST1} 2 2
 
@@ -1226,7 +1229,8 @@ test_4() {
         # Verify the mask wasn't touched
         verify_export ${expname}1 ${HOST1} 3 2
 
-	# TODO verify zones
+        # Verify the zone names, as we know them, are on the switch
+        verify_zones ${FC_ZONE_A:7} exists
 
         # Now remove the initiator from the export mask
         arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1259,7 +1263,8 @@ test_4() {
     # Verify the mask wasn't touched
     verify_export ${expname}1 ${HOST1} 3 2
 
-    # TODO: check zones
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Now remove the initiator from the export mask
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1294,15 +1299,18 @@ test_4() {
         # Follow the task.  It should fail because of Poka Yoke validation
         echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
         fail task follow $task
+
         # Verify the mask wasn't touched
         verify_export ${expname}1 ${HOST1} 3 2
+
         # Now remove the initiator from the export mask
         arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
         # Verify the mask is back to normal
         verify_export ${expname}1 ${HOST1} 2 2
 
-	# Verify zones are OK
+        # Verify the zone names, as we know them, are on the switch
+        verify_zones ${FC_ZONE_A:7} exists
 
         # Turn off suspend of export after orchestration
         set_suspend_on_class_method "none"
@@ -1320,7 +1328,8 @@ test_4() {
         # Now delete the export mask
         arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}        
 
-	# Verify zones are OK
+        # Verify the zone names, as we know them, are on the switch
+        verify_zones ${FC_ZONE_A:7} exists
     fi
 
     # Make sure it really did kill off the mask
@@ -1356,6 +1365,9 @@ test_5() {
 
     verify_export ${expname}1 ${HOST1} 2 2
 
+    # Find the zones that were created
+    load_zones ${HOST1}
+
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
@@ -1382,6 +1394,9 @@ test_5() {
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 2
+
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     if [ "$SS" != "xio" ]; then    
         # Run the export group command 
@@ -1414,6 +1429,9 @@ test_5() {
 
         # Verify the mask is back to normal
         verify_export ${expname}1 ${HOST1} 2 2
+
+        # Verify the zone names, as we know them, are on the switch
+        verify_zones ${FC_ZONE_A:7} exists
     fi
 
     # Turn off suspend of export after orchestration
@@ -1462,6 +1480,9 @@ test_6() {
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
+    # Find the zones that were created
+    load_zones ${HOST1}
+
     known_device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
 
     # Add the volume to the mask (done differently per array type)
@@ -1481,6 +1502,9 @@ test_6() {
 
     # Verify the mask without the new volume in it
     verify_export ${expname}1 ${HOST1} 2 1
+
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
@@ -1506,6 +1530,9 @@ test_6() {
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
+
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Reset the test and run with a volume outside of ViPR
     HIJACK=du-hijack-volume-${RANDOM}
@@ -1537,6 +1564,9 @@ test_6() {
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
+
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
@@ -1561,6 +1591,9 @@ test_6() {
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
+
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
@@ -1617,6 +1650,9 @@ test_7() {
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
+    # Find the zones that were created
+    load_zones ${HOST1}
+
     # Create another volume, but don't export it through ViPR (yet)
     volname=du-hijack-volume-${RANDOM}
 
@@ -1636,6 +1672,9 @@ test_7() {
 
     # Verify the mask is "normal" after that command
     verify_export ${expname}1 ${HOST1} 2 2
+
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1
@@ -1679,6 +1718,9 @@ test_8() {
     # Verify the mask has been created
     verify_export ${expname} ${HOST1} 1 1
 
+    # Find the zones that were created
+    load_zones ${HOST1}
+
     # Strip out colons for array helper command
     h1pi2=`echo ${H1PI2} | sed 's/://g'`
     if [ "$SS" = "unity" ]; then
@@ -1696,6 +1738,9 @@ test_8() {
 
     # Verify the mask is "normal" after that command
     verify_export ${expname} ${HOST1} 2 1
+
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}
@@ -1734,6 +1779,9 @@ test_9() {
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
+    # Find the zones that were created
+    load_zones ${HOST1}
+
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportAddVolumesDeviceStep}
 
@@ -1761,6 +1809,9 @@ test_9() {
 
     # Verify the mask is "normal" after that command
     verify_export ${expname}1 ${HOST1} 2 2
+
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1
@@ -1798,6 +1849,9 @@ test_10() {
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
+    # Find the zones that were created
+    load_zones ${HOST1}
+
     # Create another volume, but don't export it through ViPR (yet)
     volname="${VOLNAME}-2"
 
@@ -1827,6 +1881,9 @@ test_10() {
 
     # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 2 1
+
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1

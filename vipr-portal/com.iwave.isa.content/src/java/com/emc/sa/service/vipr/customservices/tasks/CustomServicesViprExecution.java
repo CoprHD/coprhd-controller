@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
@@ -47,7 +49,7 @@ import com.sun.jersey.api.client.ClientResponse;
  */
 public class CustomServicesViprExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesViprExecution.class);
-    private static final String TASKLIST = "TaskList";
+
     private final Map<String, List<String>> input;
     private final RestClient client;
     private final CustomServicesViPRPrimitive primitive;
@@ -59,20 +61,20 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         this.step = step;
         if (daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) == null) {
             logger.error("ViPR operation DAO not found");
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "ViPR operation DAO not found");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), "ViPR operation DAO not found");
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("ViPR operation DAO not found: " + step.getOperation());
         }
         final CustomServicesPrimitiveType primitive = daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE).get(step.getOperation());
 
         if (null == primitive) {
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Primitive not found: " + step.getOperation());
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), "Primitive not found: " + step.getOperation());
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
         }
         this.primitive = (CustomServicesViPRPrimitive) primitive;
         this.client = client;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getId(), step.getFriendlyName());
     }
 
     @Override
@@ -92,12 +94,12 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         String path = RESTHelper.makePath(templatePath, input, primitive);
 
-        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.startInfo", primitive.friendlyName());
+        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.startInfo", step.getId(), primitive.friendlyName());
 
         CustomServicesTaskResult result = makeRestCall(path, requestBody, method);
 
         logger.info("result is:{}", result.getOut());
-        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.doneInfo", primitive.friendlyName());
+        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.doneInfo", step.getId(), primitive.friendlyName());
 
         return result;
     }
@@ -107,7 +109,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         final String classname = primitive.response();
 
-        if (classname.contains(TASKLIST)) {
+        if (classname.contains(RESTHelper.TASKLIST)) {
             final ObjectMapper mapper = new ObjectMapper();
             mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
             final Class<?> clazz = Class.forName(classname);
@@ -154,7 +156,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             }
 
             if (response == null) {
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
                         "REST Execution Failed. Response returned is null");
 
                 throw InternalServerErrorException.internalServerErrors.
@@ -166,6 +168,11 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
 
             final Map<URI, String> taskState = waitForTask(responseString);
+            //update state
+            final String classname = primitive.response();
+            if (classname.contains(RESTHelper.TASKLIST)) {
+                responseString = updateState(responseString, taskState);
+            }
             return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), taskState);
 
         } catch (final InternalServerErrorException e) {
@@ -175,14 +182,38 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             if (e.getServiceCode().getCode() == ServiceCode.CUSTOM_SERVICE_NOTASK.getCode()) {
                 return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), null);
             }
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), e);
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Failed to Execute REST request" + e.getMessage());
         } catch (final Exception e) {
             logger.warn("Exception:", e);
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), e);
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }
     }
+
+    private String updateState(final String response, final Map<URI, String> uristates) {
+        logger.info("response is:{}", response);
+        final Gson gson = new Gson();
+        final ViprOperation obj = gson.fromJson(response, ViprOperation.class);
+
+        final List<ViprOperation.ViprTask> tasks = obj.getTask();
+        for (final Map.Entry<URI, String> e : uristates.entrySet()) {
+            logger.debug("uri:{} value:{}", e.getKey(), e.getValue());
+            final URI uri = e.getKey();
+            for (final ViprOperation.ViprTask t : tasks) {
+                if(!StringUtils.isEmpty(t.getId()) && t.getId().equals(uri.toString())) {
+                    logger.debug("Update the state");
+                    t.setState(e.getValue());
+                }
+            }
+        }
+
+        final String finalResponse = gson.toJson(obj);
+        logger.info("New result" + finalResponse);
+
+        return finalResponse;
+    }
 }
+

@@ -84,6 +84,7 @@ public class CustomServicesWorkflowDocument {
         private String name;
         // type of CustomServicesConstants.InputType
         private String type;
+        private String step;
         private String friendlyName;
         private String defaultValue;
         private String value;
@@ -113,6 +114,15 @@ public class CustomServicesWorkflowDocument {
 
         public void setType(String type) {
             this.type = type;
+        }
+
+        @XmlElement(name = "step", nillable = true)
+        public String getStep() {
+            return step;
+        }
+
+        public void setStep(String step) {
+            this.step = step;
         }
 
         @XmlElement(name = "friendly_name", nillable = true)

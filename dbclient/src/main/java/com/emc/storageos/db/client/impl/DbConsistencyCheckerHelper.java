@@ -172,15 +172,20 @@ public class DbConsistencyCheckerHelper {
 
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
             boolean inactiveObject = false;
+            boolean hasInactiveColumn = false;
 
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
-                if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
-                	inactiveObject = true;
+            	if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME)) {
+                	hasInactiveColumn = true;
+                	inactiveObject = column.getBooleanValue();
                 	break;
                 }
             }
             
-            if (inactiveObject) {
+            if (!hasInactiveColumn || inactiveObject) {
+            	if (!hasInactiveColumn) {
+            		_log.warn("Data object with key {} has NO inactive column, don't rebuild index for it.", objRow.getKey());
+            	}
             	continue;
             }
 
@@ -218,7 +223,7 @@ public class DbConsistencyCheckerHelper {
                             true, toConsole);
                     DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
                             String.format("id:%s, cfName:%s", objRow.getKey(),
-                                    indexedField.getDataObjectType().getSimpleName()));
+                            		doType.getCF().getName()));
                 }
             }
         }

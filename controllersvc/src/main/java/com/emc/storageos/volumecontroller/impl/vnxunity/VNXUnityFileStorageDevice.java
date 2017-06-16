@@ -75,7 +75,7 @@ import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSy
 import com.google.common.collect.Sets;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
-        implements FileStorageDevice {
+implements FileStorageDevice {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityFileStorageDevice.class);
 
@@ -185,10 +185,10 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         _logger.info("checking file system existence on array: ", fileInOut.getFsName());
         boolean isFSExists = true;
         try {
-            String name = fileInOut.getFsName();
+            String fsId = fileInOut.getFsNativeId();
             VNXeApiClient apiClient = getVnxUnityClient(storage);
-            VNXeFileSystem fs = apiClient.getFileSystemByFSName(name);
-            if (fs != null && (fs.getName().equals(name))) {
+            VNXeFileSystem fs = apiClient.getFileSystemByFSId(fsId);
+            if (fs != null && (fs.getId().equals(fsId))) {
                 isFSExists = true;
             } else {
                 isFSExists = false;
@@ -231,7 +231,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {

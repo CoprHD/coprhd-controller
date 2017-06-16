@@ -2412,7 +2412,7 @@ public class VNXeApiClient {
     /**
      * create tree quota
      * 
-     * @param fsName
+     * @param fsID
      *            file system ID
      * @param quotaName
      *            name of quota to be created

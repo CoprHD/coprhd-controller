@@ -541,7 +541,7 @@ public class CustomServicesService extends ViPRService {
         final Map<String, List<String>> output = new HashMap<String, List<String>>();
         for (final CustomServicesWorkflowDocument.Output out : stepOut) {
             final String outName = out.getName();
-            logger.info("output to parse:{}", outName);
+            logger.debug("output to parse:{}", outName);
 
             final String[] bits = outName.split("\\.");
 

@@ -1321,10 +1321,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         Long qDirSize = quotaDir.getSize();
         String qDirPath = fsMountPath + "/" + quotaDir.getName();
         _log.info("IsilonFileStorageDevice doCreateQuotaDirectory {} with size {} - start", qDirPath, qDirSize);
+        Boolean fsDirCreatedByMe = false;
         try {
             IsilonApi isi = getIsilonDevice(storage);
-            // create directory for the file share
-            isi.createDir(qDirPath, true);
+
+            // Verify the quota directory path exists or not!!
+            if (!isi.existsDir(qDirPath)) {
+                // create directory for the quota directory
+                isi.createDir(qDirPath, true);
+                fsDirCreatedByMe = true;
+            } else {
+                // Fail to create quota directory, as the directory already exists!!
+                _log.error("Quota directory creation failed due to directory path {} already exists.", qDirPath);
+                throw DeviceControllerException.exceptions.failToCreateQuotaDirectory(qDirPath);
+            }
 
             String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
 
@@ -1336,6 +1346,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("IsilonFileStorageDevice doCreateQuotaDirectory {} with size {} - complete", qDirPath, qDirSize);
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
+            // Delete the quota directory only if it was created from this workflow
+            // instead of delete entire quota tree
+            // delete the directory alone with recursive false!!!
+            if (fsDirCreatedByMe) {
+                // delete isilon directory
+                _log.info("doCreateQuotaDirectory failed, deleting the isilon directory {} which has been created in this workflow",
+                        qDirPath);
+                IsilonApi isi = getIsilonDevice(storage);
+                isi.deleteDir(args.getFsMountPath(), false);
+            }
             _log.error("doCreateQuotaDirectory failed.", e);
             return BiosCommandResult.createErrorResult(e);
         }

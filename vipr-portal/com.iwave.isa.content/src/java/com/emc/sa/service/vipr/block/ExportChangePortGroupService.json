@@ -24,21 +24,6 @@
           type: "assetType.vipr.exportPathExport", 
           lockable: false
         },
-        minPaths: {
-          type:"assetType.vipr.exportPathMinPathsOptions",
-          omitNone: true,
-          initialValue: "1"
-        },
-        maxPaths: {
-          type:"assetType.vipr.exportPathMaxPathsOptions",
-          omitNone: true, 
-          initialValue: "2"
-        },
-        pathsPerInitiator: {
-          type:"assetType.vipr.exportPathPathsPerInitiatorOptions",
-          omitNone: true,
-          initialValue: "1"
-        },
         storageSystem: {
             type:"assetType.vipr.exportPathStorageSystem"
         },
@@ -49,11 +34,6 @@
         portGroup:{
             type:"assetType.vipr.exportPathPortGroups",
             select: "many",
-            required: false
-        },
-        suspendWait:{
-            type: "boolean",
-            initialValue: "false",
             required: false
         },
         exportPortGroupPreview:{

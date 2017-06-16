@@ -54,13 +54,13 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getId(), step.getFriendlyName());
     }
 
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
 
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId(), step.getFriendlyName());
 
         final CommandOutput result;
         try {
@@ -68,22 +68,25 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
                     step.getOperation());
             if (null == primitive) {
                 logger.error("Error retrieving the ansible primitive from DB. {} not found in DB", step.getOperation());
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "\"Error retrieving the Remote Ansible primitive from DB.");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "\"Error retrieving the Remote Ansible primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(step.getOperation() + " not found in DB");
             }
 
             result = executeRemoteCmd(AnsibleHelper.makeExtraArg(input, step), primitive);
 
         } catch (final Exception e) {
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Custom Service Task Failed" + e);
             logger.error("Exception:", e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId(), step.getFriendlyName());
 
         if (result == null) {
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Remote Ansible execution Failed");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Remote Ansible execution Failed");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Remote Ansible execution Failed");
         }
 
@@ -92,7 +95,7 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
 
         final String parsedOut = AnsibleHelper.parseOut(result.getStdout());
         if (!StringUtils.isEmpty(parsedOut)) {
-            ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId() + "Execution Output:" + parsedOut);
+            ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId(), step.getFriendlyName());
 
             return new CustomServicesScriptTaskResult(parsedOut, result.getStdout(), result.getStderr(), result.getExitValue());             
         }

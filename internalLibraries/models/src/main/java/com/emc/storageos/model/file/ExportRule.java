@@ -12,6 +12,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
+
 import com.emc.storageos.model.file.FileExportUpdateParams.ExportOperationErrorType;
 
 @XmlRootElement
@@ -38,6 +40,7 @@ public class ExportRule implements Serializable {
     private boolean isToProceed = false;
     private ExportOperationErrorType errorTypeIfNotToProceed;
 
+    @JsonIgnore
     public boolean isToProceed() {
         return isToProceed;
     }

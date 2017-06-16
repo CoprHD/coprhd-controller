@@ -48,10 +48,10 @@
     <source path="/slesmedia/12-SLES-DVD1"/>
   </repository>
   <repository type="rpm-md" priority="2">
-    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/common-mitaka-master"/>
+    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/common-newton-master"/>
   </repository>
   <repository type="rpm-md" priority="1">
-    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/Mitaka-master"/>
+    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/Newton-master"/>
   </repository>
   <repository type="rpm-md" priority="1">
     <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/packages-master/"/>

@@ -10,6 +10,8 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logWarn;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.service.ArtificialFailures;
@@ -22,6 +24,10 @@ import com.iwave.ext.linux.model.MountPoint;
 
 public class ExpandBlockVolumeHelper {
     private final LinuxSupport linuxSupport;
+
+    private static final int MAX_RESIZE_RETRIES = 3;
+
+    private static final long EXPAND_RETRY_DELAY = 5000;
 
     private MountPoint mountPoint;
 
@@ -67,6 +73,9 @@ public class ExpandBlockVolumeHelper {
         logInfo("expand.block.volume.find.parent", mountPoint.getDevice());
         String parentDevice = linuxSupport.getParentDevice(mountPoint.getDevice(), usePowerPath);
 
+        String initialBlockSize = linuxSupport.getFilesystemBlockSize(parentDevice);
+        logInfo("expand.block.volume.partition.size", initialBlockSize);
+
         List<String> blockDevices = linuxSupport.getBlockDevices(parentDevice, volume, usePowerPath);
         if (blockDevices != null && !blockDevices.isEmpty()) {
             linuxSupport.rescanBlockDevices(blockDevices);
@@ -80,9 +89,29 @@ public class ExpandBlockVolumeHelper {
         // this is the dm-* name
         // TODO: get the multipath device name using this dm-* name
 
-        logInfo("expand.block.volume.resize.partition", volume.getName());
-        linuxSupport.resizePartition(parentDevice);
-        ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_RESIZE_PARTITION);
+        boolean fileSystemExpanded = false;
+        int resizeAttempts = 0;
+        while (!fileSystemExpanded) {
+            resizeAttempts++;
+            logInfo("expand.block.volume.resize.partition", volume.getName());
+            linuxSupport.resizePartition(parentDevice);
+            ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_RESIZE_PARTITION);
+            String currentBlockSize = linuxSupport.getFilesystemBlockSize(parentDevice);
+            logInfo("expand.block.volume.partition.size", currentBlockSize);
+
+            if (initialBlockSize == null || currentBlockSize == null || !StringUtils.equalsIgnoreCase(initialBlockSize, currentBlockSize)) {
+                fileSystemExpanded = true;
+            } else if (resizeAttempts >= MAX_RESIZE_RETRIES) {
+                fileSystemExpanded = true;
+                logWarn("expand.block.volume.unable.to.determine.resize");
+            } else {
+                try {
+                    Thread.sleep(EXPAND_RETRY_DELAY);
+                } catch (InterruptedException e) {
+                    logWarn("expand.block.volume.resize.sleep.failure");
+                }
+            }
+        }
 
         logInfo("expand.block.volume.resize.file", linuxSupport.getHostName());
         linuxSupport.resizeFileSystem(mountPoint.getDevice());

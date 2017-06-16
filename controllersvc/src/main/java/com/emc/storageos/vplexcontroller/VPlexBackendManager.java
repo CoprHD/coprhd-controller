@@ -1038,6 +1038,18 @@ public class VPlexBackendManager {
         // get the existing zones in zonesByNetwork
         Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
         Map<URI, List<StoragePort>> allocatablePorts = getAllocatablePorts(array, _networkMap.keySet(), varrayURI, zonesByNetwork, stepId);
+
+        Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
+        if (allocatablePorts.isEmpty()) {
+            String message = "No allocatable ports found for export to VPLEX backend. ";
+            _log.warn(message);
+            if (errorMessages != null) {
+                errorMessages.append(message);
+            }
+            _log.warn("Returning empty export mask map because no allocatable ports could be found.");
+            return exportMasksMap;
+        }
+
         Map<URI, Map<String, Integer>> switchToPortNumber = getSwitchToMaxPortNumberMap(array);
         Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(allocatablePorts, _networkMap, varrayURI,
                 initiatorGroups.size(), switchToPortNumber, null, errorMessages);
@@ -1049,7 +1061,6 @@ public class VPlexBackendManager {
         Map<URI, String> portSwitchMap = new HashMap<URI, String>();
         PlacementUtils.getSwitchNameForInititaorsStoragePorts(_initiators, storageports, _dbClient, array, 
                 initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
-        Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
         // get the assigner needed - it is with a pre-zoned ports assigner or the default
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones(array.getSystemType(), zonesByNetwork);

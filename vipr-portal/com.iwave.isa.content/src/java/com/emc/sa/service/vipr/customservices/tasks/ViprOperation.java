@@ -69,7 +69,7 @@ public class ViprOperation {
             return remote;
         }
 
-        public Vdc getVdc() {
+        public Vdc  getVdc() {
             return vdc;
         }
 

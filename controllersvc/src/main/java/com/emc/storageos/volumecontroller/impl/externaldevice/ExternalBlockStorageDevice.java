@@ -2224,7 +2224,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         String rrGroupState = null;
         RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrSetURI);
 
-        if (!URIUtil.isNull(rrGroupURI)) {
+        if (contextType != ElementType.REPLICATION_SET && !URIUtil.isNull(rrGroupURI)) {
             RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrGroupURI);
             rrGroupNativeId = remoteReplicationGroup.getNativeId();
             rrGroupState = remoteReplicationGroup.getReplicationState();

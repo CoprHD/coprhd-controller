@@ -979,10 +979,9 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
         // VMAX SRDF integration logic
+        // This operation is not supported in current native srdf support.
         if (RemoteReplicationUtils.isVmaxPair(rrPairs.get(0), _dbClient)) {
-            // delegate to SRDF support
-            TaskList taskList = processSrdfCGCopyModeChangeRequest(rrPairs.get(0), newMode);
-            return taskList;
+                throw APIException.badRequests.unsupportedSystemType(sourceElement.getSystemType());
         }
 
         // this validation is not applicable to SRDF volumes
@@ -1034,10 +1033,10 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.CHANGE_REPLICATION_MODE);
 
         // SRDF integration logic
+        // This operation is not supported in current native srdf support.
         if (RemoteReplicationUtils.isVmaxPair(rrPair, _dbClient)) {
-            // delegate to SRDF support
-            TaskList taskList = processSrdfVolumeCopyModeChangeRequest(rrPair, newMode);
-            return taskList.getTaskList().get(0);
+            String systemType = _dbClient.queryObject(Volume.class, rrPair.getSourceElement()).getSystemType();
+            throw APIException.badRequests.unsupportedSystemType(systemType);
         }
 
         // this validation is not applicable to SRDF volumes
@@ -1149,46 +1148,6 @@ public class RemoteReplicationPairService extends TaskResourceService {
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
-    }
-
-
-    private TaskList processSrdfCGCopyModeChangeRequest(RemoteReplicationPair systemPair, String newMode) {
-        return processSrdfVolumeCopyModeChangeRequest(systemPair, newMode);
-    }
-
-
-    private TaskList processSrdfVolumeCopyModeChangeRequest(RemoteReplicationPair systemPair, String newMode) {
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, systemPair.getSourceElement());
-        if (!sourceVolume.checkForSRDF()) {
-            // not srdf volume --- not supported
-            _log.error("Bad request --- VMAX volume is not SRDF volume.");
-            throw  APIException.badRequests.volumeMustBeSRDFProtected(sourceVolume.getId());
-        }
-
-        String type = BlockSnapshot.TechnologyType.SRDF.toString();
-        Copy copy = new Copy();
-        copy.setType(type);
-        boolean isSwapped = RemoteReplicationUtils.isSwapped(systemPair, _dbClient);
-        NamedURI sourceElement;
-        NamedURI targetElement;
-        // check for swap: srdf changes srdf personalities of volumes after swap. rr pair source volume has srdf target personality and
-        // rr pair target volume has srdf source personality after srdf swap.
-        if (isSwapped){
-            sourceElement = systemPair.getTargetElement();
-            targetElement = systemPair.getSourceElement();
-        } else {
-            sourceElement = systemPair.getSourceElement();
-            targetElement = systemPair.getTargetElement();
-        }
-        copy.setCopyID(targetElement.getURI());
-        copy.setCopyMode(newMode);
-        CopiesParam param = new CopiesParam();
-        URI sourceVolumeURI = sourceElement.getURI();
-
-        param.getCopies().add(copy);
-        TaskList taskList = blockService.changeCopyMode(sourceVolumeURI, param);
-
-        return taskList;
     }
 
 

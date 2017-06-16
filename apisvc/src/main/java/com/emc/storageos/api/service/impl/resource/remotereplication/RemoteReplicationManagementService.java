@@ -543,6 +543,9 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
         precheckVmaxOperation(rrPair, operationContext, operationParam, ProtectionOp.CHANGE_COPY_MODE);
 
+        RemoteReplicationModeChangeParam param = new RemoteReplicationModeChangeParam();
+        param.setNewMode(newReplicationMode);
+
         switch (operationContext) {
             case RR_PAIR:
                 String taskID = UUID.randomUUID().toString();
@@ -559,17 +562,13 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
             case RR_GROUP:
                 URI groupURI = rrPair.getReplicationGroup();
-                RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
-                RemoteReplicationModeChangeParam param = new RemoteReplicationModeChangeParam();
-                param.setNewMode(newReplicationMode);
                 task =  rrGroupService.changeRemoteReplicationGroupMode(groupURI, param);
                 taskList.addTask(task);
                 break;
 
             case RR_SET:
                 URI setURI = rrPair.getReplicationSet();
-                RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
-                task = rrSetService.failoverRemoteReplicationSetLink(rrSet.getId());
+                task =  rrSetService.changeRemoteReplicationSetMode(setURI, param);
                 taskList.addTask(task);
                 break;
         }

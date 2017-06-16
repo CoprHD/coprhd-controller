@@ -185,10 +185,10 @@ implements FileStorageDevice {
         _logger.info("checking file system existence on array: ", fileInOut.getFsName());
         boolean isFSExists = true;
         try {
-            String name = fileInOut.getFsName();
+            String fsId = fileInOut.getFsNativeId();
             VNXeApiClient apiClient = getVnxUnityClient(storage);
-            VNXeFileSystem fs = apiClient.getFileSystemByFSName(name);
-            if (fs != null && (fs.getName().equals(name))) {
+            VNXeFileSystem fs = apiClient.getFileSystemByFSId(fsId);
+            if (fs != null && (fs.getId().equals(fsId))) {
                 isFSExists = true;
             } else {
                 isFSExists = false;
@@ -1476,7 +1476,7 @@ implements FileStorageDevice {
             softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
             // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
-            job = apiClient.createQuotaDirectory(args.getFsName(), qd.getName(), qd.getSize(), softLimit, softGrace);
+            job = apiClient.createQuotaDirectory(args.getFsNativeId(), qd.getName(), qd.getSize(), softLimit, softGrace);
 
             if (job != null) {
                 _logger.info("opid:" + args.getOpId());
@@ -1815,9 +1815,9 @@ implements FileStorageDevice {
                 DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "Unity"));
     }
 
-	@Override
-	public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
-		return BiosCommandResult.createErrorResult(
+    @Override
+    public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+        return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("reduction of filesystem quota", "Unity"));
-	}
+    }
 }

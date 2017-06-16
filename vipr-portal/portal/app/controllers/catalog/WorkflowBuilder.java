@@ -36,6 +36,7 @@ import models.customservices.LocalAnsiblePrimitiveForm;
 import models.customservices.RemoteAnsiblePrimitiveForm;
 import models.customservices.RestAPIPrimitiveForm;
 import models.customservices.ShellScriptPrimitiveForm;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -43,6 +44,7 @@ import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 
 import play.Logger;
+import play.Play;
 import play.data.validation.Valid;
 import play.i18n.Messages;
 import play.mvc.Controller;
@@ -163,14 +165,23 @@ public class WorkflowBuilder extends Controller {
 
 
     public static void getAssetOptions() {
-        PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
-        if (propInfo != null) {
-            final String assetOptions = propInfo.getProperty("custom_services_assetoptions");
-            if (assetOptions != null) {
-                renderJSON(Arrays.asList(assetOptions.split("\\s*,\\s*")));
+        if(!Play.mode.isDev()) {
+            PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
+            if (propInfo != null) {
+                final String assetOptions = propInfo.getProperty("custom_services_assetoptions");
+                if (assetOptions != null) {
+                    renderJSON(Arrays.asList(assetOptions.split("\\s*,\\s*")));
+                }
             }
         }
-
+        else {
+            renderJSON(new ArrayList<String>(Arrays.asList(
+                    "assetType.vipr.blockVirtualPool",
+                    "assetType.vipr.virtualArray",
+                    "assetType.vipr.project",
+                    "assetType.vipr.host"
+            )));
+        }
         renderJSON(new ArrayList<String>());
     }
 
@@ -379,12 +390,14 @@ public class WorkflowBuilder extends Controller {
                 workflowURI);
 
         // Delete this reference in WFDirectory
-        final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
-        final Set<URI> removeWorkflows = new HashSet<URI>();
-        removeWorkflows.add(workflowURI);
-        param.setWorkflows(new WFDirectoryWorkflowsUpdateParam(null,
-                removeWorkflows));
-        getCatalogClient().wfDirectories().edit(new URI(dirID), param);
+        if (!StringUtils.equals(MY_LIBRARY_ROOT, dirID)) {
+            final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
+            final Set<URI> removeWorkflows = new HashSet<URI>();
+            removeWorkflows.add(workflowURI);
+            param.setWorkflows(new WFDirectoryWorkflowsUpdateParam(null,
+                    removeWorkflows));
+            getCatalogClient().wfDirectories().edit(new URI(dirID), param);
+        }
     }
 
     public static void deletePrimitive(final String primitiveId,

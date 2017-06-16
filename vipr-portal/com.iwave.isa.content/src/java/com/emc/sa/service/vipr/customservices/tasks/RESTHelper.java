@@ -43,6 +43,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 
 public final class RESTHelper {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RESTHelper.class);
+    public static final String TASKLIST = "TaskList";
     
     private RESTHelper() {
     };
@@ -68,6 +69,9 @@ public final class RESTHelper {
     public static String makePostBody(final String body, final int pos, final Map<String, List<String>> input) {
 
         logger.info("make body for" + body);
+        if (StringUtils.isEmpty(body)) {
+            return "";
+        }
         final String[] strs = body.split("(?<=:)");
 
         for (int j = 0; j < strs.length; j++) {
@@ -349,6 +353,10 @@ public final class RESTHelper {
     }
 
     private static List<String> toStringList(final Collection<?> arrayValue) {
+        if( null == arrayValue ) {
+            return null;
+        }
+        
         final List<String> list = new ArrayList<String>();
         for( final Object value : arrayValue) {
             list.add(value.toString());

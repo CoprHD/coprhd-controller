@@ -160,7 +160,7 @@ public class SoftwareVersion implements Comparable<SoftwareVersion> {
      * @return true if the versions are equal accepting wild card releases
      */
     public boolean weakEquals(SoftwareVersion v) {
-        log.info("Version detail info: version release {}, version prefix {}", v.release, v.prefix);
+        log.debug("Version detail info: version release {}, version prefix {}", v.release, v.prefix);
         if (v.release.equals(SOFTWARE_VERSION_RELEASE_WILDCARD) || this.release.equals(SOFTWARE_VERSION_RELEASE_WILDCARD)) {
             return this.prefix.equals(v.prefix) && Arrays.equals(versionTuple, v.versionTuple);
         }

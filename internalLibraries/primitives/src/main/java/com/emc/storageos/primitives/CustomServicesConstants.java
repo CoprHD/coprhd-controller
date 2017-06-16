@@ -99,6 +99,9 @@ public final class CustomServicesConstants {
     public static final String UNTAR_OPTION = "-zxvf";
     public static final String REMOVE = "/bin/rm";
     public static final String REMOVE_OPTION = "-rf";
+    public static final String BIN_BASH = "/bin/bash";
+    public static final String BIN_BASH_OPTION = "-c";
+
     // Ansible Options
     public static final String ANSIBLE_BIN = "remote_ansible_bin";
     public static final String ANSIBLE_PLAYBOOK = "playbook";
@@ -138,6 +141,7 @@ public final class CustomServicesConstants {
     public static final String TARGET = "target";
     public static final String PATH = "path";
     public static final String PORT = "port";
+    public static final String DEFAULT_HTTPS_PORT = "443";
 
     // Execution Result
     public static final String OPERATION_OUTPUT = "operation_output";

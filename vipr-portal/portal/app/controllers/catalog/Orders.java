@@ -271,7 +271,7 @@ public class Orders extends OrderExecution {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(order.getCatalogService().getId().toString()));
         HashMap<String, String> tableParams = new HashMap<String, String>();
 
-        if (service==null){
+        if (service==null || service.getServiceDescriptor()==null){
             flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
         }
 

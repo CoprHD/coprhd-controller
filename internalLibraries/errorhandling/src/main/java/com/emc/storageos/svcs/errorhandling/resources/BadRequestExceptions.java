@@ -1251,6 +1251,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
     public BadRequestException filesystemDeleteNotSupported(final String delType, final boolean forceDelete);
 
+    @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
+    public BadRequestException quotaDirectoryDeleteNotSupported(final boolean forceDelete);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException resourcedoesNotBelongToClusterTenantOrg(String resource);
 

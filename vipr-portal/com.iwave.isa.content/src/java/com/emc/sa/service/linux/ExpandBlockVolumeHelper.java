@@ -99,9 +99,11 @@ public class ExpandBlockVolumeHelper {
             String currentBlockSize = linuxSupport.getFilesystemBlockSize(parentDevice);
             logInfo("expand.block.volume.partition.size", currentBlockSize);
 
-            if (initialBlockSize == null || currentBlockSize == null || !StringUtils.equalsIgnoreCase(initialBlockSize, currentBlockSize)
-                    || resizeAttempts >= MAX_RESIZE_RETRIES) {
+            if (initialBlockSize == null || currentBlockSize == null || !StringUtils.equalsIgnoreCase(initialBlockSize, currentBlockSize)) {
                 fileSystemExpanded = true;
+            } else if (resizeAttempts >= MAX_RESIZE_RETRIES) {
+                fileSystemExpanded = true;
+                logWarn("expand.block.volume.unable.to.determine.resize");
             } else {
                 try {
                     Thread.sleep(EXPAND_RETRY_DELAY);

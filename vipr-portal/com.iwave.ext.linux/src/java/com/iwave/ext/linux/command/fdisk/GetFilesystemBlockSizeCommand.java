@@ -18,10 +18,11 @@ import com.iwave.ext.linux.command.LinuxResultsCommand;
 public class GetFilesystemBlockSizeCommand extends LinuxResultsCommand<String> {
 
     private static final Pattern partitionPattern = Pattern.compile("\\w+\\s+[0-9]+\\s+[0-9]+\\s+([0-9]+)");
+    private static final String LIST_OPTION = "-l";
 
     public GetFilesystemBlockSizeCommand(String device) {
         setCommand(CommandConstants.FDISK);
-        addArguments("-l");
+        addArguments(LIST_OPTION);
         addArguments(device);
         setRunAsRoot(true);
     }

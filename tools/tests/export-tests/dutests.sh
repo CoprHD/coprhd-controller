@@ -2145,9 +2145,6 @@ test_14() {
     # Load the zone state
     load_zones ${HOST1}
 
-    # Load the zone state
-    load_zones ${HOST1}
-
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 1 1
 

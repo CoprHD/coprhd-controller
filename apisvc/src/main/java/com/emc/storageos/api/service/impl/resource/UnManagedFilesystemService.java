@@ -52,7 +52,6 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -344,6 +343,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                         SupportedFileSystemInformation.MOUNT_PATH.toString(),
                         unManagedFileSystemInformation);
 
+                String nativeId = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.NATIVE_ID.toString(),
+                        unManagedFileSystemInformation);
+
                 String systemType = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.SYSTEM_TYPE.toString(),
                         unManagedFileSystemInformation);
@@ -416,6 +419,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setVirtualArray(param.getVarray());
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
+                }
+
+                if (nativeId != null) {
+                    filesystem.setNativeId(nativeId);
                 }
 
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
@@ -493,7 +500,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                             // Step 2 : Convert them to File Export Rule
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
                             rule.setFileSystemId(filesystem.getId()); // Important to relate the exports to a
-                                                                      // FileSystem.
+                            // FileSystem.
                             createRule(rule, fsExportRules);
                             // Step 4: Update the UnManaged Exports : Set Inactive as true
                             rule.setInactive(true);
@@ -521,7 +528,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                             // Step 2 : Convert them to Cifs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
                             umCifsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
-                                                                           // FileSystem.
+                            // FileSystem.
                             createACL(umCifsAcl, fsCifsShareAcls, filesystem);
                             // Step 4: Update the UnManaged Share ACL : Set Inactive as true
                             umCifsAcl.setInactive(true);
@@ -540,7 +547,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
 
                             umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
-                                                                          // FileSystem.
+                            // FileSystem.
                             if (umNfsAcl.getPermissions().isEmpty()) {
                                 continue;
                             }
@@ -662,7 +669,6 @@ public class UnManagedFilesystemService extends TaggedResource {
         String parentFsNativeGUID = parentFS.getNativeGuid();
         URIQueryResultList result = new URIQueryResultList();
         List<QuotaDirectory> quotaDirectories = new ArrayList<>();
-        
 
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(parentFsNativeGUID), result);
@@ -703,11 +709,11 @@ public class UnManagedFilesystemService extends TaggedResource {
             quotaDirectory.setSize(unManagedFileQuotaDirectory.getSize());
             quotaDirectory.setSecurityStyle(unManagedFileQuotaDirectory.getSecurityStyle());
             quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirectory, parentFS.getName()));
-            //check for file extensions
+            // check for file extensions
             if (null != unManagedFileQuotaDirectory.getExtensions() &&
-                    !unManagedFileQuotaDirectory.getExtensions().isEmpty()){
+                    !unManagedFileQuotaDirectory.getExtensions().isEmpty()) {
                 StringMap extensions = new StringMap();
-                if(null != unManagedFileQuotaDirectory.getExtensions().get(QUOTA)) {
+                if (null != unManagedFileQuotaDirectory.getExtensions().get(QUOTA)) {
                     extensions.put(QUOTA, unManagedFileQuotaDirectory.getExtensions().get(QUOTA));
                     quotaDirectory.setExtensions(extensions);
                 }
@@ -724,7 +730,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             _dbClient.updateObject(unManagedFileQuotaDirectories);
             _logger.info("ingested {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
         }
-        
+
     }
 
     private void createRule(UnManagedFileExportRule orig, List<FileExportRule> fsExportRules) {

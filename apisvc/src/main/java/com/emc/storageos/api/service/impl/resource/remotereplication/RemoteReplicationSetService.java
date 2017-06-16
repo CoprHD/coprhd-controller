@@ -54,7 +54,6 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
@@ -370,18 +369,6 @@ public class RemoteReplicationSetService extends TaskResourceService {
                         srcVolsInPairs + "  RR Pairs in set: " + pairsInSet);
                 continue;
             }
-
-            // skip CG if it's also in an RR_Group (which is not permitted)
-            List<NamedRelatedResourceRep> groupsContainingCg =
-                    rrGroupService.getRemoteReplicationGroupsForCG(cg.getId()).getRemoteReplicationGroups();
-            if (!groupsContainingCg.isEmpty()) {
-                _log.info("Consistency Group disqualified from RemoteReplicationSet because it is also " +
-                        "in an RemoteReplicationGroup.  CG:'" + cg.getLabel() + "' [" + cg.getId() + "] " +
-                        "RR Set:'" + rrSet.getLabel() + "' [" + rrSet.getId() + "]. RR Group(s): " +
-                        groupsContainingCg);
-                continue;
-            }
-
             result.getConsistencyGroupList().add(
                     new NamedRelatedBlockConsistencyGroupRep(cg.getId(), DbObjectMapper.toLink(cg),
                             cg.getLabel(), null));

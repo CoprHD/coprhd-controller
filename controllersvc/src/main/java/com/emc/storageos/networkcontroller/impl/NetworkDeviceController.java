@@ -406,37 +406,25 @@ public class NetworkDeviceController implements NetworkController {
         // Lock to prevent concurrent operations on the same VSAN / FABRIC.
         InterProcessLock fabricLock = NetworkFabricLocker.lockFabric(fabricId, _coordinator);
         try {
-            if (doRemove) { /* Removing zones */
-                result = networkDevice.removeZones(device, zones, fabricId, fabricWwn, true);
-                if (result.isCommandSuccess()) {
-                    String refKey = null;
-                    try {
-                        for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
-                            URI fcZoneReferenceId = fabricInfo.getFcZoneReferenceId();
-                            if (NullColumnValueGetter.isNullURI(fcZoneReferenceId)) {
-                                _log.info("fcZoneReferenceId corresponding to zone info {} is null. Nothing to remove.",
-                                        fabricInfo.toString());
-                                continue;
-                            }
-                            FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fcZoneReferenceId);
-                            if (ref != null) {
-                                refKey = ref.getPwwnKey();
-                                _dbClient.markForDeletion(ref);
-                                _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
-                                        ref.getPwwnKey(), ref.getVolumeUri(), ref.getId().toString()));
-                                if(!zones.isEmpty()){
-                                	recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
-                                            OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
-                                }
-                                
-                            }
-                        }
-                    } catch (DatabaseException ex) {
-                        _log.error("Could not persist FCZoneReference: " + refKey);
-                    }
-                }
+        	if (doRemove) { /* Removing zones */
+        		result = networkDevice.removeZones(device, zones, fabricId, fabricWwn, true);
+        		if (result.isCommandSuccess()) {
+        			String refKey = null;
+        			try {
+        				for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
+        					refKey = fabricInfo.getZoneName() + " " + fabricInfo.getFcZoneReferenceId().toString();
+        					FCZoneReference ref = deleteFCZoneReference(fabricInfo);
+        					if (ref != null && !zones.isEmpty()) {
+        						recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
+        								OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
+        					}
+        				}
+        			} catch (DatabaseException ex) {
+        				_log.error("Could not delete FCZoneReference: " + refKey);
+        			}
+        		}
 
-            } else { /* Adding zones */
+        	} else { /* Adding zones */
                 result = networkDevice.addZones(device, zones, fabricId, fabricWwn, true);
                 if (result.isCommandSuccess()) {
                     String refKey = null;
@@ -1624,10 +1612,14 @@ public class NetworkDeviceController implements NetworkController {
                 if (info.canBeRolledBack()) {
                     //We should not blindly set last reference to true, removed code which does that earlier.
                     rollbackList.add(info);
+                } else {
+                	// Even though we cannot rollback the zone (because we didn't create it, it previously existed,
+                	// must remove the FCZoneReference that we created.
+                	deleteFCZoneReference(info);
                 }
             }
             
-            taskCompleter = new ZoneReferencesRemoveCompleter(rollbackList, context.isAddingZones(), taskId);
+            taskCompleter = new ZoneReferencesRemoveCompleter(context.getZoneInfos(), context.isAddingZones(), taskId);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_020);
             //Changed this parameter to true, so that the last reference validation runs all the time in placeZones()
@@ -2882,5 +2874,26 @@ public class NetworkDeviceController implements NetworkController {
             taskCompleter.error(_dbClient, svcError);
         }
         return completedSuccessfully;
+    }
+    
+    /**
+     * Remove an FCZoneReference from database from the corresponding FCZoneInfo
+     * @param info -- FCZoneReference
+     * @param ref -- Returns FCZoneReference that has been marked for deletioni or null
+     */
+    private FCZoneReference deleteFCZoneReference(NetworkFCZoneInfo info) {
+    	URI fcZoneReferenceId = info.getFcZoneReferenceId();
+    	if (NullColumnValueGetter.isNullURI(fcZoneReferenceId)) {
+    		_log.info("fcZoneReferenceId corresponding to zone info {} is null. Nothing to remove.",
+    				info.toString());
+    		return null;
+    	}
+    	FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fcZoneReferenceId);
+    	if (ref != null) {
+    		_dbClient.markForDeletion(ref);
+    		_log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
+    				ref.getPwwnKey(), ref.getVolumeUri(), ref.getId().toString()));
+    	}
+    	return ref;
     }
 }

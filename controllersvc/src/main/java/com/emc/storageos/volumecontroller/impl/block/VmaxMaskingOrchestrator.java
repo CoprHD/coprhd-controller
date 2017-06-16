@@ -2395,7 +2395,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             storageURI, exportGroupURI, newMask.getId(), maskingStep);
         
                     maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
-                            String.format("Export mask(%s) change to port group %s",
+                            String.format("Create export mask(%s) to use port group %s",
                                     newMask.getMaskName(), portGroup.getNativeGuid()),
                             previousStep, storageURI, storage.getSystemType(),
                             MaskingWorkflowEntryPoints.class, maskingExecuteMethod,
@@ -2434,9 +2434,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
-                _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
+                _log.info("The change port group workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
-                workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
+                workflow.executePlan(taskCompleter, "Change port group successfully.");
                 _workflowService.markWorkflowBeenCreated(token, workflowKey);
             } else {
                 taskCompleter.ready(_dbClient);

@@ -434,7 +434,7 @@ public class ExportWorkflowEntryPoints implements Controller {
     public void exportChangePortGroup(URI storageURI, URI exportGroupURI, URI portGroupURI, boolean waitForApproval, String token) {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            final String workflowKey = "changePortGroup";
+            final String workflowKey = "exportChangePortGroup";
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
                 DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
                 MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());

@@ -565,23 +565,6 @@
 				<value>com.emc.storageos.primitives.TaskServiceDeleteTask</value>
 				<value>com.emc.storageos.primitives.TaskServiceResumeTask</value>
 				<value>com.emc.storageos.primitives.TaskServiceRollbackTask</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceAddStandby</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceGetSites</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceCheckIsActive</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceGetSite</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceIsLocalSiteRemoved</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceRemove</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceGetStandbyConfig</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceCheckIfBehindNat</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServicePauseStandby</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServicePause</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceResumeStandby</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceRetryOperation</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceGetSiteError</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceDoSwitchover</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceDoFailover</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceUpdateSite</value>
-				<value>com.emc.storageos.primitives.DisasterRecoveryServiceGetSiteDetails</value>
 				<value>com.emc.storageos.primitives.StorageSystemDataCollectionServiceDiscoverScaleIO</value>
 			</list>
         </constructor-arg>

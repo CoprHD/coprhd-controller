@@ -9,6 +9,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import models.BlockProtocols;
@@ -26,6 +27,7 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.host.BaseInitiatorParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorCreateParam;
@@ -103,10 +105,21 @@ public class HostInitiators extends ViprResourceController {
     @FlashException
     public static void delete(String hostId, @As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
-            for (String initiatorId : ids) {
-                InitiatorRestRep initiator = getViprClient().initiators().get(uri(initiatorId));
-                HostUtils.deactivateInitiator(initiator);
-            }
+
+	    List<String> associatedInitiators = new ArrayList<String>();
+
+        for (String initiatorId : ids) {
+            InitiatorRestRep initiator = getViprClient().initiators().get(uri(initiatorId));
+			RelatedResourceRep associatedInitiator = initiator.getAssociatedInitiator();
+                                
+            if (associatedInitiator != null){
+            associatedInitiators.add(associatedInitiator.toString());
+            }    
+		
+			if (!associatedInitiators.contains(initiatorId)){
+            HostUtils.deactivateInitiator(initiator);
+			}
+        }
             flash.success(MessagesUtils.get(DELETED));
         }
         list(hostId);

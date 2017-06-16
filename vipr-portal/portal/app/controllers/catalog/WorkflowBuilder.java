@@ -44,6 +44,7 @@ import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 
 import play.Logger;
+import play.Play;
 import play.data.validation.Valid;
 import play.i18n.Messages;
 import play.mvc.Controller;
@@ -164,14 +165,23 @@ public class WorkflowBuilder extends Controller {
 
 
     public static void getAssetOptions() {
-        PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
-        if (propInfo != null) {
-            final String assetOptions = propInfo.getProperty("custom_services_assetoptions");
-            if (assetOptions != null) {
-                renderJSON(Arrays.asList(assetOptions.split("\\s*,\\s*")));
+        if(!Play.mode.isDev()) {
+            PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
+            if (propInfo != null) {
+                final String assetOptions = propInfo.getProperty("custom_services_assetoptions");
+                if (assetOptions != null) {
+                    renderJSON(Arrays.asList(assetOptions.split("\\s*,\\s*")));
+                }
             }
         }
-
+        else {
+            renderJSON(new ArrayList<String>(Arrays.asList(
+                    "assetType.vipr.blockVirtualPool",
+                    "assetType.vipr.virtualArray",
+                    "assetType.vipr.project",
+                    "assetType.vipr.host"
+            )));
+        }
         renderJSON(new ArrayList<String>());
     }
 

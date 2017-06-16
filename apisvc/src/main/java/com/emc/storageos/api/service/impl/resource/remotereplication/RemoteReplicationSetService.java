@@ -27,13 +27,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
-import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
-import com.emc.storageos.security.authorization.ACL;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -46,11 +39,14 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -60,9 +56,13 @@ import com.emc.storageos.model.block.BlockConsistencyGroupList;
 import com.emc.storageos.model.block.NamedRelatedBlockConsistencyGroupRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -224,6 +224,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSet rrSet = queryResource(id);
         Set<String> sourceSystems = rrSet.getSourceSystems();
         Set<String> targetSystems = rrSet.getTargetSystems();
+        String storageSystemType = rrSet.getStorageSystemType();
         Set<String> supportedReplicationModes = rrSet.getSupportedReplicationModes();
 
         // get groups with these source systems and filter in groups with target system in target systems
@@ -234,9 +235,16 @@ public class RemoteReplicationSetService extends TaskResourceService {
             List<RemoteReplicationGroup> rrGroups = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient,
                     systemURI, RemoteReplicationGroup.class, "sourceSystem");
             for (RemoteReplicationGroup rrGroup : rrGroups) {
-                if (targetSystems.contains(rrGroup.getTargetSystem().toString()) &&
-                        supportedReplicationModes.contains(rrGroup.getReplicationMode())) {
-                    setGroups.add(rrGroup);
+                if (targetSystems.contains(rrGroup.getTargetSystem().toString())) {
+                    if (storageSystemType != null &&
+                            (storageSystemType.equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
+                                    storageSystemType.equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString()))) {
+                        // Do not check replication mode for vmax groups.
+                        // VMAX groups may have stale replication mode
+                        setGroups.add(rrGroup);
+                    } else if (supportedReplicationModes.contains(rrGroup.getReplicationMode())) {
+                        setGroups.add(rrGroup);
+                    }
                 }
             }
         }

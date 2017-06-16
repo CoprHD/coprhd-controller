@@ -2056,6 +2056,9 @@ test_13() {
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
+    # Load the zone state
+    load_zones ${HOST1}
+
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
@@ -2083,6 +2086,9 @@ test_13() {
 
     # Verify rollback was able to remove the volume it added
     verify_export ${expname}1 ${HOST1} 3 1
+
+    # Verify zones were not affected
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Remove initiator from the mask (done differently per array type)
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -2132,6 +2138,12 @@ test_14() {
     # Remove one of the initiator so we can add it back.
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
 
+    # Load the zone state
+    load_zones ${HOST1}
+
+    # Load the zone state
+    load_zones ${HOST1}
+
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 1 1
 
@@ -2167,6 +2179,9 @@ test_14() {
 
     # Verify that ViPR rollback removed only the initiator that was previously added
     verify_export ${expname}1 ${HOST1} 1 2
+
+    # Verify zones were not affected
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Now remove the volume from the storage group (masking view)
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -2219,6 +2234,9 @@ test_15() {
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 1 1
 
+    # Load the zone state
+    load_zones ${HOST1}
+
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportAddInitiatorsDeviceStep}
     set_artificial_failure failure_003_late_in_add_initiator_to_mask
@@ -2247,6 +2265,9 @@ test_15() {
 
     # Verify the mask still has the new initiator in it (this will fail if rollback removed it)
     verify_export ${expname}1 ${HOST1} 2 1
+
+    # Verify zones were not affected
+    verify_zones ${FC_ZONE_A:7} exists
 
     # shut off suspensions/failures
     set_suspend_on_class_method "none"
@@ -2465,6 +2486,9 @@ test_18() {
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
+    # Load the zone state
+    load_zones ${HOST1}
+
     verify_export ${expname}1 ${HOST1} 2 2
 
     HIJACK=du-hijack-volume-${RANDOM}
@@ -2492,12 +2516,15 @@ test_18() {
     # Resume the workflow
     runcmd workflow resume $workflow
 
-    # Follow the task.  It should fail because of Poka Yoke validation
+    # Follow the task.  It should succeed, even though a volume crept in.
     echo "*** Following the export_group update task to verify it succeeds despite unrelated volume"
     runcmd task follow $task
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 2
+
+    # Verify zones were not affected
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Now remove the initiator from the export mask
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -2545,6 +2572,9 @@ test_19() {
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
+    # Load the zone state
+    load_zones ${HOST1}
+
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
@@ -2571,6 +2601,10 @@ test_19() {
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
+
+    # Verify zones were not affected
+    echo "Not all zones will likely be here, as this is a export group update that passed.  filter zones?"
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Remove initiator from the mask (done differently per array type)
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -2629,6 +2663,9 @@ test_20() {
     # Create the mask with 2 volumes
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2 --hosts "${HOST1}"
 
+    # Load the zone state
+    load_zones ${HOST1}
+
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 2
 
@@ -2657,6 +2694,9 @@ test_20() {
     verify_export ${expname}1 ${HOST1} 2 2
     verify_export ${expname}1 ${HIJACK_MV} 1 2
 
+    # Verify zones were not affected
+    verify_zones ${FC_ZONE_A:7} exists
+
     # Delete the masking view
     arrayhelper delete_export_mask ${SERIAL_NUMBER} ${HIJACK_MV} "noop" "${HIJACK_MV}_${SERIAL_NUMBER: -3}_IG"
 
@@ -2671,6 +2711,9 @@ test_20() {
 
     # Verify the volume was removed
     verify_export ${expname}1 ${HOST1} 2 1
+
+    # Verify zones were not affected
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1
@@ -2713,6 +2756,9 @@ test_21() {
     # Create the mask with 2 volumes
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
+    # Load the zone state
+    load_zones ${HOST1}
+
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
@@ -2744,6 +2790,9 @@ test_21() {
     verify_export ${expname}1 ${HOST1} 2 1
     verify_export ${expname}1 ${HIJACK_MV} 2 1
 
+    # Verify zones were not affected
+    verify_zones ${FC_ZONE_A:7} exists
+
     # Delete the masking view (it will have a cascaded IG)
     arrayhelper delete_export_mask ${SERIAL_NUMBER} ${HIJACK_MV} "${HIJACK_MV}_${SERIAL_NUMBER: -3}_SG" "${HIJACK_MV}_${SERIAL_NUMBER: -3}_CIG"
 
@@ -2758,6 +2807,9 @@ test_21() {
 
     # Verify the initiator was removed
     verify_export ${expname}1 ${HOST1} 1 1
+
+    # Verify zones were not affected
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1

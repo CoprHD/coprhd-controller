@@ -178,10 +178,10 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         _logger.info("checking file system existence on array: ", fileInOut.getFsName());
         boolean isFSExists = true;
         try {
-            String name = fileInOut.getFsName();
+            String fsId = fileInOut.getFsNativeId();
             VNXeApiClient apiClient = getVnxUnityClient(storage);
-            VNXeFileSystem fs = apiClient.getFileSystemByFSName(name);
-            if (fs != null && (fs.getName().equals(name))) {
+            VNXeFileSystem fs = apiClient.getFileSystemByFSId(fsId);
+            if (fs != null && (fs.getId().equals(fsId))) {
                 isFSExists = true;
             } else {
                 isFSExists = false;
@@ -1415,14 +1415,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
             if (qd.getSize() == 0) {
                 size = args.getFsCapacity(); // If quota directory has no size specified, inherit it from the parent fs
-                                             // for the calculation of limit sizes
+                // for the calculation of limit sizes
             } else {
                 size = qd.getSize();
             }
             softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
-                                                                     // using hard limit
+            // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
-            job = apiClient.createQuotaDirectory(args.getFsName(), qd.getName(), qd.getSize(), softLimit, softGrace);
+            job = apiClient.createQuotaDirectory(args.getFsNativeId(), qd.getName(), qd.getSize(), softLimit, softGrace);
 
             if (job != null) {
                 _logger.info("opid:" + args.getOpId());
@@ -1515,13 +1515,13 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
             if (qd.getSize() == 0) {
                 size = args.getFsCapacity(); // If quota directory has no size specified, inherit it from the parent fs
-                                             // for the calculation of limit sizes
+                // for the calculation of limit sizes
             } else {
                 size = qd.getSize();
             }
 
             softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
-                                                                     // using hard limit
+            // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
             job = apiClient.updateQuotaDirectory(qd.getNativeId(), qd.getSize(), softLimit, softGrace);
 

@@ -17,8 +17,12 @@ import java.util.Map;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationOperationParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
+import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
@@ -53,39 +57,39 @@ public class RemoteReplicationManagementClient {
         }
     }
 
-    public TaskList failoverRemoteReplication(RemoteReplicationOperationParam operationParam) {
+    public Tasks<TaskResourceRep> failoverRemoteReplication(RemoteReplicationOperationParam operationParam) {
         return performOperation(operationParam,Operation.FAILOVER);
     }
 
-    public TaskList failbackRemoteReplication(RemoteReplicationOperationParam operationParam) {
+    public Tasks<TaskResourceRep> failbackRemoteReplication(RemoteReplicationOperationParam operationParam) {
         return performOperation(operationParam,Operation.FAILBACK);
     }
 
-    public TaskList establishRemoteReplication(RemoteReplicationOperationParam operationParam) {
+    public Tasks<TaskResourceRep> establishRemoteReplication(RemoteReplicationOperationParam operationParam) {
         return performOperation(operationParam,Operation.ESTABLISH);
     }
 
-    public TaskList splitRemoteReplication(RemoteReplicationOperationParam operationParam) {
+    public Tasks<TaskResourceRep> splitRemoteReplication(RemoteReplicationOperationParam operationParam) {
         return performOperation(operationParam,Operation.SPLIT);
     }
 
-    public TaskList suspendRemoteReplication(RemoteReplicationOperationParam operationParam) {
+    public Tasks<TaskResourceRep> suspendRemoteReplication(RemoteReplicationOperationParam operationParam) {
         return performOperation(operationParam,Operation.SUSPEND);
     }
 
-    public TaskList resumeRemoteReplication(RemoteReplicationOperationParam operationParam) {
+    public Tasks<TaskResourceRep> resumeRemoteReplication(RemoteReplicationOperationParam operationParam) {
         return performOperation(operationParam,Operation.RESUME);
     }
 
-    public TaskList stopRemoteReplication(RemoteReplicationOperationParam operationParam) {
+    public Tasks<TaskResourceRep> stopRemoteReplication(RemoteReplicationOperationParam operationParam) {
         return performOperation(operationParam,Operation.STOP);
     }
 
-    public TaskList swapRemoteReplication(RemoteReplicationOperationParam operationParam) {
+    public Tasks<TaskResourceRep> swapRemoteReplication(RemoteReplicationOperationParam operationParam) {
         return performOperation(operationParam,Operation.SWAP);
     }
 
-    private TaskList performOperation(RemoteReplicationOperationParam operationParam, Operation operation) {
+    private Tasks<TaskResourceRep> performOperation(RemoteReplicationOperationParam operationParam, Operation operation) {
         /*
          * Catalog Service may have sent:
          *   1) ID of a RR Set
@@ -114,7 +118,9 @@ public class RemoteReplicationManagementClient {
         case RR_GROUP_CG:
             operateOnCG(operationParam,operation);
         }
-        return taskListResult;
+
+        return new Tasks<TaskResourceRep>(client,
+                taskListResult.getTaskList(),TaskResourceRep.class);
     }
 
     private void operateOnSet(RemoteReplicationOperationParam operationParam, Operation operation) {

@@ -306,6 +306,9 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                         volsInCg + " and source volumes in RR Group pairs are " + srcVolIdsInRrGroup);
                 continue;
             }
+            _log.info("Remote Replication Group '" + rrGroup.getLabel() + "' [" + rrGroup.getId() +
+                    "] contains CG '" + cGroup.getLabel() + "' [" + cGroup.getId() + "].  CG contains " +
+                    volsInCg + " and source volumes in RR Group pairs are " + srcVolIdsInRrGroup);
             result.getRemoteReplicationGroups().add(toNamedRelatedResource(rrGroup));
         }
         return result;

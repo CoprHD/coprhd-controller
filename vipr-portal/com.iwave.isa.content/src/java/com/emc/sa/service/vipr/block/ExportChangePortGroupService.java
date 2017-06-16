@@ -34,8 +34,8 @@ import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
 import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
 
-@Service("ExportPortGroupAdjustment")
-public class ExportPortGroupAdjustmentService extends ViPRService {
+@Service("ExportChangePortGroup")
+public class ExportChangePortGroupService extends ViPRService {
 
     @Param(HOST)
     protected URI host;

@@ -1,8 +1,8 @@
 {
-    baseKey:"ExportPortGroupAdjustment.Block",
-    serviceId:"ExportPortGroupAdjustment",
+    baseKey:"ExportChangePortGroup.Block",
+    serviceId:"ExportChangePortGroup",
     useModal: true,
-    modalTitle:"exportPortGroupAdjustment.modal.title",
+    modalTitle:"exportChangePortGroup.modal.title",
     roles: [
         "SYSTEM_ADMIN"
     ],

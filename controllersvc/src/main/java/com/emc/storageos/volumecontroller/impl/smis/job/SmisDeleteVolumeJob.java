@@ -4,25 +4,26 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.cim.CIMObjectPath;
+import javax.wbem.client.WBEMClient;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMObjectPath;
-import javax.wbem.client.WBEMClient;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * A VMAX Volume Delete job
@@ -59,8 +60,10 @@ public class SmisDeleteVolumeJob extends SmisJob
             Set<URI> poolURIs = new HashSet<URI>();
             for (URI id : getTaskCompleter().getIds()) {
                 Volume volume = dbClient.queryObject(Volume.class, id);
-                volumes.add(volume);
-                poolURIs.add(volume.getPool());
+                if (volume != null && !volume.getInactive()) {
+                    volumes.add(volume);
+                    poolURIs.add(volume.getPool());
+                }
             }
 
             // If terminal job state update storage pool capacity

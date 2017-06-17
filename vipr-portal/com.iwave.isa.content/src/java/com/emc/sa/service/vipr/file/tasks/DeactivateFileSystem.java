@@ -34,7 +34,7 @@ public class DeactivateFileSystem extends WaitForTask<FileShareRestRep> {
     @Override
     protected Task<FileShareRestRep> doExecute() throws Exception {
         FileSystemDeleteParam param = new FileSystemDeleteParam();
-        param.setForceDelete(true);
+        param.setForceDelete(false);
         param.setDeleteType(fileDeletionType.toString());
         return getClient().fileSystems().deactivate(fileSystemId, param);
     }

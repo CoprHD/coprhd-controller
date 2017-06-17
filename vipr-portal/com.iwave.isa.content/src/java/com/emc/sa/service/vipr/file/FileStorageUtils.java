@@ -159,7 +159,14 @@ public class FileStorageUtils {
         return fileSystemId;
     }
 
-    public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
+    /**
+     * Delete the file system dependency objects like
+     * exports, shares , snapshots
+     * 
+     * @param fileSystemId
+     * @param fileDeletionType
+     */
+    private static void deleteFileSystemRefObjects(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
 
         if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
             // Remove snapshots for the volume
@@ -212,6 +219,22 @@ public class FileStorageUtils {
                 deactivateFileSystem(mirrorFS, FileControllerConstants.DeleteTypeEnum.FULL);
             }
         }
+
+    }
+
+    /**
+     * deleteFileSystem - delete the file system
+     * Till now this function was deleting exports, shares, snapshots
+     * and snapshot shares
+     * 
+     * This behavior has been changed in 3.0 patch(4)
+     * Deactivate catalog service would not delete file system reference objects
+     * and always send force flag 'false' in delete request
+     * 
+     * @param fileSystemId
+     * @param fileDeletionType
+     */
+    public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);
     }

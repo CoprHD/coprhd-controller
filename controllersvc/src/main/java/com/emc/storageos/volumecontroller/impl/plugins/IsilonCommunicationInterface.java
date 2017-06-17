@@ -2404,6 +2404,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         StringSet fsId = new StringSet();
         fsId.add(fileSystem.getNativeId());
 
+        StringSet softLimit = new StringSet();
+        softLimit.add(fileSystem.getSoftLimit().toString());
+
+        StringSet softGrace = new StringSet();
+        softGrace.add(fileSystem.getSoftGracePeriod().toString());
+
+        StringSet notificationLimit = new StringSet();
+        notificationLimit.add(fileSystem.getNotificationLimit().toString());
+
         unManagedFileSystem.setLabel(fileSystem.getName());
 
         unManagedFileSystemInformation.put(
@@ -2416,6 +2425,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 UnManagedFileSystem.SupportedFileSystemInformation.PATH.toString(), fsPath);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.MOUNT_PATH.toString(), fsMountPath);
+        unManagedFileSystemInformation.put(
+                UnManagedFileSystem.SupportedFileSystemInformation.SOFT_LIMIT.toString(), softLimit);
+        unManagedFileSystemInformation.put(
+                UnManagedFileSystem.SupportedFileSystemInformation.SOFT_GRACE.toString(), softGrace);
+        unManagedFileSystemInformation.put(
+                UnManagedFileSystem.SupportedFileSystemInformation.NOTIFICATION_LIMIT.toString(), notificationLimit);
 
         StringSet provisionedCapacity = new StringSet();
         long capacity = 0;

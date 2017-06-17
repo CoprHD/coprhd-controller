@@ -351,6 +351,18 @@ public class UnManagedFilesystemService extends TaggedResource {
                         SupportedFileSystemInformation.SYSTEM_TYPE.toString(),
                         unManagedFileSystemInformation);
 
+                String softLimit = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.SOFT_LIMIT.toString(),
+                        unManagedFileSystemInformation);
+
+                String softGrace = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.SOFT_GRACE.toString(),
+                        unManagedFileSystemInformation);
+
+                String notificationLimit = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.NOTIFICATION_LIMIT.toString(),
+                        unManagedFileSystemInformation);
+
                 Long lcapcity = Long.valueOf(capacity);
                 Long lusedCapacity = Long.valueOf(usedCapacity);
                 // pool uri cannot be null
@@ -417,6 +429,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setMountPath(mountPath);
                 filesystem.setVirtualPool(param.getVpool());
                 filesystem.setVirtualArray(param.getVarray());
+                filesystem.setSoftLimit(Long.valueOf(softLimit));
+                filesystem.setSoftGracePeriod(Integer.valueOf(softGrace));
+                filesystem.setNotificationLimit(Long.valueOf(notificationLimit));
+
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
                 }

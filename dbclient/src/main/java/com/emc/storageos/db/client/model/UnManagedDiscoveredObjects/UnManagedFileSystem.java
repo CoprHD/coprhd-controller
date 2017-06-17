@@ -106,8 +106,8 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         NAS("NasUri"),
         MOUNT_PATH("FSMountPath"),
         SOFT_LIMIT("SoftLimit"),
-        NOTIFICATION_LIMIT("notificationLimit"),
-        SOFT_GRACE("softGrace");
+        NOTIFICATION_LIMIT("NotificationLimit"),
+        SOFT_GRACE("SoftGrace");
         
         private String _infoKey;
 

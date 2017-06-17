@@ -15,23 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import models.datatable.FilePolicySnapshotsDataTable;
-import models.datatable.FileSystemsDataTable;
-import models.datatable.NfsACLDataTable;
-import models.datatable.ShareACLDataTable;
-
 import org.apache.commons.lang.StringUtils;
-
-import play.data.binding.As;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.With;
-import util.BourneUtil;
-import util.FileUtils;
-import util.FileUtils.ExportRuleInfo;
-import util.MessagesUtils;
-import util.StringOption;
-import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -79,6 +63,20 @@ import controllers.Common;
 import controllers.security.Security;
 import controllers.util.FlashException;
 import controllers.util.Models;
+import models.datatable.FilePolicySnapshotsDataTable;
+import models.datatable.FileSystemsDataTable;
+import models.datatable.NfsACLDataTable;
+import models.datatable.ShareACLDataTable;
+import play.data.binding.As;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.With;
+import util.BourneUtil;
+import util.FileUtils;
+import util.FileUtils.ExportRuleInfo;
+import util.MessagesUtils;
+import util.StringOption;
+import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class FileSystems extends ResourceController {
@@ -611,8 +609,8 @@ public class FileSystems extends ResourceController {
     @FlashException(referrer = { "fileSystem" })
     public static void deleteFileSystemQuotaDirectory(String fileSystemId, String quotaDirectoryId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
-
-        QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam(true);
+        // Avoid force delete for quota directory!!
+        QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam(false);
         Task<QuotaDirectoryRestRep> task = client.quotaDirectories().deleteQuotaDirectory(uri(quotaDirectoryId), param);
         flash.put("info", MessagesUtils.get("resources.filesystem.quota.deactivate"));
 
@@ -964,7 +962,8 @@ public class FileSystems extends ResourceController {
                 type = "Group";
                 userOrGroup = shareAcl.getGroup();
             }
-            acl.add(new ShareACLDataTable.AclInfo(userOrGroup, type, shareAcl.getPermission(), fileSystem, shareName, shareAcl.getDomain()));
+            acl.add(new ShareACLDataTable.AclInfo(userOrGroup, type, shareAcl.getPermission(), fileSystem, shareName,
+                    shareAcl.getDomain()));
         }
 
         renderJSON(DataTablesSupport.createJSON(acl, params));

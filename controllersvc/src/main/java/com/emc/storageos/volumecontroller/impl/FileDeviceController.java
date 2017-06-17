@@ -1766,11 +1766,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             FileDeviceInputOutput args = new FileDeviceInputOutput();
 
             args.addFSFileObject(fsObj);
-
-            fsObj = _dbClient.queryObject(FileShare.class, fs);
-            // Set up args
-            args.addFSFileObject(fsObj);
-
             args.addQuotaDirectory(quotaDirObj);
             args.setOpId(task);
 
@@ -3611,6 +3606,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * 
      * @param systemURI
      * @param fileURIs
+     * @param sourceDes
      * @return Workflow.Method
      */
     public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs,

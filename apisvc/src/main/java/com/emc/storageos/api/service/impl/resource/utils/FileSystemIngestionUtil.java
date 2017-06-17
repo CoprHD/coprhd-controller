@@ -251,7 +251,7 @@ public class FileSystemIngestionUtil {
         objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                 ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project",
                         project, fsName));
-        if (!objectList.isEmpty()) {
+        if (objectList != null && !objectList.isEmpty()) {
             return true;
         }
         for (FileShare fs : filesystems) {

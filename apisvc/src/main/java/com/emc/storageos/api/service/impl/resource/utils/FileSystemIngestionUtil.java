@@ -247,10 +247,10 @@ public class FileSystemIngestionUtil {
     }
 
     /**
-     * This method verify the duplicate named file system present in data base
+     * This method verifies the duplicate named file system present in data base
      * for the given project
-     * 1. It verify file system name in existing data base
-     * 2. It also verify for the file system in current processing file system list
+     * 1. It verifies file system name in existing data base
+     * 2. It also verifies for the file system in current processing file system list
      * 
      * @param _dbClient
      * @param project - project id

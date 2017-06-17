@@ -294,7 +294,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
-     * This method delete file system reference objects like exports, shares, QDs, snapshots etc.,
+     * Deletes existing exports and smb shares for the
+     * file share (only created by storage os)
      * 
      * @param isi
      * @param args
@@ -343,8 +344,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
-     * Deleting a file share: - deletes existing exports and smb shares for the
-     * file share (only created by storage os)
+     * Deleting a file share: - Delete the file share only
+     * if the file system directory has no files or directories
+     * 
      * 
      * @param isi
      *            IsilonApi object
@@ -361,8 +363,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         } else {
 
-            // Do not delete file system or its exports,shares,snapshots,etc.
-            // if the file system has some data in it.
+            // Do not delete file system if it has some data in it.
             if (isi.fsDirHasData(args.getFsMountPath())) {
                 // Fail to delete file system directory which has data in it!!!
                 _log.error("File system delation failed as it's directory {} has content in it", args.getFsMountPath());
@@ -493,6 +494,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     quotaDir.getExtensions().remove(QUOTA);
 
                     // delete directory for the Quota Directory
+                    // with recursive flag false
                     isi.deleteDir(quotaDirPath, false);
                 }
             }
@@ -2773,6 +2775,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
                 URI uriParent = fileShare.getParentFileShare().getURI();
                 if (sources.contains(uriParent) == true) {
+                    // Do not delete the file target file system with force flag
                     biosCommandResult = rollbackCreatedFilesystem(storageSystem, target, opId, false);
                     if (biosCommandResult.getCommandSuccess()) {
                         fileShare.getOpStatus().updateTaskStatus(opId, biosCommandResult.toOperation());

@@ -355,17 +355,16 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         ArgValidator.checkFieldNotNull(fs, "filesystem");
 
         // Fail to delete quota directory or it's dependency resources(exports/shares) right in the beginning
-        // if the delete request with force flag!!!
+        // if the delete request is with force flag!!!
         if (param.getForceDelete()) {
             _log.error("Quota directory delete operation is not supported with force delete {}", param.getForceDelete());
             throw APIException.badRequests
                     .quotaDirectoryDeleteNotSupported(param.getForceDelete());
-
         } else {
             // Fail to delete quota directory, if there are any dependency objects like exports, shares
             if (quotaDirectoryHasExportsOrShares(fs, quotaDirectory.getName())) {
                 throw APIException.badRequests
-                        .resourceCannotBeDeleted("Quota directory " + fs.getLabel() + " has exports/shares ");
+                        .resourceCannotBeDeleted("Quota directory " + quotaDirectory.getName() + " has exports/shares ");
             }
         }
 
@@ -382,10 +381,6 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         FileController controller = getController(FileController.class, device.getSystemType());
         try {
             controller.deleteQuotaDirectory(device.getId(), quotaDirectory.getId(), fs.getId(), task);
-            // If delete operation is successful, then remove obj from ViPR db by setting inactive=true
-            quotaDirectory.setInactive(true);
-            _dbClient.persistObject(quotaDirectory);
-
         } catch (InternalException e) {
             // treating all controller exceptions as internal error for now. controller
             // should discriminate between validation problems vs. internal errors
@@ -435,6 +430,13 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         return null;
     }
 
+    /**
+     * This method verifies the file system quota directory has any exports or shares
+     * 
+     * @param fs - file system on which the QD present
+     * @param quotaName - name of the QD
+     * @return true - if there are any exports or shares, false otherwise.
+     */
     private boolean quotaDirectoryHasExportsOrShares(FileShare fs, String quotaName) {
         FSExportMap fsExportMap = fs.getFsExports();
         // Verify for NFS exports on quota directory

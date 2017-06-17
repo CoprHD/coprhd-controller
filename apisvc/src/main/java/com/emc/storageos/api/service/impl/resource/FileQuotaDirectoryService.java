@@ -191,7 +191,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getFileshareUnderProjectConstraint(
                             projectId, name),
-                    resRepList);
+                            resRepList);
         }
         return resRepList;
     }
@@ -354,16 +354,17 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         FileShare fs = queryFileShareResource(quotaDirectory.getParent().getURI());
         ArgValidator.checkFieldNotNull(fs, "filesystem");
 
-        // Fail to request if forceDelete is true.
+        // Fail to delete quota directory or it's dependency resources(exports/shares) right in the beginning
+        // if the delete request is with force flag!!!
         if (param.getForceDelete()) {
             _log.error("Quota directory delete operation is not supported with force delete {}", param.getForceDelete());
             throw APIException.badRequests
-                    .quotaDirectoryDeleteNotSupported(param.getForceDelete());
+            .quotaDirectoryDeleteNotSupported(param.getForceDelete());
         } else {
             // Fail to delete quota directory, if there are any dependency objects like exports, shares
             if (quotaDirectoryHasExportsOrShares(fs, quotaDirectory.getName())) {
                 throw APIException.badRequests
-                        .resourceCannotBeDeleted("Quota directory " + quotaDirectory.getName() + " has exports/shares ");
+                .resourceCannotBeDeleted("Quota directory " + quotaDirectory.getName() + " has exports/shares ");
             }
         }
 

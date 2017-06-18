@@ -25,7 +25,8 @@ public class URIUtil {
     private static final int VDC_PARTS_COUNT = 4;
 
     private static final String[] MODEL_PACKAGES = new String[] { "com.emc.storageos.db.client.model",
-            "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects" };
+            "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects",
+            "com.emc.storageos.db.client.model.uimodels"};
 
     /** Pattern for finding the 'type' from an ID. */
     private static final Pattern TYPE_PATTERN = Pattern.compile("urn\\:storageos\\:([^\\:]+)");

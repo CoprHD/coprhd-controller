@@ -159,7 +159,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
                 prefix = ",";
                 sb.append(val.replace("\"", ""));
             }
-            str.append(e.getKey()).append("=").append(sb.toString().replaceAll("\\s", "")).append(" ");
+            str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
         }
         logger.info("CS: Shell arguments:{}", str.toString());
 

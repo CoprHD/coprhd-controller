@@ -20,12 +20,16 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
  * RemoteReplicationContext parameter, defined in the remote replication link operations, specifies remote replication
  * container for which link operation was initiated by the controller. For example, if system operation was executed for remote replication group,
  * the context will specify group element type, native id of the group replication set and native id of the group.
- * Other example, if controller operation was executed for individual pairs directly, the context will specify pair element type.
- * In this case native ids of remote replication set and group are not specified.
+ * Other example, if controller operation was executed for individual pair directly, the context will specify pair element type.
+ * In this case native ids of remote replication set and group are set to native ids of remote replication set and
+ * remote replication group (if applicable) of individual pair.
+ *
  *
  * Driver may use RemoteReplicationContext parameter to check validity of remote replication link operation. For example, if request has
  * remote replication group context and only subset of remote replication pairs from the remote replication group in the system are specified
  * (this indicates that controller has stale information about system configuration), driver may fail this request.
+ * When remote link operation executed with container context type (remote replication group or remote replication set), it
+ * is driver responsibility to update state of containers as required by device support for link operations.
  *
  * R1 and R2 are roles of remote replication pair source and target elements based on direction of replication link.
  * R1 is a replication source role, R2 is replication target role.
@@ -321,6 +325,7 @@ public interface RemoteReplicationDriver {
      * Changes remote replication mode for all specified pairs.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
+     * This operation should not affect replication state of remote replication element.
      *
      * @param replicationPairs: remote replication pairs for mode change
      * @param newReplicationMode:  new replication mode

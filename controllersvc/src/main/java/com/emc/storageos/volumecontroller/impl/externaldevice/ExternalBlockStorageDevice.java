@@ -2054,6 +2054,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         // Todo: call deleteReplicationPairs(List<URI>, taskCompleter);
     }
 
+    @Override
+    public void changeReplicationMode(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+
+    }
+
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         // call driver to validate provider connection
         boolean isConnectionValid = false;

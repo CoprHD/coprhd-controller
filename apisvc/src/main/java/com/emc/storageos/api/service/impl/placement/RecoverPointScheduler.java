@@ -297,7 +297,7 @@ public class RecoverPointScheduler implements Scheduler {
             _log.info(String.format("Schedule new storage for [%s] resource(s) of size [%s].",
                     capabilities.getResourceCount(), capabilities.getSize()));
         }
-        
+
         List<VirtualArray> protectionVarrays = getProtectionVirtualArraysForVirtualPool(project, vpool, dbClient, _permissionsHelper);
 
         // Get performance parameters, if any, for the source site. This will contain the 
@@ -310,7 +310,7 @@ public class RecoverPointScheduler implements Scheduler {
             // If present, always just one.
             sourceParams = sourceParamsMap.values().iterator().next();
         }
-        
+
         VirtualArray haVarray = null;
         VirtualPool haVpool = null;
         SwapContainer container = null;
@@ -509,8 +509,7 @@ public class RecoverPointScheduler implements Scheduler {
             // Go through each recommendation, map to storage system from the recommendation to find connectivity
             // If we get through the process and couldn't achieve full protection, we should try with the next pool in the list until
             // we either find a successful solution or failure.
-            // TBD Heg This will get candidate pools again. The capabilities should have the 
-            // correct settings at this point.
+            // Get the candidate pools again. The capabilities should have the correct settings at this point.
             sourcePoolRecommendations = getRecommendedPools(rpProtectionRecommendation, varray,
                     vpool, null, null, capabilities, RPHelper.SOURCE, null);
             if (sourcePoolRecommendations == null || sourcePoolRecommendations.isEmpty()) {
@@ -599,7 +598,7 @@ public class RecoverPointScheduler implements Scheduler {
                     String siteName = candidateProtectionSystem.getRpSiteNames().get(candidateSourceInternalSiteName);
                     _log.info(String.format("RP Placement : Choosing RP internal site %s %s for source", siteName,
                             candidateSourceInternalSiteName));
-                    
+
                     // Build the HA recommendation if HA is specified
                     VirtualPoolCapabilityValuesWrapper haCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
                     haCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, satisfiedCount);
@@ -986,7 +985,7 @@ public class RecoverPointScheduler implements Scheduler {
         container.setHaVarray(haVarray);
         container.setHaVpool(haVpool);
         container.setCapabilities(capabilities);
-       
+
         // Potentially will swap src and ha, returns the container.
         container = initializeSwapContainer(container, performanceParams, dbClient);
         return container;
@@ -1085,14 +1084,6 @@ public class RecoverPointScheduler implements Scheduler {
             String vplexStorageSystemId = vplexSystemIdsIter.next();
             _log.info(String.format("Check matching pools for VPlex %s", vplexStorageSystemId));
 
-            // TBD Heg should not need to do make sure capabilities has correct value.
-            // Check if the resource can be placed on the matching
-            // pools for this VPlex storage system.
-            //if (VirtualPool.ProvisioningType.Thin.toString()
-            //        .equalsIgnoreCase(srcVpool.getSupportedProvisioningType())) {
-            //    capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
-            //}
-
             // Otherwise we now have to see if there is an HA varray
             // for the VPlex that also contains pools suitable to place
             // the resources.
@@ -1135,11 +1126,6 @@ public class RecoverPointScheduler implements Scheduler {
                     _log.info(String.format("Found matching pools in HA varray for VPlex %s",
                             vplexStorageSystemId));
                     
-                    // TBD Heg Certainly don't need to do it twice!
-                    //if (VirtualPool.ProvisioningType.Thin.toString()
-                    //        .equalsIgnoreCase(haVpool.getSupportedProvisioningType())) {
-                    //    capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
-                    //}
                     recommendationsForHaVarray = blockScheduler.getRecommendationsForPools(vplexHaVarray.getId().toString(),
                             vplexPoolMapForHaVarray.get(vplexStorageSystemId), capabilities);
                 } else {
@@ -1699,7 +1685,6 @@ public class RecoverPointScheduler implements Scheduler {
 
         Map<VirtualArray, List<StoragePool>> tgtVarrayStoragePoolMap = new HashMap<VirtualArray, List<StoragePool>>();
 
-        int targetIndex = 0;
         for (VirtualArray tgtVarray : tgtVarrays) {
             VirtualPool tgtVpool = RPHelper.getTargetVirtualPool(tgtVarray, srcVpool, dbClient);
             List<StoragePool> tgtVarrayMatchingPools = new ArrayList<StoragePool>();
@@ -1867,9 +1852,6 @@ public class RecoverPointScheduler implements Scheduler {
                 haVpool.setRpRpoValue(srcVpool.getRpRpoValue());
                 haVpool.setMultivolumeConsistency(srcVpool.getMultivolumeConsistency());
                 haVpool.setHighAvailability(srcVpool.getHighAvailability());
-                StringMap haVarrayVpoolMap = new StringMap();
-                haVarrayVpoolMap.put(srcVarray.getId().toString(), srcVpool.getId().toString());
-                haVpool.setHaVarrayVpoolMap(srcVpool.getHaVarrayVpoolMap());
                 haVpool.setMetroPoint(srcVpool.getMetroPoint());
                 haVpool.setHaVarrayConnectedToRp(srcVarray.getId().toString());
                 haVpool.setJournalSize(NullColumnValueGetter.isNotNullValue(srcVpool.getJournalSize()) ? srcVpool.getJournalSize() : null);
@@ -2242,7 +2224,6 @@ public class RecoverPointScheduler implements Scheduler {
                     
             VirtualPool sourceJournalVpool = NullColumnValueGetter.isNotNullValue(vpool.getJournalVpool()) ? dbClient.queryObject(
                     VirtualPool.class, URI.create(vpool.getJournalVpool())) : vpool;
-                    // TBD Heg
             Long sourceJournalSize = getJournalCapabilities(vpool.getJournalSize(), capabilities, 1, null, null, false).getSize();
             
             RPRecommendation sourceJournalRecommendation = 
@@ -3784,7 +3765,6 @@ public class RecoverPointScheduler implements Scheduler {
         } else {
             // Get target pool recommendations. Each recommendation also specifies the resource 
             // count that the pool can satisfy based on the size requested.
-            
             targetPoolRecommendations = getRecommendedPools(rpProtectionRecommendation, targetVarray,
                     targetVpool, null, null, newCapabilities, RPHelper.TARGET, null);
             

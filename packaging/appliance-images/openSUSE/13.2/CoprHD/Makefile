@@ -71,24 +71,24 @@ ifeq ($(USE_CACHE),false)
 	mkdir -p $(WORKSPACE)/zypper/{reposd,cache,solv,pkg}
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/oss/suse suse-13.2-oss
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-monitoring --no-gpgcheck http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 suse-13.2-monitoring
-	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-http --no-gpgcheck http://download.opensuse.org/repositories/server:/http/openSUSE_13.2 suse-13.2-http
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-seife --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 suse-13.2-seife
-	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 suse-13.2-python
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_Leap_42.1 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-network --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2 suse-13.2-network
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.1-filesystems-ceph --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph/openSUSE_Leap_42.1 suse-42.1-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-electronics --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-containers --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_13.2 suse-13.2-containers
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-lib --no-gpgcheck http://download.opensuse.org/repositories/devel:/libraries:/c_c++/openSUSE_13.2 suse-13.2-lib
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  3 suse-13.2-oss
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-monitoring
-	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-http
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-seife
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-network
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.1-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-containers
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-lib
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert docker fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 nginx openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
+	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert docker fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 nginx openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat boost-license1_63_0 libboost_system1_63_0 libboost_thread1_63_0 librados2 librbd1 ansible
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh

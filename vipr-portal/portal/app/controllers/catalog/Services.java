@@ -49,20 +49,31 @@ import static controllers.Common.copyRenderArgsToAngular;
 @With(Common.class)
 public class Services extends Controller {
     private static void addBreadCrumbToRenderArgs(CatalogServiceRestRep service) {
+        addBreadCrumbToRenderArgs(service, null);
+    }
+
+    private static void addBreadCrumbToRenderArgs(CatalogServiceRestRep service, String backUrlInput) {
         List<BreadCrumb> breadcrumbs = ServiceCatalog.createBreadCrumbs(Models.currentAdminTenant(), service);
         renderArgs.put("breadcrumbs", breadcrumbs);
 
-        String backUrl = request.params.get("return");
-        if (StringUtils.isBlank(backUrl)) {
-            String path = "";
-            URI categoryId = service.getCatalogCategory().getId();
-            if (categoryId != null) {
-                Map<String, CategoryDef> catalog = ServiceCatalog.getCatalog(Models.currentAdminTenant());
-                CategoryDef category = catalog.get(categoryId.toString());
-                path = (category != null) ? category.path : path;
+        String backUrl;
+        if (StringUtils.isEmpty(backUrlInput)) {
+            backUrl = request.params.get("return");
+            if (StringUtils.isBlank(backUrl)) {
+                String path = "";
+                URI categoryId = service.getCatalogCategory().getId();
+                if (categoryId != null) {
+                    Map<String, CategoryDef> catalog = ServiceCatalog.getCatalog(Models.currentAdminTenant());
+                    CategoryDef category = catalog.get(categoryId.toString());
+                    path = (category != null) ? category.path : path;
+                }
+                backUrl = Common.reverseRoute(ServiceCatalog.class, "view") + "#" + path;
             }
-            backUrl = Common.reverseRoute(ServiceCatalog.class, "view") + "#" + path;
         }
+        else {
+            backUrl = backUrlInput;
+        }
+
         renderArgs.put("backUrl", backUrl);
     }
 
@@ -71,9 +82,13 @@ public class Services extends Controller {
      */
     public static void showForm(String serviceId) {
         TenantSelector.addRenderArgs();
+        boolean isTestWorkflow = false;
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
-        List<CatalogServiceFieldRestRep> serviceFields = service.getCatalogServiceFields();
+        if(null == service.getCatalogCategory()){
+            isTestWorkflow = true;
+        }
 
+        List<CatalogServiceFieldRestRep> serviceFields = service.getCatalogServiceFields();
         // If serviceDescriptor is null render another template that spells out the problem for the user.
         ServiceDescriptorRestRep serviceDescriptor = service.getServiceDescriptor();
         if (serviceDescriptor == null) {
@@ -83,7 +98,13 @@ public class Services extends Controller {
         Map<String, Object> fieldOptions = new HashMap<String, Object>();
 
         // add the breadcrumb
-        addBreadCrumbToRenderArgs(service);
+        if(!isTestWorkflow) {
+            addBreadCrumbToRenderArgs(service);
+        }
+        else{
+            addBreadCrumbToRenderArgs(service, Common.reverseRoute(WorkflowBuilder.class, "view"));
+        }
+
 
         // Mark the service as recently used
         // RecentUtils.usedService(service);

@@ -60,4 +60,9 @@ public interface IsilonErrors {
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToCreateReplicationPolicy(final String storageSystem);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableUpdateQuotaDirectory(String msg);
+    
+    
 }

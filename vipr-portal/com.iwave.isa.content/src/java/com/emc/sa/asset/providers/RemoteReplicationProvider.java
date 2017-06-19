@@ -343,13 +343,13 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         }
         if (RR_PAIR.equals(cgOrPairs)) {
             if(NO_GROUP.equals(groupId)) {
-                // get pairs in set (that aren't in any groups)
+                // get pairs in set
                 return createNamedResourceOptions(api(ctx).remoteReplicationSets().
-                        listRemoteReplicationSetPairs(setId).getRemoteReplicationPairs());
+                        listRemoteReplicationPairs(setId).getRemoteReplicationPairs());
             } else {
                 // get pairs in the selected group
                 return createNamedResourceOptions(api(ctx).remoteReplicationGroups().
-                        listRemoteReplicationPairsNotInCg(groupId).getRemoteReplicationPairs());
+                        listRemoteReplicationPairs(groupId).getRemoteReplicationPairs());
             }
         }
         throw new IllegalStateException("Select either Consistency Groups or Pairs");

@@ -539,7 +539,7 @@ public class UCSMServiceImpl implements UCSMService {
                 }
             }
             if (serviceProfileNameIsDuplicate) {
-                errorMessage.append("Service Profile name" + serviceProfileName + "is already in use");
+                errorMessage.append("Service Profile name " + serviceProfileName + " is already in use");
                 throw new RuntimeException("Service Profile template duplicate");
             }
             

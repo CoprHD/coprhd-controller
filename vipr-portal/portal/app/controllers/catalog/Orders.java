@@ -280,8 +280,8 @@ public class Orders extends OrderExecution {
 
         if (service==null || service.getServiceDescriptor()==null){
             flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
-            Logger.error("Service descriptor not found");
-            throw new IllegalStateException("No service descriptor found. Might be Customservices Workflow  is deleted ");
+            Logger.error("Service Descriptor not found");
+            throw new IllegalStateException("No Service Descriptor found. Might be Customservices Workflow  is deleted ");
         }
 
         for (ServiceItemRestRep item : service.getServiceDescriptor().getItems()) {
@@ -356,8 +356,8 @@ public class Orders extends OrderExecution {
 
         if (descriptor == null){
             flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
-            Logger.error("Service descriptor not found");
-            throw new IllegalStateException("No service descriptor found. Might be Customservices Workflow  is deleted ");
+            Logger.error("Service Descriptor not found");
+            throw new IllegalStateException("No Service Descriptor found. Might be Customservices Workflow  is deleted ");
         }
         // Filter out actual Service Parameters
         Map<String, String> parameters = parseParameters(service, descriptor);

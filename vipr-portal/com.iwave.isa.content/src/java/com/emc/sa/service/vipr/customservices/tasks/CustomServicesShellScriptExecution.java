@@ -153,12 +153,14 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             }
             final List<String> listVal = e.getValue();
             final StringBuilder sb = new StringBuilder();
+	    sb.append("\"");
             String prefix = "";
             for (final String val : listVal) {
                 sb.append(prefix);
                 prefix = ",";
                 sb.append(val.replace("\"", ""));
             }
+	    sb.append("\"");
             str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
         }
         logger.info("CS: Shell arguments:{}", str.toString());

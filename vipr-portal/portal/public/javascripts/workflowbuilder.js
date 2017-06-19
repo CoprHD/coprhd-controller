@@ -1077,7 +1077,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         function(){
                     $scope.showAlert = true;
                     $scope.alert = {status : "INVALID", error : {errorMessage : "Workflow un-publish failed. There are active catalog service using this workflow"}};
-                    $scope.workflowData.state = 'UNPUBLISHING';
+                    $scope.workflowData.state = 'PUBLISHED';
         });
     }
 

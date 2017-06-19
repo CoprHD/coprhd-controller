@@ -206,10 +206,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         List<Recommendation> recommendations = null;
         if (changeVpoolVolume.checkForRp()) {
-            recommendations = getBlockScheduler().scheduleStorageForVpoolChangeProtected(changeVpoolVolume, newVpool, RecoverPointScheduler
-                    .getProtectionVirtualArraysForVirtualPool(project, newVpool, _dbClient, super.getPermissionsHelper()));
+            recommendations = getBlockScheduler().scheduleStorageForVpoolChangeProtected(changeVpoolVolume, newVpool, 
+                    performanceParamsMap, capabilities, RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(
+                            project, newVpool, _dbClient, super.getPermissionsHelper()));
         } else {
-            // TBD Heg
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, changeVpoolVolume.getVirtualArray());
             recommendations = getBlockScheduler().getRecommendationsForResources(varray, project, newVpool,
                     performanceParamsMap, capabilities);
@@ -2137,9 +2137,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // placement and ViPR volume creation routines.
         // TBD Heg - Which vpool old or new? The volume is not changing so for example, it's
         // auto tiering policy is what it is. If the vpool change is allowed with a different
-        // policy in the new vpool, this would not make sense. Verify what vpool change analyzer allows.
-        // It really should only allow the addition of RP protection fields. All else should be the
-        // same.
+        // policy in the new vpool, this would not make sense. Verify what vpool change analyzer
+        // allows. It really should only allow the addition of RP protection fields. All else
+        // should be the same. 
         Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
         Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = new HashMap<>();
         Map<VolumeTopologyRole, URI> performanceParams = new HashMap<>();
@@ -3435,12 +3435,74 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // The volume will not be persisted just yet but we need to have the new vpool to
         // properly make placement decisions and to add reference to the new vpool to the
         // recommendation objects that will be created.
-        // TBD Heg
-        URI currentVpool = volume.getVirtualPool();
+        // TBD Heg - This seems wrong. In the RP scheduler, the first thing it does is get the vpool
+        // from the volume and assign it to a variable "currentVpool". Besides the new vpool is being
+        // passed, so why is it set temporarily on the volume.
+        URI currentVpoolURI = volume.getVirtualPool();
         volume.setVirtualPool(newVpool.getId());
-        List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(volume, newVpool, vpoolChangeParam, null, 
-                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>());
-        volume.setVirtualPool(currentVpool);
+        
+        // Make sure the capabilities reflect the vpool and performance parameters of the
+        // change vpool volume as if this was a new volume creation,as we call the same
+        // placement and ViPR volume creation routines.
+        // TBD Heg - Which vpool old or new? The volume is not changing so for example, it's
+        // auto tiering policy is what it is. If the vpool change is allowed with a different
+        // policy in the new vpool, this would not make sense. Verify what vpool change analyzer
+        // allows. It really should only allow the addition of RP MP protection fields. All else
+        // should be the same. 
+        Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
+        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = new HashMap<>();
+        performanceParamsMap.put(VolumeTopologySite.SOURCE, sourceParamsMap);
+        Map<URI, Map<VolumeTopologyRole, URI>> copyParamsMap = new HashMap<>();
+        performanceParamsMap.put(VolumeTopologySite.COPY, copyParamsMap);
+        
+        // Source performance parameters.
+        Map<VolumeTopologyRole, URI> sourceParams = new HashMap<>();
+        sourceParams.put(VolumeTopologyRole.PRIMARY, volume.getPerformanceParams());
+        sourceParamsMap.put(volume.getVirtualArray(), sourceParams);
+        if (RPHelper.isVPlexVolume(volume, _dbClient)) {
+            Volume haVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
+            if (haVolume != null) {
+                sourceParams.put(VolumeTopologyRole.HA, haVolume.getPerformanceParams());
+            }
+        }
+        
+        // Source journal parameters. If journal volumes are VPLEX, they are local,
+        // so no need to check for HA. Also, there is no MP, so no need to check
+        // for a standby journal.
+        URI sourceJournalURI = volume.getRpJournalVolume();
+        Volume sourceJournalVolume = _dbClient.queryObject(Volume.class, sourceJournalURI);
+        sourceParams.put(VolumeTopologyRole.JOURNAL, sourceJournalVolume.getPerformanceParams());
+        
+        // Now do targets. Note also that targets will be local if VPLEX.
+        StringSet rpTargetIds = volume.getRpTargets();
+        if (!CollectionUtils.isEmpty(rpTargetIds)) {
+            for (String rpTargetVolumeId : rpTargetIds) {
+                Volume rpTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpTargetVolumeId));
+                URI targetVarray = rpTargetVolume.getVirtualArray();
+                Map<VolumeTopologyRole, URI> copyParams = new HashMap<>();
+                copyParamsMap.put(targetVarray, copyParams);
+                copyParams.put(VolumeTopologyRole.PRIMARY, rpTargetVolume.getPerformanceParams());
+                
+                // Target journal.
+                URI targetsourceJournalURI = rpTargetVolume.getRpJournalVolume();
+                Volume targetJournalVolume = _dbClient.queryObject(Volume.class, targetsourceJournalURI);
+                copyParams.put(VolumeTopologyRole.JOURNAL, targetJournalVolume.getPerformanceParams());
+            }
+        }
+
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volume.getCapacity());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        capabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                currentVpool, sourceParams, VolumeTopologyRole.PRIMARY, capabilities, _dbClient);
+
+        List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(volume, newVpool, vpoolChangeParam,
+                capabilities, performanceParamsMap);
+        
+        // Reset virtual pool.
+        volume.setVirtualPool(currentVpoolURI);
 
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolume();
@@ -3453,15 +3515,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         VolumeCreate param = new VolumeCreate(volume.getLabel(), String.valueOf(volume.getCapacity()), 1, newVpool.getId(),
                 volume.getVirtualArray(), volume.getProject().getURI());
 
-        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
         TaskList taskList = new TaskList();
         createTaskForVolume(volume, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, taskList, taskId);
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
-        // TBD Heg
-        createVolumes(param, project, varray, newVpool, new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(),
+        createVolumes(param, project, varray, newVpool, performanceParamsMap,
                 recommendationMap, taskList, taskId, capabilities);
     }
 

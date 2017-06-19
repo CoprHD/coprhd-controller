@@ -277,7 +277,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param project for the storage
      * @param vpool vpool requested
      * @param performanceParams The performance parameters map.
-     * @param capabilities CoS capabilities parameters
+     * @param capabilities Vpool capabilities parameters
      * @return list of Recommendation objects to satisfy the request
      */
     @Override
@@ -1902,29 +1902,41 @@ public class RecoverPointScheduler implements Scheduler {
      *
      * @param volume volume that is being changed to a protected vpool
      * @param newVpool vpool requested to change to (must be protected)
+     * @param performanceParams The performance parameters map.
+     * @param capabilities Vpool capabilities parameters
      * @param protectionVarrays Varrays to protect this volume to.
-     * @param vpoolChangeParam The change param for the vpool change operation
+     * 
      * @return list of Recommendation objects to satisfy the request
      */
     public List<Recommendation> scheduleStorageForVpoolChangeProtected(Volume volume, VirtualPool newVpool,
-            List<VirtualArray> protectionVirtualArraysForVirtualPool) {
+            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap, 
+            VirtualPoolCapabilityValuesWrapper capabilities, List<VirtualArray> protectionVirtualArraysForVirtualPool) {
         _log.info(String.format("Schedule storage for vpool change to vpool [%s : %s] for volume [%s : %s]",
                 newVpool.getLabel(), newVpool.getId().toString(),
                 volume.getLabel(), volume.getId().toString()));
         this.initResources();
 
+        // TBD Heg - Not that this is not the current vpool, but the new vpool as it 
+        // was set this way in RPBlockServiceApiImpl.
         VirtualPool currentVpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         VirtualArray varray = dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
+        
+        // Get performance parameters, if any, for the source site.
+        Map<VolumeTopologyRole, URI> sourceParams = null;
+        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = performanceParamsMap.get(VolumeTopologySite.SOURCE);
+        if (sourceParamsMap != null && !sourceParamsMap.isEmpty()) {
+            // If present, always just one.
+            sourceParams = sourceParamsMap.values().iterator().next();
+        }
 
         // Swap src and ha if the flag has been set on the vpool
-        // TBD Heg Revisit for vpool change
-        SwapContainer container = this.swapSrcAndHAIfNeeded(varray, newVpool, null, null);
+        // TBD Heg - Don't know why this is done? This is only called for upgrade to MP, so
+        // we would never swap because we only swap if VirtualPool.isRPVPlexProtectHASide
+        // is true, which is not the case for MP.
+        SwapContainer container = this.swapSrcAndHAIfNeeded(varray, newVpool, capabilities, sourceParams);
 
+        // Get the project.
         Project project = dbClient.queryObject(Project.class, volume.getProject());
-        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volume.getCapacity());
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
 
         List<StoragePool> sourcePools = new ArrayList<StoragePool>();
         List<StoragePool> haPools = new ArrayList<StoragePool>();
@@ -1970,10 +1982,9 @@ public class RecoverPointScheduler implements Scheduler {
                     RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(
                             project, container.getSrcVpool(), dbClient, _permissionsHelper);
 
-            // TBD Heg Revisit for vpool change
             recommendations = createMetroPointRecommendations(container.getSrcVarray(), tgtVarrays, container.getSrcVpool(), haVarray,
                     haVpool, project, capabilities, sourcePools, haPools,
-                    volume, null);
+                    volume, performanceParamsMap);
         }
 
         // There is only one entry of type RPProtectionRecommendation ever in the returned recommendation list.

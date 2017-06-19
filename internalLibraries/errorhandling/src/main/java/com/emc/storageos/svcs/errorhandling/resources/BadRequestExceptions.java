@@ -3319,9 +3319,6 @@ public interface BadRequestExceptions {
     public BadRequestException externallyAddedVolumes(final String exportMask, final String volumes);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotCreateReadOnlySnapshotForNonXIOVolumes();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException workflowVersionNotSupported(final String version, final List<String> versions);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3329,6 +3326,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException workflowArchiveCannotBeImported(final String error);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotCreateReadOnlySnapshotForNonXIOVolumes();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException userNotAuthorizedForWorkflow();

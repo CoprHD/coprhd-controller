@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.ProtectionSet.ProtectionStatus;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -2309,9 +2310,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     Volume vol = _dbClient.queryObject(Volume.class, volumeIDs.get(0));
 
                     if (vol.getConsistencyGroup() != null) {
-                        cg = _dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
-                        cg.removeSystemConsistencyGroup(rpSystem.toString(), CG_NAME_PREFIX + cg.getLabel());
-                        _dbClient.updateObject(cg);
+                    	cleanUpRPCG(system.getId(), vol.getConsistencyGroup());
                     }
 
                     if (protectionSet == null || protectionSet.getInactive() || protectionSet.getVolumes() == null
@@ -2398,6 +2397,55 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return true;
     }
 
+    /**
+     * Method to clean up a RP consistency group.
+     * 
+     * @param protectionSystemUri The URI of the RP protection system.
+     * @param cgUri The URI of the ViPR consistency group.
+     * @param cgName The name of the VPlex consistency group to cleanup.
+     */
+    protected void cleanUpRPCG(URI protectionSystemUri, URI cgUri) {
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+        String cgName = CG_NAME_PREFIX + cg.getLabel();
+        
+        // Remove all storage system CG entries stored on the BlockConsistencyGroup that match
+        // the give CG name. For RecoverPoint, there will be an entry for the distributed CG
+        // on each cluster so this takes care of removing each of those.
+        List<String> cgRefsToDelete = new ArrayList<String>();
+        StringSetMap sysCgs = cg.getSystemConsistencyGroups();
+        if (sysCgs != null && !sysCgs.isEmpty()) {
+            StringSet cgsForRp = sysCgs.get(protectionSystemUri.toString());
+
+            if (cgsForRp != null && !cgsForRp.isEmpty()) {
+                Iterator<String> itr = cgsForRp.iterator();
+                while (itr.hasNext()) {
+                    String rpCgName = itr.next();
+                    if (cg.nameExistsForStorageSystem(protectionSystemUri, cgName)) {
+                        cgRefsToDelete.add(rpCgName);
+                    }
+                }
+            }
+        }
+
+        // Remove the RP CG from the BlockConsistencyGroup if it is there.
+        for (String cgRef : cgRefsToDelete) {
+            _log.info(String.format("Removing system consistency group %s from protection system %s",
+                    cgRef, protectionSystemUri.toString()));
+            cg.removeSystemConsistencyGroup(protectionSystemUri.toString(), cgRef);
+        }
+
+        // Remove the RP type
+        StringSet cgTypes = cg.getTypes();
+        cgTypes.remove(BlockConsistencyGroup.Types.RP.name());
+        cg.setTypes(cgTypes);
+
+        StringSet requestedTypes = cg.getRequestedTypes();
+        requestedTypes.remove(BlockConsistencyGroup.Types.RP.name());
+        cg.setRequestedTypes(requestedTypes);
+        
+        _dbClient.updateObject(cg);
+    }    
+    
     /**
      * Cleans up the given ProtectionSet by removing volumes from it and marking for deletion if specified.
      * Also removes the volume's association on the BlockConsistencyGroup.

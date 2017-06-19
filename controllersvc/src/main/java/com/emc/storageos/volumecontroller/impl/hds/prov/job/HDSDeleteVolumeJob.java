@@ -4,9 +4,17 @@
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov.job;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -14,15 +22,6 @@ import com.emc.storageos.hds.api.HDSApiClient;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * A HDS Volume Delete job
@@ -68,8 +67,10 @@ public class HDSDeleteVolumeJob extends HDSJob
             for (URI id : getTaskCompleter().getIds()) {
                 // Volume volume = dbClient.queryObject(Volume.class, id);
                 Volume volume = (Volume) BlockObject.fetch(dbClient, id);
-                volumes.add(volume);
-                poolURIs.add(volume.getPool());
+                if (volume != null && !volume.getInactive()) {
+                    volumes.add(volume);
+                    poolURIs.add(volume.getPool());
+                }
             }
 
             // If terminal state update storage pool capacity
@@ -85,22 +86,7 @@ public class HDSDeleteVolumeJob extends HDSJob
 
             StringBuilder logMsgBuilder = new StringBuilder();
             if (_status == JobStatus.SUCCESS) {
-                super.updateStatus(jobContext);
                 for (Volume volume : volumes) {
-                    /*
-                     * if (URIUtil.isType(volume.getId(), BlockMirror.class)) {
-                     * BlockMirror mirror = (BlockMirror) volume;
-                     * HDSMirrorOperations.removeReferenceFromSourceVolume(dbClient, mirror);
-                     * }
-                     */
-                    volume.setInactive(true);
-                    dbClient.persistObject(volume);
-                    dbClient.updateTaskOpStatus(
-                            Volume.class,
-                            volume.getId(),
-                            getTaskCompleter().getOpId(),
-                            new Operation(Operation.Status.ready.name(), String.format(
-                                    "Deleted volume %s", volume.getNativeId())));
                     if (logMsgBuilder.length() != 0) {
                         logMsgBuilder.append("\n");
                     }
@@ -109,7 +95,6 @@ public class HDSDeleteVolumeJob extends HDSJob
                 }
 
             } else if (_status == JobStatus.FAILED) {
-                super.updateStatus(jobContext);
                 for (URI id : getTaskCompleter().getIds()) {
                     if (logMsgBuilder.length() != 0) {
                         logMsgBuilder.append("\n");
@@ -122,12 +107,12 @@ public class HDSDeleteVolumeJob extends HDSJob
                 _log.info(logMsgBuilder.toString());
             }
         } catch (Exception e) {
-            setErrorStatus("Encountered an internal error during delete volume job status processing: "
-                    + e.getMessage());
-            super.updateStatus(jobContext);
+            setPostProcessingErrorStatus("Encountered an internal error during delete volume job status processing: " + e.getMessage());
             _log.error(
                     "Caught exception while handling updateStatus for delete volume job.",
                     e);
+        } finally {
+            super.updateStatus(jobContext);
         }
     }
 }

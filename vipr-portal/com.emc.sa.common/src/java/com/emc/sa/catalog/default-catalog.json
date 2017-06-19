@@ -273,16 +273,44 @@
       "categories": [
         {
           "title": "remotereplicationservices.title",
-          "image": "icon_remotereplicationservices.png",
+          "image": "icon_remote_replication_services.png",
           "description": "remotereplicationservices.description",
           "services": [
             {
-              "image": "icon_CreateRemoteReplicationGroup.png",
+              "image": "icon_create_remote_replication_group.png",
               "baseService": "CreateRemoteReplicationGroup"
             },
             {
-              "image": "icon_RemoteReplicationPair.png",
-              "baseService": "RemoteReplicationPair"
+              "image": "icon_remote_replication_failover.png",
+              "baseService": "RemoteReplicationFailover"
+            },
+            {
+              "image": "icon_remote_replication_failback.png",
+              "baseService": "RemoteReplicationFailback"
+            },
+            {
+              "image": "icon_remote_replication_swap.png",
+              "baseService": "RemoteReplicationSwap"
+            },
+            {
+              "image": "icon_remote_replication_establish.png",
+              "baseService": "RemoteReplicationEstablish"
+            },
+            {
+              "image": "icon_remote_replication_split.png",
+              "baseService": "RemoteReplicationSplit"
+            },
+            {
+              "image": "icon_remote_replication_stop.png",
+              "baseService": "RemoteReplicationStop"
+            },
+            {
+              "image": "icon_remote_replication_suspend.png",
+              "baseService": "RemoteReplicationSuspend"
+            },
+            {
+              "image": "icon_remote_replication_resume.png",
+              "baseService": "RemoteReplicationResume"
             }
           ]
         }
@@ -715,9 +743,9 @@
           "image": "icon_delete_bucket.png",
           "baseService": "DeleteBucket"
         }
-      ]
-    },
-    {
+      ] 
+    }, 
+    { 
       "title": "guide.title",
       "image": "icon_host.png",
       "description": "guide.description",
@@ -744,7 +772,7 @@
         },
 		{
           "image": "Service_Remove_Block_Snapshot.png",
-          "baseService": "RemoveBlockSnapshot"
+          "baseService": "RemoveBlockSnapshot" 
         },
         {
           "image": "icon_host_add.png",

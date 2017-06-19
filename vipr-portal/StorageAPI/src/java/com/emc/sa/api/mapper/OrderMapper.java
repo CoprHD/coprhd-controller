@@ -1,6 +1,18 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.sa.api.mapper;
 
@@ -12,18 +24,22 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.sa.model.util.ScheduleTimeHelper;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.OrderTextCreator;
 import com.emc.storageos.model.ResourceTypeEnum;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 
+import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.EncryptionProvider;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionState;
+import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.OrderParameter;
 import com.emc.vipr.model.catalog.ExecutionLogList;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
 import com.emc.vipr.model.catalog.ExecutionStateRestRep;
@@ -105,6 +121,7 @@ public class OrderMapper {
         newObject.setId(URIUtil.createId(Order.class));
         newObject.setTenant(tenantId.toString());
         newObject.setCatalogServiceId(param.getCatalogService());
+        newObject.setWorkflowDocument(param.getWorkflowDocument());
         if (param.getScheduledEventId() != null) {
             newObject.setScheduledEventId(param.getScheduledEventId());
             if (param.getScheduledTime() != null) {

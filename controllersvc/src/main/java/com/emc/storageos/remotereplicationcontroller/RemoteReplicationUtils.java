@@ -439,19 +439,17 @@ public class RemoteReplicationUtils {
         return VALID_RESULT;
     }
 
-    public static Iterator<RemoteReplicationSet> findAllRemoteRepliationSetsIteratively(DbClient dbClient) {
+    public static Iterator<RemoteReplicationSet> findAllRemoteReplicationSetsIteratively(DbClient dbClient) {
         List<URI> ids = dbClient.queryByType(RemoteReplicationSet.class, true);
-        _log.info("Found sets: {}", ids);
         return dbClient.queryIterativeObjects(RemoteReplicationSet.class, ids);
     }
 
-    public static Iterator<RemoteReplicationGroup> findAllRemoteRepliationGroupsIteratively(DbClient dbClient) {
+    public static Iterator<RemoteReplicationGroup> findAllRemoteReplicationGroupsIteratively(DbClient dbClient) {
         List<URI> ids = dbClient.queryByType(RemoteReplicationGroup.class, true);
-        _log.info("Found groups: {}", ids);
         return dbClient.queryIterativeObjects(RemoteReplicationGroup.class, ids);
     }
 
-    public static List<RemoteReplicationPair> findAllRemoteRepliationPairsByRrSet(URI rrSetUri, DbClient dbClient) {
+    public static List<RemoteReplicationPair> findAllRemoteReplicationPairsByRrSet(URI rrSetUri, DbClient dbClient) {
         List<RemoteReplicationPair> result = new ArrayList<RemoteReplicationPair>();
         QueryResultList<URI> uriList = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getRemoteReplicationPairSetConstraint(rrSetUri), uriList);
@@ -461,7 +459,7 @@ public class RemoteReplicationUtils {
         return result;
     }
 
-    public static List<RemoteReplicationPair> findAllRemoteRepliationPairsByRrGroup(URI rrGroupUri, DbClient dbClient) {
+    public static List<RemoteReplicationPair> findAllRemoteReplicationPairsByRrGroup(URI rrGroupUri, DbClient dbClient) {
         List<RemoteReplicationPair> result = new ArrayList<RemoteReplicationPair>();
         QueryResultList<URI> uriList = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getRemoteReplicationPairGroupConstraint(rrGroupUri), uriList);

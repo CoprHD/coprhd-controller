@@ -1798,7 +1798,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception e) {
-            String errorMsg = String.format("createRemoteReplicationGroup -- Failed to create remote replication group: %s .", systemGroup.getLabel());
+            String errorMsg = String.format("createRemoteReplicationGroup -- Failed to create remote replication group: %s . %s",
+                    systemGroup.getLabel(), e.getMessage());
             _log.error(errorMsg, e);
             ServiceError serviceError = ExternalDeviceException.errors.createRemoteReplicationGroupFailed(systemGroup.getLabel(), errorMsg);
             taskCompleter.error(dbClient, serviceError);
@@ -2437,7 +2438,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 case REPLICATION_SET:
                     replicationSet = dbClient.queryObject(RemoteReplicationSet.class, elementURI);
                     driver = (RemoteReplicationDriver) ExternalBlockStorageDevice.this.getDriver(replicationSet.getStorageSystemType());
-                    systemRRPairs = RemoteReplicationUtils.findAllRemoteRepliationPairsByRrSet(elementURI, dbClient);
+                    systemRRPairs = RemoteReplicationUtils.findAllRemoteReplicationPairsByRrSet(elementURI, dbClient);
                     validateSystemPairs(systemRRPairs);
                     context = initializeContext(systemRRPairs.get(0),
                             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET);

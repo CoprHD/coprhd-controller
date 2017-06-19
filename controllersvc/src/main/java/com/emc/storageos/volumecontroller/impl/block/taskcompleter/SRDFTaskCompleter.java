@@ -163,7 +163,6 @@ public class SRDFTaskCompleter extends TaskCompleter {
 
             recordBourneSRDFEvent(dbClient, getId(), evType, status, evDesc);
 
-            String id = (String) extParam[0];
             switch (opType) {
                 case CREATE_SRDF_LINK:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);

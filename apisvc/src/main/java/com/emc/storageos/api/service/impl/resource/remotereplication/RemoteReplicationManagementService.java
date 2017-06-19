@@ -48,8 +48,10 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
         ACL.ALL })
 public class RemoteReplicationManagementService extends TaskResourceService {
 
-    private static final String MULTI_PAIR_VMAX_ERR_MSG = "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request";
-    private static final String UNSUPPORTTED_CONTEXT_VMAX_ERR_MSG = "For VMAX arrays, operations with context %s are not supported. Use %s or %s context";
+    private static final String MULTI_PAIR_VMAX_ERR_MSG = "Multiple pairs in the request. For VMAX arrays, " +
+            "operations with context %s are supported only for a single pair in the request";
+    private static final String UNSUPPORTTED_CONTEXT_VMAX_ERR_MSG = "For VMAX arrays, operations with context " +
+            "%s are not supported. Use %s or %s context";
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationManagementService.class);
     public static final String SERVICE_TYPE = "remote_replication_management";
 
@@ -615,7 +617,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
 
     private Set<URI> getSetPairIdsByRrSet(URI rrSetId) {
-        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.findAllRemoteRepliationPairsByRrSet(rrSetId, _dbClient);
+        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.findAllRemoteReplicationPairsByRrSet(rrSetId, _dbClient);
         Set<URI> setPairIds = new HashSet<>();
         for (RemoteReplicationPair pair : pairs) {
             if (!pair.isGroupPair()) {
@@ -626,7 +628,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
     }
 
     private Set<URI> getGroupPairIdsByRrGroup(URI rrGroupId) {
-        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.findAllRemoteRepliationPairsByRrGroup(rrGroupId, _dbClient);
+        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.findAllRemoteReplicationPairsByRrGroup(rrGroupId, _dbClient);
         Set<URI> groupPairIds = new HashSet<>();
         for (RemoteReplicationPair pair : pairs) {
             if (pair.isGroupPair()) {
@@ -640,7 +642,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
      * Validate parameters according to context of the operation.
      * @param operationParam
      */
-    void validateContainmentForContext(RemoteReplicationOperationParam operationParam) {
+    private void validateContainmentForContext(RemoteReplicationOperationParam operationParam) {
         OperationContext context = validateOperationContext(operationParam.getOperationContext());
         if (operationParam.getIds() == null || operationParam.getIds().isEmpty()) {
             throw APIException.badRequests.remoteReplicationOperationPrecheckFailed("No remote replication pairs are specified.");
@@ -663,9 +665,10 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 URI rrSetId = rrPairs.get(0).getReplicationSet();
                 Set<URI> setPairIds = getSetPairIdsByRrSet(rrSetId);
                 if (!rrPairIds.containsAll(setPairIds)) {
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Given remote repliation pair ids should contain all set pairs of remote repliation set %s",
-                            rrSetId));
+                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(
+                            String.format("Given remote replication pair ids should contain all pairs of " +
+                                    "remote replication set %s Pair IDs: %s  Set Pairs: %s",
+                                    rrSetId,rrPairs,setPairIds));
                 }
                 break;
             case RR_GROUP:
@@ -673,9 +676,10 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 URI rrGroupId = rrPairs.get(0).getReplicationGroup();
                 Set<URI> groupPairIds =getGroupPairIdsByRrGroup(rrGroupId);
                 if (!rrPairIds.containsAll(groupPairIds)) {
-                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Given remote replication pair ids should contain all set pairs of remote repliation group %s",
-                            rrGroupId));
+                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(
+                            String.format("Given remote replication pair ids should contain all pairs of " +
+                                    "remote replication group %s Pair IDs: %s  Set Pairs: %s",
+                                    rrGroupId,rrPairs,groupPairIds));
                 }
                 break;
             case RR_PAIR:
@@ -758,7 +762,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         for (RemoteReplicationPair rrPair : rrPairs) {
             if (rrPair.isGroupPair()) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                        "remote repliation pair %s is not directly contained in remote replication set, which is not allowed",
+                        "remote replication pair %s is not directly contained in remote replication set, which is not allowed",
                         rrPair.getNativeId()));
             }
 
@@ -817,7 +821,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         for (RemoteReplicationPair rrPair : rrPairs) {
             if (!rrPair.isGroupPair()) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                        "remote replication pair %s is directly contained in remote repliation set, which is not allowed",
+                        "remote replication pair %s is directly contained in remote replication set, which is not allowed",
                         rrPair.getNativeId()));
             }
 

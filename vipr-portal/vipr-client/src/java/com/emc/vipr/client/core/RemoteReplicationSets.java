@@ -66,8 +66,13 @@ public class RemoteReplicationSets {
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/consistency-groups");
     }
 
-    public RemoteReplicationPairList listRemoteReplicationPairs(URI setId) {
+    public RemoteReplicationPairList listRemoteReplicationSetPairs(URI setId) {
         return client.get(RemoteReplicationPairList.class,
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/set-pairs");
+    }
+
+    public RemoteReplicationPairList listRemoteReplicationPairs(URI setId) {
+        return client.get(RemoteReplicationPairList.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/pairs");
     }
 }

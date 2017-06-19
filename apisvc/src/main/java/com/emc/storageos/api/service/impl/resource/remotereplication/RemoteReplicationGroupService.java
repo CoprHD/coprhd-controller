@@ -29,7 +29,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
@@ -46,6 +45,9 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
@@ -99,6 +101,8 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     private RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi;
 
     private BlockService blockService;
+    private RemoteReplicationPairService rrPairService;
+    private RemoteReplicationSetService rrSetService;
 
     public RemoteReplicationBlockServiceApiImpl getRemoteReplicationServiceApi() {
         return remoteReplicationServiceApi;
@@ -114,6 +118,22 @@ public class RemoteReplicationGroupService extends TaskResourceService {
 
     public void setBlockService(BlockService blockService) {
         this.blockService = blockService;
+    }
+
+    public RemoteReplicationPairService getRrPairService() {
+        return rrPairService;
+    }
+
+    public void setRrPairService(RemoteReplicationPairService rrPairService) {
+        this.rrPairService = rrPairService;
+    }
+
+    public RemoteReplicationSetService getRrSetService() {
+        return rrSetService;
+    }
+
+    public void setRrSetService(RemoteReplicationSetService rrSetService) {
+        this.rrSetService = rrSetService;
     }
 
     @Override
@@ -200,7 +220,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                     targetvPoolURI, _dbClient, _coordinator);
             allTargetSystems.addAll(targetDevices);
         }
-        Iterator<RemoteReplicationGroup> it = RemoteReplicationUtils.findAllRemoteRepliationGroupsIteratively(_dbClient);
+        Iterator<RemoteReplicationGroup> it = RemoteReplicationUtils.findAllRemoteReplicationGroupsIteratively(_dbClient);
         while (it.hasNext()) {
             RemoteReplicationGroup rrGroup = it.next();
 
@@ -247,9 +267,9 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         }
         Set<String> targetCGSystemsSet = ConsistencyGroupUtils
                 .findAllRRConsistencyGroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
-        Iterator<RemoteReplicationGroup> groups = RemoteReplicationUtils.findAllRemoteRepliationGroupsIteratively(_dbClient);
-        while (groups.hasNext()) {
-            RemoteReplicationGroup rrGroup = groups.next();
+        Iterator<RemoteReplicationGroup> rrGroups = RemoteReplicationUtils.findAllRemoteReplicationGroupsIteratively(_dbClient);
+        while (rrGroups.hasNext()) {
+            RemoteReplicationGroup rrGroup = rrGroups.next();
             StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cGroup.getStorageController());
             if (!StringUtils.equals(cgSystem.getSystemType(), rrGroup.getStorageSystemType())) {
                 // Pass ones whose storage system type is not aligned with consistency group
@@ -263,6 +283,32 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 // Pass ones whose target system is not covered by ones of given CG
                 continue;
             }
+
+            // check that all vols in CG are in RRPairs of RRGroup:
+            QueryResultList<URI> volsInCg = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumesByConsistencyGroup(cGroup.getId()), volsInCg);
+            RemoteReplicationPairList pairsInRrGroup = getGroupPairs(rrGroup.getId(),true);
+            List<URI> pairIds = new ArrayList<>();
+            for (NamedRelatedResourceRep pair : pairsInRrGroup.getRemoteReplicationPairs()) {
+                // get ids of pairs in RR group
+                pairIds.add(pair.getId());
+            }
+            List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, pairIds);
+            List<URI> srcVolIdsInRrGroup = new ArrayList<>();
+            for (RemoteReplicationPair pair : rrPairs) {
+                // get ids of all source volumes in each RR pair
+                srcVolIdsInRrGroup.add(pair.getSourceElement().getURI());
+            }
+            if(!srcVolIdsInRrGroup.containsAll(volsInCg)) {
+                _log.info("Skipping Remote Replication Group '" + rrGroup.getLabel() + "' [" +
+                        rrGroup.getId() + "] for CG '" + cGroup.getLabel() + "' [" + cGroup.getId() +
+                        "] since CG volumes are not all in Remote Replication Group.  CG contains " +
+                        volsInCg + " and source volumes in RR Group pairs are " + srcVolIdsInRrGroup);
+                continue;
+            }
+            _log.info("Remote Replication Group '" + rrGroup.getLabel() + "' [" + rrGroup.getId() +
+                    "] contains CG '" + cGroup.getLabel() + "' [" + cGroup.getId() + "].  CG contains " +
+                    volsInCg + " and source volumes in RR Group pairs are " + srcVolIdsInRrGroup);
             result.getRemoteReplicationGroups().add(toNamedRelatedResource(rrGroup));
         }
         return result;
@@ -851,5 +897,3 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         return null;
     }
 }
-
-

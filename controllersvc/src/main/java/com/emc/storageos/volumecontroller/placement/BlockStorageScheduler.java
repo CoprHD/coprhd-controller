@@ -385,6 +385,7 @@ public class BlockStorageScheduler {
                 computeStoragePortUsageMapForPorts(system.getId(),
                         networkMap, varray, portsByNetwork);
 
+	_log.info("PORT USAGE MAP IS {}",portUsageMap );
         // Filter out the ports in the case of VMAX and RP splitting: (CTRL-7288)
         // https://support.emc.com/docu10627_RecoverPoint-Deploying-with-Symmetrix-Arrays-and-Splitter-Technical-Notes.pdf?language=en_US
         // We need to align the masking of volumes to hosts to the same ports as the RP masking view.

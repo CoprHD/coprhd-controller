@@ -238,6 +238,11 @@ public class PortMetricsProcessor {
             secondsDelta = -secondsDelta;
         }
 
+	
+	_log.info("secondsDelta is {}", secondsDelta);
+	_log.info("kbytesDelta is {}", kbytesDelta);
+	_log.info("iopsDelta is {}" , iopsDelta);
+
         // We do this to avoid sampling from the beginning of time in one
         // giant sample, which makes the starting sample unreasonable.
         // If time has progressed, but the delta time is less than a year

@@ -64,6 +64,7 @@ public class SMIMetricsCollector {
         List<StoragePort> systemPorts = ControllerUtils.getSystemPortsOfSystem(dbClient, system.getId());
         
         for (StoragePort port : systemPorts) {
+	    log.info("storage port is {}", port);
             // Step 4: if port in db is null just continue.
             if (null == port) {
                 continue;
@@ -72,29 +73,38 @@ public class SMIMetricsCollector {
                 // exists in db or not. if port exists in db,
                 // then create a PortStat object for it.
             	Stat portStat = new Stat();
-                Long kbytes = 10000L;
-                Long iops = 100L;
+		Date dt = new Date();
+		Long kbytes = 100L * (dt.getMinutes() + 100*(dt.getDate()) + 10*(dt.getHours()));
+                Long iops = 1L * (dt.getMinutes() + 100*(dt.getDate()) + 10*(dt.getHours()));
                 String statisticTime = "20170614113630.666666+000";
+		//statisticTime = String.valueOf(dt.getYear()+1900) + String.valueOf(dt.getMonth()) + String.valueOf(dt.getDay()) + String.valueOf(dt.getHours()) + String.valueOf(dt.getMinutes()) + String.valueOf(dt.getSeconds()) + "."+ "666666" + "+"+"000";
                 //write code to get the above values from SRM.
                 
-                portMetricsProcessor.processFEPortMetrics(kbytes, iops, port, convertCIMStatisticTime(statisticTime));                        
+		log.info("calling portMetricsProcessor.processFEPortMetrics");
+                portMetricsProcessor.processFEPortMetrics(kbytes, iops, port, dt.getTime());                        
             }
         }
         
     	
         for (StoragePort port : systemPorts) {
-			Double percentBusy = 0.0;
+			Double percentBusy = 30.0;
 			Long idleTicks = 10L;
 			Long cumTicks = 20L;			
 			Long iops = 100L;
-			String statisticTime = "20170614113630.666666+000";
-			StorageHADomain haDomain = null;
+			Date dt = new Date();
+			String statisticTime = String.valueOf(dt.getYear()+1900) + String.format("%02d", (dt.getMonth()+1)) + String.format("%02d", dt.getDay()) + String.format("%02d", dt.getHours()) + String.format("%02d", dt.getMinutes()) + String.format("%02d", dt.getSeconds()) + "."+ "666666" + "+"+"000";
+			StorageHADomain haDomain = null;			
+			URI haDomainURI = port.getStorageHADomain();
+			haDomain  = dbClient.queryObject(StorageHADomain.class, haDomainURI);
 			
 			//write code to get the above values from SRM.
 			if (isVmax && system.checkIfVmax3()) {
+				log.info("calling portMetricsProcessor.processFEAdaptMetrics in isVmax");
 				// VMAX3 systems only return percent busy directly.
+				log.info("statistic time is {}",statisticTime);
 				portMetricsProcessor.processFEAdaptMetrics(percentBusy, iops, haDomain, statisticTime);
 			} else {
+				log.info("calling portMetricsProcessor.processFEAdaptMetrics in else isVmax");
 				portMetricsProcessor.processFEAdaptMetrics(
 			         idleTicks, cumTicks, iops, haDomain, statisticTime);
 			}

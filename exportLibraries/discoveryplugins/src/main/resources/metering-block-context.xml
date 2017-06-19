@@ -1211,6 +1211,11 @@
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager"/>
 
+    <bean id="metricsCollector"
+        class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIMetricsCollector">        
+        <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+    </bean>
+    
     <!-- Common for vnxBlock & VMAX -->
     <bean id="block"
           class="com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface">
@@ -1218,6 +1223,7 @@
         <property name="namespaces" ref="namespaces"/>
         <property name="xmlDumpGenerator" ref="blockXMLDumpgenerator"/>
         <property name="partitionManager" ref="partitionManager"/>
+        <property name="metricsCollector" ref="metricsCollector" />
     </bean>
 
     <bean id="isilonapifactory" class="com.emc.storageos.isilon.restapi.IsilonApiFactory"

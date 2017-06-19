@@ -2003,6 +2003,10 @@
 	<bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager"/>
 
 	<bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor" />
+
+	<bean id="metricsCollector" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIMetricsCollector">        
+                 <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+        </bean>
 	<!-- Common for vnxBlock & VMAX -->
 	<bean id="block"
 		class="com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface">
@@ -2010,12 +2014,7 @@
 		<property name="namespaces" ref="namespaces" />
 		<property name="metricsCollector" ref="metricsCollector" />
         <property name="partitionManager" ref="partitionManager" />
-	</bean>
-	
-	<bean id="metricsCollector"
-        class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIMetricsCollector">        
-        <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
-    </bean>
+	</bean>	
 
 	<bean id="commandgenerator"
 		class="com.emc.storageos.plugins.common.commandgenerator.CommandGenerator">

@@ -220,7 +220,7 @@ public class DataCollectionJobScheduler {
                 }
 
                 if (!enableAutoOpsSingleNodeString) {
-                    enableAutoScan = enableAutoDiscovery = enableAutoMetering = false;
+                    enableAutoScan = enableAutoDiscovery = false;
                 }
             }
         }

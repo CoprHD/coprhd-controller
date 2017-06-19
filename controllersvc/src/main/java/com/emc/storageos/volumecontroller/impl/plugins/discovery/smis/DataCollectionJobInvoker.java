@@ -185,7 +185,6 @@ class DataCollectionJobInvoker {
             commInterface.discover(_accessProfile);
         } else if (_accessProfile.getProfileName().equalsIgnoreCase(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY)) {
             commInterface.discoverArrayAffinity(_accessProfile);
-            invokeMetering();
         } else if (_accessProfile.getProfileName().equalsIgnoreCase(ControllerServiceImpl.METERING)) {
             invokeMetering();
         } else {

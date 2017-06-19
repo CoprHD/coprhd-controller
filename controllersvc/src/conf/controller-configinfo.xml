@@ -14,60 +14,68 @@
         <entry key="Discovery-netapp-unmanaged_filesystems" value="discovery-netapp-context.xml" />
         <entry key="Discovery-netappc-unmanaged_filesystems" value="discovery-netappc-context.xml" />
         <entry key="Discovery-isilon-unmanaged_filesystems" value="discovery-isilon-context.xml" />
+        <entry key="Discovery-datadomain-all" value="discovery-datadomain-context.xml" />
+        <entry key="Discovery-datadomain-unmanaged_filesystems" value="discovery-datadomain-context.xml" />
+        <entry key="Scanner-datadomain" value="discovery-datadomain-context.xml" />
         <entry key="Discovery-vnxfile-unmanaged_filesystems" value="discovery-vnxfile-context.xml" />
         <entry key="Scanner-block" value="detection-block-context.xml" />
         <entry key="Discovery-vnxfile-all" value="discovery-vnxfile-context.xml" />
         <entry key="Discovery-isilon-all" value="discovery-isilon-context.xml" />
-        <entry key="Discovery-datadomain-all" value="discovery-datadomain-context.xml" />
-        <entry key="Discovery-datadomain-unmanaged_filesystems" value="discovery-datadomain-context.xml" />
-        <entry key="Scanner-datadomain" value="discovery-datadomain-context.xml" />
         <entry key="Discovery-netapp-all" value="discovery-netapp-context.xml" />
         <entry key="Discovery-netappc-all" value="discovery-netappc-context.xml" />
         <entry key="Discovery-vplex-all" value="discovery-vplex-context.xml" />
         <entry key="Scanner-vplex" value="discovery-vplex-context.xml" />
-        <entry key="Discovery-hds-all" value="discovery-hds-context.xml" />
-        <entry key="Discovery-hds-unmanaged_volumes" value="discovery-hds-context.xml" />
-        <entry key="Scanner-hds" value="discovery-hds-context.xml" />
-        <entry key="Discovery-openstack-all" value="discovery-cinder-context.xml" />
-        <entry key="Discovery-openstack-unmanaged_volumes" value="discovery-cinder-context.xml" />
-        <entry key="Scanner-cinder" value="discovery-cinder-context.xml" />
-        <entry key="Scanner-ibmxiv" value="detection-ibmxiv-context.xml" />
-        <entry key="Discovery-ibmxiv-all" value="discovery-ibmxiv-context.xml" />
-        <entry key="Discovery-ibmxiv-unmanaged_volumes" value="volumediscovery-ibmxiv-context.xml" />
-        <entry key="NS_Discovery-mds-all" value="discovery-mds-context.xml" />
-        <entry key="NS_Discovery-brocade-all" value="discovery-brocade-context.xml" />
-        <entry key="Compute_Discovery-compute-all" value="discovery-compute-context.xml" />
-
-        <entry key="Discovery-scaleio-all" value="discovery-scaleio-context.xml"/>
-        <entry key="Scanner-scaleio" value="discovery-scaleio-context.xml"/>
         <entry key="Discovery-vnxe-all" value="discovery-vnxe-context.xml" />
         <entry key="Discovery-vnxe-unmanaged_volumes" value="discovery-vnxe-context.xml" />
         <entry key="Discovery-vnxe-unmanaged_filesystems" value="discovery-vnxe-context.xml" />
-       
+	    <entry key="Metering-vnxe" value="metering-vnxe-context.xml" />
+
         <entry key="Discovery-unity-all" value="discovery-vnxunity-context.xml" />
         <entry key="Discovery-unity-unmanaged_volumes" value="discovery-vnxunity-context.xml" />
         <entry key="Discovery-unity-unmanaged_filesystems" value="discovery-vnxunity-context.xml" />
+        <entry key="Metering-unity" value="metering-vnxunity-context.xml" />
         <entry key="Scanner-unity" value="discovery-vnxunity-context.xml"/>
 
         <entry key="ArrayAffinity-unity-host" value="discovery-vnxunity-context.xml" />
         <entry key="ArrayAffinity-unity" value="discovery-vnxunity-context.xml" />
- 
-        <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>
-        <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
-        <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
-        <entry key="ArrayAffinity-xtremio-host" value="discovery-xtremio-context.xml" />
-        <entry key="ArrayAffinity-xtremio" value="discovery-xtremio-context.xml" />
-
-        <entry key="Scanner-ceph" value="discovery-ceph-context.xml" />
-        <entry key="Discovery-ceph-all" value="discovery-ceph-context.xml" />
-        
+	    
+        <entry key="NS_Discovery-mds-all" value="discovery-mds-context.xml" />
+        <entry key="NS_Discovery-brocade-all" value="discovery-brocade-context.xml" />
+        <entry key="Compute_Discovery-compute-all" value="discovery-compute-context.xml" />
         <entry key="CS_Discovery-host-all" value="discovery-computesystem-context.xml" />
         <entry key="CS_Discovery-vcenter-all" value="discovery-computesystem-context.xml" />
 
-        <entry key="Discovery-ecs-all" value="discovery-ecs-context.xml" />
+        <entry key="Scanner-hds" value="discovery-hds-context.xml" />
+        <entry key="Discovery-hds-all" value="discovery-hds-context.xml" />
+        <entry key="Discovery-hds-unmanaged_volumes" value="discovery-hds-context.xml" />
+        <entry key="Metering-hds" value="metering-hds-context.xml" />
+
+        <entry key="Scanner-ibmxiv" value="detection-ibmxiv-context.xml" />
+        <entry key="Discovery-ibmxiv-all" value="discovery-ibmxiv-context.xml" />
+        <entry key="Discovery-ibmxiv-unmanaged_volumes" value="volumediscovery-ibmxiv-context.xml" />
+        <entry key="Metering-ibmxiv" value="metering-ibmxiv-context.xml" />
+                
+        <entry key="Scanner-cinder" value="discovery-cinder-context.xml" />
+        <entry key="Discovery-openstack-all" value="discovery-cinder-context.xml" />
+        <entry key="Discovery-openstack-unmanaged_volumes" value="discovery-cinder-context.xml" />
+        <entry key="Metering-openstack" value="discovery-cinder-context.xml" />
+
+        <entry key="Discovery-scaleio-all" value="discovery-scaleio-context.xml"/>
+        <entry key="Scanner-scaleio" value="discovery-scaleio-context.xml"/>
+        <entry key="Discovery-scaleio-unmanaged_volumes" value="discovery-scaleio-context.xml"/>
+        <entry key="Metering-scaleio" value="discovery-scaleio-context.xml"/>
+        
+        <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>
+        <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
+        <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
+        <entry key="Metering-xtremio" value="discovery-xtremio-context.xml" />
+        <entry key="ArrayAffinity-xtremio-host" value="discovery-xtremio-context.xml" />
+        <entry key="ArrayAffinity-xtremio" value="discovery-xtremio-context.xml" />
+
         <entry key="Discovery-externaldevice-all" value="discovery-externaldevice-context.xml" />
         <entry key="Scanner-externaldevice" value="discovery-externaldevice-context.xml" />
         <entry key="Discovery-externaldevice-unmanaged_volumes" value="discovery-externaldevice-context.xml" />
+        <entry key="Metering-externaldevice" value="discovery-externaldevice-context.xml" />
 
         <entry key="Discovery-rp-all" value="discovery-recoverpoint-context.xml" />
         <entry key="Discovery-rp-unmanaged_cgs" value="discovery-recoverpoint-context.xml" />
@@ -77,45 +85,44 @@
         <entry key="Metering-netapp" value="metering-block-context.xml" />
         <entry key="Metering-netappc" value="metering-block-context.xml" />
         <entry key="Metering-vplex" value="metering-block-context.xml" />
-		<entry key="Metering-hds" value="metering-hds-context.xml" />
-		<entry key="Metering-openstack" value="discovery-cinder-context.xml" />
-        <entry key="Metering-ibmxiv" value="metering-ibmxiv-context.xml" />
-        <entry key="Metering-scaleio" value="discovery-scaleio-context.xml"/>
         <entry key="Metering-datadomain" value="discovery-datadomain-context.xml" />
-        <entry key="Metering-vnxe" value="metering-vnxe-context.xml" />
-        <entry key="Metering-externaldevice" value="discovery-externaldevice-context.xml" />
-        <entry key="Metering-xtremio" value="discovery-xtremio-context.xml" />
-        <entry key="Metering-unity" value="metering-vnxunity-context.xml" />
+
+        <entry key="Discovery-ecs-all" value="discovery-ecs-context.xml" />
+
+        <entry key="Scanner-ceph" value="discovery-ceph-context.xml" />
+        <entry key="Discovery-ceph-all" value="discovery-ceph-context.xml" />
 
         <!-- in seconds -->
         <!-- how often the job should be scheduled automatically -->
         <entry key="metering-interval" value="3600" />
         <entry key="discovery-interval" value="3600" />
         <entry key="arrayaffinity-discovery-interval" value="3600" />
-        <entry key="compute-discovery-interval" value="3600" />
         <entry key="ns-discovery-interval" value="3600" />
+        <entry key="compute-discovery-interval" value="3600" />
         <entry key="cs-discovery-interval" value="86400" />
         <entry key="scan-interval" value="600" />
 
         <!-- in seconds -->
         <!-- intervals to guard against refresh requests from the user -->
-        <entry key="scan-refresh-interval" value="60" />
         <entry key="metering-refresh-interval" value="720" />
-         <!--Increased the refresh interval from 60sec to 10min to avoid frequent refreshes -->
         <entry key="discovery-refresh-interval" value="600" />
         <entry key="arrayaffinity-discovery-refresh-interval" value="600" />
         <entry key="ns-discovery-refresh-interval" value="60" />
         <entry key="compute-discovery-refresh-interval" value="60" />
         <entry key="cs-discovery-refresh-interval" value="60" />
+        <entry key="scan-refresh-interval" value="60" />
+
         <!-- in seconds -->
-        <!-- intervals after which scheduled discovery/metering jobs are allowed to be rescheduled even when "IN_PROGRESS" -->
-        <!--  60 * 60 * 24 = 4200 -->
+        <!-- intervals after which discovery/metering jobs are allowed to be rescheduled even when "IN_PROGRESS" -->
+        <!--  60 * 70  = 4200 -->
         <entry key="maximum-idle-timeout" value="86400"/>
 
         <!-- used in restricting the number of Arrays simultaneously running data
                   Collection Jobs -->
         <entry key="discovery-core-pool-size" value="3" />
+
         <entry key="compute-discovery-core-pool-size" value="3" />
+        
         <entry key="metering-core-pool-size" value="1" />
 
         <entry key="time-tolerance" value="600" />
@@ -126,25 +133,12 @@
         <entry key="metering-records-partition-size" value="1000" />
         <entry key="sblim-timeout" value="1200000" />
 
-		<!-- On single node deployments (devkits, standalone, 1+0), default to NO auto-discovery.
-		     This value overrides the three values for "enable-metering", "enable-autodiscovery",
-		     and "enable-autoscan" to prevent over-use of managed resource (providers) during testing 
-		     and PoC deployments of ViPR. 
-		     
-		     This value is ignored on multi-node deployments of ViPR and all deployments of CoprHD.
-		     
-		     "false" ==> On single node deployments, NEVER auto-discover anything.  Do manual discoveries only.
-		     "true"  ==> On single node deployments, refer to the three variables below for auto operations.  
-		     -->
-        <entry key="enable-auto-discovery-metering-scan-single-node-deployments" value="false" />
-        
+        <entry key="enable-auto-discovery-metering-scan-single-node-deployments" value="true" />
         <entry key="enable-metering" value="true" />
         <entry key="enable-autodiscovery" value="true" />
         <entry key="enable-arrayaffinity-discovery" value="false" />
-        <entry key="enable-autoscan" value="false" />
-
-        <entry key="capacity-compute-delay" value="5"/>
-        <entry key="capacity-compute-interval" value="3600" />
+        <entry key="enable-autoscan" value="true" />
+        <entry key="cim-connection-max-inactive-time" value="480" />
     </util:map>
 
     <bean id="enablemonitoring" class="java.lang.Boolean">

@@ -29,7 +29,7 @@ import com.iwave.ext.linux.command.ListWWNsCommand;
 import com.iwave.ext.linux.command.MkdirCommand;
 import com.iwave.ext.linux.command.Mke2fsCommand;
 import com.iwave.ext.linux.command.MountCommand;
-import com.iwave.ext.linux.command.RescanDevicesCommand;
+import com.iwave.ext.linux.command.RescanHBAsCommand;
 import com.iwave.ext.linux.command.fdisk.FdiskListCommand;
 import com.iwave.ext.linux.command.iscsi.ListIQNsCommand;
 import com.iwave.ext.linux.command.rbd.MapRBDCommand;
@@ -222,7 +222,11 @@ public class LinuxSystemCLI implements HostRescanAdapter {
 
     @Override
     public void rescan() throws Exception {
-        RescanDevicesCommand command = new RescanDevicesCommand();
+        ListHBAInfoCommand hbaCommand = new ListHBAInfoCommand();
+        executeCommand(hbaCommand, SecureShellSupport.SHORT_TIMEOUT);
+
+        RescanHBAsCommand command = new RescanHBAsCommand();
+        command.setHbas(hbaCommand.getResults());
         executeCommand(command, SecureShellSupport.SHORT_TIMEOUT);
     }
 

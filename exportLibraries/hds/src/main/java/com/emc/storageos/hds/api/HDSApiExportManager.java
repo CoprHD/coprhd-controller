@@ -1004,8 +1004,8 @@ public class HDSApiExportManager {
                         } else {
                             throw HDSException.exceptions
                                     .invalidResponseFromHDS(String
-                                            .format("Not able to delete LunPaths due to invalid response %1$s from server",
-                                                    response.getStatus()));
+                                            .format("Not able to delete LunPaths due to invalid response from server: Code - %s Description - %2s",
+                                                    error.getCode(), error.getDescription()));
                         }
                     }
                     log.info("Deleted {} LUN paths from system:{}",

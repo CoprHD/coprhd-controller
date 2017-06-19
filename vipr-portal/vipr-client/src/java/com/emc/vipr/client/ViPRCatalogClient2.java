@@ -19,6 +19,7 @@ import com.emc.vipr.client.catalog.Orders2;
 import com.emc.vipr.client.catalog.ServiceDescriptors;
 import com.emc.vipr.client.catalog.UserPreferences;
 import com.emc.vipr.client.catalog.search.CatalogSearchBuilder;
+import com.emc.vipr.client.catalog.WFDirectoryClient;
 import com.emc.vipr.client.impl.RestClient;
 
 /**
@@ -161,5 +162,13 @@ public class ViPRCatalogClient2 {
 
     public CatalogSearchBuilder browse(URI tenantId) {
         return new CatalogSearchBuilder(this, tenantId);
+    }
+
+    public WFDirectoryClient wfDirectories() {
+        return new WFDirectoryClient(this, client);
+    }
+
+    public CustomServicesClient customServicesPrimitives() {
+        return new CustomServicesClient(this, client);
     }
 }

@@ -591,7 +591,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             _helper.callRefreshSystem(storageSystem, null, false);
 
-            for (Volume volume : volumes) {
+            Iterator<Volume> volumeItr = volumes.iterator();
+            Set<String> nativeIdsForParkingSG = new HashSet<String>();
+            // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
+            // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
+            // operation on these volumes would fail otherwise.
+            boolean forceFlag = false;
+            while (volumeItr.hasNext()) {
+                Volume volume = volumeItr.next();
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
 
                 // check if the volume is on array, if not, no operation on array side
@@ -603,25 +610,32 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     _log.info(String.format("Volume %s already deleted: ", volume.getNativeId()));
                     volume.setInactive(true);
                     _dbClient.updateObject(volume);
+                    volumeItr.remove(); // remove the volume from the processing list
                     VolumeTaskCompleter deleteTaskCompleter = multiVolumeTaskCompleter
                             .skipTaskCompleter(volume.getId());
                     deleteTaskCompleter.ready(_dbClient);
                     continue;
                 }
-
-                if (storageSystem.checkIfVmax3()) {
-                    // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
-                    // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
-                    // operation on these volumes would fail otherwise.
-                    boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volume.getId());
-                    CIMInstance sloStorageGroup = _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, volume.getNativeId(),
-                            forceFlag);
-                    if (sloStorageGroup != null) {
-                        parkingSLOStorageGroups.add(sloStorageGroup);
-                    }
-                    _log.info("Done invoking remove volume from storage group");
+                nativeIdsForParkingSG.add(volume.getNativeId());
+                if (!forceFlag) {
+                    forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volume.getId());
                 }
-               
+            }
+            if (storageSystem.checkIfVmax3()) {
+                parkingSLOStorageGroups = _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem,
+                        nativeIdsForParkingSG.toArray(new String[] {}), forceFlag);
+                _log.info("Done invoking remove volumes from parking SLO storage group");
+
+                // VMAX3 has parking SLO storage groups that the volumes will be removed from
+                // prior to the deletion. We need to check any of these SLOs StorageGroups to
+                // see if they are empty. If so, we will delete them as part of the volume
+                // delete operation.
+                if (!parkingSLOStorageGroups.isEmpty()) {
+                    _helper.deleteParkingSLOStorageGroupsIfEmpty(storageSystem, parkingSLOStorageGroups);
+                }
+            }
+
+            for (Volume volume : volumes) {
                 if (volume.getConsistencyGroup() != null
                         || NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                     _log.info(String.format("Volume [%s](%s) is a part of CG (%s), extra cleanup operations may be needed.", 
@@ -656,6 +670,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                  * that.
                  */
                 String volToDeleteLabel = volume.getDeviceLabel();
+                CIMInstance volumeInstance = _helper.checkExists(storageSystem,
+                        _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
                 String volInstanceLabel = CIMPropertyFactory.getPropertyValue(volumeInstance,
                         SmisConstants.CP_ELEMENT_NAME);
                 if (volToDeleteLabel != null && volInstanceLabel != null
@@ -696,14 +712,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 volumeNativeIds.add(volume.getNativeId());
             }
             _log.info(logMsgBuilder.toString());
-
-            // VMAX3 has parking SLO storage groups that the volumes will be removed from
-            // prior to the deletion. We need to check any of these SLOs StorageGroups to
-            // see if they are empty. If so, we will delete them as part of the volume
-            // delete operation.
-            if (!parkingSLOStorageGroups.isEmpty()) {
-                _helper.deleteParkingSLOStorageGroupsIfEmpty(storageSystem, parkingSLOStorageGroups);
-            }
 
             // execute SMI-S Call , only if any Volumes left for deletion.
             if (!multiVolumeTaskCompleter.isVolumeTaskCompletersEmpty()) {
@@ -2668,12 +2676,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doFailoverCancelLink(final StorageSystem system, final Volume targetVolume,
             final TaskCompleter completer) {
         _srdfOperations.failoverCancelSyncPair(system, targetVolume, completer);
-    }
-
-    @Override
-    public void doResyncLink(final StorageSystem system, final URI sourceURI,
-            final URI targetURI, final TaskCompleter completer) {
-        _srdfOperations.reSyncSRDFSyncVolumePair(system, sourceURI, targetURI, completer);
     }
 
     @Override

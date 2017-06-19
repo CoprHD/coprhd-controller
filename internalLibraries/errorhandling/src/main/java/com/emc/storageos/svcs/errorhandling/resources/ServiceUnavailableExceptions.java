@@ -37,6 +37,9 @@ public interface ServiceUnavailableExceptions {
     @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
     public ServiceUnavailableException clusterStateNotStable();
 
+    @DeclareServiceCode(ServiceCode.DATABASE_SERVICE_NOT_ALL_UP)
+    public ServiceUnavailableException databaseServiceNotAllUp();
+
     @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
     public ServiceUnavailableException siteClusterStateNotStable(String siteName, String state);
 

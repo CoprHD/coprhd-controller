@@ -66,5 +66,22 @@ public class PathConstants {
     public static final String SCHEDULED_EVENTS_URL = "/catalog/events";
     public static final String SCHEDULED_EVENTS_DEACTIVATE_URL = SCHEDULED_EVENTS_URL + "/{id}/deactivate";
     public static final String SCHEDULED_EVENTS_CANCELLATION_URL = SCHEDULED_EVENTS_URL + "/{id}/cancel";
-
+    public static final String WF_DIRECTORIES = "/customservices/workflows/directory";
+    public static final String WF_DIRECTORY_BULK = "/customservices/workflows/directory/bulk";
+    public static final String WF_DIRECTORY = "/customservices/workflows/directory/{id}";
+    public static final String WF_DIRECTORY_DELETE = "/customservices/workflows/directory/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_PRIMITIVES = "/customservices/primitives";
+    public static final String CUSTOM_SERVICES_PRIMITIVE = "/customservices/primitives/{id}";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_DELETE = "/customservices/primitives/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCES = "/customservices/primitives/resource";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE = "/customservices/primitives/resource/{id}";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE_DELETE = "/customservices/primitives/resource/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_WORKFLOWS = "/customservices/workflows";
+    public static final String CUSTOM_SERVICES_WORKFLOW_DELETE = "/customservices/workflows/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_WORKFLOW_VALIDATE = "/customservices/workflows/{id}/validate.json";
+    public static final String CUSTOM_SERVICES_WORKFLOW_PUBLISH = "/customservices/workflows/{id}/publish";
+    public static final String CUSTOM_SERVICES_WORKFLOW_UNPUBLISH = "/customservices/workflows/{id}/unpublish";
+    public static final String CUSTOM_SERVICES_WORKFLOW = "/customservices/workflows/{id}";
+    public static final String CUSTOM_SERVICES_WORKFLOW_EXPORT = "/customservices/workflows/{id}/export";
+    public static final String CUSTOM_SERVICES_WORKFLOW_IMPORT = "/customservices/workflows/import";
 }

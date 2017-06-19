@@ -370,6 +370,12 @@ public class UnManagedFilesystemService extends TaggedResource {
                             new Object[] { dataMover.getAdapterName(), dataMover.getName(), dataMover.getLabel() });
                 }
 
+                // Check for same name File Share in this project
+                if (FileSystemIngestionUtil.checkForDuplicateFSName(_dbClient, project.getId(), deviceLabel, filesystems)) {
+                    _logger.info("File System with name: {}  already exists in the given project: {} so, ignoring it..",
+                            deviceLabel, project.getLabel());
+                    continue;
+                }
                 // check ingestion is valid for given project
                 if (!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
                     _logger.info("UnManaged FileSystem path {} is mounted on vNAS URI {} which is invalid for project.", path, nasUri);

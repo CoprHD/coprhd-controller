@@ -540,7 +540,11 @@ public class DbServiceImpl implements DbService {
         // We need make sure majority local nodes are added as seed nodes. Otherwise cassandra may not see other nodes if it loses
         // connection to other sites
         System.setProperty("cassandra.load_ring_state", "false");
-        
+
+
+        //this system property is set to avoid commit log replay error during cassandra server stattup
+        System.setProperty("cassandra.commitlog.ignorereplayerrors", "true");
+
         // Nodes in new data center should not auto-bootstrap.  
         // See https://docs.datastax.com/en/cassandra/2.0/cassandra/operations/ops_add_dc_to_cluster_t.html
         if (_schemaUtil.isStandby()) {

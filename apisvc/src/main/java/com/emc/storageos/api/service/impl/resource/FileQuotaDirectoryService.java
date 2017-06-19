@@ -191,7 +191,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getFileshareUnderProjectConstraint(
                             projectId, name),
-                            resRepList);
+                    resRepList);
         }
         return resRepList;
     }
@@ -359,12 +359,12 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         if (param.getForceDelete()) {
             _log.error("Quota directory delete operation is not supported with force delete {}", param.getForceDelete());
             throw APIException.badRequests
-            .quotaDirectoryDeleteNotSupported(param.getForceDelete());
+                    .quotaDirectoryDeleteNotSupported(param.getForceDelete());
         } else {
             // Fail to delete quota directory, if there are any dependency objects like exports, shares
             if (quotaDirectoryHasExportsOrShares(fs, quotaDirectory.getName())) {
                 throw APIException.badRequests
-                .resourceCannotBeDeleted("Quota directory " + quotaDirectory.getName() + " has exports/shares ");
+                        .resourceCannotBeDeleted("Quota directory " + quotaDirectory.getName() + " has exports/shares ");
             }
         }
 
@@ -456,7 +456,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         if (smbShareMap != null && !smbShareMap.isEmpty()) {
             for (SMBFileShare smbFileShare : smbShareMap.values()) {
                 // check for quota name in native fs path
-                if (true == (smbFileShare.getPath().endsWith("/" + quotaName))) {
+                if (smbFileShare.getPath().endsWith("/" + quotaName)) {
                     _log.info("quota directory {} on fs {} has CIFS shares", quotaName, fs.getLabel());
                     return true;
                 }

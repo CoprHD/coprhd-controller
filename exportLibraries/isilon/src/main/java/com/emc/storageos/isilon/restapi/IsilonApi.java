@@ -328,7 +328,7 @@ public class IsilonApi {
                 return false;
             }
         } catch (Exception e) {
-            sLogger.warn("fsDirHasData - Unable to get the content of fs {}", e.getMessage());
+            sLogger.warn("fsDirHasData - Unable to get the content from path {} due to {}", fspath, e.getMessage());
             return true;
         } finally {
             if (clientResp != null) {
@@ -398,38 +398,21 @@ public class IsilonApi {
     }
 
     /**
-     * Delete directory on isilon, will fail if any sub directories exist
+     * Delete directory on isilon
+     * No recursive flag to Ision API, So the delete directory fails
+     * if there are any files and folders in it.
      * 
      * @param fspath
      *            directory path
      * @throws IsilonException
      */
     public void deleteDir(String fspath) throws IsilonException {
-        deleteDir(fspath, false);
-    }
-
-    /**
-     * Delete directory on isilon
-     * 
-     * @param fspath
-     *            directory path
-     * @param recursive
-     *            if true, will delete all sub directories also
-     * @throws IsilonException
-     */
-    public void deleteDir(String fspath, boolean recursive) throws IsilonException {
-
-        if (recursive) {
-            sLogger.warn("Failed to delete directory {} on Isilon array: Due to recursive delete is not supported", fspath);
-            throw IsilonException.exceptions.forceDeleteNotSupported(fspath);
-        }
 
         fspath = scrubPath(fspath);
         ClientResponse resp = null;
         try {
             fspath = URLEncoder.encode(fspath, "UTF-8");
-            resp = _client.delete(_baseUrl.resolve(URI_IFS.resolve(fspath
-                    + (recursive ? "?recursive=1" : ""))));
+            resp = _client.delete(_baseUrl.resolve(URI_IFS.resolve(fspath)));
             if (resp.getStatus() != 200 && resp.getStatus() != 204 && resp.getStatus() != 404) {
                 processErrorResponse("delete", "directory: " + fspath, resp.getStatus(),
                         resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);

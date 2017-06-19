@@ -159,38 +159,6 @@ public class FileStorageUtils {
     }
 
     /**
-     * Delete the file system dependency objects like
-     * exports, shares , snapshots
-     * 
-     * @param fileSystemId
-     * @param fileDeletionType
-     */
-    public static void deleteFileSystemRefObjects(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
-        if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
-            // Remove snapshots for the volume
-            for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
-                deleteFileSnapshot(snapshot.getId());
-            }
-
-            // Deactivate CIFS Shares
-            for (SmbShareResponse share : getCifsShares(fileSystemId)) {
-                deactivateCifsShare(fileSystemId, share.getShareName());
-            }
-
-            // Delete all export rules for filesystem and all sub-directories
-            if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
-                deactivateFileSystemExport(fileSystemId, true, null, true);
-            }
-
-            // Deactivate NFS Exports
-            for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
-                deactivateExport(fileSystemId, export);
-            }
-        }
-
-    }
-
-    /**
      * deleteFileSystem - delete the file system
      * Till now this function was deleting exports, shares, snapshots
      * and snapshot shares

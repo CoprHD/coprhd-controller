@@ -34,7 +34,13 @@ public class DeactivateFileSystem extends WaitForTask<FileShareRestRep> {
     @Override
     protected Task<FileShareRestRep> doExecute() throws Exception {
         FileSystemDeleteParam param = new FileSystemDeleteParam();
-        param.setForceDelete(false);
+        // Delete file system
+        // force delete is applicable only for Inventory delete only!!
+        if (fileDeletionType != null && fileDeletionType.equals(FileControllerConstants.DeleteTypeEnum.VIPR_ONLY)) {
+            param.setForceDelete(true);
+        } else {
+            param.setForceDelete(false);
+        }
         param.setDeleteType(fileDeletionType.toString());
         return getClient().fileSystems().deactivate(fileSystemId, param);
     }

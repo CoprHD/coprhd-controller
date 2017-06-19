@@ -378,7 +378,7 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 // Check for same named File Share in this project
                 if (FileSystemIngestionUtil.checkForDuplicateFSName(_dbClient, project.getId(), deviceLabel, filesystems)) {
-                    _logger.info("File System with name: {}  already exists in given project: {} so, ingnoring it..",
+                    _logger.info("File System with name: {}  already exists in given project: {} so, ignoring it.",
                             deviceLabel, project.getLabel());
                     continue;
                 }

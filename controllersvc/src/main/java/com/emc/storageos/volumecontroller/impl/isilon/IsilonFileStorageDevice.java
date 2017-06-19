@@ -306,7 +306,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         /**
          * Delete the directory associated with the file share.
          */
-        isi.deleteDir(args.getFsMountPath(), false);
+        isi.deleteDir(args.getFsMountPath());
 
         /**
          * Delete the Schedule Policy for the file system
@@ -337,7 +337,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // Do not delete file system if it has some data in it.
             if (isi.fsDirHasData(args.getFsMountPath())) {
                 // Fail to delete file system directory which has data in it!!!
-                _log.error("File system delation failed as it's directory {} has content in it", args.getFsMountPath());
+                _log.error("File system deletion failed as it's directory {} has content in it", args.getFsMountPath());
                 throw IsilonException.exceptions.failToDeleteFileSystem(args.getFsMountPath());
             }
 
@@ -354,7 +354,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
              * Delete the directory associated with the file share.
              * with recursive flag false
              */
-            isi.deleteDir(args.getFsMountPath(), false);
+            isi.deleteDir(args.getFsMountPath());
         }
 
     }
@@ -464,7 +464,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     quotaDir.getExtensions().remove(QUOTA);
 
                     // delete directory for the Quota Directory
-                    isi.deleteDir(quotaDirPath, false);
+                    isi.deleteDir(quotaDirPath);
                 }
             }
         }
@@ -1010,12 +1010,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // Delete the file system directory only if it was created from this workflow
             // instead of delete entire fs system tree and deleting its objects
             // delete the fs directory alone!!!
-            if (!fsDirExists && fsDirCreatedByMe) {
+            if (fsDirCreatedByMe) {
                 // delete isilon directory
                 _log.info("doCreateFS failed, deleting the isilon directory {} which has been created in this workflow",
                         args.getFsMountPath());
                 IsilonApi isi = getIsilonDevice(storage);
-                isi.deleteDir(args.getFsMountPath(), false);
+                isi.deleteDir(args.getFsMountPath());
             }
 
             return BiosCommandResult.createErrorResult(e);
@@ -1359,7 +1359,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.info("doCreateQuotaDirectory failed, deleting the isilon directory {} which has been created in this workflow",
                         qDirPath);
                 IsilonApi isi = getIsilonDevice(storage);
-                isi.deleteDir(args.getFsMountPath(), false);
+                isi.deleteDir(args.getFsMountPath());
             }
             _log.error("doCreateQuotaDirectory failed.", e);
             return BiosCommandResult.createErrorResult(e);
@@ -1403,7 +1403,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             // delete directory for the Quota Directory
             // with recursive flag false
-            isi.deleteDir(qDirPath, false);
+            isi.deleteDir(qDirPath);
             _log.info("IsilonFileStorageDevice doDeleteQuotaDirectory {} with size {} - complete", qDirPath, qDirSize);
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
@@ -1518,7 +1518,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 

@@ -266,12 +266,12 @@ public final class WorkflowHelper {
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             int remaining = length;
             while (remaining > 0) {
-                final byte[] bytes = new byte[remaining < 2048 ? remaining : 2048];
+                final byte[] bytes = new byte[remaining > 2048 ? 2048 : remaining];
                 final int nRead = dis.read(bytes);
                 if (nRead < 0) {
                     throw new IOException("Unexpected end of stream");
                 }
-                baos.write(bytes);
+                baos.write(bytes, 0, nRead);
                 remaining -= nRead;
             }
             return baos.toByteArray();
@@ -572,7 +572,7 @@ public final class WorkflowHelper {
             throw new RuntimeException("Operation type for " + id + " not found");
         }
 
-        final CustomServicesPrimitiveType primitive = dao.get(id);
+        final CustomServicesPrimitiveType primitive = dao.export(id);
 
         if (null == primitive) {
             throw new RuntimeException("Operation with ID " + id + " not found");

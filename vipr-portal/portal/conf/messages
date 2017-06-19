@@ -4741,7 +4741,7 @@ renderFunctions.storageDriver.status.inUse=In Use
 renderFunctions.storageDriver.status.unknown=Unknown
 
 renderFunctions.recovery.result.done=Last node recovery was successfully completed at 
-renderFunctions.recovery.result.failed=Latest recover status have error at
+renderFunctions.recovery.result.failed=Latest recover status have error at 
 renderFunctions.recovery.result.reason=The reason was: 
 renderFunctions.recovery.error.repair=Database repair failed
 renderFunctions.recovery.error.sync=Database rebuild failed

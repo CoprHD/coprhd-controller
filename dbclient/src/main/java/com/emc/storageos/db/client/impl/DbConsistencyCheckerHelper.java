@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.cassandra.serializers.UTF8Serializer;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +46,7 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
+
 import com.google.common.collect.Lists;
 
 public class DbConsistencyCheckerHelper {
@@ -68,6 +70,7 @@ public class DbConsistencyCheckerHelper {
     private static final int INDEX_OBJECTS_BATCH_SIZE = 1000;
     private static final int THREAD_POOL_QUEUE_SIZE = 50;
     private static final int WAITING_TIME_FOR_QUEUE_FULL_MS = 3000;
+    private static final int THRESHHOLD_FOR_OUTPUT_DEBUG = 10000;
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
@@ -182,14 +185,20 @@ public class DbConsistencyCheckerHelper {
         	for (String rowKey : result.keySet()) {
                 List<CompositeColumnName> columns = result.get(rowKey);
                 boolean inactiveObject = false;
+                boolean hasInactiveColumn = false;
                 for (CompositeColumnName column : columns) {
-                    if (column.getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
-                    	inactiveObject = true;
+                    if (column.getOne().equals(DataObject.INACTIVE_FIELD_NAME)) {
+                    	hasInactiveColumn = true;
+                    	inactiveObject = column.getBooleanValue();
                     	break;
                     }
+
                 }
                 
-                if (inactiveObject) {
+                if (!hasInactiveColumn || inactiveObject) {
+                	if (!hasInactiveColumn) {
+                		_log.warn("Data object with key {} has NO inactive column, don't rebuild index for it.", rowKey);
+                	}
                 	continue;
                 }
                 
@@ -198,7 +207,7 @@ public class DbConsistencyCheckerHelper {
                     if (column == null) {
                         continue;
                     }
-                    
+
                     if (!indexedFields.containsKey(column.getOne())) {
                         continue;
                     }
@@ -227,11 +236,10 @@ public class DbConsistencyCheckerHelper {
                                 true, toConsole);
                         DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
                                 String.format("id:%s, cfName:%s", rowKey,
-                                        indexedField.getDataObjectType().getSimpleName()));
+                                		doType.getCF().getName()));
                     }
                 }
             }
-            
         }
     }
 
@@ -257,7 +265,10 @@ public class DbConsistencyCheckerHelper {
         
         ResultSet resultSet = indexAndCf.dbClientContext.getSession().execute(queryStatement);
 
+		int scannedRows = 0;
+		long beginTime = System.currentTimeMillis();
         for (Row row : resultSet) {
+        	scannedRows++;
         	String key = row.getString(0);
             
         	CompositeIndexColumnName indexColumnName = null;
@@ -288,8 +299,8 @@ public class DbConsistencyCheckerHelper {
             if (objEntry == null) {
                 continue;
             }
+            
             String objCfName = objCfs.get(objEntry.getClassName());
-
             if (objCfName == null) {
                 logMessage(String.format("DataObject does not exist for %s", key), true, toConsole);
                 continue;
@@ -320,6 +331,13 @@ public class DbConsistencyCheckerHelper {
                     processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
                 }
                 objsToCheck = new HashMap<>();
+            }
+            
+            if (scannedRows >= THRESHHOLD_FOR_OUTPUT_DEBUG) {
+            	_log.info("{} data objects have been check with time {}", scannedRows,
+            			DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginTime));
+            	scannedRows = 0;
+            	beginTime = System.currentTimeMillis();
             }
         }
 

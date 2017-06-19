@@ -414,7 +414,7 @@ public class DbsvcTestBase {
     }
     
     protected void cleanupDataObjectCF(Class<? extends DataObject> clazz) {
-        List<URI> uriList = _dbClient.queryByType(Volume.class, false);
+        List<URI> uriList = _dbClient.queryByType(clazz, false);
         List<DataObject> dataObjects = new ArrayList<DataObject>();
         for (URI uri : uriList) {
             try {

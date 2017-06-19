@@ -164,7 +164,7 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
         String error = WindowsUtils.getDiskPartError(output);
         if (StringUtils.isNotBlank(error)) {
             error("DiskPart Error: %s", error);
-            throw new WinRMException(error);
+            throw new WinRMException(String.format("DiskPart Error: %s", error));
         }
         return output.getStdout();
     }

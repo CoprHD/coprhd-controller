@@ -149,6 +149,7 @@ public class VNXeApiClient {
     private static Logger _logger = LoggerFactory.getLogger(VNXeApiClient.class);
     public static int GENERIC_STORAGE_LUN_TYPE = 1;
     public static int STANDALONE_LUN_TYPE = 2;
+    private static final long UNITY_FS_MIN_USED_SIZE = 0;
     public String netBios;
 
     // the client to invoke VNXe requests
@@ -377,6 +378,11 @@ public class VNXeApiClient {
     public VNXeCommandJob deleteFileSystem(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
+        if (isFileSystemHasExportOrShare(fsId) || isFileSystemHasData(fsId)) {
+            throw VNXeException.exceptions
+            .vnxeCommandFailed("Delete file system failed as it conatins data or it has references. Remove the dependencies and try again: "
+                    + fsId);
+        }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);
         return req.deleteFileSystemAsync(fsId, forceSnapDeletion);
     }
@@ -394,6 +400,11 @@ public class VNXeApiClient {
     public VNXeCommandResult deleteFileSystemSync(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
+        if (isFileSystemHasExportOrShare(fsId) || isFileSystemHasData(fsId)) {
+            throw VNXeException.exceptions
+            .vnxeCommandFailed("Delete file system failed as it conatins data or it has references. Remove the dependencies and try again: "
+                    + fsId);
+        }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);
         return req.deleteFileSystemSync(fsId, forceSnapDeletion);
     }
@@ -2896,4 +2907,51 @@ public class VNXeApiClient {
         BlockLunRequests req = new BlockLunRequests(_khClient);
         return req.checkLunExists(lunId);
     }
+
+    /**
+     * Checks to see if the file system has some data or not
+     * 
+     * @param fsId
+     *            fsID to check
+     * @return boolean true if directory has data, false otherwise
+     */
+    public boolean isFileSystemHasData(String fsId) {
+        FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
+        VNXeFileSystem fs = fsRequest.get();
+        if (fs != null) {
+            long fsUsedSize = fs.getSizeUsed();
+            _logger.info("Getting filesystem used space for fsId {} is {} ", fsId, fsUsedSize);
+            if (fsUsedSize > UNITY_FS_MIN_USED_SIZE) {
+                return true;
+            } else {
+
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Checks to see if the file system has export or share.
+     * 
+     * @param fsId
+     *            fsID to check
+     * @return boolean true if it has share or export, false otherwise
+     */
+    public boolean isFileSystemHasExportOrShare(String fsId) {
+        FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
+
+        VNXeFileSystem fs = fsRequest.get();
+        if (fs != null) {
+            _logger.info("Getting NfsShare and Cifs Share Count for fsId {} is {}, {} ", fsId, fs.getNfsShareCount(),
+                    fs.getCifsShareCount());
+            if (fs.getNfsShareCount() > 0 || fs.getCifsShareCount() > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

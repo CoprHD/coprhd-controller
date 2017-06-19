@@ -75,7 +75,7 @@ def pp_search(args):
     else:
         print 'Result: ', array
 
-pp_display_fmt = '{0:16s} {1:8s} {2:60s} {3:s}'
+pp_display_fmt = '{0:16s} {1:8s} {2:75s} {3:s}'
 
 def pp_display_hdr():
     print pp_display_fmt.format('name', 'active', 'id', 'description')
@@ -83,10 +83,10 @@ def pp_display_hdr():
 def pp_display(pp):
     try:
        descr = pp['description']
-	print pp_display_fmt.format(pp['name'], 'NO' if pp['inactive'] else 'YES', pp['id'], descr)
+       print pp_display_fmt.format(pp['name'], 'NO' if pp['inactive'] else 'YES', pp['id'], descr)
     except:
        descr="No description"
-	print pp_display_fmt.format(pp['name'], 'NO' if pp['inactive'] else 'YES', pp['id'], "No Description")
+       print pp_display_fmt.format(pp['name'], 'NO' if pp['inactive'] else 'YES', pp['id'], "No Description")
 
 
 #----------------------------------------------------------------------
@@ -149,10 +149,11 @@ allow.add_argument('name', help = 'The name of the performance parameters instan
 allow.add_argument('tenant', help = 'The name of the tenant to allow access to the performance parameter instance')
 
 # pp tag
+resource_type="block_performance_params"
 tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 tag.add_argument('name', metavar = 'name', help = 'The name of the performance parameters instance')
 tag.add_argument('tags', metavar = 'tags', help = 'The tags to be applied to the instance', nargs='+', default=None)
-tag.add_argument('--resource_type', metavar = 'resource_type', help = 'The resource type', default=performanceparams)
+tag.add_argument('--resource_type', metavar = 'resource_type', help = 'The resource type', default=resource_type)
 tag.add_argument('--id', metavar = 'id', help = 'The resource id', default=None)
 
 # pp search

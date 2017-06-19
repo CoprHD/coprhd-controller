@@ -582,7 +582,9 @@ get_zone_name() {
     echo $zone
 }
 
-# Verify that a given zone exists or has been removed
+# Verify that a given zone exists or has been removed.
+# Increments the fail count if check fails and does not return a
+# return code.
 verify_zone() {
     zone=$1
     fabricid=$2
@@ -616,10 +618,10 @@ verify_zone() {
 newly_created_zone_for_host() {
     zone=$1
     host=$2
-    if [[ "$zone" != *${host}* ]]; then
-        return 1
+    if [[ "$zone" == *${host}* ]]; then
+        return 0
     fi    
-    return 0
+    return 1
 }    
 
 # Cleans zones and zone references ($1=fabricId, $2=host)

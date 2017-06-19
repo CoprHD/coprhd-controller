@@ -551,6 +551,7 @@ URI_COMPUTE_VIRTUAL_POOL_ASSIGN = URI_COMPUTE_VIRTUAL_POOL + '/assign-matched-el
 URI_PERF_PARAMS                 = URI_SERVICES_BASE + '/block/performance-params'
 URI_PERF_PARAMS_INSTANCE        = URI_PERF_PARAMS + '/{0}'
 URI_PERF_PARAMS_DEACTIVATE      = URI_PERF_PARAMS_INSTANCE + '/deactivate'
+URI_PERF_PARAMS_ACLS            = URI_PERF_PARAMS_INSTANCE + '/acl'
 
 OBJCTRL_INSECURE_PORT           = '9010'
 OBJCTRL_PORT                    = '4443'
@@ -5605,6 +5606,8 @@ class Bourne:
             uri = URI_IPINTERFACES
         elif resource_type == "initiator":
             uri = URI_INITIATORS
+        elif resource_type == "block_performance_params":
+            uri = URI_PERF_PARAMS
         else:
             raise Exception('Unknown resource type ' + resource_type)
         searchuri =  uri + '/search'
@@ -5671,6 +5674,8 @@ class Bourne:
             uri = URI_IPINTERFACE.format(id)
         elif resource_type == "initiator":
             uri = URI_INITIATOR.format(id)
+        elif resource_type == "block_performance_params":
+            uri = URI_PERF_PARAMS_INSTANCE.format(id)
         else:
             raise Exception('Unknown resource type ' + resource_type)
         return uri + '/tags'
@@ -9825,6 +9830,23 @@ class Bourne:
             if (not pplist):
                 return {};
             return pplist['performance_params']
+
+    def pp_add_acl(self, uri, tenant):
+        tenant_uri = self.__tenant_id_from_label(tenant)
+        self.pp_add_tenant_acl(uri, tenant_uri)
+
+    def pp_add_tenant_acl(self, uri, tenant_uri):
+        parms = {
+            'add':[{
+                'privilege': ['USE'],
+                'tenant': tenant_uri,
+                }]
+        }
+        response = self.__api('PUT', URI_PERF_PARAMS_ACLS.format(uri), parms)
+        if (response.status_code != 200):
+            print "pp_add_acl failed with code: ", response.status_code
+            raise Exception('pp_add_acl: failed')
+
 
 
 

@@ -99,6 +99,28 @@ public class HDSJob extends Job implements Serializable
     }
 
     /**
+     * Sets the status for the job to the fatal_error status and updates the
+     * error description with the passed description.
+     * 
+     * @param errorDescription A description of the error.
+     */
+    public void setFatalErrorStatus(String errorDescription) {
+        _status = JobStatus.FATAL_ERROR;
+        _errorDescription = errorDescription;
+    }
+
+    /**
+     * Sets post processing status of the job to the failed status and updates the
+     * error description with the passed description.
+     * 
+     * @param errorDescription A description of the error.
+     */
+    public void setPostProcessingFailedStatus(String errorDescription) {
+        _postProcessingStatus = JobStatus.FAILED;
+        _errorDescription = errorDescription;
+    }
+
+    /**
      * Sets the status for the job to the error status and updates the
      * error description with the passed description.
      * 
@@ -179,11 +201,19 @@ public class HDSJob extends Job implements Serializable
                     processPostProcessingError(messageId, trackingPeriodInMillis, _errorDescription, null);
                 }
             } catch (Exception e) {
-                setErrorStatus(e.getMessage());
+                setFatalErrorStatus(e.getMessage());
+                setPostProcessingFailedStatus(e.getMessage());
                 logger.error("Problem while trying to update status", e);
+            } finally {
+                if (isJobInTerminalFailedState()) {
+                    // Have to process job completion since updateStatus may not did this.
+                    ServiceError error = DeviceControllerErrors.hds.jobFailed(_errorDescription);
+                    getTaskCompleter().error(jobContext.getDbClient(), error);
+                }
             }
         }
         _pollResult.setJobStatus(_status);
+        _pollResult.setJobPostProcessingStatus(_postProcessingStatus);
         _pollResult.setErrorDescription(_errorDescription);
         return _pollResult;
     }

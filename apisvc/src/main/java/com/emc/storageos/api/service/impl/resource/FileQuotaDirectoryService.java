@@ -35,10 +35,14 @@ import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.model.FSExportMap;
+import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.SMBFileShare;
+import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -60,6 +64,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.FileController;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
@@ -349,7 +354,19 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         FileShare fs = queryFileShareResource(quotaDirectory.getParent().getURI());
         ArgValidator.checkFieldNotNull(fs, "filesystem");
 
-        // <TODO> Implement Force delete option when shares and exports for Quota Directory are supported
+        // Fail to delete quota directory or it's dependency resources(exports/shares) right in the beginning
+        // if the delete request is with force flag!!!
+        if (param.getForceDelete()) {
+            _log.error("Quota directory delete operation is not supported with force delete {}", param.getForceDelete());
+            throw APIException.badRequests
+                    .quotaDirectoryDeleteNotSupported(param.getForceDelete());
+        } else {
+            // Fail to delete quota directory, if there are any dependency objects like exports, shares
+            if (quotaDirectoryHasExportsOrShares(fs, quotaDirectory.getName())) {
+                throw APIException.badRequests
+                        .resourceCannotBeDeleted("Quota directory " + quotaDirectory.getName() + " has exports/shares ");
+            }
+        }
 
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_QUOTA_DIR);
@@ -364,10 +381,6 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         FileController controller = getController(FileController.class, device.getSystemType());
         try {
             controller.deleteQuotaDirectory(device.getId(), quotaDirectory.getId(), fs.getId(), task);
-            // If delete operation is successful, then remove obj from ViPR db by setting inactive=true
-            quotaDirectory.setInactive(true);
-            _dbClient.persistObject(quotaDirectory);
-
         } catch (InternalException e) {
             // treating all controller exceptions as internal error for now. controller
             // should discriminate between validation problems vs. internal errors
@@ -415,6 +428,41 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         }
 
         return null;
+    }
+
+    /**
+     * This method verifies the file system quota directory has any exports or shares
+     * 
+     * @param fs - file system on which the QD present
+     * @param quotaName - name of the QD
+     * @return true - if there are any exports or shares, false otherwise.
+     */
+    private boolean quotaDirectoryHasExportsOrShares(FileShare fs, String quotaName) {
+        FSExportMap fsExportMap = fs.getFsExports();
+        // Verify for NFS exports on quota directory
+        if (fsExportMap != null && !fsExportMap.isEmpty()) {
+            // check the quota directory is exported
+            for (FileExport fileExport : fsExportMap.values()) {
+                if (quotaName.equals(fileExport.getSubDirectory()) &&
+                        fileExport.getPath().endsWith(quotaName)) {
+                    _log.info("quota directory {} on fs {} has NFS exports", quotaName, fs.getLabel());
+                    return true;
+                }
+            }
+        }
+
+        // Verify for CIFS shares on quota directory
+        SMBShareMap smbShareMap = fs.getSMBFileShares();
+        if (smbShareMap != null && !smbShareMap.isEmpty()) {
+            for (SMBFileShare smbFileShare : smbShareMap.values()) {
+                // check for quota name in native fs path
+                if (smbFileShare.getPath().endsWith("/" + quotaName)) {
+                    _log.info("quota directory {} on fs {} has CIFS shares", quotaName, fs.getLabel());
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

@@ -141,29 +141,19 @@ public class FileStorageUtils {
         return fileSystemId;
     }
 
+    /**
+     * deleteFileSystem - delete the file system
+     * Till now this function was deleting exports, shares, snapshots
+     * and snapshot shares
+     * 
+     * This behavior has been changed in 3.0 patch(4)
+     * Deactivate catalog service would not delete file system reference objects
+     * and always send force flag 'false' in delete request
+     * 
+     * @param fileSystemId
+     * @param fileDeletionType
+     */
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
-        if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
-            // Remove snapshots for the volume
-            for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
-                deleteFileSnapshot(snapshot.getId());
-            }
-
-            // Deactivate CIFS Shares
-            for (SmbShareResponse share : getCifsShares(fileSystemId)) {
-                deactivateCifsShare(fileSystemId, share.getShareName());
-            }
-
-            // Delete all export rules for filesystem and all sub-directories
-            if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
-                deactivateFileSystemExport(fileSystemId, true, null);
-            }
-
-            // Deactivate NFS Exports
-            for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
-                deactivateExport(fileSystemId, export);
-            }
-        }
-
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);
     }
@@ -452,11 +442,9 @@ public class FileStorageUtils {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
                 rules.put(fileExportRule.security, rule);
-            }
-            else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
+            } else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
                 rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-            }
-            else {
+            } else {
                 rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
             }
         }
@@ -473,8 +461,7 @@ public class FileStorageUtils {
             exportRule.setAnon(DEFAULT_ROOT_USER);
             if (existingRuleSet.contains(exportRule.getSecFlavor())) {
                 exportRuleListToModify.add(exportRule);
-            }
-            else {
+            } else {
                 exportRuleListToAdd.add(exportRule);
             }
         }
@@ -510,11 +497,9 @@ public class FileStorageUtils {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
                 rules.put(fileExportRule.security, rule);
-            }
-            else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
+            } else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
                 rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-            }
-            else {
+            } else {
                 rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
             }
         }
@@ -531,8 +516,7 @@ public class FileStorageUtils {
             exportRule.setAnon(DEFAULT_ROOT_USER);
             if (existingRuleSet.contains(exportRule.getSecFlavor())) {
                 exportRuleListToModify.add(exportRule);
-            }
-            else {
+            } else {
                 exportRuleListToAdd.add(exportRule);
             }
         }
@@ -592,7 +576,7 @@ public class FileStorageUtils {
         }
 
         for (FileStorageUtils.FileSystemACLs element : toRemove) {
-            fileACLs = (FileStorageUtils.FileSystemACLs[]) ArrayUtils.removeElement(fileACLs, element);
+            fileACLs = ArrayUtils.removeElement(fileACLs, element);
         }
 
         return fileACLs;

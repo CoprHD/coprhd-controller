@@ -568,8 +568,7 @@ public class FileStorageScheduler implements Scheduler {
                         iterator.remove();
                         invalidNasServers.add(vNAS);
                     }
-                } else if (!ProjectUtility.
-                        doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
+                } else if (!ProjectUtility.doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
                     _log.info("Removing vNAS {} as its domain does not match with project's domain: {}",
                             vNAS.getNasName(), projectDomains);
                     iterator.remove();
@@ -617,7 +616,7 @@ public class FileStorageScheduler implements Scheduler {
                                         storagePort.getRegistrationStatus())
                         || (StoragePort.OperationalStatus.valueOf(storagePort
                                 .getOperationalStatus()))
-                                .equals(StoragePort.OperationalStatus.NOT_OK)
+                                        .equals(StoragePort.OperationalStatus.NOT_OK)
                         || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                                 .name().equals(
                                         storagePort.getCompatibilityStatus())
@@ -780,7 +779,7 @@ public class FileStorageScheduler implements Scheduler {
                             .equalsIgnoreCase(temp.getRegistrationStatus())
                     || (StoragePort.OperationalStatus.valueOf(temp
                             .getOperationalStatus()))
-                            .equals(StoragePort.OperationalStatus.NOT_OK)
+                                    .equals(StoragePort.OperationalStatus.NOT_OK)
                     || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                             .name().equals(temp.getCompatibilityStatus())
                     || !DiscoveryStatus.VISIBLE.name().equals(
@@ -888,7 +887,7 @@ public class FileStorageScheduler implements Scheduler {
             if (!storage.getSystemType().equals(Type.netapp.toString())
                     && !storage.getSystemType().equals(Type.netappc.toString())
                     && !storage.getSystemType().equals(Type.vnxe.toString())
-                    && !storage.getSystemType().equals(Type.vnxfile.toString()) 
+                    && !storage.getSystemType().equals(Type.vnxfile.toString())
                     && !storage.getSystemType().equals(Type.unity.toString())
                     && !storage.getSystemType().equals(
                             Type.datadomain.toString())) {
@@ -1032,13 +1031,12 @@ public class FileStorageScheduler implements Scheduler {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                 PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
-        if (fileShareList != null && fileShareList.isEmpty()) {
+        // Avoid duplicate file system on same storage system
+        if (fileShareList != null && !fileShareList.isEmpty()) {
             for (FileShare fs : fileShareList) {
-                if (fs.getStorageDevice() != null) {
-                    if (fs.getStorageDevice().equals(system.getId())) {
-                        _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
-                        throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
-                    }
+                if (fs.getStorageDevice() != null && fs.getStorageDevice().equals(system.getId())) {
+                    _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
+                    throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
                 }
             }
         }

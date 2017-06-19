@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -44,6 +45,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
@@ -2055,11 +2057,32 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             @Override
             protected DriverTask doOperation() {
                 DriverTask task = getDriver().stop(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
-                deleteReplicationPairs(getSystemRRPairURIs(), taskCompleter);
                 return task;
             }
+
+            @Override
+            protected void processOperationResult() {
+                super.processOperationResult();
+
+                if (replicationElement.getType() == ElementType.CONSISTENCY_GROUP) {
+                    BlockConsistencyGroup sourceCg = dbClient.queryObject(BlockConsistencyGroup.class,replicationElement.getElementUri());
+                    sourceCg.getRequestedTypes().remove(Types.RR.toString());
+                    dbClient.updateObject(sourceCg);
+                    Set<URI> targetCgUris = new HashSet<>();
+                    for (RemoteReplicationPair pair : getSystemRRPairs()) {
+                        targetCgUris.add(pair.getTargetElement().getURI());
+                    }
+                    for (URI targetCgUri : targetCgUris) {
+                        BlockConsistencyGroup targetCg = dbClient.queryObject(BlockConsistencyGroup.class, targetCgUri);
+                        targetCg.setAlternateLabel(null);
+                        dbClient.updateObject(targetCg);
+                    }
+                }
+
+                deleteReplicationPairs(URIUtil.toUris(getSystemRRPairs()), taskCompleter);
+            }
         };
-        stopHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.SWAP);
+        stopHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.STOP);
     }
 
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
@@ -2301,37 +2324,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         }
     }
 
-    private void processOperationResult(RemoteReplicationOperationContext context,
-                                        List<RemoteReplicationPair> systemRRPairs,
-                                        List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs,
-                                        RemoteReplicationSet systemSet, RemoteReplicationGroup systemGroup) {
-        // set state in system pairs as set by driver
-        // set replication direction in system pairs as set by driver
-        if (systemRRPairs != null && !systemRRPairs.isEmpty()) {
-            for (int i = 0; i < driverRRPairs.size(); i++) {
-                systemRRPairs.get(i).setReplicationState(driverRRPairs.get(i).getReplicationState());
-                systemRRPairs.get(i).setReplicationDirection(driverRRPairs.get(i).getReplicationDirection());
-            }
-            dbClient.updateObject(systemRRPairs);
-        }
-
-        // set state of container objects according to context
-        if (systemSet != null) {
-            systemSet.setReplicationState(context.getRemoteReplicationSetState());
-            dbClient.updateObject(systemSet);
-            // update all rr groups' state within this rr set
-            for (RemoteReplicationGroup rrGroup : RemoteReplicationUtils.getRemoteReplicationGroupsForRrSet(dbClient, systemSet)) {
-                rrGroup.setReplicationState(context.getRemoteReplicationSetState());
-                dbClient.updateObject(rrGroup);
-            }
-        }
-
-        if (systemGroup != null) {
-            systemGroup.setReplicationState(context.getRemoteReplicationGroupState());
-            dbClient.updateObject(systemGroup);
-        }
-    }
-
     /**
      * Check if block object has exports on device
      *
@@ -2396,12 +2388,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             return context;
         }
 
-        protected List<URI> getSystemRRPairURIs() {
-            List<URI> uris = new ArrayList<>();
-            for (RemoteReplicationPair pair : systemRRPairs) {
-                uris.add(pair.getId());
-            }
-            return uris;
+
+        protected List<RemoteReplicationPair> getSystemRRPairs() {
+            return systemRRPairs;
         }
 
         /**
@@ -2494,7 +2483,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
         private void succeed(String message) {
             _log.info(String.format(OPERATION_SUCCESS_MSG_FMT, operation, elementType,elementURI, message));
-            processOperationResult(context, systemRRPairs, driverRRPairs, replicationSet, replicationGroup);
+            processOperationResult();
             taskCompleter.ready(dbClient);
         }
 
@@ -2509,6 +2498,39 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         private void validateSystemPairs(List<RemoteReplicationPair> pairs) {
             if (pairs == null || pairs.isEmpty()) {
                 throw new RuntimeException("No qualified remote replication pairs found");
+            }
+        }
+
+        /**
+         * This method is invoked to update DB status only when driver task
+         * successfully returns.
+         */
+        protected void processOperationResult() {
+            // set state in system pairs as set by driver
+            // set replication direction in system pairs as set by driver
+            if (systemRRPairs != null && !systemRRPairs.isEmpty()) {
+                for (int i = 0; i < driverRRPairs.size(); i++) {
+                    systemRRPairs.get(i).setReplicationState(driverRRPairs.get(i).getReplicationState());
+                    systemRRPairs.get(i).setReplicationDirection(driverRRPairs.get(i).getReplicationDirection());
+                }
+                dbClient.updateObject(systemRRPairs);
+            }
+
+            // set state of container objects according to context
+            if (replicationSet != null) {
+                replicationSet.setReplicationState(context.getRemoteReplicationSetState());
+                dbClient.updateObject(replicationSet);
+                // update all rr groups' state within this rr set
+                for (RemoteReplicationGroup rrGroup : RemoteReplicationUtils
+                        .getRemoteReplicationGroupsForRrSet(dbClient, replicationSet)) {
+                    rrGroup.setReplicationState(context.getRemoteReplicationSetState());
+                    dbClient.updateObject(rrGroup);
+                }
+            }
+
+            if (replicationGroup != null) {
+                replicationGroup.setReplicationState(context.getRemoteReplicationGroupState());
+                dbClient.updateObject(replicationGroup);
             }
         }
     }

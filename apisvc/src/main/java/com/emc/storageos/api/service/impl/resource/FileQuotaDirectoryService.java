@@ -456,7 +456,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         if (smbShareMap != null && !smbShareMap.isEmpty()) {
             for (SMBFileShare smbFileShare : smbShareMap.values()) {
                 // check for quota name in native fs path
-                if (true == (smbFileShare.getPath().endsWith("/" + quotaName))) {
+                if (smbFileShare.getPath().endsWith("/" + quotaName)) {
                     _log.info("quota directory {} on fs {} has CIFS shares", quotaName, fs.getLabel());
                     return true;
                 }

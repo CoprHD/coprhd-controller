@@ -159,68 +159,6 @@ public class FileStorageUtils {
         return fileSystemId;
     }
 
-    /**
-     * Delete the file system dependency objects like
-     * exports, shares , snapshots
-     * 
-     * @param fileSystemId
-     * @param fileDeletionType
-     */
-    private static void deleteFileSystemRefObjects(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
-
-        if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
-            // Remove snapshots for the volume
-            for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
-                deleteFileSnapshot(snapshot.getId());
-            }
-
-            // Deactivate CIFS Shares
-            for (SmbShareResponse share : getCifsShares(fileSystemId)) {
-                deactivateCifsShare(fileSystemId, share.getShareName());
-            }
-
-            // Delete all export rules for filesystem and all sub-directories
-            if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
-                deactivateFileSystemExport(fileSystemId, true, null, true);
-            }
-
-            // Deactivate NFS Exports
-            for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
-                deactivateExport(fileSystemId, export);
-            }
-
-            // Get the list of mirror file systems before dissociate
-            List<URI> mirrorFilesystems = getMirrorFileSystems(fileSystemId);
-
-            // Dissociate File Protection Policies
-            for (URI policy : getFileProtectionPolicies(fileSystemId)) {
-                dissociateFilePolicy(fileSystemId, policy);
-            }
-
-            // Delete the mirror file system
-            for (URI mirrorFS : mirrorFilesystems) {
-
-                // Deactivate CIFS Shares
-                for (SmbShareResponse share : getCifsShares(mirrorFS)) {
-                    deactivateCifsShare(mirrorFS, share.getShareName());
-                }
-
-                // Delete all export rules for filesystem and all sub-directories
-                if (!getFileSystemExportRules(mirrorFS, true, null).isEmpty()) {
-                    deactivateFileSystemExport(mirrorFS, true, null, true);
-                }
-
-                // Deactivate NFS Exports
-                for (FileSystemExportParam export : getNfsExports(mirrorFS)) {
-                    deactivateExport(mirrorFS, export);
-                }
-
-                // Remove the mirror FileSystem
-                deactivateFileSystem(mirrorFS, FileControllerConstants.DeleteTypeEnum.FULL);
-            }
-        }
-
-    }
 
     /**
      * deleteFileSystem - delete the file system

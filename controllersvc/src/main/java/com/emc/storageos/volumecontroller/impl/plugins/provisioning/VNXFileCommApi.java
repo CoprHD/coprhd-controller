@@ -73,7 +73,6 @@ public class VNXFileCommApi {
     private static final String PROV_FILE_MOUNT_EXPAND = "vnxfile-prov-file-mount-expand";
     private static final String PROV_SNAP_RESTORE = "vnxfile-prov-snap-restore";
     private static final String PROV_FSIDQUERY_FILE = "vnxfile-prov-filesysid-query";
-    private static final String PROV_FSIDQUERY_FILE_USED_SIZE = "vnxfile-prov-filesysid-used-size-query";
     private static final String PROV_FSIDQUERY_FILE_DELETE = "vnxfile-prov-filesysid-delete-query";
     private static final String PROV_CIFS_SERVERS = "vnxfile-prov-cifsserver-query";
 
@@ -276,7 +275,7 @@ public class VNXFileCommApi {
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
             _provExecutor.setKeyMap(reqAttributeMap);
-            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE_USED_SIZE));
+            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE_DELETE));
             String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
             if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
                 usedSize = (long) _provExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEM_USED_SPACE);

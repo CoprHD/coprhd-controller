@@ -20,9 +20,9 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;

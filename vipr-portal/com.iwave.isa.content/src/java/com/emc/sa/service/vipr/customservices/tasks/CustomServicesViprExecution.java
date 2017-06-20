@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import com.emc.storageos.primitives.input.InputParameter;
 import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -40,6 +39,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
+import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -96,10 +96,9 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         String path = RESTHelper.makePath(templatePath, input, primitive);
 
-        Properties queryParam = new Properties();
-        if (primitive == null || primitive.input() == null) {
-            queryParam = null;
-        } else {
+        final Properties queryParam = new Properties();
+        if (primitive != null || primitive.input() != null) {
+
             logger.info("set the query param");
             final Map<String, List<InputParameter>> viprInputs = primitive.input();
             final List<InputParameter> queries = viprInputs.get(CustomServicesConstants.QUERY_PARAMS);

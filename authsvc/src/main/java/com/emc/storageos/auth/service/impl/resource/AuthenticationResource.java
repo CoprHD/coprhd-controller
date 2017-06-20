@@ -737,6 +737,7 @@ public class AuthenticationResource {
             @QueryParam("fragment") String fragment,
             MultivaluedMap<String, String> formData) throws IOException {
 
+        UsernamePasswordCredentials credentials = null;
         boolean isPasswordExpired = false;
         String loginError = null;
         if (service == null || service.isEmpty()) {
@@ -789,7 +790,8 @@ public class AuthenticationResource {
                 }
             }
 
-            UsernamePasswordCredentials credentials = getFormCredentials(formData);
+            credentials = getFormCredentials(formData);
+            credentials.setUserName(SecurityUtils.stripXSS(credentials.getUserName()));
             if (null == loginError) {
                 loginError = FORM_LOGIN_BAD_CREDS_ERROR;
             }
@@ -848,7 +850,7 @@ public class AuthenticationResource {
         }
 
         auditOp(null, null,
-                OperationTypeEnum.AUTHENTICATION, false, null, formData.getFirst("username"));
+                OperationTypeEnum.AUTHENTICATION, false, null, credentials.getUserName());
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
@@ -886,6 +888,7 @@ public class AuthenticationResource {
                 _log.debug("Logged in with user from context");
             }
         } else {
+            _log.info("===== user name is {}", credentials.getUserName());
             StorageOSUserDAO user = authenticateUser(credentials);
             if (user != null) {
                 validateLocalUserExpiration(credentials);

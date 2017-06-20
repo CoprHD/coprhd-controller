@@ -3834,17 +3834,45 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                                     + sourcePath);
                 }
             } else {
-                // Create replication sync policy.
-                createIsilonSyncPolicy(sourceStorageObj, targetStorageObj, filePolicy, sourcePath, targetPath,
-                        policyName, sourceSytemArgs, targetSytemArgs);
+                if (isTargetDirectoryEmpty(targetStorageObj, targetPath)) {
+                    // Create replication sync policy.
+                    createIsilonSyncPolicy(sourceStorageObj, targetStorageObj, filePolicy, sourcePath, targetPath,
+                            policyName, sourceSytemArgs, targetSytemArgs);
 
-                result = BiosCommandResult.createSuccessfulResult();
+                    result = BiosCommandResult.createSuccessfulResult();
+                } else {
+                    // Fail to create replication policy at source site
+                    // if the target path at target cluster has some data in it!!!
+                    StringBuffer sourceSite = new StringBuffer();
+                    sourceSite.append(sourceStorageObj.getLabel()).append(":").append(sourcePath);
+                    StringBuffer targetSite = new StringBuffer();
+                    targetSite.append(targetStorageObj.getLabel()).append(":").append(targetPath);
+                    throw DeviceControllerException.exceptions.assignReplicationPolicyFailed(filePolicy.getFilePolicyName(),
+                            sourceSite.toString(), targetSite.toString());
+                }
             }
         } catch (IsilonException e) {
             _log.error("Assigning file policy failed.", e);
             result = BiosCommandResult.createErrorResult(e);
         }
         return result;
+    }
+
+    /**
+     * This method verify the target file system has some data or not
+     * 
+     * @param targetStorage
+     * @param targetPath
+     * @return True, if it has some data in it; false, otherwise
+     */
+    private boolean isTargetDirectoryEmpty(StorageSystem targetStorage, String targetPath) {
+        IsilonApi isi = getIsilonDevice(targetStorage);
+        // verify the target directory has some data in it or not!!
+        if (!isi.fsDirHasData(targetPath)) {
+            return true;
+        }
+        return false;
+
     }
 
     private String createIsilonSyncPolicy(StorageSystem storageObj, StorageSystem targetStorage,
@@ -3861,6 +3889,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (targetVNas != null) {
                 targetVNasURI = targetVNas.getId();
             }
+
+            //
 
             String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId(),
                     targetSystemArgs.getVarray().getId(), targetVNasURI);
@@ -3970,8 +4000,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String sourceRootPath, String targetPath) {
         IsilonSyncPolicy isiMatchedPolicy = null;
 
+        // Get the replication policies applied at directory path @source cluster
         for (IsilonSyncPolicy isiPolicy : isiPolicies) {
-            if (isiPolicy.getSourceRootPath().equals(sourceRootPath) && isiPolicy.getTargetPath().equals(targetPath)) {
+            if (isiPolicy.getSourceRootPath().equals(sourceRootPath)) {
                 isiMatchedPolicy = isiPolicy;
                 break;
             }

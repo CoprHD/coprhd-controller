@@ -506,7 +506,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeExportReachedMaximumHlu(final String details);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeExportMaximumHluNotAvailable(final String systemType);
 
@@ -530,10 +530,10 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeInitiatorValidationError(String initiatorsName, String storageSystemName, String details);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupPortRebalanceError(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupPathAdjustmentError(String reason);
 
@@ -545,10 +545,13 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException deleteExportGroupValidationError(String exportGroupName, String storageSystemName, String details);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException hostRescanUnsuccessful(String hostName, String reason);
-    
+
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException assignFilePolicyFailed(String filePolicyName, String appliedAt, String details);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException assignReplicationPolicyFailed(String filePolicyName, String source, String target);
 }

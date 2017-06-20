@@ -25,6 +25,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.password.PasswordChangeParam;
+import com.emc.storageos.security.helpers.SecurityUtil;
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
@@ -1031,8 +1032,10 @@ public class AuthenticationResource {
                 return null;
             }
             int i = credentials.indexOf(':');
+
             UsernamePasswordCredentials creds =
-                    new UsernamePasswordCredentials(credentials.substring(0, i), credentials.substring(i + 1));
+                    new UsernamePasswordCredentials(SecurityUtils.stripXSS(credentials.substring(0, i)),
+                                                    credentials.substring(i + 1));
             return creds;
         }
         return null;

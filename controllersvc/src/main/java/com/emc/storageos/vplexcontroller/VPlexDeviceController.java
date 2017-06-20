@@ -4860,6 +4860,17 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     continue;
                 }
 
+                _log.info("         ");
+                _log.info("         ");
+                _log.info("         ");
+                _log.info("         ");
+                _log.info("##################### ExportMask is " + exportMask);
+                _log.info("         ");
+                _log.info("         ");
+                _log.info("         ");
+                _log.info("         ");
+                _log.info("         ");
+
                 ArrayList<URI> filteredTargetURIs = new ArrayList<URI>();
                 // Filter or get targets from the zoning map
                 if (exportMask.getZoningMap() != null) {
@@ -9992,17 +10003,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
         _dbClient.updateObject(exportMask);
 
-        _log.info("################");
-        _log.info("################");
-        _log.info("assignments is " + assignments);
-        _log.info("newTargets is " + newTargets);
-        _log.info("ExportMask is " + exportMask.toString());
-        _log.info("################");
-        _log.info("################");
-        
         if (!newTargets.isEmpty()) {
-
-            
             // Only include initiators that were assigned ports in the Storage View.
             // If we include any inititators that are not assigned and zoned to ports,
             // creation or update of the Storage View will fail because we won't be
@@ -10018,7 +10019,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
                 shared = true;
             }
-
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex.getId());
             Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
@@ -10041,14 +10041,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
             }
 
-          _log.info("###############");
-          _log.info("###############");
-          _log.info("maskToInitiatorsMap " + maskToInitiatorsMap);
-          _log.info("zoningInitiators " + zoningInitiators);
-          _log.info("###############");
-          _log.info("###############");
-
-            
             // Create a Step to add the SAN Zone
             String zoningStepId = workflow.createStepId();
             Workflow.Method zoningMethod = zoneAddInitiatorStepMethod(
@@ -10058,33 +10050,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     String.format("Zone initiator %s to ExportGroup %s(%s)",
                             Joiner.on(", ").join(zoningInitiators), exportGroup.getLabel(), exportGroup.getId()),
                     null, vplex.getId(), vplex.getSystemType(), this.getClass(), zoningMethod, zoningRollbackMethod, zoningStepId);
-
-//            // Create a Step to add the SAN Zone
-//            String zoningStepId = workflow.createStepId();
-//            Workflow.Method zoningMethod = _networkDeviceController
-//                    .zoneExportAddInitiatorsMethod(exportGroup.getId(), maskToInitiatorsMap);
-//            List<NetworkZoningParam> zoningParams = NetworkZoningParam
-//                    .convertExportMaskInitiatorMapsToNetworkZoningParam(exportGroup.getId(), maskToInitiatorsMap, _dbClient);
-//            Workflow.Method zoningRollbackMethod = _networkDeviceController
-//                    .zoneExportRemoveInitiatorsMethod(zoningParams);
-//            zoningStepId = workflow.createStep(ZONING_STEP,
-//                    String.format("Zone initiator %s to ExportGroup %s(%s)",
-//                           Joiner.on(", ").join(zoningInitiators), exportGroup.getLabel(), exportGroup.getId()),
-//                    null, vplex.getId(), vplex.getSystemType(),
-//                    _networkDeviceController.getClass(), zoningMethod, zoningRollbackMethod, zoningStepId);
-            
-            
-            String addInitStep = workflow.createStepId();
-            ExportMaskAddInitiatorCompleter completer = new ExportMaskAddInitiatorCompleter(
-                    exportGroup.getId(), exportMask.getId(), storageViewInitiators, new ArrayList<URI>(), addInitStep);
-
-            Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplex.getId(), exportGroup.getId(), exportMask.getId(),
-                    storageViewInitiators, null, shared, completer);
-            Workflow.Method addToViewRollbackMethod = storageViewAddInitiatorsRollbackMethod(vplex.getId(),
-                    exportGroup.getId(), exportMask.getId(), storageViewInitiators, null, addInitStep);
-            workflow.createStep(STORAGE_VIEW_ADD_INITS_METHOD, message,
-                    zoningStepId, vplex.getId(), vplex.getSystemType(), this.getClass(),
-                    addToViewMethod, addToViewRollbackMethod, addInitStep);
 
             // Create a Step to add storage ports to the Storage View
             String addPortStep = workflow.createStepId();
@@ -10099,11 +10064,20 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             workflow.createStep(STORAGE_VIEW_ADD_STORAGE_PORTS_METHOD,
                     String.format("Adding storage ports %s to VPLEX storage View %s", Joiner.on(", ").join(newTargets),
                             exportGroup.getGeneratedName()),
-                    addInitStep, vplex.getId(), vplex.getSystemType(),
+                    zoningStepId, vplex.getId(), vplex.getSystemType(),
                     this.getClass(), addPortsToViewMethod, addPortsToViewRollbackMethod, addPortStep);
 
+            String addInitStep = workflow.createStepId();
+            ExportMaskAddInitiatorCompleter completer = new ExportMaskAddInitiatorCompleter(
+                    exportGroup.getId(), exportMask.getId(), storageViewInitiators, new ArrayList<URI>(), addInitStep);
 
-
+            Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplex.getId(), exportGroup.getId(), exportMask.getId(),
+                    storageViewInitiators, null, shared, completer);
+            Workflow.Method addToViewRollbackMethod = storageViewAddInitiatorsRollbackMethod(vplex.getId(),
+                    exportGroup.getId(), exportMask.getId(), storageViewInitiators, null, addInitStep);
+            workflow.createStep(STORAGE_VIEW_ADD_INITS_METHOD, message,
+                    addPortStep, vplex.getId(), vplex.getSystemType(), this.getClass(),
+                    addToViewMethod, addToViewRollbackMethod, addInitStep);
         }
     }
 

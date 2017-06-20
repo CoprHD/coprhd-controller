@@ -1896,13 +1896,18 @@ public class ExportUtils {
                     if (!maskNamesFromArray.contains(exportMask.getMaskName())) {
                         _log.info("Export Mask {} is not found in array", exportMask.getMaskName());
                         List<ExportGroup> egList = ExportUtils.getExportGroupsForMask(exportMask.getId(), dbClient);
-                        if (CollectionUtils.isEmpty(egList)) {
-                            _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
-                                    exportMask.getMaskName());
-                            staleExportMasks.add(exportMask);
-                        } else {
-                            _log.info("Export mask is having association with ExportGroup {}", egList);
+                        if (!CollectionUtils.isEmpty(egList)) {
+                            for (ExportGroup eg : egList) {
+                                eg.removeExportMask(emUri);
+                                dbClient.updateObject(eg);
+                                ExportUtils.cleanStaleReferences(eg, dbClient);
+                                _log.info("Removed stale export mask {} reference from export group {}", exportMask.forDisplay(),
+                                        eg.forDisplay());
+                            }
                         }
+                        _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
+                                exportMask.getMaskName());
+                        staleExportMasks.add(exportMask);
                     }
                 }
             }

@@ -48,9 +48,12 @@ import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
 import com.emc.sa.util.TextUtils;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -1111,10 +1114,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
 
         // get varray IDs for host/cluster
-        List<VirtualArrayRestRep> varrays = null;
-        if(EXCLUSIVE_STORAGE_OPTION.key.equals(blockStorageType)) {
+        List<VirtualArrayRestRep> varrays = new ArrayList<>();
+        if(EXCLUSIVE_STORAGE_OPTION.key.equals(blockStorageType) &&
+                URIUtil.isType(hostOrClusterId, Host.class)) {
             varrays = client.varrays().findByConnectedHost(hostOrClusterId);
-        } else if(SHARED_STORAGE_OPTION.key.equals(blockStorageType)) {
+        } else if(SHARED_STORAGE_OPTION.key.equals(blockStorageType) &&
+                URIUtil.isType(hostOrClusterId, Cluster.class)) {
             varrays = client.varrays().findByConnectedCluster(hostOrClusterId);
         }
         List<URI> varrayIds = new ArrayList<>();

@@ -1056,8 +1056,28 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.unpublishWorkflow = function() {
         $scope.workflowData.state = 'UNPUBLISHING';
+        delete $scope.alert;
         $http.post(routes.Workflow_unpublish({workflowId : $scope.workflowData.id})).then(function (resp) {
-            updateWorkflowData(resp);
+                  $scope.workflowData.state = resp.data.status;
+                    if (resp.data.status == "INVALID") {
+                        $scope.showAlert = true;
+                        $scope.alert = resp.data;
+                        if ($scope.alert.error) {
+                            if (!$scope.alert.error.errorMessage) {
+                                $scope.alert.error.errorMessage='Workflow un-publish failed. There are active catalog service using this workflow';
+                            }
+                        }
+                    } else {
+                        $scope.showAlert = true;
+                        $scope.alert = {status : "SUCCESS",success : {successMessage : "Workflow un-published Successfully."}};
+                        updateWorkflowData(resp);
+                    }
+
+        },
+        function(){
+                    $scope.showAlert = true;
+                    $scope.alert = {status : "INVALID", error : {errorMessage : "Workflow un-publish failed. There are active catalog service using this workflow"}};
+                    $scope.workflowData.state = 'PUBLISHED';
         });
     }
 

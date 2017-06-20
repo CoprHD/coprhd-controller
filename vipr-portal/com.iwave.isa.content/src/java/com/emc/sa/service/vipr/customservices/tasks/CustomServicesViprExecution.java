@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
@@ -47,7 +49,7 @@ import com.sun.jersey.api.client.ClientResponse;
  */
 public class CustomServicesViprExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesViprExecution.class);
-    private static final String TASKLIST = "TaskList";
+
     private final Map<String, List<String>> input;
     private final RestClient client;
     private final CustomServicesViPRPrimitive primitive;
@@ -107,7 +109,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         final String classname = primitive.response();
 
-        if (classname.contains(TASKLIST)) {
+        if (classname.contains(RESTHelper.TASKLIST)) {
             final ObjectMapper mapper = new ObjectMapper();
             mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
             final Class<?> clazz = Class.forName(classname);
@@ -166,6 +168,11 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
 
             final Map<URI, String> taskState = waitForTask(responseString);
+            //update state
+            final String classname = primitive.response();
+            if (classname.contains(RESTHelper.TASKLIST)) {
+                responseString = updateState(responseString, taskState);
+            }
             return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), taskState);
 
         } catch (final InternalServerErrorException e) {
@@ -185,4 +192,28 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                     customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }
     }
+
+    private String updateState(final String response, final Map<URI, String> uristates) {
+        logger.info("response is:{}", response);
+        final Gson gson = new Gson();
+        final ViprOperation obj = gson.fromJson(response, ViprOperation.class);
+
+        final List<ViprOperation.ViprTask> tasks = obj.getTask();
+        for (final Map.Entry<URI, String> e : uristates.entrySet()) {
+            logger.debug("uri:{} value:{}", e.getKey(), e.getValue());
+            final URI uri = e.getKey();
+            for (final ViprOperation.ViprTask t : tasks) {
+                if(!StringUtils.isEmpty(t.getId()) && t.getId().equals(uri.toString())) {
+                    logger.debug("Update the state");
+                    t.setState(e.getValue());
+                }
+            }
+        }
+
+        final String finalResponse = gson.toJson(obj);
+        logger.info("New result" + finalResponse);
+
+        return finalResponse;
+    }
 }
+

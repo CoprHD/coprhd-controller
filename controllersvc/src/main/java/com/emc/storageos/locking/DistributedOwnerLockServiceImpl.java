@@ -10,8 +10,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
-import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.data.Stat;
@@ -19,7 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.exceptions.DeviceControllerException;
 
@@ -57,6 +57,7 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
         Long currentTimeSeconds = System.currentTimeMillis() / 1000;
         Long remainingTimeSeconds = lockingStartedTimeSeconds + maxLockWaitSeconds - currentTimeSeconds;
         if (remainingTimeSeconds < 0) {
+            log.info("Unable to acquire lock within the maximum waiting time {} seconds", maxLockWaitSeconds);
             return false;      // We've waited the maximum amount of time
         }
         LockRetryException lockRetryThrowable = null;

@@ -6136,7 +6136,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         RB_MIGRATE_VIRTUAL_VOLUME_METHOD_NAME, vplexURI, migrationURI, stepId);
                 _log.info("Creating workflow migration step");
                 workflow.createStep(MIGRATION_CREATE_STEP, String.format(
-                        "VPlex %s migrating volume", vplexSystem.getId().toString()),
+                        "VPlex %s migrating to target volume %s.", vplexSystem.getId().toString(), 
+                        targetVolumeURI.toString()),
                         EXPORT_STEP, vplexSystem.getId(), vplexSystem.getSystemType(),
                         getClass(), vplexExecuteMethod, vplexRollbackMethod, stepId);
                 _log.info("Created workflow migration step");
@@ -6302,7 +6303,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         RB_MIGRATE_VIRTUAL_VOLUME_METHOD_NAME, vplexURI, migrationURI, stepId);
                 _log.info("Creating workflow migration step");
                 workflow.createStep(MIGRATION_CREATE_STEP, String.format(
-                        "VPlex %s migrating volume", vplexSystem.getId().toString()),
+                        "VPlex %s migrating to target volume %s.", vplexSystem.getId().toString(), 
+                        targetVolumeURI.toString()),
                         waitFor, vplexSystem.getId(), vplexSystem.getSystemType(),
                         getClass(), vplexExecuteMethod, vplexRollbackMethod, stepId);
                 _log.info("Created workflow migration step");

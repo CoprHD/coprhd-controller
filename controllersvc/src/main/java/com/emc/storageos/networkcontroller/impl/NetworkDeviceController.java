@@ -464,6 +464,8 @@ public class NetworkDeviceController implements NetworkController {
             for (NetworkFCZoneInfo info : fabricInfos) {
                 if (NetworkSystemDevice.SUCCESS.equals(map.get(info.getZoneName()))) {
                     info.setCanBeRolledBack(true);
+                } else {
+                    info.setCanBeRolledBack(false);
                 }
             }
             if (!result.isCommandSuccess()) {
@@ -1654,8 +1656,9 @@ public class NetworkDeviceController implements NetworkController {
             taskCompleter = new ZoneReferencesRemoveCompleter(NetworkUtil.getFCZoneReferences(rollbackList), context.isAddingZones(), taskId);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_020);
+            //Changed this parameter to true, so that the last reference validation runs all the time in placeZones()
             BiosCommandResult result = addRemoveZones(exportGroupURI, rollbackList,
-                    context.isAddingZones());
+                   true);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_021);
 
             if (result.isCommandSuccess() && !lastReferenceZoneInfo.isEmpty()) {

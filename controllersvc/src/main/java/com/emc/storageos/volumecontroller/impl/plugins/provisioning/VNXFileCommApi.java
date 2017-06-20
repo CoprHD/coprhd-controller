@@ -74,6 +74,7 @@ public class VNXFileCommApi {
     private static final String PROV_SNAP_RESTORE = "vnxfile-prov-snap-restore";
     private static final String PROV_FSIDQUERY_FILE = "vnxfile-prov-filesysid-query";
     private static final String PROV_FSIDQUERY_FILE_DELETE = "vnxfile-prov-filesysid-delete-query";
+    private static final String PROV_FSIDQUERY_FILE_WITH_SIZE = "vnxfile-prov-filesysid-query";
     private static final String PROV_CIFS_SERVERS = "vnxfile-prov-cifsserver-query";
 
     private static final String PROV_FILE_QUOTA_DIR_CREATE = "vnxfile-prov-quota-dir-create";
@@ -266,7 +267,17 @@ public class VNXFileCommApi {
         return isFsAvailable;
     }
 
-    public boolean isFileSystemHasData(StorageSystem system, String fileId, String fileSys) throws VNXException {
+    /**
+     * Checks if the file system contains data or not
+     * 
+     * @param system the storage system
+     * @param fileId the file system ID
+     * @param fileSys the file system name
+     * @return true if file system contains data; false otherwise
+     * @throws VNXException
+     */
+
+    public boolean doesFileSystemHasData(StorageSystem system, String fileId, String fileSys) throws VNXException {
 
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         long usedSize = 99;
@@ -275,7 +286,7 @@ public class VNXFileCommApi {
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
             _provExecutor.setKeyMap(reqAttributeMap);
-            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE_DELETE));
+            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE_WITH_SIZE));
             String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
             if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
                 usedSize = (long) _provExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEM_USED_SPACE);
@@ -506,7 +517,7 @@ public class VNXFileCommApi {
             final String fileSys,
             boolean isForceDelete, FileShare fs) throws VNXException {
 
-        if (isFileSystemHasData(system, fileId, fileSys)) {
+        if (doesFileSystemHasData(system, fileId, fileSys)) {
             throw new VNXException("File system used space is not zero ,can not delete it.Please remove the data and try again");
         }
 

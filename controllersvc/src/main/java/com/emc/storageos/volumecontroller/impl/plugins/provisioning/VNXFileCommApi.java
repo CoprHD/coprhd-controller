@@ -74,7 +74,7 @@ public class VNXFileCommApi {
     private static final String PROV_SNAP_RESTORE = "vnxfile-prov-snap-restore";
     private static final String PROV_FSIDQUERY_FILE = "vnxfile-prov-filesysid-query";
     private static final String PROV_FSIDQUERY_FILE_DELETE = "vnxfile-prov-filesysid-delete-query";
-    private static final String PROV_FSIDQUERY_FILE_WITH_SIZE = "vnxfile-prov-filesysid-query";
+    private static final String PROV_FSIDQUERY_FILE_WITH_SIZE = "vnxfile-prov-filesysid-used-size-query";
     private static final String PROV_CIFS_SERVERS = "vnxfile-prov-cifsserver-query";
 
     private static final String PROV_FILE_QUOTA_DIR_CREATE = "vnxfile-prov-quota-dir-create";

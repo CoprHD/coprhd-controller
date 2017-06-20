@@ -26,9 +26,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             if (r == true) {
         delete $scope.workflowTabs[tabID];
         $(".workflow-nav-tabs li").children('a').first().click();
-    } else {
-        return 0;
-       }
+    }
     };
 })
 .controller('treeController', function($element, $scope, $compile, $http, $rootScope, translate) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
@@ -273,10 +271,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 displayErrorMessage(error.details);
             });
         }
-        } else {
-                     return 0;
-                 }
-
+        }
     };
 
     function revertRename(node, oldText, errorMessage) {

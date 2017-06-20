@@ -1459,7 +1459,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
         _dbClient.updateObject(fsObj);
-        _log.debug("updateTaskStatus:afterUpdate:" + fsObj.getOpStatus().get(opId).toString());
+        _log.debug("updateTaskStatus:afterUpdate:" + fsObj.getOpStatus().get(opId));
     }
 
     /**

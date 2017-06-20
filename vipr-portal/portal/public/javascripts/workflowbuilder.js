@@ -100,8 +100,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "Workflow": {
                     "icon": "builder-jstree-icon builder-jstree-workflow-icon",
-                    "valid_children": [],
-                    "li_attr": {"class": "draggable-card"}
+                    "valid_children": []
                 },
                 "script": {
                     "icon": "builder-jstree-icon builder-jstree-script-icon",
@@ -259,12 +258,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             });
         }
         else if($.inArray(nodeType, primitiveNodeTypes) > -1) {
-        	$http.get(routes.Primitive_delete({"primitiveId": nodeId, "dirID": nodeParent})).success(function() {
-                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
-            })
-            .error(function (error){
-                displayErrorMessage(error.details);
-            });
+            $('#deletePrimitiveId').val(nodeId);
+            $('#deleteDirId').val(nodeParent);
+        	$('#deletePrimitiveForm').submit();
         }
         else {
             $http.get(routes.Workflow_delete({"workflowID": nodeId, "dirID": nodeParent})).success(function() {

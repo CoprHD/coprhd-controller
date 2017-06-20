@@ -131,7 +131,7 @@ public final class CustomServicesDBHelper {
         } catch (InstantiationException | IllegalAccessException e) {
             throw new RuntimeException("Failed to create custom services primitive: " + dbModel.getSimpleName());
         }
-        primitive.setId(URIUtil.createId(primitive.getClass()));
+            primitive.setId(URIUtil.createId(primitive.getClass()));
 
         if (StringUtils.isNotBlank(param.getName())) {
             checkDuplicateLabel(param.getName().trim(), primitiveManager, dbModel);
@@ -139,27 +139,30 @@ public final class CustomServicesDBHelper {
         } else {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
         }
-        primitive.setFriendlyName(param.getFriendlyName());
-        primitive.setDescription(param.getDescription());
+            primitive.setFriendlyName(param.getFriendlyName());
+            primitive.setDescription(param.getDescription());
 
-        if (!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)) {
-            if (param.getResource() == null) {
-                throw APIException.badRequests.requiredParameterMissingOrEmpty("resource");
+            if (!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)) {
+                if (param.getResource() == null) {
+                    throw APIException.badRequests.requiredParameterMissingOrEmpty("resource");
+                }
+                final CustomServicesDBResource resource = primitiveManager.findResource(resourceType, param.getResource());
+                if (null == resource) {
+                    throw APIException.notFound.unableToFindEntityInURL(param.getResource());
+                }
+                if(resource.getInactive()){
+                    throw APIException.notFound.entityInURLIsInactive(param.getResource());
+                }
+                primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
+            } else if (null != param.getResource()) {
+                throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
             }
-            final CustomServicesDBResource resource = primitiveManager.findResource(resourceType, param.getResource());
-            if (null == resource) {
-                throw APIException.notFound.unableToFindEntityInURL(param.getResource());
-            }
-            primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
-        } else if (null != param.getResource()) {
-            throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
-        }
-        primitive.setAttributes(createAttributesFunc.apply(param));
-        primitive.setInput(createInputFunc.apply(param));
-        primitive.setOutput(createOutput(param.getOutput()));
+            primitive.setAttributes(createAttributesFunc.apply(param));
+            primitive.setInput(createInputFunc.apply(param));
+            primitive.setOutput(createOutput(param.getOutput()));
 
-        primitiveManager.save(primitive);
-        return mapper.apply(primitive);
+            primitiveManager.save(primitive);
+            return mapper.apply(primitive);
     }
 
     /**
@@ -219,6 +222,9 @@ public final class CustomServicesDBHelper {
             resource = primitiveManager.findResource(resourceType, param.getResource());
             if (null == resource) {
                 throw APIException.notFound.unableToFindEntityInURL(param.getResource());
+            }
+            if(resource.getInactive()){
+                throw APIException.notFound.entityInURLIsInactive(param.getResource());
             }
             primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
         } else {
@@ -1117,13 +1123,30 @@ public final class CustomServicesDBHelper {
         model.setInput(mapInput(operation.getInputGroups()));
         model.setOutput(mapOutput(operation.getOutput()));
         model.setAttributes(mapAttributes(operation.getAttributes()));
-        if( null != operation.getResource() ) {
+        if (null != operation.getResource()) {
             model.setResource(new NamedURI(operation.getResource().getId(),
                     operation.getResource().getName()));
         }
         model.setSuccessCriteria(operation.getSuccessCriteria());
 
         return model;
+    }
+
+    /**
+     * Get the export
+     *
+     * @param clazz
+     * @param id
+     * @param client
+     * @return the
+     */
+    public static <DBModel extends CustomServicesDBPrimitive, T extends CustomServicesDBPrimitiveType> T exportDBPrimitive(
+            final Class<DBModel> clazz,
+            final URI id,
+            final CustomServicesPrimitiveManager primitiveManager,
+            final Function<DBModel, T> mapper) {
+        final DBModel primitive = primitiveManager.findById(clazz, id);
+        return primitive == null ? null : mapper.apply(primitive);
     }
 
     public static class UpdatePrimitive<DBModel extends CustomServicesDBPrimitive> {
@@ -1142,21 +1165,5 @@ public final class CustomServicesDBHelper {
         public DBModel primitive() {
             return primitive;
         }
-    }
-
-    /**
-     * Get the export 
-     * @param clazz
-     * @param id
-     * @param client
-     * @return the 
-     */
-    public static <DBModel extends CustomServicesDBPrimitive, T extends CustomServicesDBPrimitiveType> T  exportDBPrimitive(
-            final Class<DBModel> clazz, 
-            final URI id,
-            final CustomServicesPrimitiveManager primitiveManager,
-            final Function<DBModel, T> mapper) {
-        final DBModel primitive = primitiveManager.findById(clazz, id);
-        return primitive == null ? null : mapper.apply(primitive);
     }
 }

@@ -31,27 +31,11 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import models.customservices.ImportWorkflowForm;
-import models.customservices.LocalAnsiblePrimitiveForm;
-import models.customservices.RemoteAnsiblePrimitiveForm;
-import models.customservices.RestAPIPrimitiveForm;
-import models.customservices.ShellScriptPrimitiveForm;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
-
-import play.Logger;
-import play.Play;
-import play.data.validation.Valid;
-import play.i18n.Messages;
-import play.mvc.Controller;
-import play.mvc.With;
-import plugin.StorageOsPlugin;
-import util.MessagesUtils;
-import util.StringOption;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
@@ -86,6 +70,20 @@ import com.google.gson.annotations.SerializedName;
 import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
+import models.customservices.ImportWorkflowForm;
+import models.customservices.LocalAnsiblePrimitiveForm;
+import models.customservices.RemoteAnsiblePrimitiveForm;
+import models.customservices.RestAPIPrimitiveForm;
+import models.customservices.ShellScriptPrimitiveForm;
+import play.Logger;
+import play.Play;
+import play.data.validation.Valid;
+import play.i18n.Messages;
+import play.mvc.Controller;
+import play.mvc.With;
+import plugin.StorageOsPlugin;
+import util.MessagesUtils;
+import util.StringOption;
 
 @With(Common.class)
 public class WorkflowBuilder extends Controller {
@@ -116,8 +114,8 @@ public class WorkflowBuilder extends Controller {
             }
         }
         renderArgs.put("ansibleResourceNames", ansibleResourceNames);
-    }
 
+    }
 
     private static void setRestCallResources() {
         final List<StringOption> restCallAuthTypes = new ArrayList<StringOption>();
@@ -165,7 +163,7 @@ public class WorkflowBuilder extends Controller {
 
 
     public static void getAssetOptions() {
-        if(!Play.mode.isDev()) {
+        if (!Play.mode.isDev()) {
             PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
             if (propInfo != null) {
                 final String assetOptions = propInfo.getProperty("custom_services_assetoptions");
@@ -173,18 +171,15 @@ public class WorkflowBuilder extends Controller {
                     renderJSON(Arrays.asList(assetOptions.split("\\s*,\\s*")));
                 }
             }
-        }
-        else {
+        } else {
             renderJSON(new ArrayList<String>(Arrays.asList(
                     "assetType.vipr.blockVirtualPool",
                     "assetType.vipr.virtualArray",
                     "assetType.vipr.project",
-                    "assetType.vipr.host"
-            )));
+                    "assetType.vipr.host")));
         }
         renderJSON(new ArrayList<String>());
     }
-
 
     public static void getWFDirectories() {
 
@@ -402,17 +397,24 @@ public class WorkflowBuilder extends Controller {
 
     public static void deletePrimitive(final String primitiveId,
             final String dirID) throws URISyntaxException {
-        final URI primitiveURI = new URI(primitiveId);
-        // Delete primitive need to worry about error reporting
-        ClientResponse response = getCatalogClient().customServicesPrimitives().deletePrimitive(primitiveURI);
-
-        // Delete this reference in WFDirectory
-        if (!StringUtils.equals(MY_LIBRARY_ROOT, dirID)) {
-            final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
-            final Set<URI> removeWorkflows = new HashSet<URI>();
-            removeWorkflows.add(primitiveURI);
-            param.setWorkflows(new WFDirectoryWorkflowsUpdateParam(null, removeWorkflows));
-            getCatalogClient().wfDirectories().edit(new URI(dirID), param);
+        try {
+            final URI primitiveURI = new URI(primitiveId);
+            // Delete primitive need to worry about error reporting
+            ClientResponse response = getCatalogClient().customServicesPrimitives().deletePrimitive(primitiveURI);
+            // Delete this reference in WFDirectory
+            if (!StringUtils.equals(MY_LIBRARY_ROOT, dirID)) {
+                final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
+                final Set<URI> removeWorkflows = new HashSet<URI>();
+                removeWorkflows.add(primitiveURI);
+                param.setWorkflows(new WFDirectoryWorkflowsUpdateParam(null, removeWorkflows));
+                getCatalogClient().wfDirectories().edit(new URI(dirID), param);
+            }
+            flash.success(MessagesUtils.get("node.delete.success"));
+        } catch (Exception e) {
+            Logger.error(e.getMessage());
+            flash.error(e.getMessage());
+        } finally {
+            view();
         }
     }
 
@@ -585,10 +587,11 @@ public class WorkflowBuilder extends Controller {
     }
 
     private static void createShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive) {
+        CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = null;
+        CustomServicesPrimitiveRestRep primitiveRestRep = null;
         try {
-
             final String filename = FilenameUtils.getBaseName(shellPrimitive.getScript().getName());
-            final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
+            primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
                     .createPrimitiveResource("SCRIPT", shellPrimitive.getScript(), filename);
             if (null != primitiveResourceRestRep) {
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
@@ -609,14 +612,14 @@ public class WorkflowBuilder extends Controller {
                     primitiveCreateParam.setOutput(getListFromInputOutputString(shellPrimitive.getOutputs()));
                 }
 
-                final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives()
-                        .createPrimitive(primitiveCreateParam);
-                if (primitiveRestRep != null) {
-                    // add this to wf directory
-                    addResourceToWFDirectory(primitiveRestRep.getId(), shellPrimitive.getWfDirID());
-                } else {
-                    flash.error("Error while creating primitive");
-                }
+                    primitiveRestRep = getCatalogClient().customServicesPrimitives()
+                            .createPrimitive(primitiveCreateParam);
+                    if (primitiveRestRep != null) {
+                        // add this to wf directory
+                        addResourceToWFDirectory(primitiveRestRep.getId(), shellPrimitive.getWfDirID());
+                    } else {
+                        flash.error("Error while creating primitive");
+                    }
                 flash.success(MessagesUtils.get("wfBuilder.operation.save.success"));
             } else {
                 flash.error("Error while uploading primitive resource");
@@ -624,6 +627,10 @@ public class WorkflowBuilder extends Controller {
         } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error(e.getMessage());
+            if (primitiveResourceRestRep != null && primitiveRestRep == null) {
+                //Resource was created but primitive creation failed
+                getCatalogClient().customServicesPrimitives().deletePrimitiveResource(primitiveResourceRestRep.getId());
+            }
         }
     }
 
@@ -871,8 +878,9 @@ public class WorkflowBuilder extends Controller {
     }
 
     private static void createLocalAnsiblePrimitive(@Valid final LocalAnsiblePrimitiveForm localAnsible) {
+        CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = null;
+        CustomServicesPrimitiveRestRep primitiveRestRep = null;
         try {
-            CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = null;
             if (localAnsible.isExisting()) {
                 primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
                         .getPrimitiveResource(new URI(localAnsible.getExistingResource()));
@@ -904,7 +912,7 @@ public class WorkflowBuilder extends Controller {
                     primitiveCreateParam.setOutput(getListFromInputOutputString(localAnsible.getOutputs()));
                 }
 
-                final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives()
+                primitiveRestRep = getCatalogClient().customServicesPrimitives()
                         .createPrimitive(primitiveCreateParam);
                 if (primitiveRestRep != null) {
                     // add this to wf directory
@@ -920,6 +928,12 @@ public class WorkflowBuilder extends Controller {
         } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error(e.getMessage());
+            if (primitiveResourceRestRep != null && primitiveRestRep == null) {
+                //Resource was created but primitive creation failed. Remove inventory that was created (if any)
+                updateInventoryFiles(primitiveResourceRestRep.getId(),"");
+                getCatalogClient().customServicesPrimitives().deletePrimitiveResource(primitiveResourceRestRep.getId());
+
+            }
         }
     }
 
@@ -1141,14 +1155,16 @@ public class WorkflowBuilder extends Controller {
     private static void addInventoryFileInputs(final CustomServicesWorkflowDocument.Step step) {
         if (StringUtils.isNotEmpty(step.getType()) && StepType.LOCAL_ANSIBLE.toString().equals(step.getType())) {
             CustomServicesWorkflowDocument.InputGroup inputGroup = step.getInputGroups().get(CustomServicesConstants.ANSIBLE_OPTIONS);
-            for(final CustomServicesWorkflowDocument.Input input: inputGroup.getInputGroup()) {
-                if(StringUtils.equals(CustomServicesConstants.ANSIBLE_HOST_FILE, input.getName())) {
+            for (final CustomServicesWorkflowDocument.Input input : inputGroup.getInputGroup()) {
+                if (StringUtils.equals(CustomServicesConstants.ANSIBLE_HOST_FILE, input.getName())) {
                     // Setting type and options for host_file
                     input.setType(CustomServicesConstants.InputType.FROM_USER_MULTI.toString());
                     final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives()
                             .getPrimitive(step.getOperation());
-                    final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives()
-                            .getPrimitiveResourcesByType(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, primitiveRestRep.getResource().getId());
+                    final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient()
+                            .customServicesPrimitives()
+                            .getPrimitiveResourcesByType(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE,
+                                    primitiveRestRep.getResource().getId());
                     if (customServicesPrimitiveResourceList != null
                             && CollectionUtils.isNotEmpty(customServicesPrimitiveResourceList.getResources())) {
                         final Map<String, String> options = new HashMap<String, String>();
@@ -1157,6 +1173,10 @@ public class WorkflowBuilder extends Controller {
                         }
                         Logger.debug("Adding inventory file options {}", options);
                         input.setOptions(options);
+                    } else {
+                        //remove inventory files that have been set previously but deleted.
+                        Logger.debug("Removing all the inventory files");
+                        input.setOptions(new HashMap<String, String>());
                     }
 
                     break;

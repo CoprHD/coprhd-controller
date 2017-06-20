@@ -712,7 +712,7 @@
     
     <bean id="vnxqueryfilesyswithsize"
         class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="processor" ref="vnxfilesysidprocessor" />
+        <property name="processor" ref="vnxfilesysusageprocessor" />
         <property name="instance" ref="retriever" />
         <property name="method" value="execute" />
         <property name="arguments">
@@ -994,6 +994,11 @@
 
     <bean id="vnxfilesysidprocessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemIdProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    
+    <bean id="vnxfilesysusageprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemUsageProcessor">
         <property name="unmarshaller" ref="unmarshaller"/>
     </bean>
 

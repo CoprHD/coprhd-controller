@@ -11,11 +11,12 @@ public class DeleteNfsDatastoreAndExportService extends DeleteNfsDatastoreServic
     @Override
     public void execute() throws Exception {
         StringBuffer errorMsg = new StringBuffer();
-        errorMsg.append("This operation is currently not supported. Please do the below steps:\r\n")
+        errorMsg.append("This operation is currently not supported. Please follow the below steps to delete Datastore:\r\n")
                 .append("1. Remove all Virtual Machines and data from Datastore using VMware vCenter\r\n")
-                .append("2. Use ViPR Controller Catalog Services \"File Services for VMware vCenter->Delete VMware NFS Datastore\", ")
-                .append("\"File Storage Services ->Remove NFS Export for File System\" ")
-                .append("and \"File Storage Services ->Remove File System\"");
+                .append("2. Use ViPR Controller Catalog Services in the following order\r\n")
+                .append("   a. \"File Services for VMware vCenter->Delete VMware NFS Datastore\", \r\n")
+                .append("   b. \"File Storage Services ->Remove NFS Export for File System\" and \r\n")
+                .append("   c. \"File Storage Services ->Remove File System\"");
         Exception deleteDataStoreNotSupported = new Exception(errorMsg.toString());
         throw deleteDataStoreNotSupported;
         // For this patch commenting this code

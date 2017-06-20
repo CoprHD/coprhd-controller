@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -596,8 +597,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                                 foundNetworkForRPCluster = true;
                                 for (String discoveredEndpoint : discoveredEndpoints.keySet()) {
                                     // Ignore the RP endpoints - RP WWNs have a unique prefix. We want to only return back non RP initiators
-                                    // in
-                                    // that NetworkVSAN.
+                                    // in that NetworkVSAN.
                                     if (discoveredEndpoint.startsWith(RP_INITIATOR_PREFIX)) {
                                         continue;
                                     }
@@ -664,12 +664,27 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 initiatorParam.getInitiatorPort()), resultsList);
         Iterator<URI> resultsIter = resultsList.iterator();
         if (resultsIter.hasNext()) {
+            boolean updateInitiator = false;
             initiator = _dbClient.queryObject(Initiator.class, resultsIter.next());
-            // If the hostname has been changed then we need to update the
+            
+            // If the hostName has been changed then we need to update the
             // Initiator object to reflect that change.
-            if (NullColumnValueGetter.isNotNullValue(initiator.getHostName())
-                    && !initiator.getHostName().equals(initiatorParam.getHostName())) {
+            String hostNameChanged = StringUtils.difference(
+                    initiator.getHostName(), initiatorParam.getHostName());            
+            if (!StringUtils.isEmpty(hostNameChanged)) {
                 initiator.setHostName(initiatorParam.getHostName());
+                updateInitiator = true;                
+            }
+            // If the clusterName has been changed then we need to update the
+            // Initiator object to reflect that change.
+            String clusterNameChanged = StringUtils.difference(
+                    initiator.getClusterName(), initiatorParam.getClusterName());            
+            if (!StringUtils.isEmpty(clusterNameChanged)) {
+                initiator.setClusterName(initiatorParam.getClusterName());
+                updateInitiator = true;                
+            }           
+            
+            if (updateInitiator) {
                 _dbClient.updateObject(initiator);
             }
         } else {
@@ -823,8 +838,9 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                                 + rpSiteArray.toString());
                         _dbClient.createObject(rpSiteArray);
                     } else {
-                        _log.warn("RecoverPoint found array endpoint " + arrayWWN + " however the endpoint could " +
-                                "not be found in existing configured arrays.  Register arrays before registering RecoverPoint " +
+                        _log.warn("RecoverPoint found endpoint " + arrayWWN + " however the endpoint could " +
+                                "not be found in existing configured arrays. It could be a Host endpoint, otherwise please " + 
+                                "register all arrays before registering RecoverPoint " +
                                 "or rerun RecoverPoint discover after registering arrays.");
                     }
                 }

@@ -1097,8 +1097,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("unassignedBlockVolume")
-    @AssetDependencies({ "host", "project","blockStorageType" })
-    public List<AssetOption> getBlockVolumesForHosts(AssetOptionsContext ctx, URI hostOrClusterId,
+    @AssetDependencies({ "host", "project", "blockStorageType" })
+    public List<AssetOption> getBlockVolumes(AssetOptionsContext ctx, URI hostOrClusterId,
             final URI projectId, String blockStorageType) {
         ViPRCoreClient client = api(ctx);
         Set<URI> exportedBlockResources =

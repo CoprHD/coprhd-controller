@@ -8,7 +8,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang.StringUtils;
 
 public class WwnUtils {
 
@@ -54,11 +54,14 @@ public class WwnUtils {
         // Normalize the string down.
         String norm = wwn.replaceAll(":", "").replaceAll("-", "");
 
-        // Formats such as "600601606c4a2200a03b50228a8edf11" and
-        // if the length is less than EXPECTED_WWN_LENGTH, the value 
+        // If the length is less than EXPECTED_WWN_LENGTH, the value 
         // will not be parsed.
-        if ((format == FORMAT.NOMARKERS) 
-                || (norm.length() < EXPECTED_WWN_LENGTH)) {
+        if (norm.length() < EXPECTED_WWN_LENGTH) {
+            return norm;
+        }
+        
+        // Formats such as "600601606c4a2200a03b50228a8edf11"
+        if (format == FORMAT.NOMARKERS) {
             return norm;
         } else if (format == FORMAT.DASH) {
             String temp = "" + norm.charAt(0) + norm.charAt(1) + norm.charAt(2)

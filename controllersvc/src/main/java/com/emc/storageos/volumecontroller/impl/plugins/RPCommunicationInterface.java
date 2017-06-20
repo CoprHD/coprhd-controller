@@ -527,15 +527,9 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         List<SiteArrays> rpSiteArrays = new ArrayList<SiteArrays>();
         List<URI> networkSystemList = _dbClient.queryByType(NetworkSystem.class, true);
         boolean isNetworkSystemConfigured = false;
-        if (networkSystemList.iterator().hasNext()) {
-            List<URI> allNetworks = _dbClient.queryByType(Network.class, true);
-
-            // Transfer to a reset-able list
-            List<URI> networks = new ArrayList<>();
-            for (URI networkURI : allNetworks) {
-                networks.add(networkURI);
-            }
-
+        if (networkSystemList.iterator().hasNext()) {            
+            List<URI> networks = _dbClient.queryByType(Network.class, true);
+            
             for (RPSite site : sites) {
                 // Get the initiators for this site.
                 Map<String, Map<String, String>> rpaWWNs = rp.getInitiatorWWNs(site.getInternalSiteName());
@@ -552,6 +546,10 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
                 // Check to see if the RP initiator is in any Network - Based on which Network the RP initiator is in,
                 // we can look for the arrays in that Network that are potential candidates for connectivity.
+                //
+                // NOTE: We can and probably will get back Host WWNs along with Array WWNs. There is no way to distinguish 
+                // these from one another so we have to store them as well. Those Host WWNs will later be filtered out when
+                // trying to find a valid Storage Port (of which they will not return a result). 
                 for (String rpaId : rpaWWNs.keySet()) {
 
                     boolean foundNetworkForRPCluster = false;
@@ -583,7 +581,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                         // Either get the existing initiator or create a new if needed
                         initiator = getOrCreateNewInitiator(initiator);
 
-                        _log.info("Examining RP WWN: " + wwn.toUpperCase());
+                        _log.info("Examining RP Initiator: " + wwn.toUpperCase());
                         // Find the network associated with this wwn
                         for (URI networkURI : networks) {
                             Network network = _dbClient.queryObject(Network.class, networkURI);
@@ -591,7 +589,8 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                             StringMap discoveredEndpoints = network.getEndpointsMap();
 
                             if (discoveredEndpoints.containsKey(rpaWWN.getKey().toUpperCase())) {
-                                _log.info("WWN " + rpaWWN.getKey() + " is in Network : " + network.getLabel());
+                                _log.info(String.format("RPA Initiator %s (hostName: %s - clusterName: %s) is in Network %s.", 
+                                        wwn, hostName, rpClusterName, network.getLabel()));
                                 // Set this to true as we found the RP initiators in a Network on the Network system
                                 isNetworkSystemConfigured = true;
                                 foundNetworkForRPCluster = true;

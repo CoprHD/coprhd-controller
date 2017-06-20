@@ -158,16 +158,35 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     public void createHost(URI csId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException {
         log.info("createHost");
 
+        ComputeElement ce = null;
+        ComputeSystem cs = null;
         Host host = _dbClient.queryObject(Host.class, hostId);
-        //TODO COP-28960 check for null -- host, ce, etc.
-        ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+        // COP-28960 check for null -- host, ce, etc.
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
 
-        ComputeVirtualPool vcp = _dbClient.queryObject(ComputeVirtualPool.class, vcpoolId);
-        VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, varray);
-
-        ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
-        TaskCompleter tc = new ComputeHostCompleter(hostId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
-        getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
+            ComputeVirtualPool vcp = _dbClient.queryObject(ComputeVirtualPool.class, vcpoolId);
+            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, varray);
+            if (ce != null && !NullColumnValueGetter.isNullURI(ce.getComputeSystem())) {
+                cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
+            } else {
+                log.error("Compute Element is Null!");
+                throw new IllegalArgumentException(
+                        "createHost Failed. Could not find Compute Element");
+            }
+            TaskCompleter tc = new ComputeHostCompleter(hostId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
+            if (cs != null) {
+                getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
+            } else {
+                log.error("Compute System is Null!");
+                throw new IllegalArgumentException(
+                        "Create Host failed. Could not find Compute System");
+            }
+        } else {
+            log.error("Host is null!");
+            throw new IllegalArgumentException(
+                    "Create Host failed, Could not find Host from the provided hostId");
+        }
     }
 
     /**
@@ -192,28 +211,33 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     public String addStepsPreOsInstall(Workflow workflow, String waitFor, URI computeSystemId, URI hostId,
             String prepStepId) {
         log.info("addStepsPreOsInstall");
-
+        URI computeElementId = null;
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
         Host host = _dbClient.queryObject(Host.class, hostId);
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-        //TODO COP-28960 check for null ce
-        URI computeElementId = ce.getId();
+        // COP-28960 check for null ce
+       
         log.info("sptId:" + ce.getSptId());
 
-        if (ce.getSptId() != null) {
+        if (ce != null 
+                && !NullColumnValueGetter.isNotNullValue(ce.getSptId()) 
+                && !NullColumnValueGetter.isNullURI(ce.getId())) {
+            computeElementId = ce.getId();
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
-            //TODO COP-28960 check template not null
-            log.info("is updating:" + template.getUpdating());
-            if (template.getUpdating()) {
+            // COP-28960 check template not null
+            if (template != null) {
+                log.info("is updating:" + template.getUpdating());
+                if (template.getUpdating()) {
 
-                waitFor = workflow.createStep(UNBIND_HOST_FROM_TEMPLATE,
-                        "prepare host for os install by unbinding it from service profile template",
-                        waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
-                        new Workflow.Method("unbindHostFromTemplateStep", computeSystemId, hostId),
-                        new Workflow.Method("rollbackUnbindHostFromTemplate", computeSystemId, hostId),
-                        null);
+                    waitFor = workflow.createStep(UNBIND_HOST_FROM_TEMPLATE,
+                            "prepare host for os install by unbinding it from service profile template",
+                            waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
+                            new Workflow.Method("unbindHostFromTemplateStep", computeSystemId, hostId),
+                            new Workflow.Method("rollbackUnbindHostFromTemplate", computeSystemId, hostId),
+                            null);
 
+                }
             }
             // Set host to boot from lan
             waitFor = workflow.createStep(OS_INSTALL_SET_LAN_BOOT, "Set the host to boot from LAN", waitFor, cs.getId(),
@@ -277,23 +301,30 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 new Workflow.Method("setNoBootStep", computeSystemId, computeElementId, hostId), null);
 
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, computeElementId);
-        //TODO COP-28960 check for ce not null
+        // COP-28960 check for ce not null
 
-        if (ce.getSptId() != null) {
+        if (ce != null && ce.getSptId() != null) {
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
-            //TODO COP-28960 check for template not null
-            if (template.getUpdating()) {
-                waitFor = workflow.createStep(REBIND_HOST_TO_TEMPLATE,
-                        "Rebind host to service profile template after OS install", waitFor, cs.getId(),
-                        cs.getSystemType(), this.getClass(),
-                        new Workflow.Method("rebindHostToTemplateStep", computeSystemId, hostId),
-                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
-            }
+            // COP-28960 check for template not null
+            if (template != null) {
+                if (template.getUpdating()) {
+                    waitFor = workflow.createStep(REBIND_HOST_TO_TEMPLATE,
+                            "Rebind host to service profile template after OS install", waitFor, cs.getId(),
+                            cs.getSystemType(), this.getClass(),
+                            new Workflow.Method("rebindHostToTemplateStep", computeSystemId, hostId),
+                            new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                } 
+            } else {
+                    log.error("UCSServiceProfileTemplate is Null");
+                    throw new IllegalArgumentException(
+                            "Couldn't rebind host to service profile template after OS install. "
+                                    + "UCSServiceProfileTemplate is Null.");
+                }
         } else {
             log.error("Serviceprofile ID attribute is null.");
             throw new IllegalArgumentException(
-                    "addStepsPostOsInstall method failed.  Could not find Serviceprofile template id from computeElement "
+                    "addStepsPostOsInstall method failed. Could not find Serviceprofile template id from computeElement "
                             + ce.getLabel());
         }
 

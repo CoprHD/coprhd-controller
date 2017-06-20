@@ -266,6 +266,35 @@ public class VNXFileCommApi {
         return isFsAvailable;
     }
 
+    /**
+     * Checks if the file system contains data or not
+     * 
+     * @param system the storage system
+     * @param fileId the file system ID
+     * @param fileSys the file system name
+     * @return true if file system contains data; false otherwise
+     * @throws VNXException
+     */
+    public boolean doesFileSystemHasData(StorageSystem system, String fileId, String fileSys) throws VNXException {
+
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
+        long usedSize = 99;
+        try {
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
+            _provExecutor.setKeyMap(reqAttributeMap);
+            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE_DELETE));
+            String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
+            if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
+                usedSize = (long) _provExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEM_USED_SPACE);
+            }
+        } catch (Exception e) {
+            throw VNXException.exceptions.communicationFailed(e.getMessage());
+        }
+        return (usedSize > 0) ? true : false;
+    }
+
     public XMLApiResult createSnapshot(final StorageSystem system,
             final String fsName,
             final String snapshotName,
@@ -484,7 +513,14 @@ public class VNXFileCommApi {
     public XMLApiResult deleteFileSystem(final StorageSystem system,
             final String fileId,
             final String fileSys,
-            final boolean isForceDelete, FileShare fs) throws VNXException {
+            boolean isForceDelete, FileShare fs) throws VNXException {
+
+        if (doesFileSystemHasData(system, fileId, fileSys)) {
+            throw new VNXException("File system used space is not zero ,can not delete it.Please remove the data and try again");
+        }
+
+        // setting force delete to false;
+        isForceDelete = false;
         _log.info("Delete VNX File System: fs id {}, Force Delete {}", fileId, isForceDelete);
         XMLApiResult result = new XMLApiResult();
 
@@ -643,7 +679,7 @@ public class VNXFileCommApi {
                 for (TreeQuota quota : quotaDirs) {
                     if (quota != null) {
                         String quotaDirName = quota.getPath().substring(1); // exclude the "/" in the beginning of the
-                                                                            // path.
+                        // path.
                         XMLApiResult status = deleteQuotaDirectory(system, fs.getName(), quotaDirName, true, false);
                         if (!status.isCommandSuccess()) {
                             String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
@@ -1344,20 +1380,20 @@ public class VNXFileCommApi {
 
     public XMLApiResult expandFS(final StorageSystem system, final FileShare fileShare, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
-    	// get the data mover
-    	boolean isMounted = false;
+        // get the data mover
+        boolean isMounted = false;
         StorageHADomain dataMover = this.getDataMover(fileShare);
         if (null != dataMover) {
             sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
             Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
             if (existingMounts.get(fileShare.getName()) == null) {
-            	isMounted = true;
+                isMounted = true;
             } else {
-            	isMounted = false;
+                isMounted = false;
             }
-        } 
+        }
         _log.info("expandFS for fileName{} and isMountRequired {}", fileShare.getName(), String.valueOf(isMounted));
-    	return expandFS(system, fileShare.getName(), extendSize, isMounted, isVirtualProvisioned);
+        return expandFS(system, fileShare.getName(), extendSize, isMounted, isVirtualProvisioned);
     }
 
     public XMLApiResult doRestoreSnapshot(final StorageSystem system, String fsId, String fsName, String id, String snapshotName)

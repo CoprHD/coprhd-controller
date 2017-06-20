@@ -297,7 +297,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
     }
 
     /**
-     * Create Filesystem information input XML request and returns stream after marshalling.
+     * Create Filesystem information with size input XML request and returns stream after marshalling.
      * 
      * @param argument
      * @param keyMap
@@ -315,6 +315,8 @@ public class VNXFileArgsCreator extends ArgsCreator {
             FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
             AspectSelection selection = new AspectSelection();
             selection.setFileSystems(true);
+            // fetch the file system usages info also.
+            selection.setFileSystemCapacityInfos(true);
             fsQueryParam.setAspectSelection(selection);
             query.getQueryRequestChoice().add(fsQueryParam);
             iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);

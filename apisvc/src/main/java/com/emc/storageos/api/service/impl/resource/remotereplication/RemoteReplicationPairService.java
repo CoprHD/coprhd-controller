@@ -958,7 +958,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
 
 
-    public TaskList changeRemoteReplicationCGMode(List<URI> ids, String newMode) throws InternalException {
+    public TaskList changeRemoteReplicationModeForPairsInCG(List<URI> ids, String newMode) throws InternalException {
         _log.info("Called: changeRemoteReplicationCGMode() with new mode {} and with ids {}", newMode, ids);
         for (URI id : ids) {
             ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");

@@ -559,7 +559,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
             case RR_SET_CG:
             case RR_GROUP_CG:
-                taskList = rrPairService.changeRemoteReplicationCGMode(operationParam.getIds(), newReplicationMode);
+                taskList = rrPairService.changeRemoteReplicationModeForPairsInCG(operationParam.getIds(), newReplicationMode);
                 break;
 
             case RR_GROUP:

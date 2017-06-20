@@ -527,7 +527,8 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         List<SiteArrays> rpSiteArrays = new ArrayList<SiteArrays>();
         List<URI> networkSystemList = _dbClient.queryByType(NetworkSystem.class, true);
         boolean isNetworkSystemConfigured = false;
-        if (networkSystemList.iterator().hasNext()) {            
+        if (networkSystemList.iterator().hasNext()) {          
+            // Find all Networks
             List<URI> networks = _dbClient.queryByType(Network.class, true);
             
             for (RPSite site : sites) {
@@ -551,8 +552,9 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 // these from one another so we have to store them as well. Those Host WWNs will later be filtered out when
                 // trying to find a valid Storage Port (of which they will not return a result). 
                 for (String rpaId : rpaWWNs.keySet()) {
-
-                    boolean foundNetworkForRPCluster = false;
+                    _log.info(String.format("Discovering RPA %s initiators for RPA Cluster %s(%s)...",
+                                    rpaId, site.getSiteName(), site.getInternalSiteName()));
+                    boolean foundNetworkForRPA = false;
 
                     for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
                         Initiator initiator = new Initiator();
@@ -572,7 +574,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
                         // Either get the existing initiator or create a new if needed
                         initiator = getOrCreateNewInitiator(initiator);
-                        _log.info(String.format("RPA Initiator %s found: [port: %s, node: %s, host: %s, cluster: %s]",                                 
+                        _log.info(String.format("RPA Initiator %s detected: [port: %s, node: %s, host: %s, cluster: %s]",                                 
                                 initiator.getInitiatorPort(), initiator.getInitiatorPort(), initiator.getInitiatorNode(),
                                 initiator.getHostName(), initiator.getClusterName()));
                         
@@ -583,11 +585,10 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
                             if (discoveredEndpoints.containsKey(initiator.getInitiatorPort().toUpperCase())) {
                                 _log.info(String.format("RPA Initiator %s is associated to Network %s.", 
-                                        initiator.getInitiatorPort().toUpperCase(), initiator.getHostName(), 
-                                        initiator.getClusterName(), network.getLabel()));
+                                        initiator.getInitiatorPort().toUpperCase(), network.getLabel()));
                                 // Set this to true as we found the RP initiators in a Network on the Network system
                                 isNetworkSystemConfigured = true;
-                                foundNetworkForRPCluster = true;
+                                foundNetworkForRPA = true;
                                 for (String discoveredEndpoint : discoveredEndpoints.keySet()) {
                                     // Ignore the RP endpoints - RP WWNs have a unique prefix. We want to only return back non RP initiators
                                     // in that NetworkVSAN.
@@ -602,10 +603,10 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                         }
                     }
 
-                    if (!foundNetworkForRPCluster) {
+                    if (!foundNetworkForRPA) {
                         // This is not an error to the end-user. When they add a network system, everything will rediscover correctly.
                         _log.warn(String
-                                .format("Please note that RPA %s initiators for RPA Cluster %s (%s) are not seen in any configured network.",
+                                .format("RPA %s initiators for RPA Cluster %s(%s) are not seen in any configured network.",
                                         rpaId, site.getSiteName(), site.getInternalSiteName()));
                     }
 

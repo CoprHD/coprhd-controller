@@ -21,7 +21,9 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
+import com.emc.storageos.primitives.input.InputParameter;
 import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -94,9 +96,30 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         String path = RESTHelper.makePath(templatePath, input, primitive);
 
+        Properties queryParam = new Properties();
+        if (primitive == null || primitive.input() == null) {
+            queryParam = null;
+        } else {
+            logger.info("set the query param");
+            final Map<String, List<InputParameter>> viprInputs = primitive.input();
+            final List<InputParameter> queries = viprInputs.get(CustomServicesConstants.QUERY_PARAMS);
+
+            for (final InputParameter a : queries) {
+                if (input.get(a.getName()) == null) {
+                    logger.debug("Query parameter value is not set for:{}", a.getName());
+                    continue;
+                }
+                final String value = input.get(a.getName()).get(0);
+                if (!StringUtils.isEmpty(value)) {
+                    logger.info("set param for:{}", a.getName());
+                    queryParam.setProperty(a.getName(), value);
+                }
+            }
+        }
+
         ExecutionUtils.currentContext().logInfo("customServicesViprExecution.startInfo", step.getId(), primitive.friendlyName());
 
-        CustomServicesTaskResult result = makeRestCall(path, requestBody, method);
+        CustomServicesTaskResult result = makeRestCall(path, requestBody, method, queryParam);
 
         logger.info("result is:{}", result.getOut());
         ExecutionUtils.currentContext().logInfo("customServicesViprExecution.doneInfo", step.getId(), primitive.friendlyName());
@@ -129,7 +152,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         return null;
     }
 
-    private CustomServicesTaskResult makeRestCall(final String path, final Object requestBody, final String method)
+    private CustomServicesTaskResult makeRestCall(final String path, final Object requestBody, final String method, final Properties queryParams)
             throws InternalServerErrorException {
 
         ClientResponse response = null;
@@ -139,7 +162,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         try {
             switch (restmethod) {
                 case GET:
-                    response = client.get(ClientResponse.class, path);
+                    response = client.get(ClientResponse.class, path, queryParams);
                     break;
                 case PUT:
                     response = client.put(ClientResponse.class, requestBody, path);

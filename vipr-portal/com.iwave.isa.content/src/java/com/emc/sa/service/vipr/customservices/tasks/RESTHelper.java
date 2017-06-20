@@ -251,31 +251,7 @@ public final class RESTHelper {
 
         logger.info("URI string is: {}", path);
 
-        final StringBuilder fullPath = new StringBuilder(path);
-
-        if (primitive == null || primitive.input() == null) {
-            return fullPath.toString();
-        }
-
-        final Map<String, List<InputParameter>> viprInputs = primitive.input();
-        final List<InputParameter> queries = viprInputs.get(CustomServicesConstants.QUERY_PARAMS);
-
-        String prefix = "?";
-        for (final InputParameter a : queries) {
-            if (input.get(a.getName()) == null) {
-                logger.debug("Query parameter value is not set for:{}", a.getName());
-                continue;
-            }
-            final String value = input.get(a.getName()).get(0);
-            if (!StringUtils.isEmpty(value)) {
-                fullPath.append(prefix).append(a.getName()).append("=").append(value);
-                prefix = "&";
-            }
-        }
-
-        logger.info("URI string with query:{}", fullPath.toString());
-
-        return fullPath.toString();
+        return path;
     }
     
     public static List<String> parserOutput(final String[] bits, final int i, final Object className) throws Exception {

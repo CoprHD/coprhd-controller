@@ -22,8 +22,13 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowTabs[elementid] = { id:id, elementid:elementid, name:name, href:'#'+elementid };
     }
     $scope.closeTab = function(tabID){
+    var r = confirm("Are you sure you want to delete?");
+            if (r == true) {
         delete $scope.workflowTabs[tabID];
         $(".workflow-nav-tabs li").children('a').first().click();
+    } else {
+        return 0;
+       }
     };
 })
 .controller('treeController', function($element, $scope, $compile, $http, $rootScope, translate) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
@@ -236,6 +241,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.deleteNode = function() {
+        var r = confirm("Are you sure you want to delete?");
+        if (r == true) {
         var ref = jstreeContainer.jstree(true),
             sel = ref.get_selected('full',true);
         if(!sel.length) { return false; }
@@ -266,6 +273,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 displayErrorMessage(error.details);
             });
         }
+        } else {
+                     return 0;
+                 }
 
     };
 

@@ -4512,10 +4512,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
             ExportMask sharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient, varrayURI, null, null);
             for (ExportMask exportMask : exportMasks) {
-                
-                _log.info("### looking at ExportMask: " + exportMask);
-                
-                
                 boolean shared = false;
                 if (sharedExportMask != null) {
                     if (sharedExportMask.getId().equals(exportMask.getId())) {
@@ -4531,7 +4527,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     }
                 }
             }
-            _log.info("### looking at maskToInitiatorsMap: " + maskToInitiatorsMap);
             _networkDeviceController.zoneExportAddInitiators(exportURI, maskToInitiatorsMap, stepId);
         } catch (Exception ex) {
             _log.error("Exception adding initators: " + ex.getMessage(), ex);
@@ -4859,17 +4854,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 if (maskURI != null && !exportMask.getId().equals(maskURI)) {
                     continue;
                 }
-
-                _log.info("         ");
-                _log.info("         ");
-                _log.info("         ");
-                _log.info("         ");
-                _log.info("##################### ExportMask is " + exportMask);
-                _log.info("         ");
-                _log.info("         ");
-                _log.info("         ");
-                _log.info("         ");
-                _log.info("         ");
 
                 ArrayList<URI> filteredTargetURIs = new ArrayList<URI>();
                 // Filter or get targets from the zoning map

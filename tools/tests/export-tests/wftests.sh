@@ -394,7 +394,7 @@ unity_setup()
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -404,7 +404,7 @@ unity_setup()
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 2				            \
+	--numpaths 4				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -1544,6 +1544,43 @@ snap_db() {
     done
 }      
 
+# Given a DB snap file, filter out any backend VPLEX masks.
+# A VPLEX backend mask would have label VPLEX_xxxx_xxxx_CLX_*
+# Arguments:
+# 1) snap slot number.
+filter_backend_vplex_masks() {
+  if [ "${SS}" != "vplex" ]
+  then
+    return 1
+  fi
+
+  slot=$1
+  column_families="ExportMask ExportGroup"
+
+  rem_leading_spaces="| sed -e 's/^\s*//' "
+  grep_by_id_and_label="| grep -E '^label = VPLEX_([[:digit:]]{4}_){2}_|id: ' "
+  grep_by_id="| grep -E '^id: ' "
+  print_id="| awk '{ print \$NF }' "
+
+  for cf in ${column_families}
+  do
+    result_file="results/${item}/${cf}-${slot}.txt"
+
+    # Skip if the file does not exist.
+    [ ! -f ${result_file} ] && continue
+
+    execute="cat ${result_file} ${rem_leading_spaces} ${grep_by_id_and_label} ${grep_by_id} ${print_id}"
+    ids=`eval $execute`
+    
+    for id in $ids
+    do
+      tmp=/tmp/result-$RANDOM
+      cat ${result_file} | sed "/^id: $id/,/^\s*$/d" > $tmp
+      mv $tmp ${result_file}
+    done
+  done
+}
+
 validate_db() {
     slot_1=${1}
     shift
@@ -1667,9 +1704,9 @@ test_1() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs=("Volume ExportGroup ExportMask FCZoneReference")
+      cfs=("Volume ExportGroup ExportMask FCZoneReference")
     else
-	cfs=("Volume")
+      cfs=("Volume")
     fi
 
     for failure in ${failure_injections}
@@ -1686,35 +1723,37 @@ test_1() {
 
       # Check the state of the volume that doesn't exist
       snap_db 1 "${cfs[@]}"
+      filter_backend_vplex_masks 1
 
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
       then
-	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	  # Remove the volume
-      	  runcmd volume delete ${PROJECT}/${volname} --wait
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        # Remove the volume
+        runcmd volume delete ${PROJECT}/${volname} --wait
       else
-	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+        # If this is a rollback inject, make sure we get the "additional message"
+        echo ${failure} | grep failure_004 | grep ":" > /dev/null
 
-	  if [ $? -eq 0 ]
-	  then
-	      # Make sure it fails with additional errors accounted for in the error message
-      	      fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	  else
-      	      # Create the volume
-      	      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	  fi
+        if [ $? -eq 0 ]
+        then
+          # Make sure it fails with additional errors accounted for in the error message
+          fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        else
+          # Create the volume
+          fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        fi
 
-	  # Verify injected failures were hit
-	  verify_failures ${failure}
+        # Verify injected failures were hit
+        verify_failures ${failure}
 
-      	  # Let the async jobs calm down
-      	  sleep 5
+        # Let the async jobs calm down
+        sleep 5
       fi
 
       # Perform any DB validation in here
       snap_db 2 "${cfs[@]}" 
+      filter_backend_vplex_masks 2
 
       # Validate nothing was left behind
       validate_db 1 2 "${cfs[@]}"
@@ -1736,6 +1775,7 @@ test_1() {
 
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"
+      filter_backend_vplex_masks 3
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
@@ -1847,9 +1887,9 @@ test_2() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference")
+      cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference")
     else
-	cfs=("Volume BlockConsistencyGroup")
+      cfs=("Volume BlockConsistencyGroup")
     fi
 
     for failure in ${failure_injections}
@@ -1875,6 +1915,7 @@ test_2() {
 
       # Check the state of the volume that doesn't exist
       snap_db 1 "${cfs[@]}"
+      filter_backend_vplex_masks 1
 
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -1910,6 +1951,7 @@ test_2() {
 
       # Perform any DB validation in here
       snap_db 2 "${cfs[@]}"
+      filter_backend_vplex_masks 2
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -1925,6 +1967,7 @@ test_2() {
 
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"
+      filter_backend_vplex_masks 3
 
       # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
       if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -1940,6 +1983,7 @@ test_2() {
 
       # Perform any DB validation in here
       snap_db 4 "${cfs[@]}"
+      filter_backend_vplex_masks 4
 
       # Validate nothing was left behind
       validate_db 3 4 ${cfs}
@@ -1998,9 +2042,9 @@ test_3() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs=("Volume ExportGroup ExportMask FCZoneReference")
+      cfs=("Volume ExportGroup ExportMask FCZoneReference")
     else
-	cfs=("Volume")
+      cfs=("Volume")
     fi
 
     for failure in ${failure_injections}
@@ -2021,17 +2065,18 @@ test_3() {
 
       # Check the state of the volume that doesn't exist
       snap_db 1 "${cfs[@]}"
+      filter_backend_vplex_masks 1
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
 
       if [ $? -eq 0 ]
       then
-	  # Make sure it fails with additional errors accounted for in the error message
-      	  fail -with_error "Additional errors occurred" volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+        # Make sure it fails with additional errors accounted for in the error message
+        fail -with_error "Additional errors occurred" volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
       else
-	  # Create the volume
-	  fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+        # Create the volume
+        fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
       fi
 
       # Verify injected failures were hit
@@ -2042,6 +2087,7 @@ test_3() {
 
       # Perform any DB validation in here
       snap_db 2 "${cfs[@]}"
+      filter_backend_vplex_masks 2
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -2065,6 +2111,7 @@ test_3() {
 
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"
+      filter_backend_vplex_masks 3
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
@@ -2458,7 +2505,11 @@ test_7() {
         echo -e "\e[91mERROR\e[0m: Could not find a zone corresponding to host ${HOST1} and initiator ${initiator}"
         incr_fail_count
       else
-        verify_zone ${zone1} ${FC_ZONE_A} exists  
+        # Only verify that the zone exists on the switch if the zone is newly created.  
+        # Newly created zone names will contain the current host name.  
+        if newly_created_zone_for_host $zone1 $HOST1; then  
+            verify_zone ${zone1} ${FC_ZONE_A} exists
+        fi      
       fi    
       
       # Snsp the DB so we can validate after failures later
@@ -2501,7 +2552,11 @@ test_7() {
         echo -e "\e[91mERROR\e[0m: Could not find a ViPR zone corresponding to host ${HOST1} and initiator ${H1PI2}. COP-30518 has been created to track this issue"
         incr_fail_count
       else
-        verify_zone ${zone2} ${FC_ZONE_A} exists  
+        # Only verify that the zone exists on the switch if the zone is newly created.  
+        # Newly created zone names will contain the current host name.  
+        if newly_created_zone_for_host $zone2 $HOST1; then      
+            verify_zone ${zone2} ${FC_ZONE_A} exists
+        fi      
       fi
 
       # Perform any DB validation in here
@@ -2512,6 +2567,8 @@ test_7() {
 
       # Only verify the zone has been removed if it is a newly created zone
       if [ "${zone1}" != "" ]; then
+        # Only verify that the zone is removed from the switch if the zone was newly created.  
+        # Newly created zone names will contain the current host name.    
         if newly_created_zone_for_host $zone1 $HOST1; then
             verify_zone ${zone1} ${FC_ZONE_A} gone    
         fi          
@@ -2519,6 +2576,8 @@ test_7() {
 
       # Only verify the zone has been removed if it is a newly created zone
       if [ "${zone2}" != "" ]; then
+        # Only verify that the zone is removed from the switch if the zone was newly created.  
+        # Newly created zone names will contain the current host name.    
         if newly_created_zone_for_host $zone2 $HOST1; then
             verify_zone ${zone2} ${FC_ZONE_A} gone    
         fi          
@@ -2737,9 +2796,9 @@ test_9() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup")
+      cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup")
     else
-	cfs=("Volume BlockConsistencyGroup")
+      cfs=("Volume BlockConsistencyGroup")
     fi
 
     for failure in ${failure_injections}
@@ -2756,6 +2815,7 @@ test_9() {
 
       # Check the state of the volume that doesn't exist
       snap_db 1 "${cfs[@]}"
+      filter_backend_vplex_masks 1
 
       # Create the CG
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
@@ -2770,6 +2830,7 @@ test_9() {
 
       # Perform any DB validation in here
       snap_db 2 "${cfs[@]}"
+      filter_backend_vplex_masks 2
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -2790,6 +2851,7 @@ test_9() {
 
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"
+      filter_backend_vplex_masks 3
 
       # Validate nothing was left behind
       validate_db 1 3 "${cfs[@]}"

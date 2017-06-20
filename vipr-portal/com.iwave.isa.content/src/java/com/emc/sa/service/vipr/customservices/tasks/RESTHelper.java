@@ -43,6 +43,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 
 public final class RESTHelper {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RESTHelper.class);
+    public static final String TASKLIST = "TaskList";
     
     private RESTHelper() {
     };
@@ -68,6 +69,9 @@ public final class RESTHelper {
     public static String makePostBody(final String body, final int pos, final Map<String, List<String>> input) {
 
         logger.info("make body for" + body);
+        if (StringUtils.isEmpty(body)) {
+            return "";
+        }
         final String[] strs = body.split("(?<=:)");
 
         for (int j = 0; j < strs.length; j++) {
@@ -297,7 +301,7 @@ public final class RESTHelper {
             return null;
         }
         
-        if( Collection.class.isAssignableFrom(returnType)) {
+        if( returnType.isArray() || Collection.class.isAssignableFrom(returnType)) {
             return getCollectionValue(method, bits, i, className);
         } else {
             // 1) primitive
@@ -323,36 +327,53 @@ public final class RESTHelper {
 
     private static List<String> getCollectionValue(final Method method, final String[] bits, final int i, final Object className)
             throws Exception {
+        final Type objectType;
 
-        final Type returnType = method.getGenericReturnType();
-        if (returnType instanceof ParameterizedType) {
-            final ParameterizedType paramType = (ParameterizedType) returnType;
+        final Collection<?> arrayValue;
+        if( method.getReturnType().isArray() ) {
+            objectType = method.getReturnType().getComponentType();
+            arrayValue = Arrays.asList((Object[]) method.invoke(className));
+        } else if(method.getGenericReturnType() instanceof ParameterizedType){
+            objectType = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[0];
+            arrayValue = (Collection<?>) method.invoke(className);
+        } else {
+            logger.warn("Parsing vipr output failed unknown collection type: " + method.getReturnType() + " field " + bits[i] + " in " + bits);
+            return null;
+        }
+        
+        if (i == bits.length - 1) {
+            logger.debug("array value:{}", arrayValue);
+            return toStringList(arrayValue);
+        } else if (objectType instanceof Class<?>) {
+            return parseObjectCollection(bits, i, arrayValue);
+        } else {
+            logger.warn("Parsing vipr output failed.  Unexpected primitive before end of output: " + objectType + " field " + bits[i] + " in " + bits);
+            return null;
+        }
+    }
 
-            if (i == bits.length - 1) {
+    private static List<String> toStringList(final Collection<?> arrayValue) {
+        if( null == arrayValue ) {
+            return null;
+        }
+        
+        final List<String> list = new ArrayList<String>();
+        for( final Object value : arrayValue) {
+            list.add(value.toString());
+        }
+        return list;
+    }
 
-                logger.debug("array value:{}", method.invoke(className));
-                final List<String> listStringOut = new ArrayList<String>();
-                for (final Object val : (Collection<?>) method.invoke(className)) {
-                    listStringOut.add(val.toString());
-                }
-                return listStringOut;
-            }
-            final Type o = paramType.getActualTypeArguments()[0];
-            if (o instanceof Class<?>) {
-                final List<String> list = new ArrayList<String>();
-                for (final Object o1 : (Collection<?>) method.invoke(className)) {
-                    final List<String> value = parserOutput(bits, i + 1, o1);
-                    if (value != null) {
-                        list.addAll(value);
-                    }
-                }
-
-                if (!list.isEmpty()) {
-                    return list;
-                }
+    private static List<String> parseObjectCollection(final String[] bits, final int i, final Collection<?> arrayValue) throws Exception {
+        final List<String> list = new ArrayList<String>();
+        for (final Object o1 : arrayValue) {
+            final List<String> value = parserOutput(bits, i + 1, o1);
+            if (value != null) {
+                list.addAll(value);
             }
         }
-        return null;
+        
+        return !list.isEmpty() ? list : null; 
     }
 
     private static Method findMethod(final String str, final Object className) throws Exception {

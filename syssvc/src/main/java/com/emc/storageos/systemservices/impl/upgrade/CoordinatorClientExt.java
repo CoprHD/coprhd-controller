@@ -663,6 +663,10 @@ public class CoordinatorClientExt {
         return null;
     }
 
+    public Boolean isAllDatabaseServiceUp() {
+        return _coordinator.isAllDbsvcUp() && _coordinator.isAllGeodbsvcUp();
+    }
+
     /**
      * Check if the cluster is in a upgradable state
      * A cluster is stably upgradable if both control nodes and extra nodes are upgradable or control node is in initializing state

@@ -555,42 +555,36 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     boolean foundNetworkForRPCluster = false;
 
                     for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
-
-                        String wwn = rpaWWN.getKey();
-
                         Initiator initiator = new Initiator();
                         initiator.addInternalFlags(Flag.RECOVERPOINT);
                         // Remove all non alpha-numeric characters, excluding "_", from the hostname
-                        String rpClusterName = site.getSiteName().replaceAll(NON_ALPHA_NUMERICS, "");
-                        _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
+                        String rpClusterName = site.getSiteName().replaceAll(NON_ALPHA_NUMERICS, "");                        
                         initiator.setClusterName(rpClusterName);
                         initiator.setProtocol("FC");
                         initiator.setIsManualCreation(false);
-
                         // Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
                         // A child RP IG will be created containing all the RPA IGs
                         String hostName = rpClusterName + RPA + rpaId;
-                        hostName = hostName.replaceAll(NON_ALPHA_NUMERICS, "");
-                        _log.info(String.format("Setting RP initiator host name : %s", hostName));
-                        initiator.setHostName(hostName);
-
-                        _log.info(String.format("Setting Initiator port WWN : %s, nodeWWN : %s", rpaWWN.getKey(), rpaWWN.getValue()));
+                        hostName = hostName.replaceAll(NON_ALPHA_NUMERICS, "");                       
+                        initiator.setHostName(hostName);                        
                         initiator.setInitiatorPort(rpaWWN.getKey());
                         initiator.setInitiatorNode(rpaWWN.getValue());
 
                         // Either get the existing initiator or create a new if needed
                         initiator = getOrCreateNewInitiator(initiator);
-
-                        _log.info("Examining RP Initiator: " + wwn.toUpperCase());
-                        // Find the network associated with this wwn
+                        _log.info(String.format("RPA Initiator %s found: [port: %s, node: %s, host: %s, cluster: %s]",                                 
+                                initiator.getInitiatorPort(), initiator.getInitiatorPort(), initiator.getInitiatorNode(),
+                                initiator.getHostName(), initiator.getClusterName()));
+                        
+                        // Find the network associated with this initiator
                         for (URI networkURI : networks) {
                             Network network = _dbClient.queryObject(Network.class, networkURI);
-                            _log.info("Examining Network: " + network.getLabel());
                             StringMap discoveredEndpoints = network.getEndpointsMap();
 
-                            if (discoveredEndpoints.containsKey(rpaWWN.getKey().toUpperCase())) {
-                                _log.info(String.format("RPA Initiator %s (hostName: %s - clusterName: %s) is in Network %s.", 
-                                        wwn, hostName, rpClusterName, network.getLabel()));
+                            if (discoveredEndpoints.containsKey(initiator.getInitiatorPort().toUpperCase())) {
+                                _log.info(String.format("RPA Initiator %s is associated to Network %s.", 
+                                        initiator.getInitiatorPort().toUpperCase(), initiator.getHostName(), 
+                                        initiator.getClusterName(), network.getLabel()));
                                 // Set this to true as we found the RP initiators in a Network on the Network system
                                 isNetworkSystemConfigured = true;
                                 foundNetworkForRPCluster = true;
@@ -611,8 +605,8 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     if (!foundNetworkForRPCluster) {
                         // This is not an error to the end-user. When they add a network system, everything will rediscover correctly.
                         _log.warn(String
-                                .format("Network systems are required when configuring RecoverPoint.  RP Cluster %s initiators are not seen in any configured network.",
-                                        rpaId));
+                                .format("Please note that RPA %s initiators for RPA Cluster %s (%s) are not seen in any configured network.",
+                                        rpaId, site.getSiteName(), site.getInternalSiteName()));
                     }
 
                 }
@@ -786,28 +780,33 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             // 4. Fill in associations
             List<URI> ids = _dbClient.queryByType(RPSiteArray.class, true);
             for (URI id : ids) {
-                _log.info("discoverProtectionSystem(): reading rpsitearray: " + id.toASCIIString());
+                _log.info("discoverProtectionSystem(): reading RPSiteArray: " + id.toASCIIString());
                 rpSiteArray = _dbClient.queryObject(RPSiteArray.class, id);
                 if (rpSiteArray == null) {
                     continue;
                 }
 
                 if ((rpSiteArray.getRpProtectionSystem() != null) && (rpSiteArray.getRpProtectionSystem().equals(storageObj.getId()))) {
-                    _log.info("discoverProtectionSystem(): removing rpsitearray: " + id.toASCIIString() + " : " + rpSiteArray.toString());
+                    _log.info(String.format("discoverProtectionSystem(): removing RPSiteArray[%s](%s) "
+                            + "entry for Storage System [%s].", 
+                            rpSiteArray.getLabel(), rpSiteArray.getId().toASCIIString(), rpSiteArray.getArraySerialNumber()));
                     _dbClient.markForDeletion(rpSiteArray);
                 } else if (rpSiteArray.getRpProtectionSystem() == null) {
                     _log.error("RPSiteArray " + id.toASCIIString() + " does not have a parent assigned, therefore it is an orphan.");
                 }
             }
 
+            // Store any unmatched WWNs for logging purposes
+            StringBuffer unmatchedWWNs = new StringBuffer();
+            
             // Map the information from the RP client to information in our database
             for (SiteArrays siteArray : (List<SiteArrays>) result.getObjectList().get(0)) {
-                for (String arrayWWN : siteArray.getArrays()) {
+                for (String wwn : siteArray.getArrays()) {
                     // Find the array that corresponds to the wwn endpoint we found
                     URIQueryResultList storagePortList = new URIQueryResultList();
                     StoragePort storagePort = null;
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(WwnUtils.convertWWN(
-                            arrayWWN, WwnUtils.FORMAT.COLON)),
+                            wwn, WwnUtils.FORMAT.COLON)),
                             storagePortList);
                     List<URI> storagePortURIs = new ArrayList<URI>();
                     for (URI uri : storagePortList) {
@@ -823,26 +822,31 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     }
                     if (!storagePortURIs.isEmpty()) {
                         storagePort = _dbClient.queryObject(StoragePort.class, storagePortURIs).get(0);
+                        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storagePort.getStorageDevice());
                         rpSiteArray = new RPSiteArray();
                         rpSiteArray.setInactive(false);
-                        rpSiteArray.setLabel(siteArray.getSite().getSiteName() + ":" + arrayWWN);
+                        rpSiteArray.setLabel(siteArray.getSite().getSiteName() + ":" + wwn);
                         rpSiteArray.setRpProtectionSystem(storageObj.getId());
                         rpSiteArray.setStorageSystem(storagePort.getStorageDevice());
-                        rpSiteArray.setArraySerialNumber(_dbClient.queryObject(StorageSystem.class, storagePort.getStorageDevice())
-                                .getSerialNumber());
+                        rpSiteArray.setArraySerialNumber(storageSystem.getSerialNumber());
                         rpSiteArray.setRpInternalSiteName(siteArray.getSite().getInternalSiteName());
                         rpSiteArray.setRpSiteName(siteArray.getSite().getSiteName());
                         rpSiteArray.setId(URIUtil.createId(RPSiteArray.class));
-                        _log.info("discoverProtectionSystem(): adding rpsitearray: " + rpSiteArray.getId().toASCIIString() + " : "
-                                + rpSiteArray.toString());
+                        _log.info(String.format("discoverProtectionSystem(): adding RPSiteArray[%s](%s) "
+                                + "entry for Storage System [%s].", 
+                                rpSiteArray.getLabel(), rpSiteArray.getId().toASCIIString(), rpSiteArray.getArraySerialNumber()));
                         _dbClient.createObject(rpSiteArray);
                     } else {
-                        _log.warn("RecoverPoint found endpoint " + arrayWWN + " however the endpoint could " +
-                                "not be found in existing configured arrays. It could be a Host endpoint, otherwise please " + 
-                                "register all arrays before registering RecoverPoint " +
-                                "or rerun RecoverPoint discover after registering arrays.");
+                        unmatchedWWNs.append("\n"+wwn);
                     }
                 }
+            }
+            
+            if (!StringUtils.isEmpty(unmatchedWWNs.toString())) {
+                _log.warn(String.format("Discovery of RecoverPoint Protection System [%s](%s) found the following endpoints, however "
+                        + "they could not be aligned with existing configured arrays. Note this is not an error and that some could be Host "
+                        + "endpoints but please ensure all arrays are registered before registering/running discovery of "
+                        + "RecoverPoint: [%s]", rpSystem.getLabel(), rpSystem.getId(), unmatchedWWNs));
             }
         } else {
             _log.warn(String.format("RPA array mappings did not return a successful result, "

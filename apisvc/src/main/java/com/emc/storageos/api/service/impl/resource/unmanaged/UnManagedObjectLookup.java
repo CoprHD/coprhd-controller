@@ -1,6 +1,7 @@
 package com.emc.storageos.api.service.impl.resource.unmanaged;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrLookup;
@@ -12,7 +13,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
 public class UnManagedObjectLookup extends StrLookup<DataObject> {
 
@@ -69,4 +69,14 @@ public class UnManagedObjectLookup extends StrLookup<DataObject> {
         return val.toString();
     }
 
+    protected String renderSimpleStringSet(Set<String> set) {
+        StringBuffer output = new StringBuffer();
+        for (String item : set) {
+            output.append(String.format(Templates.TEMPLATE_LI, item));
+        }
+        if (output.length() > 0) {
+            return String.format(Templates.TEMPLATE_UL, output.toString());
+        }
+        return Templates.EMPTY_STRING;
+    }
 }

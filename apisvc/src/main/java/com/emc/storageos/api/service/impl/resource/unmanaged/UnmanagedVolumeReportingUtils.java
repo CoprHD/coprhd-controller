@@ -30,12 +30,10 @@ public class UnmanagedVolumeReportingUtils {
 
         StrSubstitutor bodyRenderer = new StrSubstitutor(new UnManagedVolumeLookup(unmanagedVolume, cache, dbClient, coordinator));
         String body = bodyRenderer.replace(Templates.TEMPLATE_UMV_TREE);
-        _log.info("body is: " + body);
 
         Map<String, Object> valuesMap = new HashMap<String, Object>();
         valuesMap.put("title", unmanagedVolume.getLabel());
         valuesMap.put("body", body);
-        _log.info("valuesMap is: " + valuesMap);
 
         return StrSubstitutor.replace(Templates.TEMPLATE_HTML_PAGE, valuesMap);
     }
@@ -50,18 +48,16 @@ public class UnmanagedVolumeReportingUtils {
         Iterator<UnManagedVolume> umvs = dbClient.queryIterativeObjects(UnManagedVolume.class, umvUris);
         while (umvs.hasNext()) {
             UnManagedVolume umv = umvs.next();
-            if (searchString == null || umv.getLabel().contains(searchString)) {
+            if (searchString == null || umv.getLabel().toLowerCase().contains(searchString.toLowerCase())) {
                 cache.mapUnManagedVolume(umv);
             }
         }
 
         String body = cache.renderUnManagedVolumeTree();
-        _log.info("body is: " + body);
 
         Map<String, Object> valuesMap = new HashMap<String, Object>();
         valuesMap.put("title", "All UnManagedVolumes");
         valuesMap.put("body", body);
-        _log.info("valuesMap is: " + valuesMap);
 
         return StrSubstitutor.replace(Templates.TEMPLATE_HTML_PAGE, valuesMap);
     }
@@ -74,12 +70,10 @@ public class UnmanagedVolumeReportingUtils {
         StrSubstitutor bodyRenderer = new StrSubstitutor(new UnManagedExportMaskLookup(
                 unmanagedExportMask, cache, dbClient, coordinator));
         String body = bodyRenderer.replace(Templates.TEMPLATE_UEM_TREE);
-        _log.info("body is: " + body);
 
         Map<String, Object> valuesMap = new HashMap<String, Object>();
         valuesMap.put("title", unmanagedExportMask.getLabel());
         valuesMap.put("body", body);
-        _log.info("valuesMap is: " + valuesMap);
 
         return StrSubstitutor.replace(Templates.TEMPLATE_HTML_PAGE, valuesMap);
     }

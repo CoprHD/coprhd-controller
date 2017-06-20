@@ -101,7 +101,6 @@ public class ReportInfoCache {
     
     public String renderUnManagedVolumeTree() {
         StringBuilder builder = new StringBuilder();
-        _log.info(umvTree.toString());
         if (umvTree != null) {
             builder.append("<ul>");
             for (Entry<String, Map<String, Set<String>>> storageArrayEntry : umvTree.entrySet()) {
@@ -121,7 +120,6 @@ public class ReportInfoCache {
             }
             builder.append("</ul>");
         }
-        _log.info(builder.toString());
         return builder.toString();
     }
     

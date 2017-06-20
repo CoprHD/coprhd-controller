@@ -127,7 +127,7 @@ public class UnManagedExportMaskService extends TaggedResource {
      */
     @GET
     @Produces({ MediaType.TEXT_PLAIN, MediaType.TEXT_HTML })
-    @Path("/{id}/tree")
+    @Path("/{id}")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public String getUnManagedExportMaskTree(@PathParam("id") URI id) {
         UnManagedExportMask unmanagedExportMask = _dbClient.queryObject(UnManagedExportMask.class, id);

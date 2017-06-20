@@ -1,6 +1,7 @@
 package com.emc.storageos.api.service.impl.resource.unmanaged;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
@@ -64,13 +65,21 @@ public class UnManagedVolumeLookup extends UnManagedObjectLookup {
                 break;
             case "vplexRelationships":
                 String label = "";
-                Set<String> vplexRelationships = new TreeSet<String>();
+                Set<String> vplexRelationships = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
                 if (VolumeIngestionUtil.isVplexVolume(_unManagedVolume)) {
                     label = "VPLEX Backend Volumes: ";
                     // TODO probably make more efficient/cache vols
-                    for (UnManagedVolume uvol : VplexBackendIngestionContext.findBackendUnManagedVolumes(_unManagedVolume, _dbClient)) {
-                        String uri = String.format(Templates.URI_UMV, uvol.getId());
-                        vplexRelationships.add(String.format(Templates.TEMPLATE_LI_LINK, uri, uvol.getLabel()));
+                    List<UnManagedVolume> uvols = VplexBackendIngestionContext.findBackendUnManagedVolumes(_unManagedVolume, _dbClient);
+                    if (uvols != null && !uvols.isEmpty()) {
+                        if (VolumeIngestionUtil.isVplexDistributedVolume(_unManagedVolume) && uvols.size() == 1) {
+                            vplexRelationships.add(String.format(Templates.TEMPLATE_LI, "WARNING: not all backend volumes found - have both backend arrays been discovered?"));
+                        }
+                        for (UnManagedVolume uvol : uvols) {
+                            String uri = String.format(Templates.URI_UMV, uvol.getId());
+                            vplexRelationships.add(String.format(Templates.TEMPLATE_LI_LINK, uri, uvol.getLabel()));
+                        }
+                    } else {
+                        vplexRelationships.add(String.format(Templates.TEMPLATE_LI, "WARNING: no backend volumes found - have backend arrays been discovered?"));
                     }
                 } else if (VolumeIngestionUtil.isVplexBackendVolume(_unManagedVolume)) {
                     UnManagedVolume parentVolume = VolumeIngestionUtil.findVplexParentVolume(_unManagedVolume, _dbClient, null);
@@ -98,7 +107,7 @@ public class UnManagedVolumeLookup extends UnManagedObjectLookup {
                     }
                 }
                 value = supportedVpools.length() > 0 ? String.format(Templates.TEMPLATE_UL, supportedVpools.toString())
-                        : Templates.NONE_FOUND;
+                        : Templates.EMPTY_STRING;
                 break;
             case "unmanagedExportMasks":
                 StringBuffer unmanagedExportMasks = new StringBuffer();
@@ -112,10 +121,10 @@ public class UnManagedVolumeLookup extends UnManagedObjectLookup {
                 value = String.format(Templates.TEMPLATE_UL, unmanagedExportMasks.toString());
                 break;
             case "managedExportMasks":
-                value = Templates.NONE_FOUND;
+                value = Templates.EMPTY_STRING;
                 break;
             case "unmanagedSnapshots":
-                Set<String> snaps = new TreeSet<String>();
+                Set<String> snaps = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
                 if (VolumeIngestionUtil.checkUnManagedVolumeHasReplicas(_unManagedVolume)) {
                     // TODO probably make more efficient/cache snap vols
                     for (UnManagedVolume uvol : VolumeIngestionUtil.getUnManagedSnaphots(_unManagedVolume, _dbClient)) {
@@ -124,11 +133,11 @@ public class UnManagedVolumeLookup extends UnManagedObjectLookup {
                     }
                     value = String.format(Templates.TEMPLATE_UL, StringUtils.join(snaps, " "));
                 } else {
-                    value = Templates.NONE_FOUND;
+                    value = Templates.EMPTY_STRING;
                 }
                 break;
             case "unmanagedClones":
-                Set<String> clones = new TreeSet<String>();
+                Set<String> clones = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
                 if (VolumeIngestionUtil.checkUnManagedVolumeHasReplicas(_unManagedVolume)) {
                     // TODO probably make more efficient/cache clones vols
                     for (UnManagedVolume uvol : VolumeIngestionUtil.getUnManagedClones(_unManagedVolume, _dbClient)) {
@@ -137,14 +146,14 @@ public class UnManagedVolumeLookup extends UnManagedObjectLookup {
                     }
                     value = String.format(Templates.TEMPLATE_UL, StringUtils.join(clones, " "));
                 } else {
-                    value = Templates.NONE_FOUND;
+                    value = Templates.EMPTY_STRING;
                 }
                 break;
             case "managedReplicas":
-                value = Templates.NONE_FOUND;
+                value = Templates.EMPTY_STRING;
                 break;
             case "volumeCharacterstics":
-                Set<String> volumeCharSet = new TreeSet<String>();
+                Set<String> volumeCharSet = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
                 for (Entry<String, String> entry : _unManagedVolume.getVolumeCharacterstics().entrySet()) {
                     String item = entry.getKey() + "=" + entry.getValue();
                     volumeCharSet.add(String.format(Templates.TEMPLATE_LI, item));
@@ -152,7 +161,7 @@ public class UnManagedVolumeLookup extends UnManagedObjectLookup {
                 value = String.format(Templates.TEMPLATE_UL, StringUtils.join(volumeCharSet, " "));
                 break;
             case "volumeInformation":
-                Set<String> volumeInfoSet = new TreeSet<String>();
+                Set<String> volumeInfoSet = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
                 for (Entry<String, AbstractChangeTrackingSet<String>> entry : _unManagedVolume.getVolumeInformation().entrySet()) {
                     String item = entry.getKey() + "=" + entry.getValue();
                     volumeInfoSet.add(String.format(Templates.TEMPLATE_LI, item));
@@ -164,7 +173,7 @@ public class UnManagedVolumeLookup extends UnManagedObjectLookup {
                     value = super.lookup(key);
                 } catch (Exception ex) {
                     _log.error("Exception getting key {}: {}", key, ex.getLocalizedMessage());
-                    value = Templates.NONE_FOUND;
+                    value = Templates.EMPTY_STRING;
                 }
         }
 

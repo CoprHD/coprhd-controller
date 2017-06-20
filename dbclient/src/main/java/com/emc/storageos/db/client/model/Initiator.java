@@ -218,7 +218,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     @Override
     public final String toString() {
         return String.format(
-                "Initiator(Protocol:%s, Node:%s, Port:%s, Host Name: %s, Cluster Name: %s)",
+                "Initiator (Protocol:%s, Node:%s, Port:%s, Host Name: %s, Cluster Name: %s)",
                 getProtocol(), getInitiatorNode(), getInitiatorPort(), getHostName(),
                 getClusterName());
     }
@@ -303,6 +303,8 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
 
     @Override
     public String forDisplay() {
-        return this.toString();
+        return String.format(
+                "%s (Host: %s, Cluster: %s)",
+                getInitiatorPort(), getHostName(), getClusterName() != null ? getClusterName() : "None");
     }
 }

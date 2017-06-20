@@ -609,7 +609,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.TEXT_PLAIN, MediaType.TEXT_HTML })
-    @Path("/{id}/tree")
+    @Path("/{id}")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public String getUnManagedVolumeTree(@PathParam("id") URI id) {
         UnManagedVolume unmanagedVolume = _dbClient.queryObject(UnManagedVolume.class, id);

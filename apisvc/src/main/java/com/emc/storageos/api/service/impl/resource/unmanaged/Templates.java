@@ -3,8 +3,8 @@ package com.emc.storageos.api.service.impl.resource.unmanaged;
 public interface Templates {
 
     // URIs
-    public static final String URI_UMV = "/vdc/unmanaged/volumes/%s/tree";
-    public static final String URI_UEM = "/vdc/unmanaged/export-masks/%s/tree";
+    public static final String URI_UMV = "/vdc/unmanaged/volumes/%s";
+    public static final String URI_UEM = "/vdc/unmanaged/export-masks/%s";
     public static final String URI_VOL = "/block/volume/%s";
     public static final String URI_VPOOL = "%s/blockvirtualpools/edit/%s";
 
@@ -42,15 +42,15 @@ public interface Templates {
             + "<table border=\"1\">"
             + "<tr><td nowrap>Ingestion Status:</td><td>${ingestionStatus}</td></tr>"
             + "<tr><td nowrap>Storage Array:</td><td>${storageSystem}</td></tr>"
-            + "<tr><td nowrap>Known Initiator Network Ids:</td><td>${knownInitiatorNetworkIds}</td></tr>"
-            + "<tr><td nowrap>Known Initiator Uris:</td><td>${knownInitiatorUris}</td></tr>"
-            + "<tr><td nowrap>Known Storage Port Uris:</td><td>${knownStoragePortUris}</td></tr>"
             + "<tr><td nowrap>Masking View Path:</td><td>${maskingViewPath}</td></tr>"
-            + "<tr><td nowrap>Supported Vpool Uris:</td><td>${supportedVpoolUris}</td></tr>"
+            + "<tr><td nowrap>Supported Vpools:</td><td>${supportedVpoolUris}</td></tr>"
+//            + "<tr><td nowrap>Known Initiator Network Ids:</td><td>${knownInitiatorNetworkIds}</td></tr>"
+            + "<tr><td nowrap>Known Initiators:</td><td>${knownInitiatorUris}</td></tr>"
+            + "<tr><td nowrap>Known Storage Ports:</td><td>${knownStoragePortUris}</td></tr>"
             + "<tr><td nowrap>Unmanaged Initiator Network Ids:</td><td>${unmanagedInitiatorNetworkIds}</td></tr>"
             + "<tr><td nowrap>Unmanaged Storage Port Network Ids:</td><td>${unmanagedStoragePortNetworkIds}</td></tr>"
-            + "<tr><td nowrap>Unmanaged Volume Uris:</td><td>${unmanagedVolumeUris}</td></tr>"
-            + "<tr><td nowrap>Zoning Map:</td><td>${zoningMap}</td></tr>"
+            + "<tr><td nowrap>Unmanaged Volumes:</td><td>${unmanagedVolumeUris}</td></tr>"
+            + "<tr><td nowrap>Zoning Map Entry Keys:</td><td>${zoningMap}</td></tr>"
             + "<tr><td nowrap>Operation Status:</td><td>${status}</td></tr>"
             + "</table>";
     

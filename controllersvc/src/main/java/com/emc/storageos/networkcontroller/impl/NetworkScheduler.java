@@ -598,7 +598,10 @@ public class NetworkScheduler {
      */
     static private void checkZoningMap(URI varrayURI, ExportMask mask, Collection<Initiator> initiators) {
         StringSetMap zoningMap = mask.getZoningMap();
+        _log.info("######");
+        _log.info("## zoningMap ### " + zoningMap);
         for (Initiator initiator : initiators) {
+            _log.info("## initiator ### " + initiator);
             if (zoningMap == null || !zoningMap.containsKey(initiator.getId().toString())) {
                 _log.info(String.format("No zoning map entry for initiator %s (%s), will not be zoned",
                         initiator.getInitiatorPort(), initiator.getId()));

@@ -1113,7 +1113,7 @@ public class NetworkDeviceController implements NetworkController {
 
         // get existing zones from the switch, first check if the zones were retrieved by previous steps and cached in the workflow
         Map<String, List<Zone>> zonesMap = (Map<String, List<Zone>>) WorkflowService.getInstance().loadWorkflowData(token, "zonemap");
-
+        _log.info("### zonesMap " + zonesMap);
         // if the existing zones were not already retrieved and cached by other steps, retrieve them now
         if (zonesMap == null) {
             zonesMap = new HashMap<String, List<Zone>>();

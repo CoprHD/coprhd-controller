@@ -528,8 +528,13 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         List<URI> networkSystemList = _dbClient.queryByType(NetworkSystem.class, true);
         boolean isNetworkSystemConfigured = false;
         if (networkSystemList.iterator().hasNext()) {          
-            // Find all Networks
-            List<URI> networks = _dbClient.queryByType(Network.class, true);
+            List<URI> allNetworks = _dbClient.queryByType(Network.class, true);
+
+            // Transfer to a reset-able list
+            List<URI> networks = new ArrayList<>();
+            for (URI networkURI : allNetworks) {
+                networks.add(networkURI);
+            }
             
             for (RPSite site : sites) {
                 // Get the initiators for this site.

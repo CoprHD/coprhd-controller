@@ -1100,13 +1100,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "host", "project" })
     public List<AssetOption> getBlockVolumes(AssetOptionsContext ctx, URI hostOrClusterId, final URI projectId) {
         ViPRCoreClient client = api(ctx);
-        Set<URI> exportedBlockResources = BlockProvider.getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
-        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
-                exportedBlockResources);
-        SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
-        BlockVolumeBootVolumeFilter bootVolumeFilter = new BlockVolumeBootVolumeFilter();
-        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
-
+        List<VolumeRestRep> volumes = getUnassignedVolumes(client, hostOrClusterId, projectId);
         return createVolumeOptions(client, volumes);
     }
 
@@ -4016,5 +4010,59 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      */
     private boolean isIBMXIVVolume(VolumeRestRep vol) {
         return vol != null && IBMXIV_SYSTEM_TYPE.equals(vol.getSystemType());
+    }
+
+    /**
+     * Get volumes to export to hosts that are connected via varray
+     *
+     * @param ctx
+     * @param hostOrClusterId
+     * @param projectId
+     * @param blockStorageType
+     * @return AssetOptions
+     */
+    @Asset("blockVolumeForHost")
+    @AssetDependencies({ "host", "project","blockStorageType" })
+    public List<AssetOption> getBlockVolumesForHosts(AssetOptionsContext ctx, URI hostOrClusterId,
+            final URI projectId, String blockStorageType) {
+        ViPRCoreClient client = api(ctx);
+        List<VolumeRestRep> volumes = getUnassignedVolumes(client, hostOrClusterId, projectId);
+
+        // get varray IDs for host/cluster
+        List<VirtualArrayRestRep> varrays = null;
+        if(EXCLUSIVE_STORAGE_OPTION.key.equals(blockStorageType)) {
+            varrays = client.varrays().findByConnectedHost(hostOrClusterId);
+        } else if(SHARED_STORAGE_OPTION.key.equals(blockStorageType)) {
+            varrays = client.varrays().findByConnectedCluster(hostOrClusterId);
+        }
+        List<URI> varrayIds = new ArrayList<>();
+        for (VirtualArrayRestRep varray : varrays){
+            varrayIds.add(varray.getId());
+        }
+
+        // remove volumes not in hosts/cluster's varray
+        Iterator<VolumeRestRep> itr = volumes.iterator();
+        while (itr.hasNext()) {
+            if (!varrayIds.contains(itr.next().getVirtualArray().getId())) {
+                itr.remove();
+            }
+        }
+
+        return createVolumeOptions(client, volumes);
+    }
+
+    /*
+     * Get volumes to be exported to a host (connectivity not checked)
+     */
+    private List<VolumeRestRep> getUnassignedVolumes(ViPRCoreClient client,
+            URI hostOrClusterId, URI projectId) {
+        Set<URI> exportedBlockResources =
+                BlockProvider.getExportedVolumes(client, projectId, hostOrClusterId, null);
+        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter =
+                new UnexportedBlockResourceFilter<VolumeRestRep>(exportedBlockResources);
+        SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
+        BlockVolumeBootVolumeFilter bootVolumeFilter = new BlockVolumeBootVolumeFilter();
+        return client.blockVolumes().findByProject(projectId,
+                unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
     }
 }

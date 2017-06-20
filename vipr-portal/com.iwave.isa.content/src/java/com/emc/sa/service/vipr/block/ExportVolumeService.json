@@ -17,7 +17,7 @@
     },
     
     volumes:{
-    	type:"assetType.vipr.unassignedBlockVolume",
+        type:"assetType.vipr.blockVolumeForHost",
     	select: "many"
     },
 

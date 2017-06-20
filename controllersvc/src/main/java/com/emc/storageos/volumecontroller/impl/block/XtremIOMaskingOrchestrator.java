@@ -296,19 +296,23 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 String previousStep = null;
                 for (ExportMask exportMask : exportMasks) {
                     refreshExportMask(storage, getDevice(), exportMask);
+                    List<URI> maskVolumes = new ArrayList<URI>();
                     for (URI egVolumeID : volumes) {
-                        String volumeIdStr = egVolumeID.toString();
                         BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, egVolumeID);
                         if (bo != null && exportMask.hasUserCreatedVolume(bo.getId())) {
-                            if (isRemoveAllVolumes(exportMask, volumes)) {
-                                exportMaskstoDelete.add(exportMask);
-                            } else {
-                                exportMaskstoRemoveVolume.add(exportMask);
-                            }
+                            maskVolumes.add(egVolumeID);
                         } else {
                             _log.info(String
                                     .format("Export mask %s does not contain system-created volume %s, so it will not be removed from this export mask",
-                                            exportMask.getId().toString(), volumeIdStr));
+                                            exportMask.getId().toString(), egVolumeID.toString()));
+                        }
+                    }
+
+                    if (!maskVolumes.isEmpty()) {
+                        if (isRemoveAllVolumes(exportMask, volumes)) {
+                            exportMaskstoDelete.add(exportMask);
+                        } else {
+                            exportMaskstoRemoveVolume.add(exportMask);
                         }
                     }
                 }

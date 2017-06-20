@@ -19,7 +19,13 @@ package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
+import com.emc.storageos.primitives.CustomServicesPrimitiveType;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -48,13 +54,17 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
     private final DbClient dbClient;
     private final CoordinatorClient coordinator;
+    private final CustomServicesViPRPrimitive primitive;
 
     public CustomServicesRESTExecution(final Map<String, List<String>> input,
-            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator,final DbClient dbClient) {
+            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator,final DbClient dbClient, final CustomServicesPrimitiveDAOs daos) {
         this.input = input;
         this.step = step;
         this.coordinator = coordinator;
         this.dbClient = dbClient;
+        final CustomServicesPrimitiveType primitive = daos.get(CustomServicesConstants.REST_API_PRIMITIVE_TYPE).get(step.getOperation());
+        this.primitive = (CustomServicesViPRPrimitive) primitive;
+
         provideDetailArgs(step.getId(), step.getFriendlyName());
     }
 
@@ -83,7 +93,26 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
             final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, restPrimitive.getAttributes().get(CustomServicesConstants.PROTOCOL),
                     AnsibleHelper.getOptions(CustomServicesConstants.USER, input), AnsibleHelper.getOptions(CustomServicesConstants.PASSWORD, input));
-            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(restPrimitive), null);
+            Map<String, String> queryParam = new HashedMap();
+            if (primitive != null && primitive.input() != null) {
+
+                logger.info("set the query params");
+                final Map<String, List<InputParameter>> viprInputs = primitive.input();
+                final List<InputParameter> queries = viprInputs.get(CustomServicesConstants.QUERY_PARAMS);
+
+                for (final InputParameter a : queries) {
+                    if (input.get(a.getName()) == null) {
+                        logger.debug("Query parameter value is not set for:{}", a.getName());
+                        continue;
+                    }
+                    final String value = input.get(a.getName()).get(0);
+                    if (!StringUtils.isEmpty(value)) {
+                        logger.info("set param for:{}", a.getName());
+                        queryParam.put(a.getName(), value);
+                    }
+                }
+            }
+            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(restPrimitive), queryParam);
             final WebResource.Builder builder = BuildRestRequest.makeRequestBuilder(webResource, step, input);
 
             final CustomServicesConstants.RestMethods method =

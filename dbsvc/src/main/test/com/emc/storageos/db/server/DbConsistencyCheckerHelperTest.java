@@ -123,22 +123,15 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
     
     @Test
     public void testCheckIndexingCF_SkipRecordWithNoInactiveColumn() throws Exception {
-    	ColumnFamily<String, CompositeColumnName> cf = new ColumnFamily<String, CompositeColumnName>("FileShare",
-                StringSerializer.get(),
-                CompositeColumnNameSerializer.get());
-        
         FileShare testData = new FileShare();
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("path1");
         testData.setMountPath("mountPath1");
         getDbClient().createObject(testData);
         
-        Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
-        keyspace.prepareQuery(cf)
-                .withCql(String.format(
-                        "delete from \"FileShare\" where key='%s' and column1='inactive'",
-                        testData.getId().toString()))
-                .execute();
+        ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(String.format(
+                "delete from \"FileShare\" where key='%s' and column1='inactive'",
+                testData.getId().toString()));
         
         CheckResult checkResult = new CheckResult();
         helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);

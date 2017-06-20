@@ -4104,7 +4104,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId(),
             // targetFs.getVirtualArray(), targetVNasURI);
             IsilonApi isi = getIsilonDevice(targetStorage);
-            isi.createDir(targetFs.getPath(), true);
+            // isi.createDir(targetFs.getPath(), true);
             IsilonSyncPolicy tempRepPolicy = new IsilonSyncPolicy(syncPolicyName, targetFs.getPath(), tempFs.getPath(),
                     tempStorage.getIpAddress(), Action.sync);
             tempRepPolicy.setDescription(

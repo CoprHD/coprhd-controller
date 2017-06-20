@@ -159,6 +159,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECTS_METHOD = "assignFileReplicationPolicyToProjects";
     private static final String CHECK_FILE_POLICY_PATH_HAS_RESOURCE_LABEL_METHOD = "checkFilePolicyPathHasResourceLabel";
 
+    private static final String CREATE_FILE_SYSTEM_METHOD = "createFS";
+    private static final String START_SYNC_IQ_POLICY_METHOD = "startSyncIQPolicy";
+    private static final String FAILOVER_FS_HIGHER_ORDER_METHOD = "failoverFsHigherOrder";
+    private static final String CREATE_REPLICATION_POLICY_HIGHER_ORDER_METHOD = "createRepPolicyForFsHigherOrder";
+
     public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
         this.customConfigHandler = customConfigHandler;
     }
@@ -917,8 +922,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             // Failover File System to Target
             // when the policy is not applied at vPool.
-            if (sourceFileShare.getFilePolicies() != null
-                    && sourceFileShare.getFilePolicies().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.file_system.name())) {
+            if (!sourceFileShare.getFilePolicies().isEmpty()) {
                 s_logger.info("Generating steps for Failover File System to Target");
                 String failoverStep = workflow.createStepId();
 
@@ -937,12 +941,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 stepDescription = String.format("Failover Source File System %s when the replicationPolicy is applied at vPool/Project",
                         sourceFileShare.getLabel());
                 // List<URI> combined = Arrays.asList(targetFileShare.getId(), tempTargetFS.getId());
-                Object[] argsForFO = new Object[] { sourceFileShare.getId(), targetFileShare.getId(), sourcefp.getId() };
-                Workflow.Method failoverFsHigherOrderMethod = new Workflow.Method(FAILOVER_FILESYSTEM_AT_HIGHER_ORDER_METHOD, argsForFO);
-                String failoverFsHigherOrderStep = workflow.createStepId();
-                workflow.createStep(null, stepDescription, null, systemTarget.getId(),
-                        systemTarget.getSystemType(), getClass(), failoverFsHigherOrderMethod, null, failoverFsHigherOrderStep);
+                // Object[] argsForFO = new Object[] { sourceFileShare.getId(), targetFileShare.getId(), sourcefp.getId() };
+                // Workflow.Method failoverFsHigherOrderMethod = new Workflow.Method(FAILOVER_FILESYSTEM_AT_HIGHER_ORDER_METHOD, argsForFO);
+                // String failoverFsHigherOrderStep = workflow.createStepId();
+                // waitForFailover = workflow.createStep(null, stepDescription, null, systemTarget.getId(),
+                // systemTarget.getSystemType(), getClass(), failoverFsHigherOrderMethod, null, failoverFsHigherOrderStep);
 
+                waitForFailover = addStepsToFailoverFSWhenPolicyAppliedAtHigherOrder(workflow, fsURI, targetFileShare.getId(),
+                        sourcefp.getId());
             }
             // Replicate quota setting
             stepDescription = String.format(
@@ -1033,65 +1039,89 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * @param sourceFsId
      * @param targetFsId
      * @param taskId
+     * @return
      */
-    public void addStepsToFailoverFSWhenPolicyAppliedAtHigherOrder(URI sourceFsId, URI targetFsId, URI sourceFp, String taskId) {
+    public String addStepsToFailoverFSWhenPolicyAppliedAtHigherOrder(Workflow workflow, URI sourceFsId, URI targetFsId, URI sourceFp) {
         s_logger.info("Generating steps to perform failover operation when the the replicaion policy is applied at vPool or Project");
-        FileWorkflowCompleter completer = new FileWorkflowCompleter(sourceFsId, taskId);
-        Workflow workflow = null;
+        // FileWorkflowCompleter completer = new FileWorkflowCompleter(sourceFsId, taskId);
+        // Workflow workflow = null;
+        String waitFor = null;
         try {
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, sourceFsId);
             FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsId);
             FilePolicy sourceFilePolicy = s_dbClient.queryObject(FilePolicy.class, sourceFp);
             // String HIGHER_ORDER_FAILOVER_STEP_GROUP = "higherOrderFailoverStepGroup";
-            String waitFor = null;
+
             // Temporary directory created to failover the
             URI tempTargetFsId = FileOrchestrationUtils.createFsObj(s_dbClient, targetFileShare.getId());
+            s_logger.info("Created in ViPR DB FileSystem object URI : {}", tempTargetFsId.toString());
             FileShare tempFileShare = s_dbClient.queryObject(FileShare.class, tempTargetFsId);
+            s_logger.info("tempFileShare Object : {} ", tempFileShare);
             // Name of the SyncIQ policy which will be applied at the targetFS.
             String tempSyncPolicyName = FileOrchestrationUtils.generateTempSyncIQNameHigherOrderFsFailover(s_dbClient, targetFileShare,
                     tempFileShare,
                     sourceFilePolicy);
 
-            workflow = this._workflowService.getNewWorkflow(this, FAILOVER_FILESYSTEM_HIGHER_ORDER_WF_NAME, false, taskId, completer);
+            // workflow = this._workflowService.getNewWorkflow(this, FAILOVER_FILESYSTEM_HIGHER_ORDER_WF_NAME, false, taskId, completer);
 
             // Step1: Create tempFS
-            s_logger.info("_csm Creating new temp FS :  {} ", tempFileShare.getLabel());
+            s_logger.info(" new STEP to Create temp FS :  {} ", tempFileShare.getLabel());
             String tempFsStep = workflow.createStepId();
             String stepDescription = String.format("Create the temp target FileShare : %s ", tempFileShare.getLabel());
             Object[] fsArgs = new Object[] { tempFileShare.getStorageDevice(), tempFileShare.getPool(), tempFileShare.getId(),
                     tempFileShare.getNativeId() };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "createFS", tempFsStep, stepDescription,
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, CREATE_FILE_SYSTEM_METHOD, tempFsStep, stepDescription,
                     tempFileShare.getStorageDevice(), fsArgs);
+            s_logger.info(" !! DONE !! executing STEP to create temp FS :  {} ", tempFileShare.getLabel());
+            // update the targeFS with its MirrorFs info; needed in #Step:3
+            FileOrchestrationUtils.updateTargetFsWithMirrorFsInfo(s_dbClient, targetFileShare, tempFileShare);
+            s_logger.info("Updated the targetFileShare : {} with MirrorFs info : {}", targetFileShare.getLabel(),
+                     targetFileShare.getMirrorfsTargets());
 
             // Step2: create Sync Policy apply at targetFs
+            s_logger.info(" new STEP to Create SyncIQ Policy : {} ", tempSyncPolicyName);
             String tempPolicyStep = workflow.createStepId();
-            stepDescription = String.format("Create File Policy : %s ");
+            stepDescription = String.format("Create File Policy : %s ", tempSyncPolicyName);
             Object[] policyArgs = new Object[] { targetFileShare.getId(), tempFileShare.getId(), tempSyncPolicyName };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "createRepPolicyForFsHigherOrder", tempPolicyStep,
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, CREATE_REPLICATION_POLICY_HIGHER_ORDER_METHOD, tempPolicyStep,
                     stepDescription, tempFileShare.getStorageDevice(), policyArgs);
+            s_logger.info(" !! DONE !! executing  STEP to Create SyncIQ Policy : {} ", tempSyncPolicyName);
 
             // Step3: Start the Policy
+            s_logger.info("new STEP to Start SyncIQ Policy : {}", tempSyncPolicyName);
             String startPolicy = workflow.createStepId();
             stepDescription = String.format("Start the SyncIQ Policy : %s", tempSyncPolicyName);
             Object[] startPolicyArgs = new Object[] { tempSyncPolicyName, targetFileShare.getId() };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "startSyncIQPolicy", startPolicy, stepDescription,
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, START_SYNC_IQ_POLICY_METHOD, startPolicy, stepDescription,
                     targetFileShare.getStorageDevice(), startPolicyArgs);
+            s_logger.info(" !! DONE !! executing  STEP to Start SyncIQ Policy : {}", tempSyncPolicyName);
 
             // Step4: Failover
+            s_logger.info("new STEP to Failover from target : {} to tempTarget: {}", targetFileShare.getName(), tempFileShare.getName());
             String failoverStep = workflow.createStepId();
             stepDescription = String.format("Create File Policy : %s ", tempSyncPolicyName);
             List<URI> combined = Arrays.asList(targetFileShare.getId(), tempFileShare.getId());
             MirrorFileFailoverTaskCompleter failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined,
                     failoverStep);
             Object[] failoverArgs = new Object[] { tempSyncPolicyName, targetFileShare.getId(), failoverCompleter };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, "failoverFsHigherOrder", failoverStep, stepDescription,
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, FAILOVER_FS_HIGHER_ORDER_METHOD, failoverStep, stepDescription,
                     targetFileShare.getStorageDevice(), failoverArgs);
+            s_logger.info("!! DONE !! executing STEP to  Failover from target : {} to tempTarget: {}", targetFileShare.getName(),
+                    tempFileShare.getName());
 
-            String successMessage = String.format("Successfully failed over File System : %s", sourceFileShare.getLabel());
-            workflow.executePlan(completer, successMessage);
+            // String successMessage = String.format("Successfully failed over File System : %s", sourceFileShare.getLabel());
+            // workflow.executePlan(completer, successMessage);
+
         } catch (Exception e) {
-
+            s_logger.error("print stack trace : {}", e.getStackTrace().toString());
+            s_logger.error("Could not Failover filesystem : " + sourceFsId + " filePolicy applied at vPool", e);
+            s_logger.error("Could not failover filesystems: " + sourceFsId, e);
+            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+                    sourceFsId.toString(), opName, e);
+            // workflow.completer.error(s_dbClient, this._locker, serviceError);
         }
+        return waitFor;
     }
 
     /**

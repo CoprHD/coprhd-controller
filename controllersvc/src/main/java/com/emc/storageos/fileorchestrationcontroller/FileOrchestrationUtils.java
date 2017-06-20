@@ -1202,20 +1202,29 @@ public final class FileOrchestrationUtils {
         tempFs.setMountPath(tempTargetPath);
         tempFs.setNativeId(tempTargetPath);
         tempFs.setPath(tempTargetPath);
-        tempFs.setPersonality(FileShare.PersonalityTypes.TARGET.name());
+        //tempFs.setPersonality(FileShare.PersonalityTypes.TARGET.name());
         tempFs.setParentFileShare(new NamedURI(targetFS.getId(), targetFS.getLabel()));
         tempFs.setCapacity(targetFS.getCapacity());
         tempFs.setCreationTime(Calendar.getInstance());
         tempFs.setInactive(false);
         tempFs.setProtocol(targetFS.getProtocol());
         tempFs.setStorageDevice(targetFS.getStorageDevice());
+        tempFs.setPool(targetFS.getPool());
         tempFs.setVirtualArray(targetFS.getVirtualArray());
+	tempFs.setVirtualPool(targetFS.getVirtualPool());
+        tempFs.setProject(targetFS.getProject());
+        tempFs.setTenant(targetFS.getTenant());
         // TODO: add storagePort
         // tempFs.setStoragePort(storagePort);
         tempFs.setThinlyProvisioned(targetFS.getThinlyProvisioned());
 
         _dbClient.createObject(tempFs);
         _log.info("TempTargetFS created {}", tempFs);
+
+        // update the targeFS with its MirrorFs info; needed in #Step:3
+        updateTargetFsWithMirrorFsInfo(_dbClient, targetFS, tempFs);
+        _log.info("Updated the targetFileShare : {} with MirrorFs info : {}", targetFS.getLabel(),
+                targetFS.getMirrorfsTargets());
 
         return tempFs.getId();
     }
@@ -1251,6 +1260,23 @@ public final class FileOrchestrationUtils {
             FileShare tempFileShare, FilePolicy sourceFilePolicy) {
         String syncPolicyName = targetFileShare.getLabel() + "_" + tempFileShare.getLabel() + "_LocalReplication";
         return syncPolicyName;
+    }
+
+    /**
+     * FS FailOver at higher order : Update the targetFS with MirrorFs Info i.e, tempFSId
+     * 
+     * @param s_dbClient
+     * @param targetFileShare
+     * @param tempFileShare
+     */
+    public static void updateTargetFsWithMirrorFsInfo(DbClient s_dbClient, FileShare targetFileShare, FileShare tempFileShare) {
+        if (targetFileShare != null) {
+            if (targetFileShare.getMirrorfsTargets() == null) {
+                targetFileShare.setMirrorfsTargets(new StringSet());
+            }
+            targetFileShare.getMirrorfsTargets().add(tempFileShare.getId().toString());
+            s_dbClient.updateObject(targetFileShare);
+        }
     }
 
 }

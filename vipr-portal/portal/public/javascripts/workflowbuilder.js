@@ -1111,6 +1111,18 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             return translateList(INPUT_TYPE_OPTIONS.concat(INPUT_TYPE_OPTIONS_REQUIRED),'input.type');
         }
     }
+    
+    $scope.getDefaultInputFieldType = function(fieldType) {
+        switch(fieldType.toLowerCase()) {
+            case "integer":
+            case "short":
+                return "number";
+            case "boolean":
+                return "boolean";
+            default:
+                return "text";
+        } 
+    }
 
     /* creates list of objects for select one drop downs
      * translates key.id from messages file for the name

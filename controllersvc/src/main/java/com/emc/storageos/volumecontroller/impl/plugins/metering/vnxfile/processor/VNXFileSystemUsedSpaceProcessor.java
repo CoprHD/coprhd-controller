@@ -78,20 +78,17 @@ public class VNXFileSystemUsedSpaceProcessor extends VNXFileProcessor {
             Map<String, Object> keyMap) throws VNXFilePluginException {
 
         Iterator<Object> iterator = filesystemList.iterator();
-        while (iterator.hasNext()) {
-            Status status = (Status) filesystemList.get(0);
+        if (iterator.hasNext()) {
+            Status status = (Status) iterator.next();
             if (status.getMaxSeverity() == Severity.OK) {
-                if (iterator.hasNext()) {
+                while (iterator.hasNext()) {
                     // This will give file system info we need to iterate once more
                     iterator.next();
                     if (iterator.hasNext()) {
                         FileSystemCapacityInfo info = (FileSystemCapacityInfo) iterator.next();
                         ResourceUsage resourceUsage = info.getResourceUsage();
-
                         if (resourceUsage != null) {
-
                             _logger.info("Size of file system: is  {}", resourceUsage.getSpaceUsed());
-
                             keyMap.put(VNXFileConstants.FILESYSTEM_USED_SPACE, resourceUsage.getSpaceUsed());
                             break;
                         }

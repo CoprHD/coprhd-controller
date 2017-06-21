@@ -72,6 +72,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
+import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -2378,7 +2379,7 @@ implements FileStorageDevice, BlockStorageDevice {
 
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
-            FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
+            FileDeviceInputOutput args, FileShareQuotaDirectory qd) throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported("Update Quota Directory", "VNXe");
         result = BiosCommandResult.createErrorResult(serviceError);

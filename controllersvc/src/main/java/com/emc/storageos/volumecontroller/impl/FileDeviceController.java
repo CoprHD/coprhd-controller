@@ -941,10 +941,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
              // Set status
-        	fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
-            if (!result.isCommandSuccess()) {
+        	if (!result.isCommandSuccess() && !result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             } 
+        	fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
             _dbClient.updateObject(fs);
 
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
@@ -999,7 +999,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else if (!result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
-            if (!result.isCommandSuccess()) {
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Set status
@@ -1840,12 +1840,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             fsObj = _dbClient.queryObject(FileShare.class, fs);
-
-            URI qtreeURI = quotaDir.getId();
-            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
-            quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
-            quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
-            quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
+            
             FileDeviceInputOutput args = new FileDeviceInputOutput();
 
             // Set up args
@@ -1854,18 +1849,26 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setOpId(task);
 
             FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
-            BiosCommandResult result = nasDevice.doUpdateQuotaDirectory(storageObj, args, quotaDirObj);
+            BiosCommandResult result = nasDevice.doUpdateQuotaDirectory(storageObj, args, quotaDir);
             if (result.getCommandPending()) {
                 return;
             }
             
             String fsName = fsObj.getName();
-            
-            if (!result.isCommandSuccess()) {
-            	fsObj = _dbClient.queryObject(FileShare.class, fs);
-            	quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
-                _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successfull");
+            if (result.getCommandPending()) {
+                return;
             }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+               
+                _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successfull");
+            } else {
+            	URI qtreeURI = quotaDir.getId();
+                quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
+                quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
+                quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
+                quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
+            }
+
             quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsName));
             
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
@@ -2196,7 +2199,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     /*
      * private List<FileExportRule> queryFSDBExports(FileShare fs)
-     * {
      * List<URI> exportIds = _dbClient.queryByConstraint(ContainmentConstraint.
      * Factory.getFileExportRulesConstraint(fs.getId()));
      * return _dbClient.queryObject(FileExportRule.class, exportIds);

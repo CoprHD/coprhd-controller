@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -192,7 +193,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
 
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
-            FileDeviceInputOutput fd, QuotaDirectory qt)
+            FileDeviceInputOutput fd, FileShareQuotaDirectory qt)
             throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }

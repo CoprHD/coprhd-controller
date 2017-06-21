@@ -98,6 +98,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileShareExport;
+import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
@@ -1414,22 +1415,24 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput args,
-            QuotaDirectory quotaDir) throws ControllerException {
+    		FileShareQuotaDirectory quotaDir) throws ControllerException {
         // Get Parent FS mount path
         // Get Quota Directory Name
         // Get Quota Size
         // Call Update Quota (Aways use that quota for updating the size)
-
+    	QuotaDirectory quotaDirObj = null;
         String fsMountPath = args.getFsMountPath();
         Long qDirSize = quotaDir.getSize();
         String qDirPath = fsMountPath + "/" + quotaDir.getName();
         _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory {} with size {} - start", qDirPath, qDirSize);
         try {
             IsilonApi isi = getIsilonDevice(storage);
+            URI qtreeURI = quotaDir.getId();
+            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
 
             String quotaId = null;
-            if (quotaDir.getExtensions() != null) {
-                quotaId = quotaDir.getExtensions().get(QUOTA);
+            if (quotaDirObj.getExtensions() != null) {
+                quotaId = quotaDirObj.getExtensions().get(QUOTA);
             }
 
             if (quotaId != null) {
@@ -1469,24 +1472,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(QuotaDirectory quotaDir, Long qDirSize, Long fsSize, IsilonApi isi) {
-        Long notificationLimit = 0L;
-        Long softlimit = 0L;
-        Long softGrace = 0L;
-
-        if (quotaDir.getNotificationLimit() != null) {
-            notificationLimit = Long.valueOf(quotaDir.getNotificationLimit());
-        }
-
-        if (quotaDir.getSoftLimit() != null) {
-            softlimit = Long.valueOf(quotaDir.getSoftLimit());
-        }
-
-        if (quotaDir.getSoftGrace() != null) {
-            softGrace = Long.valueOf(quotaDir.getSoftGrace());
-        }
-
-        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, fsSize, false, null, qDirSize,
+    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(FileShareQuotaDirectory quotaDir, Long qDirSize, Long fsSize, IsilonApi isi) {
+        Long notificationLimit = Integer.valueOf(quotaDir.getNotificationLimit()).longValue();
+        
+        Long softlimit = Integer.valueOf(quotaDir.getSoftLimit()).longValue();
+        Long softGrace = Integer.valueOf(quotaDir.getSoftGrace()).longValue();
+         return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, fsSize, false, null, qDirSize,
                 notificationLimit, softlimit, softGrace);
     }
 
@@ -1507,6 +1498,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             softGrace = Long.valueOf(quotaDir.getSoftGrace());
         }
 
+        return createQuotaWithThreshold(qDirPath, qDirSize,
+                softlimit, notificationLimit, softGrace, fsSize, isi);
+    }
+    
+    private String checkThresholdAndcreateQuota(FileShareQuotaDirectory quotaDir, Long qDirSize, String qDirPath, Long fsSize, IsilonApi isi) {
+    	Long notificationLimit = Integer.valueOf(quotaDir.getNotificationLimit()).longValue();
+        Long softlimit = Integer.valueOf(quotaDir.getSoftLimit()).longValue();
+        Long softGrace = Integer.valueOf(quotaDir.getSoftGrace()).longValue();
         return createQuotaWithThreshold(qDirPath, qDirSize,
                 softlimit, notificationLimit, softGrace, fsSize, isi);
     }

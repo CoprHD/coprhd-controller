@@ -264,7 +264,7 @@ public interface FileStorageDevice {
     public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
 
-    public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput fd, QuotaDirectory qt)
+    public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput fd, FileShareQuotaDirectory qt)
             throws ControllerException;
 
     public BiosCommandResult updateExportRules(StorageSystem storage,

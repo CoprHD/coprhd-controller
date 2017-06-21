@@ -297,17 +297,19 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         _dbClient.updateObject(fs);
         _dbClient.updateObject(quotaDir);
         
-        quotaDir.setSoftLimit(param.getSoftLimit()>0 ? param.getSoftLimit()
-                : quotaDir.getSoftLimit()>0 ? quotaDir.getSoftLimit() : fsSoftLimit>0 ? fsSoftLimit : 0);
-        quotaDir.setSoftGrace(param.getSoftGrace()>0 ? param.getSoftGrace()
-                : quotaDir.getSoftGrace()>0? quotaDir.getSoftGrace()
+        QuotaDirectory quotaDirNew = new QuotaDirectory();
+        
+        quotaDirNew.setSoftLimit(param.getSoftLimit()>0 ? param.getSoftLimit()
+                : quotaDirNew.getSoftLimit()>0 ? quotaDirNew.getSoftLimit() : fsSoftLimit>0 ? fsSoftLimit : 0);
+        quotaDirNew.setSoftGrace(param.getSoftGrace()>0 ? param.getSoftGrace()
+                : quotaDirNew.getSoftGrace()>0? quotaDirNew.getSoftGrace()
                         : fs.getSoftGracePeriod()>0 ? fs.getSoftGracePeriod() : 0);
-        quotaDir.setNotificationLimit(param.getNotificationLimit()>0 ? param.getNotificationLimit()
-                : quotaDir.getNotificationLimit()>0 ? quotaDir.getNotificationLimit()
+        quotaDirNew.setNotificationLimit(param.getNotificationLimit()>0 ? param.getNotificationLimit()
+                : quotaDirNew.getNotificationLimit()>0 ? quotaDirNew.getNotificationLimit()
                         : fsNotifiLimit>0 ? fsNotifiLimit : 0);
                          
         // Create an object of type "FileShareQtree" to be passed into the south-bound layers.
-        FileShareQuotaDirectory qt = new FileShareQuotaDirectory(quotaDir);
+        FileShareQuotaDirectory qt = new FileShareQuotaDirectory(quotaDirNew);
 
         // Now get ready to make calls into the controller
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -323,7 +325,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR, true, AuditLogManager.AUDITOP_BEGIN,
-                quotaDir.getLabel(), quotaDir.getId().toString(), fs.getId().toString());
+        		quotaDirNew.getLabel(), quotaDirNew.getId().toString(), fs.getId().toString());
 
         fs = _dbClient.queryObject(FileShare.class, fs.getId());
         _log.debug("FileService::Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),

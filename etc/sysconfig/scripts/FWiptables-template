@@ -45,8 +45,10 @@ fw_custom_iptables() {
     #   9553 - sasvc
     #   8543 - geosvc
     #   9093 - vasasvc
-    #   9160 - dbsvc
-    #   9260 - geodbsvc
+    #   9160 - thrift for dbsvc
+    #   9042 - native transport for dbsvc
+    #   9260 - thrift for geodbsvc
+    #   9142 - native transport for geodbsvc
     #   9993 - syssvc (SSL)
     #   9998 - syssvc (non-SSL)
     #  10099 - controllersvc (RMI)
@@ -55,7 +57,7 @@ fw_custom_iptables() {
     # NOTE: iptables/ip6tables accepts up to maximun of ports is 15 in the argument list, please do not exceed the limit
     #
     INGRES_PORTS_PART1="2181,2888,2889,6443,7000,7001,7100,7101,7199,7200,7299,7300,7399,7400"
-    INGRES_PORTS_PART2="5000,7443,8080,8443,8543,9093,9160,9260,9553,9993,10099,10199,40201"
+    INGRES_PORTS_PART2="5000,7443,8080,8443,8543,9093,9160,9260,9042,9142,9553,9993,10099,10199,40201"
     INGRES_UDP_PORTS="500,4500"
 
     # TODO support multiple nics

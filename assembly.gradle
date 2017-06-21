@@ -3,7 +3,7 @@ configurations {
 }
 
 dependencies {
-    cassandra "org.apache.cassandra:apache-cassandra:2.0.7:bin@tar.gz"
+    cassandra "org.apache.cassandra:apache-cassandra:3.9:bin@tar.gz"
 }
 
 task unpackCassandra(type: Copy) {
@@ -12,16 +12,20 @@ task unpackCassandra(type: Copy) {
 }
 
 task assembleCqlsh(type: Copy, dependsOn: unpackCassandra) {
-    def cassandraDir = "${buildDir}/tmp/apache-cassandra-2.0.7"
+    def cassandraDir = "${buildDir}/tmp/apache-cassandra-3.9"
     into "${buildDir}"
     from ("${cassandraDir}/bin/cqlsh") {
         into "bin"
         fileMode = 0755
     }
-    from ("${cassandraDir}/lib/cql-internal-only-1.4.1.zip") {
+    from ("${cassandraDir}/bin/cqlsh.py") {
+        into "bin"
+        fileMode = 0755
+    }
+    from ("${cassandraDir}/lib/cassandra-driver-internal-only-3.5.0.post0-d8d0456.zip") {
         into "lib"
     }
-    from ("${cassandraDir}/lib/thrift-python-internal-only-0.9.1.zip") {
+    from ("${cassandraDir}/lib/futures-2.1.6-py2.py3-none-any.zip") {
         into "lib"
     }
     from ("${cassandraDir}/pylib") {

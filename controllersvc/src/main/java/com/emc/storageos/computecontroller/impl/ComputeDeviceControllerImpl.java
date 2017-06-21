@@ -220,7 +220,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         log.info("sptId:" + ce.getSptId());
 
         if (ce != null 
-                && !NullColumnValueGetter.isNotNullValue(ce.getSptId()) 
+                && NullColumnValueGetter.isNotNullValue(ce.getSptId()) 
                 && !NullColumnValueGetter.isNullURI(ce.getId())) {
             computeElementId = ce.getId();
             URI sptId = URI.create(ce.getSptId());

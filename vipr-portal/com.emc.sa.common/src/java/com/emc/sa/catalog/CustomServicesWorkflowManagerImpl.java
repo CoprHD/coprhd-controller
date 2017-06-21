@@ -57,7 +57,10 @@ public class CustomServicesWorkflowManagerImpl implements
         final List<NamedElement> workflows = client.findByLabel(CustomServicesWorkflow.class, name);
         final ImmutableList.Builder<URI> ids = ImmutableList.<URI>builder();
         for( final NamedElement workflow : workflows ) {
-            ids.add(workflow.getId());
+            if(workflow.getName().equals(name)){
+                ids.add(workflow.getId());
+            }
+
         }
         return client.findByIds(CustomServicesWorkflow.class, ids.build());
     }

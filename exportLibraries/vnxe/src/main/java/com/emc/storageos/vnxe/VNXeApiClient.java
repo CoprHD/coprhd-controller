@@ -397,7 +397,7 @@ public class VNXeApiClient {
     public VNXeCommandJob deleteFileSystem(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
-        if (isFileSystemHasExportOrShare(fsId) || isFileSystemHasData(fsId)) {
+        if (doesFileSystemHasExportOrShare(fsId) || doesFileSystemHasData(fsId)) {
             throw VNXeException.exceptions
                     .vnxeCommandFailed("Delete file system failed as it conatin data or other linked resource, remove the dependency and try again for  "
                             + fsId);
@@ -419,7 +419,7 @@ public class VNXeApiClient {
     public VNXeCommandResult deleteFileSystemSync(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
-        if (isFileSystemHasExportOrShare(fsId) || isFileSystemHasData(fsId)) {
+        if (doesFileSystemHasExportOrShare(fsId) || doesFileSystemHasData(fsId)) {
             throw VNXeException.exceptions
                     .vnxeCommandFailed("Delete file system failed as it conatin data or other linked resource, remove the dependency and try again for  "
                     + fsId);
@@ -435,7 +435,7 @@ public class VNXeApiClient {
      *            fsID to check
      * @return boolean true if directory has data, false otherwise
      */
-    public boolean isFileSystemHasData(String fsId) {
+    public boolean doesFileSystemHasData(String fsId) {
         FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
         VNXeFileSystem fs = fsRequest.get();
         if (fs != null) {
@@ -458,7 +458,7 @@ public class VNXeApiClient {
      *            fsID to check
      * @return boolean true if it has share or export, false otherwise
      */
-    public boolean isFileSystemHasExportOrShare(String fsId) {
+    public boolean doesFileSystemHasExportOrShare(String fsId) {
         FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
 
 

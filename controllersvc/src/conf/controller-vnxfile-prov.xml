@@ -35,6 +35,7 @@
                 <entry key="vnxfile-prov-file-mount-expand" value-ref="vnxmountexpandnamespace" />
                 <entry key="vnxfile-prov-filesysid-query" value-ref="vnxfileidquerynamespace" />
                 <entry key="vnxfile-prov-filesysid-delete-query" value-ref="vnxfilequerynamespaceForDelete" />
+                <entry key="vnxfile-prov-filesysid-used-size-query" value-ref="vnxfilequerynamespaceForFsUsedSize" />
                 <entry key="vnxfile-prov-cifsserver-query" value-ref="vnxfilecifsserverquerynamespace" />
                 <entry key="vnxfile-prov-quota-dir-create" value-ref="vnxquotadircreatenamespace" />
                 <entry key="vnxfile-prov-mount-quota-dir-create" value-ref="vnxmountquotadircreatenamespace" />
@@ -87,6 +88,16 @@
             <list>
                 <ref bean="loginoperation" />
                 <ref bean="vnxqueryfilesys"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id ="vnxfilequerynamespaceForFsUsedSize"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxqueryfilesyswithsize"/>
             </list>
         </property>
     </bean>
@@ -698,6 +709,21 @@
             </list>
         </property>
     </bean>
+    
+    <bean id="vnxqueryfilesyswithsize"
+        class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="processor" ref="vnxfilesysusedspaceprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="method" value="execute" />
+        <property name="arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxfilesysquerywithsize" />
+            </list>
+        </property>
+    </bean>
 
     <bean id="vnxqueryuseraccounts"
         class="com.emc.storageos.plugins.common.domainmodel.Operation">
@@ -837,6 +863,13 @@
         <property name="method" value="fetchFileSystemInfo" />
         <property name="value" value="" />
     </bean> 
+    
+    <bean id="vnxfilesysquerywithsize"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchFileSystemInfoWithSize" />
+        <property name="value" value="" />
+    </bean> 
 
     <bean id="vnxuseraccquery"
         class="com.emc.storageos.plugins.common.domainmodel.Argument">
@@ -961,6 +994,11 @@
 
     <bean id="vnxfilesysidprocessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemIdProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    
+    <bean id="vnxfilesysusedspaceprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemUsedSpaceProcessor">
         <property name="unmarshaller" ref="unmarshaller"/>
     </bean>
 

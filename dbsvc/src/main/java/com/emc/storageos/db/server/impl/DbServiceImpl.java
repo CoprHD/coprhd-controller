@@ -544,6 +544,12 @@ public class DbServiceImpl implements DbService {
         //this system property is set to avoid commit log replay error during cassandra server stattup
         System.setProperty("cassandra.commitlog.ignorereplayerrors", "true");
 
+        //add this sys property to skip checking for endpoint collison during cassandra init; this check requires seed
+        //nodes be available when doing shadow gossip(org\apache\cassandra\service\StorageService.checkForEndpointCollision);
+        //but since vipr instances are restarted one by one, so this requirement cannot be met. Here, disable the shadow check.
+        // For https://coprhd.atlassian.net/browse/COP-31246
+        System.setProperty("cassandra.allow_unsafe_join", "true");
+
         // Nodes in new data center should not auto-bootstrap.  
         // See https://docs.datastax.com/en/cassandra/2.0/cassandra/operations/ops_add_dc_to_cluster_t.html
         if (_schemaUtil.isStandby()) {

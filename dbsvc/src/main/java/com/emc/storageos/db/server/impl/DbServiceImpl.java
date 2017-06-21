@@ -541,9 +541,6 @@ public class DbServiceImpl implements DbService {
         // connection to other sites
         System.setProperty("cassandra.load_ring_state", "false");
 
-        System.setProperty("cassandra.ring_delay_ms", "90000");
-
-
         //this system property is set to avoid commit log replay error during cassandra server stattup
         System.setProperty("cassandra.commitlog.ignorereplayerrors", "true");
 

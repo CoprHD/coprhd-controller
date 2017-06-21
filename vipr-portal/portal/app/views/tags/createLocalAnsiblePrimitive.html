@@ -76,7 +76,6 @@ inputOutputTabID = 'inputOutputLAContent';
                             %{
                             field.width = 8
                             field.labelWidth = 2
-                            field.required = true
                             }%
                             #{Form.multiFileUpload field:field/}
                         #{/field}
@@ -177,14 +176,6 @@ inputOutputTabID = 'inputOutputLAContent';
         }
         else if ( !chooseExisting && ( isBlank($('#localAnsible_ansiblePackageName').val()) || isBlank($('#localAnsible_ansiblePackage').val())) ) {
             complete = false;
-        }
-
-        var invfiles = $('[name="localAnsible.inventoryFiles"]').val();
-        if (complete) {
-            //check inventory file
-            if (typeof invfiles == 'undefined'  ) {
-                complete = false;
-            }
         }
 
         // If form is complete, enable FINISH button

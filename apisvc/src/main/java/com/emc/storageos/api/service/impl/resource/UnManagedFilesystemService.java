@@ -584,8 +584,11 @@ public class UnManagedFilesystemService extends TaggedResource {
             _dbClient.createObject(filesystems);
 
             for (URI unManagedFSURI : param.getUnManagedFileSystems()) {
-                _logger.info("ingesting quota directories for filesystem {}", unManagedFSURIToFSMap.get(unManagedFSURI).getId());
-                ingestFileQuotaDirectories(unManagedFSURIToFSMap.get(unManagedFSURI));
+                FileShare fs = unManagedFSURIToFSMap.get(unManagedFSURI);
+                if (fs != null) {
+                    _logger.info("ingesting quota directories for filesystem {}", fs.getId());
+                    ingestFileQuotaDirectories(fs);
+                }
             }
 
             i = 0;

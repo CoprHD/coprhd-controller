@@ -1,0 +1,21 @@
+apply plugin: 'scripts'
+
+scripts {
+    restcli {
+        mainClass = 'com.emc.storageos.restcli.Main'
+        maxMemory = '512m'
+        service = false
+        gcDetails = false
+    }
+}
+
+dependencies {
+    compile project(":storagedriver"),
+            project(":restvmax"),
+            library(google_gson),
+            library(httpclient4),
+            library(log4j),
+            library(slf4j),
+            library(commons_lang)
+}
+

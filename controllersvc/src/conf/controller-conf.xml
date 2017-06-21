@@ -450,6 +450,7 @@
                 <entry key="hp3par" value-ref="hp3Par"/>
                 <entry key="dellscprovider" value-ref="dellsc"/>
                 <entry key="dellscsystem" value-ref="dellsc"/>
+                <entry key="restvmax" value-ref="restvmax"/>
             </map>
         </property>
     </bean>
@@ -464,6 +465,8 @@
     </bean>
 	
     <bean id="dellsc" class="com.emc.storageos.driver.dellsc.DellSCStorageDriver"/>
+
+    <bean id="restvmax" class="com.emc.storageos.driver.restvmax.RestVMAXStorageDriver"/>
 
     <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">
         <property name="dbClient" ref="dbclient"/>

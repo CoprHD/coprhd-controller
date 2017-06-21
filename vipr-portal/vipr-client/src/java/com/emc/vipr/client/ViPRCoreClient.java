@@ -47,6 +47,7 @@ import com.emc.vipr.client.core.OpenStackTenants;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
+import com.emc.vipr.client.core.RDFGroups;
 import com.emc.vipr.client.core.SchedulePolicies;
 import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StorageDriver;
@@ -218,6 +219,10 @@ public class ViPRCoreClient {
 
     public BlockVolumes blockVolumes() {
         return new BlockVolumes(this, client);
+    }
+
+    public RDFGroups rdfGroups() {
+        return new RDFGroups(this, client);
     }
 
     public BlockFullCopies blockFullCopies() {

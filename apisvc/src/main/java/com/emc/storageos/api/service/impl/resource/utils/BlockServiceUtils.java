@@ -854,4 +854,14 @@ public class BlockServiceUtils {
         return result;
     }
 
+    /**
+     * Verify RDF Group for requests
+     * 
+     * @param extensionParams
+     */
+    public static void verifyRDFGroupForRequest(Set<String> extensionParams) {
+        // TODO WJEIV RDF Fill this in.
+        return;        
+    }
+
 }

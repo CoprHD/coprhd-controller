@@ -41,12 +41,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.api.mapper.functions.MapStoragePort;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
-import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -82,7 +83,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -120,9 +120,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -823,6 +822,27 @@ public class StorageSystemService extends TaskResourceService {
             systemsList.getStorageSystems().add(toNamedRelatedResource(iter.next()));
         }
         return systemsList;
+    }
+
+    /**
+     * Gets the RDF Groups
+     * 
+     * @brief List storage systems
+     * @return A reference to a StorageSystemList.
+     */
+    @GET
+    @Path("/rdfgroups")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RDFGroupList getRDFGroups() {
+        RDFGroupList rdfGroupList = new RDFGroupList();
+
+        List<URI> ids = _dbClient.queryByType(RemoteDirectorGroup.class, true);
+        Iterator<RemoteDirectorGroup> iter = _dbClient.queryIterativeObjects(RemoteDirectorGroup.class, ids);
+        while (iter.hasNext()) {
+            rdfGroupList.getRdfGroups().add(toNamedRelatedResource(iter.next()));
+        }
+        return rdfGroupList;
     }
 
     /**

@@ -5,6 +5,8 @@
 package com.emc.sa.service.vipr.block.tasks;
 
 import java.net.URI;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -20,14 +22,15 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
     private String name;
     private URI consistencyGroupId;
     private URI computeResource;
+    private URI rdfGroup;
 
     public CreateBlockVolume(String vpoolId, String varrayId, String projectId, String size, Integer count,
-            String name, String consistencyGroupId) {
-        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, name, uri(consistencyGroupId), null);
+            String name, String consistencyGroupId, URI rdfGroup) {
+        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, name, uri(consistencyGroupId), null, rdfGroup);
     }
 
     public CreateBlockVolume(URI vpoolId, URI varrayId, URI projectId, String size, Integer count, String name,
-            URI consistencyGroupId, URI computeResource) {
+            URI consistencyGroupId, URI computeResource, URI rdfGroup) {
         this.vpoolId = vpoolId;
         this.varrayId = varrayId;
         this.projectId = projectId;
@@ -36,6 +39,7 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
         this.name = name;
         this.consistencyGroupId = consistencyGroupId;
         this.computeResource = computeResource;
+        this.rdfGroup = rdfGroup;
         provideDetailArgs(name, size, vpoolId, varrayId, projectId);
     }
 
@@ -56,6 +60,9 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
         if (computeResource != null) {
             create.setComputeResource(computeResource);
         }
+        Set<String> extensionParams = new HashSet<>();
+        extensionParams.add(String.format("rdfGroup=%s", rdfGroup));
+        create.setExtensionParams(extensionParams);
 
         Tasks<VolumeRestRep> tasks = getClient().blockVolumes().create(create);
         // There should only be as many tasks as is the count

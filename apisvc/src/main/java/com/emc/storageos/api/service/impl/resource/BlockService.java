@@ -740,6 +740,9 @@ public class BlockService extends TaskResourceService {
         // Verify the user is authorized.
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
 
+        // RDF WJEIV TODO: Verify RDF Group selection
+        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams());
+        
         // Get and validate the varray
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
         VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,

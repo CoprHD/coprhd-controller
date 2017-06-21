@@ -5,6 +5,9 @@
 package com.emc.storageos.model.block;
 
 import java.net.URI;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -25,12 +28,13 @@ public class VolumeCreate {
     private URI project;
     private URI consistencyGroup;
     private URI computeResource;
+    private Set<String> extensionParams;
 
     public VolumeCreate() {
     }
 
     public VolumeCreate(String name, String size, Integer count, URI vpool,
-            URI varray, URI project, URI consistencyGroup) {
+            URI varray, URI project, URI consistencyGroup, Set<String> extensionParams) {
         this.name = name;
         this.size = size;
         this.count = count;
@@ -38,6 +42,7 @@ public class VolumeCreate {
         this.varray = varray;
         this.project = project;
         this.consistencyGroup = consistencyGroup;
+        this.extensionParams = extensionParams;
     }
 
     public VolumeCreate(String name, String size, Integer count, URI vpool,
@@ -49,6 +54,7 @@ public class VolumeCreate {
         this.vpool = vpool;
         this.varray = varray;
         this.project = project;
+        this.extensionParams = new HashSet<>();
     }
 
     /**
@@ -68,6 +74,19 @@ public class VolumeCreate {
         this.consistencyGroup = consistencyGroup;
     }
 
+    @XmlElement(name = "extension_parameters")
+    @Length(min = 2, max = 128)
+    public Set<String> getExtensionParams() {
+        if (extensionParams == null) {
+            extensionParams = new LinkedHashSet<String>();
+        }
+        return extensionParams;
+    }
+
+    public void setExtensionParams(Set<String> extensionParams) {
+        this.extensionParams = extensionParams;
+    }
+    
     /**
      * Number of volumes to be created.
      * 

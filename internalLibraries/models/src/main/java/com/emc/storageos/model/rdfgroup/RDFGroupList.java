@@ -1,15 +1,12 @@
-/*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
 package com.emc.storageos.model.rdfgroup;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.ArrayList;
-import java.util.List;
+
+import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "rdf_groups")
 public class RDFGroupList {

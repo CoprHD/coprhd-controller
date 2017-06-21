@@ -17,6 +17,11 @@
             lockable: true
         },
 
+        rdfgroup:{
+            type:"assetType.vipr.rdfgroup",
+            lockable: true
+        },
+
         volumes:{
           type:"table",
           items:{

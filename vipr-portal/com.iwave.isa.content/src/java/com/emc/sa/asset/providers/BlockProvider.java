@@ -341,6 +341,25 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      * @param deletionType
      * @return
      */
+    @Asset("rdfGroup")
+    @AssetDependencies({ "virtualPool" })
+    public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx, URI rdfGroup) {
+        debug("getting RDF Groups");
+        FilterChain<VolumeRestRep> filters = new BlockVolumeMountPointFilter().not();
+        filters.and(new BlockVolumeVMFSDatastoreFilter().not());
+        List<NamedRelatedResourceRep> rdfGroups = api(ctx).rdfGroups().list();
+        return createRDFOptions(null, rdfGroups);
+    }
+
+    /**
+     * Get source volumes for a specific project. If the deletionType is VIPR_ONLY, create
+     * a filter that only retrieves Volumes with Host Exports
+     * 
+     * @param ctx
+     * @param project
+     * @param deletionType
+     * @return
+     */
     @Asset("sourceBlockVolumeWithDeletion")
     @AssetDependencies({ "project", "deletionType" })
     public List<AssetOption> getSourceVolumesWithDeletion(final AssetOptionsContext ctx, URI project, String deletionType) {
@@ -3382,6 +3401,24 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return Collections.emptyMap();
         }
         return ResourceUtils.mapById(client.varrays().getByIds(varrays));
+    }
+
+    protected List<AssetOption> createRDFOptions(ViPRCoreClient client, List<NamedRelatedResourceRep> rdfGroups) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (NamedRelatedResourceRep rdfGroupObject : rdfGroups) {
+            options.add(createRDFGroupOption(client, rdfGroupObject));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
+    protected static AssetOption createRDFGroupOption(ViPRCoreClient client, NamedRelatedResourceRep rdfGroupObject) {
+        String label = rdfGroupObject.getName();
+        String name = rdfGroupObject.getName();
+        if (StringUtils.isNotBlank(name)) {
+            label = String.format("%s: %s", name, label);
+        }
+        return new AssetOption(rdfGroupObject.getId(), label);
     }
 
     protected static List<AssetOption> createVolumeOptions(ViPRCoreClient client, Collection<? extends BlockObjectRestRep> blockObjects) {

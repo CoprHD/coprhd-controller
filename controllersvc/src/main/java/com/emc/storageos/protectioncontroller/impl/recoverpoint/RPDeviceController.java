@@ -2402,9 +2402,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * 
      * @param protectionSystemUri The URI of the RP protection system.
      * @param cgUri The URI of the ViPR consistency group.
-     * @param cgName The name of the VPlex consistency group to cleanup.
      */
-    protected void cleanUpRPCG(URI protectionSystemUri, URI cgUri) {
+    private void cleanUpRPCG(URI protectionSystemUri, URI cgUri) {
         BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
         String cgName = CG_NAME_PREFIX + cg.getLabel();
         

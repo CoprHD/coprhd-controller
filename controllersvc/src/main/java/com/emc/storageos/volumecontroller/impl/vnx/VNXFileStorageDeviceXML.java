@@ -47,6 +47,7 @@ import com.emc.storageos.vnx.xmlapi.VNXSnapshot;
 import com.emc.storageos.vnx.xmlapi.XMLApiResult;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi;
@@ -1344,7 +1345,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
-            FileDeviceInputOutput args, QuotaDirectory quotaDir) throws ControllerException {
+            FileDeviceInputOutput args, FileShareQuotaDirectory quotaDir) throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         ApplicationContext context = null;
         XMLApiResult apiResult = null;

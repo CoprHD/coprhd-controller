@@ -11,7 +11,7 @@
       required: true
     },
     storageType: {
-      type:"assetType.vipr.storageSystemType",
+      type:"assetType.vipr.storageSystemTypeNoVmax",
       lockable:true,
       required: true
     },

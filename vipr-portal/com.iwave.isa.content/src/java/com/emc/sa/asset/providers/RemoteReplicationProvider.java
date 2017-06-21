@@ -6,10 +6,11 @@ package com.emc.sa.asset.providers;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,6 +21,7 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
@@ -28,6 +30,7 @@ import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.RemoteReplicationSets;
+import com.emc.vipr.client.core.StorageSystemType;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 
@@ -38,8 +41,6 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public final static String RR_PAIR = "Remote Replication Pair";
     public final static String CONSISTENCY_GROUP = "Consistency Group";
     public final static String NO_GROUP = "None";
-
-    RemoteReplicationSets setClient = null;
 
     /**
      * Return menu options for replication modes supported by the remote replication
@@ -117,7 +118,45 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
                 typeIds.remove(type); // to prevent duplicates
             }
         }
+        validateStorageSystemTypes(options,ctx,null);
         return options;
+    }
+
+    /**
+     * Return menu options for the storage system types (e.g.: VNX, etc)
+     * of discovered storage systems, but exclude VMAX
+     *
+     * @return  list of asset options for catalog service order form
+     */
+    @Asset("storageSystemTypeNoVmax")
+    public List<AssetOption> getStorageSystemTypeNoVmax(AssetOptionsContext ctx) {
+        List<AssetOption> options = getStorageSystemType(ctx); // use existing provider method
+        String vmaxTypeName = StorageSystem.Type.vmax.name();
+        Iterator<AssetOption> itr = options.iterator();
+        while (itr.hasNext()) {
+            if (itr.next().value.equalsIgnoreCase(vmaxTypeName)) {
+                itr.remove();
+                break;
+            }
+        }
+        validateStorageSystemTypes(options,ctx,Arrays.asList(vmaxTypeName));
+        return options;
+    }
+
+    /*
+     * Throw exception if no Types available
+     */
+    private void validateStorageSystemTypes(List<AssetOption> options, AssetOptionsContext ctx, List<String> typesToOmit) {
+        if (options.isEmpty()) {
+            StringBuffer types = new StringBuffer();
+            for (StorageSystemTypeRestRep type: getSupportedStorageSystemTypes(api(ctx))) {
+                if ((typesToOmit == null) || !typesToOmit.contains(type.getStorageTypeName())) {
+                    types.append(type.getStorageTypeName() + ", ");
+                }
+            }
+            throw new IllegalStateException("No supported storage systems present. Supported types are " +
+                    types.substring(0, types.length()-2));
+        }
     }
 
     /**
@@ -129,7 +168,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * @return  list of asset options for catalog service order form
      */
     @Asset("sourceStorageSystem")
-    @AssetDependencies("storageSystemType")
+    @AssetDependencies("storageSystemTypeNoVmax")
     public List<AssetOption> getSourceStorageSystem(AssetOptionsContext ctx,
             String storageSystemTypeId) {
         ViPRCoreClient client = api(ctx);
@@ -172,7 +211,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * @return  list of asset options for catalog service order form
      */
     @Asset("targetStorageSystem")
-    @AssetDependencies({"storageSystemType","sourceStorageSystem"})
+    @AssetDependencies({"storageSystemTypeNoVmax","sourceStorageSystem"})
     public List<AssetOption> getTargetStorageSystem(AssetOptionsContext ctx,
             String storageSystemTypeId, URI sourceStorageSystemId) {
         ViPRCoreClient client = api(ctx);
@@ -251,7 +290,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * @return list of asset options for catalog service order form
      */
     @Asset("remoteReplicationModeForArrayType")
-    @AssetDependencies("storageSystemType")
+    @AssetDependencies("storageSystemTypeNoVmax")
     public List<AssetOption> getRemoteReplicationModeForArrayType(AssetOptionsContext ctx,
             URI storageSystemTypeUri) {
         ViPRCoreClient client = api(ctx);
@@ -313,7 +352,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({"remoteReplicationSetsForArrayType"})
     public List<AssetOption> getRemoteReplicationGroupForSet(AssetOptionsContext ctx,
             URI rrSet) {
-        List<NamedRelatedResourceRep> groups = setClient.getGroupsForSet(rrSet).
+        List<NamedRelatedResourceRep> groups = getClient(ctx).getGroupsForSet(rrSet).
                 getRemoteReplicationGroups();
         List<AssetOption>  options = new ArrayList<>();
         options.add(new AssetOption(NO_GROUP,NO_GROUP));
@@ -395,22 +434,25 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * entries with ID as key (to allow lookups in both directions).
      */
     private Map<String,String> getStorageSystemTypeMap(ViPRCoreClient client) {
-
-        List<StorageSystemTypeRestRep> storageSystemTypes =
-                client.storageSystemType().listStorageSystemTypes("block").getStorageSystemTypes();
-
-        List<StorageSystemTypeRestRep> storageSystemFileTypes =
-                client.storageSystemType().listStorageSystemTypes("file").getStorageSystemTypes();
-
-        storageSystemTypes.addAll(storageSystemFileTypes);
-
+        List<StorageSystemTypeRestRep> storageSystemTypes = getSupportedStorageSystemTypes(client);
         Map<String,String> typeIds = new HashMap<>();
-
         for(StorageSystemTypeRestRep type : storageSystemTypes) {
             typeIds.put(type.getStorageTypeName(),type.getStorageTypeId()); // store names as keys
             typeIds.put(type.getStorageTypeId(),type.getStorageTypeName()); // also store IDs as keys
         }
         return typeIds;
+    }
+
+    /*
+     * Get supported Storage System types for RR operations
+     */
+    private List<StorageSystemTypeRestRep> getSupportedStorageSystemTypes(ViPRCoreClient client) {
+        List<StorageSystemTypeRestRep> storageSystemTypes =
+                client.storageSystemType().listStorageSystemTypes("block").getStorageSystemTypes();
+        List<StorageSystemTypeRestRep> storageSystemFileTypes =
+                client.storageSystemType().listStorageSystemTypes("file").getStorageSystemTypes();
+        storageSystemTypes.addAll(storageSystemFileTypes);
+        return storageSystemTypes;
     }
 
     /*
@@ -472,7 +514,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      */
     private void removeUnreachableSets(List<NamedRelatedResourceRep> rrSets, AssetOptionsContext ctx) {
         ViPRCoreClient client = api(ctx);
-        ListIterator<NamedRelatedResourceRep> it = rrSets.listIterator();
+        Iterator<NamedRelatedResourceRep> it = rrSets.iterator();
         while (it.hasNext()) {
 
             RemoteReplicationSetRestRep rrSetObj = client.remoteReplicationSets().
@@ -485,13 +527,10 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     }
 
     /*
-     * Get client for set operations (cached)
+     * Get client for set operations
      */
     RemoteReplicationSets getClient(AssetOptionsContext ctx) {
-        if (setClient == null) {
-            setClient = api(ctx).remoteReplicationSets();
-        }
-        return setClient;
+        return api(ctx).remoteReplicationSets();
     }
 
 }

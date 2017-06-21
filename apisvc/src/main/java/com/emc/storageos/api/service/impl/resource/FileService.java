@@ -862,13 +862,16 @@ public class FileService extends TaskResourceService {
             rootUserMapping = rootUserMapping.toLowerCase();
         }
 
-        if (!"nobody".equals(rootUserMapping)) {
-            StorageOSUser user = getUserFromContext();
-            if (!user.getName().equals(rootUserMapping)) {
-                // throw error
-                throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(user.getName());
-            }
-        }
+        /*
+         * Check to verify the user with Vipr login user is removed for now.Need to revisit the logic.
+         * if (!"nobody".equals(rootUserMapping)) {
+         * StorageOSUser user = getUserFromContext();
+         * if (!user.getName().equals(rootUserMapping)) {
+         * // throw error
+         * throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(user.getName());
+         * }
+         * }
+         */
 
         FileShareExport export = new FileShareExport(param.getEndpoints(), param.getSecurityType(), param.getPermissions(),
                 rootUserMapping, param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
@@ -1701,7 +1704,7 @@ public class FileService extends TaskResourceService {
                         .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
         }
-     // Verify the higher level replication policies assigned
+        // Verify the higher level replication policies assigned
         if (param.getForceDelete() && param.getDeleteType() != null && param.getDeleteType().equalsIgnoreCase("FULL")) {
             if (FilePolicyServiceUtils.vPoolHasReplicationPolicy(_dbClient, fs.getVirtualPool())
                     || FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, fs.getProject().getURI(), fs.getVirtualPool())) {

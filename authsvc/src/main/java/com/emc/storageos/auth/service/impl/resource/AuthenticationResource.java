@@ -887,7 +887,6 @@ public class AuthenticationResource {
                 _log.debug("Logged in with user from context");
             }
         } else {
-            _log.info("===== user name is {}", credentials.getUserName());
             StorageOSUserDAO user = authenticateUser(credentials);
             if (user != null) {
                 validateLocalUserExpiration(credentials);

@@ -22,7 +22,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowTabs[elementid] = { id:id, elementid:elementid, name:name, href:'#'+elementid };
     }
     $scope.closeTab = function(tabID){
-      var r = confirm("Are you sure you want to delete?");
+      var r = confirm("Are you sure you want to close the tab?");
       if (r == true) {
         delete $scope.workflowTabs[tabID];
         $(".workflow-nav-tabs li").children('a').first().click();

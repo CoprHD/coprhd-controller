@@ -9,7 +9,7 @@ import com.emc.storageos.vnxe.models.VNXeFileSystem;
 
 public class FileSystemRequest extends KHRequests<VNXeFileSystem> {
     private static final String URL = "/api/instances/filesystem/";
-    private static final String FIELDS = "isThinEnabled,sizeAllocated,supportedProtocols,storageResource,nasServer,nfsShare,accessPolicy,sizeTotal,sizeUsed,cifsShareCount,nfsShareCount";
+    private static final String FIELDS = "isThinEnabled,sizeAllocated,supportedProtocols,storageResource,nasServer,nfsShare,accessPolicy,sizeTotal,sizeUsed,nfsShareCount::@count(nfsShare),cifsShareCount::@count(cifsShare)";
 
     public FileSystemRequest(KHClient client, String id) {
         super(client);

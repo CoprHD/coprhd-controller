@@ -66,12 +66,12 @@ public class WorkflowDirectoryManagerImpl implements WorkflowDirectoryManager {
         // Disallow operation if this node has children that contain workflows/ primitives
         List<WFDirectory> children = getWFDirectoryChildren(id);
         if (CollectionUtils.isNotEmpty(wfDirectory.getWorkflows())) {
-            throw APIException.methodNotAllowed.notSupportedWithReason("Directory has workflows/ primitives. Cannot be deleted");
+            throw APIException.methodNotAllowed.notSupportedWithReason("Directory has workflows/primitives. Cannot be deleted");
         }
         for (final WFDirectory child : children) {
             if (CollectionUtils.isNotEmpty(child.getWorkflows())) {
                 throw APIException.methodNotAllowed
-                        .notSupportedWithReason("Directory has children that contain workflows/ primitives. Cannot be deleted");
+                        .notSupportedWithReason("Directory has children that contain workflows/primitives. Cannot be deleted");
             }
             // check the children
             checkChildren(child.getId());

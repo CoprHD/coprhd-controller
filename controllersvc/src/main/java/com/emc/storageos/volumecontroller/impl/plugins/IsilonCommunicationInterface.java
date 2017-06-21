@@ -1921,17 +1921,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if (!quota.getId().equalsIgnoreCase("null")) {
             fs.getExtensions().put(QUOTA, quota.getId());
         }
-
-        if (null != quota.getThresholds().getSoft() && capacity != 0) {
-            softLimit = quota.getThresholds().getSoft() * 100 / capacity;
+        if (null != quota.getThresholds()) {
+            if (null != quota.getThresholds().getSoft() && capacity != 0) {
+                softLimit = quota.getThresholds().getSoft() * 100 / capacity;
+            }
+            if (null != quota.getThresholds().getSoftGrace() && capacity != 0) {
+                softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
+            }
+            if (null != quota.getThresholds().getAdvisory() && capacity != 0) {
+                notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
+            }
         }
-        if (null != quota.getThresholds().getSoftGrace() && capacity != 0) {
-            softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
-        }
-        if (null != quota.getThresholds().getAdvisory() && capacity != 0) {
-            notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
-        }
-
         fs.setSoftLimit(softLimit);
         fs.setSoftGracePeriod(softGrace);
         fs.setNotificationLimit(notificationLimit);

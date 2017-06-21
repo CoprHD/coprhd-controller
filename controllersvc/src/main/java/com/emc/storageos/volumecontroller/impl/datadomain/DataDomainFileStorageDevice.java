@@ -49,6 +49,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileShareExport;
+import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
@@ -1099,7 +1100,7 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
-            FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
+            FileDeviceInputOutput args, FileShareQuotaDirectory qd) throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         ServiceError serviceError = DeviceControllerErrors.datadomain.operationNotSupported();
         result = BiosCommandResult.createErrorResult(serviceError);

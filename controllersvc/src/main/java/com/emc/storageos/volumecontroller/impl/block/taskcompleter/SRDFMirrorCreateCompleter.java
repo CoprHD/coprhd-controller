@@ -61,17 +61,21 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
             switch (status) {
 
                 case ready:
-                    Volume target = getTargetVolume();
-                    // updating source volume with changed VPool
-                    Volume source = dbClient.queryObject(Volume.class, target.getSrdfParent().getURI());
                     if (null != vpoolChangeURI) {
-                        URI previousVPool = source.getVirtualPool();
-                        source.setVirtualPool(vpoolChangeURI);
-                        dbClient.updateObject(source);
+                        // updating source volumes with changed vPool
+                        URI previousVPool = null;
+                        for (Volume volume : getVolumes()) {
+                            if (volume.isSRDFSource()) {
+                                previousVPool = volume.getVirtualPool();
+                                volume.setVirtualPool(vpoolChangeURI);
+                                dbClient.updateObject(volume);
+                            }
+                        }
                         SRDFOperationContext.insertContextOperation(this, CHANGE_VPOOL_ON_SOURCE, previousVPool, vpoolChangeURI);
                     }
                     // Pin the target System with the source CG, which helps to identify this system is
                     // a target R2 for CG.
+                    Volume target = getTargetVolume();
                     if (null != sourceCGUri) {
                         URI targetSystemUri = target.getStorageController();
                         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
@@ -80,7 +84,7 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
                             targetSystem.setTargetCgs(new StringSet());
                         }
                         targetSystem.getTargetCgs().add(sourceCGUri.toString());
-                        dbClient.persistObject(targetSystem);
+                        dbClient.updateObject(targetSystem);
                     }
 
                     String copyMode = target.getSrdfCopyMode();
@@ -95,7 +99,7 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
                     }
 
                     group.getVolumes().addAll(getVolumeIds());
-                    dbClient.persistObject(group);
+                    dbClient.updateObject(group);
                     break;
 
                 default:

@@ -284,6 +284,9 @@ public interface VPlexApiExceptions {
             final String componentPath, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException noComponentForExtent(final String extentPath);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException moreThanOneComponentForExtent(final String extentPath);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)

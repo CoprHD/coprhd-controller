@@ -288,6 +288,12 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         	fsNotifiLimit = fs.getNotificationLimit().intValue();
         }
         
+        int fsGraceLimit = -1;
+        if(null != fs.getSoftGracePeriod()) {
+        	fsGraceLimit = fs.getSoftGracePeriod().intValue();
+        }
+        
+        
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR);
         quotaDir.getOpStatus().createTaskStatus(task, op);
@@ -302,11 +308,9 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         quotaDirNew.setSoftLimit(param.getSoftLimit()>0 ? param.getSoftLimit()
                 : quotaDirNew.getSoftLimit()>0 ? quotaDirNew.getSoftLimit() : fsSoftLimit>0 ? fsSoftLimit : 0);
         quotaDirNew.setSoftGrace(param.getSoftGrace()>0 ? param.getSoftGrace()
-                : quotaDirNew.getSoftGrace()>0? quotaDirNew.getSoftGrace()
-                        : fs.getSoftGracePeriod()>0 ? fs.getSoftGracePeriod() : 0);
+                : quotaDirNew.getSoftGrace()>0? quotaDirNew.getSoftGrace() : fsGraceLimit>0 ? fsGraceLimit: 0);
         quotaDirNew.setNotificationLimit(param.getNotificationLimit()>0 ? param.getNotificationLimit()
-                : quotaDirNew.getNotificationLimit()>0 ? quotaDirNew.getNotificationLimit()
-                        : fsNotifiLimit>0 ? fsNotifiLimit : 0);
+                : quotaDirNew.getNotificationLimit()>0 ? quotaDirNew.getNotificationLimit() : fsNotifiLimit>0 ? fsNotifiLimit : 0);
                          
         // Create an object of type "FileShareQtree" to be passed into the south-bound layers.
         FileShareQuotaDirectory qt = new FileShareQuotaDirectory(quotaDirNew);

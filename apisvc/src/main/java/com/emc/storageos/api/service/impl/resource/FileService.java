@@ -2123,7 +2123,7 @@ public class FileService extends TaskResourceService {
                 quotaDirectory.getLabel(), quotaDirectory.getId().toString(), fs.getId().toString());
 
         fs = _dbClient.queryObject(FileShare.class, id);
-        _log.debug("FileService::QuotaDirectory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task), fs
+        _log.debug("FileService::QuotaDirectory Before sending response, FS ID : {}, Tasks : {} ; Status {}", fs.getOpStatus().get(task), fs
                 .getOpStatus().get(task).getStatus());
 
         return toTask(quotaDirectory, task, op);

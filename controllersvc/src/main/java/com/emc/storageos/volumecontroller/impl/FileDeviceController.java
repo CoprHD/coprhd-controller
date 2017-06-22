@@ -1844,6 +1844,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj = _dbClient.queryObject(FileShare.class, fs);
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir.getId());
+            
+            quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
+            quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
+            quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
 
             // Set up args
             args.addFileShare(fsObj);
@@ -1851,7 +1855,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setOpId(task);
 
             FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
-            BiosCommandResult result = nasDevice.doUpdateQuotaDirectory(storageObj, args, quotaDir);
+            BiosCommandResult result = nasDevice.doUpdateQuotaDirectory(storageObj, args, quotaDirObj);
             if (result.getCommandPending()) {
                 return;
             }

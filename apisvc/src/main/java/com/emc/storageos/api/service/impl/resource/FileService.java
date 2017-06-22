@@ -866,13 +866,6 @@ public class FileService extends TaskResourceService {
             rootUserMapping = rootUserMapping.toLowerCase();
         }
 
-        if (!"nobody".equals(rootUserMapping)) {
-            StorageOSUser user = getUserFromContext();
-            if (!user.getName().equals(rootUserMapping)) {
-                // throw error
-                throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(user.getName());
-            }
-        }
         // check for bypassDnsCheck flag. If null then set to false
         Boolean dnsCheck = param.getBypassDnsCheck();
         if (dnsCheck == null) {

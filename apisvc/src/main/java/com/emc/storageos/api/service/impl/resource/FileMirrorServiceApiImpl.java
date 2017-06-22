@@ -386,15 +386,24 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     private void validateFileSystem(FileMirrorRecommendation placement, FileShare fileShare) {
         // Now check whether the label used in the storage system or not
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
-        List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
-                PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
-        // Avoid duplicate file system on same storage system
-        if (fileShareList != null && !fileShareList.isEmpty()) {
-            for (FileShare fs : fileShareList) {
-                if (fs.getStorageDevice() != null && fs.getStorageDevice().equals(system.getId())) {
+        /*
+         * We have same project same filesystem name check present at API service
+         * Isilon file systems are path based. So Same fs name can exist at different path
+         * Unity allow same filesystem name in different NAS servers.
+         * For Isilon, duplicate name based on path is handled at driver level.
+         */
+        if (!system.getSystemType().equals(StorageSystem.Type.isilon.name())
+                || !system.getSystemType().equals(StorageSystem.Type.unity.name())) {
+            List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                    PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
+            // Avoid duplicate file system on same storage system
+            if (fileShareList != null && !fileShareList.isEmpty()) {
+                for (FileShare fs : fileShareList) {
+                    if (fs.getStorageDevice() != null && fs.getStorageDevice().equals(system.getId())) {
                         _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
                         throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
-                    
+
+                    }
                 }
             }
         }

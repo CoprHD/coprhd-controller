@@ -2056,7 +2056,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "21600",
+        value : "28800",
         hidden : "true"
     },
     {

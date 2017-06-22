@@ -41,7 +41,7 @@ public class CreateNfsExportHelper {
     private String security = DEFAULT_SECURITY_TYPE;
     private String rootUser = DEFAULT_ROOT_USER;
 
-    @Param(BYPASS_DNS_CHECK)
+    @Param(value = BYPASS_DNS_CHECK, required = false)
     protected boolean bypassDnsCheck;
 
     public String getPermissions() {

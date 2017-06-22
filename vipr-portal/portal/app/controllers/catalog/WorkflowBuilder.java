@@ -124,44 +124,6 @@ public class WorkflowBuilder extends Controller {
         renderArgs.put("restCallAuthTypes", restCallAuthTypes);
     }
 
-    private static enum WFBuilderNodeTypes {
-        FOLDER, WORKFLOW, SCRIPT, ANSIBLE, VIPR;
-
-        public static WFBuilderNodeTypes get(final String name) {
-            try {
-                return valueOf(name.toUpperCase());
-            } catch (final IllegalArgumentException e) {
-                return null;
-            }
-        }
-    }
-
-    private static class Node {
-        private String id;
-        private String text;
-        @SerializedName("parent")
-        private String parentID;
-        private CustomServicesPrimitiveRestRep data;
-        private String type;
-        @SerializedName("a_attr")
-        private Map<String, String> anchorAttr = new HashMap<String, String>();
-
-        Node() {
-        }
-
-        Node(String id, String text, String parentID, String type) {
-            this.id = id;
-            this.text = text;
-            this.parentID = parentID;
-            this.type = type;
-        }
-
-        public void addBoldAnchorAttr() {
-            this.anchorAttr.put("style", "font-weight:bold;");
-        }
-    }
-
-
     public static void getAssetOptions() {
         if (!Play.mode.isDev()) {
             PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
@@ -587,11 +549,9 @@ public class WorkflowBuilder extends Controller {
     }
 
     private static void createShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive) {
-        CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = null;
-        CustomServicesPrimitiveRestRep primitiveRestRep = null;
         try {
             final String filename = FilenameUtils.getBaseName(shellPrimitive.getScript().getName());
-            primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
+            final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
                     .createPrimitiveResource("SCRIPT", shellPrimitive.getScript(), filename);
             if (null != primitiveResourceRestRep) {
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
@@ -611,15 +571,26 @@ public class WorkflowBuilder extends Controller {
                 if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
                     primitiveCreateParam.setOutput(getListFromInputOutputString(shellPrimitive.getOutputs()));
                 }
+                final CustomServicesPrimitiveRestRep primitiveRestRep;
+
+                try {
 
                     primitiveRestRep = getCatalogClient().customServicesPrimitives()
                             .createPrimitive(primitiveCreateParam);
-                    if (primitiveRestRep != null) {
-                        // add this to wf directory
-                        addResourceToWFDirectory(primitiveRestRep.getId(), shellPrimitive.getWfDirID());
-                    } else {
-                        flash.error("Error while creating primitive");
+                } catch (final Exception e1) {
+                    if (primitiveResourceRestRep != null) {
+                        // Resource was created but primitive creation failed
+                        getCatalogClient().customServicesPrimitives().deletePrimitiveResource(primitiveResourceRestRep.getId());
                     }
+                    throw e1;
+                }
+                if (primitiveRestRep != null) {
+                    // add this to wf directory
+                    addResourceToWFDirectory(primitiveRestRep.getId(), shellPrimitive.getWfDirID());
+                } else {
+                    flash.error("Error while creating primitive");
+                }
+
                 flash.success(MessagesUtils.get("wfBuilder.operation.save.success"));
             } else {
                 flash.error("Error while uploading primitive resource");
@@ -627,10 +598,6 @@ public class WorkflowBuilder extends Controller {
         } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error(e.getMessage());
-            if (primitiveResourceRestRep != null && primitiveRestRep == null) {
-                //Resource was created but primitive creation failed
-                getCatalogClient().customServicesPrimitives().deletePrimitiveResource(primitiveResourceRestRep.getId());
-            }
         }
     }
 
@@ -878,9 +845,8 @@ public class WorkflowBuilder extends Controller {
     }
 
     private static void createLocalAnsiblePrimitive(@Valid final LocalAnsiblePrimitiveForm localAnsible) {
-        CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = null;
-        CustomServicesPrimitiveRestRep primitiveRestRep = null;
         try {
+            final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep;
             if (localAnsible.isExisting()) {
                 primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
                         .getPrimitiveResource(new URI(localAnsible.getExistingResource()));
@@ -888,11 +854,23 @@ public class WorkflowBuilder extends Controller {
                 // upload ansible package
                 primitiveResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource("ANSIBLE",
                         localAnsible.getAnsiblePackage(), localAnsible.getAnsiblePackageName());
+            } else {
+                throw new Exception("Error while uploading/retrieving primitive resource");
             }
 
             if (null != primitiveResourceRestRep) {
-                // Upload ansible inventory files
-                uploadInventoryFiles(primitiveResourceRestRep.getId(), localAnsible.getInventoryFiles());
+                try {
+                    // Upload ansible inventory files
+                    uploadInventoryFiles(primitiveResourceRestRep.getId(), localAnsible.getInventoryFiles());
+                } catch (final Exception e1) {
+                    if (primitiveResourceRestRep != null) {
+                        // Resource was created but primitive creation failed
+                        // Resource was created but inventory creation failed. Remove inventory that was created (if any)
+                        updateInventoryFiles(primitiveResourceRestRep.getId(), "");
+                        getCatalogClient().customServicesPrimitives().deletePrimitiveResource(primitiveResourceRestRep.getId());
+                    }
+                    throw e1;
+                }
 
                 // Create Primitive
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
@@ -911,9 +889,19 @@ public class WorkflowBuilder extends Controller {
                 if (StringUtils.isNotEmpty(localAnsible.getOutputs())) {
                     primitiveCreateParam.setOutput(getListFromInputOutputString(localAnsible.getOutputs()));
                 }
+                final CustomServicesPrimitiveRestRep primitiveRestRep;
 
-                primitiveRestRep = getCatalogClient().customServicesPrimitives()
-                        .createPrimitive(primitiveCreateParam);
+                try {
+                    primitiveRestRep = getCatalogClient().customServicesPrimitives().createPrimitive(primitiveCreateParam);
+                } catch (final Exception e1) {
+                    if (primitiveResourceRestRep != null) {
+                        // Resource was created but primitive creation failed
+                        // Resource was created but primitive creation failed. Remove inventory that was created (if any)
+                        updateInventoryFiles(primitiveResourceRestRep.getId(), "");
+                        getCatalogClient().customServicesPrimitives().deletePrimitiveResource(primitiveResourceRestRep.getId());
+                    }
+                    throw e1;
+                }
                 if (primitiveRestRep != null) {
                     // add this to wf directory
                     addResourceToWFDirectory(primitiveRestRep.getId(), localAnsible.getWfDirID());
@@ -928,12 +916,6 @@ public class WorkflowBuilder extends Controller {
         } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error(e.getMessage());
-            if (primitiveResourceRestRep != null && primitiveRestRep == null) {
-                //Resource was created but primitive creation failed. Remove inventory that was created (if any)
-                updateInventoryFiles(primitiveResourceRestRep.getId(),"");
-                getCatalogClient().customServicesPrimitives().deletePrimitiveResource(primitiveResourceRestRep.getId());
-
-            }
         }
     }
 
@@ -1174,7 +1156,7 @@ public class WorkflowBuilder extends Controller {
                         Logger.debug("Adding inventory file options {}", options);
                         input.setOptions(options);
                     } else {
-                        //remove inventory files that have been set previously but deleted.
+                        // remove inventory files that have been set previously but deleted.
                         Logger.debug("Removing all the inventory files");
                         input.setOptions(new HashMap<String, String>());
                     }
@@ -1255,5 +1237,42 @@ public class WorkflowBuilder extends Controller {
             }
         }
         return updatedWorkflows;
+    }
+
+    private static enum WFBuilderNodeTypes {
+        FOLDER, WORKFLOW, SCRIPT, ANSIBLE, VIPR;
+
+        public static WFBuilderNodeTypes get(final String name) {
+            try {
+                return valueOf(name.toUpperCase());
+            } catch (final IllegalArgumentException e) {
+                return null;
+            }
+        }
+    }
+
+    private static class Node {
+        private String id;
+        private String text;
+        @SerializedName("parent")
+        private String parentID;
+        private CustomServicesPrimitiveRestRep data;
+        private String type;
+        @SerializedName("a_attr")
+        private Map<String, String> anchorAttr = new HashMap<String, String>();
+
+        Node() {
+        }
+
+        Node(String id, String text, String parentID, String type) {
+            this.id = id;
+            this.text = text;
+            this.parentID = parentID;
+            this.type = type;
+        }
+
+        public void addBoldAnchorAttr() {
+            this.anchorAttr.put("style", "font-weight:bold;");
+        }
     }
 }

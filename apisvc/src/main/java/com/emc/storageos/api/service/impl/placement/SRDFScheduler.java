@@ -232,8 +232,9 @@ public class SRDFScheduler implements Scheduler {
             candidatePools.addAll(pools);
         }
         // Schedule storage based on the source pool constraint.
-        return scheduleStorageSourcePoolConstraint(varray, project, vpool, capabilities,
+        List<Recommendation> recommendations = scheduleStorageSourcePoolConstraint(varray, project, vpool, capabilities,
                 candidatePools, null, capabilities.getBlockConsistencyGroup());
+        return recommendations;
     }
 
     private List<StoragePool> filterPoolsForSupportedActiveModeProvider(List<StoragePool> candidatePools, VirtualPool vpool) {
@@ -513,9 +514,13 @@ public class SRDFScheduler implements Scheduler {
                     }
                     _log.info("Chose the first varray for SRDF comparison: " + firstVarray.getLabel());
 
+                    String rdfGroupString = capabilities.getRDFGroup();
+                    URI rdfGroup = URI.create(capabilities.getRDFGroup());
+                    
                     // Now go through each storage system in this varray and see if it matches up
                     findInsertRecommendation(rec, firstVarray, recommendations, candidatePools,
-                            recommendedPool, varrayTargetDeviceMap, project, consistencyGroupUri);
+                            recommendedPool, varrayTargetDeviceMap, project, consistencyGroupUri, 
+                            URI.create(capabilities.getRDFGroup()));
 
                     // Update the count of resources for which we have created
                     // a recommendation.
@@ -997,7 +1002,7 @@ public class SRDFScheduler implements Scheduler {
             final VirtualArray firstVarray, final List<Recommendation> recommendations,
             final List<StoragePool> candidatePools, final StoragePool recommendedPool,
             final Map<VirtualArray, Set<StorageSystem>> varrayTargetDeviceMap,
-            final Project project, final URI consistencyGroupUri) {
+            final Project project, final URI consistencyGroupUri, final URI raGroupID) {
 
         // This is our "home" storage system. We expect all varrays to have a storage pool from a
         // storage system that is contained in the SRDF list of this storage system.
@@ -1019,15 +1024,27 @@ public class SRDFScheduler implements Scheduler {
                         && sourceStorageSystem.containsRemotelyConnectedTo(targetStorageSystem
                                 .getId())) {
                     _log.info("Found the storage system we're trying to use.");
-                    URI raGroupID = findRAGroup(sourceStorageSystem, targetStorageSystem, rec
+                    URI raGroupToUse = raGroupID;
+                    if (raGroupToUse == null) {
+                        raGroupToUse = findRAGroup(sourceStorageSystem, targetStorageSystem, rec
                             .getVirtualArrayTargetMap().get(compareVarray.getId()).getCopyMode(),
                             project, consistencyGroupUri);
-                    if (raGroupID != null) {
+                    } else {
+                        // Make sure this RA Group's source storage system is the source storage system
+                        // and target storage system.  Maybe stick this in findRAGroup.
+                        RemoteDirectorGroup rdg = _dbClient.queryObject(RemoteDirectorGroup.class, raGroupID);
+                        if (!rdg.getSourceStorageSystemUri().equals(sourceStorageSystem.getId()) ||
+                            !rdg.getRemoteStorageSystemUri().equals(targetStorageSystem.getId())) {
+                            // Reset, this RA Group isn't going to work given the varray configuration.
+                            raGroupToUse = null;
+                        }
+                    }
+                    if (raGroupToUse != null) {
                         found++;
                         // Set the RA Group ID, which will get set in the volume descriptor for the
                         // target device.
                         rec.getVirtualArrayTargetMap().get(compareVarray.getId())
-                                .setSourceRAGroup(raGroupID);
+                                .setSourceRAGroup(raGroupToUse);
                         break; // move on to the next storage system
                     }
                     _log.info("Did not find a qualifying RA Group that connects the two storage arrays.  Do you have an RDF Group preconfigured?");

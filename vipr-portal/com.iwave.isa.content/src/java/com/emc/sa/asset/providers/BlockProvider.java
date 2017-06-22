@@ -342,11 +342,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      * @return
      */
     @Asset("rdfGroup")
-    @AssetDependencies({ "virtualPool" })
-    public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx, URI rdfGroup) {
+    public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx) {
         debug("getting RDF Groups");
-        FilterChain<VolumeRestRep> filters = new BlockVolumeMountPointFilter().not();
-        filters.and(new BlockVolumeVMFSDatastoreFilter().not());
         List<NamedRelatedResourceRep> rdfGroups = api(ctx).rdfGroups().list();
         return createRDFOptions(null, rdfGroups);
     }

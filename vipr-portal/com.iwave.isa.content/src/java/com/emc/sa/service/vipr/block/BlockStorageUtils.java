@@ -1208,7 +1208,7 @@ public class BlockStorageUtils {
         @Override
         public String toString() {
             return "Virtual Pool=" + virtualPool + ", Virtual Array=" + virtualArray + ", Project=" + project
-                    + ", Consistency Group=" + consistencyGroup;
+                    + ", Consistency Group=" + consistencyGroup + ", RDF Group=" + rdfGroup;
         }
 
         @Override

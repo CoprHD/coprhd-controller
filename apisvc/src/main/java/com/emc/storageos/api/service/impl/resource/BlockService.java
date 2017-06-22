@@ -1020,6 +1020,17 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
         }
 
+        // Add the RDF Group
+        Set<String> extensionParams = param.getExtensionParams();
+        if (extensionParams != null) {
+            for (String extensionParam : extensionParams) {
+                if (extensionParam.startsWith(VirtualPoolCapabilityValuesWrapper.RDF_GROUP)) {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.RDF_GROUP, 
+                            extensionParam.substring(VirtualPoolCapabilityValuesWrapper.RDF_GROUP.length()+1));
+                }
+            }
+        }
+        
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
         // being built up. Steps:

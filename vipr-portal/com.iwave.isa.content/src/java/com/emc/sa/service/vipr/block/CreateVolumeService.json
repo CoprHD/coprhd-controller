@@ -17,8 +17,8 @@
             lockable: true
         },
 
-        rdfgroup:{
-            type:"assetType.vipr.rdfgroup",
+        rdfGroup:{
+            type:"assetType.vipr.rdfGroup",
             lockable: true
         },
 

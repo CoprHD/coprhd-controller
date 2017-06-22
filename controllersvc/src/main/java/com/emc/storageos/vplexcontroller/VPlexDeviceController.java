@@ -10025,16 +10025,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
             }
 
-            // Create a Step to add the SAN Zone
-            String zoningStepId = workflow.createStepId();
-            Workflow.Method zoningMethod = zoneAddInitiatorStepMethod(
-                    vplex.getId(), exportGroup.getId(), zoningInitiators, varrayURI);
-            Workflow.Method zoningRollbackMethod = zoneRollbackMethod(exportGroup.getId(), zoningStepId);
-            zoningStepId = workflow.createStep(ZONING_STEP,
-                    String.format("Zone initiator %s to ExportGroup %s(%s)",
-                            Joiner.on(", ").join(zoningInitiators), exportGroup.getLabel(), exportGroup.getId()),
-                    null, vplex.getId(), vplex.getSystemType(), this.getClass(), zoningMethod, zoningRollbackMethod, zoningStepId);
-
             // Create a Step to add storage ports to the Storage View
             String addPortStep = workflow.createStepId();
             ExportMaskAddInitiatorCompleter portCompleter = new ExportMaskAddInitiatorCompleter(exportGroup.getId(), exportMask.getId(),
@@ -10048,7 +10038,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             workflow.createStep(STORAGE_VIEW_ADD_STORAGE_PORTS_METHOD,
                     String.format("Adding storage ports %s to VPLEX storage View %s", Joiner.on(", ").join(newTargets),
                             exportGroup.getGeneratedName()),
-                    zoningStepId, vplex.getId(), vplex.getSystemType(),
+                    null, vplex.getId(), vplex.getSystemType(),
                     this.getClass(), addPortsToViewMethod, addPortsToViewRollbackMethod, addPortStep);
 
             String addInitStep = workflow.createStepId();
@@ -10059,9 +10049,20 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     storageViewInitiators, null, shared, completer);
             Workflow.Method addToViewRollbackMethod = storageViewAddInitiatorsRollbackMethod(vplex.getId(),
                     exportGroup.getId(), exportMask.getId(), storageViewInitiators, null, addInitStep);
-            workflow.createStep(STORAGE_VIEW_ADD_INITS_METHOD, message,
+            addInitStep = workflow.createStep(STORAGE_VIEW_ADD_INITS_METHOD, message,
                     addPortStep, vplex.getId(), vplex.getSystemType(), this.getClass(),
                     addToViewMethod, addToViewRollbackMethod, addInitStep);
+
+            // Create a Step to add the SAN Zone
+            String zoningStepId = workflow.createStepId();
+            Workflow.Method zoningMethod = zoneAddInitiatorStepMethod(
+                    vplex.getId(), exportGroup.getId(), zoningInitiators, varrayURI);
+            Workflow.Method zoningRollbackMethod = zoneRollbackMethod(exportGroup.getId(), zoningStepId);
+            zoningStepId = workflow.createStep(ZONING_STEP,
+                    String.format("Zone initiator %s to ExportGroup %s(%s)",
+                            Joiner.on(", ").join(zoningInitiators), exportGroup.getLabel(), exportGroup.getId()),
+                    addInitStep, vplex.getId(), vplex.getSystemType(), this.getClass(), zoningMethod, zoningRollbackMethod, zoningStepId);
+
         }
     }
 

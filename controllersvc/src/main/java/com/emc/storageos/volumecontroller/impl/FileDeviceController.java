@@ -1862,18 +1862,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             
             if (!result.isCommandSuccess() && !result.getCommandPending()) {
                 _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successfull");
-            } else {
-            	quotaDirObj.setSize(quotaDir.getSize()); //set quota size
-            	quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
-                quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
-                quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
-                if (quotaDir.getOpLock() != null) {
-                	quotaDirObj.setOpLock(quotaDir.getOpLock());
-        		}
-        		if (null != quotaDir.getSecurityStyle()) {
-        			quotaDirObj.setSecurityStyle(quotaDir.getSecurityStyle());
-        		}
-            }
+                quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir.getId());
+            } 
             
             quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsObj.getName()));
             

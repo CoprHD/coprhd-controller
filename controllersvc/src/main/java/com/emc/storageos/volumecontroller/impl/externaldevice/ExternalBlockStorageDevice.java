@@ -2064,12 +2064,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             protected void processOperationResult() {
                 super.processOperationResult();
 
+                List<RemoteReplicationPair> systemPairs = getSystemRRPairs();
+
                 if (replicationElement.getType() == ElementType.CONSISTENCY_GROUP) {
                     BlockConsistencyGroup sourceCg = dbClient.queryObject(BlockConsistencyGroup.class,replicationElement.getElementUri());
                     sourceCg.getRequestedTypes().remove(Types.RR.toString());
                     dbClient.updateObject(sourceCg);
                     Set<URI> targetCgUris = new HashSet<>();
-                    for (RemoteReplicationPair pair : getSystemRRPairs()) {
+
+                    for (RemoteReplicationPair pair : systemPairs) {
                         targetCgUris.add(pair.getTargetElement().getURI());
                     }
                     for (URI targetCgUri : targetCgUris) {
@@ -2079,7 +2082,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     }
                 }
 
-                deleteReplicationPairs(URIUtil.toUris(getSystemRRPairs()), taskCompleter);
+                dbClient.removeObject(systemPairs.toArray(new RemoteReplicationPair[systemPairs.size()]));
             }
         };
         stopHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.STOP);

@@ -12,7 +12,7 @@ import org.apache.commons.lang.StringUtils;
 
 public class WwnUtils {
 
-    public static int EXPECTED_WWN_LENGTH = 16;
+    private static int EXPECTED_WWN_LENGTH = 16;
     
     public enum FORMAT {
         COLON, DASH, COMMA, NOMARKERS

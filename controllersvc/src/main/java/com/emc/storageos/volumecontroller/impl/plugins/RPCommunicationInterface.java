@@ -668,17 +668,17 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             
             // If the hostName has been changed then we need to update the
             // Initiator object to reflect that change.
-            String hostNameChanged = StringUtils.difference(
+            boolean hostNameChanged = !StringUtils.equals(
                     initiator.getHostName(), initiatorParam.getHostName());            
-            if (!StringUtils.isEmpty(hostNameChanged)) {
+            if (hostNameChanged) {
                 initiator.setHostName(initiatorParam.getHostName());
                 updateInitiator = true;                
             }
             // If the clusterName has been changed then we need to update the
             // Initiator object to reflect that change.
-            String clusterNameChanged = StringUtils.difference(
+            boolean clusterNameChanged = !StringUtils.equals(
                     initiator.getClusterName(), initiatorParam.getClusterName());            
-            if (!StringUtils.isEmpty(clusterNameChanged)) {
+            if (clusterNameChanged) {
                 initiator.setClusterName(initiatorParam.getClusterName());
                 updateInitiator = true;                
             }           

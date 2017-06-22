@@ -32,6 +32,9 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
@@ -100,10 +103,10 @@ public class ValidationHelper {
         return false;
     }
 
-    public CustomServicesValidationResponse validate(final URI id) {
+    public CustomServicesValidationResponse validate(final URI id, final ModelClient client) {
         final CustomServicesValidationResponse validationResponse = new CustomServicesValidationResponse();
         validationResponse.setId(id);
-        final CustomServicesValidationResponse.Error error = validateSteps();
+        final CustomServicesValidationResponse.Error error = validateSteps(client);
         if (StringUtils.isNotBlank(error.getErrorMessage()) || MapUtils.isNotEmpty(error.getErrorSteps())) {
             validationResponse.setError(error);
             validationResponse.setStatus(CustomServicesWorkflow.CustomServicesWorkflowStatus.INVALID.toString());
@@ -115,7 +118,7 @@ public class ValidationHelper {
         return validationResponse;
     }
 
-    private CustomServicesValidationResponse.Error validateSteps() {
+    private CustomServicesValidationResponse.Error validateSteps(final ModelClient client) {
         final CustomServicesValidationResponse.Error workflowError = new CustomServicesValidationResponse.Error();
         final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps = new HashMap<>();
         if (stepsHash.get(StepType.START.toString()) == null || stepsHash.get(StepType.END.toString()) == null) {
@@ -133,7 +136,7 @@ public class ValidationHelper {
                 addErrorStep = true;
             }
 
-            errorString = validateOperationAndType(step);
+            errorString = validateOperationAndType(step, client);
 
             if (StringUtils.isNotBlank(errorString)) {
                 errorList.add(errorString);
@@ -347,7 +350,7 @@ public class ValidationHelper {
         return EMPTY_STRING;
     }
 
-    private String validateOperationAndType(final Step step) {
+    private String validateOperationAndType(final Step step, final ModelClient client) {
 
         if (!(step.getId().equals(StepType.START.toString()) || step.getId().equals(StepType.END.toString()))) {
             if (step.getOperation() == null) {
@@ -359,11 +362,12 @@ public class ValidationHelper {
             } else {
                 switch (step.getType()) {
                     case CustomServicesConstants.VIPR_PRIMITIVE_TYPE:
+                        return EMPTY_STRING;
                     case CustomServicesConstants.SCRIPT_PRIMITIVE_TYPE:
                     case CustomServicesConstants.ANSIBLE_PRIMITIVE_TYPE:
                     case CustomServicesConstants.REST_API_PRIMITIVE_TYPE:
                     case CustomServicesConstants.REMOTE_ANSIBLE_PRIMTIVE_TYPE:
-                        return EMPTY_STRING;
+                        return checkOperationExists(client, step.getOperation());
                     default:
                         return CustomServicesConstants.ERROR_MSG_STEP_TYPE_INVALID;
 
@@ -372,6 +376,17 @@ public class ValidationHelper {
 
         }
 
+        return EMPTY_STRING;
+    }
+
+    private String checkOperationExists(final ModelClient client, final URI operation){
+        if (operation != null) {
+            final Class modelClass = URIUtil.getModelClass(operation);
+            DataObject dataObject = client.findById(modelClass, operation);
+            if (dataObject == null || dataObject.getInactive()) {
+                return CustomServicesConstants.ERROR_MSG_STEP_OPERATION_DOES_NOT_EXISTS;
+            }
+        }
         return EMPTY_STRING;
     }
 

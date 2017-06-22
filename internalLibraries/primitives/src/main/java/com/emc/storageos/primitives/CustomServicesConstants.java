@@ -58,6 +58,7 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_OTHER_STEP_OUTPUT_NOT_DEFINED = "Other Step Output not defined";
     public static final String ERROR_MSG_OUTPUT_NOT_DEFINED_IN_OTHER_STEP = "Output not defined in other Step";
     public static final String ERROR_MSG_STEP_OPERATION_REQUIRED = "Operation should be defined for step";
+    public static final String ERROR_MSG_STEP_OPERATION_DOES_NOT_EXISTS = "Operation does not exist in database or is recently deleted";
     public static final String ERROR_MSG_STEP_TYPE_REQUIRED = "Type should be defined for step";
     public static final String ERROR_MSG_STEP_TYPE_INVALID = "Invalid type specified for step";
 
@@ -98,6 +99,9 @@ public final class CustomServicesConstants {
     public static final String UNTAR_OPTION = "-zxvf";
     public static final String REMOVE = "/bin/rm";
     public static final String REMOVE_OPTION = "-rf";
+    public static final String BIN_BASH = "/bin/bash";
+    public static final String BIN_BASH_OPTION = "-c";
+
     // Ansible Options
     public static final String ANSIBLE_BIN = "remote_ansible_bin";
     public static final String ANSIBLE_PLAYBOOK = "playbook";
@@ -137,6 +141,7 @@ public final class CustomServicesConstants {
     public static final String TARGET = "target";
     public static final String PATH = "path";
     public static final String PORT = "port";
+    public static final String DEFAULT_HTTPS_PORT = "443";
 
     // Execution Result
     public static final String OPERATION_OUTPUT = "operation_output";

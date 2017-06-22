@@ -131,8 +131,12 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
     }
     
     @Override
+    public CustomServicesScriptPrimitive export(URI id) {
+        return CustomServicesDBHelper.exportDBPrimitive(CustomServicesDBScriptPrimitive.class, id, primitiveManager, MAPPER);
+    }
+    
+    @Override
     public boolean hasResource() {
         return true;
     }
-
 }

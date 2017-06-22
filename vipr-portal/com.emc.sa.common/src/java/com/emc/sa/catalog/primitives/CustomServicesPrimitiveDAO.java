@@ -103,4 +103,12 @@ public interface CustomServicesPrimitiveDAO<Primitive extends CustomServicesPrim
      */
     public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation);
 
+    /**
+     * Get the primitive for export
+     * 
+     * @param id
+     * @return
+     */
+    public Primitive export(URI id);
+
 }

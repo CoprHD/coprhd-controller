@@ -17,24 +17,15 @@
 
 package com.emc.sa.service.vipr.customservices;
 
-import java.beans.PropertyDescriptor;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.inject.Inject;
-import javax.xml.bind.annotation.XmlElement;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -43,6 +34,8 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.emc.sa.catalog.CustomServicesWorkflowManager;
 import com.emc.sa.catalog.primitives.CustomServicesViprPrimitiveDAO;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
@@ -53,9 +46,10 @@ import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesScriptTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
+import com.emc.sa.service.vipr.customservices.tasks.RESTHelper;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.EncryptionProvider;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
@@ -83,6 +77,8 @@ public class CustomServicesService extends ViPRService {
     private CustomServicesExecutors executor;
     @Autowired
     private CustomServicesViprPrimitiveDAO customServicesViprDao;
+    @Autowired
+    private CustomServicesWorkflowManager customServicesWorkflowManager;
 
     protected String decrypt(final String value) {
         if (StringUtils.isNotBlank(value)) {
@@ -93,29 +89,6 @@ public class CustomServicesService extends ViPRService {
             }
         }
         return value;
-    }
-
-    private static Field getField(Class<?> clazz, final String name) {
-        Field field = null;
-        while (clazz != null && field == null) {
-            try {
-                field = clazz.getDeclaredField(name);
-            } catch (Exception e) {
-            }
-            clazz = clazz.getSuperclass();
-        }
-
-        return field;
-    }
-
-    public static boolean isGetter(Method method) {
-        if (!method.getName().startsWith("get")
-                || method.getParameterTypes().length != 0
-                || void.class.equals(method.getReturnType())) {
-            return false;
-        }
-
-        return true;
     }
 
     @Override
@@ -158,7 +131,7 @@ public class CustomServicesService extends ViPRService {
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
-            ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getFriendlyName(), step.getType());
 
             updateInputPerStep(step);
 
@@ -185,7 +158,7 @@ public class CustomServicesService extends ViPRService {
                 next = getNext(false, null, step);
             }
             if (next == null) {
-                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id" + step.getId()
+                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id" + step.getId() + "\t Step Name:" + step.getFriendlyName()
                 + "Failed. Failing the Workflow");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Workflow Execution failed");
             }
@@ -199,18 +172,29 @@ public class CustomServicesService extends ViPRService {
 
         final String raw;
 
-        if (uri == null) {
-            raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
-        } else {
-            // Get it from DB
-            final CustomServicesWorkflow wf = dbClient.queryObject(CustomServicesWorkflow.class, uri);
-            raw = WorkflowHelper.toWorkflowDocumentJson(wf);
-        }
+        raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
+
         if (null == raw) {
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
         }
         final CustomServicesWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
+
+        final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByName(obj.getName());
+        if (wfs == null  || wfs.isEmpty() || wfs.size() > 1) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Workflow list is null or empty or more than one workflow per Workflow name:" + obj.getName());
+        }
+        if (wfs.get(0) == null || StringUtils.isEmpty(wfs.get(0).getState())) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Workflow state is null or empty for workflow:" + obj.getName());
+        }
+
+        if(wfs.get(0).getState().equals(CustomServicesWorkflow.CustomServicesWorkflowStatus.NONE.toString()) ||
+                wfs.get(0).getState().equals(CustomServicesWorkflow.CustomServicesWorkflowStatus.INVALID.toString())) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Workflow state is not valid. Cannot run workflow" + obj.getName() + "State:" + wfs.get(0).getState());
+        }
 
         final List<Step> steps = obj.getSteps();
         final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
@@ -242,6 +226,19 @@ public class CustomServicesService extends ViPRService {
 
         if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) || step.getType().equals(
                 CustomServicesConstants.REST_API_PRIMITIVE_TYPE)) {
+            final Map<URI, String> states = result.getTaskState();
+            if (states != null) {
+                for (Map.Entry<URI, String> e : states.entrySet()) {
+                    if (!StringUtils.isEmpty(e.getValue())) {
+                        if (e.getValue().equals(Task.Status.error.toString())) {
+                            ExecutionUtils.currentContext().logError("customServicesService.logStatus",
+                                    "Step Id" + step.getId() + "\t Step Name:" + step.getFriendlyName()
+                                            + "Task Failed TaskId:" + e.getKey() + "State:" + e.getValue());
+                            return false;
+                        }
+                    }
+                }
+            }
             return (result.getReturnCode() >= 200 && result.getReturnCode() < 300);
         }
 
@@ -250,12 +247,19 @@ public class CustomServicesService extends ViPRService {
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
         if (status) {
-            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step.getId(), result.getReturnCode());
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step.getId(), step.getFriendlyName(), result.getReturnCode());
 
             return step.getNext().getDefaultStep();
         }
 
-        ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId());
+        if (result!= null) {
+            ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId(), step.getFriendlyName(),
+            result.getOut(), result.getErr(), result.getReturnCode());
+
+        } else {
+            ExecutionUtils.currentContext()
+                    .logError("customServicesService.stepFailedWithoutStatus", step.getId(), step.getFriendlyName());
+        }
 
         return step.getNext().getFailedStep();
     }
@@ -316,7 +320,11 @@ public class CustomServicesService extends ViPRService {
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
-                final String friendlyName = value.getFriendlyName().replaceAll(CustomServicesConstants.SPACES_REGEX,StringUtils.EMPTY);
+                String friendlyName = value.getFriendlyName();
+                if(friendlyName != null){
+                    friendlyName = friendlyName.replaceAll(CustomServicesConstants.SPACES_REGEX,StringUtils.EMPTY);
+                }
+
                 if (StringUtils.isEmpty(value.getType())) {
                     continue;
                 }
@@ -508,7 +516,7 @@ public class CustomServicesService extends ViPRService {
         }
 
         if (StringUtils.isEmpty(primitive.response())) {
-            logger.debug("Vipr primitive" + primitive.name() + " has no repsonse defined.");
+            logger.debug("Vipr primitive" + primitive.name() + " has no response defined.");
             return null;
         }
 
@@ -520,10 +528,12 @@ public class CustomServicesService extends ViPRService {
         final Class<?> clazz = Class.forName(classname);
 
         final Object responseEntity = mapper.readValue(res, clazz.newInstance().getClass());
+
         final Map<String, List<String>> output = parseViprOutput(responseEntity, step);
         logger.info("ViPR output for step ID " + step.getId() + " is " + output);
         return output;
     }
+
 
     private Map<String, List<String>> parseViprOutput(final Object responseEntity, final Step step) throws Exception {
         final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
@@ -531,136 +541,19 @@ public class CustomServicesService extends ViPRService {
         final Map<String, List<String>> output = new HashMap<String, List<String>>();
         for (final CustomServicesWorkflowDocument.Output out : stepOut) {
             final String outName = out.getName();
-            logger.info("output to parse:{}", outName);
+            logger.debug("output to parse:{}", outName);
 
             final String[] bits = outName.split("\\.");
 
             // Start parsing at i=1 because the name of the root
             // element is not included in the JSON
-            final List<String> list = parserOutput(bits, 1, responseEntity);
+            final List<String> list = RESTHelper.parserOutput(bits, 1, responseEntity);
             if (list != null) {
                 output.put(out.getName(), list);
             }
         }
 
         return output;
-    }
-
-    private List<String> parserOutput(final String[] bits, final int i, final Object className) throws Exception {
-
-        if (className == null) {
-            logger.warn("class name is null, cannot parse output");
-
-            return null;
-        }
-        final Method method = findMethod(bits[i], className);
-
-        if (method == null) {
-            logger.warn("method is null. cannot parse output");
-
-            return null;
-        }
-        logger.debug("bit:{}", bits[i]);
-
-        // 1) primitive
-        if (i == bits.length - 1) {
-            final Object value = method.invoke(className, null);
-            logger.debug("value:{}", value);
-
-            if (value != null) {
-                return Arrays.asList(value.toString());
-            } else {
-                return null;
-            }
-        }
-
-        final Type returnType = method.getGenericReturnType();
-        if (returnType == null) {
-            logger.info("Could not find return type of method:{}", method.getName());
-
-            return null;
-        }
-
-        // 2) Class single object
-        if (returnType instanceof Class<?>) {
-            return parserOutput(bits, i + 1, method.invoke(className, null));
-        }
-
-        // 3) Collection primitive
-        if (Collection.class.isAssignableFrom(method.getReturnType())) {
-            return getCollectionValue(method, bits, i, className);
-        }
-
-        return null;
-    }
-
-    private List<String> getCollectionValue(final Method method, final String[] bits, final int i, final Object className)
-            throws Exception {
-
-        final Type returnType = method.getGenericReturnType();
-        if (returnType instanceof ParameterizedType) {
-            final ParameterizedType paramType = (ParameterizedType) returnType;
-
-            if (i == bits.length - 1) {
-                final List<Object> value = (List<Object>) method.invoke(className, null);
-                logger.debug("array value:{}", method.invoke(className, null));
-                final List<String> listStringOut = new ArrayList<String>();
-                for (final Object val : value) {
-                    listStringOut.add(val.toString());
-                }
-                return listStringOut;
-            }
-            final Type o = paramType.getActualTypeArguments()[0];
-            if (o instanceof Class<?>) {
-                final List<String> list = new ArrayList<String>();
-                for (final Object o1 : (Collection<?>) method.invoke(className, null)) {
-                    final List<String> value = parserOutput(bits, i + 1, o1);
-                    if (value != null) {
-                        list.addAll(value);
-                    }
-                }
-
-                if (!list.isEmpty()) {
-                    return list;
-                }
-            }
-        }
-        return null;
-    }
-
-    private Method findMethod(final String str, final Object className) throws Exception {
-        final Method[] methods = className.getClass().getMethods();
-        for (Method method : methods) {
-            XmlElement elem = method.getAnnotation(XmlElement.class);
-            if (elem != null) {
-                if (elem.name().equals(str) && isGetter(method)) {
-                    logger.debug("name matched elem:{} str:{}", elem.name(), str);
-                    return method;
-                }
-            }
-        }
-        logger.info("didn't match in xml. str:{} check for getter", str);
-
-        final Field field = getField(className.getClass(), str);
-        if (field != null) {
-            final PropertyDescriptor pd = new PropertyDescriptor(str, className.getClass());
-            if (pd == null) {
-                return null;
-            }
-            final Method getter = pd.getReadMethod();
-            if (getter != null) {
-                if (getter.getAnnotation(XmlElement.class) == null) {
-                    return null;
-                }
-                if (getter.getAnnotation(XmlElement.class).name().equals("##default")) {
-                    return getter;
-                }
-            }
-        }
-
-        logger.info("could not find getter");
-
-        return null;
     }
 
     private boolean isScript(final Step step) {

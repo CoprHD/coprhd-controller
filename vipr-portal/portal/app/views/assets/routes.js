@@ -124,6 +124,7 @@ var routes = {
   Workflow_publish: #{jsAction @catalog.WorkflowBuilder.publishWorkflow(':workflowId') /},
   Workflow_unpublish: #{jsAction @catalog.WorkflowBuilder.unpublishWorkflow(':workflowId') /},
   Workflow_get: #{jsAction @catalog.WorkflowBuilder.getWorkflow(':workflowId') /},
+  Workflow_getAssetOptions: #{jsAction @catalog.WorkflowBuilder.getAssetOptions() /},
   Workflow_delete: #{jsAction @catalog.WorkflowBuilder.deleteWorkflow(':workflowID', ':dirID') /},
   Workflow_edit_name: #{jsAction @catalog.WorkflowBuilder.editWorkflowName(':id',':newName') /},
   Primitive_get: #{jsAction @catalog.WorkflowBuilder.getPrimitive(':primitiveId', ':primitiveType') /},

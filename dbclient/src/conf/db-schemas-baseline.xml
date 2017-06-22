@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
  The following schema is auto generated
-by com.emc.storageos.db.common.DbSchemaChecker against ViPR version 3.6.1, at Wed Jun 07 02:49:41 UTC 2017
+by com.emc.storageos.db.common.DbSchemaChecker against ViPR version 3.6.1, at Wed Jun 14 04:00:07 UTC 2017
 Please DO NOT modify the content.
 -->
 <dbschemas>
@@ -4614,13 +4614,6 @@ Please DO NOT modify the content.
     <data_object_schema name="CustomServicesWorkflow" type="com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow">
         <annotations />
         <fields>
-            <field name="acls" type="com.emc.storageos.db.client.model.StringSetMap">
-                <annotations>
-                    <annotation name="PermissionsIndex" type="com.emc.storageos.db.client.model.PermissionsIndex">
-                        <annotation_value name="value" value="PermissionsIndex" />
-                    </annotation>
-                </annotations>
-            </field>
             <field name="creationTime" type="java.util.Calendar">
                 <annotations />
             </field>

@@ -1538,18 +1538,16 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             // find member volumes in the group
             volURIs = new ArrayList<URI>(cgVolsWithBackingVolsMap.get(cgURI));
-            List<Volume> volumeList = new ArrayList<Volume>();
-            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volURIs, true);
-            while (volumeIterator.hasNext()) {
-                volumeList.add(volumeIterator.next());
-            }
-            Volume firstVol = volumeList.get(0);
+            Volume firstVol = _dbClient.queryObject(Volume.class, volURIs.get(0));
             URI storage = firstVol.getStorageController();
             // delete CG from array
-            if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
+            if (VPlexUtil.cgHasNoOtherVPlexVolumes(_dbClient, cgURI, volURIs)) {
                 _log.info(String.format("Adding step to delete the consistency group %s", cgURI));
                 returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor,
                         storage, cgURI, false);
+            } else {
+            	_log.info(String.format("Skipping add step to delete the consistency group %s. Consistency group "
+            			+ "contains other VPLEX volumes that have not been accounted for.", cgURI));
             }
         }
 
@@ -6136,7 +6134,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         RB_MIGRATE_VIRTUAL_VOLUME_METHOD_NAME, vplexURI, migrationURI, stepId);
                 _log.info("Creating workflow migration step");
                 workflow.createStep(MIGRATION_CREATE_STEP, String.format(
-                        "VPlex %s migrating volume", vplexSystem.getId().toString()),
+                        "VPlex %s migrating to target volume %s.", vplexSystem.getId().toString(), 
+                        targetVolumeURI.toString()),
                         EXPORT_STEP, vplexSystem.getId(), vplexSystem.getSystemType(),
                         getClass(), vplexExecuteMethod, vplexRollbackMethod, stepId);
                 _log.info("Created workflow migration step");
@@ -6302,7 +6301,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         RB_MIGRATE_VIRTUAL_VOLUME_METHOD_NAME, vplexURI, migrationURI, stepId);
                 _log.info("Creating workflow migration step");
                 workflow.createStep(MIGRATION_CREATE_STEP, String.format(
-                        "VPlex %s migrating volume", vplexSystem.getId().toString()),
+                        "VPlex %s migrating to target volume %s.", vplexSystem.getId().toString(), 
+                        targetVolumeURI.toString()),
                         waitFor, vplexSystem.getId(), vplexSystem.getSystemType(),
                         getClass(), vplexExecuteMethod, vplexRollbackMethod, stepId);
                 _log.info("Created workflow migration step");

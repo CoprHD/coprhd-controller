@@ -23,8 +23,10 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.emc.storageos.volumecontroller.impl.utils.SRDFOperationContext.SRDFOperationType.CHANGE_VPOOL_ON_SOURCE;
 import static java.lang.String.format;
@@ -32,11 +34,15 @@ import static java.lang.String.format;
 public class SRDFMirrorRollbackCompleter extends SRDFTaskCompleter {
 
     private static final Logger log = LoggerFactory.getLogger(SRDFMirrorRollbackCompleter.class);
-    private Map<String, Operation.Status> detachStatuses;
+    private static final String UNKNOWN_STATUS_MSG = "May require manually suspending and removal from RDF group";
+
+    private Set<String> rollbackSuccesses;
+    private Map<String, ServiceCoded> rollbackFailures;
 
     public SRDFMirrorRollbackCompleter(List<URI> sourceURIs, String opId) {
         super(sourceURIs, opId);
-        this.detachStatuses = new HashMap<>();
+        this.rollbackSuccesses = new HashSet<>();
+        this.rollbackFailures = new HashMap<>();
     }
 
     @Override
@@ -66,7 +72,7 @@ public class SRDFMirrorRollbackCompleter extends SRDFTaskCompleter {
                         targetVolume.setPersonality(NullColumnValueGetter.getNullStr());
                         volumesToUpdate.add(targetVolume);
 
-                        logDetachStatus(volume, targetVolume);
+                        logRollbackStatus(volume, targetVolume);
                     }
                 }
                 volume.setLinkStatus(Volume.LinkStatus.OTHER.toString());
@@ -114,28 +120,56 @@ public class SRDFMirrorRollbackCompleter extends SRDFTaskCompleter {
         };
     }
 
-    public void updateDetachStatus(Volume source, Volume target, Operation.Status status, ServiceCoded coded) {
-        detachStatuses.put(detachStatusKey(source, target), status);
+    /**
+     * Determines if rollback likely encountered failure, which could mean an explicit failure occurred
+     * or rollback somehow was unable to process anything at all.
+     *
+     * @return true, if rollback failed in anyway.
+     */
+    public boolean hasRollbackFailures() {
+        return !rollbackFailures.isEmpty() || rollbackSuccesses.isEmpty();
     }
 
-    private String detachStatusKey(Volume source, Volume target) {
+    public void addRollbackStatus(Volume source, Volume target, Operation.Status status, ServiceCoded coded) {
+        String key = rollbackStatusKey(source, target);
+        switch (status) {
+            case error:
+                rollbackFailures.put(key, coded);
+                break;
+            case ready:
+                rollbackSuccesses.add(key);
+                break;
+            default:
+                //ignore
+        }
+    }
+
+    private String rollbackStatusKey(Volume source, Volume target) {
         return String.format("%s:%s", source.getNativeGuid(), target.getNativeGuid());
     }
 
-    private boolean pairWasDetached(Volume source, Volume target) {
-        Operation.Status status = detachStatuses.get(detachStatusKey(source, target));
-        return Operation.Status.ready.equals(status);
-    }
-
-    private void logDetachStatus(Volume volume, Volume targetVolume) {
+    /**
+     * Write a log message to help the user understand the potential state of a given
+     * source & target volume pair.
+     *
+     * @param source    Source volume
+     * @param target    Target volume
+     */
+    private void logRollbackStatus(Volume source, Volume target) {
         StringBuilder msg = new StringBuilder();
         msg.append(String.format("Rollback of Source:%s, Target:%s for Task:%s ",
-                volume.getNativeGuid(), targetVolume.getNativeGuid(), getOpId()));
-        if (pairWasDetached(volume, targetVolume)) {
-            msg.append("was detached.");
+                source.getNativeGuid(), target.getNativeGuid(), getOpId()));
+        String key = rollbackStatusKey(source, target);
+
+        if (rollbackFailures.containsKey(key)) {
+            ServiceCoded coded = rollbackFailures.get(rollbackStatusKey(source, target));
+            msg.append(String.format("failed: %s\n%s.", coded, UNKNOWN_STATUS_MSG));
+        } else if (rollbackSuccesses.contains(key)) {
+            msg.append("complete.");
         } else {
-            msg.append("failed to detach.  May require manually suspending and removal from RDF group.");
+            msg.append(String.format("did not occur.  %s", UNKNOWN_STATUS_MSG));
         }
+
         log.info(msg.toString());
     }
 }

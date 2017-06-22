@@ -1347,7 +1347,6 @@ public class FileService extends TaskResourceService {
                             String msg = String
                                     .format("as requested reduced size [%.1fGB] is smaller than its quota size [%.1fGB] for filesystem %s", 
                                     		newFScapacity, quotasize, fs.getName());
-                            
                             throw APIException.badRequests.reduceFileSystemNotSupported(msg);
                         }
                     }
@@ -2063,12 +2062,11 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setOpStatus(new OpStatusMap());
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
-        quotaDirectory.setSoftLimit(
-                param.getSoftLimit() > 0 ? param.getSoftLimit() : fsSoftLimit > 0 ? fsSoftLimit : 0);
-        quotaDirectory.setSoftGrace(
-                param.getSoftGrace() > 0 ? param.getSoftGrace() : fsGraceLimit> 0 ? fsGraceLimit : 0);
-        quotaDirectory.setNotificationLimit(param.getNotificationLimit() > 0 ? param.getNotificationLimit()
-                : fsNotifiLimit > 0 ? fsNotifiLimit : 0);
+        
+        quotaDirectory.setSoftLimit(param.getSoftLimit() > 0 ? param.getSoftLimit() : fsSoftLimit > 0 ? fsSoftLimit : 0);
+        quotaDirectory.setSoftGrace(param.getSoftGrace() > 0 ? param.getSoftGrace() : fsGraceLimit> 0 ? fsGraceLimit : 0);
+        quotaDirectory.setNotificationLimit(param.getNotificationLimit() > 0 ? param.getNotificationLimit() 
+        																	: fsNotifiLimit > 0 ? fsNotifiLimit : 0);
 
         String convertedName = origQtreeName.replaceAll("[^\\dA-Za-z_]", "");
         _log.info("FileService::QuotaDirectory Original name {} and converted name {}", origQtreeName, convertedName);

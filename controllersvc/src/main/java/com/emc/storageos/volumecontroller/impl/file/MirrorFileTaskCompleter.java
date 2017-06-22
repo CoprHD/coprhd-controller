@@ -117,12 +117,22 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         try {
             if (Operation.Status.ready.equals(status)) {
                 List<FileShare> fileshares = dbClient.queryObject(FileShare.class, getIds());
+                _logger.info("_csm original FileShares : {} ", fileshares.toString());
                 for (FileShare fs : fileshares) {
+                    _logger.info("-------------------------------------------------------------------------------");
+                    _logger.info("_csm fs name : {} ", fs.getLabel());
+                    _logger.info("_csm fs original MirrorStatus : {} ", fs.getMirrorStatus());
                     fs.setMirrorStatus(getFileMirrorStatusForSuccess(fs));
+                    _logger.info("_csm fs updated MirrorStatus : {} ", fs.getMirrorStatus());
+
+                    _logger.info("_csm fs original AccessState : {} ", fs.getAccessState());
                     fs.setAccessState(getFileShareAccessStateForSuccess(fs).name());
+                    _logger.info("_csm fs updated AccessState : {} ", fs.getAccessState());
+                    _logger.info("-------------------------------------------------------------------------------");
                 }
                 dbClient.updateObject(fileshares);
                 _logger.info("Updated Mirror status for fileshares: {}", getIds());
+                _logger.info("_csm updated FileShares : {} ", fileshares.toString());
             }
         } catch (Exception e) {
             _logger.info("Not updating fileshare mirror link status for fileshares: {}", getIds(), e);

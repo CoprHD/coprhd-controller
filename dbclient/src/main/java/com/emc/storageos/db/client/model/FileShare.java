@@ -161,6 +161,7 @@ public class FileShare extends FileObject implements ProjectResource {
     public static enum PersonalityTypes {
         SOURCE, // Source fileShare
         TARGET, // Target fileShare
+        TEMP_TARGET, // Temporary Target created during Higher order FS Failover
     }
 
     @Name("mirrorfsTargets")

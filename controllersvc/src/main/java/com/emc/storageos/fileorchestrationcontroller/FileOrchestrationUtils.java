@@ -652,6 +652,9 @@ public final class FileOrchestrationUtils {
                     }
                 }
             }
+        } else if (fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TEMP_TARGET.name())) {
+            // Higher order FS failover
+            return true;
         }
         return false;
     }
@@ -664,7 +667,8 @@ public final class FileOrchestrationUtils {
      */
     public static Boolean isPrimaryFileSystemOrNormalFileSystem(FileShare fs) {
         if (fs.getPersonality() == null
-                || fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())) {
+                || fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
+                || fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TEMP_TARGET.name())) {
             return true;
         }
         return false;
@@ -1196,13 +1200,13 @@ public final class FileOrchestrationUtils {
         FileShare tempFs = new FileShare();
         String tempTargetPath = "/ifs/" + targetFS.getLabel() + "TempDir";
         String tempFsName = targetFS.getLabel() + "_Temp";
-        tempFs.setId(URIUtil.createId(FilePolicy.class));
+        tempFs.setId(URIUtil.createId(FileShare.class));
         tempFs.setName(tempFsName);
         tempFs.setLabel(tempFsName);
         tempFs.setMountPath(tempTargetPath);
         tempFs.setNativeId(tempTargetPath);
         tempFs.setPath(tempTargetPath);
-        //tempFs.setPersonality(FileShare.PersonalityTypes.TARGET.name());
+        tempFs.setPersonality(FileShare.PersonalityTypes.TEMP_TARGET.name());
         tempFs.setParentFileShare(new NamedURI(targetFS.getId(), targetFS.getLabel()));
         tempFs.setCapacity(targetFS.getCapacity());
         tempFs.setCreationTime(Calendar.getInstance());

@@ -640,18 +640,30 @@ public class WorkflowBuilder extends Controller {
                 outputUpdateParam.setAdd((List<String>) CollectionUtils.subtract(newOutputs, existingOutputs));
                 primitiveUpdateParam.setOutput(outputUpdateParam);
 
+                final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep;
+
                 if (shellPrimitive.isNewScript()) {
                     // create new resource
                     String filename = FilenameUtils.getBaseName(shellPrimitive.getScript().getName());
-                    final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
+                    primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
                             .createPrimitiveResource("SCRIPT", shellPrimitive.getScript(), filename);
                     if (null != primitiveResourceRestRep) {
                         // Update resource link
                         primitiveUpdateParam.setResource(primitiveResourceRestRep.getId());
+                        try {
+                            getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
+                        } catch (final Exception e1) {
+                            if (primitiveResourceRestRep != null) {
+                                // Resource was created but primitive creation failed
+                                getCatalogClient().customServicesPrimitives().deletePrimitiveResource(primitiveResourceRestRep.getId());
+                            }
+                            throw e1;
+                        }
                     }
+                } else {
+                    getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
                 }
 
-                getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
                 flash.success(MessagesUtils.get("wfBuilder.operation.edit.success"));
             }
         } catch (final Exception e) {

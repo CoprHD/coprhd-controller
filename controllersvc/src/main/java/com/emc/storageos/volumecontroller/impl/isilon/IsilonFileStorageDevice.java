@@ -1472,12 +1472,23 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(FileShareQuotaDirectory quotaDir, Long qDirSize, Long fsSize, IsilonApi isi) {
-        Long notificationLimit = Integer.valueOf(quotaDir.getNotificationLimit()).longValue();
-        
-        Long softlimit = Integer.valueOf(quotaDir.getSoftLimit()).longValue();
-        Long softGrace = Integer.valueOf(quotaDir.getSoftGrace()).longValue();
-         return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, fsSize, false, null, qDirSize,
+    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(QuotaDirectory quotaDir, Long qDirSize, Long fsSize, IsilonApi isi) {
+        Long notificationLimit = 0L;
+        Long softlimit = 0L;
+        Long softGrace = 0L;
+
+        if (quotaDir.getNotificationLimit() != null) {
+            notificationLimit = Long.valueOf(quotaDir.getNotificationLimit());
+        }
+
+        if (quotaDir.getSoftLimit() != null) {
+            softlimit = Long.valueOf(quotaDir.getSoftLimit());
+        }
+
+        if (quotaDir.getSoftGrace() != null) {
+            softGrace = Long.valueOf(quotaDir.getSoftGrace());
+        }
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, fsSize, false, null, qDirSize,
                 notificationLimit, softlimit, softGrace);
     }
 
@@ -1502,14 +1513,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 softlimit, notificationLimit, softGrace, fsSize, isi);
     }
     
-    private String checkThresholdAndcreateQuota(FileShareQuotaDirectory quotaDir, Long qDirSize, String qDirPath, Long fsSize, IsilonApi isi) {
-    	Long notificationLimit = Integer.valueOf(quotaDir.getNotificationLimit()).longValue();
-        Long softlimit = Integer.valueOf(quotaDir.getSoftLimit()).longValue();
-        Long softGrace = Integer.valueOf(quotaDir.getSoftGrace()).longValue();
-        return createQuotaWithThreshold(qDirPath, qDirSize,
-                softlimit, notificationLimit, softGrace, fsSize, isi);
-    }
-
     public String createQuotaWithThreshold(String qDirPath, Long qDirSize, Long softLimitSize, Long notificationLimitSize,
             Long softGracePeriod, Long fsSize, IsilonApi isi) {
         boolean bThresholdsIncludeOverhead = true;

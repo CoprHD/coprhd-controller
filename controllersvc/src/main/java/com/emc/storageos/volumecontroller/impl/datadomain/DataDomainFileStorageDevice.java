@@ -1100,7 +1100,7 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
-            FileDeviceInputOutput args, FileShareQuotaDirectory qd) throws ControllerException {
+            FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         ServiceError serviceError = DeviceControllerErrors.datadomain.operationNotSupported();
         result = BiosCommandResult.createErrorResult(serviceError);

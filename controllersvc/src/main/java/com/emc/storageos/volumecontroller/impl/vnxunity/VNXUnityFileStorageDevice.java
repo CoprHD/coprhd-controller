@@ -1658,14 +1658,11 @@ implements FileStorageDevice {
             } else {
                 size = qd.getSize();
             }
-            
-            URI qtreeURI = qd.getId();
-            QuotaDirectory quotaDirObj = this.dbClient.queryObject(QuotaDirectory.class, qtreeURI);
 
             softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
             // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
-            job = apiClient.updateQuotaDirectory(quotaDirObj.getNativeId(), qd.getSize(), softLimit, softGrace);
+            job = apiClient.updateQuotaDirectory(qd.getNativeId(), qd.getSize(), softLimit, softGrace);
 
             if (job != null) {
                 _logger.info("opid:" + args.getOpId());

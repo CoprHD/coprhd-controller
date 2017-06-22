@@ -2210,23 +2210,40 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }	
             
-            // Get a handle on the RPController so we can query the access states associated with the
-            // target volumes.
-            RPController rpController = getController(RPController.class, ProtectionSystem._RP);
-            // Get a mapping of target volume URIs to their corresponding copy access states
-            Map<URI, String> copyAccessStates = rpController
-                    .getCopyAccessStates(volume.getProtectionController(), targetVolumeURIs);
-            
-            for (Entry<URI, String> accessState : copyAccessStates.entrySet()) {
-            	// If any of the target copies are in direct access, we cannot perform the expand operation.
-            	// This is because volumes on the arrays will be in an active copy session, which fails
-            	// if an expand is attempted.
-            	String copyAccessState = accessState.getValue();
-            	// If the copyAccessState is null for whatever reason, we won't block the expand request and 
-            	// allow it proceed to RP and the arrays
-            	if (!RPHelper.isValidRecoverPointExpandState(copyAccessState)) {
-            		throw APIException.badRequests.invalidRPCopyStateForExpand(volume.getLabel(), copyAccessState);   
-            	}
+            // Verify the target copy access state only if there is more than 1 target copy.  
+            if (targetVolumeURIs.size() > 1) {
+	            // Get a handle on the RPController so we can query the access states associated with the
+	            // target volumes.
+	            RPController rpController = getController(RPController.class, ProtectionSystem._RP);
+	            
+	            boolean doesRsetExist = 
+	            		rpController.doesReplicationSetExist(volume.getProtectionController(), volume.getId());
+	            
+	            // Only check the target copy access states if the replication set exists in the RP 
+	            // consistency group.  The replication set might have already been removed from a 
+	            // previously failed expand order for this volume.  Allow the expand to proceed.  The
+	            // replication set will get reconstructed downstream.  
+	            if (doesRsetExist) {
+		            // Get a mapping of target volume URIs to their corresponding copy access states
+		            Map<URI, String> copyAccessStates = rpController
+		            			.getCopyAccessStates(volume.getProtectionController(), targetVolumeURIs);	            
+		            
+		            for (Entry<URI, String> accessState : copyAccessStates.entrySet()) {
+		            	// If any of the target copies are in direct access, we cannot perform the expand operation.
+		            	// This is because volumes on the arrays will be in an active copy session, which fails
+		            	// if an expand is attempted.
+		            	String copyAccessState = accessState.getValue();
+		            	// If the copyAccessState is null for whatever reason, we won't block the expand request and 
+		            	// allow it proceed to RP and the arrays
+		            	if (!RPHelper.isValidRecoverPointExpandState(copyAccessState)) {
+		            		throw APIException.badRequests.invalidRPCopyStateForExpand(volume.getLabel(), copyAccessState);   
+		            	}
+		            }
+	            } else {
+	            	_log.info(String.format("The replication set corresponding to volume %s does not exist.  Allowing the expand "
+	            			+ "operation to proceed.  The replication set will be re-constructed by the expand operation.", 
+	            			volume.getLabel()));
+	            }
             }
         } else {
             throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());

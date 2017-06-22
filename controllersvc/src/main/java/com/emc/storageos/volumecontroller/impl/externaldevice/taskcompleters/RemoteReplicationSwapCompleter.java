@@ -22,7 +22,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
 @SuppressWarnings("serial")
 public class RemoteReplicationSwapCompleter extends TaskCompleter {
 
-    private static final Logger _logger = LoggerFactory.getLogger(RemoteReplicationFailoverCompleter.class);
+    private static final Logger _logger = LoggerFactory.getLogger(RemoteReplicationSwapCompleter.class);
 
     private DbClient dbClient;
     private RemoteReplicationSet.ElementType elementType;

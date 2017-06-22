@@ -510,7 +510,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         } catch (Exception e) {
             String[] params = { storage.toString(), uri.toString(), String.valueOf(forceDelete),
-                    e.getMessage().toString() };
+                    e.getMessage() };
             _log.error("Unable to delete file system or snapshot: storage {}, FS/snapshot {}, forceDelete {}: {}", params);
             updateTaskStatus(opId, fileObject, e);
 

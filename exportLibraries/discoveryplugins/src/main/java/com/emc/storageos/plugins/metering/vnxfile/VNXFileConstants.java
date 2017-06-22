@@ -84,7 +84,6 @@ public class VNXFileConstants {
     public static final String FILESYSTEM_NAME = "filesystem_name";
     public static final String FILESYSTEM_ID = "filesystem_id";
     public static final String FILESYSTEM = "filesystem";
-    public static final String FILESYSTEM_USED_SPACE = "spaceUsed";
     public static final String IS_FILESYSTEM_AVAILABLE_ON_ARRAY = "filesystem_availability";
     public static final String FS_INIT_SIZE = "filesystem_size";
     public static final String SNAPSHOT_NAME = "snapshot_name";

@@ -19,8 +19,6 @@ public class VNXeFileSystem extends VNXeBase {
     private long sizeUsed;
     private int supportedProtocols;
     private int snapCount;
-    private int nfsShareCount;
-    private int cifsShareCount;
     private boolean isFLREnabled;
     private long sizeAllocated;
 
@@ -118,22 +116,6 @@ public class VNXeFileSystem extends VNXeBase {
 
     public void setSizeAllocated(long sizeAllocated) {
         this.sizeAllocated = sizeAllocated;
-    }
-
-    public int getNfsShareCount() {
-        return nfsShareCount;
-    }
-
-    public void setNfsShareCount(int nfsShareCount) {
-        this.nfsShareCount = nfsShareCount;
-    }
-
-    public int getCifsShareCount() {
-        return cifsShareCount;
-    }
-
-    public void setCifsShareCount(int cifsShareCount) {
-        this.cifsShareCount = cifsShareCount;
     }
 
 }

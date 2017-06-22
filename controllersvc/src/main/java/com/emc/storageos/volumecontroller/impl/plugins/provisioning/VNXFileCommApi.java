@@ -74,7 +74,6 @@ public class VNXFileCommApi {
     private static final String PROV_SNAP_RESTORE = "vnxfile-prov-snap-restore";
     private static final String PROV_FSIDQUERY_FILE = "vnxfile-prov-filesysid-query";
     private static final String PROV_FSIDQUERY_FILE_DELETE = "vnxfile-prov-filesysid-delete-query";
-    private static final String PROV_FSIDQUERY_FILE_WITH_SIZE = "vnxfile-prov-filesysid-used-size-query";
     private static final String PROV_CIFS_SERVERS = "vnxfile-prov-cifsserver-query";
 
     private static final String PROV_FILE_QUOTA_DIR_CREATE = "vnxfile-prov-quota-dir-create";
@@ -265,36 +264,6 @@ public class VNXFileCommApi {
             throw VNXException.exceptions.communicationFailed(e.getMessage());
         }
         return isFsAvailable;
-    }
-
-    /**
-     * Checks if the file system contains data or not
-     * 
-     * @param system the storage system
-     * @param fileId the file system ID
-     * @param fileSys the file system name
-     * @return true if file system contains data; false otherwise
-     * @throws VNXException
-     */
-
-    public boolean doesFileSystemHasData(StorageSystem system, String fileId, String fileSys) throws VNXException {
-
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
-        long usedSize = 99;
-        try {
-            updateAttributes(reqAttributeMap, system);
-            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
-            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
-            _provExecutor.setKeyMap(reqAttributeMap);
-            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE_WITH_SIZE));
-            String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
-            if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
-                usedSize = (long) _provExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEM_USED_SPACE);
-            }
-        } catch (Exception e) {
-            throw VNXException.exceptions.communicationFailed(e.getMessage());
-        }
-        return (usedSize > 0) ? true : false;
     }
 
     public XMLApiResult createSnapshot(final StorageSystem system,
@@ -515,14 +484,7 @@ public class VNXFileCommApi {
     public XMLApiResult deleteFileSystem(final StorageSystem system,
             final String fileId,
             final String fileSys,
-            boolean isForceDelete, FileShare fs) throws VNXException {
-
-        if (doesFileSystemHasData(system, fileId, fileSys)) {
-            throw new VNXException("File system used space is not zero ,can not delete it.Please remove the data and try again");
-        }
-
-        // setting force delete to false;
-        isForceDelete = false;
+            final boolean isForceDelete, FileShare fs) throws VNXException {
         _log.info("Delete VNX File System: fs id {}, Force Delete {}", fileId, isForceDelete);
         XMLApiResult result = new XMLApiResult();
 

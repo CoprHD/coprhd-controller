@@ -156,7 +156,6 @@ public class VNXeApiClient {
     public static int STANDALONE_LUN_TYPE = 2;
     public String netBios;
     private static final String VIPR_TMP_HOST_PREFIX = "VIPR_INTERNAL_";
-    private static final long UNITY_FS_MIN_USED_SIZE = 0;
 
     // the client to invoke VNXe requests
     private KHClient _khClient;
@@ -397,11 +396,6 @@ public class VNXeApiClient {
     public VNXeCommandJob deleteFileSystem(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
-        if (doesFileSystemHasExportOrShare(fsId) || doesFileSystemHasData(fsId)) {
-            throw VNXeException.exceptions
-                    .vnxeCommandFailed("Delete file system failed as it conatin data or other linked resource, remove the dependency and try again for  "
-                            + fsId);
-        }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);
         return req.deleteFileSystemAsync(fsId, forceSnapDeletion);
     }
@@ -419,60 +413,8 @@ public class VNXeApiClient {
     public VNXeCommandResult deleteFileSystemSync(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
-        if (doesFileSystemHasExportOrShare(fsId) || doesFileSystemHasData(fsId)) {
-            throw VNXeException.exceptions
-                    .vnxeCommandFailed("Delete file system failed as it conatin data or other linked resource, remove the dependency and try again for  "
-                    + fsId);
-        }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);
         return req.deleteFileSystemSync(fsId, forceSnapDeletion);
-    }
-
-    /**
-     * Checks to see if the file system has some data or not
-     * 
-     * @param fsId
-     *            fsID to check
-     * @return boolean true if directory has data, false otherwise
-     */
-    public boolean doesFileSystemHasData(String fsId) {
-        FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
-        VNXeFileSystem fs = fsRequest.get();
-        if (fs != null) {
-            long fsUsedSize = fs.getSizeUsed();
-            _logger.info("Getting filesystem used space for fsId {} is {} ", fsId, fsUsedSize);
-            if (fsUsedSize > UNITY_FS_MIN_USED_SIZE) {
-                return true;
-            } else {
-
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Checks to see if the file system has export or share.
-     * 
-     * @param fsId
-     *            fsID to check
-     * @return boolean true if it has share or export, false otherwise
-     */
-    public boolean doesFileSystemHasExportOrShare(String fsId) {
-        FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
-
-
-        VNXeFileSystem fs = fsRequest.get();
-        if (fs != null) {
-            _logger.info("Getting NfsShare and Cifs Share Count for fsId {} is {}, {} ", fsId, fs.getNfsShareCount(),
-                    fs.getCifsShareCount());
-            if (fs.getNfsShareCount() > 0 || fs.getCifsShareCount() > 0) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
@@ -1827,7 +1769,7 @@ public class VNXeApiClient {
         _logger.info("Done exporting lun snap: {}", snapId);
         return result;
     }
-   
+
     /**
      * Unexport a snapshot
      * 
@@ -1860,7 +1802,7 @@ public class VNXeApiClient {
             }
             VNXeBase snapGroup = snap.getSnapGroup();
             parentLunId = snap.getLun().getId();
-            
+
             if (snapGroup == null && (snap.isAttached())) {
                 _logger.info("Detaching the snap: {}", snapId);
                 detachSnap(snapId);
@@ -1903,7 +1845,7 @@ public class VNXeApiClient {
             }
             changedHostAccessList.add(hostAccess);
         }
-        
+
         if (changedHostAccessList.isEmpty()) {
             // the removing hosts are not exported
             _logger.info("The unexport hosts were not exported.");
@@ -1927,7 +1869,7 @@ public class VNXeApiClient {
                     for (BlockHostAccess hostA : hostAccess) {
                         int mask = hostA.getAccessMask();
                         if (mask == HostLUNAccessEnum.BOTH.getValue() ||
-                            mask == HostLUNAccessEnum.SNAPSHOT.getValue()) {
+                                mask == HostLUNAccessEnum.SNAPSHOT.getValue()) {
                             needReattach = true;
                             break;
                         }
@@ -1936,10 +1878,10 @@ public class VNXeApiClient {
                         break;
                     }
                 }
-            
+
             } else {
                 _logger.warn(String.format("The storage resource id is empty for the lun ", parentLun.getName()));
-                
+
             }
         }
         LunParam lunParam = new LunParam();

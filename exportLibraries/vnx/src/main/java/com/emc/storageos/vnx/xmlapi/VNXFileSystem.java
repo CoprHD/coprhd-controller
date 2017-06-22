@@ -162,7 +162,7 @@ public class VNXFileSystem extends VNXBaseClass {
                 "\t<StoragePool pool=\"" + storagePool + "\" size=\"" + size + "\" mayContainSlices=\"true\" >\n";
 
         // add Auto Extend attributes
-        String autoExtend = autoAtts.get(AUTO_EXTEND_ENABLED_ATTRIBUTE);
+        String autoExtend = (String) autoAtts.get(AUTO_EXTEND_ENABLED_ATTRIBUTE);
         if (Boolean.valueOf(autoExtend).booleanValue() == true) {
             xml += "\t<EnableAutoEx autoExtensionMaxSize=\"" + autoAtts.get(AUTO_EXTEND_MAX_SIZE_ATTRIBUTE) +
                     "\" highWaterMark=\"" + autoAtts.get(AUTO_EXTEND_HWM_ATTRIBUTE) + "\"></EnableAutoExt>";

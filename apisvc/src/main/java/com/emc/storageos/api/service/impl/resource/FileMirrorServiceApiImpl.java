@@ -370,8 +370,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
          * For Isilon, duplicate name is handled at driver level.
          * For Unity, two file systems of same name can be created in different NAS servers.
          */
-        if (!system.getSystemType().equals(StorageSystem.Type.isilon.name())
-                || !system.getSystemType().equals(StorageSystem.Type.unity.name())) {
+        if (!allowDuplicateFilesystemNameOnStorage(system.getSystemType())) {
             List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                     PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
             if (fileShareList != null && !fileShareList.isEmpty()) {
@@ -571,6 +570,18 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         if (!fileShareList.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(label);
         }
+    }
+
+    private static boolean allowDuplicateFilesystemNameOnStorage(String systemType) {
+
+        boolean allow = false;
+
+        if (StorageSystem.Type.isilon.name().equals(systemType)) {
+            allow = true;
+        } else if (StorageSystem.Type.unity.name().equals(systemType)) {
+            allow = true;
+        }
+        return allow;
     }
 
 }

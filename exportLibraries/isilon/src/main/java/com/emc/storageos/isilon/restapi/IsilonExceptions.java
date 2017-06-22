@@ -42,9 +42,6 @@ public interface IsilonExceptions {
             final Throwable e);
 
     @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)
-    public IsilonException forceDeleteNotSupported(final String path);
-
-    @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)
     public IsilonException failToDeleteFileSystem(final String path);
 
     @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)

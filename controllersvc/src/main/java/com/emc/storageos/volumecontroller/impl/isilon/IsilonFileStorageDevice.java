@@ -356,36 +356,37 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      */
     private void isiDeleteFS(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
 
-        // File the request with force delete
+        // Fail the request with force delete
         if (args.getForceDelete()) {
             _log.error("File System delete operation is not supported with force delete {} ", args.getForceDelete());
             throw IsilonException.exceptions.deleteFileSystemNotSupported();
 
-        } else {
-
-            // Do not delete file system if it has some data in it.
-            if (isi.fsDirHasData(args.getFsMountPath())) {
-                // Fail to delete file system directory which has data in it!!!
-                _log.error("File system deletion failed as it's directory {} has content in it", args.getFsMountPath());
-                throw IsilonException.exceptions.failToDeleteFileSystem(args.getFsMountPath());
-            }
-
-            /**
-             * Delete quota on this path, if one exists
-             */
-            if (args.getFsExtensions() != null && args.getFsExtensions().containsKey(QUOTA)) {
-                isi.deleteQuota(args.getFsExtensions().get(QUOTA));
-                // delete from extensions
-                args.getFsExtensions().remove(QUOTA);
-            }
-
-            /**
-             * Delete the directory associated with the file share.
-             * with recursive flag false
-             */
-            isi.deleteDir(args.getFsMountPath());
+        }
+        /*
+         * Do not delete file system if it has some data in it.
+         * In Api service we have check (ViPR db check) for existing shares and exports and
+         * it fails operation if filesystem has any share or export.
+         */
+        if (isi.fsDirHasData(args.getFsMountPath())) {
+            // Fail to delete file system directory which has data in it!!!
+            _log.error("File system deletion failed as it's directory {} has content in it", args.getFsMountPath());
+            throw IsilonException.exceptions.failToDeleteFileSystem(args.getFsMountPath());
         }
 
+        /**
+         * Delete quota on this path, if one exists
+         */
+        if (args.getFsExtensions() != null && args.getFsExtensions().containsKey(QUOTA)) {
+            isi.deleteQuota(args.getFsExtensions().get(QUOTA));
+            // delete from extensions
+            args.getFsExtensions().remove(QUOTA);
+        }
+
+        /**
+         * Delete the directory associated with the file share.
+         * with recursive flag false
+         */
+        isi.deleteDir(args.getFsMountPath());
     }
 
     /**
@@ -3834,22 +3835,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                                     + sourcePath);
                 }
             } else {
-                if (isTargetDirectoryEmpty(targetStorageObj, targetPath)) {
-                    // Create replication sync policy.
-                    createIsilonSyncPolicy(sourceStorageObj, targetStorageObj, filePolicy, sourcePath, targetPath,
-                            policyName, sourceSytemArgs, targetSytemArgs);
+                // Create replication sync policy.
+                createIsilonSyncPolicy(sourceStorageObj, targetStorageObj, filePolicy, sourcePath, targetPath,
+                        policyName, sourceSytemArgs, targetSytemArgs);
 
-                    result = BiosCommandResult.createSuccessfulResult();
-                } else {
-                    // Fail to create replication policy at source site
-                    // if the target path at target cluster has some data in it!!!
-                    StringBuffer sourceSite = new StringBuffer();
-                    sourceSite.append(sourceStorageObj.getLabel()).append(":").append(sourcePath);
-                    StringBuffer targetSite = new StringBuffer();
-                    targetSite.append(targetStorageObj.getLabel()).append(":").append(targetPath);
-                    throw DeviceControllerException.exceptions.assignReplicationPolicyFailed(filePolicy.getFilePolicyName(),
-                            sourceSite.toString(), targetSite.toString());
-                }
+                result = BiosCommandResult.createSuccessfulResult();
             }
         } catch (IsilonException e) {
             _log.error("Assigning file policy failed.", e);
@@ -3889,8 +3879,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (targetVNas != null) {
                 targetVNasURI = targetVNas.getId();
             }
-
-            //
 
             String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId(),
                     targetSystemArgs.getVarray().getId(), targetVNasURI);
@@ -4002,7 +3990,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         // Get the replication policies applied at directory path @source cluster
         for (IsilonSyncPolicy isiPolicy : isiPolicies) {
-            if (isiPolicy.getSourceRootPath().equals(sourceRootPath)) {
+            if (isiPolicy.getSourceRootPath().equals(sourceRootPath) && isiPolicy.getTargetPath().equals(targetPath)) {
                 isiMatchedPolicy = isiPolicy;
                 break;
             }

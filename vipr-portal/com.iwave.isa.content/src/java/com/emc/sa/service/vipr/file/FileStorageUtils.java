@@ -163,7 +163,6 @@ public class FileStorageUtils {
      * Till now this function was deleting exports, shares, snapshots
      * and snapshot shares
      * 
-     * This behavior has been changed in 3.0 patch(4)
      * Deactivate catalog service would not delete file system reference objects
      * and always send force flag 'false' in delete request
      * 

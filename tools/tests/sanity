@@ -7416,8 +7416,8 @@ file_tests()
     run fileshare delete $PROJECT/$fsname
 
     if [ $cos = $COS_VNXFILE ] ; then
-        fsForceDelete="forceDeleteTestVNX"
-        echo "--Force Delete tests for VNXFile--"
+        fsForceDelete="deleteTestVNX"
+        echo "--Delete tests for VNXFile--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run fileshare export $PROJECT/$fsForceDelete $exp_args
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime

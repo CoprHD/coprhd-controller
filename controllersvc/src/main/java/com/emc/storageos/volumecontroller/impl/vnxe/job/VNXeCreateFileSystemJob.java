@@ -128,6 +128,8 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
             } else {
                 logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs  resource ID: ");
                 logMsgBuilder.append(resourceId);
+                logMsgBuilder.append(" having name: ");
+                logMsgBuilder.append(fsObj.getName());
             }
         } catch (IOException e) {
             _logger.error("Caught an exception while trying to update file system attributes", e);

@@ -243,8 +243,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     // Methods in the expand volume workflow
     public static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
-    private static final String METHOD_DELETE_RSET_ROLLBACK_STEP = "recreateRSetStep"; // Intentionally recreateRSetStep
     public static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
+    public static final String METHOD_ADD_RSET_STEP = "addRSetStep";
 
     // Methods in the create RP snapshot workflow
     private static final String METHOD_CREATE_BOOKMARK_STEP = "createBookmarkStep";
@@ -830,16 +830,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // Gather the extra params we need (once is sufficient)
                 if (isRPSource && !extraParamsGathered) {
                     project = _dbClient.queryObject(Project.class, volume.getProject());
-                    cg = _dbClient.queryObject(BlockConsistencyGroup.class,
-                            volumeDescriptor.getCapabilitiesValues().getBlockConsistencyGroup());
-                    cgName = cg.getCgNameOnStorageSystem(rpSystem.getId());
-                    if (cgName == null) {
-                        cgName = CG_NAME_PREFIX + cg.getLabel();
+                    if (volumeDescriptor.getCapabilitiesValues() != null) {
+	                    cg = _dbClient.queryObject(BlockConsistencyGroup.class,
+	                            volumeDescriptor.getCapabilitiesValues().getBlockConsistencyGroup());
+	                    cgName = cg.getCgNameOnStorageSystem(rpSystem.getId());
+	                    if (cgName == null) {
+	                        cgName = CG_NAME_PREFIX + cg.getLabel();
+	                    }
+	                    copyMode = volumeDescriptor.getCapabilitiesValues().getRpCopyMode();
+	                    rpoType = volumeDescriptor.getCapabilitiesValues().getRpRpoType();
+	                    rpoValue = volumeDescriptor.getCapabilitiesValues().getRpRpoValue();
                     }
-                    copyMode = volumeDescriptor.getCapabilitiesValues().getRpCopyMode();
-                    rpoType = volumeDescriptor.getCapabilitiesValues().getRpRpoType();
-                    rpoValue = volumeDescriptor.getCapabilitiesValues().getRpRpoValue();
-
                     // Flag so we only grab this information once
                     extraParamsGathered = true;
                 }
@@ -883,11 +884,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL)) {
                 if (cgName == null) {
                     project = _dbClient.queryObject(Project.class, volume.getProject());
-                    cg = _dbClient.queryObject(BlockConsistencyGroup.class,
-                            volumeDescriptor.getCapabilitiesValues().getBlockConsistencyGroup());
-                    cgName = cg.getCgNameOnStorageSystem(rpSystem.getId());
-                    if (cgName == null) {
-                        cgName = CG_NAME_PREFIX + cg.getLabel();
+                    if (volumeDescriptor.getCapabilitiesValues() != null) {
+	                    cg = _dbClient.queryObject(BlockConsistencyGroup.class,
+	                            volumeDescriptor.getCapabilitiesValues().getBlockConsistencyGroup());
+	                    cgName = cg.getCgNameOnStorageSystem(rpSystem.getId());
+	                    if (cgName == null) {
+	                        cgName = CG_NAME_PREFIX + cg.getLabel();
+	                    }
                     }
                 }
                 CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(), volume.getStorageController(),
@@ -914,7 +917,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         cgParams.setRsets(new ArrayList<CreateRSetParams>());
         cgParams.getRsets().addAll(rsetParamsMap.values());
         cgParams.setCgName(cgName);
-        cgParams.setCgUri(cg.getId());
+        if (cg != null) {
+        	cgParams.setCgUri(cg.getId());	
+        }
         cgParams.setProject(project.getId());
         cgParams.setTenant(project.getTenantOrg().getURI());
         CGPolicyParams policyParams = new CGPolicyParams();
@@ -3554,25 +3559,38 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             return null;
         }
 
+        boolean stepCreated = false;
+        
         for (VolumeDescriptor descriptor : volumeDescriptorsTypeFilter) {
             URI volURI = descriptor.getVolumeURI();
             ProtectionSystem rp = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
 
-            RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, volURI);
-
-            Map<String, RecreateReplicationSetRequestParams> rsetParams = new HashMap<String, RecreateReplicationSetRequestParams>();
-            rsetParams.put(RPHelper.getRPWWn(volURI, _dbClient), rsetParam);
-
-            String stepId = workflow.createStepId();
-            Workflow.Method deleteRsetExecuteMethod = new Workflow.Method(METHOD_DELETE_RSET_STEP, rpSystem.getId(), Arrays.asList(volURI));
-
-            workflow.createStep(STEP_PRE_VOLUME_EXPAND, "Pre volume expand, delete replication set subtask for RP: " + volURI.toString(),
-                    null, rpSystem.getId(), rp.getSystemType(), this.getClass(), deleteRsetExecuteMethod, rollbackMethodNullMethod(),
-                    stepId);
-
-            _log.info("addPreVolumeExpandSteps Replication Set in workflow");
+            boolean doesRSetExist = doesReplicationSetExist(volume.getProtectionController(), volURI);
+            
+            if (doesRSetExist) {
+	            RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, volURI);
+	
+	            Map<String, RecreateReplicationSetRequestParams> rsetParams = new HashMap<String, RecreateReplicationSetRequestParams>();
+	            rsetParams.put(RPHelper.getRPWWn(volURI, _dbClient), rsetParam);
+	
+	            String stepId = workflow.createStepId();
+	            Workflow.Method deleteRsetExecuteMethod = new Workflow.Method(METHOD_DELETE_RSET_STEP, rpSystem.getId(), Arrays.asList(volURI));
+	
+	            workflow.createStep(STEP_PRE_VOLUME_EXPAND, "Pre volume expand, delete replication set subtask for RP: " + volURI.toString(),
+	                    null, rpSystem.getId(), rp.getSystemType(), this.getClass(), deleteRsetExecuteMethod, rollbackMethodNullMethod(),
+	                    stepId);
+	            stepCreated = true;
+	            _log.info(String.format("addPreVolumeExpandSteps Replication Set in workflow for volume %s", volURI));
+            } else {
+            	_log.info(String.format("skipping addPreVolumeExpandSteps Replication Set in workflow for volume %s", volURI));
+            }
         }
 
+        if (!stepCreated) {
+        	// No step was created so return a null wait for
+        	return null;
+        }
+        
         return STEP_PRE_VOLUME_EXPAND;
     }
 
@@ -3619,26 +3637,30 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         if (volumeDescriptorsTypeFilter.isEmpty()) {
             return waitFor;
         }
+        
+        VolumeDescriptor descriptor = volumeDescriptorsTypeFilter.get(0);
+     
+        Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
+        ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
 
-        for (VolumeDescriptor descriptor : volumeDescriptorsTypeFilter) {
-            Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
-            ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
+        // Build the CG Request params
+        CGRequestParams cgParams = getCGRequestParams(volumeDescriptors, rpSystem);
+        
+        // Set the CG name property on the request object
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+        String cgName = CG_NAME_PREFIX + cg.getLabel();
+        cgParams.setCgName(cgName);
 
-            Map<String, RecreateReplicationSetRequestParams> rsetParams = new HashMap<String, RecreateReplicationSetRequestParams>();
+        String stepId = workflow.createStepId();
+        Workflow.Method recreateRSetExecuteMethod = new Workflow.Method(METHOD_ADD_RSET_STEP, rpSystem.getId(),
+                volume.getId(), cgParams);
 
-            RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, volume.getId());
-            rsetParams.put(RPHelper.getRPWWn(volume.getId(), _dbClient), rsetParam);
+        workflow.createStep(STEP_POST_VOLUME_EXPAND,
+                "Post volume Expand, Recreate replication set subtask for RP: " + volume.toString(), waitFor, rpSystem.getId(),
+                rpSystem.getSystemType(), this.getClass(), recreateRSetExecuteMethod, rollbackMethodNullMethod(), stepId);
 
-            String stepId = workflow.createStepId();
-            Workflow.Method recreateRSetExecuteMethod = new Workflow.Method(METHOD_RECREATE_RSET_STEP, rpSystem.getId(),
-                    Arrays.asList(volume.getId()), rsetParams);
-
-            workflow.createStep(STEP_POST_VOLUME_EXPAND,
-                    "Post volume Expand, Recreate replication set subtask for RP: " + volume.toString(), waitFor, rpSystem.getId(),
-                    rpSystem.getSystemType(), this.getClass(), recreateRSetExecuteMethod, rollbackMethodNullMethod(), stepId);
-
-            _log.info("Recreate Replication Set in workflow");
-        }
+        _log.info("Recreate Replication Set in workflow");
+        
         return STEP_POST_VOLUME_EXPAND;
     }
 
@@ -3690,6 +3712,50 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return true;
     }
 
+    /**
+     * Recreate the replication set
+     *
+     * @param rpSystem
+     *            RP system
+     * @param params
+     *            parameters needed to create the CG
+     * @param token
+     *            the task
+     * @return
+     * @throws InternalException
+     */
+    public boolean addRSetStep(URI rpSystemId, URI sourceVolumeUri, CGRequestParams cgParams,
+            String token) throws InternalException {
+
+        List<String> replicationSetNames = new ArrayList<String>();
+        
+        try {
+            ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
+
+            Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeUri);
+            replicationSetNames.add(sourceVolume.getRSetName());
+            
+            boolean isMetroPoint = RPHelper.isMetroPointVolume(_dbClient, sourceVolume);
+            
+            RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
+            _log.info("Sleeping for 15 seconds before rescanning bus to account for latencies.");
+            try {
+                Thread.sleep(15000);
+            } catch (InterruptedException e) {
+                _log.warn("Thread sleep interrupted.  Allowing to continue without sleep");
+            }
+
+            rp.addReplicationSetsToCG(cgParams, isMetroPoint, true);
+
+            // Update the workflow state.
+            WorkflowStepCompleter.stepSucceded(token);
+        } catch (Exception e) {
+            _log.error(String.format("addRSetStep Failed - Replication Set(s): %s", replicationSetNames.toString()));
+            return stepFailed(token, e, "addRSetStep");
+        }
+        return true;
+    }    
+    
     /**
      * Recreate the replication set
      *
@@ -7331,6 +7397,29 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         _log.info(String.format("Found the following RecoverPoint copy states %s", copyAccessStates));
 
         return copyAccessStates;
+    }
+    
+    @Override
+    public Boolean doesReplicationSetExist(URI protectionDevice, URI volumeUri) {
+    	if (volumeUri == null) {
+    		return false;
+    	}
+    	
+    	Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
+    	
+    	if (volume != null && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup()) 
+    			&& !NullColumnValueGetter.isNullURI(volume.getProtectionController()) ) {
+    		BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+    		String cgName = CG_NAME_PREFIX + cg.getLabel();
+    		String rsetName = volume.getRSetName();
+    		
+    		ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
+    	    RecoverPointClient rp = RPHelper.getRecoverPointClient(protectionSystem);
+    	    
+    	    return rp.doesReplicationSetExist(cgName, rsetName);
+    	}
+    	
+    	return false;
     }
 
     @Override

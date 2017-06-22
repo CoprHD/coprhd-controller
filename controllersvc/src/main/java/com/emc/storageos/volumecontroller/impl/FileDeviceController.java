@@ -1864,12 +1864,21 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else {
             	URI qtreeURI = quotaDir.getId();
                 quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
+                
                 quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
                 quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
                 quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
+                
+                quotaDirObj.setSize(quotaDir.getSize());
+                
+                if (quotaDir.getOpLock() != null) {
+                	quotaDirObj.setOpLock(quotaDir.getOpLock());
+        		}
+        		if (null != quotaDir.getSecurityStyle()) {
+        			quotaDirObj.setSecurityStyle(quotaDir.getSecurityStyle());
+        		}
+                quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsName));
             }
-
-            quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsName));
             
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
             quotaDirObj.getOpStatus().updateTaskStatus(task, result.toOperation());

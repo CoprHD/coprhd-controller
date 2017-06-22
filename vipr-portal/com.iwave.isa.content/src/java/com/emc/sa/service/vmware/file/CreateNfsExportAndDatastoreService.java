@@ -55,7 +55,6 @@ public class CreateNfsExportAndDatastoreService extends VMwareHostService {
         super.precheck();
         createNfsExportHelper.setPermissions(FileConstants.ROOT_PERMISSIONS);
         createNfsExportHelper.setExportHosts(calculateExportHosts());
-        createNfsExportHelper.setRootUser("nobody");
         acquireHostLock();
         vmware.verifyDatastoreDoesNotExist(datacenter.getLabel(), datastoreName);
         vmware.disconnect();
@@ -70,7 +69,8 @@ public class CreateNfsExportAndDatastoreService extends VMwareHostService {
         connectAndInitializeHost();
         if (cluster != null) {
             datastores.addAll(vmware.createNfsDatastore(cluster, fileSystem, export, datacenterId, datastoreName));
-        } else {
+        }
+        else {
             datastores.add(vmware.createNfsDatastore(host, fileSystem, export, datacenterId, datastoreName));
         }
 

@@ -866,13 +866,6 @@ public class FileService extends TaskResourceService {
             rootUserMapping = rootUserMapping.toLowerCase();
         }
 
-        if (!"nobody".equals(rootUserMapping)) {
-            StorageOSUser user = getUserFromContext();
-            if (!user.getName().equals(rootUserMapping)) {
-                // throw error
-                throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(user.getName());
-            }
-        }
         // check for bypassDnsCheck flag. If null then set to false
         Boolean dnsCheck = param.getBypassDnsCheck();
         if (dnsCheck == null) {
@@ -1321,7 +1314,7 @@ public class FileService extends TaskResourceService {
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         if (!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-        	String msg = String
+            String msg = String
                     .format("shrink filesystem is not supported for storage system %s", device.getSystemType());
             throw APIException.badRequests.reduceFileSystemNotSupported(msg);
         }
@@ -1344,9 +1337,9 @@ public class FileService extends TaskResourceService {
 
                         if (qdsize < MIN_EXPAND_SIZE) {
                             String msg = String
-                                    .format("as requested reduced size %s is lesser than used capacity %s for filesystem %s", 
-                                    		newFSsize.toString(), quotaDir.getSize().toString(), fs.getName());
-                            
+                                    .format("as requested reduced size %s is lesser than used capacity %s for filesystem %s",
+                                            newFSsize.toString(), quotaDir.getSize().toString(), fs.getName());
+
                             throw APIException.badRequests.reduceFileSystemNotSupported(msg);
                         }
                     }

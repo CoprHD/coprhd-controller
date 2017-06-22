@@ -94,6 +94,7 @@ public interface SmisConstants {
     static final int MODE_SYNCHRONOUS = 2;
     static final int RELINK_TARGET_VALUE = 0x8001;
     static final int COPY_METHODOLOGY_FULL_COPY = 3;
+    static final int CONVERT_STANDALONE_SG_TO_CASCADED = 1;
     static final long REPLICATION_DATA_SYNC_TYPE = 8;
     static final long DEVICES_SYNC_TYPE = 3;
     static final long MASKING_SYNC_TYPE = 7;
@@ -380,6 +381,7 @@ public interface SmisConstants {
     static final String CP_UNREGISTERED_NODE_IDS = "UnRegisteredNodeIDs";
     static final String CP_UNREGISTERED_STORAGE_IDS = "UnRegisteredStorageIDs";
     static final String CP_UNREGISTERED_STORAGE_TYPE = "UnRegisteredStorageIDType";
+    static final String CP_CHILD_STORAGE_GROUP_NAME = "ChildStorageGroupName";
 
     static final String CP_TIERPOLICY_APPLIES_TO_ELEMENT = "Symm_TierPolicySetAppliesToElement";
     static final String CIM_TIER_POLICY_RULE = "CIM_TierPolicyRule";

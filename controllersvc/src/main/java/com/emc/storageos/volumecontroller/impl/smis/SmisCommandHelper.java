@@ -2355,6 +2355,24 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Converts a stand alone storage group in the masking view to cascaded.
+     *
+     * @param storage the storage system
+     * @param storageGroupPath the storage group path
+     * @param storageGroupName the storage group name
+     * @throws WBEMException the WBEM exception
+     */
+    public void convertStandAloneStorageGroupToCascaded(StorageSystem storage,
+            CIMObjectPath storageGroupPath, String storageGroupName) throws WBEMException {
+        String ChildStorageGroupName = String.format("%s_ChildSG", storageGroupName);
+        CIMArgument[] inArgs = getConvertStandAloneStorageGroupToCascadedInputArguments(
+                storage, storageGroupPath, ChildStorageGroupName);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        invokeMethod(storage, _cimPath.getControllerConfigSvcPath(storage),
+                "EMCConvertMaskingGroup", inArgs, outArgs);
+    }
+
+    /**
      * Get the Volume CIM path, given a Volume object
      *
      * @param storage
@@ -2556,6 +2574,17 @@ public class SmisCommandHelper implements SmisConstants {
         argsList.add(_cimArgument.referenceArray(CP_MEMBERS, members));
         argsList.add(_cimArgument.reference(CP_SOURCE_MASKING_GROUP, sourceGroupPath));
         argsList.add(_cimArgument.reference(CP_TARGET_MASKING_GROUP, targetGroupPath));
+        CIMArgument[] args = {};
+        return argsList.toArray(args);
+    }
+
+    public CIMArgument[] getConvertStandAloneStorageGroupToCascadedInputArguments(
+            StorageSystem storageDevice, CIMObjectPath storageGroupPath, String ChildStorageGroupName) {
+        List<CIMArgument> argsList = new ArrayList<CIMArgument>();
+        argsList.add(_cimArgument.reference(CP_DEVICE_MASKING_GROUP, storageGroupPath));
+        argsList.add(_cimArgument.uint16(CP_OPERATION, CONVERT_STANDALONE_SG_TO_CASCADED));
+        argsList.add(_cimArgument.string(CP_CHILD_STORAGE_GROUP_NAME, ChildStorageGroupName));
+        argsList.add(_cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, Boolean.TRUE));
         CIMArgument[] args = {};
         return argsList.toArray(args);
     }

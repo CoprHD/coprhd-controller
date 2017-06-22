@@ -343,6 +343,7 @@ public interface RemoteReplicationDriver {
      *
      * At the completion of this operation remote replication pair should be in the same state as it was before the
      * operation. The only change should be that the pair changed its parent replication group.
+     * As a result of parent group change, replication mode of the pair may also change.
      *
      * @param replicationPair replication pair to move
      * @param targetGroup new parent replication group for the pair

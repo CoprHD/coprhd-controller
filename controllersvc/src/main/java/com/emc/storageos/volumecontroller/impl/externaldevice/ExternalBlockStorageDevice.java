@@ -2059,6 +2059,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     }
 
+    @Override
+    public void movePair(URI replicationPair, URI targetGroup, TaskCompleter taskCompleter) {
+
+    }
+
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         // call driver to validate provider connection
         boolean isConnectionValid = false;

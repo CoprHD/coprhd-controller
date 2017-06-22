@@ -18,6 +18,7 @@ public interface RemoteReplicationDevice {
     public void createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, TaskCompleter taskCompleter);
     public void createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, TaskCompleter taskCompleter);
     public void deleteReplicationPairs(List<URI> replicationPairs, TaskCompleter taskCompleter);
+    public void movePair(URI replicationPair, URI targetGroup, TaskCompleter taskCompleter);
 
     // replication link operations
     public void establish(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);

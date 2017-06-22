@@ -80,7 +80,6 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
 
     @Override
     public <T extends ModelObject> List<T> getByLabel(Class<T> clazz, final String label) {
-//        return client.findByLabel(clazz, label);
         final List<NamedElement> neList = client.findByLabel(clazz, label);
         final ImmutableList.Builder<URI> ids = ImmutableList.<URI>builder();
         for( final NamedElement ne : neList ) {

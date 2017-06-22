@@ -32,39 +32,37 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
 import com.google.common.collect.ImmutableList;
 
-
-
 @Component
 public class CustomServicesWorkflowManagerImpl implements
         CustomServicesWorkflowManager {
     @Autowired
     private ModelClient client;
- 
+
     @Override
     public CustomServicesWorkflow getById(final URI id) {
-        if( id == null ) {
+        if (id == null) {
             return null;
         }
-        
+
         return client.customServicesWorkflows().findById(id);
     }
 
     @Override
     public List<CustomServicesWorkflow> getByName(final String name) {
-        if( null == name) {
+        if (null == name) {
             return null;
         }
         final List<NamedElement> workflows = client.findByLabel(CustomServicesWorkflow.class, name);
-        final ImmutableList.Builder<URI> ids = ImmutableList.<URI>builder();
-        for( final NamedElement workflow : workflows ) {
-            if(workflow.getName().equals(name)){
+        final ImmutableList.Builder<URI> ids = ImmutableList.<URI> builder();
+        for (final NamedElement workflow : workflows) {
+            if (workflow.getName().equals(name)) {
                 ids.add(workflow.getId());
             }
 
         }
         return client.findByIds(CustomServicesWorkflow.class, ids.build());
     }
-    
+
     @Override
     public List<NamedElement> list() {
         return client.customServicesWorkflows().findAllNames();
@@ -84,7 +82,7 @@ public class CustomServicesWorkflowManagerImpl implements
     public void save(final CustomServicesWorkflow workflow) {
         client.save(workflow);
     }
-    
+
     @Override
     public void delete(final CustomServicesWorkflow workflow) {
         client.delete(workflow);
@@ -94,10 +92,10 @@ public class CustomServicesWorkflowManagerImpl implements
     public boolean hasCatalogServices(final String name) {
         final List<CatalogService> catalogServices = client.catalogServices().findByBaseService(name);
         if (!CollectionUtils.isEmpty(catalogServices)) {
-            for (final CatalogService cs: catalogServices) {
+            for (final CatalogService cs : catalogServices) {
                 // Catalog services are not deleted if there are existing orders. Instead their Category ID will be set to DELETED
                 // So return true only if there are catalog services that do not have this DELETED category ID.
-                if(!cs.getCatalogCategoryId().getURI().toString().startsWith(CatalogCategory.DELETED_CATEGORY)){
+                if (!cs.getCatalogCategoryId().getURI().toString().startsWith(CatalogCategory.DELETED_CATEGORY)) {
                     return true;
                 }
             }

@@ -379,7 +379,7 @@ public class ValidationHelper {
         return EMPTY_STRING;
     }
 
-    private String checkOperationExists(final ModelClient client, final URI operation){
+    private String checkOperationExists(final ModelClient client, final URI operation) {
         if (operation != null) {
             final Class modelClass = URIUtil.getModelClass(operation);
             DataObject dataObject = client.findById(modelClass, operation);
@@ -499,25 +499,23 @@ public class ValidationHelper {
         return errorMessage;
     }
 
-    private String validateOtherStepInput(final Step step, final String attribute) {
-        if (step.getInputGroups() == null
-                || step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS) == null
-                || step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup() == null) {
-            // TODO: currently the input params is only mapped to other steps. this might be changed
-            return CustomServicesConstants.ERROR_MSG_OTHER_STEP_INPUT_GROUP_OR_PARAM_NOT_DEFINED;
-
-        }
-
-        final List<Input> inputs = step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup();
-
-        for (final Input input : inputs) {
-            if (StringUtils.isNotBlank(input.getName()) && input.getName().equals(attribute)) {
-                return EMPTY_STRING;
+    private String validateOtherStepInput(final Step referredStep, final String attribute) {
+        if (referredStep.getInputGroups() != null) {
+            for (final String inputGroupKey : referredStep.getInputGroups().keySet()) {
+                if (!isInputEmpty(referredStep.getInputGroups(), inputGroupKey)) {
+                    final List<Input> inputs = referredStep.getInputGroups().get(inputGroupKey).getInputGroup();
+                    for (final Input input : inputs) {
+                        if (StringUtils.isNotBlank(input.getName()) && input.getName().equals(attribute)) {
+                            return EMPTY_STRING;
+                        }
+                    }
+                }
             }
         }
 
-        return String.format("%s %s(%s) - %s", CustomServicesConstants.ERROR_MSG_INPUT_NOT_DEFINED_IN_OTHER_STEP, step.getDescription(),
-                step.getId(), attribute);
+        return String.format("%s %s(%s) - %s", CustomServicesConstants.ERROR_MSG_INPUT_NOT_DEFINED_IN_OTHER_STEP,
+                referredStep.getDescription(),
+                referredStep.getId(), attribute);
     }
 
     private String checkOtherInputType(final String stepId, final Input input, final boolean cycleExists) {

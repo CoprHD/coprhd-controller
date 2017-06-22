@@ -179,26 +179,6 @@ inputOutputTabID = 'inputOutputLAContent';
             complete = false;
         }
 
-         var invfiles = $('[name="localAnsible.inventoryFiles"]').val();
-        var existingInvFiles = $('[name="localAnsible.updatedInventoryFiles"]').val();
-
-
-        if (complete) {
-            //check inventory file
-         window.alert("inside complete name=localAnsible.inventoryFiles] " + invfiles);
-         window.alert("inside complete name=localAnsible.updatedInventoryFiles  -->  "  + existingInvFiles);
-
-
-            if ((typeof invfiles == 'undefined') && isBlank(existingInvFiles)) {
-            window.alert("inside nested if complete typeof invfiles --> " + (typeof invfiles == 'undefined'));
-         window.alert("inside nested if  isBlank(existingInvFiles)  -->  "  + isBlank(existingInvFiles));
-                complete = false;
-            } else {
-            window.alert("inside nested else complete typeof invfiles --> " + (typeof invfiles == 'undefined'));
-            window.alert("inside nested else  isBlank(existingInvFiles)  -->  "  + isBlank(existingInvFiles));
-            }
-        }
-
         // If form is complete, enable FINISH button
         if (complete) {
             $('#finishButtonLA').prop('disabled', false);

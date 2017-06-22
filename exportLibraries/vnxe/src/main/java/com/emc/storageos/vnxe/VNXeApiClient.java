@@ -149,7 +149,6 @@ public class VNXeApiClient {
     private static Logger _logger = LoggerFactory.getLogger(VNXeApiClient.class);
     public static int GENERIC_STORAGE_LUN_TYPE = 1;
     public static int STANDALONE_LUN_TYPE = 2;
-    private static final long UNITY_FS_MIN_USED_SIZE = 0;
     public String netBios;
 
     // the client to invoke VNXe requests

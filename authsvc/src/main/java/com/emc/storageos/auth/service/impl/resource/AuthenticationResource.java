@@ -789,7 +789,6 @@ public class AuthenticationResource {
             }
 
             UsernamePasswordCredentials credentials = getFormCredentials(formData);
-            credentials.setUserName(SecurityUtils.stripXSS(credentials.getUserName()));
             if (null == loginError) {
                 loginError = FORM_LOGIN_BAD_CREDS_ERROR;
             }

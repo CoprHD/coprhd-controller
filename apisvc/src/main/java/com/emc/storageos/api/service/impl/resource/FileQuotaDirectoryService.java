@@ -231,18 +231,15 @@ public class FileQuotaDirectoryService extends TaskResourceService {
 	public TaskResourceRep updateQuotaDirectory(@PathParam("id") URI id, QuotaDirectoryUpdateParam param)
 			throws InternalException {
 		_log.info("FileService::Update Quota directory Request recieved {}", id);
-
+		
 		QuotaDirectory quotaDirNew = new QuotaDirectory();
-		QuotaDirectory quotaDir = queryResource(id);
-
-		String task = UUID.randomUUID().toString();
-
 		if (param.getSecurityStyle() != null) {
 			ArgValidator.checkFieldValueFromEnum(param.getSecurityStyle(), "security_style",
 					EnumSet.allOf(QuotaDirectory.SecurityStyles.class));
 		}
 
 		// Get the FileSystem object
+		QuotaDirectory quotaDir = queryResource(id);
 		FileShare fs = queryFileShareResource(quotaDir.getParent().getURI());
 		ArgValidator.checkFieldNotNull(fs, "filesystem");
 		
@@ -294,6 +291,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
 			fsGraceLimit = fs.getSoftGracePeriod().intValue();
 		}
 
+		String task = UUID.randomUUID().toString();
 		Operation op = new Operation();
 		op.setResourceType(ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR);
 		// Update the quota directory object to store in ViPR database
@@ -307,11 +305,14 @@ public class FileQuotaDirectoryService extends TaskResourceService {
 		_dbClient.updateObject(quotaDir);
 
 		quotaDirNew.setSoftLimit(param.getSoftLimit() > 0 ? param.getSoftLimit()
-				: quotaDir.getSoftLimit() > 0 ? quotaDir.getSoftLimit() : fsSoftLimit > 0 ? fsSoftLimit : 0);
+				: quotaDir.getSoftLimit() > 0 ? quotaDir.getSoftLimit() : 
+					fsSoftLimit > 0 ? fsSoftLimit : 0);
 		quotaDirNew.setSoftGrace(param.getSoftGrace() > 0 ? param.getSoftGrace()
-				: quotaDir.getSoftGrace() > 0 ? quotaDir.getSoftGrace() : fsGraceLimit > 0 ? fsGraceLimit : 0);
+				: quotaDir.getSoftGrace() > 0 ? quotaDir.getSoftGrace() : 
+					fsGraceLimit > 0 ? fsGraceLimit : 0);
 		quotaDirNew.setNotificationLimit(param.getNotificationLimit() > 0 ? param.getNotificationLimit()
-				: quotaDir.getNotificationLimit() > 0 ? quotaDir.getNotificationLimit() : fsNotifiLimit > 0 ? fsNotifiLimit : 0);
+				: quotaDir.getNotificationLimit() > 0 ? quotaDir.getNotificationLimit() : 
+					fsNotifiLimit > 0 ? fsNotifiLimit : 0);
 
 		// Create an object of type "FileShareQtree" to be passed into the
 		// south-bound layers.

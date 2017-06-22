@@ -1833,15 +1833,17 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public void updateQuotaDirectory(URI storage, FileShareQuotaDirectory quotaDir, URI fs, String task) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(fs, task);
         FileShare fsObj = null;
+        StorageSystem storageObj = null;
         QuotaDirectory quotaDirObj = null;
+        
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
         try {
             String[] params = { storage.toString(), fs.toString(), quotaDir.toString() };
             _log.info("FileDeviceController::updateQtree:  storage : {}, fs : {}, quotaDir : {}", params);
 
-            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             fsObj = _dbClient.queryObject(FileShare.class, fs);
-            
-            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir.getId());
 
             // Set up args
             args.addFileShare(fsObj);
@@ -1854,31 +1856,22 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 return;
             }
             
-            String fsName = fsObj.getName();
-            if (result.getCommandPending()) {
-                return;
-            }
             if (!result.isCommandSuccess() && !result.getCommandPending()) {
-               
                 _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successfull");
             } else {
-            	URI qtreeURI = quotaDir.getId();
-                quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
-                
-                quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
+            	quotaDirObj.setSize(quotaDir.getSize()); //set quota size
+            	quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
                 quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
                 quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
-                
-                quotaDirObj.setSize(quotaDir.getSize());
-                
                 if (quotaDir.getOpLock() != null) {
                 	quotaDirObj.setOpLock(quotaDir.getOpLock());
         		}
         		if (null != quotaDir.getSecurityStyle()) {
         			quotaDirObj.setSecurityStyle(quotaDir.getSecurityStyle());
         		}
-                quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsName));
             }
+            
+            quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsObj.getName()));
             
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
             quotaDirObj.getOpStatus().updateTaskStatus(task, result.toOperation());

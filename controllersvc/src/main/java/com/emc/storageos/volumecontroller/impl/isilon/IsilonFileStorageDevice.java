@@ -1415,7 +1415,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput args,
-    		FileShareQuotaDirectory quotaDir) throws ControllerException {
+    		QuotaDirectory quotaDir) throws ControllerException {
         // Get Parent FS mount path
         // Get Quota Directory Name
         // Get Quota Size

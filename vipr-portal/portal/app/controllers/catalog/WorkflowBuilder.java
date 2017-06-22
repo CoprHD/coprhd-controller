@@ -605,18 +605,18 @@ public class WorkflowBuilder extends Controller {
         try {
             final URI shellPrimitiveID = new URI(shellPrimitive.getId());
             // Check primitive is already used in workflow/s
-            final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(
-                    shellPrimitive.getId());
-            if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
-                if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
-                    flash.error("Operation %s is being used in Workflow", shellPrimitive.getName());
-                    return;
-                }
-            }
 
             final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(
                     shellPrimitiveID);
             if (null != primitiveRestRep) {
+                final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(
+                        shellPrimitive.getId());
+                if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
+                    if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
+                        flash.error("Operation %s is being used in Workflow", primitiveRestRep.getName());
+                        return;
+                    }
+                }
                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
                 primitiveUpdateParam.setName(shellPrimitive.getName());
@@ -798,7 +798,7 @@ public class WorkflowBuilder extends Controller {
                             .getWorkflows(localAnsible.getId());
                     if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
                         if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
-                            flash.error("Primitive %s is being used in Workflow", localAnsible.getName());
+                            flash.error("Primitive %s is being used in Workflow", primitiveRestRep.getName());
                             return;
                         }
                     }

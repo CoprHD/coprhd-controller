@@ -307,8 +307,7 @@ public class CreateComputeClusterService extends ViPRService {
                 ComputeUtils.deactivateCluster(cluster);
             } else {
                 if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-                    pushToVcenter();
-                    ComputeUtils.discoverHosts(hosts);
+                    pushToVcenter(hosts);
                 } else {
                     logWarn("compute.cluster.newly.provisioned.hosts.none");
                 }
@@ -373,7 +372,7 @@ public class CreateComputeClusterService extends ViPRService {
         }
     }
 
-    private void pushToVcenter() {
+    private void pushToVcenter(List<Host> hosts) {
         if (vcenterId != null) {
             boolean isVCenterUpdate = false;
             List<ClusterRestRep> clusters = getClient().clusters().getByDataCenter(datacenterId);
@@ -425,6 +424,7 @@ public class CreateComputeClusterService extends ViPRService {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
                 throw e;
             }
+            ComputeUtils.discoverHosts(hosts);
         }
     }
 

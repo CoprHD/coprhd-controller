@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
@@ -33,19 +32,13 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnToIpTable;
-import com.emc.sa.service.vmware.VMwareSupport;
-import com.emc.sa.service.vmware.tasks.GetVcenter;
-import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.vmware.vim25.mo.ClusterComputeResource;
 
 @Service("AddHostToCluster")
 public class AddHostToClusterService extends ViPRService {
@@ -282,8 +275,7 @@ public class AddHostToClusterService extends ViPRService {
 
         try {
             if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-                pushToVcenter();
-                ComputeUtils.discoverHosts(hosts);
+                pushToVcenter(hosts);
             } else {
                 logWarn("compute.cluster.newly.provisioned.hosts.none");
             }
@@ -363,7 +355,7 @@ public class AddHostToClusterService extends ViPRService {
         }
     }
 
-    private void pushToVcenter() {
+    private void pushToVcenter(List<Host> hosts) {
         // If the cluster has a datacenter associated with it,
         //it needs to be updated and push hosts to vcenter
         VcenterDataCenter dataCenter = null;
@@ -391,6 +383,7 @@ public class AddHostToClusterService extends ViPRService {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
                 throw e;
             }
+            ComputeUtils.discoverHosts(hosts);
         }
     }
 

@@ -3898,15 +3898,17 @@ vblock_setup() {
 
     run cos update block $VPOOL_BASE --storage ${VBLOCK_VMAX_NATIVEGUID}
 
-    # Create and prepare compute virtual pool
-    run computevirtualpool create $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME Cisco_UCSM false $NH $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES
-    sleep 2
-    run computevirtualpool assign $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME $VBLOCK_COMPUTE_ELEMENT_NAMES
-
     run cos allow $VPOOL_BASE block $TENANT
     run project create $PROJECT --tenant $TENANT
     secho "Project $PROJECT created."
     run vcenter create $VBLOCK_VCENTER_NAME $TENANT $VBLOCK_VCENTER_IP $VBLOCK_VCENTER_PORT $VBLOCK_VCENTER_USER $VBLOCK_VCENTER_PASSWORD
+
+
+    # Create and prepare compute virtual pool
+    echo $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES
+    run computevirtualpool create $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME Cisco_UCSM false $NH $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES $VBLOCK_SERVICE_PROFILE_TEMPLATE_TYPE
+    sleep 2
+    run computevirtualpool assign $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME $VBLOCK_COMPUTE_ELEMENT_NAMES
 
     echo "======= vBlock base setup done ======="
 }

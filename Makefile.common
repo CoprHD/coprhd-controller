@@ -1,6 +1,6 @@
 #-%emc-cr-s-shell-v2%-
 #
-# Copyright (c) 2012-2014, EMC Corporation. All Rights Reserved.
+# Copyright (c) 2012-2017, EMC Corporation. All Rights Reserved.
 #
 # This software contains the intellectual property of EMC Corporation
 # or is licensed to EMC Corporation from third parties.
@@ -85,7 +85,7 @@ endif
             PRODUCT_BRAND ?= ViPR
              PRODUCT_NAME  = $(shell echo "$(PRODUCT_BRAND)" | tr '[A-Z]' '[a-z]')
              PRODUCT_CAPS  = $(shell echo "$(PRODUCT_BRAND)" | tr '[a-z]' '[A-Z]')
-          PRODUCT_VERSION ?= 3.6.0.1
+          PRODUCT_VERSION ?= 3.6.0.2
            PRODUCT_PREFIX  = /opt/storageos
           PRODUCT_ID_TUPLE = "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 

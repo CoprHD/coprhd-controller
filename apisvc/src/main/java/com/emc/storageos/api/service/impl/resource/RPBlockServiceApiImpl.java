@@ -3469,9 +3469,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // Source journal parameters. If journal volumes are VPLEX, they are local,
         // so no need to check for HA. Also, there is no MP, so no need to check
         // for a standby journal.
-        URI sourceJournalURI = volume.getRpJournalVolume();
-        Volume sourceJournalVolume = _dbClient.queryObject(Volume.class, sourceJournalURI);
-        sourceParams.put(VolumeTopologyRole.JOURNAL, sourceJournalVolume.getPerformanceParams());
+        List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(_dbClient, 
+                volume.getConsistencyGroup(), volume.getRpCopyName());
+        if (!CollectionUtils.isEmpty(sourceJournals)) {
+            URI sourceJournalURI = sourceJournals.get(0).getId();
+            Volume sourceJournalVolume = _dbClient.queryObject(Volume.class, sourceJournalURI);
+            sourceParams.put(VolumeTopologyRole.JOURNAL, sourceJournalVolume.getPerformanceParams());
+        }
         
         // Now do targets. Note also that targets will be local if VPLEX.
         StringSet rpTargetIds = volume.getRpTargets();
@@ -3484,9 +3488,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 copyParams.put(VolumeTopologyRole.PRIMARY, rpTargetVolume.getPerformanceParams());
                 
                 // Target journal.
-                URI targetsourceJournalURI = rpTargetVolume.getRpJournalVolume();
-                Volume targetJournalVolume = _dbClient.queryObject(Volume.class, targetsourceJournalURI);
-                copyParams.put(VolumeTopologyRole.JOURNAL, targetJournalVolume.getPerformanceParams());
+                List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(_dbClient, 
+                        rpTargetVolume.getConsistencyGroup(), rpTargetVolume.getRpCopyName());
+                if (!CollectionUtils.isEmpty(targetJournals)) {
+                    URI targetsourceJournalURI = targetJournals.get(0).getId();
+                    Volume targetJournalVolume = _dbClient.queryObject(Volume.class, targetsourceJournalURI);
+                    copyParams.put(VolumeTopologyRole.JOURNAL, targetJournalVolume.getPerformanceParams());
+                }
             }
         }
 

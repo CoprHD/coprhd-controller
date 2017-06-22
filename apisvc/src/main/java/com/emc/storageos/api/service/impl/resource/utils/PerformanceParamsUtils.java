@@ -529,6 +529,8 @@ public class PerformanceParamsUtils {
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
                 vpool.getSupportedProvisioningType())) {
             overrideCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+        } else {
+            overrideCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);
         }
 
         // Override the thin volume pre-allocation size.
@@ -537,6 +539,8 @@ public class PerformanceParamsUtils {
         if (null != thinVolumePreAllocPercentage && 0 < thinVolumePreAllocPercentage) {
             overrideCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
                     .getThinVolumePreAllocationSize(thinVolumePreAllocPercentage, overrideCapabilities.getSize()));
+        } else {
+            overrideCapabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE); 
         }
 
         // Override the dedup capable setting.

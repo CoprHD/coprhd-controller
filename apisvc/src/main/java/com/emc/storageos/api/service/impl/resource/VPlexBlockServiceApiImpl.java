@@ -590,6 +590,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         VirtualPoolCapabilityValuesWrapper vplexCapabilities = new VirtualPoolCapabilityValuesWrapper(vPoolCapabilities);
         vplexCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
         
+        // If not the source, we need to override the capabilities.
+        if (topologySite == VolumeTopologySite.COPY || topologyRole == VolumeTopologyRole.JOURNAL
+                || topologyRole == VolumeTopologyRole.STANDBY_JOURNAL) {
+            vplexCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                    vPool, performanceParams, topologyRole, vPoolCapabilities, _dbClient);
+        }
+        
         for (int i = 0; i < vplexCapabilities.getResourceCount(); i++) {
             // Compute the volume label based on the label of the underlying volume
             String volumeLabelBuilt = null;

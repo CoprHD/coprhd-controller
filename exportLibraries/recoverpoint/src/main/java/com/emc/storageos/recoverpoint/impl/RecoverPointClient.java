@@ -3846,4 +3846,26 @@ public class RecoverPointClient {
 
         return copyAccessStates;
     }
+    
+    public boolean doesReplicationSetExist(String cgName, String rsetName){
+        try {
+        	List<ConsistencyGroupSettings> cgsSettings = functionalAPI.getAllGroupsSettings();
+	        for (ConsistencyGroupSettings cgSettings : cgsSettings) {
+	        	if (cgSettings.getName().equalsIgnoreCase(cgName)) { 
+		            // See if it is a production source, or an RP target
+		            for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
+		            	if (rsSettings.getReplicationSetName().equalsIgnoreCase(rsetName)) {
+		            		return true;
+		            	}
+		            }
+	        	}
+	        }
+        } catch (Exception e) {
+            // Do Nothing.  If we fail trying to see if the replication set exists just return false.
+        	logger.warn(String.format("Failed searching for replication set %s in RecoverPoint consistency group %s. "
+        			+ "Returning false to indicate replication set could not be found."), e);
+        }       
+        
+        return false;
+    }
 }

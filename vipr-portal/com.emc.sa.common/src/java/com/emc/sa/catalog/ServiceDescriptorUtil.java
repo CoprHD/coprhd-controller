@@ -37,7 +37,12 @@ public class ServiceDescriptorUtil {
         }
         catch (IllegalStateException e) {
             // If service descriptor is not found, check if this service is Workflow Service
-            descriptor = workflowServiceDescriptor.getDescriptor(serviceName);
+
+            try {
+                descriptor = workflowServiceDescriptor.getDescriptor(serviceName);
+            } catch(Exception ex){
+                throw ex;
+            }
         }
         if (null == descriptor) {
             throw new IllegalStateException(String.format("Service %s not found", serviceName));

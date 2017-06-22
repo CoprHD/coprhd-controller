@@ -23,8 +23,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowTabs[elementid] = { id:id, elementid:elementid, name:name, href:'#'+elementid };
     }
     $scope.closeTab = function(tabID){
+      var r = confirm("Are you sure you want to close the tab?");
+      if (r == true) {
         delete $scope.workflowTabs[tabID];
         $(".workflow-nav-tabs li").children('a').first().click();
+        }
     };
 
     $http.get(routes.Workflow_getAssetOptions()).then(function (resp) {
@@ -244,6 +247,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.deleteNode = function() {
+      var r = confirm("Are you sure you want to delete?");
+      if (r == true) {
         var ref = jstreeContainer.jstree(true),
             sel = ref.get_selected('full',true);
         if(!sel.length) { return false; }
@@ -273,8 +278,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             .error(function (error){
                 displayErrorMessage(error.details);
             });
+            }
         }
-
     };
 
     function revertRename(node, oldText, errorMessage) {
@@ -1105,6 +1110,18 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         } else {
             return translateList(INPUT_TYPE_OPTIONS.concat(INPUT_TYPE_OPTIONS_REQUIRED),'input.type');
         }
+    }
+    
+    $scope.getDefaultInputFieldType = function(fieldType) {
+        switch(fieldType.toLowerCase()) {
+            case "integer":
+            case "short":
+                return "number";
+            case "boolean":
+                return "boolean";
+            default:
+                return "text";
+        } 
     }
 
     /* creates list of objects for select one drop downs

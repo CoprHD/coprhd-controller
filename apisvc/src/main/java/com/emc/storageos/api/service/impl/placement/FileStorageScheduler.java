@@ -1152,8 +1152,7 @@ public class FileStorageScheduler implements Scheduler {
          * Unity allow same filesystem name in different NAS servers.
          * For Isilon, duplicate name based on path is handled at driver level.
          */
-        if (!system.getSystemType().equals(StorageSystem.Type.isilon.name())
-                || !system.getSystemType().equals(StorageSystem.Type.unity.name())) {
+        if (!allowDuplicateFilesystemNameOnStorage(system.getSystemType())) {
             List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                     PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
             if (fileShareList != null && !fileShareList.isEmpty()) {
@@ -1189,6 +1188,23 @@ public class FileStorageScheduler implements Scheduler {
         _dbClient.updateObject(fileShare);
         // finally set file share id in recommendation
         placement.setId(fileShare.getId());
+    }
+
+    /**
+     * To check fileSystem with same name is allowed or not
+     * currently we allowed it for Isilon and Unity as Array do not have these restriction.
+     * 
+     * @param systemType
+     * @return true if allowed , false otherwise
+     */
+    private static boolean allowDuplicateFilesystemNameOnStorage(String systemType) {
+        boolean allow = false;
+        if (StorageSystem.Type.isilon.name().equals(systemType)) {
+            allow = true;
+        } else if (StorageSystem.Type.unity.name().equals(systemType)) {
+            allow = true;
+        }
+        return allow;
     }
 
     /**

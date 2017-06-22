@@ -736,7 +736,6 @@ public class AuthenticationResource {
             @QueryParam("fragment") String fragment,
             MultivaluedMap<String, String> formData) throws IOException {
 
-        UsernamePasswordCredentials credentials = null;
         boolean isPasswordExpired = false;
         String loginError = null;
         if (service == null || service.isEmpty()) {
@@ -789,7 +788,7 @@ public class AuthenticationResource {
                 }
             }
 
-            credentials = getFormCredentials(formData);
+            UsernamePasswordCredentials credentials = getFormCredentials(formData);
             credentials.setUserName(SecurityUtils.stripXSS(credentials.getUserName()));
             if (null == loginError) {
                 loginError = FORM_LOGIN_BAD_CREDS_ERROR;
@@ -849,7 +848,7 @@ public class AuthenticationResource {
         }
 
         auditOp(null, null,
-                OperationTypeEnum.AUTHENTICATION, false, null, credentials.getUserName());
+                OperationTypeEnum.AUTHENTICATION, false, null, getFormCredentials(formData).getUserName());
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
@@ -925,7 +924,7 @@ public class AuthenticationResource {
 
     private UsernamePasswordCredentials getFormCredentials(
             MultivaluedMap<String, String> formData) {
-        String userName = formData.getFirst("username");
+        String userName = SecurityUtils.stripXSS(formData.getFirst("username"));
         String userPassw = formData.getFirst("password");
         if (StringUtils.isNotBlank(userName) && StringUtils.isNotBlank(userPassw)) {
             return new UsernamePasswordCredentials(userName, userPassw);

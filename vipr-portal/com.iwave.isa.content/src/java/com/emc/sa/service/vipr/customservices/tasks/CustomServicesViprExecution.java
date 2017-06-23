@@ -19,11 +19,12 @@ package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
-import com.google.gson.Gson;
+import javax.ws.rs.core.UriBuilder;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -44,6 +45,7 @@ import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.impl.RestClient;
+import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
 
 /**
@@ -87,38 +89,20 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         final String templatePath = primitive.path();
         final String body = primitive.body();
         final String method = primitive.method();
-
+        final Map<String, List<InputParameter>> inputKeys = primitive.input() == null ? Collections.emptyMap() : primitive.input();
         if (CustomServicesConstants.BODY_REST_METHOD.contains(method) && !body.isEmpty()) {
             requestBody = RESTHelper.makePostBody(body, 0, input);
         } else {
             requestBody = "";
         }
 
-        String path = RESTHelper.makePath(templatePath, input, primitive);
-
-        final Properties queryParam = new Properties();
-        if (primitive != null || primitive.input() != null) {
-
-            logger.info("set the query param");
-            final Map<String, List<InputParameter>> viprInputs = primitive.input();
-            final List<InputParameter> queries = viprInputs.get(CustomServicesConstants.QUERY_PARAMS);
-
-            for (final InputParameter a : queries) {
-                if (input.get(a.getName()) == null) {
-                    logger.debug("Query parameter value is not set for:{}", a.getName());
-                    continue;
-                }
-                final String value = input.get(a.getName()).get(0);
-                if (!StringUtils.isEmpty(value)) {
-                    logger.info("set param for:{}", a.getName());
-                    queryParam.setProperty(a.getName(), value);
-                }
-            }
-        }
-
+        final List<InputParameter> queryParams = inputKeys.get(CustomServicesConstants.QUERY_PARAMS);
+        final UriBuilder builder = client.uriBuilder().path(RESTHelper.makePath(templatePath, input));
+        RESTHelper.addQueryParams(builder, queryParams, input);
+        
         ExecutionUtils.currentContext().logInfo("customServicesViprExecution.startInfo", step.getId(), primitive.friendlyName());
 
-        CustomServicesTaskResult result = makeRestCall(path, requestBody, method, queryParam);
+        CustomServicesTaskResult result = makeRestCall(builder.build(), requestBody, method);
 
         logger.info("result is:{}", result.getOut());
         ExecutionUtils.currentContext().logInfo("customServicesViprExecution.doneInfo", step.getId(), primitive.friendlyName());
@@ -151,7 +135,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         return null;
     }
 
-    private CustomServicesTaskResult makeRestCall(final String path, final Object requestBody, final String method, final Properties queryParams)
+    private CustomServicesTaskResult makeRestCall(final URI uri, final Object requestBody, final String method)
             throws InternalServerErrorException {
 
         ClientResponse response = null;
@@ -161,16 +145,16 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         try {
             switch (restmethod) {
                 case GET:
-                    response = client.get(ClientResponse.class, path, queryParams);
+                    response = client.getURI(ClientResponse.class, uri);
                     break;
                 case PUT:
-                    response = client.put(ClientResponse.class, requestBody, path);
+                    response = client.putURI(ClientResponse.class, requestBody, uri);
                     break;
                 case POST:
-                    response = client.post(ClientResponse.class, requestBody, path);
+                    response = client.postURI(ClientResponse.class, requestBody, uri);
                     break;
                 case DELETE:
-                    response = client.delete(ClientResponse.class, path);
+                    response = client.deleteURI(ClientResponse.class, uri);
                     break;
                 default:
                     throw InternalServerErrorException.internalServerErrors

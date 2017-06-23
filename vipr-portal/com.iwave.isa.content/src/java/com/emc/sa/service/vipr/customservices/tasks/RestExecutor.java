@@ -20,27 +20,36 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
+import com.emc.sa.catalog.primitives.CustomServicesRESTApiPrimitiveDAO;
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.db.restapi.CustomServicesRESTApiPrimitive;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 public class RestExecutor implements MakeCustomServicesExecutor {
 
     private final static String TYPE = CustomServicesConstants.REST_API_PRIMITIVE_TYPE;
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RestExecutor.class);
     @Autowired
     private CoordinatorClient coordinator;
     @Autowired
-    private DbClient dbClient;
-    @Autowired
-    private CustomServicesPrimitiveDAOs daos;
+    private CustomServicesRESTApiPrimitiveDAO customServicesRESTApiDao;
 
     @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
-        return new CustomServicesRESTExecution(input, step, coordinator, dbClient, daos);
+        final CustomServicesRESTApiPrimitive primitive = customServicesRESTApiDao.get(step.getOperation());
+        if( null == primitive ) {
+            logger.error("Error retrieving the REST primitive from DB. {} not found in DB", step.getOperation());
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "\"Error retrieving the REST primitive from DB.");
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(step.getOperation() + " not found in DB");
+        }
+        return new CustomServicesRESTExecution(input, step, coordinator, primitive);
     }
 
     @Override public String getType() {

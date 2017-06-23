@@ -2275,7 +2275,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
     private HashMap<String, HashSet<Integer>> discoverAllExports(StorageSystem storageSystem,
             final List<IsilonAccessZone> isilonAccessZones)
-            throws IsilonCollectionException {
+                    throws IsilonCollectionException {
 
         // Discover All FileSystem
         HashMap<String, HashSet<Integer>> allExports = new HashMap<String, HashSet<Integer>>();
@@ -2462,25 +2462,29 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                         UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
                         unmanagedNFSAcl.setFileSystemPath(exportPath);
+                        // Verify trustee name
+                        // ViPR would manage the ACLs only user/group name
+                        // and avoid null pointers too
+                        if (tempAcl.getTrustee().getName() != null) {
+                            String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
 
-                        String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+                            if (tempUname.length > 1) {
+                                unmanagedNFSAcl.setDomain(tempUname[0]);
+                                unmanagedNFSAcl.setUser(tempUname[1]);
+                            } else {
+                                unmanagedNFSAcl.setUser(tempUname[0]);
+                            }
 
-                        if (tempUname.length > 1) {
-                            unmanagedNFSAcl.setDomain(tempUname[0]);
-                            unmanagedNFSAcl.setUser(tempUname[1]);
-                        } else {
-                            unmanagedNFSAcl.setUser(tempUname[0]);
+                            unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+                            unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+                            unmanagedNFSAcl.setPermissions(StringUtils.join(
+                                    getIsilonAccessList(tempAcl.getAccessrights()), ","));
+
+                            unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+                            unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+
+                            unManagedNfsACLList.add(unmanagedNFSAcl);
                         }
-
-                        unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
-                        unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
-                        unmanagedNFSAcl.setPermissions(StringUtils.join(
-                                getIsilonAccessList(tempAcl.getAccessrights()), ","));
-
-                        unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
-                        unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
-
-                        unManagedNfsACLList.add(unmanagedNFSAcl);
                     }
                 }
             } catch (Exception ex) {
@@ -2527,7 +2531,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             UnManagedFileSystem unManagedFileSystem,
             String unManagedFileSystemNativeGuid, StorageSystem storageSystem,
             StoragePool pool, NASServer nasServer, FileShare fileSystem)
-            throws IOException, IsilonCollectionException {
+                    throws IOException, IsilonCollectionException {
 
         if (null == unManagedFileSystem) {
             unManagedFileSystem = new UnManagedFileSystem();

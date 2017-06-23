@@ -86,6 +86,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -120,6 +121,7 @@ public class SmisCommandHelper implements SmisConstants {
     private static final int SYNC_WRAPPER_TIME_OUT = 12000000; // set to 200 minutes to handle striped meta volumes with
                                                                // BCV helper
                                                                // expansion (it may take long time)
+    private static final String PROVIDER_VERSION_SUPPORTS_STORAGE_GROUP_CONVERSION = "8.4";
     private static final String EMC_IS_BOUND = "EMCIsBound";
     private static final int MAX_REFRESH_LOCK_WAIT_TIME = 300;
     private static final long REFRESH_THRESHOLD = 120000;
@@ -2356,6 +2358,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Converts a stand alone storage group in the masking view to cascaded.
+     * This method is supported from SMI-S v8.4
      *
      * @param storage the storage system
      * @param storageGroupPath the storage group path
@@ -2364,12 +2367,22 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public void convertStandAloneStorageGroupToCascaded(StorageSystem storage,
             CIMObjectPath storageGroupPath, String storageGroupName) throws WBEMException {
-        String ChildStorageGroupName = String.format("%s_ChildSG", storageGroupName);
-        CIMArgument[] inArgs = getConvertStandAloneStorageGroupToCascadedInputArguments(
-                storage, storageGroupPath, ChildStorageGroupName);
-        CIMArgument[] outArgs = new CIMArgument[5];
-        invokeMethod(storage, _cimPath.getControllerConfigSvcPath(storage),
-                "EMCConvertMaskingGroup", inArgs, outArgs);
+        // This method is supported from SMI-S v8.4
+        StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class,
+                storage.getActiveProviderURI());
+        String providerVersion = storageProvider.getVersionString();
+        if (VersionChecker.verifyVersionDetails(PROVIDER_VERSION_SUPPORTS_STORAGE_GROUP_CONVERSION, providerVersion) >= 0) {
+            _log.info("Converting Stand alone storage group to Cascaded..");
+            String ChildStorageGroupName = String.format("%s_ChildSG", storageGroupName);
+            CIMArgument[] inArgs = getConvertStandAloneStorageGroupToCascadedInputArguments(
+                    storage, storageGroupPath, ChildStorageGroupName);
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "EMCConvertMaskingGroup", inArgs, outArgs);
+        } else {
+            _log.info("SMI-S Provider version {} does not support converting"
+                    + " Stand alone storage group to Cascaded.", providerVersion);
+        }
     }
 
     /**

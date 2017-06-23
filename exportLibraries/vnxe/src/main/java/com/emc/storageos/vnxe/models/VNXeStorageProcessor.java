@@ -16,7 +16,7 @@ public class VNXeStorageProcessor extends VNXeBase {
     private boolean needsReplacement;
     private boolean isRescueMode;
     private String model;
-    private Integer slotNumber;
+    private int slotNumber;
     private String name;
     private String emcPartNumber;
     private String emcSerialNumber;
@@ -61,7 +61,7 @@ public class VNXeStorageProcessor extends VNXeBase {
         this.model = model;
     }
 
-    public Integer getSlotNumber() {
+    public int getSlotNumber() {
         return slotNumber;
     }
 

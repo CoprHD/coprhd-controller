@@ -1155,9 +1155,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             } else {
                 existingSPs.add(haDomain);
             }
-            if (sp.getSlotNumber() != null) {
-                haDomain.setSlotNumber(sp.getSlotNumber().toString());
-            }
             spIdMap.put(sp.getId(), haDomain.getId());
         }
 

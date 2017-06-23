@@ -769,7 +769,7 @@ public class UcsComputeDevice implements ComputeDevice {
                      ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                      if (computeElement!=null){
                          computeElement.setAvailable(true);
-                         computeElement.setUuid(null);
+                         computeElement.setUuid(computeElement.getOriginalUuid());
                          _dbClient.updateObject(computeElement);
                      }
                      host.setComputeElement(NullColumnValueGetter.getNullURI());
@@ -1212,9 +1212,11 @@ public class UcsComputeDevice implements ComputeDevice {
                     // Release the computeElement back into the pool as soon as we have unbound it from the service profile
                     if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
                          computeElement.setAvailable(true);
-                         computeElement.setUuid(null);
-                         _dbClient.updateObject(computeElement);
                     }
+                    String originalUuid = computeElement.getOriginalUuid();
+                    LOGGER.info("ComputeBlade "+ computeElement.getLabel()+ " setting uuid back to originalUUid: "+ originalUuid);
+                    computeElement.setUuid(originalUuid);
+                    _dbClient.updateObject(computeElement);
                 }
 
             } else {

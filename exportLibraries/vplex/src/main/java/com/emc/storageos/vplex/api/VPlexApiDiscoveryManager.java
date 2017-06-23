@@ -3333,8 +3333,12 @@ public class VPlexApiDiscoveryManager {
             storageVolumeInfo.setClusterId(extentInfo.getClusterId());
             extentInfo.setStorageVolumeInfo(storageVolumeInfo);
         } else {
-            throw VPlexApiException.exceptions.moreThanOneComponentForExtent(extentInfo
-                    .getPath());
+            if (componentInfoList.isEmpty()) {
+                throw VPlexApiException.exceptions.noComponentForExtent(extentInfo.getPath());
+            } else {
+                throw VPlexApiException.exceptions.moreThanOneComponentForExtent(extentInfo
+                        .getPath());
+            }
         }
     }
 

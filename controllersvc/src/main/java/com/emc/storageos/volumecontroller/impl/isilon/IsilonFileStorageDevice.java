@@ -1360,7 +1360,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.info("doCreateQuotaDirectory failed, deleting the isilon directory {} which has been created in this workflow",
                         qDirPath);
                 IsilonApi isi = getIsilonDevice(storage);
-                isi.deleteDir(args.getFsMountPath());
+                isi.deleteDir(qDirPath);
             }
             _log.error("doCreateQuotaDirectory failed.", e);
             return BiosCommandResult.createErrorResult(e);
@@ -1519,7 +1519,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 

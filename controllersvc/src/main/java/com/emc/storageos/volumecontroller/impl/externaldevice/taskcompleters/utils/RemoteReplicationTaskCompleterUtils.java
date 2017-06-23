@@ -11,6 +11,8 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public class RemoteReplicationTaskCompleterUtils {
 
+    private RemoteReplicationTaskCompleterUtils() {}
+
     /**
      * Configure fields of task completer: _opId, _ids and _clazz, based on given element type and URI
      */

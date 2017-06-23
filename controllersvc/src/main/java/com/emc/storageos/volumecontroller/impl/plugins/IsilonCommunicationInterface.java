@@ -316,77 +316,21 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 return;
             }
             // get first page of quota data, process and insert to database
-            IsilonApi.IsilonList<IsilonSmartQuota> quotas = api.listQuotas(null);
-            for (IsilonSmartQuota quota : quotas.getList()) {
-                String fsNativeId = quota.getPath();
-                String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
-                String fsId = fileSystemsMap.get(fsNativeGuid);
-                if (fsId == null || fsId.isEmpty()) {
-                    // No file shares found for the quota
-                    // ignore stats collection for the file system!!!
-                    _log.debug("File System does not exists with nativeid {}. Hence ignoring stats collection.", fsNativeGuid);
-                    continue;
-                }
-                Stat stat = recorder.addUsageStat(quota, _keyMap, fsId, api);
-                fsChanged = false;
-                if (null != stat) {
-                    stats.add(stat);
-                    // Persists the file system, only if change in used capacity.
-                    FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
-                    if (fileSystem != null) {
-                        if (!fileSystem.getInactive()) {
-                            if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
-                                fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
-                                fsChanged = true;
-                            }
-                            if (null != fileSystem.getSoftLimit() && null != quota.getThresholds() &&
-                                    null != quota.getThresholds().getsoftExceeded()) { // if softlimit is set then get the value for
-                                // softLimitExceeded
-                                fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
-                                fsChanged = true;
-                            }
-                            if (fsChanged) {
-                                modifiedFileSystems.add(fileSystem);
-                            }
-                        }
-                    }
-                }
-
-                // Write the records batch wise!!
-                // Each batch with MAX_RECORDS_SIZE - 100 records!!!
-                if (modifiedFileSystems.size() >= MAX_RECORDS_SIZE) {
-                    _dbClient.updateObject(modifiedFileSystems);
-                    _log.info("Processed {} file systems stats ", modifiedFileSystems.size());
-                    modifiedFileSystems.clear();
-                }
-
-                if (stats.size() >= MAX_RECORDS_SIZE) {
-                    _log.info("Processed {} stats", stats.size());
-                    persistStatsInDB(stats);
-                }
-            }
-            // write the remaining records!!
-            if (!modifiedFileSystems.isEmpty()) {
-                _dbClient.updateObject(modifiedFileSystems);
-                _log.info("Processed {} file systems stats ", modifiedFileSystems.size());
-                modifiedFileSystems.clear();
-            }
-
-            if (!stats.isEmpty()) {
-                _log.info("Processed {} stats", stats.size());
-                persistStatsInDB(stats);
-            }
-
-            statsCount = statsCount + quotas.size();
-            _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
-
-            // get all other pages of quota data, process and insert to database page by page
-            while (quotas.getToken() != null && !quotas.getToken().isEmpty()) {
-                quotas = api.listQuotas(quotas.getToken());
+            String resumeToken = null;
+            do {
+                IsilonApi.IsilonList<IsilonSmartQuota> quotas = api.listQuotas(resumeToken);
+                resumeToken = quotas.getToken();
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     String fsNativeId = quota.getPath();
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
-                    Stat stat = recorder.addUsageStat(quota, _keyMap, fsNativeGuid, api);
+                    String fsId = fileSystemsMap.get(fsNativeGuid);
+                    if (fsId == null || fsId.isEmpty()) {
+                        // No file shares found for the quota
+                        // ignore stats collection for the file system!!!
+                        _log.debug("File System does not exists with nativeid {}. Hence ignoring stats collection.", fsNativeGuid);
+                        continue;
+                    }
+                    Stat stat = recorder.addUsageStat(quota, _keyMap, fsId, api);
                     fsChanged = false;
                     if (null != stat) {
                         stats.add(stat);
@@ -394,22 +338,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
                         if (fileSystem != null) {
                             if (!fileSystem.getInactive()) {
-                                if (null != fileSystem.getUsedCapacity() && null != stat.getAllocatedCapacity() &&
-                                        !fileSystem.getUsedCapacity().equals(stat.getAllocatedCapacity())) {
+                                if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
                                     fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                     fsChanged = true;
                                 }
-                                if (null != fileSystem.getSoftLimit() && null != fileSystem.getSoftLimitExceeded() &&
-                                        null != quota.getThresholds() && null != quota.getThresholds().getsoftExceeded() &&
-                                        !fileSystem.getSoftLimitExceeded().equals(quota.getThresholds().getsoftExceeded())) {
+                                if (null != fileSystem.getSoftLimit() && null != quota.getThresholds() &&
+                                        null != quota.getThresholds().getsoftExceeded()) { // if softlimit is set then get the value for
+                                    // softLimitExceeded
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
                                 }
-
                                 if (fsChanged) {
                                     modifiedFileSystems.add(fileSystem);
                                 }
-
                             }
                         }
                     }
@@ -426,12 +367,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         _log.info("Processed {} stats", stats.size());
                         persistStatsInDB(stats);
                     }
-
                 }
+
                 statsCount = statsCount + quotas.size();
                 _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
-            }
+
+            } while (resumeToken != null);
+
             zeroRecordGenerator.identifyRecordstobeZeroed(_keyMap, stats, FileShare.class);
+
             // write the remaining records!!
             if (!modifiedFileSystems.isEmpty()) {
                 _dbClient.updateObject(modifiedFileSystems);

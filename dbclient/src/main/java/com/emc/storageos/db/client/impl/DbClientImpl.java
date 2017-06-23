@@ -9,23 +9,12 @@ import java.beans.PropertyDescriptor;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -106,8 +95,6 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
  */
 public class DbClientImpl implements DbClient {
     private static final int COMPLETED_PROGRESS = 100;
-    private static final int SUSPENDED_NO_ERROR_PROGRESS = 25;
-    private static final int SUSPENDED_ERROR_PROGRESS = 33;
     public static final String DB_STAT_OPTIMIZE_DISK_SPACE = "DB_STAT_OPTIMIZE_DISK_SPACE";
     public static final String DB_LOG_MINIMAL_TTL = "DB_LOG_MINIMAL_TTL";
     public static final String DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY = "DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY";
@@ -145,6 +132,9 @@ public class DbClientImpl implements DbClient {
     private boolean initDone = false;
     private String _geoVersion;
     private DrUtil drUtil;
+    private int logInterval = 1800; //seconds
+    private int logCount = 5;
+    private KeyspaceTracerFactoryImpl tracer;
 
     public String getGeoVersion() {
         if (this._geoVersion == null) {
@@ -167,6 +157,14 @@ public class DbClientImpl implements DbClient {
 
     public DbClientContext getGeoContext() {
         return geoContext;
+    }
+
+    public int getLogInterval() {
+        return logInterval;
+    }
+
+    public void setLogInterval(int logInterval) {
+        this.logInterval = logInterval;
     }
 
     /**
@@ -265,6 +263,8 @@ public class DbClientImpl implements DbClient {
         setupContext();
 
         _indexCleaner = new IndexCleaner();
+
+        tracer = new KeyspaceTracerFactoryImpl();
 
         initDone = true;
     }
@@ -388,11 +388,13 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> T queryObject(Class<T> clazz, NamedURI id) {
+        tracer.newTracer("read");
         return queryObject(clazz, id.getURI());
     }
 
     @Override
     public DataObject queryObject(URI id) {
+        tracer.newTracer("read");
         Class<? extends DataObject> clazz = URIUtil.getModelClass(id);
 
         return queryObject(clazz, id);
@@ -400,6 +402,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> T queryObject(Class<T> clazz, URI id) {
+        tracer.newTracer("read");
         List<URI> ids = new ArrayList<>(1);
         ids.add(id);
 
@@ -414,16 +417,19 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id) {
+        tracer.newTracer("read");
         return queryObject(clazz, Arrays.asList(id));
     }
 
     @Override
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids) {
+        tracer.newTracer("read");
         return queryObject(clazz, ids, false);
     }
 
     @Override
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly) {
+        tracer.newTracer("read");
         DataObjectType doType = TypeMap.getDoType(clazz);
 
         if (doType == null) {
@@ -470,12 +476,14 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends DataObject> Iterator<T> queryIterativeObjects(final Class<T> clazz,
             Collection<URI> ids) {
+        tracer.newTracer("read");
         return queryIterativeObjects(clazz, ids, false);
     }
 
     @Override
     public <T extends DataObject> Iterator<T> queryIterativeObjects(final Class<T> clazz,
             Collection<URI> ids, final boolean activeOnly) {
+        tracer.newTracer("read");
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null || ids == null) {
             throw new IllegalArgumentException();
@@ -508,7 +516,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends DataObject> Iterator<T> queryIterativeObjectField(final Class<T> clazz,
             final String fieldName, Collection<URI> ids) {
-
+        tracer.newTracer("read");
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null || ids == null) {
             throw new IllegalArgumentException();
@@ -540,6 +548,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> List<T> queryObjectField(Class<T> clazz, String fieldName, Collection<URI> ids) {
+        tracer.newTracer("read");
         Set<String> fieldNames = new HashSet<>(1);
         fieldNames.add(fieldName);
         Iterator<T> iterator = queryObjectFields(clazz, fieldNames, ids).iterator();
@@ -557,7 +566,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends DataObject> Iterator<T> queryIterativeObjectFields(final Class<T> clazz,
             final Collection<String> fieldNames, Collection<URI> ids) {
-
+        tracer.newTracer("read");
         BulkDataObjQueryResultIterator<T> bulkQueryIterator = new BulkDataObjQueryResultIterator<T>(ids.iterator()) {
 
             @Override
@@ -582,6 +591,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends DataObject> Collection<T> queryObjectFields(Class<T> clazz,
             Collection<String> fieldNames, Collection<URI> ids) {
+        tracer.newTracer("read");
         DataObjectType doType = TypeMap.getDoType(clazz);
 
         if (doType == null || ids == null) {
@@ -653,6 +663,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends DataObject> void aggregateObjectField(Class<T> clazz, Iterator<URI> ids,
             DbAggregatorItf aggregator) {
+        tracer.newTracer("read");
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null) {
             throw new IllegalArgumentException();
@@ -846,6 +857,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> void queryInactiveObjects(Class<T> clazz, final long timeBefore, QueryResultList<URI> result) {
+        tracer.newTracer("read");
         if (clazz.getAnnotation(NoInactiveIndex.class) != null) {
             final Iterator<Row<String, CompositeColumnName>> it = scanRowsByType(clazz, true, null, Integer.MAX_VALUE).iterator();
 
@@ -890,6 +902,7 @@ public class DbClientImpl implements DbClient {
      */
     @Override
     public <T extends DataObject> List<URI> queryByType(Class<T> clazz, boolean activeOnly) {
+        tracer.newTracer("read");
         if (clazz.getAnnotation(NoInactiveIndex.class) != null) {
             // A class not indexed by Decommissioned CF, we can only scan entire CF for it
             return scanByType(clazz, activeOnly ? false : null, null, Integer.MAX_VALUE);
@@ -914,7 +927,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> List<URI> queryByType(Class<T> clazz, boolean activeOnly, URI startId, int count) {
-
+        tracer.newTracer("read");
         URIQueryResultList result;
 
         if (clazz.getAnnotation(NoInactiveIndex.class) != null) {
@@ -954,6 +967,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public List<URI> queryByConstraint(Constraint constraint) {
+        tracer.newTracer("read");
         /* TODO: This API will be removed with Grace's patch */
         URIQueryResultList result = new URIQueryResultList();
         queryByConstraint(constraint, result);
@@ -968,6 +982,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result) {
+        tracer.newTracer("read");
         ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
         if (!constraintImpl.isValid()) {
             throw new IllegalArgumentException("invalid constraint: the key can't be null or empty");
@@ -978,6 +993,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount) {
+        tracer.newTracer("read");
         ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
 
         if (!constraintImpl.isValid()) {
@@ -996,6 +1012,7 @@ public class DbClientImpl implements DbClient {
     // and the number of volumes or fileshares in a storage system
     @Override
     public Integer countObjects(Class<? extends DataObject> clazz, String columnField, URI uri) {
+        tracer.newTracer("read");
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null) {
             throw new IllegalArgumentException();
@@ -1020,6 +1037,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> void createObject(T object) {
+        tracer.newTracer("write");
         createObject(new DataObject[] { object });
     }
 
@@ -1029,6 +1047,7 @@ public class DbClientImpl implements DbClient {
     @Deprecated
     @Override
     public <T extends DataObject> void persistObject(T object) {
+        tracer.newTracer("write");
         internalPersistObject(object, true);
     }
 
@@ -1038,11 +1057,13 @@ public class DbClientImpl implements DbClient {
     @Deprecated
     @Override
     public <T extends DataObject> void updateAndReindexObject(T object) {
+        tracer.newTracer("write");
         internalPersistObject(object, true);
     }
 
     @Override
     public <T extends DataObject> void updateObject(T object) {
+        tracer.newTracer("write");
         internalPersistObject(object, true);
     }
 
@@ -1056,6 +1077,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> void createObject(Collection<T> dataobjects) {
+        tracer.newTracer("write");
         for (T object : dataobjects) {
             object.setCreationTime(Calendar.getInstance());
             if (!object.getInactive()) {
@@ -1071,6 +1093,7 @@ public class DbClientImpl implements DbClient {
     @Deprecated
     @Override
     public <T extends DataObject> void persistObject(Collection<T> dataobjects) {
+        tracer.newTracer("write");
         internalIterativePersistObject(dataobjects, true);
     }
 
@@ -1080,11 +1103,13 @@ public class DbClientImpl implements DbClient {
     @Deprecated
     @Override
     public <T extends DataObject> void updateAndReindexObject(Collection<T> dataobjects) {
+        tracer.newTracer("write");
         internalIterativePersistObject(dataobjects, true);
     }
 
     @Override
     public <T extends DataObject> void updateObject(Collection<T> objects) {
+        tracer.newTracer("write");
         internalIterativePersistObject(objects, true);
     }
 
@@ -1267,6 +1292,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> void createObject(T... object) {
+        tracer.newTracer("write");
         createObject(Arrays.asList(object));
     }
 
@@ -1276,6 +1302,7 @@ public class DbClientImpl implements DbClient {
     @Deprecated
     @Override
     public <T extends DataObject> void persistObject(T... object) {
+        tracer.newTracer("write");
         internalPersistObject(Arrays.asList(object), true);
     }
 
@@ -1285,11 +1312,13 @@ public class DbClientImpl implements DbClient {
     @Deprecated
     @Override
     public <T extends DataObject> void updateAndReindexObject(T... object) {
+        tracer.newTracer("write");
         internalPersistObject(Arrays.asList(object), true);
     }
 
     @Override
     public <T extends DataObject> void updateObject(T... object) {
+        tracer.newTracer("write");
         internalPersistObject(Arrays.asList(object), true);
     }
 
@@ -1297,6 +1326,7 @@ public class DbClientImpl implements DbClient {
     @Deprecated
     public void setStatus(Class<? extends DataObject> clazz, URI id,
             String opId, String status) {
+        tracer.newTracer("write");
         setStatus(clazz, id, opId, status, null);
     }
 
@@ -1304,6 +1334,7 @@ public class DbClientImpl implements DbClient {
     @Deprecated
     public void setStatus(Class<? extends DataObject> clazz, URI id, String opId, String status,
             String message) {
+        tracer.newTracer("write");
         try {
             DataObject doobj = clazz.newInstance();
             doobj.setId(id);
@@ -1324,11 +1355,13 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public void markForDeletion(DataObject object) {
+        tracer.newTracer("write");
         markForDeletion(Arrays.asList(new DataObject[] { object }));
     }
 
     @Override
     public void markForDeletion(Collection<? extends DataObject> objects) {
+        tracer.newTracer("write");
         Iterator<? extends DataObject> it = objects.iterator();
         while (it.hasNext()) {
             it.next().setInactive(true);
@@ -1338,11 +1371,13 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> void markForDeletion(T... object) {
+        tracer.newTracer("write");
         markForDeletion(Arrays.asList(object));
     }
 
     @Override
     public void removeObject(DataObject... object) {
+        tracer.newTracer("write");
         Map<Class<? extends DataObject>, List<DataObject>> typeObjMap = new HashMap<Class<? extends DataObject>, List<DataObject>>();
         for (DataObject obj : object) {
             List<DataObject> objTypeList = typeObjMap.get(obj.getClass());
@@ -1364,7 +1399,7 @@ public class DbClientImpl implements DbClient {
     }
 
     public void removeObject(Class<? extends DataObject> clazz, DataObject... object) {
-
+        tracer.newTracer("write");
         List<DataObject> allObjects = Arrays.asList(object);
         Keyspace ks = getKeyspace(clazz);
 
@@ -1398,6 +1433,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
             Class<? extends TimeSeries> tsType, T... data) {
+        tracer.newTracer("write");
         try {
             // time series are always in the local keyspace
             MutationBatch batch = getLocalKeyspace().prepareMutationBatch();
@@ -1425,6 +1461,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
             Class<? extends TimeSeries> tsType, DateTime time, T data) {
+        tracer.newTracer("write");
         if (time == null || (time.getZone() != DateTimeZone.UTC)) {
             throw new IllegalArgumentException("Invalid timezone");
         }
@@ -1454,6 +1491,7 @@ public class DbClientImpl implements DbClient {
                     DateTime timeBucket,
                     final TimeSeriesQueryResult<T> result,
                     ExecutorService workerThreads) {
+        tracer.newTracer("read");
         queryTimeSeries(tsType, timeBucket, null, result, workerThreads);
     }
 
@@ -1462,6 +1500,7 @@ public class DbClientImpl implements DbClient {
             void queryTimeSeries(final Class<? extends TimeSeries> tsType, final DateTime timeBucket,
                     TimeSeriesMetadata.TimeBucket bucket, final TimeSeriesQueryResult<T> result,
                     ExecutorService workerThreads) {
+        tracer.newTracer("read");
         final TimeSeriesType<T> type = TypeMap.getTimeSeriesType(tsType);
         final TimeSeriesMetadata.TimeBucket granularity = (bucket == null ? type.getBucketConfig() : bucket);
         final List<String> rows = type.getRows(timeBucket);
@@ -1503,6 +1542,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public TimeSeriesMetadata queryTimeSeriesMetadata(Class<? extends TimeSeries> tsType) {
+        tracer.newTracer("read");
         return TypeMap.getTimeSeriesType(tsType);
     }
 
@@ -1588,8 +1628,25 @@ public class DbClientImpl implements DbClient {
             idList.add(it.next().toString());
         }
         if (idList.size() > DEFAULT_PAGE_SIZE) {
+            int MAX_STACK_SIZE = 10; // Maximum stack we'll search in our thread.
+            int MAX_STACK_PRINT = 2; // Maximum number of frames we'll print.  (really the first frame is the most important)
+            
             _log.warn("Unbounded database query, request size is over allowed limit({}), " +
                     "please use corresponding iterative API.", DEFAULT_PAGE_SIZE);
+            StackTraceElement[] elements = new Throwable().getStackTrace();
+            int i=0, j=0;
+            while (i < MAX_STACK_SIZE && j < MAX_STACK_PRINT) {
+                // Print the stacktrace of this inefficiency.  Avoid printing anything in DbClientImpl since that's a given.
+                if (i < elements.length && elements[i] != null && elements[i].getMethodName() != null && !elements[i].getClassName().contains("DbClientImpl")) {
+                    _log.warn(String.format("Stack position %d: %s.%s(), %s:%s", i, 
+                            elements[i].getClassName().substring(elements[i].getClassName().lastIndexOf(".") + 1), 
+                            elements[i].getMethodName(), 
+                            elements[i].getFileName(), 
+                            elements[i].getLineNumber()));
+                    j++;
+                }
+                i++;
+            }
         }
 
         return idList;
@@ -1598,6 +1655,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public Operation createTaskOpStatus(Class<? extends DataObject> clazz, URI id,
             String opId, ResourceOperationTypeEnum type) {
+        tracer.newTracer("write");
         Operation op = new Operation();
         op.setResourceType(type);
         return createTaskOpStatus(clazz, id, opId, op);
@@ -1606,6 +1664,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public Operation createTaskOpStatus(Class<? extends DataObject> clazz, URI id,
             String opId, ResourceOperationTypeEnum type, String associatedResources) {
+        tracer.newTracer("write");
         Operation op = new Operation();
         op.setResourceType(type);
         op.setAssociatedResourcesField(associatedResources);
@@ -1615,6 +1674,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public Operation createTaskOpStatus(Class<? extends DataObject> clazz, URI id,
             String opId, Operation newOperation) {
+        tracer.newTracer("write");
         if (newOperation == null) {
             throw new IllegalArgumentException("missing required parameter: Operation");
         }
@@ -1663,6 +1723,7 @@ public class DbClientImpl implements DbClient {
     @Deprecated
     public Operation updateTaskOpStatus(Class<? extends DataObject> clazz, URI id,
             String opId, Operation updateOperation) {
+        tracer.newTracer("write");
         return updateTaskStatus(clazz, id, opId, updateOperation);
     }
 
@@ -1715,6 +1776,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public Operation ready(Class<? extends DataObject> clazz, URI id, String opId) {
+        tracer.newTracer("write");
         Operation updateOperation = new Operation();
         updateOperation.ready();
         updateOperation.setProgress(COMPLETED_PROGRESS);
@@ -1723,6 +1785,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public Operation ready(Class<? extends DataObject> clazz, URI id, String opId, String message) {
+        tracer.newTracer("write");
         Operation updateOperation = new Operation();
         updateOperation.ready(message);
         updateOperation.setProgress(COMPLETED_PROGRESS);
@@ -1732,6 +1795,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public Operation suspended_no_error(Class<? extends DataObject> clazz, URI id,
             String opId, String message) throws DatabaseException {
+        tracer.newTracer("write");
         Operation updateOperation = new Operation();
         updateOperation.suspendedNoError(message);
         return updateTaskStatus(clazz, id, opId, updateOperation);
@@ -1740,6 +1804,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public Operation suspended_no_error(Class<? extends DataObject> clazz, URI id,
             String opId) throws DatabaseException {
+        tracer.newTracer("write");
         Operation updateOperation = new Operation();
         updateOperation.suspendedNoError();
         return updateTaskStatus(clazz, id, opId, updateOperation);
@@ -1748,6 +1813,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public Operation suspended_error(Class<? extends DataObject> clazz, URI id,
             String opId, ServiceCoded serviceCoded) throws DatabaseException {
+        tracer.newTracer("write");
         Operation updateOperation = new Operation();
         updateOperation.suspendedError(serviceCoded);
         return updateTaskStatus(clazz, id, opId, updateOperation);
@@ -1755,6 +1821,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException {
+        tracer.newTracer("write");
         return pending(clazz, id, opId, message, false);
     }
 
@@ -1765,6 +1832,7 @@ public class DbClientImpl implements DbClient {
      */
     @Override
     public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message, boolean resetStartTime) {
+        tracer.newTracer("write");
         Operation updateOperation = new Operation();
         updateOperation.setMessage(message);
         return updateTaskStatus(clazz, id, opId, updateOperation, true);
@@ -1780,6 +1848,7 @@ public class DbClientImpl implements DbClient {
      */
     @Override
     public Operation error(Class<? extends DataObject> clazz, URI id, String opId, ServiceCoded serviceCoded) {
+        tracer.newTracer("write");
         Operation updateOperation = new Operation();
         updateOperation.error(serviceCoded);
 
@@ -2039,6 +2108,56 @@ public class DbClientImpl implements DbClient {
         for (Entry<Class<? extends DataObject>, List<DataObject>> entry : typeObjMap.entrySet()) {
             List<DataObject> dbObjList = entry.getValue();
             removeObject(entry.getKey(), dbObjList.toArray(new DataObject[dbObjList.size()]));
+        }
+    }
+
+    class KeyspaceTracerFactoryImpl {
+        private ConcurrentHashMap<String, AtomicLong> counterMap = new ConcurrentHashMap<String, AtomicLong>();
+        private Map<String, AtomicLong> sortedMap;
+        private ScheduledExecutorService executor = new NamedScheduledThreadPoolExecutor("DbClientPerformance", 1);
+        private AtomicLong total = new AtomicLong(0);
+        public KeyspaceTracerFactoryImpl() {
+            executor.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    _log.info("Total dbclient calls: {} for last {} seconds. Top {} caller are: ", total, logInterval, logCount);
+                    sortedMap = desendSortByValue(counterMap);
+                    int i=1;
+                    for (Entry<String, AtomicLong> entry : sortedMap.entrySet()) {
+                        _log.info("{} -> {}", entry.getKey(), entry.getValue().get());
+                        if (i >= logCount) break;
+                        i++;
+                    }
+                    counterMap.clear();
+                    total.set(0);
+                }
+            }, logInterval, logInterval, TimeUnit.SECONDS);
+        }
+
+        private Map<String, AtomicLong> desendSortByValue(Map<String, AtomicLong> map) {
+            List<Map.Entry<String, AtomicLong>> entryList = new LinkedList<Entry<String, AtomicLong>>(map.entrySet());
+            Collections.sort(entryList, new Comparator<Map.Entry<String, AtomicLong>>() {
+                @Override
+                public int compare(Map.Entry<String, AtomicLong> o1, Map.Entry<String, AtomicLong> o2) {
+                    return (int) ((o2.getValue().get()) - (o1.getValue().get()));
+                }
+            });
+            Map<String, AtomicLong> sortMap = new LinkedHashMap<>();
+            for (Map.Entry<String, AtomicLong> entry : entryList) {
+                sortMap.put(entry.getKey(), entry.getValue());
+            }
+            return sortMap;
+        }
+
+        public void newTracer(String type) {
+            StackTraceElement stackTraceElement = Thread.currentThread().getStackTrace()[3];
+            if (stackTraceElement.getClassName().startsWith("com.emc.storageos.db.client")) {
+                return;
+            }
+            total.getAndIncrement();
+            String key = String.format("%s.%s:%s:%s", stackTraceElement.getClassName(), stackTraceElement.getMethodName(), stackTraceElement.getLineNumber(),type);
+            counterMap.putIfAbsent(key, new AtomicLong(0));
+            counterMap.get(key).getAndIncrement();
         }
     }
 }

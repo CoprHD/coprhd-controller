@@ -300,8 +300,13 @@ public class StorageSystemService extends TaskResourceService {
         }
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
         checkForDuplicateName(param.getName(), StorageSystem.class);
-
-        ArgValidator.checkFieldValidIP(param.getIpAddress(), "ip_address");
+        
+        if (systemType.equals(StorageSystem.Type.isilon) || systemType.equals(StorageSystem.Type.unity)
+                || systemType.equals(StorageSystem.Type.vnxfile)) {
+            ArgValidator.checkFieldValidInetAddress(param.getIpAddress(), "ip_address");
+        } else {
+            ArgValidator.checkFieldValidIP(param.getIpAddress(), "ip_address");
+        }
         ArgValidator.checkFieldNotNull(param.getPortNumber(), "port_number");
         ArgValidator.checkFieldRange(param.getPortNumber(), 1, 65535, "port_number");
         validateStorageSystemExists(param.getIpAddress(), param.getPortNumber());
@@ -363,7 +368,7 @@ public class StorageSystemService extends TaskResourceService {
      * @param param
      */
     private void validateVNXFileSMISProviderMandatoryDetails(StorageSystemRequestParam param) {
-        ArgValidator.checkFieldValidIP(param.getSmisProviderIP(), "smis_provider_ip");
+        ArgValidator.checkFieldValidInetAddress(param.getSmisProviderIP(), "smis_provider_ip");
         ArgValidator.checkFieldNotNull(param.getSmisPortNumber(), "smis_port_number");
         ArgValidator.checkFieldRange(param.getSmisPortNumber(), 1, 65535, "smis_port_number");
         ArgValidator.checkFieldNotEmpty(param.getSmisUserName(), "smis_user_name");
@@ -381,7 +386,7 @@ public class StorageSystemService extends TaskResourceService {
          * Because while doing update client can try to update one among all existing mandatory fields.
          */
         if (param.getSmisProviderIP() != null) {
-            ArgValidator.checkFieldValidIP(param.getSmisProviderIP(), "smis_provider_ip");
+            ArgValidator.checkFieldValidInetAddress(param.getSmisProviderIP(), "smis_provider_ip");
         }
         if (param.getSmisUserName() != null) {
             ArgValidator.checkFieldNotEmpty(param.getSmisUserName(), "smis_user_name");
@@ -417,7 +422,7 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param id the URN of a ViPR storage system
      * @prereq none
-     * @brief Remove a storage system
+     * @brief Delete storage system
      * @return An asynchronous task.
      * 
      * @throws DatabaseException When an error occurs querying the database.
@@ -589,7 +594,13 @@ public class StorageSystemService extends TaskResourceService {
 
             String ipAddress = (param.getIpAddress() != null) ? param.getIpAddress() : system.getIpAddress();
             Integer portNumber = (param.getPortNumber() != null) ? param.getPortNumber() : system.getPortNumber();
-            ArgValidator.checkFieldValidIP(ipAddress, "ip_address");
+            if (systemType.equals(StorageSystem.Type.isilon) || systemType.equals(StorageSystem.Type.unity)
+                    || systemType.equals(StorageSystem.Type.vnxfile) || systemType.equals(StorageSystem.Type.vnxe)) {
+                ArgValidator.checkFieldValidInetAddress(ipAddress, "ip_address");
+            } else {
+                ArgValidator.checkFieldValidIP(ipAddress, "ip_address");
+            }
+
             ArgValidator.checkFieldRange(portNumber, 1, 65535, "port_number");
             validateStorageSystemExists(ipAddress, portNumber);
             system.setMgmtAccessPoint(ipAddress + "-" + portNumber);
@@ -1211,6 +1222,13 @@ public class StorageSystemService extends TaskResourceService {
         return poolList;
     }
 
+    /**
+     * Get All RA Groups
+     * 
+     * @param id
+     * @brief List RDF groups names in a storage system 
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/rdf-groups")
@@ -1355,9 +1373,9 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param id storage system URN ID
      * @param nsId namespace id 
+     * @brief Show details for a namespace
      * @return details of namespace
      */
-    
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/object-namespaces/{nsId}")
@@ -1391,6 +1409,7 @@ public class StorageSystemService extends TaskResourceService {
      * @param param secret key
      * @param id storage system URN
      * @param userId user in array
+     * @brief Add a secret key for a storage system user
      * @return secret key details
      */
     @POST
@@ -1417,6 +1436,14 @@ public class StorageSystemService extends TaskResourceService {
         return map(secretKeyRes, true);
     }
 
+    /**
+     * Get RDF Group 
+     * 
+     * @param id
+     * @param rdfGroupId
+     * @brief Show details about an RDF group
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/rdf-groups/{rdfGrpId}")
@@ -1632,6 +1659,7 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param id the storage system id
      * @param param the StoragePortRequestParam
+     * @brief Define a storage port (for Cinder only)
      * @return A StoragePortRestRep reference specifying the data for the
      *         created port.
      * @throws ControllerException the controller exception

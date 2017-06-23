@@ -440,7 +440,7 @@ add_journal.add_argument('neighborhood',	help = 'neighborhood where journal volu
 add_journal.add_argument('cos',		help = 'cos name for journal volume')
 add_journal.add_argument('size',		help = 'size of journal volume')
 add_journal.add_argument('--count',		help = 'Number of journal volumes to create')
-add_journal.add_argument('--consistencyGroup', help = 'add the journal volume to the specified consistancy group')
+add_journal.add_argument('--consistencyGroup', help = 'add the journal volume to the specified consistency group')
 
 # volume full_copy label name
 full_copy = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -482,7 +482,6 @@ change_cos.add_argument('name',	help = 'names of all the volumes to change cos')
 change_cos.add_argument('cos', help = 'name of the new cos')
 change_cos.add_argument('--consistencyGroup', help = 'use the specified consistency group for the change cos operation')
 change_cos.add_argument('--suspend', action='store_true', help = 'suspend the workflow before commit and delete of original source volume')
-
 
 # volume change_cos_matches
 change_cos_matches = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

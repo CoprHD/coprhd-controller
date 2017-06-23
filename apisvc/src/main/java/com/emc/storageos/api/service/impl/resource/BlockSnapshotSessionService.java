@@ -199,7 +199,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * Gets the details of the BlockSnapshotSession instances with the ids
      * specified in the passed data.
      * 
-     * @brief Gets details for requested block snapshot sessions.
+     * @brief Get details for requested block snapshot sessions.
      * 
      * @prereq none
      * 

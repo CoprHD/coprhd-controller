@@ -108,7 +108,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
             Map<URI, Map<String, Integer>> switchToPortNumber,
-            Map<URI, PortAllocationContext> contextMap) {
+            Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {
         log.info("START - getPortGroups");
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();

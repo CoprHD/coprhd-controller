@@ -4,13 +4,25 @@
  */
 package com.emc.vipr.client.impl.jersey;
 
-import com.sun.jersey.api.client.*;
-import com.sun.jersey.api.client.filter.ClientFilter;
-import org.slf4j.Logger;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.ws.rs.core.MediaType;
+
+import org.slf4j.Logger;
+
+import com.sun.jersey.api.client.AbstractClientRequestAdapter;
+import com.sun.jersey.api.client.ClientHandlerException;
+import com.sun.jersey.api.client.ClientRequest;
+import com.sun.jersey.api.client.ClientRequestAdapter;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.filter.ClientFilter;
 
 /**
  * Filter to log input/output to our log file. This is based on the Jersey LoggingFilter with some differences:
@@ -220,12 +232,23 @@ public class LoggingFilter extends ClientFilter {
 
         prefixId(b, id).append("> ").append(request.getMethod()).append(" ").append(request.getURI().toASCIIString());
 
-        if (request.getEntity() != null) {
+        if (request.getEntity() != null && !isBinary(request)) {
             request.setAdapter(new Adapter(request.getAdapter(), b));
-        }
-        else {
+        } else {
             log.info(b.toString());
         }
+    }
+    
+    private boolean isBinary(final ClientRequest request) {
+        if(null != request.getHeaders() && null != request.getHeaders().get("Content-Type")) {
+            final List<Object> contentTypeList = request.getHeaders().get("Content-Type");
+            for( final Object contentType : contentTypeList ) {
+                if(MediaType.APPLICATION_OCTET_STREAM.equals(contentType.toString())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void logResponse(long id, ClientResponse response, long startTime) {

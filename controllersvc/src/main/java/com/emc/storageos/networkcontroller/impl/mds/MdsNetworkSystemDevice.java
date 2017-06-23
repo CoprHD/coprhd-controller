@@ -17,13 +17,18 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.IntRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkSystemDevice;
@@ -48,14 +53,14 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     /**
      * Sets up a session. Gets session parameters from the NetworkSystem.
      * 
-     * @param network NetworkSystem
+     * @param networkSystem NetworkSystem
      * @return MDSDialog representing the session
      * @throws NetworkDeviceControllerException
      */
-    private MDSDialog setUpDialog(NetworkSystem network) throws NetworkDeviceControllerException {
+    private MDSDialog setUpDialog(NetworkSystem networkSystem) throws NetworkDeviceControllerException {
         try {
             SSHSession session = new SSHSession();
-            session.connect(network.getIpAddress(), network.getPortNumber(), network.getUsername(), network.getPassword());
+            session.connect(networkSystem.getIpAddress(), networkSystem.getPortNumber(), networkSystem.getUsername(), networkSystem.getPassword());
             MDSDialog dialog = new MDSDialog(session, getDefaultTimeout());
             dialog.initialize();
             return dialog;
@@ -67,9 +72,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             if (exMsg.equals("timeout: socket is not established")) {
                 exMsg = "Connection Failed";
             }
-            String msg = MessageFormat.format("Could not connect to device {0}: {1}", network.getLabel(), exMsg);
+            String msg = MessageFormat.format("Could not connect to device {0}: {1}", networkSystem.getLabel(), exMsg);
             _log.error(msg);
-            throw NetworkDeviceControllerException.exceptions.setUpDialogFailed(network.getLabel(), exMsg, ex);
+            throw NetworkDeviceControllerException.exceptions.setUpDialogFailed(networkSystem.getLabel(), exMsg, ex);
         }
     }
 
@@ -220,7 +225,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                 Integer vsanId = new Integer(fabricId);
                 vsanWwnMap = dialog.getVsanWwns(new Integer(fabricId));
                 String vsanwwn = vsanWwnMap.get(vsanId);
-                if (null != vsanwwn && vsanwwn.equals(fabricWwn)) {
+                if (null != vsanwwn && vsanwwn.equalsIgnoreCase(fabricWwn)) {
                     return vsanId;
                 }
             } catch (Exception ex) {
@@ -244,20 +249,20 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     }
 
     @Override
-    public BiosCommandResult addZones(NetworkSystem network, List<Zone> zones, String fabricId, String fabricWwn,
+    public BiosCommandResult addZones(NetworkSystem networkSystem, List<Zone> zones, String fabricId, String fabricWwn,
             boolean activateZones) throws NetworkDeviceControllerException {
         BiosCommandResult result = null;
         MDSDialog dialog = null;
         Map<String, String> addedZoneNames = new HashMap<String, String>();
         try {
-            dialog = setUpDialog(network);
+            dialog = setUpDialog(networkSystem);
             Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
 
             List<IvrZone> addingIvrZones = new ArrayList<IvrZone>();
             List<Zone> addingZones = new ArrayList<Zone>();
 
             for (Zone zone : zones) {
-                IvrZone routedZone = getRoutedZone(dialog, zone, network);
+                IvrZone routedZone = getRoutedZone(dialog, zone, networkSystem);
 
                 // if zone is routed, handle it as routed network. Otherwise, handle it
                 // as normal zone
@@ -548,7 +553,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
      */
     private Zone getZoneInFabric(String name, List<Zone> zonesInFabric) {
         for (Zone zone : zonesInFabric) {
-            if (zone.getName().equals(name)) {
+            if (zone.getName().equalsIgnoreCase(name)) {
                 return zone;
             }
         }
@@ -601,7 +606,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
             for (Zone zone : zonesToBeDeleted) {            	
                 String zoneName = zone.getName();
-                _log.info("Removing zone: " + zoneName + "zoneset: " + activeZoneset.getName() +  "vsan: " + vsanId);
+                _log.info("Removing zone: " + zoneName + " from zoneset: " + activeZoneset.getName() +  " in vsan: " + vsanId);
                 try {
                 	dialog.zonesetMember(zone.getName(), true);
                     removedZoneNames.put(zoneName, SUCCESS);
@@ -610,7 +615,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                     handleZonesStrategyException(ex, activateZones);
                 }
             }
-            _log.info("going back to config prompt");
+ 
+            _log.info("Going back to config prompt");
+            
             dialog.exitToConfig();
             if (activateZones) {
                 dialog.zonesetActivate(activeZoneset.getName(), vsanId, ((remainingZones[0] == 0) ? true : false));
@@ -668,7 +675,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     private boolean isInZonesets(IvrZone ivrZone, List<IvrZoneset> ivrZonesetInFabric) {
         boolean inZoneset = false;
         for (IvrZoneset ivrZoneset : ivrZonesetInFabric) {
-            inZoneset = ivrZoneset.getZones().contains(ivrZone);
+            inZoneset = ivrZoneset.contains(ivrZone);
             if (inZoneset) {
                 break;
             }
@@ -942,7 +949,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
      */
     private IvrZone getIvrZoneInFabric(String name, List<IvrZone> ivrZones) {
         for (IvrZone zone : ivrZones) {
-            if (zone.getName().equals(name)) {
+            if (zone.getName().equalsIgnoreCase(name)) {
                 return zone;
             }
         }
@@ -1967,5 +1974,121 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     @Override
 	public boolean isCapableOfRouting(NetworkSystem networkSystem) {
 		return this.isIvrEnabled(networkSystem);
+	}
+
+    /*
+     * (non-Javadoc)
+     * @see com.emc.storageos.networkcontroller.impl.NetworkSystemDevice#determineRoutedNetworks(com.emc.storageos.db.client.model.NetworkSystem)
+     */
+	@Override
+	public void determineRoutedNetworks(NetworkSystem networkSystem) throws NetworkDeviceControllerException {		
+		MDSDialog dialog = null;
+			
+		/* Example output "show ivr vsan-topology"
+		 * 	AFID  SWITCH WWN                 Active   Cfg. VSANS
+		 * 	-----------------------------------------------------------
+		 * 	1  20:00:00:0d:ec:dc:86:40 *   yes      no  1,3,11,99,200
+		 * 	1  20:00:00:2a:6a:33:13:10     yes      no  1-3,10,78,99,200
+		 */
+		
+		// 1. Build a map of switchWWN to NetworkSystem for all the discovered NetworkSystems
+		
+		Map<String, NetworkSystem> switchWWNToNetworkSystemMap = new HashMap<String, NetworkSystem>();
+		for (URI discoveredNetworkSystemUri : NetworkUtil.getDiscoveredNetworkSystems(_dbClient)) {
+			try {
+			NetworkSystem discoveredNetworkSystem =_dbClient.queryObject(NetworkSystem.class, discoveredNetworkSystemUri);
+			if (discoveredNetworkSystem.getSystemType().equalsIgnoreCase(NetworkSystem.Type.mds.toString())) {
+				dialog = setUpDialog(discoveredNetworkSystem);			
+				String switchWWN = dialog.showSwitchWwn();
+				switchWWNToNetworkSystemMap.put(switchWWN, discoveredNetworkSystem);
+				_log.info(String.format("NetworkSystem : %s - WWN : %s", switchWWN, switchWWNToNetworkSystemMap.get(switchWWN)));			
+				}	
+			} finally {
+				disconnect(dialog);
+			}
+		}
+				
+		//2. Get ouput from "show ivr vsan-topology" using the current network system. 
+        //Build a map of Switch WWN to their VSANs from the topology map
+        try {
+            dialog = setUpDialog(networkSystem);
+            String currentNetworkSytemWWN = dialog.showSwitchWwn();
+         
+            Map<String, Set<Integer>> switchWWNToVsans = new HashMap<>();            
+             List<IvrVsanConfiguration> ivrVsansList = dialog.showIvrVsanTopology();
+             for (IvrVsanConfiguration ivrVsan : ivrVsansList) {
+                 Set<Integer> vsans = new HashSet<Integer>();
+                 vsans.addAll(ivrVsan.getVsans());
+                 for (IntRange ivrVsanRange : ivrVsan.getVsansRanges()) {                    	 
+                	 for (int range = ivrVsanRange.getMinimumInteger(); range <= ivrVsanRange.getMaximumInteger(); range++) {
+                        vsans.add(range);
+                	 }
+                 }
+                 switchWWNToVsans.put(ivrVsan.getSwitchWwn(), vsans);
+             }     
+                                      
+             //3. Check to make sure that the current Network system (that is being discovered) is in the ivr vsan-topology map.
+             if (!switchWWNToVsans.containsKey(currentNetworkSytemWWN)) {            
+            	 _log.info(String.format("Currently discovered NetworkSystem with WWN %s is not part of the ivr vsan-topology, returning.", currentNetworkSytemWWN));
+            	 return;
+             }             
+             
+             //4. Loop through all the switch WWNs from the topology map and check if they are discovered.
+             //If yes, then all the networks of that network-system are routable to all the other networks from other discovered switches that are also in the vsan-topology map. 
+             //Since this map is constructed from the output of "show ivr vsan-topology", the switch WWNs listed in that output are 
+             //all routable to each others for the networks that belong to them. 
+             //The assumption here is that there exists a transit VSAN between the switches that are on the IVR path. 
+             List<Network> routedNetworks = new ArrayList<Network>();
+             for (Entry<String, Set<Integer>> switchWWNToVsan : switchWWNToVsans.entrySet()) {
+            	 String switchKey = switchWWNToVsan.getKey();
+            	 Set<Integer> vsanValues = switchWWNToVsan.getValue();
+            	            	
+            	 if (switchWWNToNetworkSystemMap.containsKey(switchKey)) {     
+            		 NetworkSystem ns = switchWWNToNetworkSystemMap.get(switchKey);
+            		 URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
+            		//Fetch all the networks of this networkSystem
+                     _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                                     getNetworkSystemNetworkConstraint(ns.getId()), networkSystemNetworkUriList);
+                     
+                     for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
+                         Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
+                    	 if (vsanValues.contains(Integer.parseInt(networkSystemNetwork.getNativeId()))) {
+                    		 _log.info("Routable Network : " +  networkSystemNetwork.getLabel());                    	
+                    		 routedNetworks.add(networkSystemNetwork);
+                    	 }                         
+                     }            		
+            	 }            	            	             
+             }                   
+             
+             //5. update routed networks
+             URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
+             _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                             getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);
+             for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
+            	 Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
+            	 //clear and re-populate the routed networks for each network. 
+            	 //This will ensure that any network changes are updated.
+            	 networkSystemNetwork.setRoutedNetworks(new StringSet());
+            	            	 
+            	 for (Network routedNetwork : routedNetworks) {                 		
+            		 _log.info(String.format("Network %s can route to Network %s", networkSystemNetwork.getLabel(), routedNetwork.getLabel()));
+            		 networkSystemNetwork.getRoutedNetworks().add(routedNetwork.getId().toString());
+            		 
+            		 //Make the reverse association as well. 
+            		 if (routedNetwork.getRoutedNetworks() == null) {
+            			 routedNetwork.setRoutedNetworks(new StringSet());            			 
+            		 }
+            		 _log.info(String.format("Network %s can route to Network %s", routedNetwork.getLabel(), networkSystemNetwork.getLabel()));
+            		 routedNetwork.getRoutedNetworks().add(networkSystemNetwork.getId().toString());
+            	 }
+            	 _dbClient.updateObject(networkSystemNetwork);
+            	 _dbClient.updateObject(routedNetworks);
+             }
+        } catch (Exception ex) {
+            _log.error("Cannot determine routable networks for networks on  " + networkSystem.getLabel() + " : " + ex.getLocalizedMessage());
+            throw ex;
+        } finally {
+            disconnect(dialog);
+        }			
 	}
 }

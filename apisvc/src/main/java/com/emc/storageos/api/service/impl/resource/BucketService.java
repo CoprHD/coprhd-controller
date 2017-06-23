@@ -153,7 +153,7 @@ public class BucketService extends TaskResourceService {
      * 
      * @param param Bucket parameters
      * @param id the URN of a ViPR Project
-     * @brief Create Bucket
+     * @brief Create bucket
      * @return Task resource representation
      * @throws InternalException
      */
@@ -263,6 +263,7 @@ public class BucketService extends TaskResourceService {
      * Get info for Bucket
      * 
      * @param id the URN of a ViPR Bucket
+     * @brief Show details for a specified bucket  
      * @return Bucket details
      */
     @GET
@@ -297,7 +298,7 @@ public class BucketService extends TaskResourceService {
      * 
      * @param id the URN of a ViPR Bucket
      * @param param Bucket delete param for optional force delete
-     * @brief Delete Bucket
+     * @brief Delete bucket
      * @return Task resource representation
      * @throws InternalException
      */
@@ -333,7 +334,7 @@ public class BucketService extends TaskResourceService {
      * Retrieve resource representations based on input ids.
      * 
      * @param param POST data containing the id list.
-     * @brief List data of Bucket resources
+     * @brief List data of bucket resources
      * @return list of representations.
      * 
      * @throws DatabaseException When an error occurs querying the database.
@@ -411,6 +412,7 @@ public class BucketService extends TaskResourceService {
      * 
      * @param id Bucket ID
      * @param param Bucket update parameter
+     * @brief Change bucket properties
      * @return Task resource representation
      * @throws InternalException if update fails
      */
@@ -477,7 +479,8 @@ public class BucketService extends TaskResourceService {
      * 
      * @param id
      * @param param
-     * @return
+     * @brief Change a bucket ACL
+     * @return TaskResponse
      * @throws InternalException
      */
     @PUT
@@ -530,7 +533,8 @@ public class BucketService extends TaskResourceService {
      * Gets the ACL settings for bucket
      * 
      * @param id
-     * @return
+     * @brief Get ACLs for a bucket
+     * @return BucketACL
      * @throws InternalException
      */
     @GET
@@ -560,6 +564,13 @@ public class BucketService extends TaskResourceService {
         return bucketAcl;
     }
     
+    /**
+     * Delete Bucket ACL
+     * 
+     * @param id
+     * @brief Delete an ACL
+     * @return TaskResponse
+     */
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/acl")

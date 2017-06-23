@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -519,7 +520,7 @@ public class VPlexUtil {
                 }
             }
             if (getExportMaskHosts(dbClient, exportMask, shared).contains(hostURI)
-                    && ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varrayURI)) {
+                    && ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varrayURI, true)) {
                 return exportMask;
             }
         }
@@ -1780,5 +1781,28 @@ public class VPlexUtil {
         }
         return vplexVols;
     }
+    
+    /**
+     * Check to see that CG contains all volumes provided and no additional VPLEX volumes.
+     * 
+     * @param dbClient the database client
+     * @param cg the consistency group
+     * @param volumeUris the volumes to check against the CG
+     * @return true if the CG contains no other VPLEX volumes
+     */
+    public static boolean cgHasNoOtherVPlexVolumes(DbClient dbClient, URI cg, List<URI> volumeUris) {
+        URIQueryResultList cgVolumeList = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getVolumesByConsistencyGroup(cg), cgVolumeList);
+        while (cgVolumeList.iterator().hasNext()) {
+            Volume cgVolume = dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
+            // If we've found a VPLEX volume in the CG that is not accounted for, return false
+        	if (cgVolume != null && !volumeUris.contains(cgVolume.getId()) && cgVolume.isVPlexVolume(dbClient)) {
+        		return false;
+        	}
+        }
+        
+        return true;
+    }    
 }
 

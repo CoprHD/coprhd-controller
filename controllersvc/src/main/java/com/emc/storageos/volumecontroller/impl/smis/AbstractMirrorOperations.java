@@ -237,7 +237,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
         try {
             BlockMirror mirrorObj = _dbClient.queryObject(BlockMirror.class, mirror);
             if (storage.checkIfVmax3()) {
-                _helper.removeVolumeFromParkingSLOStorageGroup(storage, mirrorObj.getNativeId(), false);
+                _helper.removeVolumeFromParkingSLOStorageGroup(storage, new String[] { mirrorObj.getNativeId() }, false);
                 _log.info("Done invoking remove volume {} from parking SLO storage group", mirrorObj.getNativeId());
             }
 
@@ -335,10 +335,8 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             }
 
             if (storage.checkIfVmax3()) {
-                for (String deviceId : deviceIds) {
-                    _helper.removeVolumeFromParkingSLOStorageGroup(storage, deviceId, false);
-                    _log.info("Done invoking remove volume {} from parking SLO storage group", deviceId);
-                }
+                _helper.removeVolumeFromParkingSLOStorageGroup(storage, deviceIds, false);
+                _log.info("Done invoking remove volumes from parking SLO storage group");
             }
 
             CIMObjectPath[] mirrorPaths = _cimPath.getVolumePaths(storage, deviceIds);

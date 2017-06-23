@@ -13,6 +13,8 @@ public class FileReplicationTopology extends DataObject {
 
     private StringSet targetVArrays;
 
+    private String targetVAVPool;
+
     private Long numCopies = 1L;
 
     private URI policyId;
@@ -43,6 +45,16 @@ public class FileReplicationTopology extends DataObject {
         }
         this.targetVArrays.addAll(targetVArrays);
         setChanged("targetVArrays");
+    }
+
+    @Name("targetVAVPool")
+    public String getTargetVAVPool() {
+        return targetVAVPool;
+    }
+
+    public void setTargetVAVPool(String targetVAVPool) {
+        this.targetVAVPool = targetVAVPool;
+        setChanged("targetVAVPool");
     }
 
     @Name("numCopies")

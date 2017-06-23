@@ -227,7 +227,8 @@ public class RPProtectionRecommendation extends Recommendation {
     	List<RPRecommendation> targetJournalRecs = getTargetJournalPoolsInRecommendation();
     	if (null != targetJournalRecs && !targetJournalRecs.isEmpty()) {
     			journalRecs.addAll(targetJournalRecs);
-    		}    	
+    	}  
+    	
     	return journalRecs;
     }
 

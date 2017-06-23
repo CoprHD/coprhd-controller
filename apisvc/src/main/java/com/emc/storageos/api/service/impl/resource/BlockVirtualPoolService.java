@@ -1269,7 +1269,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * @prereq none
      * @param id the URN of a ViPR VirtualPool.
      * @param param new values for the quota
-     * @brief Updates quota and available capacity before quota is exhausted
+     * @brief Update quota and available capacity before quota is exhausted
      * @return QuotaInfo Quota metrics.
      */
     @PUT

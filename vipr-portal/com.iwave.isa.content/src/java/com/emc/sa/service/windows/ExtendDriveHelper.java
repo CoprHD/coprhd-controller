@@ -12,6 +12,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
+import com.emc.sa.service.ArtificialFailures;
+import com.emc.sa.service.vipr.ViPRService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -144,8 +146,10 @@ public class ExtendDriveHelper {
         for (Map.Entry<? extends BlockObjectRestRep, String> entry : volume2mountPoint.entrySet()) {
             BlockObjectRestRep volume = entry.getKey();
             String mountPoint = entry.getValue();
+            ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_WINDOWS_BEFORE_EXTEND_DRIVE);
             windows.extendDrive(volume, mountPoint);
             // Updates the volume mount point, it may have changed
+            ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_WINDOWS_AFTER_EXTEND_DRIVE);
             windows.addVolumeMountPoint(volume, mountPoint);
         }
         ExecutionUtils.clearRollback();

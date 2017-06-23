@@ -110,6 +110,7 @@ public class ComputeImageServerService extends TaskResourceService {
      * @param id
      *            the URN of compute image server
      *
+     * @brief Delete an image server
      * @return {@link Response} instance
      */
     @POST
@@ -181,6 +182,7 @@ public class ComputeImageServerService extends TaskResourceService {
      * @param createParams
      *            {@link ComputeImageServerCreate} containing the details
      *
+     * @brief Define a new image server, including TFTP info
      * @return {@link TaskResourceRep} instance
      */
     @POST
@@ -301,6 +303,7 @@ public class ComputeImageServerService extends TaskResourceService {
      * @param id
      *            the URN of a ViPR compute image server
      *
+     * @brief Change an image server, including TFTP info
      * @return Updated compute image server information.
      */
     @PUT

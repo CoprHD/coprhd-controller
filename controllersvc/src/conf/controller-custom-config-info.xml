@@ -39,9 +39,12 @@
                 <ref bean="portAllocationInitiatorCeiling"/>
                 <ref bean="portAllocationVolumeCeiling"/>
                 <ref bean="portAllocationPortUtilizationCeiling"/>
+                <ref bean="portAllocationPortUtilizationFloor"/>
                 <ref bean="portAllocationCpuUtilizationCeiling"/>
+                <ref bean="portAllocationCpuUtilizationFloor"/>
                 <ref bean="portAllocationDaysToAverageUtilization"/>
                 <ref bean="portAllocationEmaFactor"/>
+                <ref bean="portAllocationVolumeCoefficient"/>
                 <ref bean="portAllocationMetricsEnabled"/>
                 <ref bean="portAllocationUsePrezonedPortsBe"/>
                 <ref bean="portAllocationUsePrezonedPortsFe"/>
@@ -844,6 +847,29 @@
             </list>
         </property>
     </bean>
+
+    <bean id="portAllocationPortUtilizationFloor" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationPortUtilizationFloor"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="3"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="maxConstraint"/>
+                <ref bean="minConstraintZero"/>
+            </list>
+        </property>
+    </bean>
     
     <bean id="portAllocationCpuUtilizationCeiling" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="PortAllocationCpuUtilizationCeiling"/>
@@ -858,6 +884,29 @@
         <property name="defaultValues">
             <map>
                 <entry key="default" value="100"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="maxConstraint"/>
+                <ref bean="minConstraintZero"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="portAllocationCpuUtilizationFloor" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationCpuUtilizationFloor"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="8"/>
             </map>
         </property>
         <property name="constraints">
@@ -909,6 +958,29 @@
         <property name="constraints">
             <list>
                 <ref bean="maxConstraintForEmaFactor"/>
+                <ref bean="minConstraintZero"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="portAllocationVolumeCoefficient" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationVolumeCoefficient"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Float"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="1.0"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="maxConstraintForVolumeCoefficient"/>
                 <ref bean="minConstraintZero"/>
             </list>
         </property>
@@ -1039,7 +1111,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="isilon" value="{system_access_zone},{user_access_zone},/ifs/sos/"/>                    
+                <entry key="isilon" value="{system_access_zone},{user_access_zone}"/>                    
             </map>
         </property>
         <property name="constraints">
@@ -1649,6 +1721,16 @@
         </property>
         <property name="description" value="The maximum value is 1.0"/>
         <property name="name" value="MaxConstraintForEmaFactor"/>
+    </bean>
+
+    <bean id="maxConstraintForVolumeCoefficient" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
+        <property name="maxVals">
+            <map>
+                <entry key="default" value="5.0"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum value is 5.0"/>
+        <property name="name" value="MaxConstraintForVolumeCoefficient"/>
     </bean>
     
     <bean id="minConstraintOne" class="com.emc.storageos.customconfigcontroller.MinConstraint">

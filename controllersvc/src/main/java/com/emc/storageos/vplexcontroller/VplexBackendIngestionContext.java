@@ -291,6 +291,11 @@ public class VplexBackendIngestionContext {
                 UnManagedVolume backendVol = unmanagedBackendVolumes.get(0);
                 if (null != backendVol) {
                     String baseLabel = backendVol.getLabel();
+                    
+                    // Remove the -0 or -1 from the backing volume label, if it's there.
+                    if (baseLabel.endsWith("-0") || baseLabel.endsWith("-1")) {
+                        baseLabel = baseLabel.substring(0, baseLabel.length() - 2);
+                    }
 
                     if (null != _originalVolumeLabel && !_originalVolumeLabel.isEmpty()) {
                         // put the existing virtual volume label inside parentheses for reference

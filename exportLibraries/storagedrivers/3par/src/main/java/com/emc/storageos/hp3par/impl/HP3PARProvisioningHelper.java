@@ -83,7 +83,11 @@ public class HP3PARProvisioningHelper {
 
                 // Attributes of the volume in array
                 volume.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-                volume.setAllocatedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+				// Allocated capacity is the sum of user, snapshot and admin reserved space
+				Long allocatedCapacity = volResult.getUserSpace().getReservedMiB();
+				allocatedCapacity += volResult.getSnapshotSpace().getReservedMiB();
+				allocatedCapacity += volResult.getAdminSpace().getReservedMiB();
+				volume.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
                 volume.setWwn(volResult.getWwn());
                 volume.setNativeId(volume.getDisplayName()); // required for volume delete
                 volume.setDeviceLabel(volume.getDisplayName());
@@ -150,7 +154,11 @@ public class HP3PARProvisioningHelper {
             // actual size of the volume in array
             VolumeDetailsCommandResult volResult = hp3parApi.getVolumeDetails(volume.getDisplayName());
             volume.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-            volume.setAllocatedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+			// Allocated capacity is the sum of user, snapshot and admin reserved space
+			Long allocatedCapacity = volResult.getUserSpace().getReservedMiB();
+			allocatedCapacity += volResult.getSnapshotSpace().getReservedMiB();
+			allocatedCapacity += volResult.getAdminSpace().getReservedMiB();
+			volume.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
 
             task.setStatus(DriverTask.TaskStatus.READY);
             _log.info("3PARDriver:expandVolumes for storage system native id {}, volume name {} - end",

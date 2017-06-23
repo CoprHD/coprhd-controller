@@ -13,9 +13,26 @@ import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 
 public class XtremIOClientFactory extends RestClientFactory {
-
+    private static XtremIOClientFactory singletonInst = new XtremIOClientFactory();
+    private static boolean isInitiated = false;
     private static final String DOT_OPERATOR = "\\.";
     private static final Integer XIO_MIN_4X_VERSION = 4;
+
+    private XtremIOClientFactory() {}
+
+    public static XtremIOClientFactory getInstance() {
+        return singletonInst;
+    }
+
+    @Override
+    public void init() {
+        if (!isInitiated) {
+            synchronized(this) {
+                super.init();
+                isInitiated = true;
+            }
+        }
+    }
 
     /**
      * This method will always return a REST client which will support

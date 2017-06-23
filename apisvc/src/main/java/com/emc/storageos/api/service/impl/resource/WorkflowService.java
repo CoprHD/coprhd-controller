@@ -362,6 +362,7 @@ public class WorkflowService extends TaskResourceService {
      * Suspends a workflow as soon as possible, which is when the next step completes and all
      * executing steps have completed. It is not possible to suspend in the middle of a step.
      * @param uri
+     * @brief Suspends a workflow
      * @return
      */
     @PUT
@@ -559,10 +560,7 @@ public class WorkflowService extends TaskResourceService {
                     break;
                 }
             }
-        } else {
-            throw APIException.internalServerErrors.cannotFindTaskForWorkflow(
-                    topLevelWorkflow.getLabel(), topLevelWorkflow.getId().toString(), wfOrchTaskId);
-        }
+        } 
         
         return workflowForTenant;
 	}

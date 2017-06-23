@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +29,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
@@ -1058,7 +1056,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 return;
             }
             
-            String task = UUID.randomUUID().toString();
+            String task = stepId;
 
             URI bootVolumeId = getBootVolumeIdFromDescriptors(volumeDescriptors, host);
             Volume bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
@@ -1080,31 +1078,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 // Mark this workflow as created/executed so we don't do it
                 // again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(task, workflowKey);
-
-                while (true) {
-                    Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
-                    bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
-
-                    switch (Status.toStatus(bootVolume.getOpStatus().get(task).getStatus())) {
-                        case ready:
-                            WorkflowStepCompleter.stepSucceded(stepId);
-                            return;
-                        case error:
-                            log.warn("Unable to delete block volume associated with Host...",
-                                    ComputeSystemControllerException.exceptions
-                                    .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(),
-                                            host.getId().toASCIIString(),
-                                            bootVolumeId.toASCIIString(),
-                                            bootVolume.getOpStatus().get(task).getMessage()));
-                            WorkflowStepCompleter.stepFailed(stepId, ComputeSystemControllerException.exceptions
-                                    .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(),
-                                            host.getId().toASCIIString(), bootVolumeId.toASCIIString(),
-                                            bootVolume.getOpStatus().get(task).getMessage()));
-                            return;
-                        case pending:
-                            break;
-                    }
-                }
             }
         } catch (Exception exception) {
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
@@ -1334,35 +1307,20 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_068);
-            String taskId = UUID.randomUUID().toString();
+            String taskId = stepId;
             Operation op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.UPDATE_VCENTER_CLUSTER);
             _dbClient.createTaskOpStatus(VcenterDataCenter.class, host.getVcenterDataCenter(), taskId, op);
             AsyncTask task = new AsyncTask(VcenterDataCenter.class, host.getVcenterDataCenter(), taskId);
-            vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
 
-            log.info("Monitor remove host " + host.getHostName() + " update vCenter task...");
-
-            // VBDU TODO: COP-28456, Anti pattern - completers are responsible for updating step status.
-            while (true) {
-                Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
-                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
-                        host.getVcenterDataCenter());
-
-                switch (Status.toStatus(vcenterDataCenter.getOpStatus().get(taskId).getStatus())) {
-                case ready:
-                    log.info("vCenter update request succeeded");
-                    WorkflowStepCompleter.stepSucceded(stepId);
-                    return;
-                case error:
-                    log.info("vCenter update request failed - Best effort only so consider success");
-                    WorkflowStepCompleter.stepSucceded(stepId); // Only best
-                    // effort
-                    return;
-                case pending:
-                    break;
-                }
+            final String workflowKey = "updateVcenterCluster";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(taskId, workflowKey)) {
+                vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
+                // Mark this workflow as created/executed so we don't do it
+                // again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(taskId, workflowKey);
             }
+
         } catch (VcenterControllerException e) {
             log.warn("VcenterControllerException when trying to removeHostFromVcenterCluster: " + e.getMessage(), e);
             if (e.getCause() instanceof VcenterObjectNotFoundException) {

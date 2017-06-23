@@ -12,19 +12,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import com.emc.storageos.api.service.impl.resource.ExportGroupService;
+import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.computesystemcontroller.exceptions.CompatibilityException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
-import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
+import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
@@ -34,25 +38,35 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VcenterVersion;
 import com.vmware.vim25.AboutInfo;
+import com.vmware.vim25.DatastoreHostMount;
 import com.vmware.vim25.HostHardwareInfo;
+import com.vmware.vim25.HostScsiDiskPartition;
 import com.vmware.vim25.HostSystemConnectionState;
+import com.vmware.vim25.HostVmfsVolume;
 import com.vmware.vim25.InvalidLogin;
+import com.vmware.vim25.VmfsDatastoreInfo;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datacenter;
+import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
+import com.vmware.vim25.mo.ManagedObject;
 
 /**
  * Discovery adapter for vCenters.
@@ -110,12 +124,74 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
             save(vcenter);
             processHostChanges(changes, deletedHosts, deletedClusters, true);
+            ingestDatastores(vcenter);
         } else {
             processor.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(vcenter);
             throw ComputeSystemControllerException.exceptions.incompatibleHostVersion(
                     "Vcenter", version.toString(), getVersionValidator().getVcenterMinimumVersion(false).toString());
         }
+    }
+
+    /**
+     * Ingest datastores for the given vCenter
+     * 
+     * @param vcenter the vcenter for ingesting datastores
+     */
+    private void ingestDatastores(Vcenter vcenter) {
+        VCenterAPI vcenterAPI = createVCenterAPI(vcenter);
+        try {
+
+            // Create map of MOR -> Host URI
+            Map<String, URI> hostList = Maps.newHashMap();
+            for (HostSystem esxHost : vcenterAPI.listAllHostSystems()) {
+                String uuid = esxHost.getHardware().getSystemInfo().getUuid();
+                Host host = findHostByUuid(uuid);
+                if (host != null) {
+                    hostList.put(esxHost.getMOR().getVal(), host.getId());
+                }
+            }
+
+            for (Datastore datastore : vcenterAPI.listAllDatastores()) {
+                if (datastore.getInfo() instanceof VmfsDatastoreInfo) {
+
+                    HostVmfsVolume volume = ((VmfsDatastoreInfo) datastore.getInfo()).getVmfs();
+                    for (HostScsiDiskPartition partition : volume.getExtent()) {
+                        String wwn = StringUtils.substringAfter(partition.getDiskName(), "naa.");
+                        SearchedResRepList resRepList = new SearchedResRepList(ResourceTypeEnum.VOLUME);
+                        dbClient.queryByConstraint(
+                                AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn.toUpperCase()),
+                                resRepList);
+                        if (resRepList.size() == 1) {
+                            Volume blockVolume = dbClient.queryObject(Volume.class, resRepList.get(0).getId());
+                            for (DatastoreHostMount dsh : datastore.getHost()) {
+                                ManagedObject object = vcenterAPI.lookupManagedObject(dsh.getKey());
+
+                                URI hostId = null;
+                                if (object instanceof HostSystem) {
+                                    HostSystem host = (HostSystem) object;
+                                    hostId = hostList.get(host.getMOR().getVal());
+                                }
+
+                                // TODO determine if all hosts in clusters have access or just 1 host
+                                String tagName = ExportGroupService.VMFS_DATASTORE + "-" + hostId;
+                                info("Adding datastore tag " + tagName + " to volume " + blockVolume.getId());
+                                ScopedLabel tagLabel = new ScopedLabel(blockVolume.getTenant().getURI().toString(), tagName);
+                                blockVolume.getTag().add(tagLabel);
+                                dbClient.updateObject(blockVolume);
+                            }
+                        } else {
+                            info("Searching for WWN %s returned %d results", wwn, resRepList.size());
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            error("Error occurred during datastore ingestion", ex);
+        } finally {
+            vcenterAPI.logout();
+        }
+
     }
 
     private void matchHostsToComputeElements(Set<URI> hostIds) {

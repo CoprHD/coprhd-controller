@@ -1447,7 +1447,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.info("doCreateQuotaDirectory failed, deleting the isilon directory {} which has been created in this workflow",
                         qDirPath);
                 IsilonApi isi = getIsilonDevice(storage);
-                isi.deleteDir(args.getFsMountPath());
+                isi.deleteDir(qDirPath);
             }
             _log.error("doCreateQuotaDirectory failed.", e);
             return BiosCommandResult.createErrorResult(e);

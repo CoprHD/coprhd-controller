@@ -2221,45 +2221,50 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
                         unmanagedNFSAcl.setFileSystemPath(exportPath);
 
-                        String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+                        // Verify trustee name
+                        // ViPR would manage the ACLs only user/group name
+                        // and avoid null pointers too
+                        if (tempAcl.getTrustee().getName() != null) {
+                            String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
 
-                        if (tempUname.length > 1) {
-                            unmanagedNFSAcl.setDomain(tempUname[0]);
-                            unmanagedNFSAcl.setUser(tempUname[1]);
-                        } else {
-                            unmanagedNFSAcl.setUser(tempUname[0]);
-                        }
+                            if (tempUname.length > 1) {
+                                unmanagedNFSAcl.setDomain(tempUname[0]);
+                                unmanagedNFSAcl.setUser(tempUname[1]);
+                            } else {
+                                unmanagedNFSAcl.setUser(tempUname[0]);
+                            }
 
-                        unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
-                        unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
-                        unmanagedNFSAcl.setPermissions(StringUtils.join(
-                                getIsilonAccessList(tempAcl.getAccessrights()), ","));
+                            unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+                            unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+                            unmanagedNFSAcl.setPermissions(StringUtils.join(
+                                    getIsilonAccessList(tempAcl.getAccessrights()), ","));
 
-                        unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
-                        unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+                            unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+                            unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
 
-                        _log.info("Unmanaged File share acls : {}", unmanagedNFSAcl);
-                        String fsShareNativeId = unmanagedNFSAcl.getFileSystemNfsACLIndex();
-                        _log.info("UMFS Share ACL index {}", fsShareNativeId);
-                        String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
-                                .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
-                        _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
-                        // set native guid, so each entry unique
-                        unmanagedNFSAcl.setNativeGuid(fsUnManagedFileShareNativeGuid);
+                            _log.info("Unmanaged File share acls : {}", unmanagedNFSAcl);
+                            String fsShareNativeId = unmanagedNFSAcl.getFileSystemNfsACLIndex();
+                            _log.info("UMFS Share ACL index {}", fsShareNativeId);
+                            String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
+                                    .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
+                            _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
+                            // set native guid, so each entry unique
+                            unmanagedNFSAcl.setNativeGuid(fsUnManagedFileShareNativeGuid);
 
-                        unManagedNfsACLList.add(unmanagedNFSAcl);
+                            unManagedNfsACLList.add(unmanagedNFSAcl);
 
-                        // Check whether the NFS share ACL was present in ViPR DB.
-                        existingNfsACL = checkUnManagedFsNfssACLExistsInDB(_dbClient, unmanagedNFSAcl.getNativeGuid());
-                        if (existingNfsACL != null) {
-                            // delete the existing acl
-                            existingNfsACL.setInactive(true);
-                            oldunManagedNfsShareACLList.add(existingNfsACL);
+                            // Check whether the NFS share ACL was present in ViPR DB.
+                            existingNfsACL = checkUnManagedFsNfssACLExistsInDB(_dbClient, unmanagedNFSAcl.getNativeGuid());
+                            if (existingNfsACL != null) {
+                                // delete the existing acl
+                                existingNfsACL.setInactive(true);
+                                oldunManagedNfsShareACLList.add(existingNfsACL);
+                            }
                         }
                     }
-                }
-                if (unManagedNfsACLList != null && !unManagedNfsACLList.isEmpty()) {
-                    unManagedFileSystem.setHasNFSAcl(true);
+                    if (unManagedNfsACLList != null && !unManagedNfsACLList.isEmpty()) {
+                        unManagedFileSystem.setHasNFSAcl(true);
+                    }
                 }
             } catch (Exception ex) {
                 _log.warn("Unble to access NFS ACLs for path {}", exportPath);

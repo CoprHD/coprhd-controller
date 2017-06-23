@@ -4,12 +4,18 @@
  */
 package com.emc.vipr.client.core;
 
+import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
+
 import java.net.URI;
+import java.util.List;
 
 import javax.ws.rs.core.UriBuilder;
 
+import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairBulkRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairRestRep;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
@@ -20,12 +26,10 @@ import com.emc.vipr.client.impl.RestClient;
  *
  * @see RemoteReplicationPairRestRep
  */
-public class RemoteReplicationPairs {
+public class RemoteReplicationPairs extends BulkExportResources<RemoteReplicationPairRestRep> {
 
-    private RestClient client;
-
-    public RemoteReplicationPairs(RestClient client) {
-        this.client = client;
+    public RemoteReplicationPairs(ViPRCoreClient parent, RestClient client) {
+        super(parent, client, RemoteReplicationPairRestRep.class, PathConstants.BLOCK_REMOTE_REPLICATION_PAIR_URL);
     }
 
     public RemoteReplicationPairRestRep getRemoteReplicationPairRestRep(String uuid) {
@@ -42,5 +46,11 @@ public class RemoteReplicationPairs {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.BLOCK_REMOTE_REPLICATION_PAIR_URL);
         uriBuilder.queryParam("storageElement", elementToFindPairsFor);
         return client.getURI(RemoteReplicationPairList.class, uriBuilder.build());
+    }
+
+    @Override
+    public List<RemoteReplicationPairRestRep> getBulkResources(BulkIdParam input) {
+        RemoteReplicationPairBulkRep response = client.post(RemoteReplicationPairBulkRep.class, input, getBulkUrl());
+        return defaultList(response.getPairs());
     }
 }

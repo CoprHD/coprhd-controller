@@ -4,15 +4,22 @@
  */
 package com.emc.vipr.client.core;
 
+import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
+
+import java.util.List;
+
 import javax.ws.rs.core.UriBuilder;
 
+import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupBulkRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.core.impl.TaskUtil;
 import com.emc.vipr.client.impl.RestClient;
@@ -24,12 +31,10 @@ import com.emc.vipr.client.impl.RestClient;
  *
  * @see RemoteReplicationGroupRestRep
  */
-public class RemoteReplicationGroups {
+public class RemoteReplicationGroups extends BulkExportResources<RemoteReplicationGroupRestRep> {
 
-    private RestClient client;
-
-    public RemoteReplicationGroups(RestClient client) {
-        this.client = client;
+    public RemoteReplicationGroups(ViPRCoreClient parent, RestClient client) {
+        super(parent, client, RemoteReplicationGroupRestRep.class, PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL);
     }
 
     public RemoteReplicationGroupRestRep getRemoteReplicationGroupsRestRep(String uuid) {
@@ -70,5 +75,10 @@ public class RemoteReplicationGroups {
     public BlockConsistencyGroupList listConsistencyGroups(String groupId) {
             return client.get(BlockConsistencyGroupList.class,
                     PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/" + groupId + "/consistency-groups");
+    }
+
+    public List<RemoteReplicationGroupRestRep> getBulkResources(BulkIdParam input) {
+        RemoteReplicationGroupBulkRep response = client.post(RemoteReplicationGroupBulkRep.class, input, getBulkUrl());
+        return defaultList(response.getGroups());
     }
 }

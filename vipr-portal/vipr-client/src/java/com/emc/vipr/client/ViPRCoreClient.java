@@ -269,7 +269,7 @@ public class ViPRCoreClient {
     }
 
     public RemoteReplicationGroups remoteReplicationGroups() {
-        return new RemoteReplicationGroups(client);
+        return new RemoteReplicationGroups(this,client);
     }
 
     public RemoteReplicationSets remoteReplicationSets() {
@@ -277,7 +277,7 @@ public class ViPRCoreClient {
     }
 
     public RemoteReplicationPairs remoteReplicationPairs() {
-        return new RemoteReplicationPairs(client);
+        return new RemoteReplicationPairs(this,client);
     }
 
     public RemoteReplicationManagementClient remoteReplicationManagement() {

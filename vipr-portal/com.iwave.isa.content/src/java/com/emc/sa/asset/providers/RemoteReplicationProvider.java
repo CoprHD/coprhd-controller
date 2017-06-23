@@ -17,13 +17,18 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
+import com.emc.sa.asset.AssetOptionsUtils;
 import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
@@ -31,6 +36,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.RemoteReplicationSets;
 import com.emc.vipr.model.catalog.AssetOption;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
 @Component
@@ -91,8 +97,11 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             return new ArrayList<>(); // no sets or remote replication not supported
         }
 
-        return createNamedResourceOptions(getClient(ctx).
+        List<AssetOption> options = createNamedResourceOptions(getClient(ctx).
                 getGroupsForSet(rrSet.getId()).getRemoteReplicationGroups());
+
+        AssetOptionsUtils.sortOptionsByLabel(addStateAndModeToOptionNames(options,api(ctx)));
+        return options;
     }
 
     /**
@@ -325,8 +334,11 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("storageSystemType")
     public List<AssetOption> getRemoteReplicationSetsForArrayType(AssetOptionsContext ctx,
             URI storageSystemTypeUri) {
+        List<AssetOption> options = null;
         List<NamedRelatedResourceRep> rrSets = getRrSets(ctx,storageSystemTypeUri);
-        return createNamedResourceOptions(rrSets);
+        options = createNamedResourceOptions(rrSets);
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return addStateAndModeToOptionNames(options,api(ctx));
     }
 
     /**
@@ -356,7 +368,8 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         List<AssetOption>  options = new ArrayList<>();
         options.add(new AssetOption(NO_GROUP,NO_GROUP));
         options.addAll(createNamedResourceOptions(groups));
-        return options;
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return addStateAndModeToOptionNames(options, api(ctx));
     }
 
     /**
@@ -368,29 +381,101 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({"remoteReplicationSetsForArrayType","remoteReplicationGroupForSet","remoteReplicationCgOrPair"})
     public List<AssetOption> getRemoteReplicationPair(AssetOptionsContext ctx,
             URI setId, String groupId, String cgOrPairs) {
+
+        List<AssetOption> options = null;
         if (CONSISTENCY_GROUP.equals(cgOrPairs)) {
             if(NO_GROUP.equals(groupId)) {
                 // get CGs in set
-                return createNamedResourceOptions(api(ctx).remoteReplicationSets().
+                options = createNamedResourceOptions(api(ctx).remoteReplicationSets().
                         listRemoteReplicationSetCGs(setId).getConsistencyGroupList());
             } else {
                 // get CGs in specified group
-                return createNamedResourceOptions(api(ctx).remoteReplicationGroups().
+                options = createNamedResourceOptions(api(ctx).remoteReplicationGroups().
                         listConsistencyGroups(groupId).getConsistencyGroupList());
             }
-        }
-        if (RR_PAIR.equals(cgOrPairs)) {
+        } else if (RR_PAIR.equals(cgOrPairs)) {
             if(NO_GROUP.equals(groupId)) {
                 // get pairs in set
-                return createNamedResourceOptions(api(ctx).remoteReplicationSets().
+                options = createNamedResourceOptions(api(ctx).remoteReplicationSets().
                         listRemoteReplicationPairs(setId).getRemoteReplicationPairs());
             } else {
                 // get pairs in the selected group
-                return createNamedResourceOptions(api(ctx).remoteReplicationGroups().
+                options = createNamedResourceOptions(api(ctx).remoteReplicationGroups().
                         listRemoteReplicationPairs(groupId).getRemoteReplicationPairs());
             }
+        } else {
+            throw new IllegalStateException("Select either Consistency Groups or Pairs");
         }
-        throw new IllegalStateException("Select either Consistency Groups or Pairs");
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return addStateAndModeToOptionNames(options,api(ctx));
+    }
+
+    /*
+     * Adjust names of options by including state & mode
+     */
+    private List<AssetOption> addStateAndModeToOptionNames(List<AssetOption> options, ViPRCoreClient client) {
+
+        if(options == null || options.isEmpty()) {
+            return options;
+        }
+        String uriType = URIUtil.getTypeName(options.get(0).key); // all options are same type
+
+        switch(uriType) {
+        case "RemoteReplicationPair":
+            List<RemoteReplicationPairRestRep> pairs = client.remoteReplicationPairs().
+                    getBulkResources(getBulkIds(options));
+            for(AssetOption option: options) {
+                for (RemoteReplicationPairRestRep pair : pairs) {
+                    if(pair.getId().toString().equals(option.key)) {
+                        option.value = option.value + " [" + pair.getReplicationState() +
+                                "] (" + pair.getReplicationMode() + ")";
+                        break;
+                    }
+                }
+            }
+            break;
+        case "RemoteReplicationGroup":
+            List<RemoteReplicationGroupRestRep> groups = client.remoteReplicationGroups().
+                    getBulkResources(getBulkIds(options));
+            for(AssetOption option: options) {
+                for (RemoteReplicationGroupRestRep group : groups) {
+                    if(group.getId().toString().equals(option.key)) {
+                        if(Strings.isNullOrEmpty(group.getReplicationState())) {
+                            option.value = option.value + " (" + group.getReplicationMode() + ")";
+                        } else {
+                            option.value = option.value + " [" + group.getReplicationState() + "] (" +
+                                    group.getReplicationMode() + ")";
+                        }
+                        break;
+                    }
+                }
+            }
+            break;
+        case "RemoteReplicationSet":
+            List<RemoteReplicationSetRestRep> sets = new ArrayList<>();  // TODO: get all sets
+            for(AssetOption option: options) {
+                for (RemoteReplicationSetRestRep set : sets) {
+                    if(set.getId().toString().equals(option.key)) {
+                        if(!Strings.isNullOrEmpty(set.getReplicationState())) {
+                            option.value = option.value + " [" + set.getReplicationState() + "]";
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        return options;
+    }
+
+    /*
+     * Get IDs of AssetOption List for bulk retrieval
+     */
+    private static BulkIdParam getBulkIds(List<AssetOption> options) {
+        List<URI> ids = new ArrayList<>();
+        for (AssetOption option : options) {
+            ids.add(uri(option.key));
+        }
+        return new BulkIdParam(ids);
     }
 
     /*

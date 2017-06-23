@@ -1998,7 +1998,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                     unmanagedNFSAcl.setFileSystemPath(exportPath);
 
-                    // Verify for the name
+                    // Verify trustee name
+                    // ViPR would manage the ACLs only user/group name
+                    // and avoid null pointers too
                     if (tempAcl.getTrustee().getName() != null) {
 
                         String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");

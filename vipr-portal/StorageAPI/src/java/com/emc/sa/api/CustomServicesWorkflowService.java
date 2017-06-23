@@ -138,7 +138,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
             final String label = workflow.getDocument().getName().trim();
             checkForDuplicateName(label, CustomServicesWorkflow.class);
             if (customServicesWorkflowManager.hasCatalogServices(label)) {
-                throw APIException.methodNotAllowed.notSupportedWithReason("Workflow name cannot be same as the existing Catalog Base Service - " + label);
+                throw APIException.badRequests.duplicateLabel(label + " (Workflow name cannot be same as the existing Catalog Base Service)");
             }
         } else {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
@@ -178,7 +178,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                         if (!label.equalsIgnoreCase(customServicesWorkflow.getLabel())) {
                             checkForDuplicateName(label, CustomServicesWorkflow.class);
                             if (customServicesWorkflowManager.hasCatalogServices(label)) {
-                                throw APIException.methodNotAllowed.notSupportedWithReason("Workflow name cannot be same as the existing Catalog Base Service - " + label);
+                                throw APIException.badRequests.duplicateLabel(label + " (Workflow name cannot be same as the existing Catalog Base Service)");
                             }
                         }
                     }

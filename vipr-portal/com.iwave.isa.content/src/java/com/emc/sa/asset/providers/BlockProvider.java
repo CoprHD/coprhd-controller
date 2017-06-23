@@ -221,7 +221,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private static final int EXPORT_PATH_MIN = 1;
     private static final int EXPORT_PATH_MAX = 32;
+    
+    private static final String VMAX_PORT_GROUP_ENABLED = "VMAXUsePortGroupEnabled/value";
+    private static final String VMAX = "vmax";
 
+    
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
     }
@@ -379,7 +383,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(");
         if (value.getValue().equalsIgnoreCase("true")) {
             List<URI> volumeIds = Lists.newArrayList();
             info("Volumes selected by user: %s", selectedVolumes);
@@ -439,7 +443,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportVolumeForHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI hostOrClusterId, URI projectId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
             ExportGroupRestRep export = null;
             if (BlockStorageUtils.isHost(hostOrClusterId)) {
@@ -500,7 +504,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
             List<URI> snapshotIds = Lists.newArrayList();
             info("Snapshots selected by user: %s", selectedSnapshots);
@@ -552,7 +556,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
             List<URI> snapshotIds = Lists.newArrayList();
             info("Continous Copies selected by user: %s", selectedCopies);

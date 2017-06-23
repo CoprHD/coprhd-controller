@@ -1984,32 +1984,43 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             _log.info(
                     "getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
                     fs.getName());
+            if (exportPath == null || exportPath.isEmpty()) {
+                _log.info("Export path is empty");
+                continue;
+            }
+
             IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(exportPath);
 
             for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
+                // Verify the trustee
+                if (tempAcl.getTrustee() != null) {
+                    UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
 
-                UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
+                    unmanagedNFSAcl.setFileSystemPath(exportPath);
 
-                unmanagedNFSAcl.setFileSystemPath(exportPath);
+                    // Verify for the name
+                    if (tempAcl.getTrustee().getName() != null) {
 
-                String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+                        String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
 
-                if (tempUname.length > 1) {
-                    unmanagedNFSAcl.setDomain(tempUname[0]);
-                    unmanagedNFSAcl.setUser(tempUname[1]);
-                } else {
-                    unmanagedNFSAcl.setUser(tempUname[0]);
+                        if (tempUname.length > 1) {
+                            unmanagedNFSAcl.setDomain(tempUname[0]);
+                            unmanagedNFSAcl.setUser(tempUname[1]);
+                        } else {
+                            unmanagedNFSAcl.setUser(tempUname[0]);
+                        }
+
+                        unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+                        unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+                        unmanagedNFSAcl.setPermissions(StringUtils.join(
+                                getIsilonAccessList(tempAcl.getAccessrights()), ","));
+
+                        unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+                        unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+
+                        unManagedNfsACLList.add(unmanagedNFSAcl);
+                    }
                 }
-
-                unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
-                unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
-                unmanagedNFSAcl.setPermissions(StringUtils.join(
-                        getIsilonAccessList(tempAcl.getAccessrights()), ","));
-
-                unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
-                unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
-
-                unManagedNfsACLList.add(unmanagedNFSAcl);
             }
 
         }

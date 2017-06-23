@@ -905,6 +905,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         Workflow workflow = null;
         String stepDescription = null;
         String waitForFailover = null;
+        URI tempTargetFsId = null;
+        FileShare tempFileShare = null;
         MirrorFileFailoverTaskCompleter failoverCompleter = null;
         try {
 
@@ -915,6 +917,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             Project sourceProject = s_dbClient.queryObject(Project.class, sourceFileShare.getProject().getURI());
             FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
             FilePolicy sourcefp = FileOrchestrationUtils.getFilePolicyFromFS(s_dbClient, sourceVP, sourceProject);
+            boolean isHigherOrderFsFailover = FileOrchestrationUtils.isHigherOrderFsFailover(sourcefp);
+            if (isHigherOrderFsFailover) {
+                // Temporary directory created to failover the
+                tempTargetFsId = FileOrchestrationUtils.createFsObj(s_dbClient, targetFileShare.getId());
+                s_logger.info("Created in ViPR DB FileSystem object URI : {}", tempTargetFsId.toString());
+                tempFileShare = s_dbClient.queryObject(FileShare.class, tempTargetFsId);
+                s_logger.info("tempFileShare Object : {} ", tempFileShare);
+            }
 
             StorageSystem systemTarget = s_dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
@@ -934,8 +944,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         FAILOVER_FILE_SYSTEM_METHOD, failoverStep, stepDescription, systemTarget.getId(), args);
             }
             // failover FileSystem when the replication Policy is applied at vPool or Project
-            else if (sourcefp.getApplyAt().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.vpool.name())
-                    || sourcefp.getApplyAt().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.project.name())) {
+            else if (isHigherOrderFsFailover) {
                 s_logger.info("Generating steps for Failover File System to Target when the replication Policy is applied at Higher Level");
                 // String failoverHigherOrderStep = workflow.createStepId();
                 stepDescription = String.format("Failover Source File System %s when the replicationPolicy is applied at vPool/Project",
@@ -947,44 +956,52 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 // waitForFailover = workflow.createStep(null, stepDescription, null, systemTarget.getId(),
                 // systemTarget.getSystemType(), getClass(), failoverFsHigherOrderMethod, null, failoverFsHigherOrderStep);
 
-                waitForFailover = addStepsToFailoverFSWhenPolicyAppliedAtHigherOrder(workflow, fsURI, targetFileShare.getId(),
-                        sourcefp.getId());
+                waitForFailover = addStepsHigherOrderFsFailover(workflow, fsURI, targetFileShare.getId(),
+                        tempFileShare.getId(), sourcefp.getId());
             }
             // Replicate quota setting
             stepDescription = String.format(
                     "Replicating directory quota settings from source file system : %s to file target system : %s",
                     sourceFileShare.getId(), targetFileShare.getId());
             Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
-                    systemTarget.getId(), fsURI);
+                    systemTarget.getId(), fsURI, isHigherOrderFsFailover);
             String replicateDirQuotaSettingsStep = workflow.createStepId();
             workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
                     systemTarget.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
 
             if (replicateConfiguration) {
-
+                Map<String, List<NfsACE>> targetNFSACL = null;
                 Map<String, List<NfsACE>> sourceNFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
-                Map<String, List<NfsACE>> targetNFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
-
+                if (isHigherOrderFsFailover) {
+                    targetNFSACL = FileOrchestrationUtils.queryNFSACL(tempFileShare, s_dbClient);
+                } else {
+                    targetNFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
+                }
                 if (!sourceNFSACL.isEmpty() || !targetNFSACL.isEmpty()) {
 
                     stepDescription = String.format("Replicating NFS ACL from source file system : %s to file target system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateNFSACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_ACLS_METHOD,
-                            systemTarget.getId(), fsURI);
+                            systemTarget.getId(), fsURI, isHigherOrderFsFailover);
                     String replicateNFSACLsStep = workflow.createStepId();
                     workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
                             systemTarget.getSystemType(), getClass(), replicateNFSACLsMethod, null, replicateNFSACLsStep);
                 }
 
+                SMBShareMap targetSMBShareMap = null;
                 SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
-                SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
+                if (isHigherOrderFsFailover) {
+                    targetSMBShareMap = tempFileShare.getSMBFileShares();
+                } else {
+                    targetSMBShareMap = targetFileShare.getSMBFileShares();
+                }
 
                 if (sourceSMBShareMap != null || targetSMBShareMap != null) {
                     // Both source and target share map shouldn't be null
                     stepDescription = String.format("Replicating CIFS shares from source file system : %s to target file system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateCIFSShareMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD,
-                            systemTarget.getId(), fsURI, cifsPort);
+                            systemTarget.getId(), fsURI, cifsPort, isHigherOrderFsFailover);
                     String replicateCIFSShareStep = workflow.createStepId();
                     String waitForShare = workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
                             systemTarget.getSystemType(), getClass(), replicateCIFSShareMethod, null, replicateCIFSShareStep);
@@ -992,22 +1009,26 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     stepDescription = String.format("Replicating CIFS share ACLs from source file system : %s to file target system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateCIFSShareACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD,
-                            systemTarget.getId(), fsURI);
+                            systemTarget.getId(), fsURI, isHigherOrderFsFailover);
                     String replicateCIFSShareACLsStep = workflow.createStepId();
                     workflow.createStep(null, stepDescription, waitForShare, systemTarget.getId(),
                             systemTarget.getSystemType(), getClass(), replicateCIFSShareACLsMethod, null, replicateCIFSShareACLsStep);
                 }
 
                 // Replicate NFS export and rules to Target Cluster.
+                FSExportMap targetNFSExportMap = null;
                 FSExportMap sourceNFSExportMap = sourceFileShare.getFsExports();
-                FSExportMap targetNFSExportMap = targetFileShare.getFsExports();
-
+                if (isHigherOrderFsFailover) {
+                    targetNFSExportMap = tempFileShare.getFsExports();
+                } else {
+                    targetNFSExportMap = targetFileShare.getFsExports();
+                }
                 if (sourceNFSExportMap != null || targetNFSExportMap != null) {
                     // Both source and target export map shouldn't be null
                     stepDescription = String.format("Replicating NFS exports from source file system : %s to target file system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateNFSExportMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD,
-                            systemTarget.getId(), fsURI, nfsPort);
+                            systemTarget.getId(), fsURI, nfsPort, isHigherOrderFsFailover);
                     String replicateNFSExportStep = workflow.createStepId();
                     String waitForExport = workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
                             systemTarget.getSystemType(), getClass(), replicateNFSExportMethod, null, replicateNFSExportStep);
@@ -1015,7 +1036,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     stepDescription = String.format("Replicating NFS export rules from source file system : %s to target file system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateNFSExportRulesMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD,
-                            systemTarget.getId(), fsURI);
+                            systemTarget.getId(), fsURI, isHigherOrderFsFailover);
                     String replicateNFSExportRulesStep = workflow.createStepId();
                     workflow.createStep(null, stepDescription, waitForExport, systemTarget.getId(), systemTarget.getSystemType(),
                             getClass(), replicateNFSExportRulesMethod, null, replicateNFSExportRulesStep);
@@ -1041,7 +1062,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * @param taskId
      * @return
      */
-    public String addStepsToFailoverFSWhenPolicyAppliedAtHigherOrder(Workflow workflow, URI sourceFsId, URI targetFsId, URI sourceFp) {
+    public String addStepsHigherOrderFsFailover(Workflow workflow, URI sourceFsId, URI targetFsId, URI tempTargetFsId, URI sourceFp) {
         s_logger.info("Generating steps to perform failover operation when the the replicaion policy is applied at vPool or Project");
         // FileWorkflowCompleter completer = new FileWorkflowCompleter(sourceFsId, taskId);
         // Workflow workflow = null;
@@ -1052,62 +1073,68 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             FilePolicy sourceFilePolicy = s_dbClient.queryObject(FilePolicy.class, sourceFp);
             // String HIGHER_ORDER_FAILOVER_STEP_GROUP = "higherOrderFailoverStepGroup";
 
-            // Temporary directory created to failover the
-            URI tempTargetFsId = FileOrchestrationUtils.createFsObj(s_dbClient, targetFileShare.getId());
-            s_logger.info("Created in ViPR DB FileSystem object URI : {}", tempTargetFsId.toString());
-            FileShare tempFileShare = s_dbClient.queryObject(FileShare.class, tempTargetFsId);
-            s_logger.info("tempFileShare Object : {} ", tempFileShare);
-            // Name of the SyncIQ policy which will be applied at the targetFS.
-            String tempSyncPolicyName = FileOrchestrationUtils.generateTempSyncIQNameHigherOrderFsFailover(s_dbClient, targetFileShare,
-                    tempFileShare,
-                    sourceFilePolicy);
+            if (tempTargetFsId != null) {
+                FileShare tempFileShare = s_dbClient.queryObject(FileShare.class, tempTargetFsId);
+                s_logger.info("tempFileShare Object : {} ", tempFileShare);
 
-            // workflow = this._workflowService.getNewWorkflow(this, FAILOVER_FILESYSTEM_HIGHER_ORDER_WF_NAME, false, taskId, completer);
+                // Name of the SyncIQ policy which will be applied at the targetFS.
+                String tempSyncPolicyName = FileOrchestrationUtils.generateTempSyncIQNameHigherOrderFsFailover(s_dbClient, targetFileShare,
+                        tempFileShare,
+                        sourceFilePolicy);
 
-            // Step1: Create tempFS
-            s_logger.info(" new STEP to Create temp FS :  {} ", tempFileShare.getLabel());
-            String tempFsStep = workflow.createStepId();
-            String stepDescription = String.format("Create the temp target FileShare : %s ", tempFileShare.getLabel());
-            Object[] fsArgs = new Object[] { tempFileShare.getStorageDevice(), tempFileShare.getPool(), tempFileShare.getId(),
-                    tempFileShare.getNativeId() };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, CREATE_FILE_SYSTEM_METHOD, tempFsStep, stepDescription,
-                    tempFileShare.getStorageDevice(), fsArgs);
-            s_logger.info(" !! DONE !! executing STEP to create temp FS :  {} ", tempFileShare.getLabel());
-            // update the targeFS with its MirrorFs info; needed in #Step:3
-            FileOrchestrationUtils.updateTargetFsWithMirrorFsInfo(s_dbClient, targetFileShare, tempFileShare);
-            s_logger.info("Updated the targetFileShare : {} with MirrorFs info : {}", targetFileShare.getLabel(),
-                     targetFileShare.getMirrorfsTargets());
+                // workflow = this._workflowService.getNewWorkflow(this, FAILOVER_FILESYSTEM_HIGHER_ORDER_WF_NAME, false, taskId,
+                // completer);
 
-            // Step2: create Sync Policy apply at targetFs
-            s_logger.info(" new STEP to Create SyncIQ Policy : {} ", tempSyncPolicyName);
-            String tempPolicyStep = workflow.createStepId();
-            stepDescription = String.format("Create File Policy : %s ", tempSyncPolicyName);
-            Object[] policyArgs = new Object[] { targetFileShare.getId(), tempFileShare.getId(), tempSyncPolicyName };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, CREATE_REPLICATION_POLICY_HIGHER_ORDER_METHOD, tempPolicyStep,
-                    stepDescription, tempFileShare.getStorageDevice(), policyArgs);
-            s_logger.info(" !! DONE !! executing  STEP to Create SyncIQ Policy : {} ", tempSyncPolicyName);
+                // Step1: Create tempFS
+                s_logger.info(" new STEP to Create temp FS :  {} ", tempFileShare.getLabel());
+                String tempFsStep = workflow.createStepId();
+                String stepDescription = String.format("Create the temp target FileShare : %s ", tempFileShare.getLabel());
+                Object[] fsArgs = new Object[] { tempFileShare.getStorageDevice(), tempFileShare.getPool(), tempFileShare.getId(),
+                        tempFileShare.getNativeId() };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, CREATE_FILE_SYSTEM_METHOD, tempFsStep, stepDescription,
+                        tempFileShare.getStorageDevice(), fsArgs);
+                s_logger.info(" !! DONE !! executing STEP to create temp FS :  {} ", tempFileShare.getLabel());
+                // update the targeFS with its MirrorFs info; needed in #Step:3
+                FileOrchestrationUtils.updateTargetFsWithMirrorFsInfo(s_dbClient, targetFileShare, tempFileShare);
+                s_logger.info("Updated the targetFileShare : {} with MirrorFs info : {}", targetFileShare.getLabel(),
+                        targetFileShare.getMirrorfsTargets());
 
-            // Step3: Start the Policy
-            s_logger.info("new STEP to Start SyncIQ Policy : {}", tempSyncPolicyName);
-            String startPolicy = workflow.createStepId();
-            stepDescription = String.format("Start the SyncIQ Policy : %s", tempSyncPolicyName);
-            Object[] startPolicyArgs = new Object[] { tempSyncPolicyName, targetFileShare.getId() };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, START_SYNC_IQ_POLICY_METHOD, startPolicy, stepDescription,
-                    targetFileShare.getStorageDevice(), startPolicyArgs);
-            s_logger.info(" !! DONE !! executing  STEP to Start SyncIQ Policy : {}", tempSyncPolicyName);
+                // Step2: create Sync Policy apply at targetFs
+                s_logger.info(" new STEP to Create SyncIQ Policy : {} ", tempSyncPolicyName);
+                String tempPolicyStep = workflow.createStepId();
+                stepDescription = String.format("Create File Policy : %s ", tempSyncPolicyName);
+                Object[] policyArgs = new Object[] { targetFileShare.getId(), tempFileShare.getId(), tempSyncPolicyName };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, CREATE_REPLICATION_POLICY_HIGHER_ORDER_METHOD,
+                        tempPolicyStep,
+                        stepDescription, tempFileShare.getStorageDevice(), policyArgs);
+                s_logger.info(" !! DONE !! executing  STEP to Create SyncIQ Policy : {} ", tempSyncPolicyName);
 
-            // Step4: Failover
-            s_logger.info("new STEP to Failover from target : {} to tempTarget: {}", targetFileShare.getName(), tempFileShare.getName());
-            String failoverStep = workflow.createStepId();
-            stepDescription = String.format("Create File Policy : %s ", tempSyncPolicyName);
-            List<URI> combined = Arrays.asList(targetFileShare.getId(), tempFileShare.getId());
-            MirrorFileFailoverTaskCompleter failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined,
-                    failoverStep);
-            Object[] failoverArgs = new Object[] { tempSyncPolicyName, targetFileShare.getId(), failoverCompleter };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, FAILOVER_FS_HIGHER_ORDER_METHOD, failoverStep, stepDescription,
-                    targetFileShare.getStorageDevice(), failoverArgs);
-            s_logger.info("!! DONE !! executing STEP to  Failover from target : {} to tempTarget: {}", targetFileShare.getName(),
-                    tempFileShare.getName());
+                // Step3: Start the Policy
+                s_logger.info("new STEP to Start SyncIQ Policy : {}", tempSyncPolicyName);
+                String startPolicy = workflow.createStepId();
+                stepDescription = String.format("Start the SyncIQ Policy : %s", tempSyncPolicyName);
+                Object[] startPolicyArgs = new Object[] { tempSyncPolicyName, targetFileShare.getId() };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, START_SYNC_IQ_POLICY_METHOD, startPolicy, stepDescription,
+                        targetFileShare.getStorageDevice(), startPolicyArgs);
+                s_logger.info(" !! DONE !! executing  STEP to Start SyncIQ Policy : {}", tempSyncPolicyName);
+
+                // Step4: Failover
+                s_logger.info("new STEP to Failover from target : {} to tempTarget: {}", targetFileShare.getName(),
+                        tempFileShare.getName());
+                String failoverStep = workflow.createStepId();
+                stepDescription = String.format("Create File Policy : %s ", tempSyncPolicyName);
+                List<URI> combined = Arrays.asList(targetFileShare.getId(), tempFileShare.getId());
+                MirrorFileFailoverTaskCompleter failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined,
+                        failoverStep);
+                Object[] failoverArgs = new Object[] { tempSyncPolicyName, targetFileShare.getId(), failoverCompleter };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, FAILOVER_FS_HIGHER_ORDER_METHOD, failoverStep,
+                        stepDescription,
+                        targetFileShare.getStorageDevice(), failoverArgs);
+                s_logger.info("!! DONE !! executing STEP to  Failover from target : {} to tempTarget: {}", targetFileShare.getName(),
+                        tempFileShare.getName());
+            } else {
+                throw new IllegalArgumentException("missing Argument tempFS");
+            }
 
             // String successMessage = String.format("Successfully failed over File System : %s", sourceFileShare.getLabel());
             // workflow.executePlan(completer, successMessage);
@@ -1135,19 +1162,31 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      *            -StoragePort, CIFS port of target File System where new shares has to be created.
      * @param taskId
      */
-    public void addStepsToReplicateCIFSShares(URI systemTarget, URI fsURI, StoragePort cifsPort, String taskId) {
+    public void addStepsToReplicateCIFSShares(URI systemTarget, URI fsURI, StoragePort cifsPort, boolean isHigherOrderFsFailover,
+            String taskId) {
         s_logger.info("Generating steps for Replicating CIFS shares to Target Cluster");
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
         FileShare targetFileShare = null;
         try {
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            if (isHigherOrderFsFailover) {
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetFsIds = new ArrayList<String>();
+                    targetFsIds.addAll(sourceFileShare.getMirrorfsTargets());
+                    FileShare targetFs = s_dbClient.queryObject(FileShare.class, URI.create(targetFsIds.get(0)));
+                    List<String> targetFsUris = new ArrayList<String>();
+                    targetFsUris.addAll(targetFs.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetFsUris.get(0)));
+                }
             } else {
-                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetfileUris = new ArrayList<String>();
+                    targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+                } else {
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                }
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARES_TO_TARGET_WF_NAME, false, taskId, completer);
@@ -1208,7 +1247,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      *            -URI of the source FileSystem
      * @param taskId
      */
-    public void addStepsToReplicateCIFSShareACLs(URI systemTarget, URI fsURI, String taskId) {
+    public void addStepsToReplicateCIFSShareACLs(URI systemTarget, URI fsURI, boolean isHigherOrderFsFailover, String taskId) {
         s_logger.info("Generating steps for Replicating CIFS share ACLs to Target Cluster");
         CifsShareACLUpdateParams params;
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
@@ -1217,12 +1256,23 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
 
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            if (isHigherOrderFsFailover) {
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetFsIds = new ArrayList<String>();
+                    targetFsIds.addAll(sourceFileShare.getMirrorfsTargets());
+                    FileShare targetFs = s_dbClient.queryObject(FileShare.class, URI.create(targetFsIds.get(0)));
+                    List<String> targetFsUris = new ArrayList<String>();
+                    targetFsUris.addAll(targetFs.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetFsUris.get(0)));
+                }
             } else {
-                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetfileUris = new ArrayList<String>();
+                    targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+                } else {
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                }
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARE_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
@@ -1344,19 +1394,31 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      *            -StoragePort, NFS port of target File System where new export has to be created.
      * @param taskId
      */
-    public void addStepsToReplicateNFSExports(URI systemTarget, URI fsURI, StoragePort nfsPort, String taskId) {
+    public void addStepsToReplicateNFSExports(URI systemTarget, URI fsURI, StoragePort nfsPort, boolean isHigherOrderFsFailover,
+            String taskId) {
         s_logger.info("Generating steps for Replicating NFS exports to Target Cluster");
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
         FileShare targetFileShare = null;
         try {
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            if (isHigherOrderFsFailover) {
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetFsIds = new ArrayList<String>();
+                    targetFsIds.addAll(sourceFileShare.getMirrorfsTargets());
+                    FileShare targetFs = s_dbClient.queryObject(FileShare.class, URI.create(targetFsIds.get(0)));
+                    List<String> targetFsUris = new ArrayList<String>();
+                    targetFsUris.addAll(targetFs.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetFsUris.get(0)));
+                }
             } else {
-                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetfileUris = new ArrayList<String>();
+                    targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+                } else {
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                }
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_TO_TARGET_WF_NAME, false, taskId, completer);
@@ -1443,19 +1505,30 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      *            -URI of the source FileSystem
      * @param taskId
      */
-    public void addStepsToReplicateNFSExportRules(URI systemTarget, URI fsURI, String taskId) {
+    public void addStepsToReplicateNFSExportRules(URI systemTarget, URI fsURI, boolean isHigherOrderFsFailover, String taskId) {
         s_logger.info("Generating steps for Replicating NFS export rules to Target Cluster");
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
         FileShare targetFileShare = null;
         try {
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            if (isHigherOrderFsFailover) {
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetFsIds = new ArrayList<String>();
+                    targetFsIds.addAll(sourceFileShare.getMirrorfsTargets());
+                    FileShare targetFs = s_dbClient.queryObject(FileShare.class, URI.create(targetFsIds.get(0)));
+                    List<String> targetFsUris = new ArrayList<String>();
+                    targetFsUris.addAll(targetFs.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetFsUris.get(0)));
+                }
             } else {
-                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetfileUris = new ArrayList<String>();
+                    targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+                } else {
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                }
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WF_NAME, false, taskId, completer);
@@ -1669,7 +1742,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      *            -URI of the source FileSystem
      * @param taskId
      */
-    public void addStepsToReplicateNFSACLs(URI systemTarget, URI fsURI, String taskId) {
+    public void addStepsToReplicateNFSACLs(URI systemTarget, URI fsURI, boolean isHigherOrderFsFailover, String taskId) {
         s_logger.info("Generating steps for Replicating NFS ACLs to Target Cluster");
         FileNfsACLUpdateParams params = null;
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
@@ -1678,12 +1751,23 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
 
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            if (isHigherOrderFsFailover) {
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetFsIds = new ArrayList<String>();
+                    targetFsIds.addAll(sourceFileShare.getMirrorfsTargets());
+                    FileShare targetFs = s_dbClient.queryObject(FileShare.class, URI.create(targetFsIds.get(0)));
+                    List<String> targetFsUris = new ArrayList<String>();
+                    targetFsUris.addAll(targetFs.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetFsUris.get(0)));
+                }
             } else {
-                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetfileUris = new ArrayList<String>();
+                    targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+                } else {
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                }
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
@@ -1832,7 +1916,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      *            -URI of the source FileSystem
      * @param taskId
      */
-    public void addStepsToReplicateDirectoryQuotaSettings(URI systemTarget, URI fsURI, String taskId) {
+    public void addStepsToReplicateDirectoryQuotaSettings(URI systemTarget, URI fsURI, boolean isHigherOrderFsFailover, String taskId) {
         s_logger.info("Generating steps for replicating directory quota settings to target cluster.");
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         FileShare targetFileShare = null;
@@ -1840,12 +1924,23 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
 
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            if (isHigherOrderFsFailover) {
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetFsIds = new ArrayList<String>();
+                    targetFsIds.addAll(sourceFileShare.getMirrorfsTargets());
+                    FileShare targetFs = s_dbClient.queryObject(FileShare.class, URI.create(targetFsIds.get(0)));
+                    List<String> targetFsUris = new ArrayList<String>();
+                    targetFsUris.addAll(targetFs.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetFsUris.get(0)));
+                }
             } else {
-                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                    List<String> targetfileUris = new ArrayList<String>();
+                    targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+                } else {
+                    targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+                }
             }
             targetFileShare.setSoftGracePeriod(sourceFileShare.getSoftGracePeriod());
             targetFileShare.setSoftLimit(sourceFileShare.getSoftLimit());

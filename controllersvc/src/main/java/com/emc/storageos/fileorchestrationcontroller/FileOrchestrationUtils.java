@@ -1221,6 +1221,8 @@ public final class FileOrchestrationUtils {
         // TODO: add storagePort
         // tempFs.setStoragePort(storagePort);
         tempFs.setThinlyProvisioned(targetFS.getThinlyProvisioned());
+        tempFs.setSMBFileShares(targetFS.getSMBFileShares());
+        tempFs.setFsExports(targetFS.getFsExports());
 
         _dbClient.createObject(tempFs);
         _log.info("TempTargetFS created {}", tempFs);
@@ -1281,6 +1283,20 @@ public final class FileOrchestrationUtils {
             targetFileShare.getMirrorfsTargets().add(tempFileShare.getId().toString());
             s_dbClient.updateObject(targetFileShare);
         }
+    }
+
+    /**
+     * check whether the policy is applied at vpool/ project level
+     * 
+     * @param fp
+     * @return
+     */
+    public static boolean isHigherOrderFsFailover(FilePolicy fp) {
+        if (fp.getApplyAt().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.vpool.name())
+                || fp.getApplyAt().toString().equalsIgnoreCase(FilePolicy.FilePolicyApplyLevel.project.name())) {
+            return true;
+        }
+        return false;
     }
 
 }

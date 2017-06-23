@@ -382,6 +382,7 @@ public interface SmisConstants {
     static final String CP_UNREGISTERED_STORAGE_IDS = "UnRegisteredStorageIDs";
     static final String CP_UNREGISTERED_STORAGE_TYPE = "UnRegisteredStorageIDType";
     static final String CP_CHILD_STORAGE_GROUP_NAME = "ChildStorageGroupName";
+    static final String CP_HOST_IOLIMIT_PARENT = "HostIOLimitParent";
 
     static final String CP_TIERPOLICY_APPLIES_TO_ELEMENT = "Symm_TierPolicySetAppliesToElement";
     static final String CIM_TIER_POLICY_RULE = "CIM_TierPolicyRule";

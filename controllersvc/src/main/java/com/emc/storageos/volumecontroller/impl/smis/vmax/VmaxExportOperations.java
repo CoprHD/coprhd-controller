@@ -823,7 +823,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             // if it has stand alone storage group, convert it into cascaded storage group.
             CIMObjectPath storageGroupPath = _cimPath.getMaskingGroupPath(storage, parentGroupName,
                     SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
-            if (!_helper.isCascadedSG(storage, storageGroupPath)) {
+            if (_helper.isStandAloneSG(storage, storageGroupPath)) {
+                _log.info("Converting Stand alone storage group to Cascaded..");
                 _helper.convertStandAloneStorageGroupToCascaded(storage, storageGroupPath, parentGroupName);
             }
 

@@ -315,7 +315,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.info("No file systems found for storage device {}. Hence metering stats collection ignored.", storageSystemId);
                 return;
             }
-            // get first page of quota data, process and insert to database
+
+            // Process IsilonQuotas page by page (MAX 1000) in a page...
             String resumeToken = null;
             do {
                 IsilonApi.IsilonList<IsilonSmartQuota> quotas = api.listQuotas(resumeToken);
@@ -368,14 +369,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         persistStatsInDB(stats);
                     }
                 }
-
                 statsCount = statsCount + quotas.size();
                 _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
-
             } while (resumeToken != null);
 
             zeroRecordGenerator.identifyRecordstobeZeroed(_keyMap, stats, FileShare.class);
-
             // write the remaining records!!
             if (!modifiedFileSystems.isEmpty()) {
                 _dbClient.updateObject(modifiedFileSystems);

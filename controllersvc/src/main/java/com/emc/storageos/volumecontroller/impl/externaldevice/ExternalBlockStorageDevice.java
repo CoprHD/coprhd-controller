@@ -2073,7 +2073,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     Set<URI> targetCgUris = new HashSet<>();
 
                     for (RemoteReplicationPair pair : systemPairs) {
-                        targetCgUris.add(pair.getTargetElement().getURI());
+                        targetCgUris.add(dbClient.queryObject(Volume.class, pair.getTargetElement().getURI()).getConsistencyGroup());
                     }
                     for (URI targetCgUri : targetCgUris) {
                         BlockConsistencyGroup targetCg = dbClient.queryObject(BlockConsistencyGroup.class, targetCgUri);

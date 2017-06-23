@@ -90,16 +90,22 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
             export.setType("Host");
         }
 
+        // Only add the export path parameters to the call if we have to
+        boolean addExportPathParameters = false;
         ExportPathParameters exportPathParameters = new ExportPathParameters();
         if (minPaths != null && maxPaths != null && pathsPerInitiator != null) {
             exportPathParameters.setMinPaths(minPaths);
             exportPathParameters.setMaxPaths(maxPaths);
             exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
+            addExportPathParameters = true;
         }
         if (portGroup != null ) {
             exportPathParameters.setPortGroup(portGroup);
+            addExportPathParameters = true;
         }
-        export.setExportPathParameters(exportPathParameters);
+        if (addExportPathParameters) {
+            export.setExportPathParameters(exportPathParameters);
+        }
 
         return getClient().blockExports().create(export);
     }

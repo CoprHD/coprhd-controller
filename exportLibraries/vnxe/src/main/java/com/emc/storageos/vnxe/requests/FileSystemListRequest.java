@@ -46,7 +46,7 @@ public class FileSystemListRequest extends KHRequests<VNXeFileSystem> {
      */
     public VNXeFileSystem getByStorageResource(String storageResourceId) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.STORAGE_RESOURCE_FILTER + storageResourceId);
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.STORAGE_RESOURCE_FILTER + "\"" + storageResourceId + "\"");
         setQueryParameters(queryParams);
         VNXeFileSystem result = null;
         List<VNXeFileSystem> fsList = getDataForObjects(VNXeFileSystem.class);

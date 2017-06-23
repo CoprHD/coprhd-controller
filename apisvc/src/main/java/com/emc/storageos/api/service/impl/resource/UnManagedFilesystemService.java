@@ -52,7 +52,6 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -344,6 +343,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                         SupportedFileSystemInformation.MOUNT_PATH.toString(),
                         unManagedFileSystemInformation);
 
+                String nativeId = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.NATIVE_ID.toString(),
+                        unManagedFileSystemInformation);
+
                 String systemType = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.SYSTEM_TYPE.toString(),
                         unManagedFileSystemInformation);
@@ -370,6 +373,13 @@ public class UnManagedFilesystemService extends TaggedResource {
                 // check ingestion is valid for given project
                 if (!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
                     _logger.info("UnManaged FileSystem path {} is mounted on vNAS URI {} which is invalid for project.", path, nasUri);
+                    continue;
+                }
+
+                // Check for same named File Share in this project
+                if (FileSystemIngestionUtil.checkForDuplicateFSName(_dbClient, project.getId(), deviceLabel, filesystems)) {
+                    _logger.info("File System with name: {}  already exists in given project: {} so, ignoring it..",
+                            deviceLabel, project.getLabel());
                     continue;
                 }
 
@@ -416,6 +426,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setVirtualArray(param.getVarray());
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
+                }
+
+                if (nativeId != null) {
+                    filesystem.setNativeId(nativeId);
                 }
 
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();

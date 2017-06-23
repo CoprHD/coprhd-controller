@@ -350,6 +350,11 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
 
+        // Check for duplicate file system in this project
+        if (param.getLabel() != null && !param.getLabel().isEmpty()) {
+            checkForDuplicateName(param.getLabel(), FileShare.class, id, "project", _dbClient);
+        }
+
         return createFSInternal(param, project, tenant, null);
 
     }
@@ -857,13 +862,16 @@ public class FileService extends TaskResourceService {
             rootUserMapping = rootUserMapping.toLowerCase();
         }
 
-        if (!"nobody".equals(rootUserMapping)) {
-            StorageOSUser user = getUserFromContext();
-            if (!user.getName().equals(rootUserMapping)) {
-                // throw error
-                throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(user.getName());
-            }
-        }
+        /*
+         * Check to verify the user with Vipr login user is removed for now.Need to revisit the logic.
+         * if (!"nobody".equals(rootUserMapping)) {
+         * StorageOSUser user = getUserFromContext();
+         * if (!user.getName().equals(rootUserMapping)) {
+         * // throw error
+         * throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(user.getName());
+         * }
+         * }
+         */
 
         FileShareExport export = new FileShareExport(param.getEndpoints(), param.getSecurityType(), param.getPermissions(),
                 rootUserMapping, param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
@@ -1643,6 +1651,9 @@ public class FileService extends TaskResourceService {
      * it will be deleted when all references to this filesystem of type Snapshot are deleted.
      * The optional forceDelete param will delete snapshots and exports in case of VNXFile when it sets to true.
      * 
+     * The behavior with force flag has been changed (From release 3.6 patch)
+     * Fail to delete file system (full) or it's dependency resources with force flag
+     * 
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
@@ -1667,14 +1678,33 @@ public class FileService extends TaskResourceService {
                 param.getForceDelete(), param.getDeleteType()));
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        if (!param.getForceDelete()) {
+        // Validate the file system delete type argument
+        // valid delete types are FULL and VIPR_ONLY
+        if (!FileControllerConstants.DeleteTypeEnum.lookup(param.getDeleteType())) {
+            throw APIException.badRequests.invalidFileSystemDeleteType(param.getDeleteType());
+        }
+
+        // File system (FULL) delete is not supported with force delete option
+        // force delete is supported only for Inventory (VIPR_ONLY) delete
+        if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(param.getDeleteType())
+                && param.getForceDelete()) {
+            _log.error("File System delete operation is not supported with delete type {} and force delete {}", param.getDeleteType(),
+                    param.getForceDelete());
+            throw APIException.badRequests
+                    .filesystemDeleteNotSupported(param.getDeleteType(), param.getForceDelete());
+
+        }
+        // 1. Fail to delete file system, if there are any dependency objects (exports, shares, qds or acls) present on it.
+        // 2. File system and it dependency objects can be removed from CoprHD DB with Inventory delete and force delete options.
+        if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(param.getDeleteType())
+                || !param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
             if (!fs.getFilePolicies().isEmpty()) {
                 throw APIException.badRequests
                         .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
         }
-     // Verify the higher level replication policies assigned
+        // Verify the higher level replication policies assigned
         if (param.getForceDelete() && param.getDeleteType() != null && param.getDeleteType().equalsIgnoreCase("FULL")) {
             if (FilePolicyServiceUtils.vPoolHasReplicationPolicy(_dbClient, fs.getVirtualPool())
                     || FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, fs.getProject().getURI(), fs.getVirtualPool())) {

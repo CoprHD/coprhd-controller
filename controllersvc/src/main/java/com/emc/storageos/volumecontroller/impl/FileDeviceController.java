@@ -510,7 +510,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         } catch (Exception e) {
             String[] params = { storage.toString(), uri.toString(), String.valueOf(forceDelete),
-                    e.getMessage().toString() };
+                    e.getMessage() };
             _log.error("Unable to delete file system or snapshot: storage {}, FS/snapshot {}, forceDelete {}: {}", params);
             updateTaskStatus(opId, fileObject, e);
 
@@ -1459,7 +1459,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
         _dbClient.updateObject(fsObj);
-        _log.debug("updateTaskStatus:afterUpdate:" + fsObj.getOpStatus().get(opId).toString());
+        _log.debug("updateTaskStatus:afterUpdate:" + fsObj.getOpStatus().get(opId));
     }
 
     /**
@@ -1759,6 +1759,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             String[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
             _log.error("FileDeviceController::createQtree: Unable to create file system quotaDir: storage {}, FS {}, snapshot {}: {}",
                     params);
+            // Failed to create quota directory
+            // remove from DB
+            if (quotaDirObj != null) {
+                quotaDirObj.setInactive(true);
+                _dbClient.updateObject(quotaDirObj);
+            }
             updateTaskStatus(task, fsObj, e);
             updateTaskStatus(task, quotaDirObj, e);
             if ((fsObj != null) && (quotaDirObj != null)) {
@@ -1830,22 +1836,17 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
-    @Override
-    public void deleteQuotaDirectory(URI storage, URI quotaDir, URI fs, String task) throws ControllerException {
-        FileShare fsObj = null;
-        QuotaDirectory quotaDirObj = null;
-        try {
-            String[] params = { storage.toString(), quotaDir.toString(), fs.toString() };
-            _log.info("FileDeviceController::deleteQuotaDirectory: storage : {}, quotadir : {}, fs : {}", params);
-
-            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            fsObj = _dbClient.queryObject(FileShare.class, fs);
-            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir);
-            FileDeviceInputOutput args = new FileDeviceInputOutput();
+    /**
+     * Delete NFS exports and shares file system quota directory
+     * 
+     * @param storage
+     * @param fs
+     * @param quotaDirObj
+     * @param task
+     */
+    private void deleteQDExportsAndShares(URI storage, FileShare fs, QuotaDirectory quotaDirObj, String task) {
+        FSExportMap fsExportMap = fs.getFsExports();
             String quotaName = quotaDirObj.getName();
-            args.addFSFileObject(fsObj);
-
-            FSExportMap fsExportMap = fsObj.getFsExports();
             boolean isExported = false;
             // delete export
             if (fsExportMap != null && !fsExportMap.isEmpty()) {
@@ -1860,13 +1861,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 }
                 if (true == isExported) {
                     // delete the export of quota directory
-                    this.deleteExportRules(storage, fs, false, quotaName, task);
-                    fsObj = _dbClient.queryObject(FileShare.class, fs);
+                    this.deleteExportRules(storage, fs.getId(), false, quotaName, task);
                 }
             }
 
             // delete fileshare of quota directory
-            SMBShareMap smbShareMap = fsObj.getSMBFileShares();
+            SMBShareMap smbShareMap = fs.getSMBFileShares();
             if (smbShareMap != null && !smbShareMap.isEmpty()) {
                 FileSMBShare fileSMBShare = null;
                 List<FileSMBShare> fileSMBShares = new ArrayList<FileSMBShare>();
@@ -1881,16 +1881,28 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 }
                 if (fileSMBShares != null && !fileSMBShares.isEmpty()) { // delete shares
                     for (FileSMBShare tempFileSMBShare : fileSMBShares) {
-                        this.deleteShare(storage, fs, tempFileSMBShare, task);
+                        this.deleteShare(storage, fs.getId(), tempFileSMBShare, task);
                         _log.info("Delete SMB Share Name{} for quota ", tempFileSMBShare.getName());
                     }
                 }
             }
 
-            fsObj = _dbClient.queryObject(FileShare.class, fs);
-            // Set up args
-            args.addFSFileObject(fsObj);
+    }
 
+    @Override
+    public void deleteQuotaDirectory(URI storage, URI quotaDir, URI fs, String task) throws ControllerException {
+        FileShare fsObj = null;
+        QuotaDirectory quotaDirObj = null;
+        try {
+            String[] params = { storage.toString(), quotaDir.toString(), fs.toString() };
+            _log.info("FileDeviceController::deleteQuotaDirectory: storage : {}, quotadir : {}, fs : {}", params);
+
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            fsObj = _dbClient.queryObject(FileShare.class, fs);
+            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir);
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+
+            args.addFSFileObject(fsObj);
             args.addQuotaDirectory(quotaDirObj);
             args.setOpId(task);
 
@@ -1907,6 +1919,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (!result.isCommandSuccess()) {
                 _log.error("FileDeviceController::deleteQuotaDirectory: command is not successfull");
+            } else {
+                // If delete operation is successful, then remove obj from ViPR db by setting inactive=true
+                quotaDirObj.setInactive(true);
             }
             // save the task status in db
             _dbClient.updateObject(quotaDirObj);
@@ -3701,8 +3716,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 getDeviceType(descriptor.getDeviceURI()),
                                 this.getClass(),
                                 createFileSharesMethod(descriptor),
-                                rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
-                                        .getURI()), sourceDescriptors),
+                                rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(),
+                                        asList(fileShare.getParentFileShare().getURI()), sourceDescriptors),
                                 null);
                     }
                 }
@@ -3818,9 +3833,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * 
      * @param systemURI
      * @param fileURIs
+     * @param sourceDes
      * @return Workflow.Method
      */
-    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs, List<FileDescriptor> sourceDes) {
+    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs,
+            List<FileDescriptor> sourceDes) {
         // This case comes when we are creating target FS for existing source,
         // and if target FS creation fails we should not delete source FS
         if (sourceDes == null || sourceDes.isEmpty()) {

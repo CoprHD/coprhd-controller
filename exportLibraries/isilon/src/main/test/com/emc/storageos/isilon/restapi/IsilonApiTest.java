@@ -104,7 +104,7 @@ public class IsilonApiTest {
 
         // Step 3: delete the directory.
 
-        _client.deleteDir(testSMBDirPath, true);
+        _client.deleteDir(testSMBDirPath);
         Assert.assertFalse("Directory delete failed.", _client.existsDir(testSMBDirPath));
     }
 
@@ -196,14 +196,14 @@ public class IsilonApiTest {
         // Step 8 Delete the directory with sub dir without recursive flag
 
         try {
-            _client.deleteDir(testDirPath, false);
+            _client.deleteDir(testDirPath);
         } catch (Exception e) {
             // TODO Auto-generated catch block
             Assert.assertTrue("Deleted dir without recursive flag result in exception", true);
         }
 
         // Step 8 Positive case delete the directory with recursive flag
-        _client.deleteDir(testDirPath, true);
+        _client.deleteDir(testDirPath);
         Assert.assertFalse("Directory delete failed.", _client.existsDir(testDirPath));
 
     }
@@ -292,10 +292,10 @@ public class IsilonApiTest {
             Assert.assertTrue("exception in getting deleted quota  ", true);
         }
 
-        _client.deleteDir(testQuotasDirPath, true);
+        _client.deleteDir(testQuotasDirPath);
         Assert.assertFalse("Directory delete failed.", _client.existsDir(testQuotasDirPath));
 
-        _client.deleteDir(testQuotasDirPath2, true);
+        _client.deleteDir(testQuotasDirPath2);
         Assert.assertFalse("Directory delete failed.", _client.existsDir(testQuotasDirPath2));
 
     }
@@ -466,7 +466,7 @@ public class IsilonApiTest {
 
 
         _client.deleteSnapshot(snap_id);
-        _client.deleteDir(testExportDirPath, true);
+        _client.deleteDir(testExportDirPath);
         Assert.assertFalse("Directory delete failed.", _client.existsDir(testExportDirPath));
 
     }

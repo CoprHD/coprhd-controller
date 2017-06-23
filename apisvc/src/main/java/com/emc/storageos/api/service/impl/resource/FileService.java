@@ -1734,6 +1734,8 @@ public class FileService extends TaskResourceService {
      * it will be deleted when all references to this filesystem of type Snapshot are deleted.
      * The optional forceDelete param will delete snapshots and exports in case of VNXFile when it sets to true.
      * 
+     * The behavior with force flag has been changed
+     * Fail to delete file system (full) or it's dependency resources with force flag
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
@@ -1758,7 +1760,26 @@ public class FileService extends TaskResourceService {
                 param.getForceDelete(), param.getDeleteType()));
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        if (!param.getForceDelete()) {
+        // Validate the file system delete type argument
+        // valid delete types are FULL and VIPR_ONLY
+        if (!FileControllerConstants.DeleteTypeEnum.lookup(param.getDeleteType())) {
+            throw APIException.badRequests.invalidFileSystemDeleteType(param.getDeleteType());
+        }
+
+        // File system (FULL) delete is not supported with force delete option
+        // force delete is supported only for Inventory (VIPR_ONLY) delete
+        if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(param.getDeleteType())
+                && param.getForceDelete()) {
+            _log.error("File System delete operation is not supported with delete type {} and force delete {}", param.getDeleteType(),
+                    param.getForceDelete());
+            throw APIException.badRequests
+                    .filesystemDeleteNotSupported(param.getDeleteType(), param.getForceDelete());
+
+        }
+        // 1. Fail to delete file system, if there are any dependency objects (exports, shares, qds or acls) present on it.
+        // 2. File system and it dependency objects can be removed from CoprHD DB with Inventory delete and force delete options.
+        if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(param.getDeleteType())
+                || !param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
             if (!fs.getFilePolicies().isEmpty()) {
                 throw APIException.badRequests

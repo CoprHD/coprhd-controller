@@ -341,7 +341,7 @@ Preprocessor for the quotadirectory create operation
 '''
 
 def quotadirectory_create(args):
-    if not args.sync and args.synctimeout !=0:
+    if not args.synchronous and args.synctimeout !=0:
         raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = QuotaDirectory(args.ip, args.port)
   

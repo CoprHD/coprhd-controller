@@ -1989,8 +1989,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         try {
             _log.debug("call getIsilonExport for {} ", expId);
             if (expId != null) {
-                exp = isilonApi.getExport(expId.toString(), zoneName);
-                _log.debug("call getIsilonExport {}", exp.toString());
+                if (zoneName != null && !zoneName.isEmpty()) {
+                    exp = isilonApi.getExport(expId.toString(), zoneName);
+                } else {
+                    exp = isilonApi.getExport(expId.toString());
+                }
             }
         } catch (Exception e) {
             _log.error("Exception while getting Export for {}", expId);

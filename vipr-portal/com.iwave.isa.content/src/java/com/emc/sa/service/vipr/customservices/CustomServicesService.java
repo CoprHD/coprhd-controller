@@ -147,7 +147,7 @@ public class CustomServicesService extends ViPRService {
                     try {
                         updateOutputPerStep(step, res);
                     } catch (final Exception e) {
-                        logger.warn("Failed to parse output" + e + "step Id:{}", step.getId());
+                        logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
                     }
                 }
                 next = getNext(isSuccess, res, step);
@@ -158,7 +158,7 @@ public class CustomServicesService extends ViPRService {
                 next = getNext(false, null, step);
             }
             if (next == null) {
-                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id" + step.getId() + "\t Step Name:" + step.getFriendlyName()
+                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
                 + "Failed. Failing the Workflow");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Workflow Execution failed");
             }
@@ -232,8 +232,8 @@ public class CustomServicesService extends ViPRService {
                     if (!StringUtils.isEmpty(e.getValue())) {
                         if (e.getValue().equals(Task.Status.error.toString())) {
                             ExecutionUtils.currentContext().logError("customServicesService.logStatus",
-                                    "Step Id" + step.getId() + "\t Step Name:" + step.getFriendlyName()
-                                            + "Task Failed TaskId:" + e.getKey() + "State:" + e.getValue());
+                                    "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
+                                            + " Task Failed TaskId: " + e.getKey() + " State:" + e.getValue());
                             return false;
                         }
                     }
@@ -530,7 +530,7 @@ public class CustomServicesService extends ViPRService {
         final Object responseEntity = mapper.readValue(res, clazz.newInstance().getClass());
 
         final Map<String, List<String>> output = parseViprOutput(responseEntity, step);
-        logger.info("ViPR output for step ID " + step.getId() + " is " + output);
+        logger.info("ViPR output for step ID: " + step.getId() + " is " + output);
         return output;
     }
 

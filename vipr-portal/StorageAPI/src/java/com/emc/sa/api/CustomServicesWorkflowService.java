@@ -135,7 +135,11 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep addWorkflow(final CustomServicesWorkflowCreateParam workflow) {
         if (StringUtils.isNotBlank(workflow.getDocument().getName())) {
-            checkForDuplicateName(workflow.getDocument().getName().trim(), CustomServicesWorkflow.class);
+            final String label = workflow.getDocument().getName().trim();
+            checkForDuplicateName(label, CustomServicesWorkflow.class);
+            if (customServicesWorkflowManager.hasCatalogServices(label)) {
+                throw APIException.badRequests.duplicateLabel(label + " (Workflow name cannot be same as the existing Catalog Base Service)");
+            }
         } else {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
         }
@@ -173,6 +177,9 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                         final String label = workflow.getDocument().getName().trim();
                         if (!label.equalsIgnoreCase(customServicesWorkflow.getLabel())) {
                             checkForDuplicateName(label, CustomServicesWorkflow.class);
+                            if (customServicesWorkflowManager.hasCatalogServices(label)) {
+                                throw APIException.badRequests.duplicateLabel(label + " (Workflow name cannot be same as the existing Catalog Base Service)");
+                            }
                         }
                     }
 

@@ -2341,7 +2341,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         try {
             _log.debug("call getIsilonExport for {} ", expId);
             if (expId != null) {
-                exp = isilonApi.getExport(expId.toString(), zoneName);
+                if (zoneName != null && !zoneName.isEmpty()) {
+                    exp = isilonApi.getExport(expId.toString(), zoneName);
+                } else {
+                    exp = isilonApi.getExport(expId.toString());
+                }
                 _log.debug("call getIsilonExport {}", exp.toString());
             }
         } catch (Exception e) {

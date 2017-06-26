@@ -1351,7 +1351,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             pair.setReplicationState("active");
             nativeIds.add(pair.getNativeId());
         }
-        String msg = String.format("%s: %s --- stop replication pairs %s.", driverName, "split", nativeIds);
+        String msg = String.format("%s: %s --- stop replication pairs %s.", driverName, "stop", nativeIds);
         _log.info(msg);
         task.setMessage(msg);
         return task;

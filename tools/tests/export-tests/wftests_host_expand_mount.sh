@@ -103,11 +103,12 @@ test_expand_host_filesystem() {
 		set_artificial_failure none
                 runcmd expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os}
 
-		# Verify that expand is successful on host side
- 		verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
 	    else
 	        runcmd expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os} ${failure}
 	    fi
+
+            # Verify that expand is successful on host side
+            verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
 
             # Report results
             report_results "${test_name}_${os}" ${failure}

@@ -38,13 +38,14 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
 
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 public final class RESTHelper {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RESTHelper.class);
     public static final String TASKLIST = "TaskList";
-    
+    public static final String TASK = TaskResourceRep.class.getSimpleName();
     private RESTHelper() {
     };
     

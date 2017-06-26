@@ -93,9 +93,9 @@ public class FileSystems extends ResourceController {
     private static FileSystemsDataTable fileSystemsDataTable = new FileSystemsDataTable();
 
     private static final StringOption[] PERMISSION_TYPES = {
-            new StringOption(FileShareExport.Permissions.rw.name(), FileShareExport.Permissions.rw.name()),
-            new StringOption(FileShareExport.Permissions.ro.name(), FileShareExport.Permissions.ro.name()),
-            new StringOption(FileShareExport.Permissions.root.name(), FileShareExport.Permissions.root.name())
+        new StringOption(FileShareExport.Permissions.rw.name(), FileShareExport.Permissions.rw.name()),
+        new StringOption(FileShareExport.Permissions.ro.name(), FileShareExport.Permissions.ro.name()),
+        new StringOption(FileShareExport.Permissions.root.name(), FileShareExport.Permissions.root.name())
     };
 
     public static void fileSystems(String projectId) {
@@ -114,12 +114,12 @@ public class FileSystems extends ResourceController {
         List<FileSystemsDataTable.FileSystem> fileSystems = FileSystemsDataTable.fetch(uri(projectId));
         renderJSON(DataTablesSupport.createJSON(fileSystems, params));
     }
-    
-    public static void validateQuotaSize(String quotaSize){
+
+    public static void validateQuotaSize(String quotaSize) {
         if (StringUtils.isEmpty(quotaSize) || !quotaSize.matches("^\\d+$")) {
             Validation.addError("quota.size", "resources.filesystem.quota.size.invalid.value");
         }
-        
+
         if (Validation.hasErrors()) {
             renderJSON(ValidationResponse.collectErrors());
         }
@@ -197,7 +197,7 @@ public class FileSystems extends ResourceController {
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
         render(exports, exportsParam);
     }
-    
+
     public static void fileSystemMirrors(String fileSystemId) {
         URI id = uri(fileSystemId);
         ViPRCoreClient client = BourneUtil.getViprClient();
@@ -206,16 +206,15 @@ public class FileSystems extends ResourceController {
         for (VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()) {
             fileMirrors.add(client.fileSystems().get(virtualResource.getId()));
         }
-        
-        
+
         String personality = targetFileSystems.getPersonality();
-        //The current implementation is limited to 1:1 FS replication. 
-        //The code will be refactored once 1:n or cascaded FS replication is supported
-        if(!fileMirrors.isEmpty()) {
-	        FileShareRestRep fsRestRep = fileMirrors.get(0);
-	        fsRestRep.getProtection().setMirrorStatus(targetFileSystems.getMirrorStatus());
+        // The current implementation is limited to 1:1 FS replication.
+        // The code will be refactored once 1:n or cascaded FS replication is supported
+        if (!fileMirrors.isEmpty()) {
+            FileShareRestRep fsRestRep = fileMirrors.get(0);
+            fsRestRep.getProtection().setMirrorStatus(targetFileSystems.getMirrorStatus());
         }
-        
+
         renderArgs.put("personality", personality);
         renderArgs.put("fileMirrors", fileMirrors);
         renderArgs.put("fileSystemId", fileSystemId);
@@ -535,44 +534,43 @@ public class FileSystems extends ResourceController {
         return input;
     }
 
-    private static String getOrderedSecurities( String sec) {
-    	// Convert the set of security types to a string separated by comma(,).
+    private static String getOrderedSecurities(String sec) {
+        // Convert the set of security types to a string separated by comma(,).
         Set<String> orderedSecTypes = new TreeSet<String>();
         StringBuffer securityTypes = new StringBuffer();
-        for (String secType : sec.split(",") ){
-        	orderedSecTypes.add(secType);
+        for (String secType : sec.split(",")) {
+            orderedSecTypes.add(secType);
         }
 
         Iterator<String> orderedList = orderedSecTypes.iterator();
         securityTypes.append(orderedList.next().toString());
         while (orderedList.hasNext()) {
-        	securityTypes.append(",").append(orderedList.next().toString());
+            securityTypes.append(",").append(orderedList.next().toString());
         }
         return securityTypes.toString();
     }
 
-    
     public static void fileSystemExportsJson(String id, String path, String sec) {
-    	String security = sec;
-    	// Remove if the security list padded with []!!!
-    	if (sec.startsWith("[") && sec.endsWith("]")) {
-    		security = sec.substring(1, sec.length()-2);
-    	}
+        String security = sec;
+        // Remove if the security list padded with []!!!
+        if (sec.startsWith("[") && sec.endsWith("]")) {
+            security = sec.substring(1, sec.length() - 2);
+        }
         ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, getOrderedSecurities(sec));
         renderJSON(info);
     }
-    
-  public static void fileSystemExportsJson(String id, String path, List<String> sec) {
-    	Iterator<String> secIter = sec.iterator();
-    	StringBuffer security = new StringBuffer(); 
-    	security.append(secIter.next());
-    	while(secIter.hasNext()) {
-    		security.append(",").append(secIter.next());
-    	}
-    	 ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, getOrderedSecurities(security.toString()));
-         renderJSON(info);
+
+    public static void fileSystemExportsJson(String id, String path, List<String> sec) {
+        Iterator<String> secIter = sec.iterator();
+        StringBuffer security = new StringBuffer();
+        security.append(secIter.next());
+        while (secIter.hasNext()) {
+            security.append(",").append(secIter.next());
+        }
+        ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, getOrderedSecurities(security.toString()));
+        renderJSON(info);
     }
-  
+
     public static void fileSystemQuotaJson(String id) {
         ViPRCoreClient client = BourneUtil.getViprClient();
         QuotaDirectoryRestRep quota = client.quotaDirectories().getQuotaDirectory(uri(id));
@@ -668,7 +666,8 @@ public class FileSystems extends ResourceController {
     public static void deleteFileSystemQuotaDirectory(String fileSystemId, String quotaDirectoryId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam(true);
+        // Avoid force delete for quota directory
+        QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam(false);
         Task<QuotaDirectoryRestRep> task = client.quotaDirectories().deleteQuotaDirectory(uri(quotaDirectoryId), param);
         flash.put("info", MessagesUtils.get("resources.filesystem.quota.deactivate"));
 
@@ -795,13 +794,13 @@ public class FileSystems extends ResourceController {
     }
 
     public static void saveQuota(String fileSystemId, String id, Quota quota) {
-        
+
         quota.validate("quota");
-        
+
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-        
+
         ViPRCoreClient client = BourneUtil.getViprClient();
         QuotaDirectoryUpdateParam param = new QuotaDirectoryUpdateParam();
         param.setOpLock(quota.oplock);
@@ -1375,8 +1374,8 @@ public class FileSystems extends ResourceController {
         public void setSize(String size) {
             this.size = size;
         }
-        
-        public void validate(String formName){
+
+        public void validate(String formName) {
             if (StringUtils.isEmpty(size) || !size.matches("^\\d+$")) {
                 Validation.addError(formName + ".size", "resources.filesystem.quota.size.invalid.value");
             }

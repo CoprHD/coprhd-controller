@@ -52,7 +52,6 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -218,7 +217,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 || (param.getUnManagedFileSystems().isEmpty())
                 || (param.getUnManagedFileSystems().get(0).toString().isEmpty())) {
             throw APIException.badRequests
-                    .invalidParameterUnManagedFsListEmpty();
+            .invalidParameterUnManagedFsListEmpty();
         }
 
         if (null == param.getProject() || (param.getProject().toString().length() == 0)) {
@@ -344,6 +343,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                         SupportedFileSystemInformation.MOUNT_PATH.toString(),
                         unManagedFileSystemInformation);
 
+                String nativeId = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.NATIVE_ID.toString(),
+                        unManagedFileSystemInformation);
+
                 String systemType = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.SYSTEM_TYPE.toString(),
                         unManagedFileSystemInformation);
@@ -373,6 +376,13 @@ public class UnManagedFilesystemService extends TaggedResource {
                     continue;
                 }
 
+                // Check for same named File Share in this project
+                if (FileSystemIngestionUtil.checkForDuplicateFSName(_dbClient, project.getId(), deviceLabel, filesystems)) {
+                    _logger.info("File System with name: {}  already exists in given project: {} so, ignoring it.",
+                            deviceLabel, project.getLabel());
+                    continue;
+                }
+
                 // Check to see if UMFS's storagepool's Tagged neighborhood has the "passed in" neighborhood.
                 // if not don't ingest
                 if (null != pool) {
@@ -383,7 +393,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                         _logger.warn(
                                 "UnManaged FileSystem {} storagepool doesn't related to the Virtual Array {}. Skipping Ingestion..",
                                 unManagedFileSystemUri, neighborhood.getId()
-                                        .toString());
+                                .toString());
                         continue;
                     }
                 } else {
@@ -416,6 +426,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setVirtualArray(param.getVarray());
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
+                }
+
+                if (nativeId != null) {
+                    filesystem.setNativeId(nativeId);
                 }
 
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
@@ -493,7 +507,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                             // Step 2 : Convert them to File Export Rule
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
                             rule.setFileSystemId(filesystem.getId()); // Important to relate the exports to a
-                                                                      // FileSystem.
+                            // FileSystem.
                             createRule(rule, fsExportRules);
                             // Step 4: Update the UnManaged Exports : Set Inactive as true
                             rule.setInactive(true);
@@ -521,7 +535,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                             // Step 2 : Convert them to Cifs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
                             umCifsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
-                                                                           // FileSystem.
+                            // FileSystem.
                             createACL(umCifsAcl, fsCifsShareAcls, filesystem);
                             // Step 4: Update the UnManaged Share ACL : Set Inactive as true
                             umCifsAcl.setInactive(true);
@@ -540,7 +554,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
 
                             umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
-                                                                          // FileSystem.
+                            // FileSystem.
                             if (umNfsAcl.getPermissions().isEmpty()) {
                                 continue;
                             }
@@ -680,15 +694,15 @@ public class UnManagedFilesystemService extends TaggedResource {
 
             quotaDirectory.setSoftLimit(
                     unManagedFileQuotaDirectory.getSoftLimit() != null && unManagedFileQuotaDirectory.getSoftLimit() != 0
-                            ? unManagedFileQuotaDirectory.getSoftLimit()
+                    ? unManagedFileQuotaDirectory.getSoftLimit()
                             : parentFS.getSoftLimit() != null ? parentFS.getSoftLimit().intValue() : 0);
             quotaDirectory.setSoftGrace(
                     unManagedFileQuotaDirectory.getSoftGrace() != null && unManagedFileQuotaDirectory.getSoftGrace() != 0
-                            ? unManagedFileQuotaDirectory.getSoftGrace()
+                    ? unManagedFileQuotaDirectory.getSoftGrace()
                             : parentFS.getSoftGracePeriod() != null ? parentFS.getSoftGracePeriod() : 0);
             quotaDirectory.setNotificationLimit(
                     unManagedFileQuotaDirectory.getNotificationLimit() != null && unManagedFileQuotaDirectory.getNotificationLimit() != 0
-                            ? unManagedFileQuotaDirectory.getNotificationLimit()
+                    ? unManagedFileQuotaDirectory.getNotificationLimit()
                             : parentFS.getNotificationLimit() != null ? parentFS.getNotificationLimit().intValue() : 0);
             String convertedName = unManagedFileQuotaDirectory.getLabel().replaceAll("[^\\dA-Za-z_]", "");
             _logger.info("FileService::QuotaDirectory Original name {} and converted name {}", unManagedFileQuotaDirectory.getLabel(),
@@ -714,7 +728,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             _dbClient.updateObject(unManagedFileQuotaDirectories);
             _logger.info("ingested {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
         }
-        
+
     }
 
     private void createRule(UnManagedFileExportRule orig, List<FileExportRule> fsExportRules) {
@@ -1048,7 +1062,7 @@ public class UnManagedFilesystemService extends TaggedResource {
      */
     public void recordBourneFileSystemEvent(DbClient dbClient,
             String evtType, Operation.Status status, String desc, URI id)
-            throws Exception {
+                    throws Exception {
 
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
@@ -1249,7 +1263,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 auditType,
                 System.currentTimeMillis(),
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
-                description,
-                descparams);
+                        description,
+                        descparams);
     }
 }

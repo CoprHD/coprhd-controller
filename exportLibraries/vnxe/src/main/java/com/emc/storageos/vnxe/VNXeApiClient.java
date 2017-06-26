@@ -1822,7 +1822,7 @@ public class VNXeApiClient {
 
             } else if (!needReattach &&
                     (accessMask == HostLUNAccessEnum.BOTH.getValue() ||
-                            accessMask == HostLUNAccessEnum.SNAPSHOT.getValue())) {
+                    accessMask == HostLUNAccessEnum.SNAPSHOT.getValue())) {
                 needReattach = true;
             }
             changedHostAccessList.add(hostAccess);
@@ -2381,8 +2381,8 @@ public class VNXeApiClient {
     /**
      * create tree quota
      * 
-     * @param fsName
-     *            file system name
+     * @param fsID
+     *            file system ID
      * @param quotaName
      *            name of quota to be created
      * @param hardLimit
@@ -2394,24 +2394,23 @@ public class VNXeApiClient {
      * @return VNXeCommandJob
      * @throws VNXeException
      */
-    public VNXeCommandJob createQuotaDirectory(final String fsName, final String quotaName,
+    public VNXeCommandJob createQuotaDirectory(final String fsID, final String quotaName,
             final Long hardLimit, final Long softLimit, final long softGrace) throws VNXeException {
 
-        _logger.info("Creating quota directory with path: {} for fs: {}",
-                "/" + quotaName, fsName);
+        _logger.info("Creating quota directory with path: {} for fs ID: {}",
+                "/" + quotaName, fsID);
 
         FileSystemQuotaCreateParam param = new FileSystemQuotaCreateParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
         if (softGrace > 0) {
             qcParam.setGracePeriod(softGrace);
         }
-        FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
         param.setPath("/" + quotaName);
         if (hardLimit > 0) {
             param.setHardLimit(hardLimit);
         }
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
-        param.setFilesystem(fsReq.getByFSName(fsName).getId());
+        param.setFilesystem(fsID);
         if (softLimit > 0) {
             param.setSoftLimit(softLimit);
         }
@@ -2897,4 +2896,5 @@ public class VNXeApiClient {
         BlockLunRequests req = new BlockLunRequests(_khClient);
         return req.checkLunExists(lunId);
     }
+
 }

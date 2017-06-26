@@ -20,9 +20,9 @@ import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
@@ -279,7 +279,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 fsChanged = true;
                             }
                             if (null != fileSystem.getSoftLimit()) { // if softlimit is set then get the value for
-                                                                     // softLimitExceeded
+                                // softLimitExceeded
                                 fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                 fsChanged = true;
                             }
@@ -1989,8 +1989,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         try {
             _log.debug("call getIsilonExport for {} ", expId);
             if (expId != null) {
-                exp = isilonApi.getExport(expId.toString());
-                _log.debug("call getIsilonExport {}", exp.toString());
+                if (zoneName != null && !zoneName.isEmpty()) {
+                    exp = isilonApi.getExport(expId.toString(), zoneName);
+                } else {
+                    exp = isilonApi.getExport(expId.toString());
+                }
             }
         } catch (Exception e) {
             _log.error("Exception while getting Export for {}", expId);
@@ -2117,28 +2120,31 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
                         unmanagedNFSAcl.setFileSystemPath(exportPath);
 
-                        String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+                        String trusteeName = tempAcl.getTrustee().getName();
+                        if (trusteeName != null) {
+                            String[] tempUname = StringUtils.split(trusteeName, "\\");
 
-                        if (tempUname.length > 1) {
-                            unmanagedNFSAcl.setDomain(tempUname[0]);
-                            unmanagedNFSAcl.setUser(tempUname[1]);
-                        } else {
-                            unmanagedNFSAcl.setUser(tempUname[0]);
+                            if (tempUname.length > 1) {
+                                unmanagedNFSAcl.setDomain(tempUname[0]);
+                                unmanagedNFSAcl.setUser(tempUname[1]);
+                            } else {
+                                unmanagedNFSAcl.setUser(tempUname[0]);
+                            }
+
+                            unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+                            unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+                            unmanagedNFSAcl.setPermissions(StringUtils.join(
+                                    getIsilonAccessList(tempAcl.getAccessrights()), ","));
+
+                            unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+                            unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+
+                            unManagedNfsACLList.add(unmanagedNFSAcl);
                         }
-
-                        unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
-                        unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
-                        unmanagedNFSAcl.setPermissions(StringUtils.join(
-                                getIsilonAccessList(tempAcl.getAccessrights()), ","));
-
-                        unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
-                        unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
-
-                        unManagedNfsACLList.add(unmanagedNFSAcl);
                     }
                 }
             } catch (Exception ex) {
-                _log.warn("Unble to access NFS ACLs for path {}", exportPath);
+                _log.warn("Unable to access NFS ACLs for path {}", exportPath);
             }
         }
 

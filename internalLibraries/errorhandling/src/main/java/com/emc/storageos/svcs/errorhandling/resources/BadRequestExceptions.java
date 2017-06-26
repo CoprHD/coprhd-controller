@@ -1067,7 +1067,7 @@ public interface BadRequestExceptions {
     public BadRequestException parameterValueIsNotValid(final String parameterName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException parameterValueContainsInvalidCharacters(final String parameterName,final String validCharacters);
+    public BadRequestException parameterValueContainsInvalidCharacters(final String parameterName, final String validCharacters);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException parameterValueCannotBeUpdated(final String parameterName,
@@ -1189,6 +1189,9 @@ public interface BadRequestExceptions {
     public BadRequestException noReplicationRemoteCopies(String replicationType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidFileSystemDeleteType(String delType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException noReplicationTypesSpecified();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1262,6 +1265,12 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
     public BadRequestException resourceCannotBeDeleted(final String resource);
+
+    @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
+    public BadRequestException filesystemDeleteNotSupported(final String delType, final boolean forceDelete);
+
+    @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
+    public BadRequestException quotaDirectoryDeleteNotSupported(final boolean forceDelete);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException resourcedoesNotBelongToClusterTenantOrg(String resource);
@@ -3113,7 +3122,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException deactivateRPTargetNotSupported(final String string);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddProtectionWhenSnapshotsExist(final String volumeLabel);
 }

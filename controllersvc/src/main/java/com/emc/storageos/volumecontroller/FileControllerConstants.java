@@ -25,7 +25,16 @@ public interface FileControllerConstants {
 
     public enum DeleteTypeEnum {
         FULL,
-        VIPR_ONLY,
+        VIPR_ONLY;
+
+        public static boolean lookup(final String name) {
+            for (DeleteTypeEnum value : values()) {
+                if (value.name().equalsIgnoreCase(name)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
 }

@@ -6,15 +6,13 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
-
 @XmlRootElement(name = "rdf_groups")
 public class RDFGroupList {
-    private List<NamedRelatedResourceRep> rdfGroups;
+    private List<RDFGroupRestRep> rdfGroups;
     
     public RDFGroupList() {}
     
-    public RDFGroupList(List<NamedRelatedResourceRep> rdfGroups) {
+    public RDFGroupList(List<RDFGroupRestRep> rdfGroups) {
         this.rdfGroups = rdfGroups;
     }
     /**
@@ -22,14 +20,14 @@ public class RDFGroupList {
      * 
      */
     @XmlElement(name = "rdf_group")
-	public List<NamedRelatedResourceRep> getRdfGroups() {
+	public List<RDFGroupRestRep> getRdfGroups() {
     	 if (rdfGroups == null) {
-         	rdfGroups = new ArrayList<NamedRelatedResourceRep>();
+         	rdfGroups = new ArrayList<RDFGroupRestRep>();
          }
 		return rdfGroups;
 	}
 
-	public void setRdfGroups(List<NamedRelatedResourceRep> rdfGroups) {
+	public void setRdfGroups(List<RDFGroupRestRep> rdfGroups) {
 		this.rdfGroups = rdfGroups;
 	}
 }

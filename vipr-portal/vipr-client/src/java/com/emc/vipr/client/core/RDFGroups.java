@@ -9,10 +9,9 @@ import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.RDFGroupBulkRep;
-import com.emc.storageos.model.block.RDFGroupRestRep;
 import com.emc.storageos.model.rdfgroup.RDFGroupList;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -52,7 +51,7 @@ public class RDFGroups extends BulkExportResources<RDFGroupRestRep> {
      * 
      * @return the list of storage system references.
      */
-    public List<NamedRelatedResourceRep> list() {
+    public List<RDFGroupRestRep> list() {
         RDFGroupList response = client.get(RDFGroupList.class, baseUrl);
         return ResourceUtils.defaultList(response.getRdfGroups());
     }

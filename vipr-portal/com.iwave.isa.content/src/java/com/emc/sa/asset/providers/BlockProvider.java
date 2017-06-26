@@ -88,6 +88,7 @@ import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
@@ -344,7 +345,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("rdfGroup")
     public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx) {
         debug("getting RDF Groups");
-        List<NamedRelatedResourceRep> rdfGroups = api(ctx).rdfGroups().list();
+        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().list();
         return createRDFOptions(null, rdfGroups);
     }
 
@@ -3400,16 +3401,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return ResourceUtils.mapById(client.varrays().getByIds(varrays));
     }
 
-    protected List<AssetOption> createRDFOptions(ViPRCoreClient client, List<NamedRelatedResourceRep> rdfGroups) {
+    protected List<AssetOption> createRDFOptions(ViPRCoreClient client, List<RDFGroupRestRep> rdfGroups) {
         List<AssetOption> options = Lists.newArrayList();
-        for (NamedRelatedResourceRep rdfGroupObject : rdfGroups) {
+        for (RDFGroupRestRep rdfGroupObject : rdfGroups) {
             options.add(createRDFGroupOption(client, rdfGroupObject));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
 
-    protected static AssetOption createRDFGroupOption(ViPRCoreClient client, NamedRelatedResourceRep rdfGroupObject) {
+    protected static AssetOption createRDFGroupOption(ViPRCoreClient client, RDFGroupRestRep rdfGroupObject) {
         String label = rdfGroupObject.getName();
         String name = rdfGroupObject.getName();
         if (StringUtils.isNotBlank(name)) {

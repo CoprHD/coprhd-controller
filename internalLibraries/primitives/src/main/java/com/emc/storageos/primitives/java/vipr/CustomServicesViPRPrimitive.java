@@ -74,6 +74,8 @@ public abstract class CustomServicesViPRPrimitive extends CustomServicesPrimitiv
 
     public abstract String body();
     
+    public abstract String request();
+    
     public abstract String response();
 
 }

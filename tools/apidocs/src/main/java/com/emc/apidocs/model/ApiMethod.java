@@ -21,7 +21,7 @@ public class ApiMethod {
     private static String XML_EXTENSION = "_xml_example.txt";
     private static String JSON_EXTENSION = "_json_example.txt";
     private String fqReturnType;
-    
+    private String fqRequestType;
     public String javaMethodName;
     public boolean isDataService = false;
     public String httpMethod;
@@ -144,5 +144,13 @@ public class ApiMethod {
 
     public void setFqReturnType(final String fqReturnType) {
         this.fqReturnType = fqReturnType;
+    }
+
+    public String getFqRequestType() {
+        return fqRequestType;
+    }
+    
+    public void setFqRequestType(final String fqRequestType) {
+        this.fqRequestType = fqRequestType;
     }
 }

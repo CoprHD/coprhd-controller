@@ -54,30 +54,31 @@ public class StorageSystemStatsProcessor extends CommonStatsProcessor {
         logger.info("Processing storagesystem {} stats response", profile.getSystemId());
         try {
             List<Stat> metricsObjList = (List<Stat>) keyMap.get(Constants._Stats);
-            while (systemStatsResponseItr.hasNext()) {
-                CIMInstance systemStatInstance = (CIMInstance) systemStatsResponseItr
-                        .next();
-                Stat systemStat = new Stat();
-                // HUS VM.211643
-                systemStat.setNativeGuid(getSystemNativeGuid(systemStatInstance, dbClient));
-                systemStat.setResourceId(profile.getSystemId());
-                systemStat.setServiceType(Constants._Block);
-                systemStat.setTimeCollected((Long) keyMap.get(Constants._TimeCollected));
+            if (systemStatsResponseItr != null) {
+                while (systemStatsResponseItr.hasNext()) {
+                    CIMInstance systemStatInstance = (CIMInstance) systemStatsResponseItr
+                            .next();
+                    Stat systemStat = new Stat();
+                    // HUS VM.211643
+                    systemStat.setNativeGuid(getSystemNativeGuid(systemStatInstance, dbClient));
+                    systemStat.setResourceId(profile.getSystemId());
+                    systemStat.setServiceType(Constants._Block);
+                    systemStat.setTimeCollected((Long) keyMap.get(Constants._TimeCollected));
 
-                Long providerCollectionTime = convertCIMStatisticTime(getCIMPropertyValue(systemStatInstance, STATISTICTIME));
+                    Long providerCollectionTime = convertCIMStatisticTime(getCIMPropertyValue(systemStatInstance, STATISTICTIME));
 
-                if (0 != providerCollectionTime) {
-                    systemStat.setTimeInMillis(providerCollectionTime);
-                } else {
-                    systemStat.setTimeInMillis((Long) keyMap.get(Constants._TimeCollected));
+                    if (0 != providerCollectionTime) {
+                        systemStat.setTimeInMillis(providerCollectionTime);
+                    } else {
+                        systemStat.setTimeInMillis((Long) keyMap.get(Constants._TimeCollected));
+                    }
+                    systemStat.setTotalIOs(ControllerUtils.getLongValue(getCIMPropertyValue(
+                            systemStatInstance, TOTALIOS)));
+                    systemStat.setKbytesTransferred(ControllerUtils.getLongValue(getCIMPropertyValue(
+                            systemStatInstance, KBYTESTRANSFERRED)));
+                    metricsObjList.add(systemStat);
                 }
-                systemStat.setTotalIOs(ControllerUtils.getLongValue(getCIMPropertyValue(
-                        systemStatInstance, TOTALIOS)));
-                systemStat.setKbytesTransferred(ControllerUtils.getLongValue(getCIMPropertyValue(
-                        systemStatInstance, KBYTESTRANSFERRED)));
-                metricsObjList.add(systemStat);
             }
-
         } catch (Exception ex) {
             logger.error("Failed while extracting Stats for storage System: ", ex);
         } finally {

@@ -19,11 +19,13 @@ package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.io.File;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
@@ -60,13 +62,13 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
-        provideDetailArgs(step.getId());
+        provideDetailArgs(step.getId(), step.getFriendlyName());
     }
 
 
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId(), step.getFriendlyName());
         final Exec.Result result;
         try {
             final URI scriptid = step.getOperation();
@@ -75,7 +77,8 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             final CustomServicesDBScriptPrimitive primitive = dbClient.queryObject(CustomServicesDBScriptPrimitive.class, scriptid);
             if (null == primitive) {
                 logger.error("Error retrieving script primitive from DB. {} not found in DB", scriptid);
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Error retrieving script primitive from DB.");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Error retrieving script primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
             }
 
@@ -85,7 +88,8 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
                 logger.error("Error retrieving resource for the script primitive from DB. {} not found in DB",
                         primitive.getResource());
 
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Error retrieving resource for the script primitive from DB.");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Error retrieving resource for the script primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
             }
@@ -102,16 +106,18 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
         } catch (final Exception e) {
             logger.error("CS: Could not execute shell script step:{}. Exception:", step.getId(), e);
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Could not execute shell script step"+e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Could not execute shell script step"+e);
 
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
-        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId(), step.getFriendlyName());
 
         if (result == null) {
             logger.error("CS: Script Execution result is null for step:{}", step.getId());
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId()," Script Execution result is null");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    " Script Execution result is null");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
         }
 
@@ -123,21 +129,22 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     // Execute Shell Script resource
 
+    // chroot / bash -c 'arg1=5 arg2=3 sh +x /root/t.sh'
     private Exec.Result executeCmd(final String shellScript) throws Exception {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, shellScript);
         cmd.setChrootCmd(CustomServicesConstants.CHROOT_CMD);
+        cmd.setShellArgs(makeParam(input));
         final String[] cmds = cmd.build();
 
-        //default to no host key checking
-        final Map<String,String> environment = makeParam(input);
-
-        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
+        logger.info("cmd to exec:{}", Arrays.toString(cmds));
+        return Exec.sudo(new File(orderDir), timeout, null, new HashMap<String,String>(), cmds);
     }
 
-    private Map<String,String> makeParam(final Map<String, List<String>> input) throws Exception {
-        final Map<String,String> environment = new HashMap<String,String>();
+    //Format: arg1=5 arg2=3
+    private String makeParam(final Map<String, List<String>> input) throws Exception {
+        final StringBuilder str = new StringBuilder();
         if (input == null) {
-            return environment;
+            return null;
         }
 
         for(Map.Entry<String, List<String>> e : input.entrySet()) {
@@ -146,15 +153,19 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             }
             final List<String> listVal = e.getValue();
             final StringBuilder sb = new StringBuilder();
+            sb.append("\"");
             String prefix = "";
             for (final String val : listVal) {
                 sb.append(prefix);
                 prefix = ",";
                 sb.append(val.replace("\"", ""));
             }
-            environment.put(e.getKey(), sb.toString().trim());
+            sb.append("\"");
+            str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
         }
 
-        return environment;
+        logger.info("CS: Shell arguments:{}", str.toString());
+
+        return str.toString();
     }
 }

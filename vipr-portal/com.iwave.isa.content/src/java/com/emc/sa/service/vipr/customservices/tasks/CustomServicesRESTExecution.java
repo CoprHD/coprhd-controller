@@ -17,26 +17,30 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import javax.ws.rs.core.UriBuilder;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRESTApiPrimitive;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.db.restapi.CustomServicesRESTApiPrimitive;
+import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.api.uri.UriBuilderImpl;
 
 
 
@@ -46,42 +50,39 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
     private final Map<String, List<String>> input;
     private final CustomServicesWorkflowDocument.Step step;
 
-    private final DbClient dbClient;
     private final CoordinatorClient coordinator;
+    private final CustomServicesRESTApiPrimitive primitive;
 
     public CustomServicesRESTExecution(final Map<String, List<String>> input,
-            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator,final DbClient dbClient) {
+            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator, final CustomServicesRESTApiPrimitive primitive) {
         this.input = input;
         this.step = step;
         this.coordinator = coordinator;
-        this.dbClient = dbClient;
-        provideDetailArgs(step.getId());
+        this.primitive = primitive;
+
+        provideDetailArgs(step.getId(), step.getFriendlyName());
     }
 
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
         try {
-            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId());
+            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId(), step.getFriendlyName());
 
-            final CustomServicesDBRESTApiPrimitive restPrimitive = dbClient.queryObject(CustomServicesDBRESTApiPrimitive.class,
-                    step.getOperation());
-            if (null == restPrimitive) {
-                logger.error("Error retrieving the ansible primitive from DB. {} not found in DB", step.getOperation());
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "\"Error retrieving the REST primitive from DB.");
-                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(step.getOperation() + " not found in DB");
-            }
-            final Map<String, String> attrs = restPrimitive.getAttributes();
+            final Map<String, String> attrs = primitive.attributes();
 
             final String authType = attrs.get(CustomServicesConstants.AUTH_TYPE);
             if (StringUtils.isEmpty(authType)) {
                 logger.error("Auth type cannot be undefined");
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Auth type cannot be undefined");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Auth type cannot be undefined");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot find Auth type");
             }
 
-            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, restPrimitive.getAttributes().get(CustomServicesConstants.PROTOCOL),
+            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, attrs.get(CustomServicesConstants.PROTOCOL),
                     AnsibleHelper.getOptions(CustomServicesConstants.USER, input), AnsibleHelper.getOptions(CustomServicesConstants.PASSWORD, input));
-            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(restPrimitive), null);
+            final Map<String, List<InputParameter>> inputKeys = primitive.input() == null ? Collections.emptyMap() : primitive.input();
+            final List<InputParameter> queryParams = inputKeys.get(CustomServicesConstants.QUERY_PARAMS);
+            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(primitive, queryParams).toString());
             final WebResource.Builder builder = BuildRestRequest.makeRequestBuilder(webResource, step, input);
 
             final CustomServicesConstants.RestMethods method =
@@ -91,7 +92,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             switch (method) {
                 case PUT:
                 case POST:
-                    final String body = RESTHelper.makePostBody(restPrimitive.getAttributes().get(CustomServicesConstants.BODY),0, input);
+                    final String body = RESTHelper.makePostBody(primitive.attributes().get(CustomServicesConstants.BODY),0, input);
 
                     result = executeRest(method, body, builder);
                     break;
@@ -99,10 +100,11 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
                     result = executeRest(method, null, builder);
             }
 
-            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo", step.getId());
+            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo", step.getId(), step.getFriendlyName());
             return result;
         } catch (final Exception e) {
-            ExecutionUtils.currentContext().logError("customServicesRESTExecution.doneInfo", "Custom Service Task Failed" + e);
+            ExecutionUtils.currentContext().logError("customServicesRESTExecution.doneInfo", step.getId(), step.getFriendlyName() +
+                    "Custom Service Task Failed" + e);
             logger.error("Exception:", e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
@@ -136,21 +138,32 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
     }
 
-    public String getUrl(final CustomServicesDBRESTApiPrimitive primitive) {
+    public URI getUrl(final CustomServicesRESTApiPrimitive primitive, final List<InputParameter> queryParams) {
 
         final String target = AnsibleHelper.getOptions(CustomServicesConstants.TARGET, input);
-        final String path = primitive.getAttributes().get(CustomServicesConstants.PATH);
-        final String port = AnsibleHelper.getOptions(CustomServicesConstants.PORT, input);
-        final String protocol =  primitive.getAttributes().get(CustomServicesConstants.PROTOCOL);
+        final String path = primitive.attributes().get(CustomServicesConstants.PATH);
+        String port = AnsibleHelper.getOptions(CustomServicesConstants.PORT, input);
+        final String protocol =  primitive.attributes().get(CustomServicesConstants.PROTOCOL);
 
 
-        if (StringUtils.isEmpty(target) || StringUtils.isEmpty(path) || StringUtils.isEmpty(port) || StringUtils.isEmpty(protocol)) {
-            logger.error("target/path/port is not defined. target:{}, path:{}, port:{}", target, path, port);
+        if (StringUtils.isEmpty(target) || StringUtils.isEmpty(path) || StringUtils.isEmpty(protocol)) {
+            logger.error("target/path/port is not defined. target:{}, path:{}, port:{}", target, path);
 
-            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Cannot build URL");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), "Cannot build URL");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot build URL");
         }
 
-        return String.format("%s://%s:%s/%s", protocol, target, port, RESTHelper.makePath(path, input, null));
+        if (StringUtils.isEmpty(port)) {
+            logger.debug("port is not set. use default port: {}", CustomServicesConstants.DEFAULT_HTTPS_PORT);
+            port = CustomServicesConstants.DEFAULT_HTTPS_PORT;
+        }
+        
+        final UriBuilder builder = new UriBuilderImpl();
+        builder.path(RESTHelper.makePath(path, input));
+        builder.scheme(protocol);
+        builder.host(target);
+        builder.port(Integer.parseUnsignedInt(port));
+        RESTHelper.addQueryParams(builder, queryParams, input);
+        return builder.build();
     }
 }

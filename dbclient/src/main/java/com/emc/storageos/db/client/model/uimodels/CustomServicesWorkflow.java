@@ -16,22 +16,23 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
+import java.net.URI;
+import java.util.List;
+
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.IndexByKey;
+import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.valid.EnumType;
 
-import java.net.URI;
-import java.util.List;
-
 /**
  * DB model to represent an custom services workflow document
  */
 @Cf("CustomServicesWorkflow")
-public class CustomServicesWorkflow extends ModelObjectWithACLs {
+public class CustomServicesWorkflow extends ModelObject {
 
     private static final long serialVersionUID = 1L;
 
@@ -76,12 +77,6 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
         setChanged(STEPS);
     }
 
-    @Override
-    public Object[] auditParameters() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     @AlternateId("CustomServicesWorkflowStatusIndex")
     @EnumType(CustomServicesWorkflowStatus.class)
     @Name(STATE)
@@ -122,4 +117,5 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
         }
         setChanged(PRIMITIVES);
     }
+
 }

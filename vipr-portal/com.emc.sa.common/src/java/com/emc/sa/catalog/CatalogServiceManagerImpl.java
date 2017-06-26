@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.emc.storageos.db.client.URIUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -92,7 +93,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
             catalogService.setTitle(customServicesWorkflow.getLabel());
             catalogService.setDescription(customServicesWorkflow.getLabel());
             catalogService.setImage("icon_orchestration.png");
-            catalogService.setBaseService(customServicesWorkflow.getLabel());
+            catalogService.setBaseService(URIUtil.asString(id));
         }
 
         return catalogService;

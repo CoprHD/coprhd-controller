@@ -13,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
-import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -84,15 +83,10 @@ public class ExtendDriveHelper {
 
             String mountPoint = getMountPoint(disk, detail);
 
-            String expectedMountPoint = KnownMachineTags.getBlockVolumeMountPoint(hostId, volume);
-            if (!StringUtils.equalsIgnoreCase(expectedMountPoint, mountPoint)) {
-                ExecutionUtils.fail("failTask.ExtendDriveHelper.mountPointMismatch", new Object[] {}, volume.getWwn(), expectedMountPoint,
-                        mountPoint);
-            }
-
             logInfo("extendDrive.volumeMountPoint", volume.getName(), mountPoint);
             volume2mountPoint.put(volume, mountPoint);
         }
+        WindowsUtils.verifyMountPoints(hostId, volume2mountPoint);
     }
 
     /**
@@ -133,7 +127,7 @@ public class ExtendDriveHelper {
      * @param detail the detail of the disk
      * @return the mount point for the disk.
      */
-    private String getMountPoint(DiskDrive disk, Disk detail) {
+    public static String getMountPoint(DiskDrive disk, Disk detail) {
         if (detail == null) {
             ExecutionUtils.fail("failTask.ExtendDriveHelper.couldNotDetailDisk", disk.getNumber(), disk.getNumber());
         }

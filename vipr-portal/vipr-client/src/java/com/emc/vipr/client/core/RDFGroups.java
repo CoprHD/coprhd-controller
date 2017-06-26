@@ -6,6 +6,7 @@ package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
@@ -51,8 +52,8 @@ public class RDFGroups extends BulkExportResources<RDFGroupRestRep> {
      * 
      * @return the list of storage system references.
      */
-    public List<RDFGroupRestRep> list() {
-        RDFGroupList response = client.get(RDFGroupList.class, baseUrl);
+    public List<RDFGroupRestRep> list(URI virtualPoolId) {
+        RDFGroupList response = client.get(RDFGroupList.class, baseUrl, virtualPoolId);
         return ResourceUtils.defaultList(response.getRdfGroups());
     }
 

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.StringTokenizer;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
@@ -343,9 +344,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      * @return
      */
     @Asset("rdfGroup")
-    public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx) {
+    @AssetDependencies("blockVirtualPool")
+    public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx, URI vpool) {
         debug("getting RDF Groups");
-        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().list();
+        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().list(vpool);
         return createRDFOptions(null, rdfGroups);
     }
 
@@ -3413,8 +3415,29 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     protected static AssetOption createRDFGroupOption(ViPRCoreClient client, RDFGroupRestRep rdfGroupObject) {
         String label = rdfGroupObject.getName();
         String name = rdfGroupObject.getName();
+        final String token = "+";
         if (StringUtils.isNotBlank(name)) {
-            label = String.format("%s: %s", name, label);
+            StringBuffer sb = new StringBuffer();
+            //     1           2          3            4        5       6        7
+            // SYMMETRIX+000196701343+REMOTEGROUP+000196701343+190+000196701405+190
+            StringTokenizer st = new StringTokenizer(rdfGroupObject.getNativeGuid(), token);
+            sb.append(name + ": ");
+            try {
+                st.nextToken(); // 1
+                st.nextToken(); // 2
+                st.nextToken(); // 3
+                sb.append(st.nextToken()); // 4
+                sb.append(" -> ");
+                st.nextToken(); // 5
+                sb.append(st.nextToken()); // 6
+            } catch (Exception e) {
+                // Native GUID is missing some fields, or the format changed.  Log and swallow.
+                log.error("Missing native GUID fields not in format: SYMMETRIX+000196701343+REMOTEGROUP+000196701343+190+000196701405+190");
+                if (rdfGroupObject.getNativeGuid() != null) {
+                    log.error("Native GUID for RDF Group: " + rdfGroupObject.getNativeGuid());                    
+                }
+            }
+            label = sb.toString();
         }
         return new AssetOption(rdfGroupObject.getId(), label);
     }

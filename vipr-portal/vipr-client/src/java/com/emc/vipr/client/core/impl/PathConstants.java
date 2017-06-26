@@ -65,8 +65,8 @@ public class PathConstants {
             + "/{storageSystemId}/storage-ports";
     public static final String AUTO_TIER_BY_STORAGE_SYSTEM_URL = STORAGE_SYSTEM_URL
             + "/{storageSystemId}/auto-tier-policies";
-    public static final String RDF_GROUPS_URL = STORAGE_SYSTEM_URL
-            + "/rdfgroups";
+    public static final String RDF_GROUPS_URL = BLOCK_VPOOL_URL
+            + "/{id}/rdfgroups";
     public static final String STORAGE_POOL_URL = "/vdc/storage-pools";
     public static final String STORAGE_TIER_BY_STORAGE_POOL = STORAGE_POOL_URL + "/{id}/storage-tiers";
     public static final String STORAGE_TIER_URL = "/vdc/storage-tiers";

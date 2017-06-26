@@ -53,7 +53,7 @@ public class CustomServicesWorkflowManagerImpl implements
     }
 
     @Override
-    public List<CustomServicesWorkflow> getByName(final String name) {
+    public List<CustomServicesWorkflow> getByNameOrId(final String name) {
         if (null == name) {
             return null;
         }

@@ -390,7 +390,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     public String getWorkflowDocument(String workflowName) {
         if( null == workflowName || workflowName.isEmpty()) return null;
         
-        final List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(workflowName);
+        final List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByNameOrId(workflowName);
         if(null == results || results.isEmpty()) {
             return null;
         }

@@ -69,7 +69,7 @@ public class WorkflowServiceDescriptor {
 
     public ServiceDescriptor getDescriptor(String serviceName) {
         log.debug("Getting workflow descriptor for {}", serviceName);
-        List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(serviceName);
+        List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByNameOrId(serviceName);
         if (null == results || results.isEmpty()) {
             throw new IllegalStateException(String.format("No workflow with the name %s", serviceName));
         }

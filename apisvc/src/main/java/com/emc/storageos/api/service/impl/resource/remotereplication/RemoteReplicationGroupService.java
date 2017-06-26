@@ -77,7 +77,6 @@ import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreatePar
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
-import com.emc.storageos.model.remotereplication.RemoteReplicationPairBulkRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -923,4 +922,5 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     public RemoteReplicationGroupBulkRep getBulkResources(BulkIdParam param) {
         return (RemoteReplicationGroupBulkRep) super.getBulkResources(param);
     }
+
 }

@@ -4,15 +4,22 @@
  */
 package com.emc.vipr.client.core;
 
+import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
+
 import java.net.URI;
+import java.util.List;
+
 import javax.ws.rs.core.UriBuilder;
 
+import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
+import com.emc.storageos.model.remotereplication.RemoteReplicationSetBulkRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
@@ -23,23 +30,21 @@ import com.emc.vipr.client.impl.RestClient;
  *
  * @see RemoteReplicationGroupRestRep
  */
-public class RemoteReplicationSets {
-    
-    private RestClient client;
+public class RemoteReplicationSets  extends BulkExportResources<RemoteReplicationSetRestRep> {
 
-	public RemoteReplicationSets(RestClient client) {
-		this.client = client;
-	}
+    public RemoteReplicationSets(ViPRCoreClient parent, RestClient client) {
+        super(parent, client, RemoteReplicationSetRestRep.class, PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL);
+    }
 
-	public RemoteReplicationSetRestRep getRemoteReplicationSetsRestRep(String uuid) {
+    public RemoteReplicationSetRestRep getRemoteReplicationSetsRestRep(String uuid) {
         return client.get(RemoteReplicationSetRestRep.class,
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + uuid);
-	}
+    }
 
     public RemoteReplicationSetList listRemoteReplicationSets() {
-		return client.get(RemoteReplicationSetList.class,
+        return client.get(RemoteReplicationSetList.class,
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL);
-	}
+    }
 
     public RemoteReplicationSetList listRemoteReplicationSets(URI varray, URI vpool) {
         return client.get(RemoteReplicationSetList.class,
@@ -74,5 +79,11 @@ public class RemoteReplicationSets {
     public RemoteReplicationPairList listRemoteReplicationPairs(URI setId) {
         return client.get(RemoteReplicationPairList.class,
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/pairs");
+    }
+
+    public List<RemoteReplicationSetRestRep> getBulkResources(BulkIdParam input) {
+        RemoteReplicationSetBulkRep response = client.post(RemoteReplicationSetBulkRep.class, input, getBulkUrl());
+        return defaultList(response.getSets());
+
     }
 }

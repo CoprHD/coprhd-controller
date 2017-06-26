@@ -273,7 +273,7 @@ public class ViPRCoreClient {
     }
 
     public RemoteReplicationSets remoteReplicationSets() {
-        return new RemoteReplicationSets(client);
+        return new RemoteReplicationSets(this, client);
     }
 
     public RemoteReplicationPairs remoteReplicationPairs() {

@@ -452,7 +452,8 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             }
             break;
         case "RemoteReplicationSet":
-            List<RemoteReplicationSetRestRep> sets = new ArrayList<>();  // TODO: get all sets
+            List<RemoteReplicationSetRestRep> sets = client.remoteReplicationSets().
+                    getBulkResources(getBulkIds(options));
             for(AssetOption option: options) {
                 for (RemoteReplicationSetRestRep set : sets) {
                     if(set.getId().toString().equals(option.key)) {

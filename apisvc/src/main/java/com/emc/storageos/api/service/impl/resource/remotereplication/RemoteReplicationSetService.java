@@ -33,8 +33,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.api.mapper.functions.MapRemoteReplicationSet;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
+import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
@@ -50,6 +52,7 @@ import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGrou
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
@@ -58,6 +61,7 @@ import com.emc.storageos.model.block.NamedRelatedBlockConsistencyGroupRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
+import com.emc.storageos.model.remotereplication.RemoteReplicationSetBulkRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
@@ -98,6 +102,19 @@ public class RemoteReplicationSetService extends TaskResourceService {
     @Override
     public String getServiceType() {
         return SERVICE_TYPE;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<RemoteReplicationSet> getResourceClass() {
+        return RemoteReplicationSet.class;
+    }
+
+    @Override
+    public RemoteReplicationSetBulkRep queryBulkResourceReps(List<URI> ids) {
+        Iterator<RemoteReplicationSet> _dbIterator =
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        return new RemoteReplicationSetBulkRep(BulkList.wrapping(_dbIterator, MapRemoteReplicationSet.getInstance()));
     }
 
     public RemoteReplicationGroupService getRrGroupService() {
@@ -779,5 +796,13 @@ public class RemoteReplicationSetService extends TaskResourceService {
         return null;
     }
 
+    @POST
+    @Path("/bulk")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Override
+    public RemoteReplicationSetBulkRep getBulkResources(BulkIdParam param) {
+        return (RemoteReplicationSetBulkRep) super.getBulkResources(param);
+    }
 
 }

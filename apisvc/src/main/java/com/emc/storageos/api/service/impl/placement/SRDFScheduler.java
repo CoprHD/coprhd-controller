@@ -371,6 +371,9 @@ public class SRDFScheduler implements Scheduler {
 
         // Fire business rules to determine which SRDFPoolMappings can be eliminated
         // from consideration for placement.
+        
+        // TODO: Add logic to this list that reduces down to the src and destination of the
+        // RA Group selected..... vvvvvvvvvvvv
         Set<SRDFPoolMapping> srcDestPoolsList = fireSRDFPlacementRules(tmpDestPoolsList,
                 capabilities.getResourceCount());
 

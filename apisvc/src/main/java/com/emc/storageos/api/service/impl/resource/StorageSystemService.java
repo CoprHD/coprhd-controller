@@ -103,7 +103,6 @@ import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.ports.StoragePortRequestParam;
 import com.emc.storageos.model.ports.StoragePortRestRep;
-import com.emc.storageos.model.rdfgroup.RDFGroupList;
 import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.systems.StorageSystemBulkRep;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
@@ -824,26 +823,6 @@ public class StorageSystemService extends TaskResourceService {
         return systemsList;
     }
 
-    /**
-     * Gets the RDF Groups
-     * 
-     * @brief List storage systems
-     * @return A reference to a StorageSystemList.
-     */
-    @GET
-    @Path("/rdfgroups")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public RDFGroupList getRDFGroups() {
-        RDFGroupList rdfGroupList = new RDFGroupList();
-
-        List<URI> ids = _dbClient.queryByType(RemoteDirectorGroup.class, true);
-        Iterator<RemoteDirectorGroup> iter = _dbClient.queryIterativeObjects(RemoteDirectorGroup.class, ids);
-        while (iter.hasNext()) {
-            rdfGroupList.getRdfGroups().add(toNamedRelatedResource(iter.next()));
-        }
-        return rdfGroupList;
-    }
 
     /**
      * Get information about the registered storage system with the passed id.
@@ -1240,39 +1219,6 @@ public class StorageSystemService extends TaskResourceService {
             }
         }
         return poolList;
-    }
-
-    /**
-     * Get All RA Groups
-     * 
-     * @param id
-     * @brief List RDF groups names in a storage system 
-     * @return
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/rdf-groups")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public RDFGroupList getAllRAGroups(@PathParam("id") URI id) {
-
-        // Make sure storage system is registered.
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
-        StorageSystem system = queryResource(id);
-        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
-
-        RDFGroupList rdfGroupList = new RDFGroupList();
-        URIQueryResultList rdfGroupURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceRemoteGroupsConstraint(id),
-                rdfGroupURIs);
-        Iterator<URI> rdfGroupIter = rdfGroupURIs.iterator();
-        while (rdfGroupIter.hasNext()) {
-            URI rdfGroupURI = rdfGroupIter.next();
-            RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, rdfGroupURI);
-            if (rdfGroup != null && !rdfGroup.getInactive()) {
-                rdfGroupList.getRdfGroups().add(toNamedRelatedResource(rdfGroup, rdfGroup.getNativeGuid()));
-            }
-        }
-        return rdfGroupList;
     }
 
     /**

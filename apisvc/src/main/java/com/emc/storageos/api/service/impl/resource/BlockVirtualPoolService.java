@@ -19,8 +19,10 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.SystemsMapper.map;
 import static com.emc.storageos.api.mapper.VirtualPoolMapper.toBlockVirtualPool;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,7 +44,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,12 +51,14 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.cinder.QosService;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.QosSpecification;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -77,6 +80,8 @@ import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
+import com.emc.storageos.model.rdfgroup.RDFGroupList;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolBulkRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionUpdateParam;
@@ -102,6 +107,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -572,6 +578,77 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                 VirtualPool.getRemoteProtectionSettings(vpool, _dbClient));
     }
 
+
+    /**
+     * Gets the RDF Groups
+     * 
+     * @brief List RDF groups that apply to this vpool
+     * @return A reference to a StorageSystemList.
+     */
+    @GET
+    @Path("/{id}/rdfgroups")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public RDFGroupList getRDFGroups(@PathParam("id") URI vpoolId) {
+        RDFGroupList rdfGroupList = new RDFGroupList();
+
+        // This is slow, consider refactoring.
+        List<URI> ids = _dbClient.queryByType(RemoteDirectorGroup.class, true);
+        Iterator<RemoteDirectorGroup> iter = _dbClient.queryIterativeObjects(RemoteDirectorGroup.class, ids);
+        VirtualPool vpool = null;
+        String vpoolCopyMode = null;
+        if (vpoolId != null) {
+            vpool = _dbClient.queryObject(VirtualPool.class, vpoolId);
+            if (vpool != null && !VirtualPool.vPoolSpecifiesSRDF(vpool)) {
+                // The virtual pool doesn't specify SRDF
+                return rdfGroupList;
+            }
+            
+            Map<URI, VpoolRemoteCopyProtectionSettings> ps = VirtualPool.getRemoteProtectionSettings(vpool, _dbClient);
+            
+            // Get the copy mode out of the first entry
+            vpoolCopyMode = ps.values().iterator().next().getCopyMode();
+        }
+
+        while (iter.hasNext()) {
+            RemoteDirectorGroup rdg = iter.next();
+            
+            // Intentionally broken down logic for easy readability and debuggability
+            if (vpool == null) {
+                rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
+            } else if (rdg.getSupportedCopyMode().equalsIgnoreCase(RemoteDirectorGroup.SupportedCopyModes.ALL.name())) {
+                // Check to see if the RDG supports all copy modes
+                rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
+            } else if (vpoolCopyMode.equalsIgnoreCase(rdg.getSupportedCopyMode())) {
+                // Check to see if the RDG supports the exact copy mode
+                rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
+            }
+        }
+        
+        return rdfGroupList;
+    }
+    
+    private RDFGroupRestRep toRDFGroupRep(RemoteDirectorGroup rdfGroup, DbClient dbClient,
+            CoordinatorClient coordinator) {
+
+        List<URI> volumeList = new ArrayList<URI>();
+        StringSet volumes = rdfGroup.getVolumes();
+        if (volumes != null) {
+            for (String volNativeGuid : volumes) {
+                try {
+                    Volume vol = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, volNativeGuid);
+                    if (vol != null && vol.isSRDFSource()) {
+                        volumeList.add(vol.getId());
+                    }
+                } catch (IOException e) {
+                    _log.error(e.getMessage(), e);
+                }
+            }
+        }
+
+        return map(rdfGroup, volumeList);
+    }
+    
     /**
      * Updates the virtual pool high availability parameters based
      * values of the update request.

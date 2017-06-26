@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.windows;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
+import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -30,13 +32,15 @@ public class ExtendDriveHelper {
 
     private long volumeSizeInBytes;
 
+    private URI hostId;
+
     private boolean foundClusteredVolume = false;
 
-    public static List<ExtendDriveHelper> createHelpers(List<WindowsSystemWinRM> windowsSystems, long volumeSizeInBytes) {
+    public static List<ExtendDriveHelper> createHelpers(URI hostId, List<WindowsSystemWinRM> windowsSystems, long volumeSizeInBytes) {
         List<ExtendDriveHelper> helpers = Lists.newArrayList();
         for (WindowsSystemWinRM windowsSystem : windowsSystems) {
             WindowsSupport windowsSupport = new WindowsSupport(windowsSystem);
-            ExtendDriveHelper extendDriveHelper = new ExtendDriveHelper(windowsSupport, volumeSizeInBytes);
+            ExtendDriveHelper extendDriveHelper = new ExtendDriveHelper(hostId, windowsSupport, volumeSizeInBytes);
             BindingUtils.bind(extendDriveHelper, ExecutionUtils.currentContext().getParameters());
             helpers.add(extendDriveHelper);
         }
@@ -44,7 +48,8 @@ public class ExtendDriveHelper {
         return helpers;
     }
 
-    private ExtendDriveHelper(WindowsSupport windowsSupport, long volumeSizeInBytes) {
+    private ExtendDriveHelper(URI hostId, WindowsSupport windowsSupport, long volumeSizeInBytes) {
+        this.hostId = hostId;
         windows = windowsSupport;
         this.volumeSizeInBytes = volumeSizeInBytes;
     }
@@ -78,6 +83,12 @@ public class ExtendDriveHelper {
             windows.checkPartitionRestriction(disk, volumeSizeInBytes);
 
             String mountPoint = getMountPoint(disk, detail);
+
+            String expectedMountPoint = KnownMachineTags.getBlockVolumeMountPoint(hostId, volume);
+            if (!StringUtils.equalsIgnoreCase(expectedMountPoint, mountPoint)) {
+                ExecutionUtils.fail("failTask.ExtendDriveHelper.mountPointMismatch", new Object[] {}, volume.getWwn(), expectedMountPoint,
+                        mountPoint);
+            }
 
             logInfo("extendDrive.volumeMountPoint", volume.getName(), mountPoint);
             volume2mountPoint.put(volume, mountPoint);

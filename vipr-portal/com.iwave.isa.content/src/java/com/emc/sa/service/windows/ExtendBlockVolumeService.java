@@ -25,9 +25,10 @@ public class ExtendBlockVolumeService extends WindowsService {
 
     private List<ExtendDriveHelper> extendDriveHelpers;
 
+    @Override
     public void init() throws Exception {
         super.init();
-        extendDriveHelpers = ExtendDriveHelper.createHelpers(windowsSystems, getVolumeCapacityInBytes(sizeInGb));
+        extendDriveHelpers = ExtendDriveHelper.createHelpers(hostId, windowsSystems, getVolumeCapacityInBytes(sizeInGb));
     }
 
     @Override

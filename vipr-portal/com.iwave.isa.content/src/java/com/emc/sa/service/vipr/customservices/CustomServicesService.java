@@ -162,7 +162,7 @@ public class CustomServicesService extends ViPRService {
                 + "Failed. Failing the Workflow");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Workflow Execution failed");
             }
-            if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.TIMEOUT) {
+            if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.WORKFLOW_TIMEOUT) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
             }
         }

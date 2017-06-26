@@ -302,6 +302,19 @@ public class SRDFScheduler implements Scheduler {
             _blockScheduler.sortPools(candidatePools);
         }
 
+        // If an RDF group is specified, filter out candidate pools that don't belong to that storage system
+        if (capabilities.getRDFGroup() != null) {
+            Iterator<StoragePool> spItr = candidatePools.iterator();
+            RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, URI.create(capabilities.getRDFGroup()));
+            while (spItr.hasNext()) {
+                StoragePool sp = spItr.next();
+                if (!sp.getStorageDevice().equals(rdfGroup.getSourceStorageSystemUri())) {
+                    spItr.remove();
+                    _log.info("Removing storage pool " + sp.getNativeId() + " from consideration since RDF Group was selected.");
+                }
+            }
+        }
+        
         List<VirtualArray> targetVarrays = getTargetVirtualArraysForVirtualPool(project, vpool,
                 _dbClient, _permissionsHelper);
 
@@ -342,10 +355,26 @@ public class SRDFScheduler implements Scheduler {
 
         }
 
+        
+        
         // Reduce the source and target pool down to the pools available via target.
         Set<SRDFPoolMapping> tmpDestPoolsList = getSRDFPoolMappings(varray, candidatePools,
                 varrayPoolMap, vpool, vpoolChangeVolume, capabilities.getSize());
 
+        // If an RDF group is specified, filter out target pools that don't belong to that storage system
+        if (capabilities.getRDFGroup() != null) {
+            Iterator<SRDFPoolMapping> spmItr = tmpDestPoolsList.iterator();
+            RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, URI.create(capabilities.getRDFGroup()));
+            while (spmItr.hasNext()) {
+                SRDFPoolMapping sp = spmItr.next();
+                if (!sp.sourceStoragePool.getStorageDevice().equals(rdfGroup.getSourceStorageSystemUri()) ||
+                    !sp.destStoragePool.getStorageDevice().equals(rdfGroup.getRemoteStorageSystemUri())) {
+                    spmItr.remove();
+                    _log.info("Removing pool mapping from consideration since RDF Group was selected: " + sp.toString());
+                }
+            }
+        }
+        
         if (tmpDestPoolsList == null || tmpDestPoolsList.isEmpty()) {
             // There are no target pools from any of the target varrays that share the
             // same SRDF connectivity as any of the source varray pools. Placement cannot

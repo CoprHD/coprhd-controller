@@ -595,6 +595,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         // This is slow, consider refactoring.
         List<URI> ids = _dbClient.queryByType(RemoteDirectorGroup.class, true);
         Iterator<RemoteDirectorGroup> iter = _dbClient.queryIterativeObjects(RemoteDirectorGroup.class, ids);
+        Set<URI> vpoolStorageSystemIds = new HashSet<>();
         VirtualPool vpool = null;
         String vpoolCopyMode = null;
         if (vpoolId != null) {
@@ -608,20 +609,27 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             
             // Get the copy mode out of the first entry
             vpoolCopyMode = ps.values().iterator().next().getCopyMode();
+
+            // Find storage systems associated with the virtual pool matched pools, compare to source RDF group storage systems.
+            for (StoragePool pool : VirtualPool.getValidStoragePools(vpool, _dbClient, false)) {
+                vpoolStorageSystemIds.add(pool.getStorageDevice());
+            }
         }
 
         while (iter.hasNext()) {
             RemoteDirectorGroup rdg = iter.next();
-            
+
             // Intentionally broken down logic for easy readability and debuggability
             if (vpool == null) {
                 rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
-            } else if (rdg.getSupportedCopyMode().equalsIgnoreCase(RemoteDirectorGroup.SupportedCopyModes.ALL.name())) {
-                // Check to see if the RDG supports all copy modes
-                rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
-            } else if (vpoolCopyMode.equalsIgnoreCase(rdg.getSupportedCopyMode())) {
-                // Check to see if the RDG supports the exact copy mode
-                rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
+            } else if (vpoolStorageSystemIds.contains(rdg.getSourceStorageSystemUri())) {
+                if (rdg.getSupportedCopyMode().equalsIgnoreCase(RemoteDirectorGroup.SupportedCopyModes.ALL.name())) {
+                    // Check to see if the RDG supports all copy modes
+                    rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
+                } else if (vpoolCopyMode.equalsIgnoreCase(rdg.getSupportedCopyMode())) {
+                    // Check to see if the RDG supports the exact copy mode
+                    rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
+                }
             }
         }
         

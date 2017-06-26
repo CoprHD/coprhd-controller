@@ -3436,6 +3436,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 if (rdfGroupObject.getNativeGuid() != null) {
                     log.error("Native GUID for RDF Group: " + rdfGroupObject.getNativeGuid());                    
                 }
+                sb = new StringBuffer();
+                sb.append(name);
             }
             label = sb.toString();
         }

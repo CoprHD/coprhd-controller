@@ -34,7 +34,6 @@ import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.core.RemoteReplicationSets;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -61,14 +60,14 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getRemoteReplicationModes(AssetOptionsContext ctx,
             URI virtualArrayId, URI virtualPoolId) {
         List<AssetOption> options = new ArrayList<>();
+        ViPRCoreClient coreClient = api(ctx);
 
-        NamedRelatedResourceRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
-
+        NamedRelatedResourceRep rrSet = getRrSet(coreClient,virtualArrayId, virtualPoolId);
         if (rrSet == null) {
             return options; // no sets or remote replication not supported
         }
 
-        RemoteReplicationSetRestRep rrSetObj = getClient(ctx).
+        RemoteReplicationSetRestRep rrSetObj = coreClient.remoteReplicationSets().
                 getRemoteReplicationSetsRestRep(rrSet.getId().toString());
 
         for(String mode : rrSetObj.getSupportedReplicationModes()) {
@@ -91,16 +90,16 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getRemoteReplicationGroupForVarrayVpool(AssetOptionsContext ctx,
             URI virtualArrayId, URI virtualPoolId) {
 
-        NamedRelatedResourceRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
-
+        ViPRCoreClient coreClient = api(ctx);
+        NamedRelatedResourceRep rrSet = getRrSet(coreClient,virtualArrayId, virtualPoolId);
         if (rrSet == null) {
             return new ArrayList<>(); // no sets or remote replication not supported
         }
 
-        List<AssetOption> options = createNamedResourceOptions(getClient(ctx).
+        List<AssetOption> options = createNamedResourceOptions(coreClient.remoteReplicationSets().
                 getGroupsForSet(rrSet.getId()).getRemoteReplicationGroups());
 
-        AssetOptionsUtils.sortOptionsByLabel(addStateAndModeToOptionNames(options,api(ctx)));
+        AssetOptionsUtils.sortOptionsByLabel(addStateAndModeToOptionNames(options,coreClient));
         return options;
     }
 
@@ -112,12 +111,16 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      */
     @Asset("storageSystemType")
     public List<AssetOption> getStorageSystemType(AssetOptionsContext ctx) {
-        ViPRCoreClient client = api(ctx);
+        return getStorageSystemTypeOptions(api(ctx));
+    }
+
+    /*
+     * go get the storage system types
+     */
+    private List<AssetOption> getStorageSystemTypeOptions(ViPRCoreClient coreClient) {
         List<AssetOption> options = new ArrayList<>();
-
-        List<StorageSystemRestRep> storageSystems = client.storageSystems().getAll();
-
-        Map<String,String> typeIds = getStorageSystemTypeMap(client);
+        List<StorageSystemRestRep> storageSystems = coreClient.storageSystems().getAll();
+        Map<String,String> typeIds = getStorageSystemTypeMap(coreClient);
 
         for (StorageSystemRestRep storageSystem : storageSystems) {
             String type = storageSystem.getSystemType();
@@ -126,7 +129,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
                 typeIds.remove(type); // to prevent duplicates
             }
         }
-        validateStorageSystemTypes(options,ctx,null);
+        validateStorageSystemTypes(options,coreClient,null);
         return options;
     }
 
@@ -134,11 +137,14 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * Return menu options for the storage system types (e.g.: VNX, etc)
      * of discovered storage systems, but exclude VMAX
      *
+     * TODO: filter out all native array types not managed by SB SDK, & 3rd party arrays if RR profile not supported by driver
+     *
      * @return  list of asset options for catalog service order form
      */
     @Asset("storageSystemTypeNoVmax")
     public List<AssetOption> getStorageSystemTypeNoVmax(AssetOptionsContext ctx) {
-        List<AssetOption> options = getStorageSystemType(ctx); // use existing provider method
+        ViPRCoreClient coreClient = api(ctx);
+        List<AssetOption> options = getStorageSystemTypeOptions(coreClient); // use existing provider method
         String vmaxTypeName = StorageSystem.Type.vmax.name();
         Iterator<AssetOption> itr = options.iterator();
         while (itr.hasNext()) {
@@ -147,17 +153,17 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
                 break;
             }
         }
-        validateStorageSystemTypes(options,ctx,Arrays.asList(vmaxTypeName));
+        validateStorageSystemTypes(options,coreClient,Arrays.asList(vmaxTypeName));
         return options;
     }
 
     /*
      * Throw exception if no Types available
      */
-    private void validateStorageSystemTypes(List<AssetOption> options, AssetOptionsContext ctx, List<String> typesToOmit) {
+    private void validateStorageSystemTypes(List<AssetOption> options, ViPRCoreClient coreClient, List<String> typesToOmit) {
         if (options.isEmpty()) {
             StringBuffer types = new StringBuffer();
-            for (StorageSystemTypeRestRep type: getSupportedStorageSystemTypes(api(ctx))) {
+            for (StorageSystemTypeRestRep type: getSupportedStorageSystemTypes(coreClient)) {
                 if ((typesToOmit == null) || !typesToOmit.contains(type.getStorageTypeName())) {
                     types.append(type.getStorageTypeName() + ", ");
                 }
@@ -179,17 +185,17 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("storageSystemTypeNoVmax")
     public List<AssetOption> getSourceStorageSystem(AssetOptionsContext ctx,
             String storageSystemTypeId) {
-        ViPRCoreClient client = api(ctx);
+        ViPRCoreClient coreClient = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        List<StorageSystemRestRep> allStorageSystems = client.storageSystems().getAll();
-        Map<String,String> typeIds = getStorageSystemTypeMap(client);
+        List<StorageSystemRestRep> allStorageSystems = coreClient.storageSystems().getAll();
+        Map<String,String> typeIds = getStorageSystemTypeMap(coreClient);
 
         // find source systems in all sets
-        List<NamedRelatedResourceRep> rrSets = getRrSets(ctx);
+        List<NamedRelatedResourceRep> rrSets = getRrSets(coreClient);
         List<String> sourceSystemsFromSets = new ArrayList<>();
         for(NamedRelatedResourceRep rrSet: rrSets) {
 
-            RemoteReplicationSetRestRep rrSetObj = client.remoteReplicationSets().
+            RemoteReplicationSetRestRep rrSetObj = coreClient.remoteReplicationSets().
                     getRemoteReplicationSetsRestRep(rrSet.getId().toString());
 
             if(rrSetObj.getSourceSystems() != null) {
@@ -222,17 +228,17 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({"storageSystemTypeNoVmax","sourceStorageSystem"})
     public List<AssetOption> getTargetStorageSystem(AssetOptionsContext ctx,
             String storageSystemTypeId, URI sourceStorageSystemId) {
-        ViPRCoreClient client = api(ctx);
+        ViPRCoreClient coreClient = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        List<StorageSystemRestRep> storageSystems = client.storageSystems().getAll();
-        Map<String,String> typeIds = getStorageSystemTypeMap(client);
+        List<StorageSystemRestRep> storageSystems = coreClient.storageSystems().getAll();
+        Map<String,String> typeIds = getStorageSystemTypeMap(coreClient);
 
         // find target systems in same set as source system
-        List<NamedRelatedResourceRep> rrSets = getRrSets(ctx);
+        List<NamedRelatedResourceRep> rrSets = getRrSets(coreClient);
         List<String> targetSystems = new ArrayList<>();
         for(NamedRelatedResourceRep rrSet: rrSets) {
 
-            RemoteReplicationSetRestRep rrSetObj = client.remoteReplicationSets().
+            RemoteReplicationSetRestRep rrSetObj = coreClient.remoteReplicationSets().
                     getRemoteReplicationSetsRestRep(rrSet.getId().toString());
 
             if ((rrSetObj.getSourceSystems() != null) &&
@@ -263,9 +269,9 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @Asset("sourceStoragePorts")
     @AssetDependencies("sourceStorageSystem")
     public List<AssetOption> getSourceStoragePorts(AssetOptionsContext ctx, URI sourceStorageSystemId) {
-        ViPRCoreClient client = api(ctx);
+        ViPRCoreClient coreClient = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        List<StoragePortRestRep> storagePorts = client.storagePorts().getByStorageSystem(sourceStorageSystemId);
+        List<StoragePortRestRep> storagePorts = coreClient.storagePorts().getByStorageSystem(sourceStorageSystemId);
         for (StoragePortRestRep storagePort : storagePorts) {
             options.add(new AssetOption(storagePort.getPortNetworkId(), getPortDisplayName(storagePort)));
         }
@@ -281,9 +287,9 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @Asset("targetStoragePorts")
     @AssetDependencies("targetStorageSystem")
     public List<AssetOption> getTargetStoragePorts(AssetOptionsContext ctx, URI targetStorageSystemId) {
-        ViPRCoreClient client = api(ctx);
+        ViPRCoreClient coreClient = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        List<StoragePortRestRep> storagePorts = client.storagePorts().getByStorageSystem(targetStorageSystemId);
+        List<StoragePortRestRep> storagePorts = coreClient.storagePorts().getByStorageSystem(targetStorageSystemId);
         for (StoragePortRestRep storagePort : storagePorts) {
             options.add(new AssetOption(storagePort.getPortNetworkId(), getPortDisplayName(storagePort)));
         }
@@ -301,15 +307,15 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("storageSystemTypeNoVmax")
     public List<AssetOption> getRemoteReplicationModeForArrayType(AssetOptionsContext ctx,
             URI storageSystemTypeUri) {
-        ViPRCoreClient client = api(ctx);
+        ViPRCoreClient coreClient = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        List<NamedRelatedResourceRep> rrSets = getRrSets(ctx,storageSystemTypeUri);
+        List<NamedRelatedResourceRep> rrSets = getRrSets(coreClient,storageSystemTypeUri);
 
         Set<String> allModes = new HashSet<>();
         for(NamedRelatedResourceRep rrSet : rrSets) {
 
-            RemoteReplicationSetRestRep rrSetObj = client.remoteReplicationSets().
+            RemoteReplicationSetRestRep rrSetObj = coreClient.remoteReplicationSets().
                     getRemoteReplicationSetsRestRep(rrSet.getId().toString());
 
             Set<String> modesForSet = rrSetObj.getSupportedReplicationModes();
@@ -334,11 +340,12 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("storageSystemType")
     public List<AssetOption> getRemoteReplicationSetsForArrayType(AssetOptionsContext ctx,
             URI storageSystemTypeUri) {
+        ViPRCoreClient coreClient = api(ctx);
         List<AssetOption> options = null;
-        List<NamedRelatedResourceRep> rrSets = getRrSets(ctx,storageSystemTypeUri);
+        List<NamedRelatedResourceRep> rrSets = getRrSets(coreClient,storageSystemTypeUri);
         options = createNamedResourceOptions(rrSets);
         AssetOptionsUtils.sortOptionsByLabel(options);
-        return addStateAndModeToOptionNames(options,api(ctx));
+        return addStateAndModeToOptionNames(options,coreClient);
     }
 
     /**
@@ -363,13 +370,14 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({"remoteReplicationSetsForArrayType"})
     public List<AssetOption> getRemoteReplicationGroupForSet(AssetOptionsContext ctx,
             URI rrSet) {
-        List<NamedRelatedResourceRep> groups = getClient(ctx).getGroupsForSet(rrSet).
-                getRemoteReplicationGroups();
+        ViPRCoreClient coreClient = api(ctx);
+        List<NamedRelatedResourceRep> groups = coreClient.remoteReplicationSets().
+                getGroupsForSet(rrSet).getRemoteReplicationGroups();
         List<AssetOption>  options = new ArrayList<>();
         options.add(new AssetOption(NO_GROUP,NO_GROUP));
         options.addAll(createNamedResourceOptions(groups));
         AssetOptionsUtils.sortOptionsByLabel(options);
-        return addStateAndModeToOptionNames(options, api(ctx));
+        return addStateAndModeToOptionNames(options, coreClient);
     }
 
     /**
@@ -381,39 +389,39 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({"remoteReplicationSetsForArrayType","remoteReplicationGroupForSet","remoteReplicationCgOrPair"})
     public List<AssetOption> getRemoteReplicationPair(AssetOptionsContext ctx,
             URI setId, String groupId, String cgOrPairs) {
-
+        ViPRCoreClient coreClient = api(ctx);
         List<AssetOption> options = null;
         if (CONSISTENCY_GROUP.equals(cgOrPairs)) {
             if(NO_GROUP.equals(groupId)) {
                 // get CGs in set
-                options = createNamedResourceOptions(api(ctx).remoteReplicationSets().
+                options = createNamedResourceOptions(coreClient.remoteReplicationSets().
                         listRemoteReplicationSetCGs(setId).getConsistencyGroupList());
             } else {
                 // get CGs in specified group
-                options = createNamedResourceOptions(api(ctx).remoteReplicationGroups().
+                options = createNamedResourceOptions(coreClient.remoteReplicationGroups().
                         listConsistencyGroups(groupId).getConsistencyGroupList());
             }
         } else if (RR_PAIR.equals(cgOrPairs)) {
             if(NO_GROUP.equals(groupId)) {
                 // get pairs in set
-                options = createNamedResourceOptions(api(ctx).remoteReplicationSets().
+                options = createNamedResourceOptions(coreClient.remoteReplicationSets().
                         listRemoteReplicationPairs(setId).getRemoteReplicationPairs());
             } else {
                 // get pairs in the selected group
-                options = createNamedResourceOptions(api(ctx).remoteReplicationGroups().
+                options = createNamedResourceOptions(coreClient.remoteReplicationGroups().
                         listRemoteReplicationPairs(groupId).getRemoteReplicationPairs());
             }
         } else {
             throw new IllegalStateException("Select either Consistency Groups or Pairs");
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
-        return addStateAndModeToOptionNames(options,api(ctx));
+        return addStateAndModeToOptionNames(options,coreClient);
     }
 
     /*
      * Adjust names of options by including state & mode
      */
-    private List<AssetOption> addStateAndModeToOptionNames(List<AssetOption> options, ViPRCoreClient client) {
+    private List<AssetOption> addStateAndModeToOptionNames(List<AssetOption> options, ViPRCoreClient coreClient) {
 
         if(options == null || options.isEmpty()) {
             return options;
@@ -422,7 +430,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
         switch(uriType) {
         case "RemoteReplicationPair":
-            List<RemoteReplicationPairRestRep> pairs = client.remoteReplicationPairs().
+            List<RemoteReplicationPairRestRep> pairs = coreClient.remoteReplicationPairs().
                     getBulkResources(getBulkIds(options));
             for(AssetOption option: options) {
                 for (RemoteReplicationPairRestRep pair : pairs) {
@@ -435,7 +443,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             }
             break;
         case "RemoteReplicationGroup":
-            List<RemoteReplicationGroupRestRep> groups = client.remoteReplicationGroups().
+            List<RemoteReplicationGroupRestRep> groups = coreClient.remoteReplicationGroups().
                     getBulkResources(getBulkIds(options));
             for(AssetOption option: options) {
                 for (RemoteReplicationGroupRestRep group : groups) {
@@ -452,7 +460,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             }
             break;
         case "RemoteReplicationSet":
-            List<RemoteReplicationSetRestRep> sets = client.remoteReplicationSets().
+            List<RemoteReplicationSetRestRep> sets = coreClient.remoteReplicationSets().
                     getBulkResources(getBulkIds(options));
             for(AssetOption option: options) {
                 for (RemoteReplicationSetRestRep set : sets) {
@@ -482,30 +490,30 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     /*
      * Get RR sets
      */
-    private List<NamedRelatedResourceRep> getRrSets(AssetOptionsContext ctx) {
+    private List<NamedRelatedResourceRep> getRrSets(ViPRCoreClient coreClient) {
 
-        List<NamedRelatedResourceRep> rrSets = getClient(ctx).
+        List<NamedRelatedResourceRep> rrSets = coreClient.remoteReplicationSets().
                 listRemoteReplicationSets().getRemoteReplicationSets();
-        return validateRrSets(ctx,rrSets);
+        return validateRrSets(coreClient,rrSets);
     }
 
      /*
       *  Get RR sets for storage type
       */
-    private List<NamedRelatedResourceRep> getRrSets(AssetOptionsContext ctx,
+    private List<NamedRelatedResourceRep> getRrSets(ViPRCoreClient coreClient,
             URI storageSystemTypeUri) {
-        List<NamedRelatedResourceRep> rrSets = getClient(ctx).
+        List<NamedRelatedResourceRep> rrSets = coreClient.remoteReplicationSets().
                 listRemoteReplicationSets(storageSystemTypeUri).getRemoteReplicationSets();
-        return validateRrSets(ctx,rrSets);
+        return validateRrSets(coreClient,rrSets);
     }
 
     /*
      * Return valid RR Sets.
      */
-    private List<NamedRelatedResourceRep> validateRrSets(AssetOptionsContext ctx,
+    private List<NamedRelatedResourceRep> validateRrSets(ViPRCoreClient coreClient,
             List<NamedRelatedResourceRep> rrSets) {
 
-        removeUnreachableSets(rrSets,ctx);
+        removeUnreachableSets(rrSets,coreClient);
 
         if ((rrSets == null) || rrSets.isEmpty()) {
             throw new IllegalStateException("No Remote Replication Set was found containing storage systems.");
@@ -518,8 +526,8 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * returned contains entries with type names as keys, as well as the same
      * entries with ID as key (to allow lookups in both directions).
      */
-    private Map<String,String> getStorageSystemTypeMap(ViPRCoreClient client) {
-        List<StorageSystemTypeRestRep> storageSystemTypes = getSupportedStorageSystemTypes(client);
+    private Map<String,String> getStorageSystemTypeMap(ViPRCoreClient coreClient) {
+        List<StorageSystemTypeRestRep> storageSystemTypes = getSupportedStorageSystemTypes(coreClient);
         Map<String,String> typeIds = new HashMap<>();
         for(StorageSystemTypeRestRep type : storageSystemTypes) {
             typeIds.put(type.getStorageTypeName(),type.getStorageTypeId()); // store names as keys
@@ -531,11 +539,11 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     /*
      * Get supported Storage System types for RR operations
      */
-    private List<StorageSystemTypeRestRep> getSupportedStorageSystemTypes(ViPRCoreClient client) {
+    private List<StorageSystemTypeRestRep> getSupportedStorageSystemTypes(ViPRCoreClient coreClient) {
         List<StorageSystemTypeRestRep> storageSystemTypes =
-                client.storageSystemType().listStorageSystemTypes("block").getStorageSystemTypes();
+                coreClient.storageSystemType().listStorageSystemTypes("block").getStorageSystemTypes();
         List<StorageSystemTypeRestRep> storageSystemFileTypes =
-                client.storageSystemType().listStorageSystemTypes("file").getStorageSystemTypes();
+                coreClient.storageSystemType().listStorageSystemTypes("file").getStorageSystemTypes();
         storageSystemTypes.addAll(storageSystemFileTypes);
         return storageSystemTypes;
     }
@@ -569,17 +577,19 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * Get the reachable Remote Replication Set for the given VirtualPool & VirtualArray. Throws
      * exception if no (or more than one) set is found.
      */
-    private NamedRelatedResourceRep getRrSet(AssetOptionsContext ctx,URI virtualArrayId, URI virtualPoolId) {
+    private NamedRelatedResourceRep getRrSet(ViPRCoreClient coreClient,
+            URI virtualArrayId, URI virtualPoolId) {
 
-        BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
+        BlockVirtualPoolRestRep vpool = coreClient.blockVpools().get(virtualPoolId);
         if ((vpool == null) || (vpool.getProtection().getRemoteReplicationParam() == null)) {
             return null;
         }
 
-        List<NamedRelatedResourceRep> rrSets = getClient(ctx).
-                listRemoteReplicationSets(virtualArrayId,virtualPoolId).getRemoteReplicationSets();
+        List<NamedRelatedResourceRep> rrSets = coreClient.remoteReplicationSets().
+                listRemoteReplicationSets(virtualArrayId,virtualPoolId).
+                getRemoteReplicationSets();
 
-        removeUnreachableSets(rrSets,ctx);
+        removeUnreachableSets(rrSets,coreClient);
 
         if ((rrSets == null) || rrSets.isEmpty()) {
             throw new IllegalStateException("No RemoteReplicationSet was found for the selected " +
@@ -597,12 +607,11 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     /*
      * remove unreachable sets from list
      */
-    private void removeUnreachableSets(List<NamedRelatedResourceRep> rrSets, AssetOptionsContext ctx) {
-        ViPRCoreClient client = api(ctx);
+    private void removeUnreachableSets(List<NamedRelatedResourceRep> rrSets, ViPRCoreClient coreClient) {
         Iterator<NamedRelatedResourceRep> it = rrSets.iterator();
         while (it.hasNext()) {
 
-            RemoteReplicationSetRestRep rrSetObj = client.remoteReplicationSets().
+            RemoteReplicationSetRestRep rrSetObj = coreClient.remoteReplicationSets().
                     getRemoteReplicationSetsRestRep(it.next().getId().toString());
 
             if((rrSetObj != null) && (rrSetObj.getReachable() != null) && !rrSetObj.getReachable()) {
@@ -610,12 +619,4 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             }
         }
     }
-
-    /*
-     * Get client for set operations
-     */
-    RemoteReplicationSets getClient(AssetOptionsContext ctx) {
-        return api(ctx).remoteReplicationSets();
-    }
-
 }

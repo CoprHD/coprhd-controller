@@ -56,7 +56,7 @@ public class ExtendBlockVolumeService extends WindowsService {
     		BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
         	// Skip the expand if the current volume capacity is larger than the requested expand size
         	if (BlockStorageUtils.isVolumeExpanded(volume, sizeInGb)) {
-        		logWarn("expand.vmfs.datastore.skip", volumeId, BlockStorageUtils.getCapacity(volume));
+        		logWarn("expand.win.skip", volumeId, BlockStorageUtils.getCapacity(volume));
         	} else {
         		BlockStorageUtils.expandVolume(volumeId, sizeInGb);
         	}

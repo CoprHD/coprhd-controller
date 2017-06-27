@@ -374,9 +374,9 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         List<NamedRelatedResourceRep> groups = coreClient.remoteReplicationSets().
                 getGroupsForSet(rrSet).getRemoteReplicationGroups();
         List<AssetOption>  options = new ArrayList<>();
-        options.add(new AssetOption(NO_GROUP,NO_GROUP));
         options.addAll(createNamedResourceOptions(groups));
         AssetOptionsUtils.sortOptionsByLabel(options);
+        options.add(0,new AssetOption(NO_GROUP,NO_GROUP));
         return addStateAndModeToOptionNames(options, coreClient);
     }
 

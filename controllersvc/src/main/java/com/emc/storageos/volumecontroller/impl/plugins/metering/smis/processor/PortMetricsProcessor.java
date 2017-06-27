@@ -703,16 +703,22 @@ public class PortMetricsProcessor {
         Map<StoragePort, Long> usages = new HashMap<StoragePort, Long>();
         boolean metricsValid = metricsValid(system, candidatePorts);
 
+	_log.info("METRICSVALID is {}",metricsValid);
         // Disqualify any ports over one of their ceilings
         List<StoragePort> portsUnderCeiling = eliminatePortsOverCeiling(candidatePorts, system, true);
 
+	_log.info("portsUnderCeiling is {}",portsUnderCeiling);
+
         for (StoragePort sp : portsUnderCeiling) {
+	    _log.info("STORAGEPORT is {}",sp);
             // only compute port metric for front end port
             if (sp.getPortType().equals(StoragePort.PortType.frontend.name())) {
+		_log.info("IN IF");
                 Long usage = 0L;
                 if (metricsValid) {
                     Double metric = MetricsKeys.getDouble(MetricsKeys.portMetric, sp.getMetrics());
                     usage = new Double(metric * 10.0).longValue();
+		    _log.info("USAGE COMPUTED IS {}",usage);
                 } else {
                     usage = MetricsKeys.getLong(MetricsKeys.volumeCount, sp.getMetrics());
                 }

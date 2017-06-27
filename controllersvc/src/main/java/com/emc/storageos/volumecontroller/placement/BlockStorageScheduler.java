@@ -385,7 +385,24 @@ public class BlockStorageScheduler {
                 computeStoragePortUsageMapForPorts(system.getId(),
                         networkMap, varray, portsByNetwork);
 
-	_log.info("PORT USAGE MAP IS {}",portUsageMap );
+	
+	_log.info("PORT USAGE MAP KEYS are {}",portUsageMap );
+
+        Iterator uriIter = portUsageMap.keySet().iterator();
+        while(uriIter.hasNext()){
+        	URI uri = (URI)uriIter.next();
+        	_log.info("URI is {}",uri);
+        	Map<StoragePort,Long> map = portUsageMap.get(uri);
+        	
+         	_log.info("VALUE IS {}", map);
+        	Iterator portIter = map.keySet().iterator();
+        	
+        	while(portIter.hasNext()){
+        		StoragePort localPort = (StoragePort)portIter.next();
+        		_log.info("StoragePort is {}",localPort);
+        		_log.info("usage is {}", map.get(localPort));
+        	}
+        }
         // Filter out the ports in the case of VMAX and RP splitting: (CTRL-7288)
         // https://support.emc.com/docu10627_RecoverPoint-Deploying-with-Symmetrix-Arrays-and-Splitter-Technical-Notes.pdf?language=en_US
         // We need to align the masking of volumes to hosts to the same ports as the RP masking view.
@@ -426,6 +443,7 @@ public class BlockStorageScheduler {
                     portUsageMap.get(netURI), allocator, existingPortsMap.get(netURI),
                     true, switchToMaxPortNumber));
         }
+	_log.info("portsAllocated is {}", portsAllocated);
         return portsAllocated;
     }
 

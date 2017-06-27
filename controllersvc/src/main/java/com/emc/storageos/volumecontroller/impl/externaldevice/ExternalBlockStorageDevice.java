@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -1868,7 +1867,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception e) {
-            String errorMsg = String.format("createGroupReplicationPairs -- Failed to create group replication pairs");
+            String errorMsg = String.format("createGroupReplicationPairs -- Failed to create group replication pairs. " +
+                    e.getMessage());
             _log.error(errorMsg, e);
             ServiceError serviceError = ExternalDeviceException.errors.createGroupRemoteReplicationPairsFailed(
                     systemReplicationPairs.get(0).getReplicationGroup().toString(), errorMsg);

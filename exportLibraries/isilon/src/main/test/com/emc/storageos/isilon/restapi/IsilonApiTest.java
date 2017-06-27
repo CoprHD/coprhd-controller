@@ -121,8 +121,8 @@ public class IsilonApiTest {
         System.out.println("Created directory: " + testDirPath);
 
         // Step 2 create a sub directory inside directory
-
-        String subDir1 = testDirPath + "/dir1/dir2";
+        String subDir = testDirPath + "/dir1";
+        String subDir1 = subDir + "/dir2";
         _client.createDir(subDir1, true);
         if (!_client.existsDir(subDir1)) {
             throw new Exception("Createa sub directory --- " + subDir1 + ": failed");
@@ -193,7 +193,7 @@ public class IsilonApiTest {
             Assert.assertTrue("Attempt to delete non existing directory failed.", false);
         }
 
-        // Step 8 Delete the directory with sub dir without recursive flag
+        // Step 8 Delete the directory with sub dir
 
         try {
             _client.deleteDir(testDirPath);
@@ -202,7 +202,9 @@ public class IsilonApiTest {
             Assert.assertTrue("Deleted dir without recursive flag result in exception", true);
         }
 
-        // Step 8 Positive case delete the directory with recursive flag
+        // Step 8 Positive case delete the sub directory before deleting the directory
+        _client.deleteDir(subDir1);
+        _client.deleteDir(subDir);
         _client.deleteDir(testDirPath);
         Assert.assertFalse("Directory delete failed.", _client.existsDir(testDirPath));
 

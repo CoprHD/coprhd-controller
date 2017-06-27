@@ -2260,6 +2260,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 existingNfsACL.setInactive(true);
                                 oldunManagedNfsShareACLList.add(existingNfsACL);
                             }
+                        } else {
+                            _log.warn("Trustee name is null, and so skipping the File share ACL entry");
                         }
                     }
                     if (unManagedNfsACLList != null && !unManagedNfsACLList.isEmpty()) {

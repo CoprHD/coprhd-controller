@@ -162,7 +162,7 @@ test_swap_mounted_volume() {
             run unix_create_volume_and_mount $TENANT ${hostname} "${volume2}" "/${volume2}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
         fi
 
-        size=1
+        size=2
 
         mountpoint1=`get_volume_mount_point ${PROJECT}/${volume1}`
         mountpoint2=`get_volume_mount_point ${PROJECT}/${volume2}`

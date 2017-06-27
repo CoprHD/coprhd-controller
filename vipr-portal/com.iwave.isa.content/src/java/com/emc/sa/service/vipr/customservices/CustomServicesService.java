@@ -180,7 +180,7 @@ public class CustomServicesService extends ViPRService {
         }
         final CustomServicesWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
 
-        final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByName(obj.getName());
+        final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByNameOrId(obj.getName());
         if (wfs == null  || wfs.isEmpty() || wfs.size() > 1) {
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Workflow list is null or empty or more than one workflow per Workflow name:" + obj.getName());

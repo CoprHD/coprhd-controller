@@ -82,7 +82,7 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
     }
 
     private boolean isWorkflowService(String serviceName) {
-        List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(serviceName);
+        List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByNameOrId(serviceName);
         if (null != results && !results.isEmpty()) {
             return true;
         }

@@ -171,6 +171,7 @@ inputOutputTabID = 'inputOutputLAContent';
         }
 
         var localInventFile = $('[name="localAnsible.inventoryFiles"]').val();
+        var localUpdatedFile = $('[name="localAnsible.updatedInventoryFiles"]').val();
         if (isBlank($('#localAnsible_name').val()) || isBlank($('#localAnsible_ansiblePlaybook').val())) {
             complete = false;
         }
@@ -181,6 +182,9 @@ inputOutputTabID = 'inputOutputLAContent';
             complete = false;
         }
         else if ( !chooseExisting && (localInventFile == undefined) ) {
+            complete = false;
+        }
+        else if ( chooseExisting && (localInventFile == undefined ) && (localUpdatedFile == undefined || localUpdatedFile == "") ) {
             complete = false;
         }
         // If form is complete, enable FINISH button

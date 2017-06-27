@@ -67,10 +67,10 @@ public class CustomServicesWorkflowManagerImpl implements
                     return workflowList;
                 }
             }
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             // the passed value is not id.
-            log.info("URISyntaxException : uri passed is " + name);
-            log.info("Moving on to get by label");
+            log.debug("URISyntaxException : uri passed is " + name);
+            log.debug("Moving on to get by label");
         }
 
         final List<NamedElement> workflows = client.findByLabel(CustomServicesWorkflow.class, name);

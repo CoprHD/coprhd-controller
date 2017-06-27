@@ -140,14 +140,6 @@ public class UnmountBlockVolumeHelper {
                 untaggedVolumeIds.add(mountedVolume.getId());
             }
 
-            // remove multipath/powerpath entries
-            if (usePowerPath) {
-                linux.removePowerPathDevices(volume.powerpathDevices);
-            }
-            else {
-                linux.removeMultipathEntries(volume.multipathEntries);
-            }
-
             // delete the directory entry if it's empty
             if (linux.isDirectoryEmpty(volume.mountPoint.getPath())) {
                 linux.deleteDirectory(volume.mountPoint.getPath());
@@ -189,4 +181,17 @@ public class UnmountBlockVolumeHelper {
         return StringUtils.upperCase(wwn);
     }
 
+    /**
+     * Removes dead paths for the volumes that were unmounted
+     */
+    public void removeDevices() {
+        // remove multipath/powerpath entries
+        for (VolumeSpec volume : volumes) {
+            if (usePowerPath) {
+                linux.removePowerPathDevices(volume.powerpathDevices);
+            } else {
+                linux.removeMultipathEntries(volume.multipathEntries);
+            }
+        }
+    }
 }

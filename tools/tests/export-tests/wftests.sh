@@ -394,7 +394,7 @@ unity_setup()
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -404,7 +404,7 @@ unity_setup()
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 2				            \
+	--numpaths 4				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -494,6 +494,7 @@ vmax3_sim_setup() {
     SMIS_PASSWD=$SMIS_PASSWD
     VMAX_SMIS_SSL=true
     VMAX_NATIVEGUID=$SIMULATOR_VMAX3_NATIVEGUID
+    VMAX_FAST_POLICY=$SIMULATOR_VMAX3_FAST_POLICY
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
@@ -537,6 +538,8 @@ vmax3_setup() {
     
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
+  --system_type vmax                     \
+  --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 2				            \
@@ -547,6 +550,8 @@ vmax3_setup() {
 
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
+  --system_type vmax                     \
+  --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 4				            \
@@ -581,15 +586,8 @@ vplex_sim_setup() {
     FC_ZONE_A=${CLUSTER1NET_NAME}
     FC_ZONE_B=${CLUSTER2NET_NAME}
     run neighborhood create $VPLEX_VARRAY1
-    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
-    run transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
     secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
     run neighborhood create $VPLEX_VARRAY2
-    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-    run transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-    # Assign both networks to both transport zones
-    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY2
-    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY1
 
     secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
     run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
@@ -600,14 +598,15 @@ vplex_sim_setup() {
     run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
     run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
     run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
+    run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH
 
     run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
     run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
     run storageport update $VPLEX_GUID FC --group director-2-2-A --addvarrays $VPLEX_VARRAY2
     run storageport update $VPLEX_GUID FC --group director-2-2-B --addvarrays $VPLEX_VARRAY2
-    run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
     run storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
-    #run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    run storageport update $VPLEX_SIM_VMAX6_NATIVEGUID FC --addvarrays $NH2
+    run storageport update $VPLEX_SIM_VMAX7_NATIVEGUID FC --addvarrays $NH2
 
     common_setup
 
@@ -692,9 +691,6 @@ vplex_sim_setup() {
                              --max_mirrors 0                                        \
                              --expandable true
 
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
-
             secho "Setting up the virtual pool for distributed VPLEX change vpool"
             run cos create block $VPOOL_CHANGE true                                \
                              --description 'vpool-change-for-vplex-distributed-volumes'    \
@@ -708,9 +704,6 @@ vplex_sim_setup() {
                              --max_snapshots 1                                      \
                              --max_mirrors 0                                        \
                              --expandable true
-
-            run cos update block $VPOOL_CHANGE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
-            run cos update block $VPOOL_CHANGE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
         ;;
         *)
             secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"
@@ -2465,7 +2458,11 @@ test_7() {
         echo -e "\e[91mERROR\e[0m: Could not find a zone corresponding to host ${HOST1} and initiator ${initiator}"
         incr_fail_count
       else
-        verify_zone ${zone1} ${FC_ZONE_A} exists  
+        # Only verify that the zone exists on the switch if the zone is newly created.  
+        # Newly created zone names will contain the current host name.  
+        if newly_created_zone_for_host $zone1 $HOST1; then  
+            verify_zone ${zone1} ${FC_ZONE_A} exists
+        fi      
       fi    
       
       # Snsp the DB so we can validate after failures later
@@ -2508,7 +2505,11 @@ test_7() {
         echo -e "\e[91mERROR\e[0m: Could not find a ViPR zone corresponding to host ${HOST1} and initiator ${H1PI2}. COP-30518 has been created to track this issue"
         incr_fail_count
       else
-        verify_zone ${zone2} ${FC_ZONE_A} exists  
+        # Only verify that the zone exists on the switch if the zone is newly created.  
+        # Newly created zone names will contain the current host name.  
+        if newly_created_zone_for_host $zone2 $HOST1; then      
+            verify_zone ${zone2} ${FC_ZONE_A} exists
+        fi      
       fi
 
       # Perform any DB validation in here
@@ -2519,6 +2520,8 @@ test_7() {
 
       # Only verify the zone has been removed if it is a newly created zone
       if [ "${zone1}" != "" ]; then
+        # Only verify that the zone is removed from the switch if the zone was newly created.  
+        # Newly created zone names will contain the current host name.    
         if newly_created_zone_for_host $zone1 $HOST1; then
             verify_zone ${zone1} ${FC_ZONE_A} gone    
         fi          
@@ -2526,6 +2529,8 @@ test_7() {
 
       # Only verify the zone has been removed if it is a newly created zone
       if [ "${zone2}" != "" ]; then
+        # Only verify that the zone is removed from the switch if the zone was newly created.  
+        # Newly created zone names will contain the current host name.    
         if newly_created_zone_for_host $zone2 $HOST1; then
             verify_zone ${zone2} ${FC_ZONE_A} gone    
         fi          
@@ -3206,10 +3211,15 @@ test_13() {
 	storage_failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_* \
-                                    failure_018_Export_doRollbackExportCreate_before_delete"
+      storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
+    fi
+
+    if [ "${SS}" = "vnx" ]
+    then
+      storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_* \
+                                 failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"

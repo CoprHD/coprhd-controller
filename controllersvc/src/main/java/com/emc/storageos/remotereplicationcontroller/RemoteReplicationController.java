@@ -22,7 +22,9 @@ public interface RemoteReplicationController extends Controller {
         FAIL_OVER,
         FAIL_BACK,
         SWAP,
-        STOP
+        STOP,
+        CHANGE_REPLICATION_MODE,
+        MOVE_PAIR
     }
 
     /**
@@ -121,6 +123,7 @@ public interface RemoteReplicationController extends Controller {
      * Move replication pair from its parent group to other replication group.
      * At the completion of this operation remote replication pair should be in the same state as it was before the
      * operation. The only change should be that the pair changed its parent replication group.
+     * As a result of parent group change, replication mode of the pair may also change.
      *
      * @param replicationPair replication pair to move
      * @param targetGroup new parent replication group for the pair

@@ -36,7 +36,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
@@ -958,33 +957,90 @@ public class RemoteReplicationPairService extends TaskResourceService {
     }
 
 
-    /**
-     * TODO:
-     * @param ids
-     * @return
-     * @throws InternalException
-     */
-    public TaskList changeRemoteReplicationCGMode(List<URI> ids) throws InternalException {
-        return null;
+
+    public TaskList changeRemoteReplicationModeForPairsInCG(List<URI> ids, String newMode) throws InternalException {
+        _log.info("Called: changeRemoteReplicationCGMode() with new mode {} and with ids {}", newMode, ids);
+        for (URI id : ids) {
+            ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        }
+        ArgValidator.checkFieldNotEmpty(newMode, "replication_mode");
+        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
+        URI sourceElementURI = rrPairs.get(0).getSourceElement().getURI();
+        ArgValidator.checkFieldUriType(sourceElementURI, Volume.class, "id");
+        Volume sourceElement = _dbClient.queryObject(Volume.class, sourceElementURI);
+        URI cgURI = sourceElement.getConsistencyGroup();
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
+
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.CHANGE_REPLICATION_MODE);
+
+        _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
+        // VMAX SRDF integration logic
+        // This operation is not supported in current native srdf support.
+        if (RemoteReplicationUtils.isVmaxPair(rrPairs.get(0), _dbClient)) {
+                throw APIException.badRequests.unsupportedSystemType(sourceElement.getSystemType());
+        }
+
+        // this validation is not applicable to SRDF volumes
+        RemoteReplicationUtils.validateRemoteReplicationModeChange(_dbClient, rrElement, newMode);
+        String taskId = UUID.randomUUID().toString();
+        TaskList taskList = new TaskList();
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(),
+                taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
+        TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
+        taskList.getTaskList().add(volumeTaskResourceRep);
+
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.changeRemoteReplicationMode(rrElement, newMode, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            _dbClient.error(BlockConsistencyGroup.class, cg.getId(), taskId, e);
+        }
+
+        auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,
+                cg.getLabel());
+
+        return taskList;
     }
+
 
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/change-replication-mode")
     public TaskResourceRep changeRemoteReplicationPairMode(@PathParam("id") URI id,
-                                                            final RemoteReplicationModeChangeParam param) throws InternalException {
+                                                           final RemoteReplicationModeChangeParam param) throws InternalException {
         _log.info("Called: changeRemoteReplicationPairMode() with id {}", id);
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
-        RemoteReplicationPair rrPair = queryResource(id);
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
-
-        String newMode = param.getNewMode();
-
-        RemoteReplicationUtils.validateRemoteReplicationModeChange(_dbClient, rrElement, newMode);
-
-        // Create a task for the remote replication mode change
+        // Validate a copy mode was passed
+        ArgValidator.checkFieldNotEmpty(param.getNewMode(), "replication_mode");
         String taskId = UUID.randomUUID().toString();
+        return changeRemoteReplicationPairMode(id, param.getNewMode(), taskId);
+    }
+
+    public TaskResourceRep changeRemoteReplicationPairMode(URI id, String newMode, String taskId) throws InternalException {
+        _log.info("Called: changeRemoteReplicationPairMode() with id {} and task {}, new mode: {} .", id, taskId, newMode);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        RemoteReplicationPair rrPair = queryResource(id);
+
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.CHANGE_REPLICATION_MODE);
+
+        // SRDF integration logic
+        // This operation is not supported in current native srdf support.
+        if (RemoteReplicationUtils.isVmaxPair(rrPair, _dbClient)) {
+            String systemType = _dbClient.queryObject(Volume.class, rrPair.getSourceElement()).getSystemType();
+            throw APIException.badRequests.unsupportedSystemType(systemType);
+        }
+
+        // this validation is not applicable to SRDF volumes
+        RemoteReplicationUtils.validateRemoteReplicationModeChange(_dbClient, rrElement, newMode);
+        // Create a task for the remote replication mode change
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
 
@@ -1023,7 +1079,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         URI newGroup = param.getRemoteReplicationGroup();
 
         validateMovePairOperation(rrPair, newGroup);
-        // Create a task for the move remote replication pair operation
+        // Create task for the move remote replication pair operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.MOVE_REMOTE_REPLICATION_PAIR);
@@ -1050,7 +1106,6 @@ public class RemoteReplicationPairService extends TaskResourceService {
      * @param targetGroup new group
      */
     public void validateMovePairOperation(RemoteReplicationPair rrPair, URI targetGroup) {
-        // todo: validate that this operation is valid:
         //   if pair is in a group
         //   if new group has the same source system, the same target system as current group of the pair
         URI currentGroupId = rrPair.getReplicationGroup();
@@ -1092,6 +1147,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
     protected URI getTenantOwner(URI id) {
         return null;
     }
+
 
     /**
      * Process srdf consistency group link operation request for srdf protected cg.

@@ -77,6 +77,7 @@ public class PathConstants {
     public static final String BLOCK_REMOTE_REPLICATION_GROUP_URL = "/vdc/block/remotereplicationgroups";
     public static final String BLOCK_REMOTE_REPLICATION_SET_URL = "/vdc/block/remotereplicationsets";
     public static final String BLOCK_REMOTE_REPLICATION_PAIR_URL = "/vdc/block/remotereplicationpairs";
+    public static final String BLOCK_REMOTE_REPLICATION_MANAGEMENT_URL = "/vdc/block/remotereplicationmanagement";
     public static final String NETWORK_URL = "/vdc/networks";
     public static final String IP_INTERFACES_BY_NETWORK_URL = NETWORK_URL + "/{id}/ip-interfaces";
     public static final String INITIATORS_BY_NETWORK_URL = NETWORK_URL + "/{id}/initiators";

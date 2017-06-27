@@ -51,7 +51,6 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
@@ -807,7 +806,8 @@ public class SRDFUtils implements SmisConstants {
      * Need to add all SRDF source volumes id to change the linkStatus and accessState
      * for Sync/Async with CG. Take care not to add Vplex volume.
      */
-    public static void addSRDFCGVolumesForTaskCompleter(Volume sourceVol, DbClient dbClient, List<URI> combined) {
+    public static void addSRDFCGVolumesForTaskCompleter(URI sourceURI, DbClient dbClient, List<URI> combined) {
+        Volume sourceVol = dbClient.queryObject(Volume.class, sourceURI);
         if (sourceVol != null && sourceVol.hasConsistencyGroup()) {
             URIQueryResultList uriQueryResultList = new URIQueryResultList();
             dbClient.queryByConstraint(getVolumesByConsistencyGroup(sourceVol.getConsistencyGroup()),

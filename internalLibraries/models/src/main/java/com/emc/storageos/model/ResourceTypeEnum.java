@@ -1,6 +1,5 @@
 /*
- * Copyright 2008-2013 EMC Corporation
- * Copyright 2016 Intel Corporation
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -104,19 +103,35 @@ public enum ResourceTypeEnum {
     REMOTE_REPLICATION_SET("remote_replication_set", "/vdc/block/remotereplicationsets"),
     REMOTE_REPLICATION_GROUP("remote_replication_group", "/vdc/block/remotereplicationgroups"),
     REMOTE_REPLICATION_PAIR("remote_replication_pair", "/vdc/block/remotereplicationpairs"),
-    REMOTE_REPLICATION_MANAGEMENT("remote_replication_management", "/vdc/block/remotereplicationmanagement");
+    REMOTE_REPLICATION_MANAGEMENT("remote_replication_management", "/vdc/block/remotereplicationmanagement"),
+    CUSTOM_SERVICES_WORKFLOW("custom_services_workflow", "/customservices/workflows"),
+    WF_DIRECTORY("wf_directory", "/customservices/workflows/directory"),
+    CUSTOM_SERVICES_PRIMITIVES("custom_services_primitives", "/customservices/primitives"),
+    CUSTOM_SERVICES_PRIMITIVE_RESOURCES("custom_services_primitive_resources", "/customservices/primitives/resource");
+
+    private static final Map<String, ResourceTypeEnum> resourceMap = new HashMap<String, ResourceTypeEnum>();
+
+    static {
+        for (ResourceTypeEnum res : values()) {
+            resourceMap.put(res.type, res);
+        }
+    }
 
     private final String type;
     private final String service;
 
-    ResourceTypeEnum(String type, String service) {
+    ResourceTypeEnum(final String type, final String service) {
         this.service = service;
         this.type = type;
     }
 
+    public static ResourceTypeEnum fromString(String resourceType) {
+        return resourceMap.get(resourceType);
+    }
+
     /**
      * The type of the resource
-     * 
+     *
      */
     @XmlElement
     public String getType() {
@@ -130,17 +145,5 @@ public enum ResourceTypeEnum {
     @Override
     public String toString() {
         return type;
-    }
-
-    public static ResourceTypeEnum fromString(String resourceType) {
-        return resourceMap.get(resourceType);
-    }
-
-    private static final Map<String, ResourceTypeEnum> resourceMap = new HashMap<String, ResourceTypeEnum>();
-
-    static {
-        for (ResourceTypeEnum res : values()) {
-            resourceMap.put(res.type, res);
-        }
     }
 }

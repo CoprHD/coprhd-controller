@@ -98,7 +98,7 @@
         <entry key="cs-discovery-interval" value="86400" />
         <entry key="scan-interval" value="600" />
        <!-- <entry key="remote-replication-config-discovery-interval" value="3600" /> -->
-        <entry key="remote-replication-config-discovery-interval" value="180" />
+        <entry key="remote-replication-config-discovery-interval" value="300" />
 
         <!-- in seconds -->
         <!-- intervals to guard against refresh requests from the user -->

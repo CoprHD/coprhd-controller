@@ -28,12 +28,20 @@ public class RemoteReplicationOperationParam {
 
     private List<URI> ids;
 
+    private String newReplicationMode;
+
     public RemoteReplicationOperationParam() {
     }
 
     public RemoteReplicationOperationParam(String operationContext, List<URI> ids) {
         this.ids = ids;
         this.operationContext = operationContext;
+    }
+
+    public RemoteReplicationOperationParam(String operationContext, List<URI> ids, String newReplicationMode) {
+        this.operationContext = operationContext;
+        this.ids = ids;
+        this.newReplicationMode = newReplicationMode;
     }
 
     @XmlElement(name = "operation_context")
@@ -62,4 +70,12 @@ public class RemoteReplicationOperationParam {
         this.ids = ids;
     }
 
+    @XmlElement(name = "replication_mode")
+    public String getNewReplicationMode() {
+        return newReplicationMode;
+    }
+
+    public void setNewReplicationMode(String newReplicationMode) {
+        this.newReplicationMode = newReplicationMode;
+    }
 }

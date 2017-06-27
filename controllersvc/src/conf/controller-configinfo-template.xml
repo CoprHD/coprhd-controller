@@ -103,7 +103,7 @@
         <entry key="cs-discovery-interval" value="${controller_cs_discovery_interval}" />
         <entry key="scan-interval" value="${controller_scan_interval}" />
         <!-- <entry key="remote-replication-config-discovery-interval" value="3600" /> -->
-        <entry key="remote-replication-config-discovery-interval" value="180" />
+        <entry key="remote-replication-config-discovery-interval" value="300" />
 
 
         <!-- in seconds -->

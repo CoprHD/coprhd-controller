@@ -828,7 +828,13 @@ public class FileProtectionPolicies extends ViprResourceController {
                             hour = 0;
                         }
                     }
-                    this.scheduleHour = Integer.toString(hour);
+                    // staring 0 in hour field was lost during int conversion. Need to add it again.
+                    if (hour < 10) {
+                        this.scheduleHour = "0" + Integer.toString(hour);
+                    }
+                    else {
+                        this.scheduleHour = Integer.toString(hour);
+                    }
                     String[] minWithStrings = hoursMin[1].split(" ");
                     if (minWithStrings.length > 0) {
                         this.scheduleMin = minWithStrings[0];

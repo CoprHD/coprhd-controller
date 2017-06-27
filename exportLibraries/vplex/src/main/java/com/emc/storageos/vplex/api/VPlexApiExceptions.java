@@ -294,7 +294,7 @@ public interface VPlexApiExceptions {
     public VPlexApiException failedGettingCGsOnCluster(final String clusterId,
             final Throwable cause);
 
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    @DeclareServiceCode(ServiceCode.VPLEX_CG_NOT_FOUND)
     public VPlexApiException didNotFindCGWithName(final String cgName);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)

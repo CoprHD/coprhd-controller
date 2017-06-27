@@ -422,10 +422,29 @@ _genconfig_system_init() {
         _genconfig_dr_flag ${svc}
     done
 	
-	# revert ZK snapshot in case last ZK mode is participant
-	if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
+    # revert ZK snapshot in case last ZK mode is participant
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
 		/etc/datatool --revert-minor-version /data/zk/version-2
-	fi
+    fi
+
+    #Create chroot directory for chroot-jail
+    if [ ! -d "/opt/storageos/customroot" ]; then
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/proc
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sys
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/shm
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/pts
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/etc
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/usr
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib64
+	   _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sbin
+	   _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/bin
+
+       _genconfig_custom_mount
+    fi
+
 }
 
 _genconfig_exec_scripts() {

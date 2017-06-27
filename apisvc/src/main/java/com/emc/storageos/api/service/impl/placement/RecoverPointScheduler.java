@@ -66,7 +66,6 @@ import com.emc.storageos.volumecontroller.RPRecommendation;
 import com.emc.storageos.volumecontroller.RPRecommendation.ProtectionType;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
-import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ComparisonChain;
@@ -96,12 +95,6 @@ public class RecoverPointScheduler implements Scheduler {
     private RPRecommendation srcHaRecommendation = new RPRecommendation();
     private Map<URI, Recommendation> tgtHaRecommendation =
             new HashMap<URI, Recommendation>();
-
-    private AttributeMatcherFramework _matcherFramework;
-
-    public void setMatcherFramework(AttributeMatcherFramework matcherFramework) {
-        _matcherFramework = matcherFramework;
-    }
 
     private PlacementStatus placementStatus;
     private PlacementStatus secondaryPlacementStatus;

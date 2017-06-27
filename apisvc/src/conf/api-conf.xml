@@ -86,7 +86,6 @@
     <bean id="rpscheduler" class="com.emc.storageos.api.service.impl.placement.RecoverPointScheduler">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
-        <property name="matcherFramework" ref="matcherFramework"/>
         <property name="vplexScheduler" ref="vplexscheduler" />
         <property name="blockScheduler" ref="storagescheduler" />
         <property name="maxThrottleAttempts" value="10"/>

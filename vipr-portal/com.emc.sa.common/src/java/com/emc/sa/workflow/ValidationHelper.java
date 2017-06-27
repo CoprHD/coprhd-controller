@@ -645,7 +645,9 @@ public class ValidationHelper {
     }
 
     private String validateOtherStepOutput(final Step step, final String attribute) {
-
+        if( isRawOutput(step, attribute) ) {
+            return EMPTY_STRING;
+        }
         if (step.getOutput() == null) {
             return String.format("%s for step %s(%s)", CustomServicesConstants.ERROR_MSG_OTHER_STEP_OUTPUT_NOT_DEFINED,
                     step.getDescription(),
@@ -661,5 +663,16 @@ public class ValidationHelper {
         return String.format("%s %s(%s) - %s",
                 CustomServicesConstants.ERROR_MSG_OUTPUT_NOT_DEFINED_IN_OTHER_STEP, step.getDescription(),
                 step.getId(), attribute);
+    }
+
+    private boolean isRawOutput(Step step, String attribute) {
+        switch(attribute) {
+            case CustomServicesConstants.OPERATION_OUTPUT:
+            case CustomServicesConstants.OPERATION_ERROR:
+            case CustomServicesConstants.OPERATION_RETURNCODE:
+                return true;
+            default:
+                return false;
+        }
     }
 }

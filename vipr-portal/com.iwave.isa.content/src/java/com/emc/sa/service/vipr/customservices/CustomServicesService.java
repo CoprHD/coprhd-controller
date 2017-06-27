@@ -472,39 +472,43 @@ public class CustomServicesService extends ViPRService {
      * @param res
      */
     private void updateOutputPerStep(final Step step, final CustomServicesTaskResult res) throws Exception {
-        final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
-        if (output == null)
-            return;
-        final String result = res.getOut();
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE)) {
-            try {
-                out.putAll(updateViproutput(step, res.getOut()));
-            } catch (Exception e) {
-                logger.warn("Could not parse ViPR REST Output properly:{}", e);
-            }
-        } else {
-            for (final CustomServicesWorkflowDocument.Output o : output) {
-                if (isScript(step)) {
-                    final String outToParse = ((CustomServicesScriptTaskResult)res).getScriptOut();
-                    logger.info("Parse non vipr output:{}", outToParse);
-                    out.put(o.getName(), evaluateAnsibleOut(outToParse, o.getName()));
-                } else if (step.getType().equals(StepType.REST.toString())) {
-                    final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
-                    final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
-                    for (final Map.Entry<String, List<String>> entry : headers) {
-                        if (entry.getKey().equals(o.getName())) {
-                            out.put(o.getName(), entry.getValue());
-                        }
-                    }
-                }
-            }
-        }
         //set the default result.
         out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
         out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
         out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
+        
+        switch(step.getType()) {
+            case CustomServicesConstants.VIPR_PRIMITIVE_TYPE:
+                try {
+                    out.putAll(updateViproutput(step, res.getOut()));
+                } catch (Exception e) {
+                    logger.warn("Could not parse ViPR REST Output properly:{}", e);
+                }
+            break;
+            default:
+                final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
+                if( null != output ) {
+                    for (final CustomServicesWorkflowDocument.Output o : output) {
+                        if (isScript(step)) {
+                            final String outToParse = ((CustomServicesScriptTaskResult)res).getScriptOut();
+                            logger.info("Parse non vipr output:{}", outToParse);
+                            out.put(o.getName(), evaluateAnsibleOut(outToParse, o.getName()));
+                        } else if (step.getType().equals(StepType.REST.toString())) {
+                            final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
+                            final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
+                            for (final Map.Entry<String, List<String>> entry : headers) {
+                                if (entry.getKey().equals(o.getName())) {
+                                    out.put(o.getName(), entry.getValue());
+                                }
+                            }
+                        }
+                    }
+                }
+           break;
+        }
+        
         outputPerStep.put(step.getId(), out);
     }
 

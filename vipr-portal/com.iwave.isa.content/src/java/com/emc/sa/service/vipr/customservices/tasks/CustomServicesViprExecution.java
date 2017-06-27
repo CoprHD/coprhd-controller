@@ -127,7 +127,15 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                 uris.add(res.getId());
             }
 
+        } else if(classname.contains(RESTHelper.TASK)) {
+            final ObjectMapper mapper = new ObjectMapper();
+            mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
+            final Class<?> clazz = Class.forName(classname);
+
+            final Object task = mapper.readValue(result, clazz.newInstance().getClass());
+            uris.add(((TaskResourceRep)task).getId());
         }
+        
         if (!uris.isEmpty()) {
             return CustomServicesUtils.waitForTasks(uris, getClient());
         }

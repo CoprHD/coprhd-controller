@@ -158,6 +158,47 @@ public class NetworkScheduler {
         }
         fabricInfo.setZoneName(zoneName);
     }
+    
+    /**
+     * Generates a zoneName from the input parameters according to the CustomConfig handler.
+     * @param arrayURI -- URI of StorageSystem
+     * @param networkSystemURI -- URI of network system
+     * @param initiatorPort -- Initiator port address
+     * @param portNetworkAddress -- Port network address
+     * @param fabricId -- Fabric id
+     * @param lsanZone -- true if LSAN zone
+     * @return -- zone name
+     */
+    public String nameZone(URI arrayURI, URI networkSystemURI, 
+    		String initiatorPort, String portNetworkAddress, String fabricId, boolean lsanZone) {
+        StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
+        NetworkSystem networkSystem = _dbClient.queryObject(NetworkSystem.class, networkSystemURI);
+        Initiator initiator = NetworkUtil.findInitiatorInDB(initiatorPort, _dbClient);
+        StoragePort port = NetworkUtil.getStoragePort(portNetworkAddress, _dbClient);
+        String hostName = initiator.getHostName();
+        if (array == null || initiator == null || hostName == null) {
+            throw DeviceControllerException.exceptions
+            	.unexpectedCondition("Cannot generate zone name because array, initiator, or hostName were null");
+        }
+        DataSource dataSource = dataSourceFactory.createZoneNameDataSource(hostName,
+                initiator, port, fabricId, array);
+        if (array.getSystemType().equals(DiscoveredDataObject.Type.vplex.name())) {
+            dataSource.addProperty(CustomConfigConstants.ARRAY_PORT_NAME,
+                    getVPlexPortName(port));
+            dataSource.addProperty(CustomConfigConstants.ARRAY_SERIAL_NUMBER,
+                    getVPlexClusterSerialNumber(port));
+        }
+        String systemType = networkSystem.getSystemType();
+        String resolvedZoneName = customConfigHandler.resolve(
+                CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
+        validateZoneNameLength(resolvedZoneName, lsanZone, systemType);
+        String zoneName = customConfigHandler.getComputedCustomConfigValue(
+                CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
+        if (lsanZone && DiscoveredDataObject.Type.brocade.name().equals(systemType)) {
+            zoneName = LSAN + zoneName;
+        }
+        return zoneName;
+    }
 
     /**
      * Validates if zone name length is within the allowed character limit on switches.
@@ -182,7 +223,7 @@ public class NetworkScheduler {
      * @param system StorageSystem
      * @return nine character maximum string generated from director and port fields
      */
-    private String getVPlexPortName(StoragePort port) {
+    private static String getVPlexPortName(StoragePort port) {
         String directorDigits = port.getPortGroup().substring(port.getPortGroup().indexOf("-") + 1,
                 port.getPortGroup().lastIndexOf("-"));
         return directorDigits + port.getPortName();
@@ -194,7 +235,6 @@ public class NetworkScheduler {
      * configuring the zone name for a VPLEX port.
      * 
      * @param port A reference to a VPLEX port.
-     * 
      * @return The serial number for the port's cluster.
      */
     private String getVPlexClusterSerialNumber(StoragePort port) {
@@ -202,6 +242,15 @@ public class NetworkScheduler {
         StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
         String portClusterId = ConnectivityUtil.getVplexClusterOfPort(port);
         return VPlexUtil.getVPlexClusterSerialNumber(portClusterId, vplexSystem);
+    }
+    
+    /**
+     * returns true if a zone name designates an LSAN zone
+     * @param zoneName -- name of zone
+     * @return -- true if LSAN zone
+     */
+    public boolean isLSANZone(String zoneName) {
+        return (zoneName.startsWith(LSAN));
     }
 
     /**
@@ -313,6 +362,7 @@ public class NetworkScheduler {
                 networkFabricInfo.getEndPoints().addAll(endPoints);
                 networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
                 networkFabricInfo.setExportGroup(exportGroupUri);
+                networkFabricInfo.setCanBeRolledBack(false);
                 nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
             } 
             return networkFabricInfo;
@@ -784,7 +834,7 @@ public class NetworkScheduler {
             zoneInfo.setEndPoints(Arrays.asList(new String[] { initiatorWwn, portWwn }));
             zoneInfo.setZoneName(zone.getName());
             zoneInfo.setExistingZone(zone.getExistingZone());
-            zoneInfo.setCanBeRolledBack(true);
+            zoneInfo.setCanBeRolledBack(false);
         }
         return zoneInfo;
     }
@@ -1121,26 +1171,25 @@ public class NetworkScheduler {
                 }
             }
 
-            // If there are still live references, can't delete the zone.
-            // Cannot delete the zones if the ExportMask has existing volumes either.
-            // So leave _fabricInfo._isLastReference == false
-            // Otherwise mark it true so the zone will be taken out.
-            if (live == false && hasExistingVolumes == false) {
-                for (NetworkFCZoneInfo fabricInfo : ourReferences) {
-                    fabricInfo._isLastReference = true;
-
-                    // Pick an alternate device, just in case
-                    NetworkLite portNet = getStoragePortNetwork(port);
-                    NetworkLite iniNet = BlockStorageScheduler.lookupNetworkLite(_dbClient,
-                            StorageProtocol.block2Transport("FC"), initiatorPort);
-                    List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
-                    for (NetworkSystem ns : networkSystems) {
-                        if (!ns.getId().equals(fabricInfo.getNetworkDeviceId())) {
-                            fabricInfo.setAltNetworkDeviceId(ns.getId());
-                            break;
-                        }
-                    }
-                }
+            // If there are still live references, can't delete the zone. (lstReference = false)
+            // Cannot delete the zones if the ExportMask has existing volumes either, this
+            // sets existingZone which will prohibit deletion.
+            for (NetworkFCZoneInfo fabricInfo : ourReferences) {
+            	fabricInfo.setLastReference(!live);
+            	if (hasExistingVolumes) {
+            		fabricInfo.setExistingZone(true);
+            	}
+            	// Pick an alternate device, just in case
+            	NetworkLite portNet = getStoragePortNetwork(port);
+            	NetworkLite iniNet = BlockStorageScheduler.lookupNetworkLite(_dbClient,
+            			StorageProtocol.block2Transport("FC"), initiatorPort);
+            	List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
+            	for (NetworkSystem ns : networkSystems) {
+            		if (!ns.getId().equals(fabricInfo.getNetworkDeviceId())) {
+            			fabricInfo.setAltNetworkDeviceId(ns.getId());
+            			break;
+            		}
+            	}
             }
             return ourReferences;
         }

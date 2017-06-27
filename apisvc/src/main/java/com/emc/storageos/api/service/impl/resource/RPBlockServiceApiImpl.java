@@ -2132,7 +2132,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
-        TaskList taskList = createTasksForVolumes(vpool, volumes, taskId);
+        TaskList taskList = new TaskList();
 
         StringBuffer notSuppReasonBuff = new StringBuffer();
         notSuppReasonBuff.setLength(0);
@@ -2152,11 +2152,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, vpool)) {
                     // Allow the VPLEX Data Migration operation for the RP+VPLEX Journal
                     // to proceed via the VPLEX Block Service.
-                    vplexBlockServiceApiImpl.changeVolumeVirtualPool(volumes, vpool, vpoolChangeParam, taskId);
+                    taskList.getTaskList().addAll(
+                            vplexBlockServiceApiImpl.changeVolumeVirtualPool(volumes, vpool, vpoolChangeParam, taskId).getTaskList());
                 }
             }
         } else if (firstVolume.checkForRp()
                 && !VirtualPool.vPoolSpecifiesProtection(vpool)) {
+            taskList = createTasksForVolumes(vpool, volumes, taskId);
             removeProtection(volumes, vpool, taskId);
         } else if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(firstVolume, currentVpool, vpool,
                 _dbClient, notSuppReasonBuff, validMigrations)) {
@@ -2165,6 +2167,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // For now we only support changing the virtual pool for a single volume at a time
             // until CTRL-1347 and CTRL-5609 are fixed.
             if (volumes.size() == 1) {
+                taskList = createTasksForVolumes(vpool, volumes, taskId);
                 changeVolumeVirtualPool(firstVolume.getStorageController(), firstVolume, vpool, vpoolChangeParam, taskId);
             } else {
                 throw APIException.methodNotAllowed.notSupportedWithReason(
@@ -2367,7 +2370,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap, String snapshotType, String snapshotName,
-            BlockFullCopyManager fcManager) {
+            Boolean readOnly, BlockFullCopyManager fcManager) {
         boolean vplex = RPHelper.isVPlexVolume(reqVolume, _dbClient);
 
         // For RP snapshots, validate that the volume type is not a target,
@@ -2407,7 +2410,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
             List<Volume> volumes = (vplex ? baseVolumesToSnap : volumesToSnap);
-            super.validateCreateSnapshot(reqVolume, volumes, snapshotType, snapshotName, fcManager);
+            super.validateCreateSnapshot(reqVolume, volumes, snapshotType, snapshotName, readOnly, fcManager);
         } else {
             ArgValidator.checkFieldNotEmpty(volumesToSnap, "volumes");
             ArgValidator.checkFieldNotEmpty(snapshotName, "name");
@@ -4029,7 +4032,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             HashMap<VirtualPool, List<Volume>> allSourceVolumesToMigrate = new HashMap<VirtualPool, List<Volume>>();
             HashMap<VirtualPool, List<Volume>> allTargetVolumesToMigrate = new HashMap<VirtualPool, List<Volume>>();
             findSourceAndTargetMigrations(volumes, newVpool, sourceMigrationsExist, allSourceVolumesToMigrate,
-                    targetMigrationsExist, allTargetVolumesToMigrate, targetVpoolMigrations, taskList, taskId);
+                    targetMigrationsExist, allTargetVolumesToMigrate, targetVpoolMigrations);
 
             // Step 3
             //
@@ -4049,7 +4052,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Single migrations will be collected afterwards to be migrated explicitly in Step 4 and 6
             // below.
             rpVPlexGroupedMigrations(allSourceVolumesToMigrate, singleMigrations,
-                    Volume.PersonalityTypes.SOURCE.name(), logMigrations, taskList, taskId, vpoolChangeParam);
+                    Volume.PersonalityTypes.SOURCE.name(), logMigrations, taskList, vpoolChangeParam);
 
             // Targets
             //
@@ -4061,7 +4064,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Single migrations will be collected afterwards to be migrated explicitly in Step 4 and 6
             // below.
             rpVPlexGroupedMigrations(allTargetVolumesToMigrate, singleMigrations,
-                    Volume.PersonalityTypes.TARGET.name(), logMigrations, taskList, taskId, vpoolChangeParam);
+                    Volume.PersonalityTypes.TARGET.name(), logMigrations, taskList, vpoolChangeParam);
 
             // Journals
             //
@@ -4071,7 +4074,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // A new task will be generated to track each Journal migration.
             Set<URI> cgURIs = BlockConsistencyGroupUtils.getAllCGsFromVolumes(volumes);
             rpVPlexJournalMigrations(journalMigrationsExist, journalVpoolMigrations, singleMigrations,
-                    cgURIs, logMigrations, taskList, taskId);
+                    cgURIs, logMigrations);
 
             logMigrations.append("\n");
             _log.info(logMigrations.toString());
@@ -4083,12 +4086,33 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             for (Map.Entry<Volume, VirtualPool> entry : singleMigrations.entrySet()) {
                 Volume migrateVolume = entry.getKey();
                 VirtualPool migrateToVpool = entry.getValue();
-
+                
+                boolean allowHighAvailabilityMigrations = true;
+                if (!migrateVolume.getAssociatedVolumes().isEmpty()) {
+                    // Prevent HA migration descriptors to be created when associated volumes is <= 1.
+                    // This is mainly an issue for RP+VPLEX journals.
+                    if (migrateVolume.getAssociatedVolumes().size() <= 1) {
+                        allowHighAvailabilityMigrations = false;
+                    }
+                } else {
+                    // This is a last defense - the associated volumes for this virtual volume is
+                    // empty so we must rely on the fact that that RP+VPLEX journals should be
+                    // provisioned as VPLEX Local.
+                    //
+                    // It's possible that some journals may belong to a vpool that has HA enabled and we 
+                    // do not want to create any HA migrations in this case.
+                    //
+                    // Ex: Active Source journals that use the default Source vpool for provisioning.
+                    if (Volume.PersonalityTypes.METADATA.name().equals(migrateVolume.getPersonality())) {
+                        allowHighAvailabilityMigrations = false;
+                    }
+                }
+               
                 StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, migrateVolume.getStorageController());
                 migrateVolumeDescriptors.addAll(vplexBlockServiceApiImpl
                         .createChangeVirtualPoolDescriptors(vplexStorageSystem, migrateVolume, migrateToVpool, taskId,
-                                null, null, null));
-            }
+                                null, null, null, allowHighAvailabilityMigrations));
+            }            
 
             // Step 5
             //
@@ -4123,7 +4147,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             //
             // Invoke the block orchestration with the migration volume descriptors for the
             // single migrations.
-            if (!migrateVolumeDescriptors.isEmpty()) {
+            if (!migrateVolumeDescriptors.isEmpty()) {             
+                // Generate the correct task information for single migrations
+                List<Volume> migrationVolumes = new ArrayList<Volume>();
+                migrationVolumes.addAll(singleMigrations.keySet());               
+                taskList.getTaskList().addAll(createTasksForVolumes(newVpool, migrationVolumes, taskId).getTaskList());
+                
                 // Invoke the block orchestrator for the change vpool operation
                 BlockOrchestrationController controller = getController(
                         BlockOrchestrationController.class,
@@ -4160,14 +4189,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param targetMigrationsExist Determines if there are any Target migrations
      * @param allTargetVolumesToMigrate Container for all Target volumes to migrate
      * @param targetVpoolMigrations List of RPVPlexMigration for Target
-     * @param taskList Task list
-     * @param taskId Task id
      */
     private void findSourceAndTargetMigrations(List<Volume> volumes, VirtualPool newVpool,
             boolean sourceMigrationsExist, HashMap<VirtualPool, List<Volume>> allSourceVolumesToMigrate,
             boolean targetMigrationsExist, HashMap<VirtualPool, List<Volume>> allTargetVolumesToMigrate,
-            List<RPVPlexMigration> targetVpoolMigrations,
-            TaskList taskList, String taskId) {
+            List<RPVPlexMigration> targetVpoolMigrations) {
         for (Volume volume : volumes) {
             if (sourceMigrationsExist) {
                 // Group Source migrations by new vpool to Source volumes
@@ -4206,12 +4232,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         VirtualPool migrateToVpool = targetMigration.getMigrateToVpool();
                         BlockService.verifyVPlexVolumeForDataMigration(rpTargetVolume, migrateFromVpool, migrateToVpool, _dbClient);
 
-                        Operation op = new Operation();
-                        op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
-                        op.setDescription("Change vpool operation - Migrate RP+VPLEX Target");
-                        op = _dbClient.createTaskOpStatus(Volume.class, rpTargetVolume.getId(), taskId, op);
-                        taskList.addTask(toTask(rpTargetVolume, taskId, op));
-
                         // Group Target migrations by new vpool to Target volumes
                         List<Volume> targetVolumesToMigrate = allTargetVolumesToMigrate.get(migrateToVpool);
                         if (targetVolumesToMigrate == null) {
@@ -4238,16 +4258,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param type Personality type for logging
      * @param logMigrations Log buffer
      * @param taskList List of tasks that will be returned to user
-     * @param taskId Task id of order
      * @param vpoolChangeParam used to determine if we should suspend on migration commit
      */
     private void rpVPlexGroupedMigrations(HashMap<VirtualPool, List<Volume>> volumesToMigrate,
             Map<Volume, VirtualPool> singleMigrations, String type, StringBuffer logMigrations,
-            TaskList taskList, String taskId, VirtualPoolChangeParam vpoolChangeParam) {
+            TaskList taskList, VirtualPoolChangeParam vpoolChangeParam) {
         for (Map.Entry<VirtualPool, List<Volume>> entry : volumesToMigrate.entrySet()) {
             // List to hold volumes that are grouped by RG and migrated together
             List<Volume> volumesInRG = new ArrayList<Volume>();
-            ;
+
             // List to hold volumes that are not grouped by RG and will be migrated as single migrations
             List<Volume> volumesNotInRG = new ArrayList<Volume>();
 
@@ -4261,7 +4280,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
 
             TaskList taskList2 = vplexBlockServiceApiImpl.migrateVolumesInReplicationGroup(migrateVolumes,
-                    migrateToVpool, volumesNotInRG, volumesInRG, operationsWrapper, taskId);
+                    migrateToVpool, volumesNotInRG, volumesInRG, operationsWrapper);
             taskList.getTaskList().addAll(taskList2.getTaskList());
 
             for (Volume volumeInRG : volumesInRG) {
@@ -4289,12 +4308,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param singleMigrations Container to store all single migrations
      * @param cgURIs Set of URIs of all the CGs from the request
      * @param logMigrations String buffer for logging
-     * @param taskList Task list
-     * @param taskId Task id
      */
     private void rpVPlexJournalMigrations(boolean journalMigrationsExist, List<RPVPlexMigration> journalVpoolMigrations,
             Map<Volume, VirtualPool> singleMigrations,
-            Set<URI> cgURIs, StringBuffer logMigrations, TaskList taskList, String taskId) {
+            Set<URI> cgURIs, StringBuffer logMigrations) {
         if (journalMigrationsExist) {
             for (URI cgURI : cgURIs) {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
@@ -4305,8 +4322,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // Check to see if this Journal volume qualifies for migration
                     RPVPlexMigration journalMigration = null;
                     for (RPVPlexMigration migration : journalVpoolMigrations) {
-                        if (journalVolume.getVirtualArray().equals(migration.getVarray())
-                                && journalVolume.getVirtualPool().equals(migration.getMigrateFromVpool().getId())) {
+                        if (journalVolume.getVirtualArray().equals(migration.getVarray())) {
                             // Need to make sure we're migrating the right Journal, so check to make sure the copy names match
                             boolean isSourceJournal = migration.getSubType().equals(Volume.PersonalityTypes.SOURCE) ? true : false;
                             String copyName = RPHelper.getCgCopyName(_dbClient, cg, migration.getVarray(), isSourceJournal);
@@ -4323,12 +4339,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // be thrown.
                         BlockServiceUtils.checkForPendingTasks(journalVolume.getTenant().getURI(),
                                 Arrays.asList(journalVolume), _dbClient);
-
-                        Operation op = new Operation();
-                        op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
-                        op.setDescription("Change vpool operation - Migrate RP+VPLEX Journal");
-                        op = _dbClient.createTaskOpStatus(Volume.class, journalVolume.getId(), taskId, op);
-                        taskList.addTask(toTask(journalVolume, taskId, op));
 
                         VirtualPool migrateToVpool = journalMigration.getMigrateToVpool();
 

@@ -605,15 +605,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     List<URI> initiatorsToRemoveOnStorage = new ArrayList<URI>();
                     for (URI initiatorURI : initiatorsToRemove) {
                         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
-                        //COP-28729 - We can allow remove initiator or host if the shared mask doesn't have any existing volumes.
-                        //Shared masks will have atleast one unmanaged volume.
-                        List<String> sharedMaskNamesWithUnManagedVolumes = ExportUtils.getExportMasksSharingInitiatorAndHasUnManagedVolumes(_dbClient, initiatorURI, mask,
+                        // COP-28729 - We can allow remove initiator or host if the shared mask doesn't have any existing volumes.
+                        // Shared masks will have at least one unmanaged volume.
+                        String err = ExportUtils.getExportMasksSharingInitiatorAndHasUnManagedVolumes(_dbClient, initiator, mask,
                                 existingMasksToRemoveInitiator.keySet());
-                        if (!CollectionUtils.isEmpty(sharedMaskNamesWithUnManagedVolumes)) {
-                            String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
-                            errorMessage.append(
-                                    String.format(" Initiator %s is shared between other Export Masks  %s and has unmanaged volumes.Removing initiator will affect the other masking view",
-                                            normalizedName, Joiner.on(", ").join(sharedMaskNamesWithUnManagedVolumes)));
+                        if (err != null) {
+                            errorMessage.append(err);
                         }
                         initiatorsToRemoveOnStorage.add(initiatorURI);
                     }
@@ -731,7 +728,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             if (isValidationNeeded && StringUtils.hasText(errorMessage)) {
                 throw DeviceControllerException.exceptions.removeInitiatorValidationError(Joiner.on(", ").join(initiatorNames),
-                        storage.forDisplay(),
+                        storage.getLabel(),
                         errorMessage.toString());
             }
 
@@ -803,13 +800,30 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // In the case of clusters, we try to find the export mask that contains a subset of initiators
         // of the cluster, so we can build onto it.
         Set<URI> partialMasks = new HashSet<>();
-        Map<String, Set<URI>> matchingMasks = device.findExportMasks(storage, initiatorHelper.getPortNames(), false);
+        /**
+         * For Cluster exports, we will not reuse any partial masking views. Masking view will only be reused if all the required cluster
+         * initiators are available in the existing masking view. This is to simplify the existing design.
+         * - If there are existing masking views already available, then we will not reuse it.
+         * - If there are masking views with all required cluster initiators, we will reuse it.
+         * - If there are masking views which has more than one Host in the Cluster but not all the hosts are part of it, then don't reuse.
+         * - If there are existing masking views with all the hosts in the Cluster, but few of the hosts doesn't contain all ViPR discovered
+         * initiators then don't reuse. Always try to create a new masking view for Cluster.
+         * 
+         * Btw we consider only the host or cluster initiators connected to the network to be part of the given masking view.
+         * If ViPR discovered X initiators in CLuster and only X-n are connected to network,
+         * then we look for masking view with X-N initiators not X. Later during export the remaining initiators will be added to IG.
+         * The existing IG can be one single IG with more than one host or it could be IG per host with missing initiators.
+         * If X initiators are already available in the view, then we try to create a new masking view by reusing the IG.
+         * During reuse if the masking view creation fails with Initiator-port is already available, then user has to modify the existing
+         * initiator Group.
+         */
+        Map<String, Set<URI>> matchingMasks = device.findExportMasks(storage, initiatorHelper.getPortNames(), exportGroup.forCluster());
         Map<String, List<URI>> initiatorToComputeResourceMap =   initiatorHelper.getResourceToInitiators();
         
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
                 initiatorToComputeResourceMap, matchingMasks,
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
-        
+
         /**
          * COP-28674: During Vblock boot volume export, if existing masking views are found then check for existing volumes
          * If found throw exception. This condition is valid only for boot volume vblock export.
@@ -841,7 +855,32 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.info("VBlock Boot volume Export Validation : Skipping");
         }
 
+        /**
+         * To support multiple export for VMAX3 volumes with Host IO Limit, same Storage Group and
+         * Port Group should be used to create a new masking view. Re-using same storage group will
+         * lead to problems as it could have additional volumes. Also reusing a child storage group
+         * in a masking view to another masking view is not supported.
+         */
+        if (storage.checkIfVmax3() && ExportUtils.checkIfvPoolHasHostIOLimitSet(_dbClient, volumeMap)) {
+            _log.info("Volumes have Host IO Limit set in virtual pools. Validating for multiple export..");
+            Map<String, List<URI>> storageGroupToVolumes =
+                    getDevice().groupVolumesByStorageGroupWithHostIOLimit(storage, volumeMap.keySet());
+            if (!storageGroupToVolumes.isEmpty()) {
+                ExportOrchestrationTask completer = new ExportOrchestrationTask(exportGroup.getId(), token);
+                ServiceError serviceError = DeviceControllerException.errors.cannotMultiExportVolumesWithHostIOLimit(
+                        Joiner.on(",").join(storageGroupToVolumes.keySet()),
+                        Joiner.on(",").join(storageGroupToVolumes.values()));
+                completer.error(_dbClient, serviceError);
+                return false;
+            }
+        }
+
         findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+        
+        /**
+         * If export Group cluster. run algorithm to discard the matching masks based on the below
+         * 1. If any of the mask has cascaded IG, use the mask and discard others.
+         */
 
         // If we didn't find any export masks for any compute resources, then it's a total loss, and we need to
         // create new masks for each compute resource.
@@ -868,7 +907,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, ExportMaskPolicy> policyCache = new HashMap<>();
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
                     + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}", Joiner.on(",")
-                    .join(initiatorHelper.getPortNames()), Joiner.on(",").join(initiatorToExportMaskPlacementMap.keySet()), Joiner
+                    .join(initiatorHelper.getPortNames()), Joiner.on(",").join(initiatorToExportMaskPlacementMap.values()), Joiner
                     .on(",").join(initiatorHelper.getPortNameToInitiatorURI().entrySet())));
             // There are some initiators that already exist. We need to create a
             // workflow that create new masking containers or updates masking
@@ -953,7 +992,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         // It may turn out that we find these initiators already covered by a collection of
                         // masks for cluster purposes. If that's the case, we figure that out below and these
                         // "new" exports will never see the light of day.
+                        _log.info("New export mask will be created for initiator {}", initiatorURI);
                         initiatorsForNewExport.add(initiatorURI);
+                        // remove this mask from policyCache
+                        policyCache.remove(mask.getId());
                         continue;
                     }
 
@@ -1018,6 +1060,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // want to create another export against one of the hosts in the cluster,
             // or vice-versa.
             if (!initiatorsForNewExport.isEmpty()) {
+                _log.info("Initiators for which new Export Mask will be created: {}", initiatorsForNewExport);
                 if (exportGroup.forCluster() && !initiatorURIsCopy.isEmpty()) {
                     // Clustered export group create request and there are essentially
                     // new and existing initiators. We'll take what's not already
@@ -1201,11 +1244,15 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                         exportMasksToAdd.add(mask.getId());
                                     }
                                 }
+                            } else {
+                                _log.info("Initiator {} does not have any masks that match its compute resource",
+                                        initiator.getInitiatorPort());
                             }
                         }
                     }
 
                     if (!exportMasksToAdd.isEmpty()) {
+                        _log.info("Initiator {} - to be added to export masks: {}", initiator.getInitiatorPort(), exportMasksToAdd);
                         initiatorToExportMaskPlacementMap.put(Initiator.normalizePort(initiator.getInitiatorPort()), exportMasksToAdd);
                     }
                 }
@@ -1619,13 +1666,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // and it's using cascading storage groups.
                             if (rule == 2) {
                                 // if it is a cascaded SG, mask need to be selected
-                                if (!policy.simpleMask) {
+                                // VMAX3: Phantom SGs are not created for VMAX3, so ignore the mask
+                                if (!policy.simpleMask && checkIfRule2SatisfiesForVMAX3(isVMAX3, policy)) {
                                     _log.info("Pre-existing mask Matched rule 2A: volume has FAST policy and masking view has cascaded storage group");
-                                    // No need to check for phantom SGs for VMAX3
-                                    // Host IO limits cannot be associated to
-                                    // phantom SGs, hence verify if IO limit set on the SG within MV if not we need to create a new Masking
-                                    // view.
-                                    if (!isVMAX3 && ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType())) {
+                                    // VMAX2: Host IO limits cannot be associated to phantom SGs,
+                                    // hence verify if IO limit set on the SG within MV if not we need to create a new Masking view.
+                                    if (ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType())) {
                                         if (virtualPool != null) {
                                             if (HostIOLimitsParam.isEqualsLimit(policy.getHostIOLimitBandwidth(),
                                                     virtualPool.getHostIOLimitBandwidth())
@@ -1739,6 +1785,19 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
+        return true;
+    }
+
+    /**
+     * Check if rule-2 satisfies for VMAX3.
+     * If it is not simple mask, it could either be cascaded or Phantom SG.
+     * Phantom SGs are not created for VMAX3, so rule-2 does not satisfy for this case.
+     */
+    private boolean checkIfRule2SatisfiesForVMAX3(boolean isVMAX3, ExportMaskPolicy policy) {
+        if (isVMAX3 &&
+                ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType())) {
+            return false;
+        }
         return true;
     }
 

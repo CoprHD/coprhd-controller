@@ -652,8 +652,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             String opId = taskCompleter.getOpId();
             Set<String> processedCGs = new HashSet<String>();
+            StringMap volsMap = exportMask.getVolumes();
             for (URI volUri : volumes) {
-                if (hostId != null && exportMask.getVolumes().keySet().contains(volUri.toString())) {
+                if (hostId != null && volsMap != null && !volsMap.isEmpty() &&
+                        volsMap.keySet().contains(volUri.toString())) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                     // COP-25254 this method could be called when delete vplex volume created from snapshot. in this case
                     // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
@@ -763,7 +765,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     } else {
                         String msg = String.format(
                                 "Initiator %s belongs to %s, but other initiator belongs to %s. Please move initiator to the correct host",
-                                init.getPortWWN(), host.getId(), hostId);
+                                init.getInitiatorId(), host.getId(), hostId);
                         _logger.error(msg);
 
                         if (!createdInitiators.isEmpty()) {
@@ -1086,6 +1088,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         if (initiatorList != null) {
             for (VNXeHostInitiator initiator : initiatorList) {
                 String portWWN = initiator.getPortWWN();
+                if (HostInitiatorTypeEnum.INITIATOR_TYPE_ISCSI.equals(initiator.getType())) {
+                    portWWN = initiator.getInitiatorId();
+                }
+
                 Initiator viprInitiator = NetworkUtil.findInitiatorInDB(portWWN, dbClient);
                 if (viprInitiator != null) {
                     if (!hostUri.equals(viprInitiator.getHost())) {

@@ -20,6 +20,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -233,16 +234,18 @@ public class DiscoveryUtils {
             String vplexParentVolume = VplexBackendIngestionContext.extractValueFromStringSet(
                     SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
                     unManagedVolume.getVolumeInformation());
-            URIQueryResultList unManagedVolumeList = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getVolumeInfoNativeIdConstraint(vplexParentVolume), unManagedVolumeList);
-            if (unManagedVolumeList.iterator().hasNext()) {
-                UnManagedVolume parentVolume = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
-                StringSet parentMatchedPools = parentVolume.getSupportedVpoolUris();
-                if (parentMatchedPools != null && !parentMatchedPools.isEmpty()) {
-                    _log.info("Adding the following matched vpools from VPLEX parent volume {} to backend volume {}: {}",
-                            parentVolume.getLabel(), unManagedVolume.getLabel(), parentMatchedPools);
-                    matchedVPools.addAll(parentMatchedPools);
+            if (StringUtils.isNotEmpty(vplexParentVolume)) {
+                URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeInfoNativeIdConstraint(vplexParentVolume), unManagedVolumeList);
+                if (unManagedVolumeList.iterator().hasNext()) {
+                    UnManagedVolume parentVolume = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                    StringSet parentMatchedPools = parentVolume.getSupportedVpoolUris();
+                    if (parentMatchedPools != null && !parentMatchedPools.isEmpty()) {
+                        _log.info("Adding the following matched vpools from VPLEX parent volume {} to backend volume {}: {}",
+                                parentVolume.getLabel(), unManagedVolume.getLabel(), parentMatchedPools);
+                        matchedVPools.addAll(parentMatchedPools);
+                    }
                 }
             }
         }

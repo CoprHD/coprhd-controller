@@ -85,7 +85,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem,
             BlockObject target) {
         CIMObjectPath sourcePath = cimAdapter.getBlockObjectPath(sourceSystem, sourceSystem, source);
-        CIMObjectPath targetPath = cimAdapter.getBlockObjectPath(targetSystem, sourceSystem, target);
+        CIMObjectPath targetPath = cimAdapter.getBlockObjectPath(sourceSystem, targetSystem, target);
         CIMProperty[] propKeys = { cimPropertyFactory.string(CP_SYNCED_ELEMENT, targetPath.toString()),
                 cimPropertyFactory.string(CP_SYSTEM_ELEMENT, sourcePath.toString()) };
         String protocol = sourceSystem.getSmisUseSSL() ? CimConstants.SECURE_PROTOCOL : CimConstants.DEFAULT_PROTOCOL;

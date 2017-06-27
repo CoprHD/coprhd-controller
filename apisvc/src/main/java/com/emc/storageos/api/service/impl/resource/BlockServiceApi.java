@@ -433,11 +433,13 @@ public interface BlockServiceApi {
      *            The snapshot technology type.
      * @param snapshotName
      *            The snapshot name.
+     * @param readOnly            
+     * 			  If the snapshot should be read only
      * @param A
      *            reference to the block full copy manager.
      */
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
-            String snapshotType, String snapshotName, BlockFullCopyManager fcManager);
+            String snapshotType, String snapshotName, Boolean readOnly, BlockFullCopyManager fcManager);
 
     /**
      * When a request is made to create a snapshot for a specific volume, this

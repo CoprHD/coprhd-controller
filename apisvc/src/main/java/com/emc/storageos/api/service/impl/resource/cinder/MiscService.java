@@ -205,6 +205,7 @@ public class MiscService extends TaskResourceService {
      * click on volumes tab. Hence, we implement the dummy.
      * @prereq none
      * @param tenant_id the URN of the tenant
+     * @brief Get OS volume transfer details
      * @return transfers
      */
     @GET
@@ -223,6 +224,7 @@ public class MiscService extends TaskResourceService {
      * need to support system Information os-service
      * @prereq none
      * @param tenant_id the URN of the tenant
+     * @brief Get OS Services
      * @return services
      */
     @GET

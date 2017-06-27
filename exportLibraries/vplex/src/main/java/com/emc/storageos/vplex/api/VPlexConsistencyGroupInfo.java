@@ -12,8 +12,8 @@ import java.util.List;
  */
 public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
 
-    // Enumerates the virtual volume attributes we are interested in and
-    // parse from the VPlex virtual volume response. There must be a setter
+    // Enumerates the consistency group attributes we are interested in and
+    // parse from the VPlex response. There must be a setter
     // method for each attribute specified. The format of the setter
     // method must be as specified by the base class method
     // getAttributeSetterMethodName.

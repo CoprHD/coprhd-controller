@@ -47,6 +47,7 @@ import com.emc.storageos.model.auth.RoleAssignments;
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.model.file.FileSystemReduceParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.ports.StoragePortRestRep;
@@ -3601,7 +3602,7 @@ public class ApiTest extends ApiTestBase {
         fsparam.setVpool(_cosFile.getId());
         fsparam.setLabel("test-fs-" + System.currentTimeMillis());
         fsparam.setVarray(_nh);
-        fsparam.setSize("10240000");
+        fsparam.setSize("20480000");
         if (good) {
             TaskResourceRep resp = user.path("/file/filesystems/")
                     .queryParam("project", _testProject.toString())
@@ -3657,6 +3658,28 @@ public class ApiTest extends ApiTestBase {
             Assert.assertEquals(403, resp.getStatus());
         }
     }
+    
+    private void checkFsReduce(BalancedWebResource user, boolean good) {
+    	FileSystemReduceParam param = new FileSystemReduceParam();
+    	
+    	param.setNewSize("1GB");
+        
+    	String fsReduceURL = String.format("/file/filesystems/%s/reduce", _fs);
+        if (good) {
+            TaskResourceRep resp = user.path(fsReduceURL)
+                    .post(TaskResourceRep.class, param);
+            Assert.assertNotNull(resp.getOpId());
+            Assert.assertNotNull(resp.getResource());
+        } else {
+            ClientResponse resp = user.path(fsReduceURL)
+                    .post(ClientResponse.class, param);
+            Assert.assertEquals(403, resp.getStatus());
+        }
+    }
+    
+    private void checkFSReduce(BalancedWebResource user, boolean good) throws Exception {
+    	checkFsReduce(user, good);
+    }
 
     private void fileTests() throws Exception {
         // tenant admin, project owner and project user can create fs
@@ -3670,6 +3693,16 @@ public class ApiTest extends ApiTestBase {
         checkFSCreate(rZAdmin, false);
         checkFSCreate(rSys, false);
         checkFSCreate(rUnAuth, false);
+        
+        
+        checkFSReduce(rSTAdmin1, true);
+        checkFSReduce(rSTAdminGr1, true);
+        checkFSReduce(rProjUserGr, true);
+        
+        checkFSReduce(rProjRead, false);
+        checkFSReduce(rZAdmin, false);
+        
+        
 
         // tenant admin, project owner and project user/backup can create snapshot
         checkSnapCreate(rSTAdmin1, true);

@@ -99,9 +99,9 @@ public class CustomConfigService extends ResourceService {
     }
 
     /**
-     * List configs.
+     * List custom configurations.
      * 
-     * @brief List of configs
+     * @brief List config names and ids
      * @return A reference to a CustomConfigList.
      */
     @GET
@@ -142,7 +142,7 @@ public class CustomConfigService extends ResourceService {
      * 
      * @param param POST data containing the id list.
      * 
-     * @brief List data of configs
+     * @brief Show data of requested configs
      * @return list of representations.
      */
     @POST
@@ -162,7 +162,7 @@ public class CustomConfigService extends ResourceService {
      *        Retrieve all ids of config
      * 
      * @prereq none
-     * 
+     * @brief Retrieve bulk list of config ids
      * @return list of ids.
      */
     @GET

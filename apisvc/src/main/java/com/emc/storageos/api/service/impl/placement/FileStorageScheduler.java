@@ -310,7 +310,10 @@ public class FileStorageScheduler implements Scheduler {
         List<URI> storagePortURIList = new ArrayList<URI>();
         for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
             StoragePort storagePort = iterator.next();
-            storagePortURIList.add(storagePort.getId());
+            // storageport must be part of network
+            if (!NullColumnValueGetter.isNullURI(storagePort.getNetwork())) {
+                storagePortURIList.add(storagePort.getId());
+            }
         }
 
         for (Iterator<Recommendation> iterator = poolRecommendations.iterator(); iterator.hasNext();) {
@@ -805,8 +808,8 @@ public class FileStorageScheduler implements Scheduler {
                             virtualNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
-                } else if (null != virtualNAS.getProtocols() && null != vpool.getProtocols() && 
-                  !virtualNAS.getProtocols().containsAll(vpool.getProtocols())) {
+                } else if (null != virtualNAS.getProtocols() && null != vpool.getProtocols() &&
+                        !virtualNAS.getProtocols().containsAll(vpool.getProtocols())) {
                     _log.info("Removing vNAS {} as it does not support vpool protocols: {}",
                             virtualNAS.getNasName(), vpool.getProtocols());
                     iterator.remove();
@@ -1143,19 +1146,25 @@ public class FileStorageScheduler implements Scheduler {
 
         // Now check whether the label used in the storage system or not
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
-        List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
-                PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
-        if (fileShareList != null && fileShareList.isEmpty()) {
-            for (FileShare fs : fileShareList) {
-                if (fs.getStorageDevice() != null) {
-                    if (fs.getStorageDevice().equals(system.getId())) {
+        /*
+         * We have same project same filesystem name check present at API service
+         * Isilon file systems are path based. So Same fs name can exist at different path
+         * Unity allow same filesystem name in different NAS servers.
+         * For Isilon, duplicate name based on path is handled at driver level.
+         */
+        if (!allowDuplicateFilesystemNameOnStorage(system.getSystemType())) {
+            List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                    PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
+            if (fileShareList != null && !fileShareList.isEmpty()) {
+                for (FileShare fs : fileShareList) {
+                    if (fs.getStorageDevice() != null && fs.getStorageDevice().equals(system.getId())) {
                         _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
                         throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
+
                     }
                 }
             }
         }
-
         // Set the storage pool
         StoragePool pool = null;
         if (null != placement.getSourceStoragePool()) {
@@ -1179,6 +1188,23 @@ public class FileStorageScheduler implements Scheduler {
         _dbClient.updateObject(fileShare);
         // finally set file share id in recommendation
         placement.setId(fileShare.getId());
+    }
+
+    /**
+     * To check fileSystem with same name is allowed or not
+     * currently we allowed it for Isilon and Unity as Array do not have these restriction.
+     * 
+     * @param systemType
+     * @return true if allowed , false otherwise
+     */
+    private static boolean allowDuplicateFilesystemNameOnStorage(String systemType) {
+        boolean allow = false;
+        if (StorageSystem.Type.isilon.name().equals(systemType)) {
+            allow = true;
+        } else if (StorageSystem.Type.unity.name().equals(systemType)) {
+            allow = true;
+        }
+        return allow;
     }
 
     /**

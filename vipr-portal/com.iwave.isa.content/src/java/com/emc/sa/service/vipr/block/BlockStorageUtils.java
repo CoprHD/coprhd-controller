@@ -94,6 +94,8 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
+import com.emc.sa.service.vipr.block.tasks.GetProject;
+import com.emc.sa.service.vipr.block.tasks.GetTenant;
 import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.PauseContinuousCopy;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
@@ -139,7 +141,9 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
@@ -377,6 +381,14 @@ public class BlockStorageUtils {
 
     public static List<VolumeRestRep> getVolumeByName(String name) {
         return execute(new GetVolumeByName(name));
+    }
+
+    public static ProjectRestRep getProject(URI projectId) {
+        return execute(new GetProject(projectId));
+    }
+
+    public static TenantOrgRestRep getTenant(URI tenantId) {
+        return execute(new GetTenant(tenantId));
     }
 
     public static ExportGroupRestRep getExport(URI exportId) {
@@ -1579,5 +1591,50 @@ public class BlockStorageUtils {
         if (numOfVolumes >= limit * Constants.RESOURCE_LIMIT_ALERT_RATE) {
             context.logWarn("alert.createVolume.exceedingResourceLimit", numOfVolumes, limit);
         }
+    }
+    
+    /**
+     * Utility method that determines if the given volume is already expanded based on
+     * a desired expansion size.
+     * 
+     * @param volume the volume to inspect
+     * @param sizeInGb the desired volume expand size
+     * @return true if the volume is already expanded, false otherwise
+     */
+    public static <T extends BlockObjectRestRep> boolean isVolumeExpanded(T resource, Double sizeInGb) {
+    	return (Double.parseDouble(getCapacity(resource)) >= sizeInGb);
+    }
+
+    /**
+     * Get the capacity off a {@link BlockObjectRestRep}
+     */
+    public static <T extends BlockObjectRestRep> String getCapacity(T resource) {
+        if (resource instanceof BlockSnapshotRestRep) {
+            return ((BlockSnapshotRestRep) resource).getProvisionedCapacity();
+        }
+        else if (resource instanceof VolumeRestRep) {
+            return ((VolumeRestRep) resource).getCapacity();
+        }
+        else if (resource instanceof BlockMirrorRestRep) {
+            return ((BlockMirrorRestRep) resource).getCapacity();
+        }
+        throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.capacityNotFound", resource.getId()));
+    }    
+    
+    /**
+     * Returns the viprcli command for adding a tag to a block volume
+     * 
+     * @param blockObjectId the id of the block object
+     * @param tagName the tag name
+     * @param tagValue the tag value
+     * @return viprcli command
+     */
+    public static String getVolumeTagCommand(URI blockObjectId, String tagName, String tagValue) {
+        BlockObjectRestRep blockObject = getBlockResource(blockObjectId);
+        URI projectId = getProjectId(blockObject);
+        ProjectRestRep project = getProject(projectId);
+        TenantOrgRestRep tenant = getTenant(project.getTenant().getId());
+        return ExecutionUtils.getMessage("viprcli.volume.tag", blockObject.getName(), tenant.getName(), project.getName(),
+                tagName, tagValue);
     }
 }

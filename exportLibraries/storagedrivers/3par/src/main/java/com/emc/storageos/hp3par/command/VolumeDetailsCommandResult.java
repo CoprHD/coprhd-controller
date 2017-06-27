@@ -19,9 +19,12 @@ public class VolumeDetailsCommandResult {
 	private Long physParentId;
 	private boolean readOnly;	
 	private int state;
+	private Space adminSpace;
+	private Space snapshotSpace;
+	private Space userSpace;
     
     
-    public String getId() {
+	public String getId() {
 		return id;
 	}
 	public void setId(String id) {
@@ -121,6 +124,24 @@ public class VolumeDetailsCommandResult {
     public void setUuid(String uuid) {
         this.uuid = uuid;
     }
+    public Space getAdminSpace() {
+		return adminSpace;
+	}
+	public void setAdminSpace(Space adminSpace) {
+		this.adminSpace = adminSpace;
+	}
+	public Space getSnapshotSpace() {
+		return snapshotSpace;
+	}
+	public void setSnapshotSpace(Space snapshotSpace) {
+		this.snapshotSpace = snapshotSpace;
+	}
+	public Space getUserSpace() {
+		return userSpace;
+	}
+	public void setUserSpace(Space userSpace) {
+		this.userSpace = userSpace;
+	}
     
     public String getAllValues() {
     	String allValues = "name " + name +
@@ -134,6 +155,7 @@ public class VolumeDetailsCommandResult {
     					   "\n copyType " + copyType +
     					   "\n snapCPG " + snapCPG +
     					   "\n userCPG " + userCPG;
+    	
         return allValues;
     }
 }

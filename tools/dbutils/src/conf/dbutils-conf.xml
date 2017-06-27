@@ -15,6 +15,7 @@
         <property name="encryptionProvider" ref="encryptionProvider"/>
         <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
     
     <bean id="geodbclient" class="com.emc.storageos.geo.vdccontroller.impl.InternalDbClient" init-method="start">
@@ -26,6 +27,7 @@
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
 
     <bean id="vdcConfHelper" class="com.emc.storageos.geo.service.impl.util.VdcConfigHelper">

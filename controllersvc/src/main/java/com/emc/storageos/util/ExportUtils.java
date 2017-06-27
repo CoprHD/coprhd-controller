@@ -599,18 +599,20 @@ public class ExportUtils {
     
     /**
      * Check if the initiator is being shared across masks and check if the mask has unmanaged volumes.
+     * This will return an error message to append to the caller's error message string.
      * 
      * @param dbClient
      * @param initiatorUri
      * @param curExportMask
      * @param exportMaskURIs
-     * @return List of other shared masks name if the initiator is found in other export masks.
+     * @return error message to append
      */
-    public static List<String> getExportMasksSharingInitiatorAndHasUnManagedVolumes(DbClient dbClient, URI initiatorUri, ExportMask curExportMask,
+    public static String getExportMasksSharingInitiatorAndHasUnManagedVolumes(DbClient dbClient, Initiator initiator, ExportMask curExportMask,
             Collection<URI> exportMaskURIs) {
         List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
-                ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+                ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiator.getId()));
         List<String> sharedExportMaskNameList = new ArrayList<>();
+        Set<String> unmanagedVolumeWWNs = new HashSet<>();
         for (ExportMask exportMask : results) {
             if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) &&
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
@@ -618,11 +620,20 @@ public class ExportUtils {
                     && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators()) &&
                     exportMask.hasAnyExistingVolumes()) {
                 _log.info("Initiator {} is shared with mask {} and has unmanaged volumes",
-                        initiatorUri, exportMask.getMaskName());
-                sharedExportMaskNameList.add(exportMask.forDisplay());
+                        initiator.getId(), exportMask.getMaskName());
+                sharedExportMaskNameList.add(exportMask.getMaskName());
+                unmanagedVolumeWWNs.addAll(exportMask.getExistingVolumes().keySet());
             }
         }
-        return sharedExportMaskNameList;
+        
+        if (!sharedExportMaskNameList.isEmpty()) {
+            return String.format(" Initiator %s is shared between mask %s and other masks [%s] and has unmanaged volumes [%s].  Removing initiator will affect the other masking view",
+                        Initiator.normalizePort(initiator.getInitiatorPort()), // initiator wwn
+                        curExportMask.getMaskName(), // mask name being validated
+                        Joiner.on(", ").join(sharedExportMaskNameList), // names of masks
+                        (unmanagedVolumeWWNs.size() < 10) ? Joiner.on(", ").join(unmanagedVolumeWWNs) : "10 or more volumes"); // unmanaged volumes (up to 9)
+        }
+        return null;
     }
 
     /**
@@ -1037,6 +1048,39 @@ public class ExportUtils {
             return vpool;
         }
         return null;
+    }
+
+    /**
+     * Check if any of volume's vPool has host IO limit set.
+     *
+     * @param dbClient the db client
+     * @param volumeMap the volume map
+     * @return true, if successful
+     */
+    public static boolean checkIfvPoolHasHostIOLimitSet(DbClient dbClient, Map<URI, Integer> volumeMap) {
+        Map<URI, VirtualPool> vPoolMap = new HashMap<URI, VirtualPool>();
+        for (URI blockObjectURI : volumeMap.keySet()) {
+            Volume volume = null;
+            BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
+            if (blockObject instanceof BlockSnapshot) {
+                BlockSnapshot snapshot = (BlockSnapshot) blockObject;
+                volume = dbClient.queryObject(Volume.class, snapshot.getParent());
+            } else if (blockObject instanceof Volume) {
+                volume = (Volume) blockObject;
+            }
+            if (volume != null) {
+                URI vPoolURI = volume.getVirtualPool();
+                VirtualPool vPool = vPoolMap.get(vPoolURI);
+                if (vPool == null) {
+                    vPool = dbClient.queryObject(VirtualPool.class, vPoolURI);
+                    vPoolMap.put(vPoolURI, vPool);
+                }
+                if (vPool != null && (vPool.isHostIOLimitBandwidthSet() || vPool.isHostIOLimitIOPsSet())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

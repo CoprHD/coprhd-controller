@@ -1713,12 +1713,12 @@ def compute_host_create_parser(subcommand_parsers, common_parser):
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
-                               default="")
+                               default=None)
     create_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',
-                               default="")
+                               default=None)
     mandatory_args.add_argument('-computevpool', '-cvp',
                                 help='name of computevpool',
                                 dest='computevpool',

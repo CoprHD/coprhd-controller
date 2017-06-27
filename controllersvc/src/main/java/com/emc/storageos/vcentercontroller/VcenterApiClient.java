@@ -991,7 +991,7 @@ public class VcenterApiClient {
                     + datacenterName + " cluster " + clusterNameOrMoRef);
 
             HostSystem hostSystem = (HostSystem) createManagedEntityMap(datacenterName, clusterNameOrMoRef, hostName,
-                    true).get("HostSystem");
+                    false).get("HostSystem");
 
             if (volumewwn == null || volumewwn.trim().equals("")) {
                 _log.error("Volume UUID not specified");

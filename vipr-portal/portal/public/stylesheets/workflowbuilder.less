@@ -1,0 +1,757 @@
+.exampleEditor {
+    background-color: #eee !important;
+    //height: calc(80vh-50px);
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    left: 88px;
+    top: 159px;
+    max-width: 100vw;
+    border: 1px solid rgb(192, 192, 192);
+}
+
+.homeTab{
+    background-color: #fcfcfc;
+    height:100%;
+    text-align: center;
+    padding-top: 300px;
+    font-size: 30px;
+    color: #efeded;
+}
+
+.success-icon {
+    color:#5cb85c;
+}
+.warning-icon {
+    color:#f0ad4e;
+}
+
+.message-bar-icon {
+    float: left;
+    position: relative;
+    top: 2px;
+    width: 23px;
+}
+
+.button-icon {
+    width: 13px;
+}
+
+.message-failure-icon:before {
+    content: url(/public/img/customServices/FailedMessage.svg);
+}
+
+.failure-icon:before {
+    content: url(/public/img/customServices/Failed.svg);
+}
+
+.error-input-container {
+    position:absolute;
+    width: 300px;
+}
+
+.error-input-icon-hover {
+    position: absolute;
+    z-index: 3;
+    width: 20px;
+    height: 20px;
+    left: 37px;
+    top: 10px;
+}
+
+.custom-error-input-popover {
+    position: absolute;
+    left: -4px;
+    bottom: 0px;
+}
+
+.custom-error-step-popover {
+    position: absolute;
+    left: -51px;
+    bottom: 74px;
+}
+
+.custom-error-popover {
+    pointer-events: none;
+    min-width: 110px;
+    display: block;
+    background-color: #be1e2d;
+    color: white;
+    font-size: 13px;
+    z-index: 1010;
+    max-width: 276px;
+    text-align: left;
+    -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    white-space: normal;
+    padding: 7px 14px;
+    transition: opacity 0.5s;
+    opacity: 0;
+}
+
+.custom-error-popover.visible {
+    opacity: 1;
+}
+
+.custom-popover-content {
+    padding-top: 1px;
+    padding-bottom: 1px;
+}
+
+.custom-error-popover.top > .arrow {
+    //left: 50%;
+    left: 51px;
+    margin-left: -11px;
+    border-bottom-width: 0;
+    border-top-color: #be1e2d;
+    bottom: -10px;
+}
+
+.custom-error-popover > .arrow {
+    border-width: 11px;
+}
+
+.custom-error-popover  > .arrow, .custom-error-popover > .arrow:after {
+    position: absolute;
+    display: block;
+    width: 0;
+    height: 0;
+    border-color: transparent;
+    border-style: solid;
+}
+
+.jsPlumb_dragged {
+    z-index: 999;
+}
+.jsPlumb-container {
+    width:4000px;
+    height:4000px;
+    position:relative;
+    background-image: url("/public/img/customServices/CanvasPattern.svg");
+	background-color: #f7f7f7;
+    background-position: -130px -130px;
+    background-size: 501px;
+}
+.example-item-card-wrapper {
+    position:absolute;
+    z-index:200;
+}
+
+.example-item-card-wrapper a {
+    text-decoration: none;
+    display: inline-block;
+    float: right;
+    top: 0px;
+    margin: 0px;
+    padding: 7px;
+    max-height: 27px;
+    width: 27px;
+}
+
+.example-item-card-wrapper a:hover {
+    background-color:#f1f2f2;
+    color: #a7a9ac;
+}
+
+.item-card-error-icon {
+    position: absolute;
+    left: -12px;
+    width: 25px;
+    top: -9px;
+}
+
+.item {
+    display: inline-block;
+    vertical-align: middle;
+    margin-bottom: 0;
+    background-color: white;
+    pointer-events:none;
+    box-shadow: 2px 2px 2px #939598;
+    height: 54px !important;
+    width: 210px;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+	
+}
+
+.item-start-end {
+    height:40px;
+    width:70px;
+    border: 2px solid #0286c3;
+    border-radius:50%;
+    background-color: #0286c3;
+}
+
+.sidebar {
+    background-color: white !important;
+    z-index:999 !important;
+    width: 100%;
+    height: 100%;
+}
+
+.home-sidebar {
+    margin-top: 10px;
+    background-color: white !important;
+    z-index:999 !important;
+    width: 100%;
+    background-color: white !important;
+    z-index: 999 !important;
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    width: 408px;
+}
+
+.builder-button-bar {
+    overflow: hidden;
+}
+
+.button-bar-container {
+    margin: 10px;
+    float: right;
+}
+
+.message-bar {
+    position: relative;
+    z-index: 1;
+}
+
+.message-bar-success {
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+    color: #3c763d;
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    padding: 15px;
+}
+
+/* The starting CSS styles for the enter animation */
+.message-bar-failure.ng-enter {
+  transition:padding-top 0.2s linear;
+  transition:max-height 0.2s linear;
+  max-height: 0;
+}
+
+/* The finishing CSS styles for the enter animation */
+.message-bar-failure.ng-enter.ng-enter-active {
+  max-height: 100px;
+}
+
+.message-bar-failure.ng-leave {
+  transition:0.2s linear all;
+  opacity:1;
+}
+.message-bar-failure.ng-leave.ng-leave-active {
+  opacity:0;
+}
+
+.message-bar-failure {
+  overflow: hidden;
+    color: #a94442;
+    background-color: #f2dede;
+    border-color: #ebccd1;
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    padding: 15px;
+}
+
+.message-bar-closebtn {
+    text-decoration: none;
+     cursor: pointer;
+     cursor: hand;
+     padding-right: 10px;
+     float:right;
+ }
+
+.passEndpoint svg circle {
+     fill: #5cb85c;
+     border-color: #4cae4c;
+ }
+
+.failEndpoint svg circle {
+    fill: #d9534f;
+    border-color: #d43f3a;
+}
+
+.jsplumb-endpoint.jsplumb-endpoint-connected {
+    opacity: 1;
+}
+
+.jsplumb-connector {
+    z-index: 4;
+}
+
+.jsplumb-endpoint {
+    background-size: contain !important;
+    z-index: 5;
+    opacity: 0.2;
+    stroke: none;
+}
+
+.itemText {
+    display: block;
+    display: -webkit-box;
+    width: 126px;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: black;
+    font-size: 13px;
+    height: 48px;
+    pointer-events: none;
+    padding: 10px 0px;
+    position: relative;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+.itemTextStartEnd {
+    color: white;
+    text-align: center;
+    margin: 10px;
+    font-size: 15px;
+
+}
+
+.draggable-card {
+    display: inline-block;
+    z-index: 100;
+}
+
+.draggable-card .itemText {
+    font-size: 16px;
+}
+
+.builder-column {
+    width: auto;
+    height: 100%;
+    overflow: hidden;
+}
+
+.builder-tab-content {
+    position: absolute;
+    margin-top: 52px;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+}
+
+.tab-close {
+    margin-right: 11px;
+    margin-left: 9px;
+}
+
+.button-container {
+    position: absolute;
+    right: 0px;
+    width: 25px;
+    height: 100%;
+}
+
+.highlighted .item {
+	background-color: #0286c3;
+}
+
+.highlighted .item .itemText{
+	color: white;
+}
+
+.highlighted .button-container a{
+	color: white;
+}
+
+.highlighted .button-container a:hover {
+    background-color: #4794cd;
+}
+
+.highlighted .button-container .button-edit-step {
+	display: none;
+}
+
+table, th , td {
+  padding: 5px;
+}
+
+.sidenav-panel {
+    overflow:scroll;
+    /* hack to improve chrome performance by forcing GPU rendering */
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+}
+
+.sidenav {
+    height: 100%; /* 100% Full-height */
+    width: 0; /* 0 width - change this with JavaScript */
+    position: absolute; /* Stay in place */
+    z-index: 2; /* Stay on top */
+    right: 0px;
+    background-color: white;
+    overflow-x: hidden; /* Disable horizontal scroll */
+    overflow-y: scroll;
+    transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
+    border: 1px solid rgb(192, 192, 192);
+}
+
+.sidenav-open {
+    width: 400px;
+}
+
+.sidenav h3{
+    padding-left: 15px;
+    font-weight: normal;
+    font-size: 20px;
+    line-height: 30px;
+}
+
+.sidenav p{
+    padding-left: 15px;
+}
+
+.sidenav .full-width{
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+
+.sidenav .panel-default > .tab-panel-heading {
+    background-color: transparent;
+    border-bottom: 1px solid #dddddd;
+    padding: 10px 15px;
+    padding-bottom: 0px;
+}
+
+.sidenav a:hover, .offcanvas a:focus{
+    color: #414141;
+    text-decoration: none;
+     cursor: pointer;
+     cursor: hand;
+}
+
+.sidenav .closebtn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 36px;
+    margin-left: 50px;
+}
+
+.sidenav .panel {
+    margin-bottom: 10px;
+    background-color: transparent;
+    border: 0;
+    border-radius: 0px;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+}
+
+.sidenav .panel-default > .panel-heading {
+    color: #333333;
+    background-color: #f5f5f5;
+    border: 1px solid #dddddd;
+    border-radius: 0;
+}
+
+.sidenav .step-image {
+    height: 28px;
+    width: 28px;
+    float: left;
+    margin-left: 15px;
+    margin-right: 10px;
+    margin-top: 2px;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.sidenav .panel-title .glyphicon, .panel-title .vipricon {
+    margin-right: 3px;
+}
+
+.panel-title {
+    font-size: 12px
+}
+
+.lib-slider-button {
+    padding: 1px;
+    height: 100%;
+    position: absolute;
+    z-index: 2;
+    margin-left: 408px;
+}
+
+.slider-open {
+    margin-right: 600px;
+}
+
+#sliderMenu {
+    width: 54px;
+    height: 100%;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    border: 1px solid rgb(192, 192, 192);
+    z-index: 2;
+}
+
+.side-container {
+    float: right;
+    position: absolute;
+    right: 0px;
+    bottom: 0px;
+    top: 0px;
+
+    z-index: 1;
+}
+
+.builder-container {
+    border: 1px solid rgb(192, 192, 192);
+    clear: both;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    margin-top: 54px;
+}
+
+#libSidebar {
+  position: absolute;
+  bottom: 0;
+  left:0px;
+  top: 0;
+  padding-right: 0px;
+  padding-left: 5px;
+  /* for the animation */
+  transition:all 0.2s linear;
+  -webkit-transition: all 0.2s linear;
+}
+
+#libSidebar.collapsedSideBar {
+  left: -413px;
+}
+
+#row-main {
+  /* necessary to hide collapsed sidebar */
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  margin-left: 0px;
+  margin-right: 0px;
+  z-index: 0;
+}
+
+.tree-controller {
+    position: absolute;
+    bottom: 0;
+    top: 0;
+}
+
+.jstree-container {
+    overflow: auto;
+    /* hack to improve chrome performance by forcing GPU rendering */
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+    bottom: 0;
+    top: 0;
+    width: 408px;
+    overflow-x: hidden;
+    height: 80%;
+}
+
+#builderController {
+    /* for the animation */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transition:all 0.2s linear;
+    -webkit-transition: all 0.2s linear;
+    margin-left: 427px;
+    margin-top: 10px;
+}
+
+#builderController.collapsedBuilder {
+  margin-left: 14px;
+}
+
+#inputDiv .col-sm-3,
+#inputDiv .col-sm-9,
+#inputDiv .col-sm-12{
+   padding-right: 0 !important;
+   padding-left: 0 !important;
+}
+
+#inputDiv .form-group {
+   margin-bottom: 0 !important;
+}
+
+.treeMoreOptions.btn-group.open .dropdown-toggle {
+     -webkit-box-shadow: none !important;
+     box-shadow: none !important;
+}
+
+.treeMoreOptions {
+    float:right;
+    padding-right:5px;
+}
+
+#treeMoreOptionsSel.treeMoreOptions {
+    z-index: 1;
+}
+
+#optionsHoverBtn {
+    background-color:#efefef;
+    border-color:#efefef;
+}
+
+#optionsBtn {
+    background-color:#dcecf7;
+    border-color:#dcecf7;
+    background-size: contain !important;
+}
+
+.builder-jstree-icon {
+    background-position: center center !important;
+    background-size: contain !important;
+}
+
+.builder-jstree-rest-icon {
+    background-image: url(/public/img/customServices/Library-REST.svg) !important;
+}
+
+.builder-jstree-vipr-icon {
+    background-image: url(/public/img/customServices/Library-ViPR-REST.svg) !important;
+}
+
+.builder-jstree-ansible-icon {
+    background-image: url(/public/img/customServices/Library-LocalAnsible.svg) !important;
+}
+
+.builder-jstree-remote-ansible-icon {
+    background-image: url(/public/img/customServices/Library-RemoteAnsible.svg) !important;
+}
+
+.builder-jstree-script-icon {
+    background-image: url(/public/img/customServices/Library-Script.svg) !important;
+}
+
+.builder-jstree-workflow-icon {
+    background-image: url(/public/img/customServices/Library-Workflow.svg) !important;
+}
+
+.builder-rest-icon {
+    background-image: url(/public/img/customServices/RestApi.svg) !important;
+}
+
+.builder-vipr-icon {
+    background-image: url(/public/img/customServices/ViPRest.svg) !important;
+}
+
+.builder-ansible-icon {
+    background-image: url(/public/img/customServices/LocalAnsible.svg) !important;
+}
+
+.builder-remote-ansible-icon {
+    background-image: url(/public/img/customServices/RemoteAnsible.svg) !important;
+}
+
+.builder-script-icon {
+    background-image: url(/public/img/customServices/Script.svg) !important;
+}
+
+.builder-workflow-icon {
+    background-image: url(/public/img/customServices/TreeNodeWF.svg) !important;
+}
+
+.builder-folder-icon {
+    background-image: url(/public/img/customServices/folder65.svg) !important;
+}
+
+.builder-step-icon {
+    background-image: url(/public/img/customServices/TreeNodeStep.svg) !important;
+}
+
+.builder-editStep-icon {
+    background-image:url(/public/img/customServices/EditStep.svg);
+    width: 13px;
+    height: 13px;
+}
+
+.builder-removeStep-icon {
+    background-image:url(/public/img/customServices/RemoveStep.svg);
+    width: 11px;
+    height: 11px;
+}
+
+.highlighted .builder-removeStep-icon {
+    background-image:url(/public/img/customServices/RemoveStepSelected.svg);
+    width: 11px;
+    height: 11px;
+}
+
+.highlighted .builder-rest-icon {
+    background-image: url(/public/img/customServices/RestApiSelected.svg) !important;
+}
+
+.highlighted .builder-vipr-icon {
+    background-image: url(/public/img/customServices/ViPRestSelected.svg) !important;
+}
+
+.highlighted .builder-ansible-icon {
+    background-image: url(/public/img/customServices/LocalAnsibleSelected.svg) !important;
+}
+
+.highlighted .builder-remote-ansible-icon {
+    background-image: url(/public/img/customServices/RemoteAnsibleSelected.svg) !important;
+}
+
+.highlighted .builder-script-icon {
+    background-image: url(/public/img/customServices/ScriptSelected.svg) !important;
+}
+
+.step-type-image {
+    height: 30px;
+    width: 30px;
+    float: left;
+    margin: 13px 7px;
+    background-size: contain;
+    background-repeat: no-repeat
+}
+
+.input-error-icon .panel-title .glyphicon-error-icon:before {
+    content: url(/public/img/customServices/Failed.svg);
+}
+
+.required .panel-title:after {
+  content: '*';
+  color: #a94442;
+  font-size: 18px;
+}
+
+.primitivesNav > li > a{
+    padding: 10px 5px;
+}
+
+.panel-heading.input-panel {
+    padding-bottom: 0px;
+}
+
+.input-panel .nav-tabs {
+    border-bottom: 0px;
+}
+
+.glow-pass {
+    box-shadow: 0 0 19px #3fac49;
+}
+
+.glow-fail {
+    box-shadow: 0 0 19px #ee3825;
+}

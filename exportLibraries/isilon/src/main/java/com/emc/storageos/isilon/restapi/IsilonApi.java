@@ -302,6 +302,45 @@ public class IsilonApi {
     }
 
     /**
+     * Checks if the file system directory has some files or directories
+     * 
+     * @param fspath
+     *            directory path to check
+     * @return true - if there are some files or folders, false otherwise
+     */
+    public boolean fsDirHasData(String fspath) throws IsilonException {
+        fspath = scrubPath(fspath);
+        ClientResponse clientResp = null;
+        try {
+            clientResp = _client.get(_baseUrl.resolve(URI_IFS.resolve(fspath)));
+
+            if (clientResp.getStatus() != 200) {
+                processErrorResponse("list", "files", clientResp.getStatus(),
+                        clientResp.getEntity(JSONObject.class));
+            } else {
+                JSONObject resp = clientResp.getEntity(JSONObject.class);
+                sLogger.debug("fsDirHasData: Output from Server {}", resp.get("children"));
+
+                JSONArray ar = (JSONArray) resp.get("children");
+                if (ar != null && ar.length() > 0) {
+                    sLogger.info("file system {} has content", fspath);
+                    return true;
+                }
+                sLogger.info("file system {} does not have content", fspath);
+                return false;
+            }
+        } catch (Exception e) {
+            sLogger.warn("fsDirHasData - Unable to get the content from path {} due to {}", fspath, e.getMessage());
+            return true;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+        }
+        return true;
+    }
+
+    /**
      * Create a directory with the path specified, will fail if parent does not
      * exist
      * 
@@ -361,32 +400,21 @@ public class IsilonApi {
     }
 
     /**
-     * Delete directory on isilon, will fail if any sub directories exist
+     * Delete directory on isilon
+     * No recursive flag to Isilon API, So the delete directory fails
+     * if there are any files and folders in it.
      * 
      * @param fspath
      *            directory path
+     * 
      * @throws IsilonException
      */
     public void deleteDir(String fspath) throws IsilonException {
-        deleteDir(fspath, false);
-    }
-
-    /**
-     * Delete directory on isilon
-     * 
-     * @param fspath
-     *            directory path
-     * @param recursive
-     *            if true, will delete all sub directories also
-     * @throws IsilonException
-     */
-    public void deleteDir(String fspath, boolean recursive) throws IsilonException {
         fspath = scrubPath(fspath);
         ClientResponse resp = null;
         try {
             fspath = URLEncoder.encode(fspath, "UTF-8");
-            resp = _client.delete(_baseUrl.resolve(URI_IFS.resolve(fspath
-                    + (recursive ? "?recursive=1" : ""))));
+            resp = _client.delete(_baseUrl.resolve(URI_IFS.resolve(fspath)));
             if (resp.getStatus() != 200 && resp.getStatus() != 204 && resp.getStatus() != 404) {
                 processErrorResponse("delete", "directory: " + fspath, resp.getStatus(),
                         resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);
@@ -937,12 +965,17 @@ public class IsilonApi {
      * 
      * @param exp
      *            IsilonExport object with paths and clients set
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @return String identifier for the export created
      * @throws IsilonException
      */
-    public String createExport(IsilonExport exp) throws IsilonException {
+    public String createExport(IsilonExport exp, boolean force) throws IsilonException {
 
-        return create(_baseUrl.resolve(URI_NFS_EXPORTS), "Export", exp);
+        if (force) {
+            return create(_baseUrl.resolve(URI_NFS_EXPORTS + "?force=true"), "Export", exp);
+        } else {
+            return create(_baseUrl.resolve(URI_NFS_EXPORTS), "Export", exp);
+        }
     }
 
     /**
@@ -950,12 +983,17 @@ public class IsilonApi {
      * 
      * @param exp
      *            IsilonExport object with paths and clients set
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @return String identifier for the export created
      * @throws IsilonException
      */
-    public String createExport(IsilonExport exp, String zoneName) throws IsilonException {
+    public String createExport(IsilonExport exp, String zoneName, boolean force) throws IsilonException {
         String baseUrl = getURIWithZoneName(_baseUrl.resolve(URI_NFS_EXPORTS).toString(), zoneName);
         URI uri = URI.create(baseUrl);
+        if (force) {
+            uri = URI.create(baseUrl + "&force=true");
+        }
+
         return create(uri, "Export", exp);
     }
 
@@ -966,9 +1004,13 @@ public class IsilonApi {
      *            identifier of the export to modify
      * @param exp
      *            IsilonExport object with the modified properties
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @throws IsilonException
      */
-    public void modifyExport(String id, IsilonExport exp) throws IsilonException {
+    public void modifyExport(String id, IsilonExport exp, boolean force) throws IsilonException {
+        if (force) {
+            id = id + "?force=true";
+        }
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
 
@@ -979,10 +1021,14 @@ public class IsilonApi {
      *            identifier of the export to modify
      * @param exp
      *            IsilonExport object with the modified properties
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @throws IsilonException
      */
-    public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
+    public void modifyExport(String id, String zoneName, IsilonExport exp, boolean force) throws IsilonException {
         String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        if (force) {
+            uriWithZoneName = uriWithZoneName + "&force=true";
+        }
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
     }
 
@@ -1646,7 +1692,7 @@ public class IsilonApi {
     private IsilonList<IsilonEvent> getEvents(URI url, String firmwareVersion) throws IsilonException {
 
         // Get list of ISILON events using eventlists if ISILON version is OneFS8.0 or more else using events.
-        if (firmwareVersion.startsWith("8")) {
+        if (firmwareVersion != null && firmwareVersion.startsWith("8")) {
             List<IsilonOneFS8Event> eventLists = list(url, "eventlists", IsilonOneFS8Event.class, null).getList();
             IsilonList<IsilonEvent> isilonEventList = new IsilonList<IsilonEvent>();
 
@@ -1706,7 +1752,7 @@ public class IsilonApi {
                 .format("?begin=%1$d", begin);
 
         // If ISILON version is OneFS8.0 then get events URI will be /platform/3/event/eventlists/.
-        if (firmwareVersion.startsWith("8")) {
+        if (firmwareVersion != null && firmwareVersion.startsWith("8")) {
             return getEvents(_baseUrl.resolve(URI_ONEFS8_EVENTS.resolve(query)), firmwareVersion);
         }
         return getEvents(_baseUrl.resolve(URI_EVENTS.resolve(query)), firmwareVersion);
@@ -2018,7 +2064,7 @@ public class IsilonApi {
     public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
     }
-    
+
     /**
      * Get Replication Policy information from the Isilon array using oneFS v8 above
      * 
@@ -2038,7 +2084,7 @@ public class IsilonApi {
     public IsilonList<IsilonSyncPolicy> getReplicationPolicies() throws IsilonException {
         return list(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", IsilonSyncPolicy.class, "");
     }
-    
+
     /**
      * Get All Replication Policies information from the Isilon array
      * 
@@ -2070,7 +2116,7 @@ public class IsilonApi {
     public String createReplicationPolicy(IsilonSyncPolicy replicationPolicy) throws IsilonException {
         return create(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", replicationPolicy);
     }
-    
+
     /**
      * Create Replication Policy for isilon array using oneFSv8 and above
      * 
@@ -2095,7 +2141,7 @@ public class IsilonApi {
     public void modifyReplicationPolicy(String id, IsilonSyncPolicy syncPolicy) throws IsilonException {
         modify(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", syncPolicy);
     }
-    
+
     /**
      * Modify Replication Policyfor isilon array using oneFSv8 and above
      * 

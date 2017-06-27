@@ -127,13 +127,11 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 // ports that won't be used when assigning as that reduces the chances for
                 // redundancy between networks in the Storage Ports Allocator.
                 boolean nonRedundantNet = nonRedundantNetworks.contains(networkURI);
-                int pathLimit = ((usingSwitchAffinity || nonRedundantNet) ? maxPaths : ((maxPaths + pathsPerInitiator) / 2));
+                int pathLimit = (nonRedundantNet ? maxPaths : ((maxPaths + pathsPerInitiator) / 2));
                 if (pathLimit < pathsPerInitiator) {
                     pathLimit = pathsPerInitiator;
                 }
-                if (usingSwitchAffinity) {
-                    pathLimit = maxPaths * 2;
-                }
+                
                 // We also get the maxHostInitiators for this network.
                 // We never need to allocate more ports than maxHostInitiators * pathsPer_initiator
                 // for a given network.

@@ -14,6 +14,11 @@
       type:"assetType.vipr.virtualArray",
       lockable: true
     },
+    
+    type:{
+      type:"assetType.vipr.fileIngestExportType",
+      lockable: true
+    },
 
     virtualPool:{
       type:"assetType.vipr.unmanagedFileVirtualPool",
@@ -23,11 +28,7 @@
     project:{
       type:"assetType.vipr.project",
       lockable: true
-    },
-    
-    type:{
-      type:"assetType.vipr.fileIngestExportType",
-      lockable: true
     }
+    
   }
 }

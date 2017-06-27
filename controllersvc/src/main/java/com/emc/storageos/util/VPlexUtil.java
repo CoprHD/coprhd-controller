@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -387,14 +388,13 @@ public class VPlexUtil {
      * Makes a map of varray to Initiator URIs showing which intiators can access the given varrays.
      * 
      * @param dbClient -- DbClient
-     * @param blockScheduler -- BlockStorageScheduler
      * @param initiatorURIs -- A list of Initiator URIs
      * @param varrayURIs -- A list of potential varray URIs
      * @param storage -- StorageSystem of the Vplex
      * @return Map of Varray URI to List of Initiator URIs that can be mapped through the varray to the vplex
      */
     public static Map<URI, List<URI>> partitionInitiatorsByVarray(DbClient dbClient,
-            BlockStorageScheduler blockScheduler, List<URI> initiatorURIs, List<URI> varrayURIs,
+            List<URI> initiatorURIs, List<URI> varrayURIs,
             StorageSystem storage) {
         Map<URI, List<URI>> varrayToInitiators = new HashMap<>();
         // Read the initiators and partition them by Network
@@ -520,7 +520,7 @@ public class VPlexUtil {
                 }
             }
             if (getExportMaskHosts(dbClient, exportMask, shared).contains(hostURI)
-                    && ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varrayURI)) {
+                    && ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varrayURI, true)) {
                 return exportMask;
             }
         }
@@ -1455,6 +1455,24 @@ public class VPlexUtil {
 
         return false;
     }
+    
+    /**
+     * Determines if the back-end is XtremIO, if yes returns true
+     * otherwise returns false.
+     * 
+     * @param vplexVolume A reference to a VPLEX volume.
+     * @param dbClient A reference to a database client.
+     * @return true if XtremIO, otherwise false
+     */
+    public static boolean isXtremIOBackend(BlockObject vplexVolume, DbClient dbClient) {
+
+        String systemType = getBackendStorageSystemType(vplexVolume, dbClient);
+        if (DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * Check if the volume is a backend volume of a vplex volume
@@ -1539,7 +1557,8 @@ public class VPlexUtil {
     public static String getVplexClusterName(ExportMask exportMask, URI vplexUri, VPlexApiClient client, DbClient dbClient)
             throws Exception {
 
-        String vplexClusterId = ConnectivityUtil.getVplexClusterForExportMask(exportMask, vplexUri, dbClient);
+        String vplexClusterId = ConnectivityUtil.getVplexClusterForStoragePortUris(
+                URIUtil.toURIList(exportMask.getStoragePorts()), vplexUri, dbClient);
         if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
             String details = "";
             _log.error("Unable to find VPLEX cluster for the ExportMask " + exportMask.getMaskName());
@@ -1762,5 +1781,28 @@ public class VPlexUtil {
         }
         return vplexVols;
     }
+    
+    /**
+     * Check to see that CG contains all volumes provided and no additional VPLEX volumes.
+     * 
+     * @param dbClient the database client
+     * @param cg the consistency group
+     * @param volumeUris the volumes to check against the CG
+     * @return true if the CG contains no other VPLEX volumes
+     */
+    public static boolean cgHasNoOtherVPlexVolumes(DbClient dbClient, URI cg, List<URI> volumeUris) {
+        URIQueryResultList cgVolumeList = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getVolumesByConsistencyGroup(cg), cgVolumeList);
+        while (cgVolumeList.iterator().hasNext()) {
+            Volume cgVolume = dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
+            // If we've found a VPLEX volume in the CG that is not accounted for, return false
+        	if (cgVolume != null && !volumeUris.contains(cgVolume.getId()) && cgVolume.isVPlexVolume(dbClient)) {
+        		return false;
+        	}
+        }
+        
+        return true;
+    }    
 }
 

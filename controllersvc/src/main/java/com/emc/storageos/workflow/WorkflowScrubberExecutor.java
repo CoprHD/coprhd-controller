@@ -41,7 +41,12 @@ public class WorkflowScrubberExecutor {
         _executor.scheduleWithFixedDelay(
                 new Runnable() {
                     public void run() {
-                        deleteOldWorkflows();
+                        try {
+                            deleteOldWorkflows();
+                        } catch(Exception e) {
+                            log.error("Exception thrown while scrubbing workflows");
+                            log.error(e.getMessage(), e);
+                        }
                     }
                 }, 1, 24, TimeUnit.HOURS);
     }

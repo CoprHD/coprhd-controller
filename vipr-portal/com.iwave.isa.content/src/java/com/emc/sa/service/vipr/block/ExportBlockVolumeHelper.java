@@ -142,20 +142,33 @@ public class ExportBlockVolumeHelper {
         List<BlockObjectRestRep> blockResources = BlockStorageUtils.getBlockResources(resourceIds, parentId);
         URI virtualArrayId = null;
         String exportName = cluster != null ? cluster.getLabel() : host.getHostName();
+        // Flag to indicate an empty ExportGroup object in ViPR, i.e., ExportGroup without any volumes and initiators in it.
         boolean isEmptyExport = true;
         ExportGroupRestRep export = null;
+        // For every block object, 
+        // 1) check if there are existing ExportGroup object corresponding to the host/cluster.
+        //    If yes, add the block object to the ExportGroup.
+        // 2) If there are no existing ViPR ExportGroup for the host/cluster, check if there is an 
+        //    ExportGroup object with name matching the host/cluster name.
+        //	  a) If the ExportGroup object is empty, add the block object and host/cluster to the ExportGroup.
+        //    b) If the ExportGroup object is not empty, then create a new ExportGroup by appending a time stamp
+        //       to the host/cluster name
+        // 3) If there is no ExportGroup found, create a new ExportGroup.        
+        
         for (BlockObjectRestRep blockResource : blockResources) {
             virtualArrayId = getVirtualArrayId(blockResource);
             // see if we can find an export that uses this block resource
             export = findExistingExportGroup(blockResource, virtualArrayId);
-            isEmptyExport = true;
+            boolean createExport = export == null;
+            isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
             // If did not find export group for the host/cluster, try find existing empty export with
             // host/cluster name
             if (export == null) {
                 export = BlockStorageUtils.findExportsByName(exportName, projectId, virtualArrayId);
                 isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
+                createExport = export == null || !isEmptyExport;
             }
-            if (export == null || !isEmptyExport) {
+            if (createExport) {
                 newVolumes.add(blockResource.getId());
             }
             // Export exists, check if volume belongs to it

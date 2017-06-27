@@ -17,7 +17,24 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import models.datatable.FilePolicySnapshotsDataTable;
+import models.datatable.FileSystemsDataTable;
+import models.datatable.NfsACLDataTable;
+import models.datatable.ShareACLDataTable;
+
 import org.apache.commons.lang.StringUtils;
+
+import play.data.binding.As;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.With;
+import util.BourneUtil;
+import util.FileUtils;
+import util.FileUtils.ExportRuleInfo;
+import util.MessagesUtils;
+import util.StringOption;
+import util.ValidationResponse;
+import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
@@ -65,21 +82,6 @@ import com.google.common.collect.Lists;
 import controllers.Common;
 import controllers.security.Security;
 import controllers.util.FlashException;
-import models.datatable.FilePolicySnapshotsDataTable;
-import models.datatable.FileSystemsDataTable;
-import models.datatable.NfsACLDataTable;
-import models.datatable.ShareACLDataTable;
-import play.data.binding.As;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.With;
-import util.BourneUtil;
-import util.FileUtils;
-import util.FileUtils.ExportRuleInfo;
-import util.MessagesUtils;
-import util.StringOption;
-import util.ValidationResponse;
-import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class FileSystems extends ResourceController {
@@ -217,7 +219,9 @@ public class FileSystems extends ResourceController {
             if (project != null && project.getFileProtectionPolicies() != null && !project.getFileProtectionPolicies().isEmpty()) {
                 for (String uriPolicy : project.getFileProtectionPolicies()) {
                     FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
-                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())) {
+                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())
+                            && policyRestRep.getVpool() != null && policyRestRep.getVpool().getId() != null
+                            && policyRestRep.getVpool().getId().equals(vpool.getId())) {
                         return policyRestRep;
                     }
                 }
@@ -639,6 +643,20 @@ public class FileSystems extends ResourceController {
         render(shares);
     }
 
+    /**
+     * GEt StorageSystem for given fileSystem
+     * 
+     * @param fileSystemId
+     */
+    public static void getStorageSystemJson(String fileSystemId) {
+
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        FileShareRestRep fs = client.fileSystems().get(uri(fileSystemId));
+        StorageSystemRestRep sys = client.storageSystems().get(fs.getStorageSystem());
+        renderJSON(sys);
+
+    }
+
     public static void fileSystemSnapshots(String fileSystemId) {
 
         ViPRCoreClient client = BourneUtil.getViprClient();
@@ -755,7 +773,8 @@ public class FileSystems extends ResourceController {
     public static void deleteFileSystemQuotaDirectory(String fileSystemId, String quotaDirectoryId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam(true);
+        // Avoid force delete for quota directory!!
+        QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam(false);
         Task<QuotaDirectoryRestRep> task = client.quotaDirectories().deleteQuotaDirectory(uri(quotaDirectoryId), param);
         flash.put("info", MessagesUtils.get("resources.filesystem.quota.deactivate"));
 
@@ -834,7 +853,8 @@ public class FileSystems extends ResourceController {
 
     @FlashException(referrer = { "fileSystem" })
     public static void save(Boolean edit, String id, String fsPath, String exportPath, String security,
-            String anon, String subDir, @As(",") List<String> ro, @As(",") List<String> rw, @As(",") List<String> root) {
+            String anon, String subDir, @As(",") List<String> ro, @As(",") List<String> rw, @As(",") List<String> root,
+            Boolean bypassDnsCheck) {
 
         ExportRule rule = new ExportRule();
         rule.setFsID(uri(id));
@@ -866,6 +886,7 @@ public class FileSystems extends ResourceController {
         exportRules.setExportRules(addRules);
 
         FileShareExportUpdateParams params = new FileShareExportUpdateParams();
+        params.setBypassDnsCheck(bypassDnsCheck);
         if (!edit) {
             params.setExportRulesToAdd(exportRules);
         } else {

@@ -31,7 +31,7 @@ public class StorageAdapterProcessor extends Processor {
                 addPath(keyMap, operation.getResult(), adapterInstance.getObjectPath());
             }
         } catch (Exception e) {
-            _logger.error("Fetching Adapter Information failed -->{}", getMessage(e));
+            _logger.error("Fetching Adapter Information failed.", e);
         }
     }
 

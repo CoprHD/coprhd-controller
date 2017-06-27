@@ -27,9 +27,9 @@ import java.util.Map;
 @XmlRootElement
 public class CinderQosCreateRequest {
 
-    @XmlElement(name = "qos_specs")
     private Map<String, String> qosSpecs;
 
+    @XmlElement(name = "qos_specs")
     public Map<String, String> getQosSpecs() {
         return qosSpecs;
     }

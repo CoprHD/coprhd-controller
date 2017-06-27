@@ -45,6 +45,10 @@ public class RecentOrdersDataTable extends OrderDataTable {
         super(tenantId);
     }
 
+    public RecentOrdersDataTable(String tenantId, int offsetInMinutes) {
+        super(tenantId, offsetInMinutes);
+    }
+
     public int getMaxOrders() {
         return maxOrders;
     }

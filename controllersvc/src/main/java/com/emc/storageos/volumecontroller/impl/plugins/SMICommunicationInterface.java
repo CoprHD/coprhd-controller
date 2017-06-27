@@ -84,7 +84,6 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             _logger.info("CIMClient initialized successfully");
             executor.setKeyMap(_keyMap);
             executor.execute(_ns);
-            _logger.info("Started Injection of Stats to Cassandra");
             dumpStatRecords();
             injectStats();
         } catch (Exception e) {
@@ -529,7 +528,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         _logger.info("Calling discoverArrayAffinity");
 
         URI storageSystemURI = accessProfile.getSystemId();
-        String detailedStatusMessage = "Unknown Status";
+        String detailedStatusMessage = "Array Affinity Discovery completed successfully for Storage System: %s";
         long startTime = System.currentTimeMillis();
         try {
             _logger.info("Access Profile Details :" + accessProfile.toString());
@@ -556,13 +555,10 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             executor.setKeyMap(_keyMap);
             executor.execute((Namespace) namespaces.getNsList().get(DISCOVER));
-            detailedStatusMessage = String.format("Array Affinity Discovery completed successfully for Storage System: %s",
-                    storageSystemURI.toString());
         } catch (Exception e) {
-            detailedStatusMessage = String.format("Array Affinity Discovery failed for Storage System: %s because %s",
-                    storageSystemURI.toString(), e.getMessage());
-            _logger.error(detailedStatusMessage, e);
-            throw new SMIPluginException(detailedStatusMessage);
+            detailedStatusMessage = "Array Affinity Discovery failed for Storage System: %s because " + e.getMessage();
+            _logger.error(String.format(detailedStatusMessage, storageSystemURI.toString()), e);
+            throw new SMIPluginException(String.format(detailedStatusMessage, storageSystemURI.toString()));
         } finally {
             try {
                 String systemIdsStr = accessProfile.getProps().get(Constants.SYSTEM_IDS);
@@ -571,7 +567,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
                 for (String systemId : systemIds) {
                     StorageSystem system = _dbClient.queryObject(StorageSystem.class, URI.create(systemId));
                     // set detailed message
-                    system.setLastArrayAffinityStatusMessage(detailedStatusMessage);
+                    system.setLastArrayAffinityStatusMessage(String.format(detailedStatusMessage, systemId));
                     systemsToUpdate.add(system);
                 }
                 _dbClient.updateObject(systemsToUpdate);

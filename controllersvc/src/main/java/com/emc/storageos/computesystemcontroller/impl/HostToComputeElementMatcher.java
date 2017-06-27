@@ -21,8 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -30,6 +28,7 @@ import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 public final class HostToComputeElementMatcher {
 
@@ -44,22 +43,32 @@ public final class HostToComputeElementMatcher {
     private final static String UUID_REGEX = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
     private final static Pattern UUID_PATTERN = Pattern.compile(UUID_REGEX,Pattern.CASE_INSENSITIVE);
 
+    private final static String FIELD_UUID = "uuid";
+    private final static String FIELD_COMPUTE_ELEMENT = "computeElement";
+    private final static String FIELD_REG_STATUS = "registrationStatus";
+    private final static String FIELD_HOST_NAME = "hostName";
+    private final static String FIELD_SERVICE_PROFILE = "serviceProfile";
+    private final static String FIELD_LABEL = "label";
+    private final static String FIELD_DN = "dn";
+    private final static String FIELD_AVAIL = "available";
+    private final static String FIELD_COMPUTE_SYSTEM = "computeSystem";
+
     private HostToComputeElementMatcher(){}
 
     public static synchronized void matchHostToComputeElements(DbClient _dbClient, URI hostId) {
         Collection<URI> hostIds = Arrays.asList(hostId);  // single host
-        matchHosts(_dbClient,hostIds);
+        matchHosts(_dbClient, hostIds, null);
     }
 
     public static synchronized void matchHostsToComputeElements(DbClient _dbClient, Collection<URI> hostIds) {
-        matchHosts(_dbClient,hostIds);
+        matchHosts(_dbClient, hostIds, null);
     }
 
-    public static synchronized void matchAllHostsToComputeElements(DbClient _dbClient) {
-        matchHosts(_dbClient,null);
+    public static synchronized void matchAllHostsToComputeElements(DbClient _dbClient, URI computeSystem) {
+        matchHosts(_dbClient, null, computeSystem);
     }
 
-    private static void matchHosts(DbClient _dbClient,Collection<URI> hostIds) {
+    private static void matchHosts(DbClient _dbClient,Collection<URI> hostIds, URI computeSystem) {
 
         dbClient = _dbClient;
         failureMessages = new StringBuffer();
@@ -74,7 +83,7 @@ public final class HostToComputeElementMatcher {
         Collection<URI> serviceProfileIds = dbClient.queryByType(UCSServiceProfile.class, true); // all active
 
         load(hostIds,computeElementIds,serviceProfileIds); // load hosts, computeElements &SPs
-        removeDuplicateUuids();                            // detect and remove CEs & SPs with duplicate UUIDs
+        removeDuplicateUuids(computeSystem);               // detect and remove CEs & SPs with duplicate UUIDs
         matchHostsToBladesAndSPs();                        // find hosts & blades whose UUIDs match
         catchDuplicateMatches();                           // validate matches (check for duplicates)
         updateDb();                                        // persist changed Hosts & ServiceProfiles
@@ -88,25 +97,28 @@ public final class HostToComputeElementMatcher {
     private static void load(Collection<URI> hostIds, Collection<URI> computeElementIds, Collection<URI> serviceProfileIds) {
 
         Collection<Host> allHosts = dbClient.queryObjectFields(Host.class,
-                Arrays.asList("uuid", "computeElement", "registrationStatus", "hostName","serviceProfile","label"),
-                getFullyImplementedCollection(hostIds));
+                Arrays.asList(FIELD_UUID, FIELD_COMPUTE_ELEMENT, FIELD_REG_STATUS,
+                        FIELD_HOST_NAME, FIELD_SERVICE_PROFILE, FIELD_LABEL),
+                ControllerUtils.getFullyImplementedCollection(hostIds));
 
         Collection<ComputeElement> allComputeElements =
                 dbClient.queryObjectFields(ComputeElement.class,
-                        Arrays.asList("uuid", "registrationStatus", "dn", "available","label"),
-                        getFullyImplementedCollection(computeElementIds));
+                        Arrays.asList(FIELD_UUID, FIELD_REG_STATUS, FIELD_DN, FIELD_AVAIL,
+                                FIELD_LABEL, FIELD_COMPUTE_SYSTEM),
+                        ControllerUtils.getFullyImplementedCollection(computeElementIds));
 
         Collection<UCSServiceProfile> allUCSServiceProfiles =
                 dbClient.queryObjectFields(UCSServiceProfile.class,
-                        Arrays.asList("uuid", "registrationStatus", "dn", "label"),
-                        getFullyImplementedCollection(serviceProfileIds));
+                        Arrays.asList(FIELD_UUID, FIELD_REG_STATUS, FIELD_DN, FIELD_LABEL,
+                                FIELD_COMPUTE_SYSTEM),
+                        ControllerUtils.getFullyImplementedCollection(serviceProfileIds));
 
         hostMap = makeUriMap(allHosts);
         computeElementMap = makeUriMap(allComputeElements);
         serviceProfileMap = makeUriMap(allUCSServiceProfiles);
     }
 
-    private static void removeDuplicateUuids() {
+    private static void removeDuplicateUuids(URI computeSystem) {
 
         Map<String,URI> ceDuplicateMap = new HashMap<>();
         List<URI> ceDuplicateIds = new ArrayList<>();
@@ -115,8 +127,16 @@ public final class HostToComputeElementMatcher {
                 if (!ceDuplicateMap.containsKey(ce.getUuid())) {
                     ceDuplicateMap.put(ce.getUuid(),ce.getId());
                 } else {
-                    failureMessages.append("ComputeElements found having the same UUID " +
-                            info(ce) + " and " + info(computeElementMap.get(ceDuplicateMap.get(ce.getUuid()))));
+                    ComputeElement duplicateCe = computeElementMap.get(ceDuplicateMap.get(ce.getUuid()));
+                    String errMsg = "ComputeElements found having the same UUID " +
+                            info(ce) + " and " + info(duplicateCe);
+                    if( NullColumnValueGetter.isNullURI(computeSystem) ||
+                            ce.getComputeSystem().equals(computeSystem) ||
+                            duplicateCe.getComputeSystem().equals(computeSystem)) {
+                        failureMessages.append(errMsg); // fail discovery if no UCS or for affected UCS only
+                    } else {
+                        _log.warn(errMsg); // if neither in UCS, just log warning
+                    }
                     ceDuplicateIds.add(ce.getId());
                     ceDuplicateIds.add(ceDuplicateMap.get(ce.getUuid()));
                 }
@@ -131,8 +151,16 @@ public final class HostToComputeElementMatcher {
                 if (!spDuplicateMap.containsKey(sp.getUuid())) {
                     spDuplicateMap.put(sp.getUuid(),sp.getId());
                 } else {
-                    failureMessages.append("UCS Service Profiles found having the same UUID " +
-                            info(sp) + " and " + info(serviceProfileMap.get(spDuplicateMap.get(sp.getUuid()))));
+                    UCSServiceProfile duplicateSp = serviceProfileMap.get(spDuplicateMap.get(sp.getUuid()));
+                    String errMsg = "UCS Service Profiles found having the same UUID " +
+                            info(sp) + " and " + info(duplicateSp);
+                    if( NullColumnValueGetter.isNullURI(computeSystem) ||
+                            sp.getComputeSystem().equals(computeSystem) ||
+                            duplicateSp.getComputeSystem().equals(computeSystem)) {
+                        failureMessages.append(errMsg); // fail discovery if no UCS or for affected UCS only
+                    } else {
+                        _log.warn(errMsg); // if neither in UCS, just log warning
+                    }
                     spDuplicateIds.add(sp.getId());
                     spDuplicateIds.add(spDuplicateMap.get(sp.getUuid()));
                 }
@@ -270,7 +298,9 @@ public final class HostToComputeElementMatcher {
             ceWithReversedUuid = ceMap.get(uuidReversed);
         }
 
-        if( (ceWithSameUuid != null) && (ceWithReversedUuid != null)) {
+        if( (ceWithSameUuid != null) &&                 // found blade with UUID
+                (ceWithReversedUuid != null) &&         // found blade with reversed UUID
+                !uuid.equalsIgnoreCase(uuidReversed)) { // UUID is not same when reversed
             String errMsg = "Host match failed for ComputeElement because host " +
                     info(host) + " matches multiple blades " + info(ceWithSameUuid) +
                     " and " + info(ceWithReversedUuid);
@@ -306,7 +336,9 @@ public final class HostToComputeElementMatcher {
             spWithReversedUuid = spMap.get(uuidReversed);
         }
 
-        if( (spWithSameUuid != null) && (spWithReversedUuid != null)) {
+        if( ((spWithSameUuid != null) &&                 // found SP with UUID
+                (spWithReversedUuid != null)) &&         // found SP with reversed UUID
+                !uuid.equalsIgnoreCase(uuidReversed)) {  // UUID is not same when reversed
             String errMsg = "Host match failed for UCS Service Profile because host " +
                     info(host) + " matches multiple Service Profiles " + info(spWithSameUuid) +
                     " and " + info(spWithReversedUuid);
@@ -387,17 +419,6 @@ public final class HostToComputeElementMatcher {
             return false;
         }
         return UUID_PATTERN.matcher(uuid).matches();
-    }
-
-    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
-        // Convert objects (like URIQueryResultList) that only implement iterator to
-        // fully implemented Collection
-        Collection<T> collectionOut = new ArrayList<>();
-        Iterator<T> iter = collectionIn.iterator();
-        while (iter.hasNext()) {
-            collectionOut.add(iter.next());
-        }
-        return collectionOut;
     }
 
     private static String reverseUuidBytes(String uuid) {

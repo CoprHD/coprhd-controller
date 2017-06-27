@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +29,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
@@ -540,14 +538,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
-            WorkflowStepCompleter.stepFailed(stepId, e);
-            log.error("Exception unbindHostStep: " + e.getMessage(), e);
+            String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
+            ServiceCoded sce = ImageServerControllerException.exceptions.unexpectedException(opName, e);
             if (computeSystem != null) {
-                throw ComputeSystemControllerException.exceptions.unableToPrepareHostForOSInstall(hostId.toString(), e);
-            } else {
-                String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
-                throw ImageServerControllerException.exceptions.unexpectedException(opName, e);
+                sce = ComputeSystemControllerException.exceptions.unableToUpdateHostAfterOSInstall(hostId.toString(),
+                        e);
             }
+            log.error("Exception unbindHostFromTemplateStep: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, sce);
         } catch (Exception e) {
             String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
             ImageServerControllerException controllerException = ImageServerControllerException.exceptions
@@ -612,15 +610,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
-            WorkflowStepCompleter.stepFailed(stepId, e);
-            log.error("Exception rebindHostToTemplateStep: " + e.getMessage(), e);
+            String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
+            ServiceCoded sce = ImageServerControllerException.exceptions.unexpectedException(opName, e);
             if (computeSystem != null) {
-                throw ComputeSystemControllerException.exceptions.unableToUpdateHostAfterOSInstall(hostId.toString(),
+                sce = ComputeSystemControllerException.exceptions.unableToUpdateHostAfterOSInstall(hostId.toString(),
                         e);
-            } else {
-                String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
-                throw ImageServerControllerException.exceptions.unexpectedException(opName, e);
             }
+            log.error("Exception rebindHostToTemplateStep: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, sce);
         } catch (Exception e) {
             String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
             ImageServerControllerException controllerException = ImageServerControllerException.exceptions
@@ -658,15 +655,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
-            WorkflowStepCompleter.stepFailed(stepId, e);
-            log.error("Exception prepareOsInstallNetworkStep: " + e.getMessage(), e);
+            String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
+            ServiceCoded sce = ImageServerControllerException.exceptions.unexpectedException(opName, e); 
             if (computeSystem != null) {
-                throw ComputeSystemControllerException.exceptions.unableToSetOsInstallNetwork(
+                sce = ComputeSystemControllerException.exceptions.unableToSetOsInstallNetwork(
                         computeSystem.getOsInstallNetwork(), computeElementId.toString(), e);
-            } else {
-                String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
-                throw ImageServerControllerException.exceptions.unexpectedException(opName, e);
             }
+            log.error("Exception prepareOsInstallNetworkStep: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, sce);
         } catch (Exception e) {
             String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
             ImageServerControllerException controllerException = ImageServerControllerException.exceptions
@@ -801,8 +797,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             waitFor = workflow.createStep(CHECK_HOST_INITIATORS,
                     "Check for host initiators", waitFor, cs.getId(),
                     cs.getSystemType(), this.getClass(), new Workflow.Method("checkHostInitiators", hostId),
-                    new Workflow.Method(ROLLBACK_NOTHING_METHOD),
-                    null);
+                    null, null);
 
             // If host has a vcenter associated and OS type is NO_OS then skip vcenter operations, because
             // NO_OS host types cannot be pushed to vcenter, the host has got its vcenterdatacenter association, because
@@ -814,14 +809,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
                         "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
                         cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId),
-                        new Workflow.Method(ROLLBACK_NOTHING_METHOD),
-                        null);
+                        null, null);
 
                 waitFor = workflow.createStep(DEACTIVATION_REMOVE_HOST_VCENTER,
                         "If synced with vCenter, remove the host from the cluster", waitFor, cs.getId(),
                         cs.getSystemType(), this.getClass(), new Workflow.Method("removeHostFromVcenterCluster", hostId),
-                        new Workflow.Method(ROLLBACK_NOTHING_METHOD),
-                        null);
+                        null, null);
             }            
         }
 
@@ -893,19 +886,18 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             //TODO: need to break this up into individual smaller steps so that we can try to recover using rollback if decommission failed
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
-                            "deactiveComputeSystemHost", cs.getId(), hostId),
-                    new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                            "deactivateComputeSystemHost", cs.getId(), hostId), null, null);
 
             if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME_UNTAG,
                         "Untag the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("untagBlockBootVolume", hostId, volumeDescriptors),
-                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                        null, null);
 
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId, volumeDescriptors),
-                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                        null, null);
             } else if (!deactivateBootVolume) {
                 log.info("flag deactivateBootVolume set to false");
             } else if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
@@ -934,7 +926,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             List<Initiator> initiatorsForMask = ExportUtils.getExportMaskInitiators(exportMask.getId(), _dbClient);
             for (Initiator initiator : initiatorsForMask){
                 if (!initiators.contains(initiator)){
-                    log.error("Volume is exported to initiator " + initiator.getLabel() + "which does not belong to host "+ host.getLabel());
+                    log.error("Volume is exported to initiator " + initiator.getLabel() + " which does not belong to host "+ host.getLabel());
                     return false;
                 }
             }
@@ -1064,9 +1056,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 return;
             }
             
-            
-
-            String task = UUID.randomUUID().toString();
+            String task = stepId;
 
             URI bootVolumeId = getBootVolumeIdFromDescriptors(volumeDescriptors, host);
             Volume bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
@@ -1088,31 +1078,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 // Mark this workflow as created/executed so we don't do it
                 // again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(task, workflowKey);
-
-                while (true) {
-                    Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
-                    bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
-
-                    switch (Status.toStatus(bootVolume.getOpStatus().get(task).getStatus())) {
-                        case ready:
-                            WorkflowStepCompleter.stepSucceded(stepId);
-                            return;
-                        case error:
-                            log.warn("Unable to delete block volume associated with Host...",
-                                    ComputeSystemControllerException.exceptions
-                                    .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(),
-                                            host.getId().toASCIIString(),
-                                            bootVolumeId.toASCIIString(),
-                                            bootVolume.getOpStatus().get(task).getMessage()));
-                            WorkflowStepCompleter.stepFailed(stepId, ComputeSystemControllerException.exceptions
-                                    .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(),
-                                            host.getId().toASCIIString(), bootVolumeId.toASCIIString(),
-                                            bootVolume.getOpStatus().get(task).getMessage()));
-                            return;
-                        case pending:
-                            break;
-                    }
-                }
             }
         } catch (Exception exception) {
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
@@ -1342,35 +1307,20 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_068);
-            String taskId = UUID.randomUUID().toString();
+            String taskId = stepId;
             Operation op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.UPDATE_VCENTER_CLUSTER);
             _dbClient.createTaskOpStatus(VcenterDataCenter.class, host.getVcenterDataCenter(), taskId, op);
             AsyncTask task = new AsyncTask(VcenterDataCenter.class, host.getVcenterDataCenter(), taskId);
-            vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
 
-            log.info("Monitor remove host " + host.getHostName() + " update vCenter task...");
-
-            // VBDU TODO: COP-28456, Anti pattern - completers are responsible for updating step status.
-            while (true) {
-                Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
-                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
-                        host.getVcenterDataCenter());
-
-                switch (Status.toStatus(vcenterDataCenter.getOpStatus().get(taskId).getStatus())) {
-                case ready:
-                    log.info("vCenter update request succeeded");
-                    WorkflowStepCompleter.stepSucceded(stepId);
-                    return;
-                case error:
-                    log.info("vCenter update request failed - Best effort only so consider success");
-                    WorkflowStepCompleter.stepSucceded(stepId); // Only best
-                    // effort
-                    return;
-                case pending:
-                    break;
-                }
+            final String workflowKey = "updateVcenterCluster";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(taskId, workflowKey)) {
+                vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
+                // Mark this workflow as created/executed so we don't do it
+                // again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(taskId, workflowKey);
             }
+
         } catch (VcenterControllerException e) {
             log.warn("VcenterControllerException when trying to removeHostFromVcenterCluster: " + e.getMessage(), e);
             if (e.getCause() instanceof VcenterObjectNotFoundException) {
@@ -1489,13 +1439,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @param csId
      *            {@link URI} compute system URI
      * @param hostId
-     *            {@link URI} hsot URI
+     *            {@link URI} host URI
      * @param stepId
      *            step id
      */
-    public void deactiveComputeSystemHost(URI csId, URI hostId, String stepId) {
+    public void deactivateComputeSystemHost(URI csId, URI hostId, String stepId) {
 
-        log.info("deactiveComputeSystemHost");
+        log.info("deactivateComputeSystemHost");
 
         Host host = null;
 
@@ -1518,7 +1468,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 }
 
                 getDevice(cs.getSystemType()).deactivateHost(cs, host);
-            }else {
+            } else {
                 throw new RuntimeException("Host null for uri "+ hostId);
             }
 

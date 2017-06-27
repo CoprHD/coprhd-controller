@@ -803,6 +803,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             if ((nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION)
                     || nasServer.getIsReplicationDestination()) {
                 _logger.debug("Found a replication destination NasServer");
+                // On failover the existing Nas server becomes the destination. So changing state to unknown as it
+                // should not be picked for provisioning.
+                VirtualNAS vNas = findvNasByNativeId(system, nasServer.getId());
+                if (vNas != null) {
+                    vNas.setNasState(VirtualNasState.UNKNOWN.name());
+                    existingVirtualNas.add(vNas);
+                }
                 continue;
             }
 
@@ -1154,6 +1161,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 newSPs.add(haDomain);
             } else {
                 existingSPs.add(haDomain);
+            }
+            if (sp.getSlotNumber() != null) {
+                haDomain.setSlotNumber(sp.getSlotNumber().toString());
             }
             spIdMap.put(sp.getId(), haDomain.getId());
         }

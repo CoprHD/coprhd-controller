@@ -393,6 +393,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 new HashMap<URI, Map<URI, Integer>>();
 
         Workflow workflow = null;
+        List<Workflow> workflowList = new ArrayList<>();
         try {
             computeDiffs(export,
                     addedBlockObjectMap, removedBlockObjectMap, addedStorageToBlockObjects,
@@ -429,6 +430,7 @@ public class BlockDeviceExportController implements BlockExportController {
             _log.info("Received request to update export group. Creating master workflow.");
             workflow = _wfUtils.newWorkflow("exportGroupUpdate", false, opId);
             _log.info("Task id {} and workflow uri {}", opId, workflow.getWorkflowURI());
+            workflowList.add(workflow);
             for (URI storageUri : addedStorageToBlockObjects.keySet()) {
                 _log.info("Creating sub-workflow for storage system {}", String.valueOf(storageUri));
                 // TODO: Need to fix, getExportMask() returns a single mask,
@@ -438,7 +440,7 @@ public class BlockDeviceExportController implements BlockExportController {
                                 export, getExportMask(export, storageUri),
                                 addedStorageToBlockObjects.get(storageUri),
                                 removedStorageToBlockObjects.get(storageUri),
-                                new ArrayList(addedInitiators), new ArrayList(removedInitiators), storageUri);
+                                new ArrayList(addedInitiators), new ArrayList(removedInitiators), storageUri, workflowList);
             }
             
             if (!workflow.getAllStepStatus().isEmpty()) {
@@ -454,6 +456,13 @@ public class BlockDeviceExportController implements BlockExportController {
              */
             _log.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
                     ex.getRemainingWaitTimeSeconds()));
+            for (Workflow workflow2 : workflowList) {
+                if (workflow2 != null) {
+                    boolean status = _wfUtils.getWorkflowService().releaseAllWorkflowLocks(workflow2);
+                    _log.info("Release locks from workflow {} status {}", workflow2.getWorkflowURI(), status);
+                }
+            }
+
             if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
                     && workflow.getWorkflowState() == WorkflowState.CREATED) {
                 com.emc.storageos.db.client.model.Workflow wf = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
@@ -469,9 +478,13 @@ public class BlockDeviceExportController implements BlockExportController {
             ExportTaskCompleter taskCompleter = new ExportUpdateCompleter(export, opId);
             String message = "exportGroupUpdate caught an exception.";
             _log.error(message, ex);
-            if (workflow != null) {
-                _wfUtils.getWorkflowService().releaseAllWorkflowLocks(workflow);
+            for (Workflow workflow2 : workflowList) {
+                if (workflow2 != null) {
+                    boolean status = _wfUtils.getWorkflowService().releaseAllWorkflowLocks(workflow2);
+                    _log.info("Release locks from workflow {} status {}", workflow2.getWorkflowURI(), status);
+                }
             }
+
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             taskCompleter.error(_dbClient, serviceError);
         }
@@ -824,7 +837,6 @@ public class BlockDeviceExportController implements BlockExportController {
                 }
             }
 
-            VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
             VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolURI);
             for (URI exportMaskURI : exportMaskToVolumeMap.keySet()) {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);

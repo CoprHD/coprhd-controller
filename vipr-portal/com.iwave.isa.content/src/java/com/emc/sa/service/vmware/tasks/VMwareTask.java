@@ -39,6 +39,7 @@ public class VMwareTask<T> extends ExecutionTask<T> {
         else if (state == TaskInfoState.error) {
             String reason = info.getError().getLocalizedMessage();
             error("Task '%s' failed, reason: %s", getDetail(), StringUtils.defaultIfBlank(reason, "unknown"));
+            throw stateException("VMwareTask.detail.isCompleteError", reason);
         }
         return false;
     }

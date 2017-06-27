@@ -29,12 +29,35 @@ public class UnmanagedHelper {
     public static final String IS_VOLUME_EXPORTED = "IS_VOLUME_EXPORTED";
     public static final String IS_NONRP_EXPORTED = "IS_NONRP_EXPORTED";
 
+    private static final String IS_FILESYSTEM_EXPORTED = "IS_FILESYSTEM_EXPORTED";
+
     public static Set<URI> getVpoolsForUnmanaged(List<StringHashMapEntry> characteristicsEntries,
             List<String> supportedVPoolUris) {
         Set<URI> results = new HashSet<URI>();
 
         // Only return vpools which this can import if this is supported for ingestion
         if (!isSupportedForIngest(characteristicsEntries)) {
+            return results;
+        }
+
+        if (null != supportedVPoolUris) {
+            for (String vpoolUriStr : supportedVPoolUris) {
+                results.add(URI.create(vpoolUriStr));
+            }
+        }
+        return results;
+    }
+
+    public static Set<URI> getVpoolsForUnmanaged(List<StringHashMapEntry> characteristicsEntries,
+            List<String> supportedVPoolUris, String strIsExported) {
+        Set<URI> results = new HashSet<URI>();
+
+        // Only return vpools which this can import if this is supported for ingetion
+        if (!isSupportedForIngest(characteristicsEntries)) {
+            return results;
+        }
+
+        if (!isFileSystemSupportsExportType(characteristicsEntries, strIsExported)) {
             return results;
         }
 
@@ -58,7 +81,7 @@ public class UnmanagedHelper {
     public static boolean isNonRPExported(List<StringHashMapEntry> characteristicsEntries) {
         return getValue(characteristicsEntries, IS_NONRP_EXPORTED, true);
     }
-    
+
     public static boolean isMirror(List<StringHashMapEntry> characteristicsEntries) {
         return getValue(characteristicsEntries, IS_LOCAL_MIRROR, true);
     }
@@ -69,6 +92,17 @@ public class UnmanagedHelper {
 
     public static boolean isClone(List<StringHashMapEntry> characteristicsEntries) {
         return getValue(characteristicsEntries, IS_FULL_COPY, true);
+    }
+
+    public static boolean isFileSystemSupportsExportType(List<StringHashMapEntry> entries, String strIsExported) {
+        if (strIsExported != null) {
+            String fsExportType = getValue(entries, IS_FILESYSTEM_EXPORTED);
+            if (null != fsExportType
+                    && strIsExported.equalsIgnoreCase(fsExportType)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static String getLabel(UnManagedVolumeRestRep volume) {

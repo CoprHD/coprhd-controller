@@ -252,20 +252,21 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("fileSystemPolicies")
-    @AssetDependencies({ "project", "fileFilesystemWithPolicies" })
-    public List<AssetOption> getFileSystemPolicies(AssetOptionsContext ctx, URI project, URI fsId) {
-        ViPRCoreClient client = api(ctx);
+    @AssetDependencies("fileFilesystemWithPolicies")
+    public List<AssetOption> getFileSystemPolicies(AssetOptionsContext ctx, URI fsId) {
         List<AssetOption> options = Lists.newArrayList();
-
         List<FilePolicyRestRep> fileSystemPolicies = getAllFileSystemLevelPolicies(ctx);
         for (FilePolicyRestRep policyRestRep : fileSystemPolicies) {
-            if (policyRestRep.getAssignedResources() != null && !policyRestRep.getAssignedResources().isEmpty()) {
+            // This function also get called after order submission and we get null value for fsId
+            // workaround to display policy name in oder receipt: if fsId is null then list all the policy
+            if (fsId == null) {
+                options.add(new AssetOption(policyRestRep.getId(), policyRestRep.getName()));
+            } else if (policyRestRep.getAssignedResources() != null && !policyRestRep.getAssignedResources().isEmpty()) {
                 for (NamedRelatedResourceRep resource : policyRestRep.getAssignedResources()) {
                     if (resource.getId().equals(fsId)) {
                         options.add(new AssetOption(policyRestRep.getId(), policyRestRep.getName()));
                     }
                 }
-
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);

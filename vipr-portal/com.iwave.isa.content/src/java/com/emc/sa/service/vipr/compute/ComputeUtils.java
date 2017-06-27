@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.collections.MapUtils;
 
@@ -28,6 +29,7 @@ import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
@@ -57,8 +59,11 @@ import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAd
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog.LogLevel;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -79,22 +84,25 @@ import com.emc.vipr.client.exceptions.ViPRException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.iwave.ext.vmware.VCenterAPI;
+import com.iwave.ext.vmware.VMwareUtils;
+import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;
 
-// VBDU TODO COP-28437: In general, this module needs javadoc.  Many methods are using List objects and returning List objects that correspond to the incoming list that
-// require the indexing in the list to be retained or use of "indexOf()" to find the right map entry, both of which is poor programming practice, so that needs
-// to be fixed as well.  It does not need to be fixed if the calling object literally doesn't care about the mapping between the incoming arg and the return object,
-// so each case needs to be investigated separately.  Good hints are when you see use of "indexOf()" that Maps should've been used.
-//
-// Then Javadoc all of the methods so future readers know what the intentions are.  Be clear about return types.
 public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
 
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hostNamesIn->return List is poor programming practice.
+   /**
+    * Creates tasks to provision specified hosts to the given cluster.
+    *  @param Cluster
+    *  @param URI of computeVirtualPool to pick blades from
+    *  @param List of hostNames
+    *  @param URI of varray
+    *  @return list of successfully created hosts
+    *
+    */
     public static List<Host> createHosts(Cluster cluster, URI vcp, List<String> hostNamesIn,
             URI varray) throws Exception {
 
@@ -113,12 +121,6 @@ public class ComputeUtils {
                     e.getMessage());
         }
         // Some tasks could succeed while others could error out.
-        // VBDU TODO: COP-28453, We will not be adding the host to the cluster until after the host is booted. The line
-        // below will need to be removed and we should only rely on the returned task ids to determine which hosts were
-        // successful.
-
-        // VBDU TODO: COP-28453, We should only rely on the task resource id and not base it on the hostname. We should
-        // not delete a host just based on the hostname in case there are duplicates.
         Map<URI,String> hostDeactivateMap = new HashMap<URI, String>();
         if ((tasks != null) && (tasks.getTasks() != null)) {
             List<Task<HostRestRep>> tasklist = tasks.getTasks();
@@ -157,8 +159,11 @@ public class ComputeUtils {
         return createdHosts;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // names->return List is poor programming practice.
+   /**
+    * This method checks if the given host names already exist.
+    * @param list of host names to check
+    * @return list of host names in given list that already exist
+    */  
     public static List<String> getHostNamesByName(ViPRCoreClient client,
             List<String> names) {
         List<String> hostNames = Lists.newArrayList();
@@ -177,6 +182,11 @@ public class ComputeUtils {
         return hostNames;
     }
 
+   /**
+    * Creates a new cluster by the given name.
+    * @param clusterName
+    * @return Cluster
+    */
     public static Cluster createCluster(String clusterName) {
         ClusterRestRep clusterRestRep = execute(new CreateCluster(clusterName));
         return (clusterRestRep == null) ? null : BlockStorageUtils
@@ -195,7 +205,11 @@ public class ComputeUtils {
         }
         return BlockStorageUtils.getCluster(clusters.get(0).getId());
     }
-
+   /**
+    * Returns  list of hostNames already in this cluster
+    * @param Cluster
+    * @return list of hostNames
+    */
     public static List<String> findHostNamesInCluster(Cluster cluster) {
         if (cluster == null) {
             return Collections.emptyList();
@@ -210,12 +224,24 @@ public class ComputeUtils {
         return hostNames;
     }
 
+   /**
+    * Adds the specified hosts to the given cluster.  This operation will add the hosts to the cluster's Export Groups.
+    * @param List of Hosts to add
+    * @param Cluster to ad hosts to
+    * @return Cluster
+    */
     public static Cluster addHostsToCluster(List<Host> hosts, Cluster cluster) {
         if ((hosts != null) && (cluster != null)) {
             for (Host host : hosts) {
                 if (host != null) {
-                    ExecutionUtils.currentContext().logInfo("computeutils.clusterexport.addhost", host.getLabel(), cluster.getLabel());
-                    execute(new AddHostToCluster(host.getId(), cluster.getId()));
+                    try {
+                        ExecutionUtils.currentContext().logInfo("computeutils.clusterexport.addhost", host.getLabel(),
+                                cluster.getLabel());
+                        execute(new AddHostToCluster(host.getId(), cluster.getId()));
+                    } catch (Exception ex) {
+                        ExecutionUtils.currentContext().logError(ex, "computeutils.clusterexport.addhost.failure",
+                                host.getLabel(), cluster.getLabel());
+                    }
                 }
             }
         }else {
@@ -227,8 +253,14 @@ public class ComputeUtils {
         }
         return cluster;
     }
-
-    //validate that hosts are in the cluster export groups, else deactivate the host
+ 
+   /**
+    * validate that specified hosts are in the cluster export groups, else deactivate the host
+    * @param List to hosts to check
+    * @param Cluster
+    * @return list of goodHosts ie hosts that are in the cluster EGs.
+    * 
+    */
     public static List<Host> deactivateHostsNotAddedToCluster(List<Host> hosts, Cluster cluster){
        List<Host> hostsToRemove = new ArrayList<Host>();
        List<Host> goodHosts = new ArrayList<Host>();
@@ -689,8 +721,11 @@ public class ComputeUtils {
         return hostsDeactivated;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hostURIs->return List is poor programming practice.
+   /**
+    * Deactivates the specified hosts
+    * @param Map of hostURI to hostName (hostName is only for showing the correct hostNamefor task in UI)
+    * @return list of host URIs that were successfully deactivated
+    */
     public static List<URI> deactivateHostURIs(Map<URI,String> hostURIs) {
         List<Task<HostRestRep>> tasks = new ArrayList<>();
         ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.inprogress", hostURIs.values());
@@ -723,27 +758,26 @@ public class ComputeUtils {
         return successfulHostIds;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hosts->osInstallParams and hosts/osInstallParams->return List is poor programming practice.
-    public static void installOsOnHosts(List<Host> hosts, List<OsInstallParam> osInstallParams) {
+   /**
+    * Install OS image on the specified hosts
+    * @param map of Host to OsInstallParam -- this param has the details of which image to use, the netmask, ip address, etc required for installing os
+    */
+    public static void installOsOnHosts(Map<Host,OsInstallParam> osInstallParamMap) {
 
-        if ((hosts == null) || hosts.isEmpty()) {
+        if ((osInstallParamMap == null) || osInstallParamMap.isEmpty()) {
             return;
         }
+        Set<Host> hosts = osInstallParamMap.keySet();
 
         // execute all tasks (no waiting)
         List<Task<HostRestRep>> tasks = Lists.newArrayList();
         for (Host host : hosts) {
             if (host != null) {
-                int hostIndex = hosts.indexOf(host);
-                if (hostIndex > (osInstallParams.size() - 1)) {
-                    continue;
-                }
-                if (osInstallParams.get(hostIndex) == null) {
+                if (osInstallParamMap.get(host) == null) {
                     continue;
                 }
                 try {
-                    tasks.add(execute(new InstallOs(host, osInstallParams.get(hostIndex))));
+                    tasks.add(execute(new InstallOs(host, osInstallParamMap.get(host))));
                 } catch (Exception e) {
                     ExecutionUtils.currentContext().logError("computeutils.installOs.failure",
                             host.getId() + "  " + e.getMessage());
@@ -823,8 +857,14 @@ public class ComputeUtils {
         return objectListToReturn;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hostNames->return List is poor programming practice.
+    // VBDU DONE: COP-28437- Verified that there is no dependence on the indexing of the return list.
+    // It is just a list of names that do not already exist in the cluster
+   /**
+    * From the list of hostNames give, removes the host names that already exist in the specified cluster
+    * @param list of hostNames
+    * @param Cluster
+    * @return list of host names that do not exist in the cluster yet
+    */
     static List<String> removeExistingHosts(List<String> hostNames, Cluster cluster) {
         for (String hostNameFound : ComputeUtils.findHostNamesInCluster(cluster)) {
             for (int i = 0; i < hostNames.size(); i++) {
@@ -927,7 +967,16 @@ public class ComputeUtils {
         }
         return ips;
     }
-
+   
+    /**
+     * This method calculates whether there were any errors during the order or whether everything succeeded
+     * Determines the order status - success, failure or partial success
+     * @param Cluster
+     * @param List of hostNames
+     * @param computeImage
+     * @param vcenterURI
+     * @return orderError message if any to be displayed on UI
+     */
     public static String getOrderErrors(Cluster cluster,
             List<String> hostNames, URI computeImage, URI vcenterId) {
         StringBuilder orderErrors = new StringBuilder();
@@ -960,7 +1009,8 @@ public class ComputeUtils {
         for (HostRestRep host : hosts) {
             if ((!NullColumnValueGetter.isNullURI(vcenterId)
                     || !NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter()))
-                    && (host.getvCenterDataCenter() == null)) {
+                    && (host.getvCenterDataCenter() == null) && host.getType() != null
+                            && host.getType().equalsIgnoreCase(HostType.Esx.name())) {
                 orderErrors.append(
                         ExecutionUtils.getMessage("compute.cluster.vcenter.push.failed", host.getHostName()) + "  ");
             }
@@ -1015,6 +1065,14 @@ public class ComputeUtils {
         }
     }
 
+    /** 
+     * Sets the specified host's boot volume association; Optionally also sets the UCS service profile's san boot targets
+     * Any hosts for which boot volume association could not be set are deactivated.
+     *
+     * @param Map of Host to bootVolume URI
+     * @param boolean set to true to update the UCS service profile's san boot targets
+     * @return list of hosts for which boot volume association was successfully set.
+     */
     public static List<Host> setHostBootVolumes(Map<Host, URI> hostToVolumeIdMap, boolean updateSanBootTargets) {
         List<Task<HostRestRep>> tasks = new ArrayList<>();
         Map<URI, URI> volumeIdToHostIdMap = new HashMap<>();
@@ -1333,10 +1391,108 @@ public class ComputeUtils {
             }
         }
 
-        return true;
+            return true;
 	}
 
-	/**
+
+    /**
+     * Precheck to verify if cluster is associated to a datacenter and if it still
+     * on the same datacenter and vcenter.  Precheck fails the order if the cluster
+     * has datacenter association and is not found on the vcenter under the same datacenter
+     * Precheck also fails if the cluster found by name in vcenter does not match externalId
+     * in ViPR Cluster.
+     * If cluster does not have a datacenter association, then the cluster is
+     * a vipr cluster and precheck passes.
+     * @param cluster {@link Cluster} cluster instance
+     * @param preCheckErrors {@link StringBuilder} instance
+     * @return preCheckErrors
+     */
+
+    public  static StringBuilder verifyClusterInVcenter(Cluster cluster, StringBuilder preCheckErrors) {
+         //Precheck to verify if cluster has a datacenter and if the cluster still is on same datacenter in vcenter
+        //else fail order
+        if (!NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
+            VcenterDataCenter dataCenter = execute(new GetVcenterDataCenter(cluster.getVcenterDataCenter()));
+            if (dataCenter != null && !dataCenter.getInactive()) {
+                if (!NullColumnValueGetter.isNullURI(dataCenter.getVcenter())) {
+                    Vcenter vcenter = execute(new GetVcenter(dataCenter.getVcenter()));
+
+                    if (vcenter != null && !vcenter.getInactive()) {
+                        VMwareSupport vmware = null;
+                        try {
+                            vmware = new VMwareSupport();
+                            vmware.connect(vcenter.getId());
+                            ClusterComputeResource vcenterCluster = vmware.getCluster(dataCenter.getLabel(),
+                                    cluster.getLabel(), false);
+                            if (null == vcenterCluster) {
+                                preCheckErrors.append(ExecutionUtils.getMessage(
+                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
+                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));
+
+                            } else if (vcenterCluster.getMOR() != null && vcenterCluster.getMOR().getVal() != null
+                                    && vcenterCluster.getMOR().getVal().equalsIgnoreCase(cluster.getExternalId())) {
+                                ExecutionUtils.currentContext().logInfo(
+                                        "compute.cluster.precheck.cluster.VcenterDataCenter.found.in.vcenter",
+                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
+                            } else {
+                                preCheckErrors.append(ExecutionUtils.getMessage(
+                                        "compute.cluster.precheck.cluster.VcenterDataCenter.nomatch.in.vcenter",
+                                        cluster.getLabel(), vcenter.getLabel()));
+                            }
+
+                        } catch (ExecutionException e) {
+                            if (e.getCause() instanceof IllegalStateException) {
+                                preCheckErrors.append(ExecutionUtils.getMessage(
+                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
+                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));
+                            } else {
+                                // If it's anything other than the
+                                // IllegalStateException, re-throw the base
+                                // exception
+                                throw e;
+                            }
+                        } finally {
+                            if (vmware != null) {
+                                vmware.disconnect();
+                            }
+                        }
+                    } else {
+                        // If the vcenter isn't returned properly, not found in
+                        // DB, but the cluster has a reference to
+                        // it, there's an issue with the sync of the DB object.
+                        // Do not allow the validation to pass
+                        // until that's fixed.
+                        preCheckErrors.append(ExecutionUtils.getMessage(
+                                "compute.cluster.precheck.cluster.VcenterDataCenter.improper.vcenter",
+                                dataCenter.getVcenter()));
+                    }
+                } else {
+                    // If datacenter does not have reference to a vcenter then
+                    // there's an issue with the sync of the DB object. Do not allow the validation to pass
+                    // until that's fixed.
+                    preCheckErrors.append(
+                            ExecutionUtils.getMessage("compute.cluster.precheck.cluster.VcenterDataCenter.noVcenter",
+                                    dataCenter.getLabel()));
+                }
+            } else {
+                // If the datacenter isn't returned properly, not found in DB,
+                // but the cluster has a reference to
+                // it, there's an issue with the sync of the DB object. Do not
+                // allow the validation to pass
+                // until that's fixed.
+                preCheckErrors.append(ExecutionUtils.getMessage(
+                        "compute.cluster.precheck.cluster.improper.VcenterDataCenter", cluster.getVcenterDataCenter()));
+            }
+        } else {
+            // cluster is a vipr cluster only no need to check anything further.
+            ExecutionUtils.currentContext().logInfo("compute.cluster.precheck.cluster.noVCenterDataCenter",
+                    cluster.getLabel());
+        }
+        return preCheckErrors;
+    }
+
+
+    /**
      * Validate that the boot volume for this host is still on the server.
      * This prevents us from deleting a re-purposed volume that was originally
      * a boot volume.
@@ -1438,6 +1594,17 @@ public class ComputeUtils {
                         ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter",
                                 host.getHostName());
                         continue;
+                    }
+                    HostSystemConnectionState connectionState = VMwareUtils.getConnectionState(hostSystem);
+                    if (connectionState == null || connectionState == HostSystemConnectionState.notResponding
+                            || connectionState == HostSystemConnectionState.disconnected) {
+                        String exMsg = "Validation of boot volume usage on host %s failed. "
+                                + "Validation failed because host is in a disconnected state or not responding state, and therefore cannot be validated. "
+                                + "Cannot decommission in current state.  Recommended to either re-connect the host or remove the host from vCenter, "
+                                + "run vCenter discovery and address actionable events before attempting decommission of hosts in this cluster.";
+                        // Failing by throwing an exception, because returning a false
+                        // will print a boot volume re-purposed error message which is kind of misleading or incorrect reason for the failure.
+                        throw new IllegalStateException(String.format(exMsg, host.getHostName()));
                     }
                 } catch (ExecutionException e) {
                     if (e.getCause() instanceof IllegalStateException) {
@@ -1570,5 +1737,17 @@ public class ComputeUtils {
             deactivateHostURIs(hostDeactivateMap);
         }
         return hostsWithOS;
+    }
+
+    public static String getContextErrors(ModelClient client) {
+        String sep = System.lineSeparator();
+        StringBuffer errBuff = new StringBuffer();
+        StringSet logIds = ExecutionUtils.currentContext().getExecutionState().getLogIds();
+        for(ExecutionLog l : client.executionLogs().findByIds(logIds)) {
+            if(l.getLevel().equals(LogLevel.ERROR.name())) {
+                errBuff.append(sep + sep + l.getMessage());
+            }
+        }
+        return errBuff.toString();
     }
 }

@@ -150,6 +150,7 @@ import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Function;
 
 /**
@@ -212,7 +213,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief Show Host
+     * @brief Show host
      * @return All the non-null attributes of the host.
      * @throws DatabaseException
      *             when a DB error occurs.
@@ -279,12 +280,21 @@ public class HostService extends TaskResourceService {
      * Updates one or more of the host attributes. Discovery is initiated
      * after the host is updated.
      *
+     * <p>
+     * Updating the host's cluster:
+     * <ul>
+     *     <li> Adding a host to a cluster: The host will gain access to all volumes in the cluster.
+     *     <li> Removing a host from a cluster: The host will lose access to all volumes in the cluster.
+     *     <li> Updating a host's cluster: The host will lose access to all volumes in the old cluster. The 
+     *          host will gain access to all volumes in the new cluster.
+     * </ul>
+     *
      * @param id
      *            the URN of a ViPR Host
      * @param updateParam
      *            the parameter that has the attributes to be
      *            updated.
-     * @brief Update Host Attributes
+     * @brief Update host attributes
      * @return the host discovery async task representation.
      */
     @PUT
@@ -362,7 +372,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id the URN of host
      * @param hostUpdateParam
-     *
+     * @brief Update the host boot volume
      * @return the task.
      */
     @PUT
@@ -456,6 +466,7 @@ public class HostService extends TaskResourceService {
      *
      * @param param
      *            ArrayAffinityHostParam
+     * @brief Show array affinity information for specified hosts
      * @return the task list
      */
     @POST
@@ -667,7 +678,7 @@ public class HostService extends TaskResourceService {
      * @param deactivateBootVolume
      *            if true, and if the host was provisioned by ViPR the associated boot volume (if exists) will be
      *            deactivated
-     * @brief Deactivate Host
+     * @brief Deactivate host
      * @return OK if deactivation completed successfully
      * @throws DatabaseException
      *             when a DB error occurs
@@ -704,7 +715,7 @@ public class HostService extends TaskResourceService {
         }
         Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-                Arrays.asList("label", "uuid", "serviceProfile", "computeElement","registrationStatus", "inactive"), getFullyImplementedCollection(hostIds));
+                Arrays.asList("label", "uuid", "serviceProfile", "computeElement","registrationStatus", "inactive"), ControllerUtils.getFullyImplementedCollection(hostIds));
         for (Host tempHost : hosts){
             if (!tempHost.getId().equals(host.getId()) && !tempHost.getInactive()){
                 if (tempHost.getUuid()!=null && tempHost.getUuid().equals(host.getUuid())) {
@@ -761,17 +772,6 @@ public class HostService extends TaskResourceService {
         return toTask(host, taskId, op);
     }
 
-    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
-        // Convert objects (like URIQueryResultList) that only implement iterator to
-        // fully implemented Collection
-        Collection<T> collectionOut = new ArrayList<>();
-        Iterator<T> iter = collectionIn.iterator();
-        while (iter.hasNext()) {
-            collectionOut.add(iter.next());
-        }
-        return collectionOut;
-    }
-
     /**
      * Check for pending tasks on the Host
      *
@@ -796,7 +796,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief Detach storage from Host
+     * @brief Detach storage from host
      * @return OK if detaching completed successfully
      * @throws DatabaseException
      *             when a DB error occurs
@@ -829,7 +829,7 @@ public class HostService extends TaskResourceService {
      *            the URN of a ViPR Host
      * @param createParam
      *            the details of the interfaces
-     * @brief Create Host Interface Ip
+     * @brief Create host interface IP
      * @return the details of the host interface, including its id and link,
      *         when creation completes successfully.
      * @throws DatabaseException
@@ -891,7 +891,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief List Host Interfaces
+     * @brief List host interfaces
      * @return a list of interfaces that belong to the host
      * @throws DatabaseException
      *             when a DB error occurs
@@ -920,7 +920,7 @@ public class HostService extends TaskResourceService {
      *            the URN of a ViPR Host
      * @param createParam
      *            the details of the initiator
-     * @brief Create Host Initiator
+     * @brief Create host initiator
      * @return the details of the host initiator when creation
      *         is successfully.
      * @throws DatabaseException
@@ -1020,7 +1020,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief List Host Initiators
+     * @brief List host initiators
      * @return a list of initiators that belong to the host
      * @throws DatabaseException
      *             when a DB error occurs
@@ -1333,6 +1333,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URI of a ViPR Host
+     * @brief List unmanaged volumes exposed to a host
      * @return a list of UnManagedVolumes exposed to this host
      * @throws DatabaseException
      *             when a database error occurs
@@ -1363,6 +1364,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URI of a ViPR Host
+     * @brief List unmanaged export masks for a host
      * @return a list of UnManagedExportMasks found for the Host
      * @throws DatabaseException
      *             when a database error occurs
@@ -2358,25 +2360,27 @@ public class HostService extends TaskResourceService {
 
         Collection<URI> ipInterfaceURIS = _dbClient.queryByType(IpInterface.class, true);
         Collection<IpInterface> ipInterfaces = _dbClient.queryObjectFields(IpInterface.class,
-                Arrays.asList("ipAddress", "host"), getFullyImplementedCollection(ipInterfaceURIS));
+                Arrays.asList("ipAddress", "host"), ControllerUtils.getFullyImplementedCollection(ipInterfaceURIS));
 
         if (CollectionUtils.isNotEmpty(ipInterfaces) && StringUtils.isNotEmpty(param.getHostIp())) {
             _log.info("Validating host {} for duplicate IPs.", host.getLabel());
             for (IpInterface ipInterface : ipInterfaces) {
                 if (ipInterface.getIpAddress() != null && ipInterface.getIpAddress().equals(param.getHostIp())) {
                     if (!NullColumnValueGetter.isNullURI(ipInterface.getHost())) {
-                        Host hostWithSameIp = queryObject(Host.class, ipInterface.getHost(), true);
+                        Host hostWithSameIp = _dbClient.queryObject(Host.class, ipInterface.getHost());
                         if (hostWithSameIp != null) {
                             _log.error("Found duplicate IP {} for existing host {}.  Host with same IP exists already.",
                                     param.getHostIp(), hostWithSameIp.getLabel());
                             throw APIException.badRequests.hostWithDuplicateIP(host.getLabel(), param.getHostIp(),
                                     hostWithSameIp.getLabel());
                         } else {
-                            _log.error(
-                                    "Found duplicate IP {} for existing host URI {}.  Host with same IP exists already.",
+                            // If there is a valid IpInterface object, but the host inside it is no longer in the 
+                            // database, then we take this opportunity to clear out the object before it causes more
+                            // issues.
+                            _log.warn(
+                                    "Found duplicate IP {} for non-existent host URI {}.  Deleting IP Interface.",
                                     param.getHostIp(), ipInterface.getHost().toString());
-                            throw APIException.badRequests.hostWithDuplicateIP(host.getLabel(), param.getHostIp(),
-                                    ipInterface.getHost().toString());
+                            _dbClient.markForDeletion(ipInterface);
                         }
                     } else {
                         _log.error(

@@ -170,6 +170,12 @@ public class ActionableEventExecutor {
                         || ComputeSystemHelper.isClusterInExport(_dbClient, clusterId))) {
             // Clustered host being moved to another cluster
             computeController.addHostsToExport(eventId, Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
+        } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+                && !NullColumnValueGetter.isNullURI(clusterId)
+                && oldClusterURI.equals(clusterId)
+                && ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)) {
+            // Cluster hasn't changed but we should add host to the shared exports in case they weren't added to all of them
+            computeController.addHostsToExport(eventId, Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
         } else {
             ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
             ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);

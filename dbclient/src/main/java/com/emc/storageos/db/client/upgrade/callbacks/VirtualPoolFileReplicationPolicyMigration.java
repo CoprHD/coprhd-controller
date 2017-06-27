@@ -54,6 +54,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
 
     public static final String FILE_STORAGE_RESOURCE = "FILESTORAGERESOURCE";
     public static final String FILE_STORAGE_DEVICE_TYPE = "ISILON";
+    public static final String SEPARATOR = "::";
 
     @Override
     public void process() throws MigrationCallbackException {
@@ -89,10 +90,10 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                     replPolicy.setFilePolicyVpool(virtualPool.getId());
                     // Replication policy was created always at file system level!!
                     replPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
-                    if(virtualPool.getFileReplicationCopyMode().equals(VirtualPool.RPCopyMode.ASYNCHRONOUS.name())){
-                        replPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.ASYNC.name());  
-                    }else{
-                        replPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.SYNC.name()); 
+                    if (virtualPool.getFileReplicationCopyMode().equals(VirtualPool.RPCopyMode.ASYNCHRONOUS.name())) {
+                        replPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.ASYNC.name());
+                    } else {
+                        replPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.SYNC.name());
                     }
                     replPolicy.setFileReplicationType(virtualPool.getFileReplicationType());
                     replPolicy.setPriority(FilePolicyPriority.Normal.toString());
@@ -114,12 +115,27 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                         logger.info("Creating replication topology for remote replication vpool {} .....", virtualPool.getLabel());
                         StringSet replicationTopologies = new StringSet();
                         StringSet targetVarrays = new StringSet();
+                        String targetVarray = null;
+                        String targetVPool = null;
                         Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettings = virtualPool.getFileRemoteProtectionSettings(
                                 virtualPool,
                                 dbClient);
                         if (remoteSettings != null && !remoteSettings.isEmpty()) {
                             // till now CoprHD supports only single target!!
-                            targetVarrays.add(remoteSettings.keySet().iterator().next().toString());
+
+                            for (Map.Entry<URI, VpoolRemoteCopyProtectionSettings> entry : remoteSettings.entrySet()) {
+                                if (entry != null) {
+                                    targetVarray = entry.getKey().toString();
+                                    if (entry.getValue() != null && entry.getValue().getVirtualPool() != null) {
+                                        targetVPool = entry.getValue().getVirtualPool().toString();
+                                    }
+                                    break;
+                                }
+                            }
+                            if (targetVarray != null) {
+                                targetVarrays.add(targetVarray);
+                            }
+
                         }
 
                         if (virtualPool.getVirtualArrays() != null && !virtualPool.getVirtualArrays().isEmpty()) {
@@ -129,6 +145,9 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                                 dbReplTopology.setPolicy(replPolicy.getId());
                                 dbReplTopology.setSourceVArray(URI.create(srcvArray));
                                 dbReplTopology.setTargetVArrays(targetVarrays);
+                                if (targetVarray != null && targetVPool != null) {
+                                    dbReplTopology.setTargetVAVPool(targetVarray + SEPARATOR + targetVPool);
+                                }
                                 dbClient.createObject(dbReplTopology);
                                 replicationTopologies.add(dbReplTopology.getId().toString());
                             }

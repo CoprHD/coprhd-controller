@@ -209,7 +209,7 @@ public class UcsDiscoveryWorker {
             reconcileVlans(cs, vlanList);
     
             associateComputeImageServer(cs);
-            matchComputeBladesToHosts();
+            matchComputeBladesToHosts(cs);
 
             cs.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());
             cs.setSuccessDiscoveryTime(Calendar.getInstance().getTimeInMillis());
@@ -2262,8 +2262,8 @@ public class UcsDiscoveryWorker {
         return new Integer(0);
     }
 
-    private void matchComputeBladesToHosts() {
-        HostToComputeElementMatcher.matchAllHostsToComputeElements(_dbClient);
+    private void matchComputeBladesToHosts(ComputeSystem computeSystem) {
+        HostToComputeElementMatcher.matchAllHostsToComputeElements(_dbClient, computeSystem.getId());
     }
 
     /**

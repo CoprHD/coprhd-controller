@@ -426,7 +426,7 @@ public class NetworkDeviceController implements NetworkController {
         		result = networkDevice.addZones(networkSystem, zones, fabricId, fabricWwn, true);
         		if (result.isCommandSuccess()) {
         			for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
-        				String refKey = fabricInfo.getZoneName() + " " + fabricInfo.getFcZoneReferenceId().toString();
+        				String refKey = fabricInfo.getZoneName() + " " + fabricInfo.getVolumeId().toString();
         				try {
         					String[] newOrExisting = new String[1];
         					FCZoneReference ref = addZoneReference(exportGroupUri, fabricInfo, newOrExisting);

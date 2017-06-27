@@ -7288,6 +7288,9 @@ sbsdk_remote_replication_tests()
     echo "**** Establish links for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup establish ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
+    echo "**** Stop links for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup stop ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
     echo "**** Suspend replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset suspend ${SBSDK_DRIVER_REPLICATION_SET1}
 
@@ -7308,6 +7311,9 @@ sbsdk_remote_replication_tests()
 
     echo "**** Establish links for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset establish ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Stop links for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset stop ${SBSDK_DRIVER_REPLICATION_SET1}
 
     #Delete the volume
     echo "***** Deleting volume $VOLUME_NO_GROUP_NAME *****"

@@ -32,7 +32,7 @@ public class RemoteReplicationPair {
 
     /**
      * Replication mode of the pair.
-     * Type: Input.
+     * Type: Input/Output
      */
     private String replicationMode;
 

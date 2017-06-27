@@ -20,9 +20,9 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 
 @SuppressWarnings("serial")
-public class RemoteReplicationSuspendCompleter extends TaskCompleter {
+public class RemoteReplicationStopCompleter extends TaskCompleter {
 
-    private static final Logger _logger = LoggerFactory.getLogger(RemoteReplicationSuspendCompleter.class);
+    private static final Logger _logger = LoggerFactory.getLogger(RemoteReplicationStopCompleter.class);
 
     private DbClient dbClient;
     private RemoteReplicationSet.ElementType elementType;
@@ -36,7 +36,7 @@ public class RemoteReplicationSuspendCompleter extends TaskCompleter {
         return dbClient;
     }
 
-    public RemoteReplicationSuspendCompleter(RemoteReplicationElement remoteReplicationElement, String opId) {
+    public RemoteReplicationStopCompleter(RemoteReplicationElement remoteReplicationElement, String opId) {
         elementType = remoteReplicationElement.getType();
         elementURI = remoteReplicationElement.getElementUri();
 

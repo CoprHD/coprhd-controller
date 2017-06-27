@@ -132,6 +132,18 @@ def remotereplicationgroup_establish(args):
     else:
         print 'Failed to establish links for remote replication group.'
 
+def remotereplicationgroup_stop(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_stop(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Stopped links for remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to stop links for remote replication group.'
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -217,6 +229,9 @@ try:
     elif (cmd == "establish"):
         args = operation.parse_args()
         remotereplicationgroup_establish(args)
+    elif (cmd == "stop"):
+        args = operation.parse_args()
+        remotereplicationgroup_stop(args)
     else:
         parser.print_help()
 

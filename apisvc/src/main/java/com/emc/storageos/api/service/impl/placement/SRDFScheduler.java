@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -1069,7 +1070,7 @@ public class SRDFScheduler implements Scheduler {
             return groups;
         }
         String cgName = cgObj.getAlternateLabel();
-        if (null == cgName) {
+        if (NullColumnValueGetter.isNullValue(cgName)) {
             cgName = cgObj.getLabel();
         }
         for (RemoteDirectorGroup raGroup : groups) {

@@ -352,16 +352,16 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
     /**
      * Utility method that would Create a RemoteReplicationGroup for a given RemoteDirectorGroup
      * 
-     * @param Reference to RemoteDirectorGroup/RAGroup
-     * @param Reference to storageSystem
-     * @param Reference to remoteSystem
+     * @param raGroup  RemoteDirectorGroup/RAGroup
+     * @param storageSystem local storageSystem
+     * @param remoteSystem  remote System
      * @return RemoteReplicationGroup
      */
     private RemoteReplicationGroup createRemoteReplicationGroup(RemoteDirectorGroup raGroup, StorageSystem storageSystem,
             StorageSystem remoteSystem) {
         RemoteReplicationGroup rrGroup = new RemoteReplicationGroup();
         rrGroup.setNativeId(RemoteReplicationUtils.getRemoteReplicationGroupNativeIdForSrdfGroup(storageSystem, remoteSystem, raGroup));
-        rrGroup.setDisplayName(rrGroup.getNativeId());
+        rrGroup.setDisplayName(raGroup.getLabel() + ": " + storageSystem.getSerialNumber() + " --> " + remoteSystem.getSerialNumber());
         rrGroup.setDeviceLabel(raGroup.getLabel());
         // Need to figure out how to capture this from an RDF group if it has associated CGs
         rrGroup.setIsGroupConsistencyEnforced(false);

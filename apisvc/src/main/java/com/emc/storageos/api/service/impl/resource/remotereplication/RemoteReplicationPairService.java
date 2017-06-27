@@ -1096,7 +1096,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         URI newGroup = param.getRemoteReplicationGroup();
 
         validateMovePairOperation(rrPair, newGroup);
-        // Create a task for the move remote replication pair operation
+        // Create task for the move remote replication pair operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.MOVE_REMOTE_REPLICATION_PAIR);
@@ -1123,7 +1123,6 @@ public class RemoteReplicationPairService extends TaskResourceService {
      * @param targetGroup new group
      */
     public void validateMovePairOperation(RemoteReplicationPair rrPair, URI targetGroup) {
-        // todo: validate that this operation is valid:
         //   if pair is in a group
         //   if new group has the same source system, the same target system as current group of the pair
         URI currentGroupId = rrPair.getReplicationGroup();

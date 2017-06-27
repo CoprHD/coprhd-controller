@@ -495,10 +495,11 @@ public class ValidationHelper {
             case FROM_USER:
                 return checkUserInputType(input);
             case FROM_USER_MULTI:
-                //TODO: remove the check for inventory file
-                if (StringUtils.equals(CustomServicesConstants.ANSIBLE_HOST_FILE, input.getName())
-                        && MapUtils.isEmpty(input.getOptions())) {
-                    return CustomServicesConstants.ERROR_MSG_INVENTORY_FILE_NOT_MAPPED;
+                // TODO: remove the check for inventory file
+                if (StringUtils.equals(CustomServicesConstants.ANSIBLE_HOST_FILE, input.getName())) {
+                    if (MapUtils.isEmpty(input.getOptions())) {
+                        return CustomServicesConstants.ERROR_MSG_INVENTORY_FILE_NOT_MAPPED;
+                    }
                 } else if (StringUtils.isBlank(input.getDefaultValue())) {
                     return String.format("%s - %s", CustomServicesConstants.ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE,
                             input.getType());
@@ -656,7 +657,7 @@ public class ValidationHelper {
     }
 
     private String validateOtherStepOutput(final Step step, final String attribute) {
-        if( isRawOutput(step, attribute) ) {
+        if (isRawOutput(step, attribute)) {
             return EMPTY_STRING;
         }
         if (step.getOutput() == null) {
@@ -677,7 +678,7 @@ public class ValidationHelper {
     }
 
     private boolean isRawOutput(Step step, String attribute) {
-        switch(attribute) {
+        switch (attribute) {
             case CustomServicesConstants.OPERATION_OUTPUT:
             case CustomServicesConstants.OPERATION_ERROR:
             case CustomServicesConstants.OPERATION_RETURNCODE:

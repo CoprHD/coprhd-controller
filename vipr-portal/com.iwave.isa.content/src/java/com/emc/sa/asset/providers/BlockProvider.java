@@ -221,7 +221,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private static final int EXPORT_PATH_MIN = 1;
     private static final int EXPORT_PATH_MAX = 32;
+    
+    private static final String VMAX_PORT_GROUP_ENABLED = "VMAXUsePortGroupEnabled/value";
+    private static final String VMAX = "vmax";
 
+    
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
     }
@@ -424,7 +428,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
             List<URI> volumeIds = Lists.newArrayList();
             info("Volumes selected by user: %s", selectedVolumes);
@@ -446,20 +450,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             if (virtualArrays.size() == 1 && storageSystems.size() == 1 && virtualPools.size() == 1) {
                 Iterator<URI> it = virtualArrays.iterator();
-                URI id = it.next();
+                URI varrayId = it.next();
 
-                ExportGroupRestRep export = null;
-                if (BlockStorageUtils.isHost(hostOrClusterId)) {
-                    List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, projectId, id);
-                    export = exports.isEmpty() ? null : exports.get(0);
-                } else {
-                    List<ExportGroupRestRep> exports = client.blockExports().findByCluster(hostOrClusterId, projectId, id);
-                    export = exports.isEmpty() ? null : exports.get(0);
-                }
+                ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, varrayId, client);
 
                 Iterator<URI> ssIt = storageSystems.iterator();
                 Iterator<URI> vpIt = virtualPools.iterator();
-                StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(id,
+                StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
                         export != null ? export.getId() : null, ssIt.next(), vpIt.next());
                 return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
@@ -484,17 +481,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportVolumeForHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI hostOrClusterId, URI projectId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
-            ExportGroupRestRep export = null;
-            if (BlockStorageUtils.isHost(hostOrClusterId)) {
-                List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, projectId, vArrayId);
-                export = exports.isEmpty() ? null : exports.get(0);
-            } else {
-                List<ExportGroupRestRep> exports = client.blockExports().findByCluster(hostOrClusterId, projectId, vArrayId);
-                export = exports.isEmpty() ? null : exports.get(0);
-            }
-
+            ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, vArrayId, client);
             StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId,
                     export != null ? export.getId() : null, null, vpoolId);
             return createPortGroupOptions(portGroups.getStoragePortGroups());
@@ -545,7 +534,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
             List<URI> snapshotIds = Lists.newArrayList();
             info("Snapshots selected by user: %s", selectedSnapshots);
@@ -565,19 +554,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             if (virtualArrays.size() == 1 && storageSystems.size() == 1) {
                 Iterator<URI> it = virtualArrays.iterator();
-                URI id = it.next();
+                URI varrayId = it.next();
 
-                ExportGroupRestRep export = null;
-                if (BlockStorageUtils.isHost(hostOrClusterId)) {
-                    List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, projectId, id);
-                    export = exports.isEmpty() ? null : exports.get(0);
-                } else {
-                    List<ExportGroupRestRep> exports = client.blockExports().findByCluster(hostOrClusterId, projectId, id);
-                    export = exports.isEmpty() ? null : exports.get(0);
-                }
+                ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, varrayId, client);
 
                 Iterator<URI> ssIt = storageSystems.iterator();
-                StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(id,
+                StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
                         export != null ? export.getId() : null, ssIt.next(), null);
                 return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
@@ -597,7 +579,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
             List<URI> snapshotIds = Lists.newArrayList();
             info("Continous Copies selected by user: %s", selectedCopies);
@@ -619,20 +601,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             if (virtualArrays.size() == 1 && storageSystems.size() == 1 && virtualPools.size() == 1) {
                 Iterator<URI> it = virtualArrays.iterator();
-                URI id = it.next();
+                URI varrayId = it.next();
 
-                ExportGroupRestRep export = null;
-                if (BlockStorageUtils.isHost(hostOrClusterId)) {
-                    List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, projectId, id);
-                    export = exports.isEmpty() ? null : exports.get(0);
-                } else {
-                    List<ExportGroupRestRep> exports = client.blockExports().findByCluster(hostOrClusterId, projectId, id);
-                    export = exports.isEmpty() ? null : exports.get(0);
-                }
+                ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, varrayId, client);
 
                 Iterator<URI> ssIt = storageSystems.iterator();
                 Iterator<URI> vpIt = virtualPools.iterator();
-                StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(id,
+                StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
                         export != null ? export.getId() : null, ssIt.next(), vpIt.next());
                 return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
@@ -1049,15 +1024,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "host" })
     public List<AssetOption> getExportPathExports(AssetOptionsContext ctx, URI projectId, URI hostOrClusterId) {
         ViPRCoreClient client = api(ctx);
-
-        List<ExportGroupRestRep> exports = new ArrayList<ExportGroupRestRep>();
-
-        if (BlockStorageUtils.isHost(hostOrClusterId)) {
-            exports = client.blockExports().findByHost(hostOrClusterId, projectId, null);
-        } else if (BlockStorageUtils.isCluster(hostOrClusterId)) {
-            exports = client.blockExports().findByCluster(hostOrClusterId, projectId, null);
-        }
-
+        List<ExportGroupRestRep> exports = findExportGroups(hostOrClusterId, projectId, null, client);
         return createExportWithVarrayOptions(client, exports);
     }
     
@@ -4389,5 +4356,38 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      */
     private boolean isIBMXIVVolume(VolumeRestRep vol) {
         return vol != null && IBMXIV_SYSTEM_TYPE.equals(vol.getSystemType());
+    }
+    
+    /**
+     * Find a single ExportGroup REST response using the passed in arguments for host/cluster.
+     * 
+     * @param hostOrClusterId URI for host or cluster
+     * @param projectId URI for the project
+     * @param varrayId URI for the varray to check
+     * @param client ViPR core client
+     * @return The found EG REST response or null otherwise
+     */
+    private ExportGroupRestRep findExportGroup(URI hostOrClusterId, URI projectId, URI varrayId, ViPRCoreClient client) {
+        List<ExportGroupRestRep> exports = findExportGroups(hostOrClusterId, projectId, varrayId, client);
+        return (exports.isEmpty() ? null : exports.get(0));
+    }
+    
+    /**
+     * Find all ExportGroup REST responses using the passed in arguments for host/cluster.
+     * 
+     * @param hostOrClusterId URI for host or cluster
+     * @param projectId URI for the project
+     * @param varrayId URI for the varray to check
+     * @param client ViPR core client
+     * @return List found EG REST response or empty list otherwise
+     */
+    private List<ExportGroupRestRep> findExportGroups(URI hostOrClusterId, URI projectId, URI varrayId, ViPRCoreClient client) {
+        List<ExportGroupRestRep> exports = new ArrayList<ExportGroupRestRep>();
+        if (BlockStorageUtils.isHost(hostOrClusterId)) {
+            exports = client.blockExports().findByHost(hostOrClusterId, projectId, varrayId);            
+        } else {
+            exports = client.blockExports().findByCluster(hostOrClusterId, projectId, varrayId);            
+        }
+        return exports;
     }
 }

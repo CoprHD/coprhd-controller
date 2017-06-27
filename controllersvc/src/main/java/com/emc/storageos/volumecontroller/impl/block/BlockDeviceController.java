@@ -1193,8 +1193,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     DeviceControllerException.exceptions.unexpectedCondition(e.getMessage()));
         }
 
-        List<Volume> volumes = _dbClient.queryObject(Volume.class, taskCompleter.getIds());
-        _dbClient.markForDeletion(volumes);
+        if (taskCompleter != null && taskCompleter.isRollingBack()) {
+            List<Volume> volumes = _dbClient.queryObject(Volume.class, taskCompleter.getIds());
+            _dbClient.markForDeletion(volumes);
+        }
     }
 
     /**

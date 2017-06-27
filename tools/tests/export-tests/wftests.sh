@@ -1073,6 +1073,9 @@ srdf_sim_setup() {
     SRDF_V3_VMAXA_SMIS_SSL=${VMAX3_SIMULATOR_SMIS_SSL}
     SRDF_V3_VMAXA_NATIVEGUID=${VMAX3_SIMULATOR_NATIVE_GUID}
     SRDF_V3_VMAXB_NATIVEGUID=${VMAX3_SIMULATOR_R2_NATIVE_GUID}
+
+    SRDF_V3_VMAXA_POLICY="${SRDF_V3_VMAXA_NATIVEGUID}+${SIMULATOR_VMAX3_FAST_POLICY_SUFFIX}"
+    SRDF_V3_VMAXB_POLICY="${SRDF_V3_VMAXB_NATIVEGUID}+${SIMULATOR_VMAX3_FAST_POLICY_SUFFIX}"
 }
 
 srdf_setup() {
@@ -1132,7 +1135,7 @@ srdf_setup() {
     # Workaround for COP-25718, switch to use matchedPools once it is fixed
     run cos create block ${VPOOL_BASE}_SRDF_TARGET		          \
       --system_type vmax                     \
-      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
       --description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
@@ -1147,7 +1150,7 @@ srdf_setup() {
     # As above, but without multivolume consistency
     run cos create block ${VPOOL_BASE_NOCG}_SRDF_TARGET		          \
       --system_type vmax                     \
-      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
       --description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
@@ -1163,7 +1166,7 @@ srdf_setup() {
             echo "Setting up the virtual pool for SRDF sync mode"
     	    run cos create block ${VPOOL_BASE}                 \
         --system_type vmax                     \
-        --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+        --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
@@ -1179,7 +1182,7 @@ srdf_setup() {
            echo "Setting up the virtual pool for SRDF sync mode (nocg)"
     	    run cos create block ${VPOOL_BASE_NOCG}                 \
       --system_type vmax                     \
-      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
@@ -1195,7 +1198,7 @@ srdf_setup() {
         echo "Setting up the virtual pool for SRDF sync mode"
 	    run cos create block ${VPOOL_BASE}                 \
       --system_type vmax                     \
-      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
@@ -1211,7 +1214,7 @@ srdf_setup() {
 	    echo "Setting up the virtual pool for SRDF sync mode (nocg)"
 	    run cos create block ${VPOOL_BASE_NOCG}                 \
       --system_type vmax                     \
-      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
@@ -1232,7 +1235,7 @@ srdf_setup() {
     echo "Setting up the virtual pool for VPool change (Add SRDF)"
     run cos create block ${VPOOL_CHANGE}                 \
       --system_type vmax                     \
-      --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
          --description 'Source-Virtual-Pool-for-VPoolChange' false \
          --protocols FC 		        \
          --numpaths 1				\
@@ -1707,7 +1710,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation"
+    failure_injections="failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete "
 
     if [ "${SS}" = "vplex" ]
     then
@@ -3795,7 +3798,7 @@ test_delete_srdf() {
     fi
 
     # Clear existing volumes
-    volume delete --project ${PROJECT} --wait
+    cleanup_srdf $PROJECT
 
     common_failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes&1 \
                         failure_087_BlockDeviceController.before_doDeleteVolumes&2 \
@@ -3824,7 +3827,7 @@ test_delete_srdf() {
     fi
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_091_SRDFDeviceController.before_doDetachLink"
+    failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes"
 
     for failure in ${failure_injections}
     do
@@ -3941,6 +3944,16 @@ cleanup_previous_run_artifacts() {
             runcmd cluster delete ${id} > /dev/null
         done
     fi
+}
+
+cleanup_srdf() {
+  project=$1
+  SOURCES=
+
+  for source in `volume list $project | grep SOURCE | awk '{ print $7}'`
+  do
+    volume delete $source --wait
+  done
 }
 
 # call this to generate a random WWN for exports.

@@ -318,7 +318,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         assertEquals(0, checkResult.getTotal());
         
         keyspace.prepareQuery(userToOrdersByTimeStampCF).withCql(String.format("delete from \"UserToOrdersByTimeStamp\" where key='%s'", order.getSubmittedByUserId())).execute();
-        keyspace.prepareQuery(userToOrdersByTimeStampCF).withCql(String.format("delete from \"AllOrdersByTimeStamp\" where key='%s'", order.getTenant())).execute();
+        keyspace.prepareQuery(allOrdersByTimeStampCF).withCql(String.format("delete from \"AllOrdersByTimeStamp\" where key='%s'", order.getTenant())).execute();
         checkResult = new CheckResult();
         mockHelper.checkCFIndices(TypeMap.getDoType(Order.class), true, checkResult);
         assertEquals(2, checkResult.getTotal());

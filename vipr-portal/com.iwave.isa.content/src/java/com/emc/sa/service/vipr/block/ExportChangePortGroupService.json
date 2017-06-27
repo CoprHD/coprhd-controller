@@ -31,7 +31,11 @@
             type:"assetType.vipr.exportPathVirtualArray",
             lockable: true
         },
-        portGroup:{
+        currentPortGroup:{
+            type:"type:"assetType.vipr.exportVolumeForHostPortGroups",
+            required: true
+        }
+        changePortGroup:{
             type:"type:"assetType.vipr.exportVolumeForHostPortGroups",
             required: true
         }

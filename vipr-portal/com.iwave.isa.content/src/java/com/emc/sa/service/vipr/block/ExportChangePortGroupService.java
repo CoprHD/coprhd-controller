@@ -6,7 +6,7 @@ package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.EXPORT;
 import static com.emc.sa.service.ServiceParams.HOST;
-import static com.emc.sa.service.ServiceParams.PORT_GROUP;
+import static com.emc.sa.service.ServiceParams.CHANGE_PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEM;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 
@@ -32,8 +32,8 @@ public class ExportChangePortGroupService extends ViPRService {
     @Param(STORAGE_SYSTEM)
     protected URI storageSystem;
     
-    @Param(value = PORT_GROUP, required = false)
-    protected List<URI> portGroups;
+    @Param(value = CHANGE_PORT_GROUP, required = true)
+    protected URI newPortGroup;
     
     @Override
     public void precheck() throws Exception {

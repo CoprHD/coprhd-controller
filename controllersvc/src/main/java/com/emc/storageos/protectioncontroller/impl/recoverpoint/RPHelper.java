@@ -178,25 +178,6 @@ public class RPHelper {
     }
 
     /**
-     * Gets the virtual pool of the target copy.
-     *
-     * @param tgtVarray
-     * @param dbClient DbClient ref
-     * @param srcVpool the base virtual pool
-     * @return vpool of the target copy
-     */
-    public static VirtualPool getTargetVirtualPool(VirtualArray tgtVarray, VirtualPool srcVpool, DbClient dbClient) {
-        VpoolProtectionVarraySettings settings = getProtectionSettings(srcVpool, tgtVarray, dbClient);
-        // If there was no vpool specified use the source vpool for this varray.
-        VirtualPool tgtVpool = srcVpool;
-        if (settings.getVirtualPool() != null) {
-            tgtVpool = dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
-        }
-        
-        return tgtVpool;
-    }
-
-    /**
      * Given one volume in an rset (either source or any target) return all source and target volumes in that rset
      *
      * @param vol A volume in the Rset

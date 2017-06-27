@@ -334,25 +334,15 @@ public class RecoverPointScheduler implements Scheduler {
             haVarray = vplexScheduler.getHaVirtualArray(container.getSrcVarray(), project, container.getSrcVpool());
             haVpool = vplexScheduler.getHaVirtualPool(container.getSrcVarray(), project, container.getSrcVpool());
             
-            // Note that for MP there is no swap when getting the source candidate pools,
-            // so the HA role should be used.
-            VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                    haVpool, sourceParams, VolumeTopologyRole.HA, capabilities, dbClient);
-
-            // Get the candidate source pools for the distributed cluster. The 2 null params are ignored in the pool matching
-            // because they are used to build the HA recommendations, which will not be done if MetroPoint is enabled.
-            List<StoragePool> haCandidateStoragePools = getCandidatePools(haVarray, haVpool, null, null, haCapabilities, RPHelper.SOURCE);
-
             // MetroPoint has been enabled so we need to obtain recommendations for the primary (active) and secondary (HA/Stand-by)
             // VPlex clusters.
             recommendations = createMetroPointRecommendations(container.getSrcVarray(), protectionVarrays, 
-                    container.getSrcVpool(), haVarray, haVpool, project, capabilities, candidatePools, 
-                    haCandidateStoragePools, changeVpoolVolume, performanceParams);
+                    container.getSrcVpool(), haVarray, haVpool, project, capabilities, changeVpoolVolume, performanceParams);
         } else {
             _log.info("Finding recommendations for RecoverPoint volume placement...");
             // Schedule storage based on the source pool constraint.
             recommendations = scheduleStorageSourcePoolConstraint(varray, protectionVarrays, vpool,
-                    performanceParams, capabilities, candidatePools, project, changeVpoolVolume, null);
+                    performanceParams, capabilities, project, changeVpoolVolume, null);
         }
 
         // There is only one entry of type RPProtectionRecommendation ever in the returned recommendation list.
@@ -368,7 +358,6 @@ public class RecoverPointScheduler implements Scheduler {
      * @param vpool vpool requested
      * @param performanceParams The performance parameters.
      * @param capabilities parameters
-     * @param candidatePools List of StoragePools already populated to choose from. RP+VPLEX.
      * @param vpoolChangeVolume vpool change volume, if applicable
      * @param preSelectedCandidateProtectionPoolsMap pre-populated map for tgt varray to storage pools, use null if not needed
      * @return list of Recommendation objects to satisfy the request
@@ -376,12 +365,9 @@ public class RecoverPointScheduler implements Scheduler {
     protected List<Recommendation> scheduleStorageSourcePoolConstraint(VirtualArray varray,
             List<VirtualArray> protectionVarrays, VirtualPool vpool,
             Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VirtualPoolCapabilityValuesWrapper capabilities,
-            List<StoragePool> candidatePools, Project project, Volume vpoolChangeVolume,
+            VirtualPoolCapabilityValuesWrapper capabilities, Project project, Volume vpoolChangeVolume,
             Map<VirtualArray, List<StoragePool>> preSelectedCandidateProtectionPoolsMap) {
-        
-        // TBD Heg candidate pools is not even used and adds to the confusion of this code.
-        
+
         // Get performance parameters, if any, for the source site.
         // There should only be one set of performance parameters for
         // the source in the map, which is keyed by the source site
@@ -1154,8 +1140,6 @@ public class RecoverPointScheduler implements Scheduler {
      * @param haVpool the HA (second cluster) virtual array.
      * @param project the project.
      * @param capabilities the capability params.
-     * @param candidatePrimaryPools candidate source pools to use for the primary cluster.
-     * @param candidateSecondaryPools candidate source pools to use for the primary cluster.
      * @param vpoolChangeVolume The volume to which RP protection is being added, or null if not a vpool change.
      * @param performanceParams The performance parameters.
      * 
@@ -1163,25 +1147,15 @@ public class RecoverPointScheduler implements Scheduler {
      */
     private List<Recommendation> createMetroPointRecommendations(VirtualArray srcVarray, List<VirtualArray> tgtVarrays,
             VirtualPool srcVpool, VirtualArray haVarray, VirtualPool haVpool, Project project,
-            VirtualPoolCapabilityValuesWrapper capabilities, List<StoragePool> candidatePrimaryPools, 
-            List<StoragePool> candidateSecondaryPools, Volume vpoolChangeVolume,
+            VirtualPoolCapabilityValuesWrapper capabilities, Volume vpoolChangeVolume,
             Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams) {
+
         // Initialize a list of recommendations to be returned.
-        List<Recommendation> recommendations = new ArrayList<Recommendation>();
-        RPProtectionRecommendation rpProtectionRecommendaton = null;
-
-        // Get all the matching pools for each target virtual array. If the target varray's
-        // vpool specifies HA, we will only look for VPLEX connected storage pools.
-        // TBD Heg These pools are not even used in the routine to which they are passed,
-        // so is there any reason we are doing this.
-        Map<VirtualArray, List<StoragePool>> tgtVarrayStoragePoolsMap = getVplexTargetMatchingPools(tgtVarrays,
-                srcVpool, project, capabilities, vpoolChangeVolume);
-
-        rpProtectionRecommendaton = createRPProtectionRecommendationForMetroPoint(srcVarray, tgtVarrays, srcVpool,
-                haVarray, haVpool, capabilities, candidatePrimaryPools, candidateSecondaryPools,
-                tgtVarrayStoragePoolsMap, vpoolChangeVolume, project, performanceParams);
+        RPProtectionRecommendation rpProtectionRecommendaton = createRPProtectionRecommendationForMetroPoint(srcVarray,
+                tgtVarrays, srcVpool, haVarray, haVpool, capabilities, vpoolChangeVolume, project, performanceParams);
 
         _log.info(String.format("Produced %s recommendations for MetroPoint placement.", rpProtectionRecommendaton.getResourceCount()));
+        List<Recommendation> recommendations = new ArrayList<Recommendation>();
         recommendations.add(rpProtectionRecommendaton);
 
         return recommendations;
@@ -1203,9 +1177,6 @@ public class RecoverPointScheduler implements Scheduler {
      * @param haVarray the HA virtual array - secondary cluster.
      * @param haVpool the HA virtual pool - secondary cluster.
      * @param capabilities parameters.
-     * @param candidateActiveSourcePools the candidate primary cluster source pools.
-     * @param candidateStandbySourcePools the candidate secondary cluster source pools.
-     * @param candidateProtectionPoolsMap pre-populated map for tgt varray to storage pools, use null if not needed
      * @param vpoolChangeVolume The volume to which RP protection is being added or null
      * @param project The project
      * @param performanceParams The performance parameters
@@ -1214,13 +1185,9 @@ public class RecoverPointScheduler implements Scheduler {
      */
     private RPProtectionRecommendation createRPProtectionRecommendationForMetroPoint(VirtualArray varray,
             List<VirtualArray> protectionVarrays, VirtualPool vpool, VirtualArray haVarray,
-            VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper capabilities,
-            List<StoragePool> candidateActiveSourcePools, List<StoragePool> candidateStandbySourcePools,
-            Map<VirtualArray, List<StoragePool>> candidateProtectionPools, Volume vpoolChangeVolume,
+            VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper capabilities, Volume vpoolChangeVolume,
             Project project, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams) {
         
-        // TBD Heg candidate pools is not even used and adds to the confusion of this code.
-
         // Initialize a list of recommendations to be returned.
         Set<ProtectionSystem> secondaryProtectionSystems = null;
         placementStatus = new PlacementStatus();
@@ -1656,104 +1623,6 @@ public class RecoverPointScheduler implements Scheduler {
     }
 
     /**
-     * Gather matching pools for a collection of protection varrays. Collects
-     * a list of vplex connected storage pools if the protection virtual pool
-     * specifies high availability.
-     *
-     * @param tgtVarrays The protection varrays
-     * @param srcVpool the requested vpool that must be satisfied by the storage pool
-     * @param srcVpoolCapabilities capabilities
-     * @param vpoolChangeVolume The main volume for the change vpool operation
-     * 
-     * @return A list of matching storage pools and varray mapping
-     */
-    private Map<VirtualArray, List<StoragePool>> getVplexTargetMatchingPools(List<VirtualArray> tgtVarrays,
-            VirtualPool srcVpool, Project project, VirtualPoolCapabilityValuesWrapper srcVpoolCapabilities,
-            Volume vpoolChangeVolume) {
-        _log.info("Getting a list of pools matching each protection Virtual Array.");
-
-        Map<VirtualArray, List<StoragePool>> tgtVarrayStoragePoolMap = new HashMap<VirtualArray, List<StoragePool>>();
-
-        for (VirtualArray tgtVarray : tgtVarrays) {
-            VirtualPool tgtVpool = RPHelper.getTargetVirtualPool(tgtVarray, srcVpool, dbClient);
-            List<StoragePool> tgtVarrayMatchingPools = new ArrayList<StoragePool>();
-
-            // Check to see if this is a change vpool request for an existing RP+VPLEX/MetroPoint protected volume.
-            // If it is, we want to isolate already provisioned targets to the single storage pool that they are already in.
-            if (vpoolChangeVolume != null) {
-                Volume alreadyProvisionedTarget = RPHelper.findAlreadyProvisionedTargetVolume(vpoolChangeVolume, tgtVarray.getId(),
-                        dbClient);
-                if (alreadyProvisionedTarget != null) {
-                    _log.info(String.format("Existing target volume [%s] found for varray [%s].",
-                            alreadyProvisionedTarget.getLabel(), tgtVarray.getLabel()));
-
-                    URI storagePoolURI = null;
-                    if (alreadyProvisionedTarget.getAssociatedVolumes() != null
-                            && !alreadyProvisionedTarget.getAssociatedVolumes().isEmpty()) {
-                        Volume sourceBackingVol = VPlexUtil.getVPLEXBackendVolume(alreadyProvisionedTarget, true, dbClient, true);
-                        storagePoolURI = sourceBackingVol.getPool();
-                    } else {
-                        storagePoolURI = alreadyProvisionedTarget.getPool();
-                    }
-
-                    // Add the single existing storage pool for this varray
-                    StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolURI);
-                    tgtVarrayMatchingPools.add(storagePool);
-                    tgtVarrayStoragePoolMap.put(tgtVarray, tgtVarrayMatchingPools);
-
-                    // No need to go further, continue on to the next target varray
-                    continue;
-                }
-            }
-
-            tgtVarrayMatchingPools = getCandidatePools(tgtVarray, tgtVpool, null, null, srcVpoolCapabilities, RPHelper.TARGET);
-
-            if (VirtualPool.vPoolSpecifiesHighAvailability(tgtVpool)) {
-
-                // Get all the VPLEX connected storage pools from the matched pools
-                Map<String, List<StoragePool>> sortedTargetVPlexStoragePools =
-                        vplexScheduler.sortPoolsByVPlexStorageSystem(tgtVarrayMatchingPools, String.valueOf(tgtVarray.getId()));
-
-                // We only care about RP-connected VPLEX storage systems
-                sortedTargetVPlexStoragePools = getRPConnectedVPlexStoragePools(sortedTargetVPlexStoragePools);
-
-                if (sortedTargetVPlexStoragePools != null && !sortedTargetVPlexStoragePools.isEmpty()) {
-                    // Add the protection virtual array and list of VPLEX connected storage pools
-                    tgtVarrayStoragePoolMap.put(
-                            tgtVarray, sortedTargetVPlexStoragePools.get(sortedTargetVPlexStoragePools.keySet().iterator().next()));
-                } else {
-                    // There are no RP connected VPLEX storage systems so we cannot provide
-                    // any placement recommendations for the target.
-                    _log.error(String.format("No matching pools because there are no RP connected VPlex storage systems "
-                            + "for the requested virtual array[%s] and virtual pool[%s].", tgtVarray.getLabel(), tgtVpool.getLabel()));
-                    throw APIException.badRequests.noRPConnectedVPlexStorageSystemsForTarget(tgtVpool.getLabel(), tgtVarray.getLabel());
-                }
-
-                tgtVarrayHasHaVpool.put(tgtVarray, true);
-
-                // If the target vpool specifies VPlex, we need to check if this is VPLEX local or VPLEX
-                // distributed. If it's VPLEX distributed, there will be a separate recommendation just for that
-                // which will be used by VPlexBlockApiService to create the distributed volumes in VPLEX.
-                if (tgtVpool != null) {
-                    boolean isVplexDistributed = VirtualPool.HighAvailabilityType.vplex_distributed.name()
-                            .equals(tgtVpool.getHighAvailability());
-
-                    if (isVplexDistributed) {
-                        this.tgtHaRecommendation.put(tgtVarray.getId(),
-                                findVPlexHARecommendations(tgtVarray, tgtVpool, null, null, project, srcVpoolCapabilities,
-                                        sortedTargetVPlexStoragePools));
-                    }
-                }
-            } else {
-                tgtVarrayStoragePoolMap.put(tgtVarray, tgtVarrayMatchingPools);
-                tgtVarrayHasHaVpool.put(tgtVarray, false);
-            }
-        }
-
-        return tgtVarrayStoragePoolMap;
-    }
-
-    /**
      * Filters out all the non-RP connected storage pools from the passed
      * vplex to storage pool map.
      *
@@ -1893,7 +1762,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param newVpool vpool requested to change to (must be protected)
      * @param performanceParams The performance parameters map.
      * @param capabilities Vpool capabilities parameters
-     * @param protectionVarrays Varrays to protect this volume to.
+     * @param protectionVirtualArraysForVirtualPool Varrays to protect this volume to.
      * 
      * @return list of Recommendation objects to satisfy the request
      */
@@ -1927,9 +1796,6 @@ public class RecoverPointScheduler implements Scheduler {
         // Get the project.
         Project project = dbClient.queryObject(Project.class, volume.getProject());
 
-        List<StoragePool> sourcePools = new ArrayList<StoragePool>();
-        List<StoragePool> haPools = new ArrayList<StoragePool>();
-
         VirtualArray haVarray = vplexScheduler.getHaVirtualArray(container.getSrcVarray(), project, container.getSrcVpool());
         VirtualPool haVpool = vplexScheduler.getHaVirtualPool(container.getSrcVarray(), project, container.getSrcVpool());
 
@@ -1943,37 +1809,13 @@ public class RecoverPointScheduler implements Scheduler {
             // We're going to leverage this for placement.
             _log.info("Scheduling storage for upgrade to MetroPoint, we need to place a HA/Stand-by/Secondary Journal");
 
-            // Get a handle on the existing source and ha volumes, we want to use the references to their
-            // existing storage pools to pass to the RP Scheduler.
-            Volume sourceBackingVolume = null;
-            Volume haBackingVolume = null;
-            if (null == volume.getAssociatedVolumes() || volume.getAssociatedVolumes().isEmpty()) {
-                _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
-                throw InternalServerErrorException.
-                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
-            }
-            for (String associatedVolumeId : volume.getAssociatedVolumes()) {
-                URI associatedVolumeURI = URI.create(associatedVolumeId);
-                Volume backingVolume = dbClient.queryObject(Volume.class, associatedVolumeURI);
-                if (backingVolume.getVirtualArray().equals(volume.getVirtualArray())) {
-                    sourceBackingVolume = backingVolume;
-                } else {
-                    haBackingVolume = backingVolume;
-                }
-            }
-
-            // We already have a source vpool from the (the existing one), so just add that one only to the list.
-            sourcePools.add(dbClient.queryObject(StoragePool.class, sourceBackingVolume.getPool()));
-            haPools.add(dbClient.queryObject(StoragePool.class, haBackingVolume.getPool()));
-
             // Obtain a list of RP protection Virtual Arrays.
             List<VirtualArray> tgtVarrays =
                     RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(
                             project, container.getSrcVpool(), dbClient, _permissionsHelper);
 
-            recommendations = createMetroPointRecommendations(container.getSrcVarray(), tgtVarrays, container.getSrcVpool(), haVarray,
-                    haVpool, project, capabilities, sourcePools, haPools,
-                    volume, performanceParamsMap);
+            recommendations = createMetroPointRecommendations(container.getSrcVarray(), tgtVarrays, container.getSrcVpool(),
+                    haVarray, haVpool, project, capabilities, volume, performanceParamsMap);
         }
 
         // There is only one entry of type RPProtectionRecommendation ever in the returned recommendation list.

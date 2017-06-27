@@ -2079,10 +2079,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException accessDenied();
 
-    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noRPConnectedVPlexStorageSystemsForTarget(final String vpool,
-            final String varray);
-
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeactivateStorageSystemActiveRpVolumes();
 

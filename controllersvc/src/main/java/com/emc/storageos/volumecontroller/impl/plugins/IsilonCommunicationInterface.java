@@ -339,12 +339,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
                         if (fileSystem != null) {
                             if (!fileSystem.getInactive()) {
-                                if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
+                                if (null != fileSystem.getUsedCapacity() && null != stat.getAllocatedCapacity() &&
+                                        !fileSystem.getUsedCapacity().equals(stat.getAllocatedCapacity())) {
                                     fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                     fsChanged = true;
                                 }
-                                if (null != fileSystem.getSoftLimit() && null != quota.getThresholds() &&
-                                        null != quota.getThresholds().getsoftExceeded()) { // if softlimit is set then get the value for
+                                if (null != fileSystem.getSoftLimit() && null != fileSystem.getSoftLimitExceeded() &&
+                                        null != quota.getThresholds() && null != quota.getThresholds().getsoftExceeded() &&
+                                        !fileSystem.getSoftLimitExceeded().equals(quota.getThresholds().getsoftExceeded())) {
                                     // softLimitExceeded
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;

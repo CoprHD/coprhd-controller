@@ -670,6 +670,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
             // Set the parent file system.
             String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+            _logger.info("fetchQuotaDirectories for file system id {}", fsId);
             if (!isInValid(fsId)) {
                 queryParam.setFileSystem(fsId);
             }

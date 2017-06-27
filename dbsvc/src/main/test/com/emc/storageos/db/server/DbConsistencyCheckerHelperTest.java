@@ -133,6 +133,16 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         checkResult = new CheckResult();
         helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
         assertEquals(0, checkResult.getTotal());
+        
+        testData = new FileShare();
+        testData.setId(URIUtil.createId(FileShare.class));
+        testData.setPath("A'A'");
+        testData.setMountPath("A2");
+        getDbClient().createObject(testData);
+        
+        checkResult = new CheckResult();
+        helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+        assertEquals(0, checkResult.getTotal());
     }
     
     @Test

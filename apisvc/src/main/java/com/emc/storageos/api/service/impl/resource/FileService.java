@@ -1314,8 +1314,8 @@ public class FileService extends TaskResourceService {
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         if (!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-            String msg = String
-                    .format("shrink filesystem is not supported for storage system %s", device.getSystemType());
+        	String msg = String
+                    .format("reducing filesystem is not supported for storage system %s", device.getSystemType());
             throw APIException.badRequests.reduceFileSystemNotSupported(msg);
         }
 
@@ -1334,12 +1334,12 @@ public class FileService extends TaskResourceService {
                     // that new size should not be less than any of the sub quota.
                     for (QuotaDirectory quotaDir : quotaDirs) {
                         qdsize = newFSsize - quotaDir.getSize();
-
+                        Double quotasize = SizeUtil.translateSize(quotaDir.getSize(), SizeUtil.SIZE_GB);
+                        Double newFScapacity = SizeUtil.translateSize(newFSsize, SizeUtil.SIZE_GB);
                         if (qdsize < MIN_EXPAND_SIZE) {
                             String msg = String
-                                    .format("as requested reduced size %s is lesser than used capacity %s for filesystem %s",
-                                            newFSsize.toString(), quotaDir.getSize().toString(), fs.getName());
-
+                                    .format("as requested reduced size [%.1fGB] is smaller than its quota size [%.1fGB] for filesystem %s", 
+                                    		newFScapacity, quotasize, fs.getName());
                             throw APIException.badRequests.reduceFileSystemNotSupported(msg);
                         }
                     }
@@ -2028,11 +2028,25 @@ public class FileService extends TaskResourceService {
             ArgValidator.checkFieldValueFromEnum(param.getSecurityStyle(), "security_style",
                     EnumSet.allOf(QuotaDirectory.SecurityStyles.class));
         }
-
         // Get the FileSystem object from the URN
         FileShare fs = queryResource(id);
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
+        int fsSoftLimit = -1;
+        if(null != fs.getSoftLimit()) {
+        	fsSoftLimit = fs.getSoftLimit().intValue();
+        }
+        
+        int fsNotifiLimit = -1;
+        if(null != fs.getNotificationLimit()) {
+        	fsNotifiLimit = fs.getNotificationLimit().intValue();
+        }
+        
+        int fsGraceLimit = -1;
+        if(null != fs.getSoftGracePeriod()) {
+        	fsGraceLimit = fs.getSoftGracePeriod().intValue();
+        }
+        
         // Create the QuotaDirectory object for the DB
         QuotaDirectory quotaDirectory = new QuotaDirectory();
         quotaDirectory.setId(URIUtil.createId(QuotaDirectory.class));
@@ -2041,14 +2055,11 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setOpStatus(new OpStatusMap());
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
-        quotaDirectory.setSoftLimit(
-                param.getSoftLimit() > 0 ? param.getSoftLimit()
-                        : fs.getSoftLimit() != null && fs.getSoftLimit().intValue() > 0 ? fs.getSoftLimit().intValue() : 0);
-        quotaDirectory.setSoftGrace(
-                param.getSoftGrace() > 0 ? param.getSoftGrace()
-                        : fs.getSoftGracePeriod() != null && fs.getSoftGracePeriod() > 0 ? fs.getSoftGracePeriod() : 0);
-        quotaDirectory.setNotificationLimit(param.getNotificationLimit() > 0 ? param.getNotificationLimit()
-                : fs.getNotificationLimit() != null && fs.getNotificationLimit().intValue() > 0 ? fs.getNotificationLimit().intValue() : 0);
+        
+        quotaDirectory.setSoftLimit(param.getSoftLimit() > 0 ? param.getSoftLimit() : fsSoftLimit > 0 ? fsSoftLimit : 0);
+        quotaDirectory.setSoftGrace(param.getSoftGrace() > 0 ? param.getSoftGrace() : fsGraceLimit> 0 ? fsGraceLimit : 0);
+        quotaDirectory.setNotificationLimit(param.getNotificationLimit() > 0 ? param.getNotificationLimit() 
+        																	: fsNotifiLimit > 0 ? fsNotifiLimit : 0);
 
         String convertedName = origQtreeName.replaceAll("[^\\dA-Za-z_]", "");
         _log.info("FileService::QuotaDirectory Original name {} and converted name {}", origQtreeName, convertedName);
@@ -2105,7 +2116,7 @@ public class FileService extends TaskResourceService {
                 quotaDirectory.getLabel(), quotaDirectory.getId().toString(), fs.getId().toString());
 
         fs = _dbClient.queryObject(FileShare.class, id);
-        _log.debug("FileService::QuotaDirectory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task), fs
+        _log.debug("FileService::QuotaDirectory Before sending response, FS ID : {}, Tasks : {} ; Status {}", fs.getOpStatus().get(task), fs
                 .getOpStatus().get(task).getStatus());
 
         return toTask(quotaDirectory, task, op);

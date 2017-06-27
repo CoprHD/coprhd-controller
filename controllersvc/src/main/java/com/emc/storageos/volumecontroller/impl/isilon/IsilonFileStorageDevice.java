@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
@@ -97,6 +98,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileShareExport;
+import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
@@ -1101,8 +1103,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                  IsilonSmartQuota quota = isi.getQuota(quotaId);
                  //new capacity should be less than usage capacity of a filehare
                  if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
-                	 String msg = String.format("as requested reduced size %s is lesser than used capacity %d for filesystem %s", 
-                			 capacity.toString(), quota.getUsagePhysical(), args.getFs().getName());
+                	 
+                	 Double dUsageSize = SizeUtil.translateSize(quota.getUsagePhysical(), SizeUtil.SIZE_GB);
+                	 Double dNewCapacity = SizeUtil.translateSize(capacity, SizeUtil.SIZE_GB);
+                	 
+                	 String msg = String.format("as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s", 
+                			 dNewCapacity, dUsageSize, args.getFs().getName());
+                	 
                      _log.error(msg);
                      final ServiceError serviceError = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
                      return BiosCommandResult.createErrorResult(serviceError);
@@ -1408,22 +1415,24 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput args,
-            QuotaDirectory quotaDir) throws ControllerException {
+    		QuotaDirectory quotaDir) throws ControllerException {
         // Get Parent FS mount path
         // Get Quota Directory Name
         // Get Quota Size
         // Call Update Quota (Aways use that quota for updating the size)
-
+    	QuotaDirectory quotaDirObj = null;
         String fsMountPath = args.getFsMountPath();
         Long qDirSize = quotaDir.getSize();
         String qDirPath = fsMountPath + "/" + quotaDir.getName();
         _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory {} with size {} - start", qDirPath, qDirSize);
         try {
             IsilonApi isi = getIsilonDevice(storage);
+            URI qtreeURI = quotaDir.getId();
+            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
 
             String quotaId = null;
-            if (quotaDir.getExtensions() != null) {
-                quotaId = quotaDir.getExtensions().get(QUOTA);
+            if (quotaDirObj.getExtensions() != null) {
+                quotaId = quotaDirObj.getExtensions().get(QUOTA);
             }
 
             if (quotaId != null) {
@@ -1436,8 +1445,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 } else {
-                	String msg = String.format("as requested reduced size %s is lesser than used capacity %d for filesystem %s", 
-                			qDirSize.toString(), quotaUsageSpace, args.getFs().getName());
+                	Double dUsage = SizeUtil.translateSize(quotaUsageSpace, SizeUtil.SIZE_GB);
+                	Double dQuotaSize = SizeUtil.translateSize(qDirSize, SizeUtil.SIZE_GB);
+                	String msg = String.format("as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s", 
+                			dQuotaSize, dUsage, args.getFs().getName());
                 	_log.error("doUpdateQuotaDirectory : " + msg);
                 	ServiceError error = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
                 	return BiosCommandResult.createErrorResult(error);
@@ -1477,7 +1488,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (quotaDir.getSoftGrace() != null) {
             softGrace = Long.valueOf(quotaDir.getSoftGrace());
         }
-
         return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, fsSize, false, null, qDirSize,
                 notificationLimit, softlimit, softGrace);
     }
@@ -1502,7 +1512,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return createQuotaWithThreshold(qDirPath, qDirSize,
                 softlimit, notificationLimit, softGrace, fsSize, isi);
     }
-
+    
     public String createQuotaWithThreshold(String qDirPath, Long qDirSize, Long softLimitSize, Long notificationLimitSize,
             Long softGracePeriod, Long fsSize, IsilonApi isi) {
         boolean bThresholdsIncludeOverhead = true;

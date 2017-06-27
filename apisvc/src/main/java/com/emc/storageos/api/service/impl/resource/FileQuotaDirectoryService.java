@@ -236,87 +236,108 @@ public class FileQuotaDirectoryService extends TaskResourceService {
     public TaskResourceRep updateQuotaDirectory(@PathParam("id") URI id, QuotaDirectoryUpdateParam param)
             throws InternalException {
         _log.info("FileService::Update Quota directory Request recieved {}", id);
+		QuotaDirectory quotaDirNew = new QuotaDirectory();
+		if (param.getSecurityStyle() != null) {
+			ArgValidator.checkFieldValueFromEnum(param.getSecurityStyle(), "security_style",
+					EnumSet.allOf(QuotaDirectory.SecurityStyles.class));
+		}
 
-        QuotaDirectory quotaDir = queryResource(id);
+		// Get the FileSystem object
+		QuotaDirectory quotaDir = queryResource(id);
+		FileShare fs = queryFileShareResource(quotaDir.getParent().getURI());
+		ArgValidator.checkFieldNotNull(fs, "filesystem");
+		
+		// Set all other optional parameters too.
+		quotaDirNew.setName(quotaDir.getName());
+		quotaDirNew.setId(id);
+		quotaDirNew.setNativeGuid(quotaDir.getNativeGuid());
+		if (param.getOpLock() != null) {
+			quotaDirNew.setOpLock(param.getOpLock());
+		}
+		if (param.getSecurityStyle() != null) {
+			quotaDirNew.setSecurityStyle(param.getSecurityStyle());
+		}
+		if (param.getSize() != null) {
+		 // converts the input string in format "<value>GB" to Bytes
+			Long quotaSize = SizeUtil.translateSize(param.getSize());
+			if (quotaSize > 0) {
+				ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, "size", true);
+				quotaDirNew.setSize(quotaSize);
+			}
+		}
 
-        String task = UUID.randomUUID().toString();
+		ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
+		ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
 
-        if (param.getSecurityStyle() != null) {
-            ArgValidator.checkFieldValueFromEnum(param.getSecurityStyle(), "security_style",
-                    EnumSet.allOf(QuotaDirectory.SecurityStyles.class));
-        }
+		if (param.getSoftLimit() != 0L) {
+			ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
+		}
 
-        // Get the FileSystem object
-        FileShare fs = queryFileShareResource(quotaDir.getParent().getURI());
-        ArgValidator.checkFieldNotNull(fs, "filesystem");
+		int fsSoftLimit = -1;
+		if (null != fs.getSoftLimit()) {
+			fsSoftLimit = fs.getSoftLimit().intValue();
+		}
 
-        // Update the quota directory object to store in ViPR database
-        quotaDir.setOpStatus(new OpStatusMap());
+		int fsNotifiLimit = -1;
+		if (null != fs.getNotificationLimit()) {
+			fsNotifiLimit = fs.getNotificationLimit().intValue();
+		}
 
-        // Set all other optional parameters too.
-        if (param.getOpLock() != null) {
-            quotaDir.setOpLock(param.getOpLock());
-        }
+		int fsGraceLimit = -1;
+		if (null != fs.getSoftGracePeriod()) {
+			fsGraceLimit = fs.getSoftGracePeriod().intValue();
+		}
 
-        if (param.getSecurityStyle() != null) {
-            quotaDir.setSecurityStyle(param.getSecurityStyle());
-        }
+		String task = UUID.randomUUID().toString();
+		Operation op = new Operation();
+		op.setResourceType(ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR);
+		// Update the quota directory object to store in ViPR database
+		quotaDir.setOpStatus(new OpStatusMap());
+		quotaDir.getOpStatus().createTaskStatus(task, op);
+		
+		fs.setOpStatus(new OpStatusMap());
+		fs.getOpStatus().createTaskStatus(task, op);
 
-        if (param.getSize() != null) {
-            Long quotaSize = SizeUtil.translateSize(param.getSize());// converts the input string in format "<value>GB"
-                                                                     // to Bytes
-            if (quotaSize > 0) {
-                ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, "size", true);
-                quotaDir.setSize(quotaSize);
-            }
-        }
+		_dbClient.updateObject(fs);
+		_dbClient.updateObject(quotaDir);
 
-        ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
-        ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
+		quotaDirNew.setSoftLimit(param.getSoftLimit() > 0 ? param.getSoftLimit()
+				: quotaDir.getSoftLimit() > 0 ? quotaDir.getSoftLimit() : 
+					fsSoftLimit > 0 ? fsSoftLimit : 0);
+		quotaDirNew.setSoftGrace(param.getSoftGrace() > 0 ? param.getSoftGrace()
+				: quotaDir.getSoftGrace() > 0 ? quotaDir.getSoftGrace() : 
+					fsGraceLimit > 0 ? fsGraceLimit : 0);
+		quotaDirNew.setNotificationLimit(param.getNotificationLimit() > 0 ? param.getNotificationLimit()
+				: quotaDir.getNotificationLimit() > 0 ? quotaDir.getNotificationLimit() : 
+					fsNotifiLimit > 0 ? fsNotifiLimit : 0);
 
-        if (param.getSoftLimit() != 0L) {
-            ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
-        }
-        quotaDir.setSoftLimit(param.getSoftLimit()>0 ? param.getSoftLimit()
-                : quotaDir.getSoftLimit()>0 ? quotaDir.getSoftLimit() : fs.getSoftLimit().intValue()>0 ? fs.getSoftLimit().intValue() : 0);
-        quotaDir.setSoftGrace(param.getSoftGrace()>0 ? param.getSoftGrace()
-                : quotaDir.getSoftGrace()>0? quotaDir.getSoftGrace()
-                        : fs.getSoftGracePeriod()>0 ? fs.getSoftGracePeriod() : 0);
-        quotaDir.setNotificationLimit(param.getNotificationLimit()>0 ? param.getNotificationLimit()
-                : quotaDir.getNotificationLimit()>0 ? quotaDir.getNotificationLimit()
-                        : fs.getNotificationLimit().intValue()>0 ? fs.getNotificationLimit().intValue() : 0);
-        Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR);
-        quotaDir.getOpStatus().createTaskStatus(task, op);
-        fs.setOpStatus(new OpStatusMap());
-        fs.getOpStatus().createTaskStatus(task, op);
-        _dbClient.persistObject(fs);
-        _dbClient.persistObject(quotaDir);
+		// Create an object of type "FileShareQtree" to be passed into the
+		// south-bound layers.
+		FileShareQuotaDirectory qt = new FileShareQuotaDirectory(quotaDirNew);
 
-        // Create an object of type "FileShareQtree" to be passed into the south-bound layers.
-        FileShareQuotaDirectory qt = new FileShareQuotaDirectory(quotaDir);
+		// Now get ready to make calls into the controller
+		StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+		FileController controller = getController(FileController.class, device.getSystemType());
+		try {
+			controller.updateQuotaDirectory(device.getId(), qt, fs.getId(), task);
+		} catch (InternalException e) {
+			_log.error("Error during update of Quota Directory {}", e);
 
-        // Now get ready to make calls into the controller
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class, device.getSystemType());
-        try {
-            controller.updateQuotaDirectory(device.getId(), qt, fs.getId(), task);
-        } catch (InternalException e) {
-            _log.error("Error during update of Quota Directory {}", e);
+			// treating all controller exceptions as internal error for now.
+			// controller
+			// should discriminate between validation problems vs. internal
+			// errors
+			throw e;
+		}
 
-            // treating all controller exceptions as internal error for now. controller
-            // should discriminate between validation problems vs. internal errors
-            throw e;
-        }
+		auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR, true, AuditLogManager.AUDITOP_BEGIN,
+				quotaDirNew.getLabel(), quotaDirNew.getId().toString(), fs.getId().toString());
 
-        auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR, true, AuditLogManager.AUDITOP_BEGIN,
-                quotaDir.getLabel(), quotaDir.getId().toString(), fs.getId().toString());
+		fs = _dbClient.queryObject(FileShare.class, fs.getId());
+		_log.debug("FileService::Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}",
+				fs.getOpStatus().get(task), fs.getOpStatus().get(task).getStatus());
 
-        fs = _dbClient.queryObject(FileShare.class, fs.getId());
-        _log.debug("FileService::Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
-                fs.getOpStatus().get(task).getStatus());
-
-        return toTask(quotaDir, task, op);
+		return toTask(quotaDir, task, op);
     }
 
     /**

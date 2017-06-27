@@ -940,10 +940,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else if (!result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
+            // Set status
             if (!result.isCommandSuccess() && !result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
-            // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
             _dbClient.updateObject(fs);
 
@@ -962,23 +962,23 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         }
     }
-    
+
     @Override
     public void reduceFS(URI storage, URI uri, long newFSsize, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         FileShare fs = null;
         StoragePool pool = null;
         StorageSystem storageObj = null;
-        
+
         FileDeviceInputOutput args = new FileDeviceInputOutput();
         try {
-        	fs = _dbClient.queryObject(FileShare.class, uri);
-        	pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
-        	storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            
+            fs = _dbClient.queryObject(FileShare.class, uri);
+            pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+
             args.addFSFileObject(fs);
             args.addStoragePool(pool);
-            
+
             args.setFileOperation(true);
             args.setNewFSCapacity(newFSsize);
             args.setOpId(opId);
@@ -1833,21 +1833,29 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public void updateQuotaDirectory(URI storage, FileShareQuotaDirectory quotaDir, URI fs, String task) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(fs, task);
         FileShare fsObj = null;
+        StorageSystem storageObj = null;
         QuotaDirectory quotaDirObj = null;
+
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
         try {
             String[] params = { storage.toString(), fs.toString(), quotaDir.toString() };
             _log.info("FileDeviceController::updateQtree:  storage : {}, fs : {}, quotaDir : {}", params);
 
-            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             fsObj = _dbClient.queryObject(FileShare.class, fs);
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir.getId());
 
-            URI qtreeURI = quotaDir.getId();
-            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
+            quotaDirObj.setSize(quotaDir.getSize());
             quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
             quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
             quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
-            FileDeviceInputOutput args = new FileDeviceInputOutput();
 
+            if (null != quotaDir.getOpLock()) {
+                quotaDirObj.setOpLock(quotaDir.getOpLock());
+            }
+            if (null != quotaDir.getSecurityStyle()) {
+                quotaDirObj.setSecurityStyle(quotaDir.getSecurityStyle());
+            }
             // Set up args
             args.addFileShare(fsObj);
             args.addQuotaDirectory(quotaDirObj);
@@ -1858,15 +1866,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (result.getCommandPending()) {
                 return;
             }
+
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successful");
+                // The quota object was already modified with changes.
+                // if it fail to update the quota directory,
+                // restore the object with the original quota directory!!!
+                quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir.getId());
+            }
+
+            quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsObj.getName()));
+
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
             quotaDirObj.getOpStatus().updateTaskStatus(task, result.toOperation());
-
-            String fsName = fsObj.getName();
-            quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsName));
-
-            if (!result.isCommandSuccess()) {
-                _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successfull");
-            }
             // save the task status into db
             _dbClient.updateObject(quotaDirObj);
             _dbClient.updateObject(fsObj);
@@ -2193,7 +2205,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     /*
      * private List<FileExportRule> queryFSDBExports(FileShare fs)
-     * {
      * List<URI> exportIds = _dbClient.queryByConstraint(ContainmentConstraint.
      * Factory.getFileExportRulesConstraint(fs.getId()));
      * return _dbClient.queryObject(FileExportRule.class, exportIds);
@@ -3864,7 +3875,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
-    
+
     /*
      * Reduce filesystem
      * (non-Javadoc)
@@ -3990,7 +4001,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
-    
+
     /**
      * Reduce File System Step
      *
@@ -4005,9 +4016,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         _log.info("START Reduce file system");
         Map<URI, Long> filesharesToReduce = new HashMap<URI, Long>();
         for (FileDescriptor descriptor : fileDescriptors) {
-        	FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
             if (fileShare.getCapacity() != null && fileShare.getCapacity().longValue() != 0) {
-            	filesharesToReduce.put(fileShare.getId(), descriptor.getFileSize());
+                filesharesToReduce.put(fileShare.getId(), descriptor.getFileSize());
             }
         }
 
@@ -4026,10 +4037,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
-    
-    
-    
-    
 
     /**
      * Return a WorkFlow.Method for expandFileShares
@@ -4042,7 +4049,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     Workflow.Method expandFileSharesMethod(URI uriStorage, URI fileURI, long size) {
         return new Workflow.Method("expandFS", uriStorage, fileURI, size);
     }
-    
+
     /**
      * Return a WorkFlow.Method for reduceFileShares
      *

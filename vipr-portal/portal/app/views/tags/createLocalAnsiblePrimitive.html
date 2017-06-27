@@ -79,15 +79,17 @@ inputOutputTabID = 'inputOutputLAContent';
                             }%
                             #{Form.multiFileUpload field:field/}
                         #{/field}
-                        <div class="row" ng-repeat="inventory in updatedInventoryFiles track by $index" style="margin-bottom:5px;" ng-if="localAnsible.existing">
-                            <div class="pull-left col-sm-11" v-field="inventory">
-                                <input-text disabled></input-text>
+                        <div ng-if="localAnsible.existing">
+                            <div class="row" ng-repeat="inventory in updatedInventoryFiles track by $index" style="margin-bottom:5px;">
+                                <div class="pull-left col-sm-11" v-field="inventory">
+                                    <input-text disabled></input-text>
+                                </div>
+                                <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                    <button type="button" ng-click="deleteInventoryFile($index)" class="close" title="&{'localAnsible.inventoryFiles.delete'}"><span class="glyphicon glyphicon-trash"></span></button>
+                                </div>
                             </div>
-                            <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
-                                <button type="button" ng-click="deleteInventoryFile($index)" class="close" title="&{'localAnsible.inventoryFiles.delete'}"><span class="glyphicon glyphicon-trash"></span></button>
-                            </div>
+                            <input type="hidden" name="localAnsible.updatedInventoryFiles" ng-value="updatedInventoryFileNamesStr"/>
                         </div>
-                        <input type="hidden" name="localAnsible.updatedInventoryFiles" ng-value="updatedInventoryFileNamesStr" ng-if="localAnsible.existing"/>
                     #{/Modal.body}
                 </div>
                 <div class="tab-pane" id="${inputOutputTabID}">

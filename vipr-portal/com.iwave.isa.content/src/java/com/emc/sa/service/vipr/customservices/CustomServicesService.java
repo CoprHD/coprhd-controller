@@ -474,6 +474,11 @@ public class CustomServicesService extends ViPRService {
     private void updateOutputPerStep(final Step step, final CustomServicesTaskResult res) throws Exception {
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
+        //set the default result.
+        out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
+        out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
+        out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
+        
         switch(step.getType()) {
             case CustomServicesConstants.VIPR_PRIMITIVE_TYPE:
                 try {
@@ -482,11 +487,7 @@ public class CustomServicesService extends ViPRService {
                     logger.warn("Could not parse ViPR REST Output properly:{}", e);
                 }
             break;
-            default: 
-                //set the default result.
-                out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
-                out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
-                out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
+            default:
                 final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
                 if( null != output ) {
                     for (final CustomServicesWorkflowDocument.Output o : output) {

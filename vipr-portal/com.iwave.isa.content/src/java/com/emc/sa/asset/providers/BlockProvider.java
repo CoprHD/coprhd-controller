@@ -511,8 +511,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         List<RelatedResourceRep> volumes = client.blockConsistencyGroups().get(consistencyGroupId).getVolumes();
         Set<String> copyNames = Sets.newHashSet();
+        
+        if (volumes != null && !volumes.isEmpty()) {
+        	RelatedResourceRep volume = volumes.get(0);
 
-        for (RelatedResourceRep volume : volumes) {
             VolumeRestRep volumeRep = client.blockVolumes().get(volume);
             if (volumeRep.getProtection() != null && volumeRep.getProtection().getRpRep() != null) {
                 if (volumeRep.getProtection().getRpRep().getCopyName() != null) {
@@ -521,8 +523,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
                 if (volumeRep.getHaVolumes() != null) {
                     List<RelatedResourceRep> haVolumes = volumeRep.getHaVolumes();
+                    List<URI> haVolumeIds = new ArrayList<URI>();
                     for (RelatedResourceRep haVolume : haVolumes) {
-                        VolumeRestRep haVolumeRep = client.blockVolumes().get(haVolume);
+                    	haVolumeIds.add(haVolume.getId());
+                    }
+                    List<VolumeRestRep> haVolumeReps = client.blockVolumes().getByIds(haVolumeIds, null);
+                    for (VolumeRestRep haVolumeRep : haVolumeReps) {
                         if (haVolumeRep.getProtection() != null && haVolumeRep.getProtection().getRpRep() != null
                                 && haVolumeRep.getProtection().getRpRep().getCopyName() != null) {
                             String copyName = haVolumeRep.getProtection().getRpRep().getCopyName();
@@ -533,15 +539,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
                 if (volumeRep.getProtection().getRpRep().getRpTargets() != null) {
                     List<VirtualArrayRelatedResourceRep> targetVolumes = volumeRep.getProtection().getRpRep().getRpTargets();
-                    for (VirtualArrayRelatedResourceRep target : targetVolumes) {
-                        VolumeRestRep targetVolume = client.blockVolumes().get(target.getId());
-                        String copyName = targetVolume.getProtection().getRpRep().getCopyName();
+                    List<URI> targetVolumeIds = new ArrayList<URI>();
+                    for (VirtualArrayRelatedResourceRep targetVolume : targetVolumes) {
+                    	targetVolumeIds.add(targetVolume.getId());
+                    }
+                    List<VolumeRestRep> targetVolumeReps = client.blockVolumes().getByIds(targetVolumeIds, null);
+                    for (VolumeRestRep targetVolumeRep : targetVolumeReps) {
+                        String copyName = targetVolumeRep.getProtection().getRpRep().getCopyName();
                         copyNames.add(copyName);
                     }
                 }
             }
         }
-
         List<AssetOption> copyNameAssets = Lists.newArrayList();
         for (String copyName : copyNames) {
             copyNameAssets.add(newAssetOption(copyName, copyName));
@@ -2652,19 +2661,23 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         String minimumSize = null;
 
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
-        for (RelatedResourceRep vol : cg.getVolumes()) {
-            VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
-            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
-                    && volume.getProtection().getRpRep().getProtectionSet() != null) {
-                RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
-                ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
-                for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
-                    VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
-                    if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
-                        String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
-                        if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
-                            minimumSize = capacity;
-                        }
+        // Get the first volume in the consistency group.  All volumes will be source volumes  
+        RelatedResourceRep vol = cg.getVolumes().get(0);
+        VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
+        if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
+                && volume.getProtection().getRpRep().getProtectionSet() != null) {
+            RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
+            ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
+            List<URI> protectionSetVolumeIds = new ArrayList<URI>();
+            for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
+            	protectionSetVolumeIds.add(protectionVolume.getId());
+            }
+            List<VolumeRestRep> protectionSetVolumes = api(ctx).blockVolumes().withInternal(true).getByIds(protectionSetVolumeIds, null);
+            for (VolumeRestRep protectionVolume : protectionSetVolumes) {
+                if (protectionVolume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
+                    String capacity = protectionVolume.getCapacity();
+                    if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
+                        minimumSize = capacity;
                     }
                 }
             }

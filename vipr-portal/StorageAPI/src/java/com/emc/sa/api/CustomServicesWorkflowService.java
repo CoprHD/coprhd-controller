@@ -58,6 +58,7 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
@@ -72,12 +73,13 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
 import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
         Role.SYSTEM_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 @Path("/customservices/workflows")
 public class CustomServicesWorkflowService extends CatalogTaggedResourceService {
@@ -99,6 +101,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     private CoordinatorClient coordinator;
 
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status, @QueryParam("primitiveId") String primitiveId) {
         List<NamedElement> elements;
@@ -120,6 +123,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep getWorkflow(@PathParam("id") final URI id) {
@@ -127,10 +131,15 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep addWorkflow(final CustomServicesWorkflowCreateParam workflow) {
         if (StringUtils.isNotBlank(workflow.getDocument().getName())) {
-            checkForDuplicateName(workflow.getDocument().getName().trim(), CustomServicesWorkflow.class);
+            final String label = workflow.getDocument().getName().trim();
+            checkForDuplicateName(label, CustomServicesWorkflow.class);
+            if (customServicesWorkflowManager.hasCatalogServices(label)) {
+                throw APIException.badRequests.duplicateLabel(label + " (Workflow name cannot be same as the existing Catalog Base Service)");
+            }
         } else {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
         }
@@ -147,6 +156,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @PUT
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep updateWorkflow(@PathParam("id") final URI id, final CustomServicesWorkflowUpdateParam workflow) {
@@ -167,6 +177,9 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                         final String label = workflow.getDocument().getName().trim();
                         if (!label.equalsIgnoreCase(customServicesWorkflow.getLabel())) {
                             checkForDuplicateName(label, CustomServicesWorkflow.class);
+                            if (customServicesWorkflowManager.hasCatalogServices(label)) {
+                                throw APIException.badRequests.duplicateLabel(label + " (Workflow name cannot be same as the existing Catalog Base Service)");
+                            }
                         }
                     }
 
@@ -189,6 +202,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivateWorkflow(@PathParam("id") final URI id) {
@@ -205,6 +219,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/publish")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep publishWorkflow(@PathParam("id") final URI id) {
@@ -226,6 +241,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/unpublish")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep unpublishWorkflow(@PathParam("id") final URI id) {
@@ -252,13 +268,14 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/validate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesValidationResponse validateWorkflow(@PathParam("id") final URI id) {
         try {
             final CustomServicesWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(getCustomServicesWorkflow(id));
             final ValidationHelper customServicesValidationHelper = new ValidationHelper(wfDocument);
-            final CustomServicesValidationResponse validationResponse = customServicesValidationHelper.validate(id,client);
+            final CustomServicesValidationResponse validationResponse = customServicesValidationHelper.validate(id, client);
             // update the status of workflow VALID / INVALID in the DB
             final CustomServicesWorkflow wfstatusUpdated = WorkflowHelper.updateState(getCustomServicesWorkflow(id),
                     validationResponse.getStatus());
@@ -271,6 +288,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/bulk")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowBulkRep bulkGetWorkflows(final BulkIdParam ids) {
@@ -278,6 +296,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/import")
@@ -285,10 +304,10 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
             @Context final HttpServletRequest request,
             @QueryParam("directory") final URI directory) {
         final WFDirectory wfDirectory;
-        if (null != directory) {
-            wfDirectory = wfDirectoryManager.getWFDirectoryById(directory);
-        } else {
+        if (URIUtil.isNull(directory) || directory.toString().isEmpty()) {
             wfDirectory = NO_DIR;
+        } else {
+            wfDirectory = wfDirectoryManager.getWFDirectoryById(directory);    
         }
         final InputStream in;
         try {
@@ -308,6 +327,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
      * @return Response containing the octet stream of the primitive resource
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("{id}/export")
     public Response download(@PathParam("id") final URI id,
             @Context final HttpServletResponse response) {

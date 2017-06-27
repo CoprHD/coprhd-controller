@@ -77,7 +77,8 @@ public final class CustomServicesConstants {
     // SuccessCriteria Constants
     public static final String RETURN_CODE = "code";
     public static final String TASK = "task";
-    public static final long TIMEOUT = 3600 * 1000;
+    public static final long WORKFLOW_TIMEOUT = 8 * 3600 * 1000;
+    public static final long OPERATION_TIMEOUT = 4 * 3600 * 1000;
 
     public static final List<String> BODY_REST_METHOD = Arrays.asList("POST", "PUT", "DELETE");
     // Script Execution Constants
@@ -99,6 +100,9 @@ public final class CustomServicesConstants {
     public static final String UNTAR_OPTION = "-zxvf";
     public static final String REMOVE = "/bin/rm";
     public static final String REMOVE_OPTION = "-rf";
+    public static final String BIN_BASH = "/bin/bash";
+    public static final String BIN_BASH_OPTION = "-c";
+
     // Ansible Options
     public static final String ANSIBLE_BIN = "remote_ansible_bin";
     public static final String ANSIBLE_PLAYBOOK = "playbook";
@@ -138,6 +142,7 @@ public final class CustomServicesConstants {
     public static final String TARGET = "target";
     public static final String PATH = "path";
     public static final String PORT = "port";
+    public static final String DEFAULT_HTTPS_PORT = "443";
 
     // Execution Result
     public static final String OPERATION_OUTPUT = "operation_output";

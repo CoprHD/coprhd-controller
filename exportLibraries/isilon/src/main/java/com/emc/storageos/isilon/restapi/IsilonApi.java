@@ -302,6 +302,45 @@ public class IsilonApi {
     }
 
     /**
+     * Checks if the file system directory has some files or directories
+     * 
+     * @param fspath
+     *            directory path to check
+     * @return true - if there are some files or folders, false otherwise
+     */
+    public boolean fsDirHasData(String fspath) throws IsilonException {
+        fspath = scrubPath(fspath);
+        ClientResponse clientResp = null;
+        try {
+            clientResp = _client.get(_baseUrl.resolve(URI_IFS.resolve(fspath)));
+
+            if (clientResp.getStatus() != 200) {
+                processErrorResponse("list", "files", clientResp.getStatus(),
+                        clientResp.getEntity(JSONObject.class));
+            } else {
+                JSONObject resp = clientResp.getEntity(JSONObject.class);
+                sLogger.debug("fsDirHasData: Output from Server {}", resp.get("children"));
+
+                JSONArray ar = (JSONArray) resp.get("children");
+                if (ar != null && ar.length() > 0) {
+                    sLogger.info("file system {} has content", fspath);
+                    return true;
+                }
+                sLogger.info("file system {} does not have content", fspath);
+                return false;
+            }
+        } catch (Exception e) {
+            sLogger.warn("fsDirHasData - Unable to get the content from path {} due to {}", fspath, e.getMessage());
+            return true;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+        }
+        return true;
+    }
+
+    /**
      * Create a directory with the path specified, will fail if parent does not
      * exist
      * 
@@ -361,32 +400,21 @@ public class IsilonApi {
     }
 
     /**
-     * Delete directory on isilon, will fail if any sub directories exist
+     * Delete directory on isilon
+     * No recursive flag to Isilon API, So the delete directory fails
+     * if there are any files and folders in it.
      * 
      * @param fspath
      *            directory path
+     * 
      * @throws IsilonException
      */
     public void deleteDir(String fspath) throws IsilonException {
-        deleteDir(fspath, false);
-    }
-
-    /**
-     * Delete directory on isilon
-     * 
-     * @param fspath
-     *            directory path
-     * @param recursive
-     *            if true, will delete all sub directories also
-     * @throws IsilonException
-     */
-    public void deleteDir(String fspath, boolean recursive) throws IsilonException {
         fspath = scrubPath(fspath);
         ClientResponse resp = null;
         try {
             fspath = URLEncoder.encode(fspath, "UTF-8");
-            resp = _client.delete(_baseUrl.resolve(URI_IFS.resolve(fspath
-                    + (recursive ? "?recursive=1" : ""))));
+            resp = _client.delete(_baseUrl.resolve(URI_IFS.resolve(fspath)));
             if (resp.getStatus() != 200 && resp.getStatus() != 204 && resp.getStatus() != 404) {
                 processErrorResponse("delete", "directory: " + fspath, resp.getStatus(),
                         resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);

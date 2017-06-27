@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -84,13 +83,10 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.RPRecommendation;
-import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.google.common.base.Joiner;
-import com.google.common.collect.ComparisonChain;
 
 /**
  * RecoverPoint specific helper bean
@@ -1202,165 +1198,6 @@ public class RPHelper {
         }
 
         return matchingJournals;
-    }
-
-    /**
-     * Determines if an additional journal is required for this RP Copy.
-     *
-     * @param journalPolicy The current journal policy
-     * @param cgURI The ViPR CG URI
-     * @param size The size requested
-     * @param volumeCount Number of volumes in the request
-     * @param copyName The RP copy name
-     * @param dbClient DbClient reference
-     * 
-     * @return a map which will contain the journal count and size if an additional journal is required, null otherwise.
-     */
-    public static Map<Integer, Long> additionalJournalRequiredForRPCopy(String journalPolicy, URI cgURI,
-            long size, Integer volumeCount, String copyName, DbClient dbClient) {
-        Map<Integer, Long> additionalJournalInfo = null;                       
-        
-        _log.info("Running check for additionalJournalRequiredForRPCopy()...");
-        
-        StringBuffer logMsg = new StringBuffer();
-        logMsg.append(String.format("\nChecking if additional journal(s) required for RP Copy [%s] in RP CG [%s]\n",
-                copyName, cgURI.toString()));
-        logMsg.append("--------------------------------------\n");
-        
-        if (journalPolicy != null && (journalPolicy.endsWith("x") || journalPolicy.endsWith("X"))) {
-            // Find all the journals for this RP Copy, calculate their total size in bytes, 
-            // and while we're at it keep track of the minimum sized journal.
-            // We use the minimum size as RecoverPoint prefers striping across all journals. 
-            List<Volume> journalVolumesForCopy = RPHelper.findExistingJournalsForCopy(dbClient, cgURI, copyName);
-            Long minJournalSizeForCopy = 0L;
-            Long totalJournalSizeForCopy = 0L;         
-            for (Volume journalVolume : journalVolumesForCopy) {
-                // If the journal volume is VPLEX get its backing volume instead.
-                if (RPHelper.isVPlexVolume(journalVolume, dbClient)) {                    
-                    journalVolume = VPlexUtil.getVPLEXBackendVolume(journalVolume, true, dbClient);
-                }
-              
-                // Prefer provisioned capacity, but in some cases like concurrent orders 
-                // the volume may not have been provisioned just yet.
-                Long journalSize = (journalVolume.getProvisionedCapacity() > 0L ? 
-                        journalVolume.getProvisionedCapacity() : journalVolume.getCapacity());
-                
-                // Keep track of the minimum sized journal to allow for striping across all journals. 
-                // However, note that best practice is to have uniform sized journals.                
-                Long journalSizeInBytes = SizeUtil.translateSize(String.valueOf(journalSize));              
-                if ((minJournalSizeForCopy == 0L) || (journalSizeInBytes < minJournalSizeForCopy)) {
-                    minJournalSizeForCopy = journalSizeInBytes;
-                }
-                
-                // Running total of journal capacity for this RP Copy
-                totalJournalSizeForCopy += journalSize;
-            }   
-            
-            // Never use a minimum less than the default journal size
-            if (minJournalSizeForCopy < DEFAULT_RP_JOURNAL_SIZE_IN_BYTES) {
-                minJournalSizeForCopy = DEFAULT_RP_JOURNAL_SIZE_IN_BYTES;
-            }
-            
-            Long totalJournalSizeInBytesForCopy = SizeUtil.translateSize(String.valueOf(totalJournalSizeForCopy));
-          
-            // Find all the volumes for this RP Copy (excluding journals) and calculate their cumulative size in bytes
-            List<Volume> cgVolumes = RPHelper.getAllCgVolumes(cgURI, dbClient);
-            Long totalVolumeSizeForCopy = 0L;
-            for (Volume cgVolume : cgVolumes) {
-                if (!cgVolume.checkPersonality(Volume.PersonalityTypes.METADATA.name())
-                        && copyName.equalsIgnoreCase(cgVolume.getRpCopyName())
-                        && !cgVolume.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                    // If the journal volume is VPLEX get its backing volume instead.
-                    if (RPHelper.isVPlexVolume(cgVolume, dbClient)) {                        
-                        cgVolume = VPlexUtil.getVPLEXBackendVolume(cgVolume, true, dbClient);
-                    }
-                    
-                    // Prefer provisioned capacity, but in some cases like concurrent orders 
-                    // the volume may not have been provisioned just yet.
-                    Long volumeSize = (cgVolume.getProvisionedCapacity() > 0L ? 
-                            cgVolume.getProvisionedCapacity() : cgVolume.getCapacity());
-                  
-                    // Running total of volume capacity for this RP Copy
-                    totalVolumeSizeForCopy += volumeSize;
-                }
-            }                        
-            Long totalVolumeSizeInBytesForCopy = SizeUtil.translateSize(String.valueOf(totalVolumeSizeForCopy));
-          
-            // Calculate the projected cumulative size in bytes for this RP Copy after we provision the new volume(s) 
-            Long newTotalVolumeSizeInBytesForCopy = totalVolumeSizeInBytesForCopy + (size * volumeCount);
-          
-            // Find the multiplier set in the journal policy
-            Float journalMultiplier = Float.valueOf(journalPolicy.substring(0, journalPolicy.length() - 1)).floatValue();
-          
-            // Report on findings...            
-            logMsg.append(String.format("\tCurrent allocated journal capacity for RP Copy [%s]: [%s] GB", copyName,
-                    SizeUtil.translateSize(totalJournalSizeInBytesForCopy, SizeUtil.SIZE_GB)));
-            logMsg.append(String.format("\n\tCurrent volume capacity for RP Copy [%s]: [%s] GB", copyName,
-                    SizeUtil.translateSize(totalVolumeSizeInBytesForCopy, SizeUtil.SIZE_GB)));            
-            logMsg.append(String.format("\n\tNew volume capacity for RP Copy [%s] after new volume provisioning: [%s] GB", copyName,
-                    SizeUtil.translateSize(newTotalVolumeSizeInBytesForCopy, SizeUtil.SIZE_GB)));            
-            logMsg.append(String.format("\n\tBased on VirtualPool's journal policy, journal capacity required is: [%s]",
-                    (SizeUtil.translateSize(newTotalVolumeSizeInBytesForCopy, SizeUtil.SIZE_GB) * journalMultiplier)));
-                                  
-            // Now check to see if any new journals need to be provisioned for this RP Copy
-            if (totalJournalSizeInBytesForCopy < (newTotalVolumeSizeInBytesForCopy * journalMultiplier)) {
-                // Yes, we need to provision new journals for this RP Copy. Let's give a concrete example:
-                //
-                // RP Virtual Pool has a Journal Policy of: Multiplier 0.25x
-                // The existing RP CG has 4 volumes at 10 GB each with one Journal at 10 GB.
-                //
-                // Each RP Copy would have a total of 40 GB. Using the 0.25 multiplier, that means
-                // we would need (40 * 0.25) 10 GB of Journal space for proper coverage. Which we have!
-                // All good so far.
-                //
-                // Let's add 13 volumes at 6 GB each to the existing CG.
-                //
-                // We'll use the RP Source Copy for the example
-                //
-                // Current allocated journal capacity for RP Copy [Source]: 10.0 GB
-                // Current volume capacity for RP Copy [Source]: 40.0 GB
-                // New volume capacity for RP Copy [Source] after new volume provisioning: 118.0 GB (40existing + (13 * 6)new volumes)
-                // Based on VirtualPool's journal policy, journal capacity required is: 29.5 (118 * 0.25 journal multiplier)
-                // 
-                // Now that we know the capacity required, we can determine the the size and the number of new
-                // journals needed to fulfill the request.
-                //
-                // Example to be continued below...
-              
-                // Calculate the new journal space required. This is based on the existing journal capacity, 
-                // the new capacity of the volumes being provisioned, and using the journal policy multiplier.
-                double existingJournalCapacity = SizeUtil.translateSize(totalJournalSizeInBytesForCopy, SizeUtil.SIZE_GB);
-                double newCopyCapacity = SizeUtil.translateSize(newTotalVolumeSizeInBytesForCopy, SizeUtil.SIZE_GB);
-                double newJournalSpaceRequiredInGB = Math.abs(existingJournalCapacity - (newCopyCapacity * journalMultiplier));
-              
-                // Calculate the number of new journals required for this RP Copy.
-                // If we get a non-round number we need to round up to the nearest one.          
-                double minJournalSizeForCopyInGB = SizeUtil.translateSize(minJournalSizeForCopy, SizeUtil.SIZE_GB);
-                int numberOfNewJournals = (int)Math.ceil(newJournalSpaceRequiredInGB / minJournalSizeForCopyInGB);
-                            
-                // Example continued:
-                // Based on the example, the new journal space required would be 19.5 GB = 10 - (118 * 0.25). 
-                // We then figure out how many journals are needed: 19.5 / 10 = 1.95 = 2 (rounded up) journals at 10 GB each.
-                //
-                // So the below would print:
-                // New journal(s) required. 2 journal(s) of size 10.0 GB will be provisioned for RP Copy [Source].
-                logMsg.append(String.format("\n\t%s journal(s) of size %s GB are required and will "
-                        + "be provisioned for RP Copy [%s].", 
-                        numberOfNewJournals, minJournalSizeForCopyInGB, copyName));
-              
-                additionalJournalInfo = new HashMap<Integer, Long>(1);
-                additionalJournalInfo.put(numberOfNewJournals, minJournalSizeForCopy);
-            }                 
-        } 
-        
-        if (additionalJournalInfo == null) {
-            logMsg.append(String.format("\n\tSufficient journal space for RP Copy [%s]. No extra journals need to be provisioned.", copyName));
-        }
-        
-        logMsg.append("\n--------------------------------------\n");
-        _log.info(logMsg.toString());
-
-        return additionalJournalInfo;
     }
 
     /**

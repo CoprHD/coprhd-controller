@@ -268,7 +268,9 @@ public class FileSystemIngestionUtil {
             return true;
         }
         for (FileShare fs : filesystems) {
-            if (fs.getLabel().equals(fsName) || fs.getName().equals(fsName)) {
+            // As ViPR Green field does not allow two file system with same name
+            // even with different case, so do not ingest file systems with similar name!!!
+            if (fs.getLabel().equalsIgnoreCase(fsName) || fs.getName().equalsIgnoreCase(fsName)) {
                 return true;
             }
         }

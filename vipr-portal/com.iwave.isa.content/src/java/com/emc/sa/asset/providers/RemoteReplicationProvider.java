@@ -423,10 +423,21 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      */
     private List<AssetOption> addStateAndModeToOptionNames(List<AssetOption> options, ViPRCoreClient coreClient) {
 
-        if(options == null || options.isEmpty()) {
+        if(options == null) {
             return options;
         }
-        String uriType = URIUtil.getTypeName(options.get(0).key); // all options are same type
+
+        String uriType = null;
+        for (AssetOption option : options) {
+            uriType = URIUtil.getTypeName(option.key);
+            if (uriType != null) { // can be null, if option.key="None", e.g.
+                break; // assume all valid options are same type
+            }
+        }
+        if (uriType == null) {
+            return options;
+        }
+
 
         switch(uriType) {
         case "RemoteReplicationPair":

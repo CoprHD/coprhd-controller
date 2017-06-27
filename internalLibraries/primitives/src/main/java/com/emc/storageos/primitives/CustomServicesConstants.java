@@ -48,6 +48,7 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_INPUT_NAME_IS_EMPTY = "Input Name is empty";
     public static final String ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP = "Input Name is not unique in the step";
     public static final String ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE = "No default value for Input Type";
+    public static final String ERROR_MSG_INVENTORY_FILE_NOT_MAPPED = "Inventory files does not exist/ recently deleted for the package mapped for the primitive";
     public static final String ERROR_MSG_NO_INPUTVALUE_FOR_INPUT_TYPE = "No input value for Input Type";
     public static final String ERROR_MSG_DEFAULTVALUE_PASSED_FOR_INPUT_TYPE = "Default value passed for Input Type";
     public static final String ERROR_MSG_INPUT_FROM_OTHER_STEP_NOT_DEFINED = "Input from other step value is not defined";

@@ -506,7 +506,7 @@ public class ValidationHelper {
                 }
                 break;
             default:
-                checkOtherInputType(stepId, input, cycleExists);
+                return checkOtherInputType(stepId, input, cycleExists);
         }
         return EMPTY_STRING;
     }

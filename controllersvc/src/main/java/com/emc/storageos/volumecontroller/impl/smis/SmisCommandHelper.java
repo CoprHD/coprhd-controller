@@ -6997,7 +6997,7 @@ public class SmisCommandHelper implements SmisConstants {
         URI cgUri = volume.getConsistencyGroup();
         BlockConsistencyGroup cgObj = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
         String cgName = cgObj.getAlternateLabel();
-        if (null == cgName) {
+        if (NullColumnValueGetter.isNullValue(cgName)) {
             cgName = cgObj.getLabel();
         }
         CIMObjectPath groupPath = checkDeviceGroupExists(cgName, forProvider, system);

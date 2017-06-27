@@ -780,7 +780,7 @@ public class SRDFOperations implements SmisConstants {
                         sourceVolume.getConsistencyGroup());
 
                 String cgName = cgObj.getAlternateLabel();
-                if (null == cgName) {
+                if (NullColumnValueGetter.isNullValue(cgName)) {
                     cgName = cgObj.getLabel();
                 }
 
@@ -1052,7 +1052,7 @@ public class SRDFOperations implements SmisConstants {
         BlockConsistencyGroup cgObj = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
 
         String cgName = cgObj.getAlternateLabel();
-        if (null == cgName) {
+        if (NullColumnValueGetter.isNullValue(cgName)) {
             cgName = cgObj.getLabel();
         }
         Collection<String> nativeIds = transform(volumes, fctnBlockObjectToNativeID());
@@ -1112,7 +1112,7 @@ public class SRDFOperations implements SmisConstants {
         URI cgUri = volume.getConsistencyGroup();
         BlockConsistencyGroup cgObj = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
         String cgName = cgObj.getAlternateLabel();
-        if (null == cgName) {
+        if (NullColumnValueGetter.isNullValue(cgName)) {
             cgName = cgObj.getLabel();
         }
         CIMObjectPath groupPath = helper.checkDeviceGroupExists(cgName, forProvider, system);
@@ -1152,7 +1152,7 @@ public class SRDFOperations implements SmisConstants {
         log.info("Provider: {}", forProvider.getSmisProviderIP());
         boolean removedFromAllGroups = true;
         try {
-            String cgLabel = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+            String cgLabel = (NullColumnValueGetter.isNotNullValue(cg.getAlternateLabel())) ? cg.getAlternateLabel() : cg.getLabel();
             log.info("Volume nativeId: {}, CG name: {}", volume.getNativeId(), cgLabel);
             CIMObjectPath deviceGroupPath = getDeviceGroup(system, forProvider, volume, cgLabel);
             CIMObjectPath volumePath = cimPath.getBlockObjectPath(system, volume);

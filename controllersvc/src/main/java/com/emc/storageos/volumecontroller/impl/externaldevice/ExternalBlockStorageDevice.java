@@ -2077,7 +2077,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     }
                     for (URI targetCgUri : targetCgUris) {
                         BlockConsistencyGroup targetCg = dbClient.queryObject(BlockConsistencyGroup.class, targetCgUri);
-                        targetCg.setAlternateLabel(null);
+                        targetCg.setAlternateLabel(NullColumnValueGetter.getNullStr());
                         dbClient.updateObject(targetCg);
                     }
                 }

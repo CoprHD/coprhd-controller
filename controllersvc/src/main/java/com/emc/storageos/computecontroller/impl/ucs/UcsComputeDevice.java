@@ -168,6 +168,7 @@ public class UcsComputeDevice implements ComputeDevice {
         _dbClient.createObject(serviceProfile);
          
         host.setServiceProfile(serviceProfile.getId());
+        host.setUuid(lsServer.getUuid());
         _dbClient.updateObject(host);
 
         return serviceProfile;

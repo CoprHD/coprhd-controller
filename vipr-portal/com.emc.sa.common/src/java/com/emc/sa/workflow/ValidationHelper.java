@@ -666,10 +666,6 @@ public class ValidationHelper {
     }
 
     private boolean isRawOutput(Step step, String attribute) {
-        if( step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE)) {
-            return false;
-        }
-        
         switch(attribute) {
             case CustomServicesConstants.OPERATION_OUTPUT:
             case CustomServicesConstants.OPERATION_ERROR:

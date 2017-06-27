@@ -32,35 +32,8 @@
             lockable: true
         },
         portGroup:{
-            type:"assetType.vipr.exportPathPortGroups",
-            select: "many",
-            required: false
-        },
-        exportPortGroupPreview:{
-           type:"modal",
-           items:{
-                resultingPortGroups:{
-                    type:"assetType.vipr.exportPortGroupResultingPaths",
-                    select: "list",
-                    required: false,
-                    omitNone: true,
-                    modalField: true
-                },
-                removedPortGroups:{
-                    type:"assetType.vipr.exportPortGroupRemovedPaths",
-                    select: "list",
-                    required: false,
-                    omitNone: true,
-                    modalField: true
-                },
-                affectedExports:{
-                    type:"assetType.vipr.exportPortGroupAffectedExports",
-                    select: "list",
-                    required: false,
-                    omitNone: true,
-                    modalField: true
-                }
-            }
+            type:"type:"assetType.vipr.exportVolumeForHostPortGroups",
+            required: true
         }
     }
 }

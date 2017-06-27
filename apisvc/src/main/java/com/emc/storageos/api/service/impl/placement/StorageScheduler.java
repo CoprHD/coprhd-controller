@@ -1653,7 +1653,7 @@ public class StorageScheduler implements Scheduler {
      * @param placement recommendation for placement
      * @param label volume label
      * @param consistencyGroup cg ID
-     * @param cosCapabilities The capabilities wrapper.
+     * @param capabilities The capabilities wrapper.
      * @param createInactive true to create inactive, false otherwise.
      *
      *
@@ -1662,7 +1662,7 @@ public class StorageScheduler implements Scheduler {
     public static Volume prepareVolume(DbClient dbClient, Volume volume, long size, Project project,
             VirtualArray neighborhood, VirtualPool vpool, URI performanceParamsURI,
             VolumeRecommendation placement, String label, BlockConsistencyGroup consistencyGroup,
-            VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Boolean createInactive) {
 
         // In the case of a new volume that wasn't pre-created, make sure that volume doesn't already exist
         if (volume == null) {
@@ -1689,8 +1689,8 @@ public class StorageScheduler implements Scheduler {
         volume.setSyncActive(!Boolean.valueOf(createInactive));
         volume.setLabel(label);
         volume.setCapacity(size);
-        if (0 != cosCapabilities.getThinVolumePreAllocateSize()) {
-            volume.setThinVolumePreAllocationSize(cosCapabilities.getThinVolumePreAllocateSize());
+        if (0 != capabilities.getThinVolumePreAllocateSize()) {
+            volume.setThinVolumePreAllocationSize(capabilities.getThinVolumePreAllocateSize());
         }
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType()));
         volume.setVirtualPool(vpool.getId());
@@ -1731,15 +1731,15 @@ public class StorageScheduler implements Scheduler {
             }
         }
 
-        if (NullColumnValueGetter.isNotNullValue(cosCapabilities.getAutoTierPolicyName())) {
+        if (NullColumnValueGetter.isNotNullValue(capabilities.getAutoTierPolicyName())) {
             URI autoTierPolicyUri = getAutoTierPolicy(poolId,
-                    cosCapabilities.getAutoTierPolicyName(), dbClient);
+                    capabilities.getAutoTierPolicyName(), dbClient);
             if (null != autoTierPolicyUri) {
                 volume.setAutoTieringPolicyUri(autoTierPolicyUri);
             }
         }
 
-        volume.setIsDeduplicated(cosCapabilities.getDedupCapable());
+        volume.setIsDeduplicated(capabilities.getDedupCapable());
 
         if (newVolume) {
             dbClient.createObject(volume);

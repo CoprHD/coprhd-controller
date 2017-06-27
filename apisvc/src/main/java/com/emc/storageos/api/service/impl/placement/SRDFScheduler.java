@@ -795,7 +795,7 @@ public class SRDFScheduler implements Scheduler {
             // of the target vpool and copy performance parameters.
             targetVpool = _dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
         }
-        boolean targetIsThinlyProvisioned = targetVpool.getSupportedProvisioningType().equalsIgnoreCase(VirtualPool.ProvisioningType.Thin.toString());
+        boolean targetIsThinlyProvisioned = VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(targetVpool.getSupportedProvisioningType());
         boolean targetFastExpansion = PerformanceParamsUtils.getFastExpansion(copyParams, VolumeTopologyRole.PRIMARY, targetVpool, _dbClient);
         
         for (StoragePool targetPool : destPoolStorageMap.keySet()) {

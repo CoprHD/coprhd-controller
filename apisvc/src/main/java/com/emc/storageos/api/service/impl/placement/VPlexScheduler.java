@@ -726,7 +726,7 @@ public class VPlexScheduler implements Scheduler {
         // Don't look for SRDF in the HA side.
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, null);
         
-        // We don't require that the HA side have the same storage controller.
+        // Remove consistency group.
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, null);
         
         return haCapabilities;

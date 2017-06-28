@@ -20,7 +20,6 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.block.tasks.AdjustExportPaths;
 import com.emc.sa.service.vipr.block.tasks.ExportChangePortGroup;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.vipr.client.Task;

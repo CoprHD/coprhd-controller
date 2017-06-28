@@ -1367,6 +1367,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         List<String> nativeIds = new ArrayList<>();
         for (RemoteReplicationPair pair : replicationPairs) {
             pair.setReplicationState("active");
+            pair.setReplicationMode(newReplicationMode);
             nativeIds.add(pair.getNativeId());
         }
         String msg = String.format("%s: %s --- change mode for replication pairs %s.", driverName, "changeMode", nativeIds);

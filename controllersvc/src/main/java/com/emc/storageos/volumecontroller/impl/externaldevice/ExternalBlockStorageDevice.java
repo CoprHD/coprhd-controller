@@ -2125,7 +2125,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 }
             }
         };
-        changeModeHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.SWAP);
+        changeModeHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.CHANGE_REPLICATION_MODE);
     }
 
     @Override

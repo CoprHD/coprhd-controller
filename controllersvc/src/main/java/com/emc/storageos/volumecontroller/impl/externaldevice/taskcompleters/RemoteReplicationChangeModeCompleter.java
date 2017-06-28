@@ -68,6 +68,5 @@ public class RemoteReplicationChangeModeCompleter extends TaskCompleter {
         setDbClient(dbClient);
         setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
-        // TODO: we may consider if the logic of changing mode field of rr groups/pairs could be put here
     }
 }

@@ -9584,7 +9584,7 @@ class Bourne:
         params = {
             'replication_mode': new_mode
         }
-        o = self.api('POST', URI_REMOTEREPLICATIONSET_CHANGEMODE.format(replicationgroup_uri), params)
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_CHANGEMODE.format(replicationset_uri), params)
         self.assert_is_dict(o)
         print '@@@@: ' + str(o) + ' :@@@@'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)

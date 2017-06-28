@@ -143,7 +143,7 @@ operation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolv
 operation.add_argument('replicationset_name', help = 'The name of the replication group.')
 
 # remotereplicatingset changemode
-changemode = argparse.ArgumentParser(parents = [operation], conflict_handler = 'resolve)
+changemode = argparse.ArgumentParser(parents = [operation], conflict_handler = 'resolve')
 changemode.add_argument('--new_mode', help = 'The new mode that we want to change to')
 
 #----------------------------------------------------------------------

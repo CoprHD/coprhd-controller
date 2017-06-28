@@ -249,7 +249,7 @@ try:
         args = operation.parse_args()
         remotereplicationgroup_stop(args)
     elif (cmd == "changemode"):
-        args = changemode.parse(args)
+        args = changemode.parse_args()
         remotereplicationgroup_changemode(args)
     else:
         parser.print_help()

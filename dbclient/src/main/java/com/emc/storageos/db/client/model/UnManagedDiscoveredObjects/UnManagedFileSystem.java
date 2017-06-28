@@ -67,7 +67,8 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         IS_SNAP_SHOT("Snapshot"),
         IS_THINLY_PROVISIONED("isThinlyProvisioned"),
         IS_INGESTABLE("IsIngestable"),
-        IS_FILESYSTEM_EXPORTED("isFileSystemExported");
+        IS_FILESYSTEM_EXPORTED("isFileSystemExported"),
+        IS_SYNC("IsSync");
 
         private String _charactersticsKey;
 
@@ -107,7 +108,9 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         MOUNT_PATH("FSMountPath"),
         SOFT_LIMIT("SoftLimit"),
         NOTIFICATION_LIMIT("NotificationLimit"),
-        SOFT_GRACE("SoftGrace");
+        SOFT_GRACE("SoftGrace"),
+        TARGET_PATH("TargetPath"),
+        TARGET_HOST("TargetHost");
         
         private String _infoKey;
 

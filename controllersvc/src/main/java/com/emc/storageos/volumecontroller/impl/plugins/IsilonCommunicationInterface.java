@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.isilon.restapi.IsilonAccessZone;
 import com.emc.storageos.isilon.restapi.IsilonApi;
@@ -84,6 +85,7 @@ import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -1402,6 +1404,25 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         return nasServer;
     }
+    
+    private void setUnamangedFileSystemPolicyProfile(UnManagedFileSystem unManagedFs, String fsPathName, ArrayList<IsilonSyncPolicy> isiSyncIQPolicies){
+        StringSet targetPaths = new StringSet();
+        StringSet targetHosts = new StringSet();
+        for(IsilonSyncPolicy isiSyncIQPolicy : isiSyncIQPolicies){
+            if (isiSyncIQPolicy.getSourceRootPath().equals(fsPathName)) {
+                unManagedFs.putFileSystemCharacterstics(
+                        UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_SYNC.toString(), TRUE);
+                targetPaths.add(isiSyncIQPolicy.getTargetPath());
+                targetHosts.add(isiSyncIQPolicy.getTargetHost());
+            }
+        }
+        String isFileSystemHavingSyncIQ = unManagedFs.getFileSystemCharacterstics()
+                .get(SupportedFileSystemCharacterstics.IS_SYNC.toString());
+        if (null != isFileSystemHavingSyncIQ && Boolean.parseBoolean(isFileSystemHavingSyncIQ)) {
+            unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.TARGET_HOST.toString(), targetHosts);
+            unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.TARGET_PATH.toString(), targetPaths);
+        }
+    }
 
     private void discoverUmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
 
@@ -1474,6 +1495,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             List<FileShare> discoveredFS = new ArrayList<>();
             String resumeToken = null;
+            
+            ArrayList<IsilonSyncPolicy> isiSyncIQPolicies = isilonApi.getReplicationPolicies().getList();
 
             for (String umfsDiscoverPath : _discPathsForUnManaged) {
 
@@ -1538,7 +1561,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                             unManagedFs = createUnManagedFileSystem(unManagedFs,
                                     fs.getNativeGuid(), storageSystem, storagePool, nasServer, fs);
-
+                        
+                            /**
+                             * Set the synciq policy target host and targets to the umfs which already has a policy assigned.
+                             */
+                            setUnamangedFileSystemPolicyProfile(unManagedFs, fsPathName, isiSyncIQPolicies);
+                            
                             unManagedFs.setHasNFSAcl(false);
                             newUnManagedFileSystems.add(unManagedFs);
 

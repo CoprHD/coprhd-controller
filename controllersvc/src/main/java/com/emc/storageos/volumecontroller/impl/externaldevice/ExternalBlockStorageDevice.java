@@ -2090,8 +2090,42 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void changeReplicationMode(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+    public void changeReplicationMode(RemoteReplicationElement replicationElement, String newMode, TaskCompleter taskCompleter) {
+        _log.info("Change mode of remote replication element {} with system id {} to {}", replicationElement.getType(),
+                replicationElement.getElementUri(), newMode);
 
+        RemoteReplicationOperationHandler changeModeHandler = new RemoteReplicationOperationHandler() {
+            @Override
+            protected DriverTask doOperation() {
+                return getDriver().changeReplicationMode(Collections.unmodifiableList(getDriverRRPairs()),newMode, getContext(), null);
+            }
+
+            @Override
+            protected void processOperationResult() {
+                super.processOperationResult();
+
+                List<RemoteReplicationPair> systemPairs = getSystemRRPairs();
+                for (RemoteReplicationPair pair : systemPairs) {
+                    pair.setReplicationMode(newMode);
+                }
+                dbClient.updateObject(systemPairs);
+
+                if (replicationElement.getType() == ElementType.REPLICATION_GROUP) {
+                    RemoteReplicationGroup group = getReplicationGroup();
+                    group.setReplicationMode(newMode);
+                    dbClient.updateObject(group);
+                }
+                if (replicationElement.getType() == ElementType.REPLICATION_SET) {
+                    RemoteReplicationSet set = getReplicationSet();
+                    List<RemoteReplicationGroup> groups = RemoteReplicationUtils.getRemoteReplicationGroupsForRrSet(dbClient,set);
+                    for (RemoteReplicationGroup group : groups) {
+                        group.setReplicationMode(newMode);
+                    }
+                    dbClient.updateObject(groups);
+                }
+            }
+        };
+        changeModeHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.CHANGE_REPLICATION_MODE);
     }
 
     @Override
@@ -2392,6 +2426,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
         protected List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> getDriverRRPairs() {
             return driverRRPairs;
+        }
+
+        protected RemoteReplicationGroup getReplicationGroup() {
+            return replicationGroup;
+        }
+
+        protected RemoteReplicationSet getReplicationSet() {
+            return replicationSet;
         }
 
         protected RemoteReplicationDriver getDriver() {

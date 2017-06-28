@@ -126,7 +126,7 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
 
     @Override
     public void changeReplicationMode(RemoteReplicationElement replicationElement, String newRemoteReplicationMode, String opId) {
-
+        exec("changeReplicationMode", replicationElement, newRemoteReplicationMode, opId);
     }
 
     @Override

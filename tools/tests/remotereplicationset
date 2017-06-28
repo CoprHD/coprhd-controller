@@ -110,6 +110,17 @@ def remotereplicationset_stop(args):
     else:
         print 'Failed to stop links for remote replication set.'
 
+def remotereplicationset_changemode(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_changemode(replicationset_uri, args.new_mode)
+    if (s['state'] == 'ready'):
+        print 'Changed mode for remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to change mode for remote replication set.'
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -130,6 +141,10 @@ list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 # remotereplicationset operations
 operation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 operation.add_argument('replicationset_name', help = 'The name of the replication group.')
+
+# remotereplicatingset changemode
+changemode = argparse.ArgumentParser(parents = [operation], conflict_handler = 'resolve')
+changemode.add_argument('--new_mode', help = 'The new mode that we want to change to')
 
 #----------------------------------------------------------------------
 # Main script
@@ -171,6 +186,9 @@ try:
     elif (cmd == "stop"):
         args = operation.parse_args()
         remotereplicationset_stop(args)
+    elif (cmd == "changemode"):
+        args = changemode.parse_args()
+        remotereplicationset_changemode(args)
     else:
         parser.print_help()
 

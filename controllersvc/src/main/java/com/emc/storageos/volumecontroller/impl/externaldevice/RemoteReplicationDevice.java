@@ -29,7 +29,7 @@ public interface RemoteReplicationDevice {
     public void failback(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void swap(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void stop(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
-    public void changeReplicationMode(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter);
+    public void changeReplicationMode(RemoteReplicationElement replicationElement, String newMode, TaskCompleter taskCompleter);
 
 
 }

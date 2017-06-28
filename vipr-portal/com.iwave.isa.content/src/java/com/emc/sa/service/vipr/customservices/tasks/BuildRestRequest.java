@@ -81,22 +81,15 @@ public final class BuildRestRequest {
         return client;
     }
 
-    public static WebResource makeWebResource(final Client client, final String url, final Map<String, String> queries) {
+    public static WebResource makeWebResource(final Client client, final String url) {
         final WebResource resource;
         if (StringUtils.isEmpty(url)) {
             logger.error("URL:{} cannot be null or empty", url);
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("URL:{} cannot be null or empty" + url);
         }
-
-        resource = client.resource(url);
-        if (queries != null) {
-            for (final Map.Entry<String, String> entry : queries.entrySet()) {
-                resource.queryParam(entry.getKey(), entry.getValue());
-            }
-        }
-
-        return resource;
+        
+        return client.resource(url);
     }
 
     public static WebResource.Builder makeRequestBuilder(final WebResource resource, final CustomServicesWorkflowDocument.Step step, final Map<String, List<String>> input) {
@@ -114,10 +107,9 @@ public final class BuildRestRequest {
             final List<String> value = input.get(name);
 
             if (value == null || StringUtils.isEmpty(value.get(0)) || StringUtils.isEmpty(StringUtils.strip(value.get(0).toString(), "\""))) {
-                logger.error("Cannot set value for header:{}", name);
+                logger.warn("Cannot set value for header:{}", name);
 
-                throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("Cannot set value for header:" + name);
+                continue;
             }
             final String headerValue = StringUtils.strip(value.get(0).toString(), "\"");
 

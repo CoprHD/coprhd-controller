@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.isilon.restapi.IsilonAccessZone;
 import com.emc.storageos.isilon.restapi.IsilonApi;
@@ -84,6 +85,7 @@ import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -315,78 +317,23 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.info("No file systems found for storage device {}. Hence metering stats collection ignored.", storageSystemId);
                 return;
             }
-            // get first page of quota data, process and insert to database
-            IsilonApi.IsilonList<IsilonSmartQuota> quotas = api.listQuotas(null);
-            for (IsilonSmartQuota quota : quotas.getList()) {
-                String fsNativeId = quota.getPath();
-                String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
-                String fsId = fileSystemsMap.get(fsNativeGuid);
-                if (fsId == null || fsId.isEmpty()) {
-                    // No file shares found for the quota
-                    // ignore stats collection for the file system!!!
-                    _log.debug("File System does not exists with nativeid {}. Hence ignoring stats collection.", fsNativeGuid);
-                    continue;
-                }
-                Stat stat = recorder.addUsageStat(quota, _keyMap, fsId, api);
-                fsChanged = false;
-                if (null != stat) {
-                    stats.add(stat);
-                    // Persists the file system, only if change in used capacity.
-                    FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
-                    if (fileSystem != null) {
-                        if (!fileSystem.getInactive()) {
-                            if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
-                                fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
-                                fsChanged = true;
-                            }
-                            if (null != fileSystem.getSoftLimit() && null != quota.getThresholds() &&
-                                    null != quota.getThresholds().getsoftExceeded()) { // if softlimit is set then get the value for
-                                // softLimitExceeded
-                                fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
-                                fsChanged = true;
-                            }
-                            if (fsChanged) {
-                                modifiedFileSystems.add(fileSystem);
-                            }
-                        }
-                    }
-                }
 
-                // Write the records batch wise!!
-                // Each batch with MAX_RECORDS_SIZE - 100 records!!!
-                if (modifiedFileSystems.size() >= MAX_RECORDS_SIZE) {
-                    _dbClient.updateObject(modifiedFileSystems);
-                    _log.info("Processed {} file systems stats ", modifiedFileSystems.size());
-                    modifiedFileSystems.clear();
-                }
-
-                if (stats.size() >= MAX_RECORDS_SIZE) {
-                    _log.info("Processed {} stats", stats.size());
-                    persistStatsInDB(stats);
-                }
-            }
-            // write the remaining records!!
-            if (!modifiedFileSystems.isEmpty()) {
-                _dbClient.updateObject(modifiedFileSystems);
-                _log.info("Processed {} file systems stats ", modifiedFileSystems.size());
-                modifiedFileSystems.clear();
-            }
-
-            if (!stats.isEmpty()) {
-                _log.info("Processed {} stats", stats.size());
-                persistStatsInDB(stats);
-            }
-
-            statsCount = statsCount + quotas.size();
-            _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
-
-            // get all other pages of quota data, process and insert to database page by page
-            while (quotas.getToken() != null && !quotas.getToken().isEmpty()) {
-                quotas = api.listQuotas(quotas.getToken());
+            // Process IsilonQuotas page by page (MAX 1000) in a page...
+            String resumeToken = null;
+            do {
+                IsilonApi.IsilonList<IsilonSmartQuota> quotas = api.listQuotas(resumeToken);
+                resumeToken = quotas.getToken();
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     String fsNativeId = quota.getPath();
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
-                    Stat stat = recorder.addUsageStat(quota, _keyMap, fsNativeGuid, api);
+                    String fsId = fileSystemsMap.get(fsNativeGuid);
+                    if (fsId == null || fsId.isEmpty()) {
+                        // No file shares found for the quota
+                        // ignore stats collection for the file system!!!
+                        _log.debug("File System does not exists with nativeid {}. Hence ignoring stats collection.", fsNativeGuid);
+                        continue;
+                    }
+                    Stat stat = recorder.addUsageStat(quota, _keyMap, fsId, api);
                     fsChanged = false;
                     if (null != stat) {
                         stats.add(stat);
@@ -402,14 +349,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 if (null != fileSystem.getSoftLimit() && null != fileSystem.getSoftLimitExceeded() &&
                                         null != quota.getThresholds() && null != quota.getThresholds().getsoftExceeded() &&
                                         !fileSystem.getSoftLimitExceeded().equals(quota.getThresholds().getsoftExceeded())) {
+                                    // softLimitExceeded
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
                                 }
-
                                 if (fsChanged) {
                                     modifiedFileSystems.add(fileSystem);
                                 }
-
                             }
                         }
                     }
@@ -426,11 +372,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         _log.info("Processed {} stats", stats.size());
                         persistStatsInDB(stats);
                     }
-
                 }
                 statsCount = statsCount + quotas.size();
                 _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
-            }
+            } while (resumeToken != null);
+
             zeroRecordGenerator.identifyRecordstobeZeroed(_keyMap, stats, FileShare.class);
             // write the remaining records!!
             if (!modifiedFileSystems.isEmpty()) {
@@ -1458,6 +1404,25 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         return nasServer;
     }
+    
+    private void setUnamangedFileSystemPolicyProfile(UnManagedFileSystem unManagedFs, String fsPathName, ArrayList<IsilonSyncPolicy> isiSyncIQPolicies){
+        StringSet targetPaths = new StringSet();
+        StringSet targetHosts = new StringSet();
+        for(IsilonSyncPolicy isiSyncIQPolicy : isiSyncIQPolicies){
+            if (isiSyncIQPolicy.getSourceRootPath().equals(fsPathName)) {
+                unManagedFs.putFileSystemCharacterstics(
+                        UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_SYNC.toString(), TRUE);
+                targetPaths.add(isiSyncIQPolicy.getTargetPath());
+                targetHosts.add(isiSyncIQPolicy.getTargetHost());
+            }
+        }
+        String isFileSystemHavingSyncIQ = unManagedFs.getFileSystemCharacterstics()
+                .get(SupportedFileSystemCharacterstics.IS_SYNC.toString());
+        if (null != isFileSystemHavingSyncIQ && Boolean.parseBoolean(isFileSystemHavingSyncIQ)) {
+            unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.TARGET_HOST.toString(), targetHosts);
+            unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.TARGET_PATH.toString(), targetPaths);
+        }
+    }
 
     private void discoverUmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
 
@@ -1530,6 +1495,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             List<FileShare> discoveredFS = new ArrayList<>();
             String resumeToken = null;
+            
+            ArrayList<IsilonSyncPolicy> isiSyncIQPolicies = isilonApi.getReplicationPolicies().getList();
 
             for (String umfsDiscoverPath : _discPathsForUnManaged) {
 
@@ -1594,7 +1561,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                             unManagedFs = createUnManagedFileSystem(unManagedFs,
                                     fs.getNativeGuid(), storageSystem, storagePool, nasServer, fs);
-
+                        
+                            /**
+                             * Set the synciq policy target host and targets to the umfs which already has a policy assigned.
+                             */
+                            setUnamangedFileSystemPolicyProfile(unManagedFs, fsPathName, isiSyncIQPolicies);
+                            
                             unManagedFs.setHasNFSAcl(false);
                             newUnManagedFileSystems.add(unManagedFs);
 
@@ -1921,17 +1893,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if (!quota.getId().equalsIgnoreCase("null")) {
             fs.getExtensions().put(QUOTA, quota.getId());
         }
-
-        if (null != quota.getThresholds().getSoft() && capacity != 0) {
-            softLimit = quota.getThresholds().getSoft() * 100 / capacity;
+        if (null != quota.getThresholds()) {
+            if (null != quota.getThresholds().getSoft() && capacity != 0) {
+                softLimit = quota.getThresholds().getSoft() * 100 / capacity;
+            }
+            if (null != quota.getThresholds().getSoftGrace() && capacity != 0) {
+                softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
+            }
+            if (null != quota.getThresholds().getAdvisory() && capacity != 0) {
+                notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
+            }
         }
-        if (null != quota.getThresholds().getSoftGrace() && capacity != 0) {
-            softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
-        }
-        if (null != quota.getThresholds().getAdvisory() && capacity != 0) {
-            notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
-        }
-
         fs.setSoftLimit(softLimit);
         fs.setSoftGracePeriod(softGrace);
         fs.setNotificationLimit(notificationLimit);
@@ -2221,45 +2193,52 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
                         unmanagedNFSAcl.setFileSystemPath(exportPath);
 
-                        String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+                        // Verify trustee name
+                        // ViPR would manage the ACLs only user/group name
+                        // and avoid null pointers too
+                        if (tempAcl.getTrustee().getName() != null) {
+                            String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
 
-                        if (tempUname.length > 1) {
-                            unmanagedNFSAcl.setDomain(tempUname[0]);
-                            unmanagedNFSAcl.setUser(tempUname[1]);
+                            if (tempUname.length > 1) {
+                                unmanagedNFSAcl.setDomain(tempUname[0]);
+                                unmanagedNFSAcl.setUser(tempUname[1]);
+                            } else {
+                                unmanagedNFSAcl.setUser(tempUname[0]);
+                            }
+
+                            unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+                            unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+                            unmanagedNFSAcl.setPermissions(StringUtils.join(
+                                    getIsilonAccessList(tempAcl.getAccessrights()), ","));
+
+                            unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+                            unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+
+                            _log.info("Unmanaged File share acls : {}", unmanagedNFSAcl);
+                            String fsShareNativeId = unmanagedNFSAcl.getFileSystemNfsACLIndex();
+                            _log.info("UMFS Share ACL index {}", fsShareNativeId);
+                            String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
+                                    .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
+                            _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
+                            // set native guid, so each entry unique
+                            unmanagedNFSAcl.setNativeGuid(fsUnManagedFileShareNativeGuid);
+
+                            unManagedNfsACLList.add(unmanagedNFSAcl);
+
+                            // Check whether the NFS share ACL was present in ViPR DB.
+                            existingNfsACL = checkUnManagedFsNfssACLExistsInDB(_dbClient, unmanagedNFSAcl.getNativeGuid());
+                            if (existingNfsACL != null) {
+                                // delete the existing acl
+                                existingNfsACL.setInactive(true);
+                                oldunManagedNfsShareACLList.add(existingNfsACL);
+                            }
                         } else {
-                            unmanagedNFSAcl.setUser(tempUname[0]);
-                        }
-
-                        unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
-                        unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
-                        unmanagedNFSAcl.setPermissions(StringUtils.join(
-                                getIsilonAccessList(tempAcl.getAccessrights()), ","));
-
-                        unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
-                        unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
-
-                        _log.info("Unmanaged File share acls : {}", unmanagedNFSAcl);
-                        String fsShareNativeId = unmanagedNFSAcl.getFileSystemNfsACLIndex();
-                        _log.info("UMFS Share ACL index {}", fsShareNativeId);
-                        String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
-                                .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
-                        _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
-                        // set native guid, so each entry unique
-                        unmanagedNFSAcl.setNativeGuid(fsUnManagedFileShareNativeGuid);
-
-                        unManagedNfsACLList.add(unmanagedNFSAcl);
-
-                        // Check whether the NFS share ACL was present in ViPR DB.
-                        existingNfsACL = checkUnManagedFsNfssACLExistsInDB(_dbClient, unmanagedNFSAcl.getNativeGuid());
-                        if (existingNfsACL != null) {
-                            // delete the existing acl
-                            existingNfsACL.setInactive(true);
-                            oldunManagedNfsShareACLList.add(existingNfsACL);
+                            _log.warn("Trustee name is null, and so skipping the File share ACL entry");
                         }
                     }
-                }
-                if (unManagedNfsACLList != null && !unManagedNfsACLList.isEmpty()) {
-                    unManagedFileSystem.setHasNFSAcl(true);
+                    if (unManagedNfsACLList != null && !unManagedNfsACLList.isEmpty()) {
+                        unManagedFileSystem.setHasNFSAcl(true);
+                    }
                 }
             } catch (Exception ex) {
                 _log.warn("Unble to access NFS ACLs for path {}", exportPath);
@@ -2404,6 +2383,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         StringSet fsId = new StringSet();
         fsId.add(fileSystem.getNativeId());
 
+        StringSet softLimit = new StringSet();
+        softLimit.add(fileSystem.getSoftLimit().toString());
+
+        StringSet softGrace = new StringSet();
+        softGrace.add(fileSystem.getSoftGracePeriod().toString());
+
+        StringSet notificationLimit = new StringSet();
+        notificationLimit.add(fileSystem.getNotificationLimit().toString());
+
         unManagedFileSystem.setLabel(fileSystem.getName());
 
         unManagedFileSystemInformation.put(
@@ -2416,6 +2404,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 UnManagedFileSystem.SupportedFileSystemInformation.PATH.toString(), fsPath);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.MOUNT_PATH.toString(), fsMountPath);
+        unManagedFileSystemInformation.put(
+                UnManagedFileSystem.SupportedFileSystemInformation.SOFT_LIMIT.toString(), softLimit);
+        unManagedFileSystemInformation.put(
+                UnManagedFileSystem.SupportedFileSystemInformation.SOFT_GRACE.toString(), softGrace);
+        unManagedFileSystemInformation.put(
+                UnManagedFileSystem.SupportedFileSystemInformation.NOTIFICATION_LIMIT.toString(), notificationLimit);
 
         StringSet provisionedCapacity = new StringSet();
         long capacity = 0;

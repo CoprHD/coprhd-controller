@@ -30,20 +30,22 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.ws.rs.core.UriBuilder;
 import javax.xml.bind.annotation.XmlElement;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
 
-import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.primitives.input.InputParameter;
-import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 public final class RESTHelper {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RESTHelper.class);
-    
+    public static final String TASKLIST = "TaskList";
+    public static final String TASK = TaskResourceRep.class.getSimpleName();
     private RESTHelper() {
     };
     
@@ -68,6 +70,9 @@ public final class RESTHelper {
     public static String makePostBody(final String body, final int pos, final Map<String, List<String>> input) {
 
         logger.info("make body for" + body);
+        if (StringUtils.isEmpty(body)) {
+            return "";
+        }
         final String[] strs = body.split("(?<=:)");
 
         for (int j = 0; j < strs.length; j++) {
@@ -226,52 +231,46 @@ public final class RESTHelper {
 
     /**
      * Example uri: "/block/volumes/{id}/findname/{name}?query1=value1";
-     * @param templatePath
-     * @return
+     * 
+     * @param templatePath the path template containing path parameters
+     * @param input map of input values
+     * @param queryParams the query parameter keys
+     * @return The path URI as a String
      */
-    public static String makePath(final String templatePath,final Map<String, List<String>> input,final CustomServicesViPRPrimitive primitive) {
+    public static String makePath(final String templatePath,
+            final Map<String, List<String>> input) {
         final UriTemplate template = new UriTemplate(templatePath);
         final List<String> pathParameters = template.getVariableNames();
         final Map<String, Object> pathParameterMap = new HashMap<String, Object>();
 
         for(final String key : pathParameters) {
-            List<String> value = input.get(key);
-            if (null == value) {
+            final List<String> value = input.get(key);
+            if (CollectionUtils.isEmpty(value)) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unfulfilled path parameter: " + key);
             }
             //TODO find a better fix
             pathParameterMap.put(key, value.get(0).replace("\"", ""));
         }
-
+        
         final String path = template.expand(pathParameterMap).getPath();
-
         logger.info("URI string is: {}", path);
-
-        final StringBuilder fullPath = new StringBuilder(path);
-
-        if (primitive == null || primitive.input() == null) {
-            return fullPath.toString();
-        }
-
-        final Map<String, List<InputParameter>> viprInputs = primitive.input();
-        final List<InputParameter> queries = viprInputs.get(CustomServicesConstants.QUERY_PARAMS);
-
-        String prefix = "?";
-        for (final InputParameter a : queries) {
-            if (input.get(a.getName()) == null) {
-                logger.debug("Query parameter value is not set for:{}", a.getName());
-                continue;
-            }
-            final String value = input.get(a.getName()).get(0);
-            if (!StringUtils.isEmpty(value)) {
-                fullPath.append(prefix).append(a.getName()).append("=").append(value);
-                prefix = "&";
+        return path;
+    }
+    
+    public static UriBuilder addQueryParams(final UriBuilder builder, final List<InputParameter> params, final Map<String, List<String>> input) {
+        if( null != params) {
+            for( final InputParameter param : params ) {
+                final List<String> value = input.get(param.getName());
+                if( !CollectionUtils.isEmpty(value) && !StringUtils.isEmpty(value.get(0))) {
+                    builder.queryParam(param.getName(), value.toArray());
+                } else if( param.isBasicInputParameter() && param.asBasicInputParameter().getRequired()){
+                    throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unfulfilled required query parameter: " + param.getName());
+                } else {
+                    logger.debug("Query parameter " + param.getName() + " is blank");
+                }
             }
         }
-
-        logger.info("URI string with query:{}", fullPath.toString());
-
-        return fullPath.toString();
+        return builder;
     }
     
     public static List<String> parserOutput(final String[] bits, final int i, final Object className) throws Exception {
@@ -349,6 +348,10 @@ public final class RESTHelper {
     }
 
     private static List<String> toStringList(final Collection<?> arrayValue) {
+        if( null == arrayValue ) {
+            return null;
+        }
+        
         final List<String> list = new ArrayList<String>();
         for( final Object value : arrayValue) {
             list.add(value.toString());

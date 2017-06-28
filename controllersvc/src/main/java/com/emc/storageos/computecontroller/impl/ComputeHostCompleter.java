@@ -46,7 +46,7 @@ public class ComputeHostCompleter extends TaskCompleter {
             case ready:
                 if (host != null) {
                     if (ce != null) {
-//                        host.setUuid(ce.getUuid());
+                        host.setUuid(ce.getUuid());
                         host.setBios(ce.getBios());
                     }
                     host.setProvisioningStatus(ProvisioningJobStatus.COMPLETE.toString());

@@ -1,8 +1,6 @@
 {
     baseKey:"ExportChangePortGroup.Block",
-    serviceId:"ExportChangePortGroup",
-    useModal: true,
-    modalTitle:"exportChangePortGroup.modal.title",
+    serviceId:"ExportChangePortGroup",    
     roles: [
         "SYSTEM_ADMIN"
     ],
@@ -32,12 +30,18 @@
             lockable: true
         },
         currentPortGroup:{
-            type:"type:"assetType.vipr.exportVolumeForHostPortGroups",
+            type:"assetType.vipr.exportCurrentPortGroup",
             required: true
-        }
+        },
         changePortGroup:{
-            type:"type:"assetType.vipr.exportVolumeForHostPortGroups",
+            type:"assetType.vipr.exportChangePortGroup",
             required: true
+        },        
+        suspendWait:{
+            type: "boolean",
+            lockable:true,
+            initialValue: "false",
+            required: false
         }
     }
 }

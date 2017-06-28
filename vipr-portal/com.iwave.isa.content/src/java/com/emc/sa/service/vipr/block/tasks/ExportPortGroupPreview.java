@@ -13,6 +13,7 @@ import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 
 public class ExportPortGroupPreview extends ViPRExecutionTask<ExportPathsAdjustmentPreviewRestRep> {
+    // BH Remove class?
     
     private URI hostOrClusterId;
     private URI virtualArray;

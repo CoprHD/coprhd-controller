@@ -7,36 +7,55 @@ package com.emc.sa.service.vipr.block;
 import static com.emc.sa.service.ServiceParams.EXPORT;
 import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.CHANGE_PORT_GROUP;
+import static com.emc.sa.service.ServiceParams.CURRENT_PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEM;
+import static com.emc.sa.service.ServiceParams.SUSPEND_WAIT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
 
 import java.net.URI;
-import java.util.List;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.block.tasks.AdjustExportPaths;
+import com.emc.sa.service.vipr.block.tasks.ExportChangePortGroup;
+import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.vipr.client.Task;
 
 @Service("ExportChangePortGroup")
 public class ExportChangePortGroupService extends ViPRService {
 
     @Param(HOST)
-    protected URI host;
+    protected URI hostId;
     
     @Param(VIRTUAL_ARRAY)
-    protected URI virtualArray;
+    protected URI virtualArrayId;
     
     @Param(EXPORT)
     protected URI exportId;
     
     @Param(STORAGE_SYSTEM)
-    protected URI storageSystem;
+    protected URI storageSystemId;
+    
+    @Param(CURRENT_PORT_GROUP)
+    protected URI currentPortGroupId;
     
     @Param(value = CHANGE_PORT_GROUP, required = true)
-    protected URI newPortGroup;
+    protected URI newPortGroupId;
+    
+    @Param(SUSPEND_WAIT)
+    protected boolean suspendWait;
     
     @Override
     public void precheck() throws Exception {
+        
+        if (currentPortGroupId.equals(newPortGroupId)) {
+            ExecutionUtils.fail("failTask.exportPortGroupChange.precheck", args());
+        }
+        
 //        if ((resultingPaths == null || resultingPaths.isEmpty()) &&
 //                (removedPaths == null || removedPaths.isEmpty())) {
 //            // if we have no affected or removed, the preview as likely not been generated, so we're going to 
@@ -89,30 +108,8 @@ public class ExportChangePortGroupService extends ViPRService {
 //        
 //        BlockStorageUtils.adjustExportPaths(virtualArray, minPaths, maxPaths, pathsPerInitiator, storageSystem, exportId,
 //                toSendAffectedPaths, toSendRemovedPaths, suspendWait);
-    }
-    
-    private void runExportPortGroupPreview() {
-//        ExportPathsAdjustmentPreviewRestRep previewRestRep = execute(new ExportPortGroupPreview(host, virtualArray, exportId,
-//              minPaths, maxPaths, pathsPerInitiator, storageSystem, portGroups));
-//        List<InitiatorPortMapRestRep> affectedPaths = previewRestRep.getAdjustedPaths();
-//        List<InitiatorPortMapRestRep> removedPaths = previewRestRep.getRemovedPaths();
-//          
-//        // build the affected path 
-//        for (InitiatorPortMapRestRep ipm : affectedPaths) {
-//            List<URI> portList = new ArrayList<URI>();
-//            for (NamedRelatedResourceRep port : ipm.getStoragePorts()) {
-//                portList.add(port.getId());
-//            }
-//            resultingPathsMap.put(ipm.getInitiator().getId(), portList);
-//        }
-//        
-//        // build the removed path 
-//        for (InitiatorPortMapRestRep ipm : removedPaths) {
-//            List<URI> portList = new ArrayList<URI>();
-//            for (NamedRelatedResourceRep port : ipm.getStoragePorts()) {
-//                portList.add(port.getId());
-//            }
-//            removedPathsMap.put(ipm.getInitiator().getId(), portList);
-//        }
+        
+        Task<ExportGroupRestRep> task = execute(new ExportChangePortGroup(exportId, newPortGroupId, suspendWait));        
+        addAffectedResource(task);
     }
 }

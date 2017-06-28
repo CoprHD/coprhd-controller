@@ -377,51 +377,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
     }
 
-// OLD
-/*
-   @Asset("exportVolumePortGroups")
-    @AssetDependencies("unassignedBlockVolume")
-    public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx, String selectedVolumes) {
-        final ViPRCoreClient client = api(ctx);
-        List<AssetOption> options = Lists.newArrayList();
-
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
-        if (value.getValue().equalsIgnoreCase("true")) {
-            List<URI> volumeIds = Lists.newArrayList();
-            info("Volumes selected by user: %s", selectedVolumes);
-            List<String> parsedVolumeIds = TextUtils.parseCSV(selectedVolumes);
-            for (String id : parsedVolumeIds) {
-                volumeIds.add(uri(id));
-            }
-
-            List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds);
-
-            Set<URI> storageControllers = new HashSet<URI>();
-            for (VolumeRestRep volume : volumes) {
-                storageControllers.add(volume.getStorageController());
-            }
-
-            if (storageControllers.size() == 1) {
-                Iterator<URI> it = storageControllers.iterator();
-                URI id = it.next();
-                StorageSystemRestRep storageSystem = client.storageSystems().get(id);
-                String systemType = storageSystem.getSystemType();
-                if (Type.vmax.name().equalsIgnoreCase(systemType)) {
-                    List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(id);
-                    for (NamedRelatedResourceRep group : portGroups) {
-                        StoragePortGroupRestRep spg = client.storageSystems().getStoragePortGroup(id, group.getId());
-
-                        String portMetric = (spg.getPortMetric() != null) ? String.valueOf(Math.round(spg.getPortMetric() * 100 / 100)) + "%" : "N/A";
-                        String label = getMessage("exportPortGroup.portGroups", spg.getName(), portMetric);
-                        options.add(new AssetOption(spg.getId(), label));
-                    }
-                }
-            }
-        }
-        return options;
-    }
-*/
-
     @Asset("exportVolumePortGroups")
     @AssetDependencies( {"unassignedBlockVolume", "host", "project"} )
     public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
@@ -1343,33 +1298,33 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return client.blockExports().getExportPathAdjustmentPreview(exportId, param);
     }
     
-    @Asset("exportPathPortGroups")
-    @AssetDependencies({ "exportPathVirtualArray" })
-    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI vArrayId) {
+    
+    @Asset("exportCurrentPortGroup")
+    @AssetDependencies({ "host", "exportPathExport", "exportPathStorageSystem", "exportPathVirtualArray" })
+    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
+            URI exportId, URI storageSystemId, URI varrayId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
-            List<NamedRelatedResourceRep> portGroups = client.varrays().getStoragePortGroups(vArrayId);
-
-            for (NamedRelatedResourceRep group : portGroups) {
-                String label = getMessage("exportPortGroup.portGroups", group.getName(), "Metric");
-                options.add(new AssetOption(group.getId(), label));
-            }
-//            StorageSystemRestRep storageSystem = client.storageSystems().get(storageSystemId);
-//            String systemType = storageSystem.getSystemType();
-//            if (Type.vmax.name().equalsIgnoreCase(systemType)) {
-                
-//                List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(storageSystemId);
-//                for (NamedRelatedResourceRep group : portGroups) {
-//                    StoragePortGroupRestRep spg = client.storageSystems().getStoragePortGroup(storageSystemId, group.getId());
-//
-//                    String portMetric = (spg.getPortMetric() != null) ? String.valueOf(Math.round(spg.getPortMetric() * 100 / 100)) + "%" : "N/A";
-//                    String label = getMessage("exportPortGroup.portGroups", spg.getName(), portMetric);
-//                    options.add(new AssetOption(spg.getId(), label));
-//                }
-//            }
+            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
+                    exportId, storageSystemId, null);
+            return createPortGroupOptions(portGroups.getStoragePortGroups());
+        }
+        return options;
+    }
+    
+    @Asset("exportChangePortGroup")
+    @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathVirtualArray" })
+    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
+            URI storageSystemId, URI varrayId) {
+        final ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
+        if (value.getValue().equalsIgnoreCase("true")) {
+            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
+                    null, storageSystemId, null);
+            return createPortGroupOptions(portGroups.getStoragePortGroups());
         }
         return options;
     }

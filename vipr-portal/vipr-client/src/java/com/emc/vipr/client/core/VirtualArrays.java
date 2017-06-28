@@ -430,7 +430,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      */
     public List<NamedRelatedResourceRep> getStoragePortGroups(URI vArrayId) {
         StoragePortGroupList portGroups = client.get(StoragePortGroupList.class, baseUrl + "/{id}/storage-port-groups", vArrayId);
-       return defaultList(portGroups.getPortGroups());
+        return defaultList(portGroups.getPortGroups());
     }
 
     /**

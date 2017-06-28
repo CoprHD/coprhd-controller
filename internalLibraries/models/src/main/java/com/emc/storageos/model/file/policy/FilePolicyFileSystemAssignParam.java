@@ -18,21 +18,33 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "filepolicy_filesystem_assign_param")
 public class FilePolicyFileSystemAssignParam implements Serializable {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	private Set<URI> targetVArrays;
+    private Set<URI> targetVArrays;
 
-	public FilePolicyFileSystemAssignParam() {
-		super();
-	}
+    private URI existingTargetFileSystem;
 
-	@XmlElementWrapper(name = "target_varrays")
-	@XmlElement(name = "target_varray")
-	public Set<URI> getTargetVArrays() {
-		return targetVArrays;
-	}
+    public FilePolicyFileSystemAssignParam() {
+        super();
+    }
 
-	public void setTargetVArrays(Set<URI> targetVArrays) {
-		this.targetVArrays = targetVArrays;
-	}
+    @XmlElementWrapper(name = "target_varrays")
+    @XmlElement(name = "target_varray")
+    public Set<URI> getTargetVArrays() {
+        return targetVArrays;
+    }
+
+    public void setTargetVArrays(Set<URI> targetVArrays) {
+        this.targetVArrays = targetVArrays;
+    }
+
+    @XmlElement(name = "existing_target_file_system")
+    public URI getExistingTargetFileSystem() {
+        return existingTargetFileSystem;
+    }
+
+    public void setExistingTargetFileSystem(URI existingTargetFileSystem) {
+        this.existingTargetFileSystem = existingTargetFileSystem;
+    }
+
 }

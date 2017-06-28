@@ -1321,7 +1321,7 @@ public class FileService extends TaskResourceService {
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         if (!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-        	String msg = String
+            String msg = String
                     .format("shrink filesystem is not supported for storage system %s", device.getSystemType());
             throw APIException.badRequests.reduceFileSystemNotSupported(msg);
         }
@@ -1344,9 +1344,9 @@ public class FileService extends TaskResourceService {
 
                         if (qdsize < MIN_EXPAND_SIZE) {
                             String msg = String
-                                    .format("as requested reduced size %s is lesser than used capacity %s for filesystem %s", 
-                                    		newFSsize.toString(), quotaDir.getSize().toString(), fs.getName());
-                            
+                                    .format("as requested reduced size %s is lesser than used capacity %s for filesystem %s",
+                                            newFSsize.toString(), quotaDir.getSize().toString(), fs.getName());
+
                             throw APIException.badRequests.reduceFileSystemNotSupported(msg);
                         }
                     }
@@ -4631,6 +4631,20 @@ public class FileService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, targetvPool);
         } else {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
+        }
+
+        // Target file system provided should be from target varray!!
+        if (param.getExistingTargetFileSystem() != null) {
+            FileShare targetFS = _dbClient.queryObject(FileShare.class, param.getExistingTargetFileSystem());
+            if (targetFS != null && !targetFS.getInactive()) {
+                if (!targetVArrys.contains(targetFS.getVirtualArray().toString())) {
+                    notSuppReasonBuff.append(String.format("Target File system - %s given in request is not part of target arrays",
+                            targetFS.getLabel()));
+                    _log.error(notSuppReasonBuff.toString());
+                    throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+                }
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_REPLICATION_TARGET_FILE_SYSTEM, targetFS.getId());
+            }
         }
 
         FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);

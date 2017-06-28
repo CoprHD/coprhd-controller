@@ -58,6 +58,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String FILE_REPLICATION_TARGET = "file_replication_target";
     public static final String FILE_SYSTEM_CREATE_MIRROR_COPY = "file_system_create_mirror_copy";
     public static final String EXISTING_SOURCE_FILE_SYSTEM = "existing_source_file_system";
+    public static final String EXISTING_REPLICATION_TARGET_FILE_SYSTEM = "existing_replication_target_file_system";
     public static final String SOURCE_STORAGE_SYSTEM = "source_storage_system";
     public static final String FILE_PROTECTION_SOURCE_STORAGE_SYSTEM = "file_protection_source_storage_system";
     public static final String EXCLUDED_STORAGE_SYSTEM = "excluded_storage_system";
@@ -228,6 +229,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VPOOL, capabilities.getFileReplicationTargetVPool());
         }
 
+        if (capabilities.contains(EXISTING_REPLICATION_TARGET_FILE_SYSTEM)) {
+            _vpoolCapabilities.put(EXISTING_REPLICATION_TARGET_FILE_SYSTEM, capabilities.getFileReplicationTargetFileSystem());
+        }
+
         if (capabilities.contains(FILE_REPLICATION_TYPE)) {
             _vpoolCapabilities.put(FILE_REPLICATION_TYPE, capabilities.getFileReplicationType());
         }
@@ -334,6 +339,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public URI getFileReplicationTargetVPool() {
         Object value = _vpoolCapabilities.get(FILE_REPLICATION_TARGET_VPOOL);
+        return value != null ? (URI) value : null;
+    }
+
+    public URI getFileReplicationTargetFileSystem() {
+        Object value = _vpoolCapabilities.get(EXISTING_REPLICATION_TARGET_FILE_SYSTEM);
         return value != null ? (URI) value : null;
     }
 

@@ -73,7 +73,8 @@ public class FileDescriptor implements Serializable {
     }
 
     public enum Type {
-        /* ******************************
+        /*
+         * ******************************
          * The ordering of these are important for the sortByType() method,
          * be mindful when adding/removing/changing the list.
          */
@@ -83,7 +84,8 @@ public class FileDescriptor implements Serializable {
         FILE_EXISTING_SOURCE(4),        // existing source file
         FILE_MIRROR_SOURCE(5),          // remote mirror source
         FILE_MIRROR_TARGET(6),          // remote mirror target
-        FILE_EXISTING_MIRROR_SOURCE(7); // change vpool of filesystem
+        FILE_EXISTING_MIRROR_SOURCE(7), // change vpool of filesystem
+        FILE_EXISTING_MIRROR_TARGET(8); // change vpool of filesystem
         private final int order;
 
         private Type(int order) {

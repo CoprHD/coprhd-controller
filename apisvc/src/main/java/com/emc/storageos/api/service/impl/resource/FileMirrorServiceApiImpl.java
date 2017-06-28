@@ -342,6 +342,47 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         return preparedFileSystems;
     }
 
+    public List<FileDescriptor> prepareFileDescForExistingFileSystems(FileSystemParam param, String task, TaskList taskList,
+            Project project, TenantOrg tenantOrg, DataObject.Flag[] flags, VirtualArray varray, VirtualPool vpool,
+            List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
+
+        // Build up a list of FileDescriptors based on the fileshares
+        final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
+
+        Iterator<Recommendation> recommendationsIter = recommendations.iterator();
+        while (recommendationsIter.hasNext()) {
+            FileMirrorRecommendation recommendation = (FileMirrorRecommendation) recommendationsIter.next();
+            // If id is already set in recommendation, do not prepare the fileSystem (fileSystem already exists)
+            if (recommendation.getId() != null) {
+                continue;
+            }
+
+            // Get the source file share!!
+            FileShare sourceFileShare = getPrecreatedFile(taskList, param.getLabel());
+            // set the source mirror recommendations
+            sourceFileShare.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
+            sourceFileShare.setAccessState(FileAccessState.READWRITE.name());
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper(cosCapabilities);
+            FileDescriptor desc = new FileDescriptor(FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE,
+                    sourceFileShare.getStorageDevice(), sourceFileShare.getId(),
+                    sourceFileShare.getPool(), sourceFileShare.getCapacity(), vpoolCapabilities, null, null);
+
+            fileDescriptors.add(desc);
+
+            FileShare targetFileShare = _dbClient.queryObject(FileShare.class, cosCapabilities.getFileReplicationTargetFileSystem());
+            if (targetFileShare != null && !targetFileShare.getInactive()) {
+                // Update the source and target relationship!!
+                setMirrorFileShareAttributes(sourceFileShare, targetFileShare);
+                vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper(cosCapabilities);
+                desc = new FileDescriptor(FileDescriptor.Type.FILE_EXISTING_MIRROR_TARGET,
+                        targetFileShare.getStorageDevice(), targetFileShare.getId(),
+                        targetFileShare.getPool(), targetFileShare.getCapacity(), vpoolCapabilities, null, null);
+
+            }
+        }
+        return fileDescriptors;
+    }
+
     /**
      * Set mirror object information
      * 
@@ -613,21 +654,28 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         List<FileShare> fileList = null;
         List<FileShare> fileShares = new ArrayList<>();
 
+        List<FileDescriptor> fileDescriptors = null;
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
         FileSystemParam fsParams = new FileSystemParam();
         fsParams.setFsId(fs.getId().toString());
         fsParams.setLabel(fs.getLabel());
         fsParams.setVarray(fs.getVirtualArray());
         fsParams.setVpool(fs.getVirtualPool());
 
-        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+        if (vpoolCapabilities.getFileReplicationTargetFileSystem() != null) {
+            fileDescriptors = prepareFileDescForExistingFileSystems(fsParams, task, taskList, project, tenant, null,
+                    varray, vpool, recommendations, vpoolCapabilities, false);
+        } else {
 
-        // Prepare the FileShares
-        fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
-                varray, vpool, recommendations, vpoolCapabilities, false);
-        fileShares.addAll(fileList);
+            // Prepare the FileShares
+            fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
+                    varray, vpool, recommendations, vpoolCapabilities, false);
+            fileShares.addAll(fileList);
 
-        // prepare the file descriptors
-        final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
+            // prepare the file descriptors
+            fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
+        }
+
         final FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         try {

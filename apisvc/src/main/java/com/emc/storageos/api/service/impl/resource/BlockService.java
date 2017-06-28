@@ -5071,6 +5071,18 @@ public class BlockService extends TaskResourceService {
                 vpool.getSupportedProvisioningType())) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
+        
+        // Get the deduplication setting.
+        Boolean dedupCapable = vpool.getDedupCapable();
+        if (dedupCapable) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
+        }
+        
+        // Get the autotiering policy name.
+        String autoTierPolicyName = vpool.getAutoTierPolicyName();
+        if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
+        }
 
         // Get and validate the BlockConsistencyGroup
         BlockConsistencyGroup consistencyGroup = queryConsistencyGroup(param.getConsistencyGroup());

@@ -3661,10 +3661,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
         rpProtectionRecommendation.setProtectionDevice(protectionSystem.getId());
 
-        // TBD Heg vpool change
+        // No performance parameter overrides for new journals.
+        Map<VolumeTopologyRole, URI> performanceParams = new HashMap<>();
         RPRecommendation journalRecommendation = getBlockScheduler().buildJournalRecommendation(rpProtectionRecommendation,
-                internalSiteName, new Long(capabilities.getSize()).toString(), journalVarray, journalVpool, null, protectionSystem, capabilities,
-                capabilities.getResourceCount(), null, false);
+                internalSiteName, new Long(capabilities.getSize()).toString(), journalVarray, journalVpool, performanceParams, 
+                protectionSystem, capabilities, capabilities.getResourceCount(), null, false);
         if (journalRecommendation == null) {
             throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
         }

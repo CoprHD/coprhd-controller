@@ -253,7 +253,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 return map(customServicesWorkflow);
             case PUBLISHED:
                 // Check if there are any existing services created from this WF
-                if (customServicesWorkflowManager.hasCatalogServices(customServicesWorkflow.getLabel())) {
+                if (customServicesWorkflowManager.hasCatalogServices(URIUtil.asString(customServicesWorkflow.getId()))) {
                     throw APIException.methodNotAllowed
                             .notSupportedWithReason("Cannot unpublish workflow. It has associated catalog services");
                 }

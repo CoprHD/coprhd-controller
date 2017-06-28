@@ -411,6 +411,11 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         //String newVolumes = "";
         Set<String> newVolumes = new HashSet<>();
 
+        CapabilityInstance hostIOLimits = StorageDriverSimulatorUtils.getHostIOLimitsCapabilities(capabilities);
+        if (hostIOLimits != null) {
+            _log.info("HostIOLimits for volumes: " +hostIOLimits.toString());
+        }
+
         for (StorageVolume volume : volumes) {
             volume.setNativeId("driverSimulatorVolume" + UUID.randomUUID().toString());
             volume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);

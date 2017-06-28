@@ -24,6 +24,10 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 /**
  * Utility class to capture common code and functionality
@@ -202,4 +206,33 @@ public class ExternalDeviceUtils {
         }
         return externalProvidersUris;
     }
+
+    /**
+     * Add new DataStorageServiceOption for  the passed capability instances
+     *
+     * @param storageCapabilities storage capabilities container
+     * @param capabilities capability instances for a new data storage service option
+     */
+    public static void addDataStorageServiceOption(StorageCapabilities storageCapabilities, List<CapabilityInstance> capabilities) {
+
+        CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
+        if (commonCapabilities == null) {
+            commonCapabilities = new CommonStorageCapabilities();
+            storageCapabilities.setCommonCapabilitis(commonCapabilities);
+        }
+
+        // Get the data storage service options for the common capabilities.
+        // If null, create it and set it.
+        List<DataStorageServiceOption> dataStorageSvcOptions = commonCapabilities.getDataStorage();
+        if (dataStorageSvcOptions == null) {
+            dataStorageSvcOptions = new ArrayList<>();
+            commonCapabilities.setDataStorage(dataStorageSvcOptions);
+        }
+
+        // Create a new data storage service option for the passed capabilities
+        // and add it to the list.
+        DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(capabilities);
+        dataStorageSvcOptions.add(dataStorageSvcOption);
+    }
 }
+

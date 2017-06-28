@@ -309,6 +309,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.FULL_COPIES.toString(), new StringSet());
             // Clear old export mask information
             unManagedVolume.getUnmanagedExportMasks().clear();
+
+            // cleanup hostiolimits from previous discoveries
+            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), new StringSet());
+            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), new StringSet());
         }
 
         unManagedVolume.setLabel(driverVolume.getDeviceLabel());
@@ -346,6 +350,39 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.NATIVE_ID.toString(),
                 nativeId);
 
+        // todo: add hostiolimits from driver volumes capabilities
+        //////////////////////////////////////////
+        VolHostIOObject obj = exportedVolumes.get(volumeNativeGuid);
+        if (null != obj) {
+            StringSet bwValues = new StringSet();
+            bwValues.add(obj.getHostIoBw());
+            if (unManagedVolumeInformation.get(SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH
+                    .toString()) == null) {
+                unManagedVolumeInformation.put(
+                        SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), bwValues);
+            } else {
+                unManagedVolumeInformation.get(
+                        SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString()).replace(
+                        bwValues);
+            }
+
+            StringSet iopsVal = new StringSet();
+            iopsVal.add(obj.getHostIops());
+
+            if (unManagedVolumeInformation
+                    .get(SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString()) == null) {
+                unManagedVolumeInformation.put(
+                        SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), iopsVal);
+            } else {
+                unManagedVolumeInformation
+                        .get(SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString()).replace(iopsVal);
+            }
+        }
+        unManagedVolumeCharacteristics.put(
+                SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), TRUE);
+
+        ///////////////////////////////////
+        // todo: end
         unManagedVolume.putVolumeCharacterstics(
                 UnManagedVolume.SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);
 

@@ -1774,8 +1774,6 @@ public class RecoverPointScheduler implements Scheduler {
                 volume.getLabel(), volume.getId().toString()));
         this.initResources();
 
-        // TBD Heg - Not that this is not the current vpool, but the new vpool as it 
-        // was set this way in RPBlockServiceApiImpl.
         VirtualPool currentVpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         VirtualArray varray = dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
         

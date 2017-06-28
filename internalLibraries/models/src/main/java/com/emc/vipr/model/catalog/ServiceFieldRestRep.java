@@ -164,7 +164,7 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
     }
 
     @XmlElement(name = "hideIfEmpty")
-    public boolean hideIfEmpty() {
+    public boolean getHideIfEmpty() {
         return hideIfEmpty;
     }
 

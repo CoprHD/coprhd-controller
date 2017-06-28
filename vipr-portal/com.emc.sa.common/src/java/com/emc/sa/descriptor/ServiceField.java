@@ -97,7 +97,7 @@ public class ServiceField extends ServiceItem {
         this.modalField = modalField;
     }
 
-    public boolean hideIfEmpty() {
+    public boolean getHideIfEmpty() {
         return hideIfEmpty;
     }
 

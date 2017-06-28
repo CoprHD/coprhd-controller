@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Host.ProvisioningJobStatus;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -52,6 +53,7 @@ public final class HostToComputeElementMatcher {
     private final static String FIELD_DN = "dn";
     private final static String FIELD_AVAIL = "available";
     private final static String FIELD_COMPUTE_SYSTEM = "computeSystem";
+    private final static String FIELD_PROVISIONING_STATUS = "provisioningStatus";
 
     private HostToComputeElementMatcher(){}
 
@@ -98,7 +100,7 @@ public final class HostToComputeElementMatcher {
 
         Collection<Host> allHosts = dbClient.queryObjectFields(Host.class,
                 Arrays.asList(FIELD_UUID, FIELD_COMPUTE_ELEMENT, FIELD_REG_STATUS,
-                        FIELD_HOST_NAME, FIELD_SERVICE_PROFILE, FIELD_LABEL),
+                        FIELD_HOST_NAME, FIELD_SERVICE_PROFILE, FIELD_LABEL, FIELD_PROVISIONING_STATUS),
                 ControllerUtils.getFullyImplementedCollection(hostIds));
 
         Collection<ComputeElement> allComputeElements =
@@ -189,6 +191,11 @@ public final class HostToComputeElementMatcher {
 
         for (Host host: hostMap.values()) {
             _log.info("matching host " + info(host));
+
+            if (host.getProvisioningStatus().equals(Host.ProvisioningJobStatus.IN_PROGRESS.toString())) {
+                _log.info("skipping host for which provisioning is in progress; " + info(host));
+                continue;
+            }
 
             // clear blade & SP associations for hosts that are unregistered or have bad UUIDs
             if(isUnregistered(host) || !hasValidUuid(host)) {

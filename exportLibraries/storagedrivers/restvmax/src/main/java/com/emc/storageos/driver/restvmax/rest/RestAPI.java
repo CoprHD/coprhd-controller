@@ -115,7 +115,50 @@ public class RestAPI implements AutoCloseable {
             LOG.error("No response.");
             throw new NullPointerException("RESTful API: no response.");
         }
+        return cr;
+    }
 
+    public static ClientResponse delete(String path, boolean verify, BackendType backendType, String username, String password) {
+        ClientHandler handler = new URLConnectionClientHandler();
+        Client client = new Client(handler, configureClient(verify));
+        WebResource r = client.resource(path);
+        ClientResponse cr = r.header("Content-Type", "application/json")
+                .header(backendType.getAuthField(), backendType.getAuthFieldValue(username, password))
+                .delete(ClientResponse.class);
+        if (cr == null) {
+            LOG.error("No response.");
+            throw new NullPointerException("RESTful API: no response.");
+        }
+        return cr;
+    }
+
+    public static ClientResponse post(String path, String restParam, boolean verify, BackendType backendType,
+                                      String username, String password) {
+        ClientHandler handler = new URLConnectionClientHandler();
+        Client client = new Client(handler, configureClient(verify));
+        WebResource r = client.resource(path);
+        ClientResponse cr = r.header("Content-Type", "application/json")
+                .header(backendType.getAuthField(), backendType.getAuthFieldValue(username, password))
+                .post(ClientResponse.class, restParam);
+        if (cr == null) {
+            LOG.error("No response.");
+            throw new NullPointerException("RESTful API: no response.");
+        }
+        return cr;
+    }
+
+    public static ClientResponse put(String path, String restParam, boolean verify, BackendType backendType,
+                                      String username, String password) {
+        ClientHandler handler = new URLConnectionClientHandler();
+        Client client = new Client(handler, configureClient(verify));
+        WebResource r = client.resource(path);
+        ClientResponse cr = r.header("Content-Type", "application/json")
+                .header(backendType.getAuthField(), backendType.getAuthFieldValue(username, password))
+                .put(ClientResponse.class, restParam);
+        if (cr == null) {
+            LOG.error("No response.");
+            throw new NullPointerException("RESTful API: no response.");
+        }
         return cr;
     }
 

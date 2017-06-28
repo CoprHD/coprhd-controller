@@ -1437,7 +1437,7 @@ public class RecoverPointScheduler implements Scheduler {
                             VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
                                     haVpool, sourceParams, VolumeTopologyRole.HA, capabilities, dbClient);
                             secondaryPoolsRecommendation = getRecommendedPools(rpProtectionRecommendation, haVarray, haVpool, null, null,
-                                    haCapabilities, RPHelper.TARGET, null);// TBD Heg TARGET????? Is this not the standby side of source?
+                                    haCapabilities, RPHelper.SOURCE, null);
                         }
 
                         secondaryPlacementStatus.setSrcVArray(haVarray.getLabel());

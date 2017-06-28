@@ -505,8 +505,9 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 if (port != null && neighborhood != null) {
 
-                    if (StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
-                        sPort = getIsilonStoragePort(port, nasUri, neighborhood.getId());
+                    if (StorageSystem.Type.isilon.toString().equals(system.getSystemType()) ||
+                            StorageSystem.Type.unity.toString().equals(system.getSystemType())) {
+                        sPort = getNASServerStoragePort(cos.getProtocols(), nasUri, neighborhood.getId());
                     } else {
                         sPort = compareAndSelectPortURIForUMFS(system, port,
                                 neighborhood);
@@ -1242,14 +1243,14 @@ public class UnManagedFilesystemService extends TaggedResource {
      * it return null, if any of the NAS server port is not part of given virtual array
      * 
      * 
-     * @param umfsStoragePort
-     *            port which is assigned to file system while UMFS discovery
+     * @param vpoolProtocols
+     *            set of protocols configured in vpool
      * @param nasUri
      *            NAS server URI
      * @param virtualArray
      *            virtual array
      */
-    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, URI virtualArray) {
+    private StoragePort getNASServerStoragePort(StringSet vpoolProtocols, String nasUri, URI virtualArray) {
         StoragePort sp = null;
         NASServer nasServer = null;
 
@@ -1262,15 +1263,21 @@ public class UnManagedFilesystemService extends TaggedResource {
             List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
             StringSet virtualArrayPortsSet = new StringSet();
 
-            StringSet storagePorts = nasServer.getStoragePorts();
+            StringSet nasStoragePorts = nasServer.getStoragePorts();
+            StringSet nasStoragePortsWithMatchingProtocols = new StringSet();
+            for (Iterator<String> iterator = nasStoragePorts.iterator(); iterator.hasNext();) {
+                if (nasServer.getProtocols().containsAll(vpoolProtocols)) {
+                    nasStoragePortsWithMatchingProtocols.add(iterator.next());
+                }
+            }
 
             for (URI tempVarrayPort : virtualArrayPorts) {
                 virtualArrayPortsSet.add(tempVarrayPort.toString());
             }
 
             StringSet commonPorts = null;
-            if (virtualArrayPorts != null && storagePorts != null) {
-                commonPorts = new StringSet(storagePorts);
+            if (virtualArrayPorts != null && nasStoragePortsWithMatchingProtocols != null) {
+                commonPorts = new StringSet(nasStoragePortsWithMatchingProtocols);
                 commonPorts.retainAll(virtualArrayPortsSet);
             }
 

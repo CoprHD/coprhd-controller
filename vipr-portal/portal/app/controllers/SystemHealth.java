@@ -342,7 +342,8 @@ public class SystemHealth extends Controller {
         Capacity dataCapacity = new Capacity();
         Capacity memoryCapacity = new Capacity();
         if (memoryStats != null) {
-            memoryCapacity = new Capacity((memoryStats.getMemTotal() - memoryStats.getMemFree()), memoryStats.getMemTotal());
+            long freeMem = memoryStats.getMemFree() + memoryStats.getMemBuffers() + memoryStats.getMemCached();
+            memoryCapacity = new Capacity((memoryStats.getMemTotal() - freeMem), memoryStats.getMemTotal());
         }
         if (dataDiskStats != null) {
             rootCapacity = new Capacity(dataDiskStats.getRootUsedKB(), dataDiskStats.getRootUsedKB() + dataDiskStats.getRootAvailKB());

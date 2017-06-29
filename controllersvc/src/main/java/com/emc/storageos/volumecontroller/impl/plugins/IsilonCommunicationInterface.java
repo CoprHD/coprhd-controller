@@ -3471,7 +3471,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         // only 1 config value means only default
         if (configList.size() == 1) {
             custompath = configList.get(0).getValue();
-
+            _log.info("Selecting custom Config {} with value: {} ", configList.get(0).getLabel(), configList.get(0).getValue());
             // More than 1 config means return the custom one, NOT the default one..
         } else {
             for (CustomConfig conf : configList) {
@@ -3479,6 +3479,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     continue;
                 } else {
                     custompath = conf.getValue();
+                    _log.info("Selecting custom Config {} with value: {} ", conf.getLabel(), conf.getValue());
                 }
             }
         }

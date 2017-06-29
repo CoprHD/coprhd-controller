@@ -489,6 +489,45 @@ public class NetworkScheduler {
         }
         return list;
     }
+    
+    /**
+     * For a given set of NetworkFCZoneInfo records, determine if they represent all the FCZoneReferences
+     * for each particular zone. If so, that zone can be marked as lastRef = true, meaning it will be deleted.
+     * Note that we are processing multiple zone infos representing multiple zones here.
+     * This code is used in the rollback path to determine which zones are safe to delete.
+     * Upon returning the zoneInfos are appropriately updated with lastRef set true if all the zone references
+     * for the zone were accounted for by a zone info.
+     * @param infos -- List of NetworkFCZoneInfo that will be updated
+     */
+    public void determineIfLastZoneReferences(List<NetworkFCZoneInfo> infos) {
+        // First make a map of zoneName to all last references.
+        Map<String, List<FCZoneReference>> zoneNameToZoneReferencesList = new HashMap<String, List<FCZoneReference>>();
+        for (NetworkFCZoneInfo info : infos) {
+            String zoneName = info.getZoneName();
+            if (zoneNameToZoneReferencesList.containsKey(zoneName)) {
+                // already looked up zone references for this zone
+                continue;
+            }
+            List<FCZoneReference> references = getFCZoneReferencesForKey(zoneName);
+            zoneNameToZoneReferencesList.put(zoneName, references);
+        }
+        // Now loop through all zone infos, removing the FCZoneReferences that are known
+        for (NetworkFCZoneInfo info : infos) {
+            List<FCZoneReference> references = zoneNameToZoneReferencesList.get(info.getZoneName());
+            for (FCZoneReference ref : references) {
+                if (ref.getId().equals(info.getFcZoneReferenceId())) {
+                    references.remove(ref);
+                    break;
+                }
+            }
+        }
+        // Now loop through zone infos again. Any zone info whoose corresponding zoneNameToZoneReferencesList
+        // has an empty list (no more zone references), can be marked lastRef = true so the zone will be deleted.
+        for (NetworkFCZoneInfo info : infos) {
+            boolean noReferences = zoneNameToZoneReferencesList.get(info.getZoneName()).isEmpty();
+            info.setLastReference(noReferences);
+        }
+    }
 
     /**
      * Looks at the varray to see if zoning is disabled, and looks to make

@@ -3898,6 +3898,228 @@ test_delete_srdf() {
     done
 }
 
+# Test test_delete_srdf_cg_last_vol
+#
+# Test deleting SRDF CG volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume in a CG
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Delete the SRDF volume pair
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry delete operation
+test_delete_srdf_cg_last_vol() {
+    echot "Test test_delete_srdf_cg_last_vol Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes&1 \
+                        failure_087_BlockDeviceController.before_doDeleteVolumes&2 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&1 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&2 \
+                        failure_089_SRDFDeviceController.before_doSuspendLink \
+                        failure_090_SRDFDeviceController.after_doSuspendLink \
+                        failure_091_SRDFDeviceController.before_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+                        failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
+                        failure_092_SRDFDeviceController.after_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization \
+                        failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
+
+    async_only="failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData"
+
+    cfs=("Volume BlockConsistencyGroup")
+    snap_db_esc=" | grep -Ev \"srdfLinkStatus = |^Volume\:|accessState = READWRITE|accessState = NOT_READY\""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    if [ "${SRDF_MODE}" = "async" ];
+    then
+      failure_injections="${common_failure_injections} ${async_only}"    
+    fi
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes"
+
+    for failure in ${failure_injections}
+    do
+        item=${RANDOM}
+        TEST_OUTPUT_FILE=test_output_${item}.log
+        secho "Running Test test_delete_srdf_cg_last_vol with failure scenario: ${failure}..."
+        reset_counts
+        mkdir -p results/${item}
+        volname=${VOLNAME}-${item}
+        # Create a new CG
+        CGNAME=cg${item}
+
+        runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+
+        snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+        set_artificial_failure ${failure}
+
+        # Remove the volume
+        if [ "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ];
+        then
+          runcmd volume delete ${PROJECT}/${volname} --wait
+
+          # Verify injected failures were hit
+          verify_failures ${failure}
+        else
+          fail volume delete ${PROJECT}/${volname} --wait
+
+          runcmd storagedevice discover_all
+          snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+
+          # Verify injected failures were hit
+          verify_failures ${failure}
+
+          # Validate volume was left for retry
+          validate_db 1 2 ${cfs}
+
+          set_artificial_failure none
+
+          # Retry the delete operation
+          runcmd volume delete ${PROJECT}/${volname} --wait
+        fi
+
+        if [ "${SIM}" = "0" ]
+        then
+          symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+        fi
+
+        runcmd blockconsistencygroup delete ${CGNAME}
+        report_results "test_delete_srdf_cg_last_vol" ${failure}
+    done
+}
+
+# Test test_delete_srdf_cg_vol
+#
+# Test deleting SRDF CG volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume in a CG
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Delete the SRDF volume pair
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry delete operation
+test_delete_srdf_cg_vol() {
+    echot "Test test_delete_srdf_cg_vol Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes&1 \
+                        failure_087_BlockDeviceController.before_doDeleteVolumes&2 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&1 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&2 \
+                        failure_089_SRDFDeviceController.before_doSuspendLink \
+                        failure_090_SRDFDeviceController.after_doSuspendLink \
+                        failure_091_SRDFDeviceController.before_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+                        failure_092_SRDFDeviceController.after_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
+
+    async_only="failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
+                failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization"
+    sync_only="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization"
+
+    cfs=("Volume BlockConsistencyGroup")
+    snap_db_esc=" | grep -Ev \"srdfLinkStatus = |^Volume\:|accessState = READWRITE|accessState = NOT_READY\""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    if [ "${SRDF_MODE}" = "async" ];
+    then
+      failure_injections="${common_failure_injections} ${async_only}"
+    else
+      failure_injections="${common_failure_injections} ${sync_only}"
+    fi
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes"
+    
+    random=${RANDOM}
+    cgvolname=${VOLNAME}-${random}
+    # Create a new CG
+    CGNAME=cg${random}
+
+    runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+    runcmd volume create ${cgvolname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+
+    for failure in ${failure_injections}
+    do
+        item=${RANDOM}
+        TEST_OUTPUT_FILE=test_output_${item}.log
+        secho "Running Test test_delete_srdf_cg_vol with failure scenario: ${failure}..."
+        reset_counts
+        mkdir -p results/${item}
+        volname=${VOLNAME}-${item}
+
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+
+        snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+        set_artificial_failure ${failure}
+
+        # Remove the volume
+        if [ "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ];
+        then
+          runcmd volume delete ${PROJECT}/${volname} --wait
+
+          # Verify injected failures were hit
+          verify_failures ${failure}
+        else
+          fail volume delete ${PROJECT}/${volname} --wait
+
+          runcmd storagedevice discover_all
+          snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+
+          # Verify injected failures were hit
+          verify_failures ${failure}
+
+          # Validate volume was left for retry
+          validate_db 1 2 ${cfs}
+
+          set_artificial_failure none
+
+          # Retry the delete operation
+          runcmd volume delete ${PROJECT}/${volname} --wait
+        fi
+
+        if [ "${SIM}" = "0" ]
+        then
+          symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+        fi
+
+        report_results "test_delete_srdf_cg_vol" ${failure}
+    done
+    #Cleanup the remaining CG vol and CG
+    runcmd volume delete ${PROJECT}/${cgvolname} --wait
+    runcmd blockconsistencygroup delete ${CGNAME}
+
+}
+
 cleanup() {
     if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`

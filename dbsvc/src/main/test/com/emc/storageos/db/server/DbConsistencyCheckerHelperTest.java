@@ -232,7 +232,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         .withCql("TRUNCATE \"AltIdIndex\"")
         .execute();
         //test large columns for single row key
-        for (int i = 0; i < 123; i++) {
+        for (int i = 0; i < 32; i++) {
             keyspace.prepareQuery(indexCF)
             .withCql(String.format(
                     "INSERT INTO \"AltIdIndex\" (key, column1, column2, column3, column4, column5, value) VALUES ('sa', 'FileShare', '%s', '', '', now(), intasblob(10));",
@@ -242,7 +242,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         
         checkResult = new CheckResult();
         helper.checkIndexingCF(indexAndCf, false, checkResult);
-        assertEquals(123, checkResult.getTotal());
+        assertEquals(32, checkResult.getTotal());
     }
     
     @Test

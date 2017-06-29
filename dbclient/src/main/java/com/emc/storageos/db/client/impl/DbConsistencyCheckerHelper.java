@@ -267,72 +267,34 @@ public class DbConsistencyCheckerHelper {
         ColumnFamilyQuery<String, IndexColumnName> query = indexAndCf.keyspace
                 .prepareQuery(indexAndCf.cf);
 
-        OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
-                .setRowLimit(dbClient.DEFAULT_PAGE_SIZE)
-                .withColumnRange(new RangeBuilder().setLimit(0).build())
-                .execute();
+        Integer scannedRows = 0;
+        Long beginTime = System.currentTimeMillis();
+        if (indexAndCf.indexType.equals(DecommissionedDbIndex.class)) {
+        	OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
+                    .setRowLimit(dbClient.DEFAULT_PAGE_SIZE)
+                    .withColumnRange(new RangeBuilder().setLimit(0).build())
+                    .execute();
 
-        int scannedRows = 0;
-        long beginTime = System.currentTimeMillis();
-        for (Row<String, IndexColumnName> row : result.getResult()) {
-            RowQuery<String, IndexColumnName> rowQuery = indexAndCf.keyspace.prepareQuery(indexAndCf.cf).getKey(row.getKey())
-                    .autoPaginate(true)
-                    .withColumnRange(new RangeBuilder().setLimit(dbClient.DEFAULT_PAGE_SIZE).build());
-            ColumnList<IndexColumnName> columns;
-            
-            while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
-                for (Column<IndexColumnName> column : columns) {
-                	scannedRows++;
-                    ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
-                            column.getName(), indexAndCf.indexType, toConsole);
-                    if (objEntry == null) {
-                        continue;
-                    }
-                    ColumnFamily<String, CompositeColumnName> objCf = objCfs
-                            .get(objEntry.getClassName());
-
-                    if (objCf == null) {
-                        logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
-                        continue;
-                    }
-
-                    if (skipCheckCFs.contains(objCf.getName())) {
-                        _log.debug("Skip checking CF {} for index CF {}", objCf.getName(), indexAndCf.cf.getName());
-                        continue;
-                    }
-
-                    Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
-                    if (objKeysIdxEntryMap == null) {
-                        objKeysIdxEntryMap = new HashMap<>();
-                        objsToCheck.put(objCf, objKeysIdxEntryMap);
-                    }
-                    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
-                    if (idxEntries == null) {
-                        idxEntries = new ArrayList<>();
-                        objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
-                    }
-                    idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
-                }
+            for (Row<String, IndexColumnName> row : result.getResult()) {
+                RowQuery<String, IndexColumnName> rowQuery = indexAndCf.keyspace.prepareQuery(indexAndCf.cf).getKey(row.getKey())
+                        .autoPaginate(true)
+                        .withColumnRange(new RangeBuilder().setLimit(1000).build());
+                ColumnList<IndexColumnName> columns;
                 
-                int size = getObjsSize(objsToCheck);
-                if (size >= INDEX_OBJECTS_BATCH_SIZE ) {
-                    if (isParallel) {
-                        processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
-                    } else {
-                        processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
-                    }
-                    objsToCheck = new HashMap<>();
-                }
-                
-                if (scannedRows >= THRESHHOLD_FOR_OUTPUT_DEBUG) {
-                	_log.info("{} data objects have been check with time {}", scannedRows,
-                			DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginTime));
-                	scannedRows = 0;
-                	beginTime = System.currentTimeMillis();
+                while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
+                    handleIndex(indexAndCf, toConsole, objCfs, objsToCheck, scannedRows, row, columns, isParallel, checkResult, beginTime);
                 }
             }
+        } else {
+        	OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
+                    .setRowLimit(dbClient.DEFAULT_PAGE_SIZE)
+                    .withColumnRange(new RangeBuilder().setLimit(50).build())
+                    .execute();
+        	for (Row<String, IndexColumnName> objRow : result.getResult()) {
+            	handleIndex(indexAndCf, toConsole, objCfs, objsToCheck, scannedRows, objRow, objRow.getColumns(), isParallel, checkResult, beginTime);
+            }
         }
-
+        
         // Detect whether the DataObject CFs have the records
         if (isParallel) {
             processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
@@ -340,6 +302,62 @@ public class DbConsistencyCheckerHelper {
             processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
         }
     }
+
+	private void handleIndex(IndexAndCf indexAndCf, boolean toConsole,
+			Map<String, ColumnFamily<String, CompositeColumnName>> objCfs,
+			Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck,
+			Integer scannedRows, Row<String, IndexColumnName> row, ColumnList<IndexColumnName> columns,
+			boolean isParallel, CheckResult checkResult, Long beginTime) throws ConnectionException {
+		for (Column<IndexColumnName> column : columns) {
+			scannedRows++;
+		    ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
+		            column.getName(), indexAndCf.indexType, toConsole);
+		    if (objEntry == null) {
+		        continue;
+		    }
+		    ColumnFamily<String, CompositeColumnName> objCf = objCfs
+		            .get(objEntry.getClassName());
+
+		    if (objCf == null) {
+		        logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
+		        continue;
+		    }
+
+		    if (skipCheckCFs.contains(objCf.getName())) {
+		        _log.debug("Skip checking CF {} for index CF {}", objCf.getName(), indexAndCf.cf.getName());
+		        continue;
+		    }
+
+		    Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
+		    if (objKeysIdxEntryMap == null) {
+		        objKeysIdxEntryMap = new HashMap<>();
+		        objsToCheck.put(objCf, objKeysIdxEntryMap);
+		    }
+		    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
+		    if (idxEntries == null) {
+		        idxEntries = new ArrayList<>();
+		        objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
+		    }
+		    idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
+		}
+		
+		int size = getObjsSize(objsToCheck);
+        if (size >= INDEX_OBJECTS_BATCH_SIZE ) {
+            if (isParallel) {
+                processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
+            } else {
+                processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+            }
+            objsToCheck = new HashMap<>();
+        }
+        
+        if (scannedRows >= THRESHHOLD_FOR_OUTPUT_DEBUG) {
+        	_log.info("{} data objects have been check with time {}", scannedRows,
+        			DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginTime));
+        	scannedRows = 0;
+        	beginTime = System.currentTimeMillis();
+        }
+	}
 
     private int getObjsSize(Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) {
         int size = 0;

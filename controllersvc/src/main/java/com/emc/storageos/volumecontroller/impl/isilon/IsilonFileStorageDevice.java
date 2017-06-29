@@ -2799,11 +2799,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
+            IsilonSyncPolicy syncPolicy = null;
             String policyName = policyStrRes.getPolicyNativeId();
             // In case of failback we do failover on the source file system, so we need to append _mirror
             if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
                 policyName = policyName.concat(MIRROR_POLICY);
+                StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+                syncPolicy = mirrorOperations.doEnableReplicationPolicy(storage, policyName);
+                _log.info("Replication policy on device and policy details:", syncPolicy.toString());
             }
+            
             return mirrorOperations.doFailover(systemTarget, policyName, completer);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon

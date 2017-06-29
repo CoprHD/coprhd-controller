@@ -9,10 +9,14 @@ public class IsilonSyncTargetPolicy extends IsilonSyncPolicy {
     public static enum FOFB_STATES {
         writes_disabled, enabling_writes, writes_enabled, disabling_writes, creating_resync_policy, resync_policy_created
     }
+    
+    public static enum LAST_JOB_STATES {
+        scheduled, running, paused, finished, failed, canceled, needs_attention, skipped, pending, unknown
+    }
 
     private FOFB_STATES failover_failback_state;
     private String source_host;
-
+    
     public FOFB_STATES getFoFbState() {
         return failover_failback_state;
     }

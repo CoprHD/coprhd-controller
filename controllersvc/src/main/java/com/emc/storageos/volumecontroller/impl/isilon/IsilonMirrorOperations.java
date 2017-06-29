@@ -122,8 +122,37 @@ public class IsilonMirrorOperations {
         IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
         modifiedPolicy.setName(policyName);
         modifiedPolicy.setEnabled(true);
-
-        isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+        
+        IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
+        if(!policy.getEnabled()) {
+            isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+        }
+        _log.info("doEnableReplicationPolicy - replication policy on device and policy details:", policy.toString());
+        return isi.getReplicationPolicy(policyName);
+    }
+    
+    
+    /**
+     * Enable the Isilon syncIQ policy
+     * 
+     * @param isi
+     * @param policyName
+     * @return
+     */
+    IsilonSyncPolicy doEnableReplicationPolicy(StorageSystem system, String policyName) {
+        IsilonApi isi = getIsilonDevice(system);
+        return doEnableReplicationPolicy(isi, policyName);
+    }
+    
+    /**
+     * Enable the Isilon syncIQ policy
+     * 
+     * @param isi
+     * @param policyName
+     * @return
+     */
+    IsilonSyncPolicy getReplicationPolicy(StorageSystem system, String policyName) {
+        IsilonApi isi = getIsilonDevice(system);
         return isi.getReplicationPolicy(policyName);
     }
 
@@ -306,7 +335,7 @@ public class IsilonMirrorOperations {
                 _log.info("can't perform failover operation on policy: {} because failover is done already",
                         syncTargetPolicy.getName());
                 return BiosCommandResult.createSuccessfulResult();
-            }
+            } 
             IsilonSyncJob job = new IsilonSyncJob();
             job.setId(policyName);
             job.setAction(Action.allow_write);
@@ -342,13 +371,14 @@ public class IsilonMirrorOperations {
     public BiosCommandResult doResyncPrep(StorageSystem system, String policyName, TaskCompleter completer)
             throws IsilonException {
         try {
-            _log.info("resync-prep between source file system to target file system started");
+            _log.info("resync-prep between source file system to target file system started and device ip:", system.getIpAddress());
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy syncPolicy = isi.getReplicationPolicy(policyName);
+            _log.info("replication policy on device and policy details:", syncPolicy.toString());
             if (!syncPolicy.getEnabled()) {
-                _log.info("can't perform resync-prep operation on policy: {} because policy is disabled and resync-prep is done already",
-                        syncPolicy.getName());
-                return BiosCommandResult.createSuccessfulResult();
+                this.doEnableReplicationPolicy(isi, policyName);
+                syncPolicy = isi.getReplicationPolicy(policyName);
+                _log.info("replication policy on source device enabled and policy details:", syncPolicy.toString());
             }
             IsilonSyncJob job = new IsilonSyncJob();
             job.setId(policyName);

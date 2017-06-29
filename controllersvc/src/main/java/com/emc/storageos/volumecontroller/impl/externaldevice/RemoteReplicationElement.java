@@ -10,6 +10,7 @@ import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplication
 import java.io.Serializable;
 import java.net.URI;
 
+@SuppressWarnings("serial")
 public class RemoteReplicationElement implements Serializable {
 
     public RemoteReplicationElement(RemoteReplicationSet.ElementType type, URI elementURI) {

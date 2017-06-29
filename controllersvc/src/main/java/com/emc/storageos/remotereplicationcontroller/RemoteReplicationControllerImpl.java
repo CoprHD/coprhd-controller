@@ -131,6 +131,6 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
 
     @Override
     public void movePair(URI replicationPair, URI targetGroup, String opId) {
-
+        exec("movePair", replicationPair, targetGroup, opId);
     }
 }

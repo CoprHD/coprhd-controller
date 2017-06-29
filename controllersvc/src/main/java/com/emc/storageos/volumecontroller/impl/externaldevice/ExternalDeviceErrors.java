@@ -6,6 +6,8 @@
 package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 
+import java.net.URI;
+
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -86,6 +88,9 @@ public interface ExternalDeviceErrors {
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_REMOTE_REPLICATION_GROUP_ERROR)
     public ServiceError createRemoteReplicationGroupFailed(String groupName, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_MOVE_REMOTE_REPLICATION_PAIR_ERROR)
+    public ServiceError moveRemoteReplicationPairFailed(final URI pairId, final URI targetGroupId, final String errorMsg);
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_REMOTE_REPLICATION_LINK_OPERATION_ERROR)
     public ServiceError remoteReplicationLinkOperationFailed(String operationType, String elementType, String elementURI, String errorMsg);

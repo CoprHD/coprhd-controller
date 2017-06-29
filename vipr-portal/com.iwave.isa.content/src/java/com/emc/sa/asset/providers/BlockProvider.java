@@ -224,7 +224,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     
     private static final String VMAX_PORT_GROUP_ENABLED = "VMAXUsePortGroupEnabled/value";
     private static final String VMAX = "vmax";
-
     
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);

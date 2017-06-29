@@ -34,7 +34,9 @@
     
 	rdfGroup:{
       type:"assetType.vipr.rdfGroup",
-      lockable: true
+      lockable: true,
+      required: false,
+      hideIfEmpty: true
     },
 
     datastores:{

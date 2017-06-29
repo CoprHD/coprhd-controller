@@ -8,8 +8,11 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
  * Class captures the definition of a VolumeTopology. Currently this class is mostly a
@@ -103,7 +106,14 @@ public class VolumeTopology {
      * @return A reference to a performance parameters instance or null if there are none for the passed role.
      */
     public PerformanceParams getPerformanceParamsForSourceRole(VolumeTopologyRole role, DbClient dbClient) {
-        return PerformanceParamsUtils.getPerformanceParamsForRole(sourcePerformanceParams, role, dbClient);
+        PerformanceParams performanceParams = null;
+        if (!sourcePerformanceParams.isEmpty()) {
+            URI performanceParamsURI = sourcePerformanceParams.get(role);
+            if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
+                performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+            }
+        }
+        return performanceParams;
     }
     
     /**
@@ -129,6 +139,16 @@ public class VolumeTopology {
      * @return A reference to a performance parameters instance or null if there are none for the passed role.
      */
     public PerformanceParams getPerformanceParamsForCopyRole(URI varrayURI, VolumeTopologyRole role, DbClient dbClient) {
-        return PerformanceParamsUtils.getPerformanceParamsForRole(copyPerformanceParams.get(varrayURI), role, dbClient);
+        PerformanceParams performanceParams = null;
+        if (!copyPerformanceParams.isEmpty()) {
+            Map<VolumeTopologyRole, URI> copyParamsMap = getPerformanceParamsForCopy(varrayURI);
+            if (copyParamsMap != null && !copyParamsMap.isEmpty()) {
+                URI performanceParamsURI = copyParamsMap.get(role);
+                if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
+                    performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+                }
+            }
+        }
+        return performanceParams;
     }
 }

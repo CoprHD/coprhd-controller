@@ -1376,6 +1376,21 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         return task;
     }
 
+    @Override
+    public DriverTask movePair(RemoteReplicationPair replicationPair, RemoteReplicationGroup targetGroup,
+            StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "-moveRemoteReplicationPair-", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        replicationPair.setReplicationMode("synchronous");
+        String msg = String.format("%s: %s --- move replication pair %s.", driverName, "movePair",
+                replicationPair.getNativeId());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
     private Map<String, List<String>> processRemoteReplicationAttributes(StorageCapabilities storageCapabilities) {
         Map<String, List<String>> remoteReplicationAttributes = new HashMap<>();
 

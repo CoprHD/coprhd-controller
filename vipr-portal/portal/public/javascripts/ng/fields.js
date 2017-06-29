@@ -166,9 +166,9 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                 
                 scope.$watch(attrs.showField, function(showField) {
                 	if (showField) {
-                		element.parent().parent().css("display", "");
+                		element.parent().parent().show();
                 	} else {
-                		element.parent().parent().css("display", "none");
+                		element.parent().parent().hide();
                     }
                 });
                 

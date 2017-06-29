@@ -290,6 +290,10 @@ public class UnManagedFilesystemService extends TaggedResource {
             List<URI> full_systems = new ArrayList<URI>();
             Calendar timeNow = Calendar.getInstance();
             for (URI unManagedFileSystemUri : param.getUnManagedFileSystems()) {
+                long softLimit = 0;
+                int softGrace = 0;
+                long notificationLimit = 0;
+
                 UnManagedFileSystem unManagedFileSystem = _dbClient.queryObject(
                         UnManagedFileSystem.class, unManagedFileSystemUri);
 
@@ -351,6 +355,28 @@ public class UnManagedFilesystemService extends TaggedResource {
                         SupportedFileSystemInformation.SYSTEM_TYPE.toString(),
                         unManagedFileSystemInformation);
 
+                String softLt = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.SOFT_LIMIT.toString(),
+                        unManagedFileSystemInformation);
+
+                String softGr = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.SOFT_GRACE.toString(),
+                        unManagedFileSystemInformation);
+
+                String notificationLt = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.NOTIFICATION_LIMIT.toString(),
+                        unManagedFileSystemInformation);
+
+                if (null != softLt && !softLt.isEmpty()) {
+                    softLimit = Long.valueOf(softLt);
+                }
+                if (null != softGr && !softGr.isEmpty()) {
+                    softGrace = Integer.valueOf(softGr);
+                }
+                if (null != notificationLt && !notificationLt.isEmpty()) {
+                    notificationLimit = Long.valueOf(notificationLt);
+                }
+
                 Long lcapcity = Long.valueOf(capacity);
                 Long lusedCapacity = Long.valueOf(usedCapacity);
                 // pool uri cannot be null
@@ -379,6 +405,12 @@ public class UnManagedFilesystemService extends TaggedResource {
                 // check ingestion is valid for given project
                 if (!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
                     _logger.info("UnManaged FileSystem path {} is mounted on vNAS URI {} which is invalid for project.", path, nasUri);
+                    continue;
+                }
+                // Check for same named File Share in this project
+                if (FileSystemIngestionUtil.checkForDuplicateFSName(_dbClient, project.getId(), deviceLabel, filesystems)) {
+                    _logger.info("File System with name: {}  already exists in given project: {} so, ignoring it..",
+                            deviceLabel, project.getLabel());
                     continue;
                 }
 
@@ -423,6 +455,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setMountPath(mountPath);
                 filesystem.setVirtualPool(param.getVpool());
                 filesystem.setVirtualArray(param.getVarray());
+                filesystem.setSoftLimit(softLimit);
+                filesystem.setSoftGracePeriod(softGrace);
+                filesystem.setNotificationLimit(notificationLimit);
+
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
                 }

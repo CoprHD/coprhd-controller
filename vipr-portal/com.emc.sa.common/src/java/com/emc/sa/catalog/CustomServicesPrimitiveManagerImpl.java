@@ -19,6 +19,7 @@ package com.emc.sa.catalog;
 import java.net.URI;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -78,7 +79,15 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
     }
 
     @Override
-    public <T extends ModelObject> List<NamedElement> getByLabel(Class<T> clazz, final String label) {
-        return client.findByLabel(clazz, label);
+    public <T extends ModelObject> List<T> getByLabel(Class<T> clazz, final String label) {
+        final List<NamedElement> neList = client.findByLabel(clazz, label);
+        final ImmutableList.Builder<URI> ids = ImmutableList.<URI>builder();
+        for( final NamedElement ne : neList ) {
+            if(ne.getName().equals(label)){
+                ids.add(ne.getId());
+            }
+
+        }
+        return client.findByIds(clazz, ids.build());
     }
 }

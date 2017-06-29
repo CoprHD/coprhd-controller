@@ -406,59 +406,44 @@ public class NetworkDeviceController implements NetworkController {
         // Lock to prevent concurrent operations on the same VSAN / FABRIC.
         InterProcessLock fabricLock = NetworkFabricLocker.lockFabric(fabricId, _coordinator);
         try {
-            if (doRemove) { /* Removing zones */
-                result = networkDevice.removeZones(networkSystem, zones, fabricId, fabricWwn, true);
-                if (result.isCommandSuccess()) {
-                    String refKey = null;
-                    try {
-                        for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
-                            URI fcZoneReferenceId = fabricInfo.getFcZoneReferenceId();
-                            if (NullColumnValueGetter.isNullURI(fcZoneReferenceId)) {
-                                _log.info("fcZoneReferenceId corresponding to zone info {} is null. Nothing to remove.",
-                                        fabricInfo.toString());
-                                continue;
-                            }
-                            FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fcZoneReferenceId);
-                            if (ref != null) {
-                                refKey = ref.getPwwnKey();
-                                _dbClient.markForDeletion(ref);
-                                _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
-                                        ref.getPwwnKey(), ref.getVolumeUri(), ref.getId().toString()));
-                                if(!zones.isEmpty()){
-                                	recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
-                                            OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
-                                }
-                                
-                            }
-                        }
-                    } catch (DatabaseException ex) {
-                        _log.error("Could not persist FCZoneReference: " + refKey);
-                    }
-                }
-
-            } else { /* Adding zones */
-                result = networkDevice.addZones(networkSystem, zones, fabricId, fabricWwn, true);
-                if (result.isCommandSuccess()) {
-                    String refKey = null;
-                    try {
-                        for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
-                            String[] newOrExisting = new String[1];
-                            FCZoneReference ref = addZoneReference(exportGroupUri, fabricInfo, newOrExisting);
-                            fabricInfo.setFcZoneReferenceId(ref.getId());  // this is needed for rollback
-                            _log.info(String.format(
-                                    "%s FCZoneReference key: %s volume %s group %s",
-                                    newOrExisting[0], ref.getPwwnKey(), ref.getVolumeUri(), exportGroupUri));
-                            if(!zones.isEmpty()){
-                            	recordZoneEvent(ref, OperationTypeEnum.ADD_SAN_ZONE.name(),
-                                        OperationTypeEnum.ADD_SAN_ZONE.getDescription());
-                            }
-                            
-                        }
-                    } catch (DatabaseException ex) {
-                        _log.error("Could not persist FCZoneReference: " + refKey);
-                    }
-                }
-            }
+        	if (doRemove) { /* Removing zones */
+        		result = networkDevice.removeZones(networkSystem, zones, fabricId, fabricWwn, true);
+        		if (result.isCommandSuccess()) {
+        			for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
+        				String refKey = fabricInfo.getZoneName() + " " + fabricInfo.getFcZoneReferenceId().toString();
+        				try {
+        					FCZoneReference ref = deleteFCZoneReference(fabricInfo);
+        					if (ref != null && !zones.isEmpty()) {
+        						recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
+        								OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
+        					}
+        				} catch (DatabaseException ex) {
+        					_log.error("Could not delete FCZoneReference: " + refKey);
+        				}
+        			}
+        		}
+        	} else { /* Adding zones */
+        		result = networkDevice.addZones(networkSystem, zones, fabricId, fabricWwn, true);
+        		if (result.isCommandSuccess()) {
+        			for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
+        				String refKey = fabricInfo.getZoneName() + " " + fabricInfo.getVolumeId().toString();
+        				try {
+        					String[] newOrExisting = new String[1];
+        					FCZoneReference ref = addZoneReference(exportGroupUri, fabricInfo, newOrExisting);
+        					fabricInfo.setFcZoneReferenceId(ref.getId());  // this is needed for rollback
+        					_log.info(String.format(
+        							"%s FCZoneReference key: %s volume %s group %s",
+        							newOrExisting[0], ref.getPwwnKey(), ref.getVolumeUri(), exportGroupUri));
+        					if(!zones.isEmpty()){
+        						recordZoneEvent(ref, OperationTypeEnum.ADD_SAN_ZONE.name(),
+        								OperationTypeEnum.ADD_SAN_ZONE.getDescription());
+        					}
+        				} catch (DatabaseException ex) {
+        					_log.error("Could not persist FCZoneReference: " + refKey);
+        				}
+        			}
+        		}
+        	}
             // Update the FCZoneInfo structures if we changed device state for rollback.
             Map<String, String> map = (Map<String, String>) result.getObjectList().get(0);
             for (NetworkFCZoneInfo info : fabricInfos) {
@@ -1650,6 +1635,10 @@ public class NetworkDeviceController implements NetworkController {
                 if (info.canBeRolledBack()) {
                     //We should not blindly set last reference to true, removed code which does that earlier.
                     rollbackList.add(info);
+                } else {
+                	// Even though we cannot rollback the zone (because we didn't create it, it previously existed,
+                	// must remove the FCZoneReference that we created.
+                	deleteFCZoneReference(info);
                 }
             }
             
@@ -2931,5 +2920,26 @@ public class NetworkDeviceController implements NetworkController {
             buf.append(com.google.common.base.Joiner.on(' ').join(zoneNames));
         }
         return buf.toString();
+    }
+    
+    /**
+     * Remove an FCZoneReference from database from the corresponding FCZoneInfo
+     * @param info -- FCZoneReference
+     * @param ref -- Returns FCZoneReference that has been marked for deletioni or null
+     */
+    private FCZoneReference deleteFCZoneReference(NetworkFCZoneInfo info) {
+    	URI fcZoneReferenceId = info.getFcZoneReferenceId();
+    	if (NullColumnValueGetter.isNullURI(fcZoneReferenceId)) {
+    		_log.info("fcZoneReferenceId corresponding to zone info {} is null. Nothing to remove.",
+    				info.toString());
+    		return null;
+    	}
+    	FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fcZoneReferenceId);
+    	if (ref != null) {
+    		_dbClient.markForDeletion(ref);
+    		_log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
+    				ref.getPwwnKey(), ref.getVolumeUri(), ref.getId().toString()));
+    	}
+    	return ref;
     }
 }

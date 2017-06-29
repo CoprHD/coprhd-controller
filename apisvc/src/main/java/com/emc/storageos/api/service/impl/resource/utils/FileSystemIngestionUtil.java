@@ -246,6 +246,19 @@ public class FileSystemIngestionUtil {
         return true;
     }
 
+    /**
+     * This method verifies the duplicate named file system present in data base
+     * for the given project
+     * 1. It verifies file system name in existing data base
+     * 2. It also verifies for the file system in current processing file system list
+     * 
+     * @param _dbClient
+     * @param project - project id
+     * @param fsName - name of the file system to be ingested
+     * @param filesystems - list of file systems yet to write to db.
+     * 
+     * @return true - file system exists in db or in processing list, false otherwise
+     */
     public static boolean checkForDuplicateFSName(DbClient _dbClient, URI project, String fsName, List<FileShare> filesystems) {
         List<FileShare> objectList = new ArrayList<>();
         objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
@@ -255,7 +268,9 @@ public class FileSystemIngestionUtil {
             return true;
         }
         for (FileShare fs : filesystems) {
-            if (fs.getLabel().equals(fsName) || fs.getName().equals(fsName)) {
+            // As ViPR Green field does not allow two file system with same name
+            // even with different case, so do not ingest file systems with similar name!!!
+            if (fs.getLabel().equalsIgnoreCase(fsName) || fs.getName().equalsIgnoreCase(fsName)) {
                 return true;
             }
         }

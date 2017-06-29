@@ -19,8 +19,7 @@ public class ExportChangePortGroup extends WaitForTask<ExportGroupRestRep> {
         this(uri(exportGroupId), uri(newPortGroupId), suspendWait);
     }
 
-    public ExportChangePortGroup(URI exportGroupId, URI newPortGroupId, Boolean suspendWait) {
-        
+    public ExportChangePortGroup(URI exportGroupId, URI newPortGroupId, Boolean suspendWait) {        
         this.exportGroupId = exportGroupId;
         this.changePortGroupParam = new ChangePortGroupParam();
         changePortGroupParam.setNewPortGroup(newPortGroupId);

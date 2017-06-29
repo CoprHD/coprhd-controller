@@ -1297,8 +1297,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         
         return client.blockExports().getExportPathAdjustmentPreview(exportId, param);
     }
-    
-    
+      
     @Asset("exportCurrentPortGroup")
     @AssetDependencies({ "host", "exportPathExport", "exportPathStorageSystem", "exportPathVirtualArray" })
     public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
@@ -1328,73 +1327,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         return options;
     }
-
-//    @Asset("exportPortGroupResultingPaths")
-//    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathStorageSystem"})
-//    public List<AssetOption> getResultingPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
-//            URI storageSystemId) {
-//
-//        return getResultingPortGroups(ctx, hostOrClusterId, vArrayId, exportId, storageSystemId, new String(""));
-//    }
-//
-//    @Asset("exportPortGroupResultingPaths")
-//    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport",
-//        "exportPathStorageSystem", "exportPathPorts" })
-//    public List<AssetOption> getResultingPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
-//            URI storageSystemId, String ports) {
-//        List<URI> exportPathPorts = parseExportPathPorts(ports);
-//        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPortGroupPreview(ctx, hostOrClusterId, vArrayId,
-//                exportId, storageSystemId, exportPathPorts);
-//        List<InitiatorPortMapRestRep> addedList = portPreview.getAdjustedPaths();
-//
-//        return buildPathOptions(ctx, addedList, "exportPathAdjustment.resultingPaths");
-//    }
-//
-//    @Asset("exportPortGroupRemovedPaths")
-//    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
-//        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathStorageSystem"})
-//    public List<AssetOption> getRemovedPortGroup(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
-//            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI storageSystemId) {
-//
-//        return getRemovedPortGroups(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
-//                storageSystemId, new String(""));
-//    }
-//
-//    @Asset("exportPortGroupRemovedPaths")
-//    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
-//        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions",
-//        "exportPathStorageSystem", "exportPathPorts" })
-//    public List<AssetOption> getRemovedPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
-//            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI storageSystemId, String ports) {
-//        List<URI> exportPathPorts = parseExportPathPorts(ports);
-//        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPortGroupPreview(ctx, hostOrClusterId, vArrayId,
-//                exportId, minPaths, maxPaths, pathsPerInitiator, storageSystemId, exportPathPorts);
-//        List<InitiatorPortMapRestRep> removedList = portPreview.getRemovedPaths();
-//
-//        return buildPathOptions(ctx, removedList, "exportPathAdjustment.removedPaths");
-//    }
-//
-//    private ExportPathsAdjustmentPreviewRestRep generateExportPortGroupPreview(AssetOptionsContext ctx, URI hostOrClusterId, 
-//            URI vArrayId, URI exportId, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
-//            URI storageSystemId, List<URI> ports) {
-//        ViPRCoreClient client = api(ctx);
-//        ExportPathsAdjustmentPreviewParam param = new ExportPathsAdjustmentPreviewParam();
-//        ExportPathParameters exportPathParameters = new ExportPathParameters();
-//
-//        exportPathParameters.setMinPaths(minPaths);
-//        exportPathParameters.setMaxPaths(maxPaths);
-//        exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
-//        exportPathParameters.setStoragePorts(ports);
-//
-//        //param.setUseExistingPaths(useExisting.equalsIgnoreCase(YES_VALUE) ? true : false);
-//
-//        param.setVirtualArray(vArrayId);
-//        param.setStorageSystem(storageSystemId);
-//
-//        param.setExportPathParameters(exportPathParameters);
-//
-//        return client.blockExports().getExportPortGroupAdjustmentPreview(exportId, param);
-//    }
 
     @Asset("unassignedBlockVolume")
     @AssetDependencies({ "host", "project" })

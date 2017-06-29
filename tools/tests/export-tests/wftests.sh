@@ -1962,6 +1962,14 @@ test_2() {
       # Should be able to delete the CG and recreate it.
       runcmd blockconsistencygroup delete ${CGNAME}
 
+      if [ "${failure}" = "failure_004:failure_015_SmisCommandHelper.invokeMethod_DeleteGroup" ]; then
+        CGNAME=wf-test2-cg-${item}1
+        if [ "${SS}" = "srdf" ]
+        then
+          CGNAME=cg${item}1
+        fi
+      fi 
+
       # Re-create the consistency group
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 

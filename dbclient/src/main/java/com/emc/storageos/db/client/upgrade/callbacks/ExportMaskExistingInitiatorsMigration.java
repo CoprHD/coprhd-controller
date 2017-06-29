@@ -40,76 +40,69 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
 
     @Override
     public void process() throws MigrationCallbackException {
-
-        DbClient dbClient = getDbClient();
-
-        Map<URI, StorageSystem> systemMap = new HashMap<>();
-        int pageSize = 100;
-        int totalExportMaskObjectCount = 0;
-        int exportMaskUpdatedCount = 0;
-        URI nextId = null;
-        while (true) {
-            List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true, nextId, pageSize);
-
-            if (exportMaskUris == null || exportMaskUris.isEmpty()) {
-                break;
-            }
-
-            logger.info("processing page of {} {} Objects", exportMaskUris.size(), ExportMask.class.getSimpleName());
+        logger.info("Started migration for exportmask existingInitiator into userCreatedInitiator");
+        try {
+            DbClient dbClient = getDbClient();
+            int totalExportMaskObjectCount = 0;
+            int exportMaskUpdatedCount = 0;
+            Map<URI, String> systemTypeMap = new HashMap<>();
+            StorageSystem system = null;
+            List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true);
             Iterator<ExportMask> exportMaskIterator = dbClient.queryIterativeObjects(ExportMask.class, exportMaskUris, true);
-
             while (exportMaskIterator.hasNext()) {
+                totalExportMaskObjectCount++;
                 ExportMask exportMask = exportMaskIterator.next();
-                URI systemUri = exportMask.getStorageDevice();
-                StorageSystem system = systemMap.get(systemUri);
-                if (system == null) {
-                    system = dbClient.queryObject(StorageSystem.class, systemUri);
-                    if (system != null) {
-                        systemMap.put(systemUri, system);
-                    }
-                }
-
-                if (system != null && (Type.vmax.toString().equalsIgnoreCase(system.getSystemType()) ||
-                        (Type.vplex.toString().equalsIgnoreCase(system.getSystemType())))) {
-
-                    logger.info("Processing existing initiators for export mask {} on {} storage {}", exportMask.getId(),
-                            system.getSystemType(), systemUri);
-                    boolean updateObject = false;
-                    List<String> initiatorsToProcess = new ArrayList<String>();
-
-                    if (exportMask.getExistingInitiators() != null &&
-                            !exportMask.getExistingInitiators().isEmpty()) {
-                        initiatorsToProcess.addAll(exportMask.getExistingInitiators());
-                        for (String portName : initiatorsToProcess) {
-                            Initiator existingInitiator = getInitiator(Initiator.toPortNetworkId(portName), dbClient);
-                            if (existingInitiator != null && !checkIfDifferentResource(exportMask, existingInitiator)) {
-                                exportMask.addInitiator(existingInitiator);
-                                exportMask.addToUserCreatedInitiators(existingInitiator);
-                                exportMask.removeFromExistingInitiators(existingInitiator);
-                                logger.info("Initiator {} is being moved from existing to userCreated for the Mask {}", portName,
-                                        exportMask.forDisplay());
-                                updateObject = true;
-                            }
+                if (exportMask != null && !NullColumnValueGetter.isNullURI(exportMask.getStorageDevice())) {
+                    logger.info("Processing mask {}", exportMask.forDisplay());
+                    URI systemUri = exportMask.getStorageDevice();
+                    String systemType = systemTypeMap.get(systemUri);
+                    if (systemType == null) {
+                        system = dbClient.queryObject(StorageSystem.class, systemUri);
+                        if (system != null) {
+                            systemTypeMap.put(systemUri, system.getSystemType());
                         }
                     }
-                    if (updateObject) {
-                        logger.info("Processed existing initiators for export mask {} on {} storage {} and updated the Mask Object",
-                                exportMask.getId(), system.getSystemType(), systemUri);
-                        dbClient.updateObject(exportMask);
-                        exportMaskUpdatedCount++;
+
+                    if (systemType != null && (Type.vmax.toString().equalsIgnoreCase(systemType) ||
+                            (Type.vplex.toString().equalsIgnoreCase(systemType)))) {
+
+                        logger.info("Processing existing initiators for export mask {} on {} storage {}", exportMask.getId(),
+                                systemType, systemUri);
+                        boolean updateObject = false;
+                        List<String> initiatorsToProcess = new ArrayList<String>();
+
+                        if (exportMask.getExistingInitiators() != null &&
+                                !exportMask.getExistingInitiators().isEmpty()) {
+                            initiatorsToProcess.addAll(exportMask.getExistingInitiators());
+                            for (String portName : initiatorsToProcess) {
+                                Initiator existingInitiator = getInitiator(Initiator.toPortNetworkId(portName), dbClient);
+                                if (existingInitiator != null && !checkIfDifferentResource(exportMask, existingInitiator)) {
+                                    exportMask.addInitiator(existingInitiator);
+                                    exportMask.addToUserCreatedInitiators(existingInitiator);
+                                    exportMask.removeFromExistingInitiators(existingInitiator);
+                                    logger.info("Initiator {} is being moved from existing to userCreated for the Mask {}", portName,
+                                            exportMask.forDisplay());
+                                    updateObject = true;
+                                }
+                            }
+                        }
+                        if (updateObject) {
+                            logger.info("Processed existing initiators for export mask {} on {} storage {} and updated the Mask Object",
+                                    exportMask.getId(), systemType, systemUri);
+                            dbClient.updateObject(exportMask);
+                            exportMaskUpdatedCount++;
+                        }
+                    } else if (systemType == null) {
+                        logger.error("could not determine storage system type for exportMask {}",
+                                exportMask.forDisplay());
                     }
-                } else if (system == null) {
-                    logger.warn("could not determine storage system type for exportMask {}",
-                            exportMask.forDisplay());
                 }
             }
-
-            nextId = exportMaskUris.get(exportMaskUris.size() - 1);
-            totalExportMaskObjectCount += exportMaskUris.size();
+            logger.info("Updated Existing information on {} of {} Export Mask Objects on VMAX Storage",
+                    exportMaskUpdatedCount, totalExportMaskObjectCount);
+        } catch (Exception e) {
+            logger.error("Fail to migrate ExportMask existingInitiator migration into userCreatedInitiator", e);
         }
-
-        logger.info("Updated Existing information on {} of {} Export Mask Objects on VMAX Storage",
-                exportMaskUpdatedCount, totalExportMaskObjectCount);
     }
 
     /**

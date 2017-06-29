@@ -73,6 +73,7 @@ public class VNXFileCommApi {
     private static final String PROV_FILE_MOUNT_EXPAND = "vnxfile-prov-file-mount-expand";
     private static final String PROV_SNAP_RESTORE = "vnxfile-prov-snap-restore";
     private static final String PROV_FSIDQUERY_FILE = "vnxfile-prov-filesysid-query";
+    private static final String PROV_FILE_INFO_QUERY = "vnxfile-prov-file-info-query";
     private static final String PROV_FSIDQUERY_FILE_DELETE = "vnxfile-prov-filesysid-delete-query";
     private static final String PROV_CIFS_SERVERS = "vnxfile-prov-cifsserver-query";
 
@@ -450,6 +451,8 @@ public class VNXFileCommApi {
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         try {
+            isMountRequired = !isMountPresentOnArray(fsName, system);
+
             updateAttributes(reqAttributeMap, system);
 
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
@@ -479,6 +482,43 @@ public class VNXFileCommApi {
         }
 
         return result;
+    }
+
+    /**
+     * Check on VNX array for mount present or not for a given file system id.
+     * It is useful as some of the VNX operation only be performed when it is mounted
+     * 
+     * @param fileSysName
+     * @param StorageSystem
+     * @return true if mount is present
+     */
+    private boolean isMountPresentOnArray(String fileSysName, StorageSystem system) {
+        boolean isMounted = false;
+        try {
+            XMLApiResult result = new XMLApiResult();
+            _log.info("Query movers for file system with name {}.", fileSysName);
+            Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSysName);
+            _provExecutor.setKeyMap(reqAttributeMap);
+            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_INFO_QUERY));
+            String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
+
+            if (cmdResult != null && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
+                Set<String> movers = (Set<String>) _provExecutor.getKeyMap().get(VNXFileConstants.MOVERLIST);
+                if (movers != null && !movers.isEmpty()) {
+                    isMounted = true;
+                    _log.info("Movers or mount is present for  VNX File System: fs name {}, ", fileSysName);
+                } else {
+                    _log.info("No movers or mount is present for  VNX File System: fs name {}, ", fileSysName);
+                }
+
+            }
+        } catch (Exception e) {
+            _log.warn("No able to get mover info for VNX File System: fs id {}, ", fileSysName);
+        }
+
+        return isMounted;
     }
 
     public XMLApiResult deleteFileSystem(final StorageSystem system,

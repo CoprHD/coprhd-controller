@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
@@ -384,6 +386,8 @@ public class AddHostToClusterService extends ViPRService {
                 throw e;
             }
             ComputeUtils.discoverHosts(hosts);
+        } else if(CollectionUtils.isNotEmpty(hosts)) {
+            logInfo("compute.cluster.no.vcenter.manual.hostdiscover.message", hosts);
         }
     }
 

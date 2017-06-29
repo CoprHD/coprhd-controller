@@ -23,8 +23,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowTabs[elementid] = { id:id, elementid:elementid, name:name, href:'#'+elementid };
     }
     $scope.closeTab = function(tabID){
+      var r = confirm("Are you sure you want to close the tab?");
+      if (r == true) {
         delete $scope.workflowTabs[tabID];
         $(".workflow-nav-tabs li").children('a').first().click();
+        }
     };
 
     $http.get(routes.Workflow_getAssetOptions()).then(function (resp) {
@@ -100,8 +103,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "Workflow": {
                     "icon": "builder-jstree-icon builder-jstree-workflow-icon",
-                    "valid_children": [],
-                    "li_attr": {"class": "draggable-card"}
+                    "valid_children": []
                 },
                 "script": {
                     "icon": "builder-jstree-icon builder-jstree-script-icon",
@@ -244,6 +246,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.deleteNode = function() {
+      var r = confirm("Are you sure you want to delete?");
+      if (r == true) {
         var ref = jstreeContainer.jstree(true),
             sel = ref.get_selected('full',true);
         if(!sel.length) { return false; }
@@ -259,12 +263,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             });
         }
         else if($.inArray(nodeType, primitiveNodeTypes) > -1) {
-        	$http.get(routes.Primitive_delete({"primitiveId": nodeId, "dirID": nodeParent})).success(function() {
-                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
-            })
-            .error(function (error){
-                displayErrorMessage(error.details);
-            });
+            $('#deletePrimitiveId').val(nodeId);
+            $('#deleteDirId').val(nodeParent);
+        	$('#deletePrimitiveForm').submit();
         }
         else {
             $http.get(routes.Workflow_delete({"workflowID": nodeId, "dirID": nodeParent})).success(function() {
@@ -273,8 +274,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             .error(function (error){
                 displayErrorMessage(error.details);
             });
+            }
         }
-
     };
 
     function revertRename(node, oldText, errorMessage) {
@@ -1056,8 +1057,28 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.unpublishWorkflow = function() {
         $scope.workflowData.state = 'UNPUBLISHING';
+        delete $scope.alert;
         $http.post(routes.Workflow_unpublish({workflowId : $scope.workflowData.id})).then(function (resp) {
-            updateWorkflowData(resp);
+                  $scope.workflowData.state = resp.data.status;
+                    if (resp.data.status == "INVALID") {
+                        $scope.showAlert = true;
+                        $scope.alert = resp.data;
+                        if ($scope.alert.error) {
+                            if (!$scope.alert.error.errorMessage) {
+                                $scope.alert.error.errorMessage='Workflow un-publish failed. There are active catalog service using this workflow';
+                            }
+                        }
+                    } else {
+                        $scope.showAlert = true;
+                        $scope.alert = {status : "SUCCESS",success : {successMessage : "Workflow un-published Successfully."}};
+                        updateWorkflowData(resp);
+                    }
+
+        },
+        function(){
+                    $scope.showAlert = true;
+                    $scope.alert = {status : "INVALID", error : {errorMessage : "Workflow un-publish failed. There are active catalog service using this workflow"}};
+                    $scope.workflowData.state = 'PUBLISHED';
         });
     }
 
@@ -1085,6 +1106,18 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         } else {
             return translateList(INPUT_TYPE_OPTIONS.concat(INPUT_TYPE_OPTIONS_REQUIRED),'input.type');
         }
+    }
+    
+    $scope.getDefaultInputFieldType = function(fieldType) {
+        switch(fieldType.toLowerCase()) {
+            case "integer":
+            case "short":
+                return "number";
+            case "boolean":
+                return "boolean";
+            default:
+                return "text";
+        } 
     }
 
     /* creates list of objects for select one drop downs

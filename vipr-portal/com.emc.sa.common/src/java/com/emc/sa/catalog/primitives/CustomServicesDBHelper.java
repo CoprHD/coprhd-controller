@@ -150,6 +150,9 @@ public final class CustomServicesDBHelper {
             if (null == resource) {
                 throw APIException.notFound.unableToFindEntityInURL(param.getResource());
             }
+            if (resource.getInactive()) {
+                throw APIException.notFound.entityInURLIsInactive(param.getResource());
+            }
             primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
         } else if (null != param.getResource()) {
             throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
@@ -219,6 +222,9 @@ public final class CustomServicesDBHelper {
             resource = primitiveManager.findResource(resourceType, param.getResource());
             if (null == resource) {
                 throw APIException.notFound.unableToFindEntityInURL(param.getResource());
+            }
+            if (resource.getInactive()) {
+                throw APIException.notFound.entityInURLIsInactive(param.getResource());
             }
             primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
         } else {
@@ -1117,13 +1123,30 @@ public final class CustomServicesDBHelper {
         model.setInput(mapInput(operation.getInputGroups()));
         model.setOutput(mapOutput(operation.getOutput()));
         model.setAttributes(mapAttributes(operation.getAttributes()));
-        if( null != operation.getResource() ) {
+        if (null != operation.getResource()) {
             model.setResource(new NamedURI(operation.getResource().getId(),
                     operation.getResource().getName()));
         }
         model.setSuccessCriteria(operation.getSuccessCriteria());
 
         return model;
+    }
+
+    /**
+     * Get the export
+     *
+     * @param clazz
+     * @param id
+     * @param client
+     * @return the
+     */
+    public static <DBModel extends CustomServicesDBPrimitive, T extends CustomServicesDBPrimitiveType> T exportDBPrimitive(
+            final Class<DBModel> clazz,
+            final URI id,
+            final CustomServicesPrimitiveManager primitiveManager,
+            final Function<DBModel, T> mapper) {
+        final DBModel primitive = primitiveManager.findById(clazz, id);
+        return primitive == null ? null : mapper.apply(primitive);
     }
 
     public static class UpdatePrimitive<DBModel extends CustomServicesDBPrimitive> {
@@ -1142,21 +1165,5 @@ public final class CustomServicesDBHelper {
         public DBModel primitive() {
             return primitive;
         }
-    }
-
-    /**
-     * Get the export 
-     * @param clazz
-     * @param id
-     * @param client
-     * @return the 
-     */
-    public static <DBModel extends CustomServicesDBPrimitive, T extends CustomServicesDBPrimitiveType> T  exportDBPrimitive(
-            final Class<DBModel> clazz, 
-            final URI id,
-            final CustomServicesPrimitiveManager primitiveManager,
-            final Function<DBModel, T> mapper) {
-        final DBModel primitive = primitiveManager.findById(clazz, id);
-        return primitive == null ? null : mapper.apply(primitive);
     }
 }

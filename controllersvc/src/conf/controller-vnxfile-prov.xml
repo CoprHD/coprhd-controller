@@ -155,7 +155,7 @@
         <property name="operations">
             <list>
                 <ref bean="loginoperation" />
-                <ref bean="vnxcifsserverquery"/>
+                <ref bean="filesysteminfooperation"/>
                 <ref bean="sessioncleanoperation" />
             </list>
         </property>
@@ -204,9 +204,9 @@
         </property>
     </bean>
     
-    <bean id="fileshareinfooperation"
+    <bean id="filesysteminfooperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="processor" ref="fileshareinfoprocessor" />
+		<property name="processor" ref="filesysteminfoprocessor" />
 		<property name="instance" ref="retriever" />
 		<property name="method" value="execute" />
 		<property name="arguments">
@@ -1006,7 +1006,7 @@
         <property name="unmarshaller" ref="unmarshaller"/>
     </bean>	
     
-    <bean id="fileshareinfoprocessor"
+    <bean id="filesysteminfoprocessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemInfoProcessor">
 		<property name="unmarshaller" ref="unmarshaller"/>
 	</bean>

@@ -8,9 +8,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.collections.CollectionUtils;
-
-import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 

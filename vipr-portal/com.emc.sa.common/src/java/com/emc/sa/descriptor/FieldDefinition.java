@@ -28,6 +28,8 @@ public class FieldDefinition extends ItemDefinition {
     /** The initial field value. */
     public String initialValue;
 
+    public boolean hideIfEmpty = false;
+
     /** Whether the field belongs to the service modal */
     public boolean modalField = false;
 

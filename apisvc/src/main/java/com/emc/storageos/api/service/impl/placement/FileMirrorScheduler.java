@@ -30,8 +30,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -79,16 +78,15 @@ public class FileMirrorScheduler implements Scheduler {
      *            for the storage
      * @param vpool
      *            vpool requested
-     * @param performanceParams
-     *            The performance parameters map.            
+     * @param volumeTopology
+     *            A reference to a volume topology instance.            
      * @param capabilities
      *            vpool capabilities parameters
      * @return list of Recommendation objects to satisfy the request
      */
     @Override
     public List getRecommendationsForResources(VirtualArray varray, Project project, VirtualPool vpool,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         List<FileRecommendation> recommendations = null;
         if (capabilities.getFileReplicationType().equalsIgnoreCase(VirtualPool.FileReplicationType.REMOTE.name())) {
@@ -180,7 +178,7 @@ public class FileMirrorScheduler implements Scheduler {
         } else {
             // Get the recommendation for source from vpool!!!
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool,
-                    new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), capabilities);
+                    new VolumeTopology(), capabilities);
             // Remove the source storage system from capabilities list
             // otherwise, try to find the remote pools from the same source system!!!
             if (capabilities.getFileProtectionSourceStorageDevice() != null) {
@@ -285,7 +283,7 @@ public class FileMirrorScheduler implements Scheduler {
         } else {
             // Get the recommendation for source from vpool!!!
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool,
-                    new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), capabilities);
+                    new VolumeTopology(), capabilities);
         }
 
         // process the each recommendations for targets
@@ -373,8 +371,8 @@ public class FileMirrorScheduler implements Scheduler {
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams, VpoolUse vPoolUse,
-            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+            VolumeTopology volumeTopology, VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities, 
+            Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 

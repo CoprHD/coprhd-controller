@@ -78,7 +78,6 @@
 
     <bean id="vplexscheduler" class="com.emc.storageos.api.service.impl.placement.VPlexScheduler">
         <property name="dbClient" ref="dbclient"/>
-        <property name="matcherFramework" ref="matcherFramework"/>
         <property name="blockScheduler" ref="storagescheduler" />
         <property name="placementManager" ref="placementManager" />
     </bean>

@@ -20,10 +20,9 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -81,7 +80,7 @@ public class PlacementManager {
     }
 
     /**
-     * Gets a list of recommentdations for a Volume Create Request.
+     * Gets a list of recommendations for a Volume Create Request.
      * Maintained for compatibility with RP and other existing callers. 
      * @param vArray - Virtual Array object
      * @param project - Project object
@@ -96,8 +95,7 @@ public class PlacementManager {
         Map<VpoolUse, List<Recommendation>> currentRecommendations = new HashMap<VpoolUse, List<Recommendation>>();
         Scheduler scheduler = getBlockServiceImpl(vPool);
         List<Recommendation> recommendations = scheduler.getRecommendationsForVpool(vArray, project, vPool,
-                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), VpoolUse.ROOT,
-                capabilities, currentRecommendations);
+                new VolumeTopology(), VpoolUse.ROOT, capabilities, currentRecommendations);
         return recommendations;
     }
     
@@ -107,11 +105,12 @@ public class PlacementManager {
      * @param virtualArray - Virtual Array object
      * @param project - Project object
      * @param virtualPool- Virtual Pool object
+     * @param volumeTopology - A reference to a volume topology instance.
      * @param capabilities - VirtualPoolCapabilityValuesWrapper contains parameters
      * @return Map of VpoolUse to List of Recommendations for that use.
      */
     public Map<VpoolUse, List<Recommendation>> getRecommendationsForVirtualPool(VirtualArray virtualArray,
-            Project project, VirtualPool virtualPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
+            Project project, VirtualPool virtualPool, VolumeTopology volumeTopology,
             VirtualPoolCapabilityValuesWrapper capabilities) {
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         
@@ -121,7 +120,7 @@ public class PlacementManager {
         VpoolUse use = VpoolUse.ROOT;       // the apisvc vpool
         Scheduler scheduler = getNextScheduler(null, virtualPool, use);
         List<Recommendation> newRecommendations = scheduler.getRecommendationsForVpool(
-                virtualArray, project, virtualPool, performanceParams, use, capabilities, recommendationMap);
+                virtualArray, project, virtualPool, volumeTopology, use, capabilities, recommendationMap);
         if (newRecommendations.isEmpty()) {
            return recommendationMap;
         }
@@ -143,7 +142,7 @@ public class PlacementManager {
                 VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vPoolURI);
                 scheduler = getNextScheduler(null, vPool, use);
                 newRecommendations  = scheduler.getRecommendationsForVpool(
-                        vArray, project, vPool, performanceParams, use, capabilities, recommendationMap);
+                        vArray, project, vPool, volumeTopology, use, capabilities, recommendationMap);
                 if (recommendationMap.containsKey(use)) {
                     recommendationMap.get(use).addAll(newRecommendations);
                 } else {

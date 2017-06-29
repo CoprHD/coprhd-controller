@@ -17,8 +17,8 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockPerformanceParamsMap;
 import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
@@ -30,28 +30,39 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 public class PerformanceParamsUtils {
 
     /**
-     * Transform the performance params to a Java map.
+     * Transform the performance params to an instance of a volume topology
+     * that captures the performance parameters.
      * 
      * @param performanceParams The performance parameter overrides or null.
      * 
      * @return A Map specifying the performance parameters.
      */
-    public static Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> transformPerformanceParams(
-            VolumeCreatePerformanceParams performanceParams) {
-        Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
+    public static VolumeTopology transformPerformanceParams(VolumeCreatePerformanceParams performanceParams) {
+        VolumeTopology volumeTopology = null;
         if (performanceParams != null) {
-            // Translate the source site performance parameters.
-            performanceParamsMap.put(VolumeTopologySite.SOURCE, 
-                    transformPerformanceParams(Arrays.asList(performanceParams.getSourceParams())));
-
-            // Translate the copy site performance parameters.
-            performanceParamsMap.put(VolumeTopologySite.COPY, 
-                    transformPerformanceParams(performanceParams.getCopyParams()));
+            // Translate source performance parameters to a Map
+            Map<VolumeTopologyRole, URI> sourcePerformanceParams = null;
+            Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = transformPerformanceParams(Arrays.asList(performanceParams.getSourceParams()));
+            if (!CollectionUtils.isEmpty(sourceParamsMap)) {
+                // There is always only one when specified as there is only one source
+                // in a volume topology.
+                sourcePerformanceParams = sourceParamsMap.values().iterator().next();
+            } else {
+                sourcePerformanceParams = new HashMap<>();
+            }
+            
+            // Translate copy performance parameters.
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams = transformPerformanceParams(performanceParams.getCopyParams());
+            if (copyPerformanceParams == null) {
+                copyPerformanceParams = new HashMap<>();
+            }
+            
+            // Create the volume topology to capture these performance parameters.
+            volumeTopology = new VolumeTopology(sourcePerformanceParams, copyPerformanceParams);
         } else {
-            performanceParamsMap.put(VolumeTopologySite.SOURCE, new HashMap<>());
-            performanceParamsMap.put(VolumeTopologySite.COPY, new HashMap<>());
+            volumeTopology = new VolumeTopology();
         }
-        return performanceParamsMap;
+        return volumeTopology;
     }
 
     /**

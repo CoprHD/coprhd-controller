@@ -44,7 +44,6 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -54,6 +53,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
@@ -96,12 +96,11 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood, VirtualPool cos,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams, 
-            Map<VpoolUse, List<Recommendation>> volRecommendations, TaskList taskList, String task, 
-            VirtualPoolCapabilityValuesWrapper cosCapabilities) throws ControllerException {
+            VolumeTopology volumeTopology, Map<VpoolUse, List<Recommendation>> volRecommendations, TaskList taskList,
+            String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws ControllerException {
 
         return _defaultBlockServiceApi.createVolumes(param, project, neighborhood, cos, 
-                performanceParams, volRecommendations, taskList, task, cosCapabilities);
+                volumeTopology, volRecommendations, taskList, task, cosCapabilities);
     }
 
     /**

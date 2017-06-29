@@ -70,8 +70,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
@@ -87,6 +85,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -1113,10 +1112,9 @@ public class VolumeService extends TaskResourceService {
 
         _log.debug("Block Service API call for : Create New Volume ");
         TaskList passedTaskist = createTaskList(requestedSize, project, varray, vpool, capabilities, name, task, volumeCount);
-        // TBD Heg
+        // Performance parameter overrides not supported through Cinder for now.
         return api.createVolumes(volumeCreate, project, varray, vpool, 
-                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(),
-                recommendationsMap, passedTaskist, task, capabilities);
+                new VolumeTopology(), recommendationsMap, passedTaskist, task, capabilities);
     }
 
     /**

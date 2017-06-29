@@ -7,19 +7,16 @@ package com.emc.storageos.api.service.impl.placement;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 public interface Scheduler {
     List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams, 
-            VirtualPoolCapabilityValuesWrapper capabilities);
+            VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities);
     
     /**
      * Returns the String Name of a scheduler.
@@ -53,7 +50,7 @@ public interface Scheduler {
      * The Recommendations may be any subclass of Recommendation.
      */
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities, 
+            VirtualPool vPool, VolumeTopology volumeTopology, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, 
             Map<VpoolUse, List<Recommendation>> currentRecommendations);
 }

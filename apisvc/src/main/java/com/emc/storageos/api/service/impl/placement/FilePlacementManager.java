@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.placement;
 
-import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,8 +12,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
@@ -46,7 +43,7 @@ public class FilePlacementManager {
         // Get the file placement based on passed parameters.
         Scheduler scheduler = getFileServiceImpl(capabilities);
         return scheduler.getRecommendationsForResources(virtualArray, project, vPool, 
-                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), capabilities);
+                new VolumeTopology(), capabilities);
     }
 
     /**

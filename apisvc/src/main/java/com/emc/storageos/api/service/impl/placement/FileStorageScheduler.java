@@ -46,9 +46,8 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -1084,8 +1083,7 @@ public class FileStorageScheduler implements Scheduler {
 
     @Override
     public List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities) {
         return placeFileShare(vArray, vPool, capabilities, project, null);
     }
 
@@ -1213,7 +1211,7 @@ public class FileStorageScheduler implements Scheduler {
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool vPool, VolumeTopology volumeTopology,
             VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities,
             Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         throw DeviceControllerException.exceptions.operationNotSupported();

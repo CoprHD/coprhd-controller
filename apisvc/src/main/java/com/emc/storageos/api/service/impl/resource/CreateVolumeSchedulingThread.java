@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,8 +21,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -52,12 +50,11 @@ class CreateVolumeSchedulingThread implements Runnable {
     private ArrayList<String> requestedTypes;
     private VolumeCreate param;
     private BlockServiceApi blockServiceImpl;
-    private Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams;
+    private VolumeTopology volumeTopology;
 
     public CreateVolumeSchedulingThread(BlockService blockService, VirtualArray varray, Project project,
-            VirtualPool vpool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VirtualPoolCapabilityValuesWrapper capabilities, TaskList taskList, String task,
-            BlockConsistencyGroup consistencyGroup, ArrayList<String> requestedTypes,
+            VirtualPool vpool, VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities,
+            TaskList taskList, String task, BlockConsistencyGroup consistencyGroup, ArrayList<String> requestedTypes,
             VolumeCreate param, BlockServiceApi blockServiceImpl) {
         this.blockService = blockService;
         this.varray = varray;
@@ -70,7 +67,7 @@ class CreateVolumeSchedulingThread implements Runnable {
         this.requestedTypes = requestedTypes;
         this.param = param;
         this.blockServiceImpl = blockServiceImpl;
-        this.performanceParams = performanceParams;
+        this.volumeTopology = volumeTopology;
     }
 
     @Override
@@ -80,7 +77,7 @@ class CreateVolumeSchedulingThread implements Runnable {
         try {
             Map<VpoolUse, List<Recommendation>> recommendationMap = 
                     this.blockService._placementManager.getRecommendationsForVirtualPool(
-                    varray, project, vpool, performanceParams, capabilities);
+                    varray, project, vpool, volumeTopology, capabilities);
 
             if (recommendationMap.isEmpty()) {
                 throw APIException.badRequests.
@@ -95,7 +92,7 @@ class CreateVolumeSchedulingThread implements Runnable {
 
             // Call out to the respective block service implementation to prepare
             // and create the volumes based on the recommendations.
-            blockServiceImpl.createVolumes(param, project, varray, vpool, performanceParams, recommendationMap, taskList, task, capabilities);
+            blockServiceImpl.createVolumes(param, project, varray, vpool, volumeTopology, recommendationMap, taskList, task, capabilities);
         } catch (Exception ex) {
             for (TaskResourceRep taskObj : taskList.getTaskList()) {
                 if (ex instanceof ServiceCoded) {

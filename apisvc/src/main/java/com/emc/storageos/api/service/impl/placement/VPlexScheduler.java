@@ -31,12 +31,11 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -45,7 +44,6 @@ import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
-import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class VPlexScheduler implements Scheduler {
@@ -57,7 +55,6 @@ public class VPlexScheduler implements Scheduler {
 
     private DbClient _dbClient;
     private StorageScheduler _blockScheduler;
-    private AttributeMatcherFramework _matcherFramework;
     private PlacementManager _placementManager;
 
     public void setBlockScheduler(StorageScheduler blockScheduler) {
@@ -72,10 +69,6 @@ public class VPlexScheduler implements Scheduler {
         _dbClient = dbClient;
     }
 
-    public void setMatcherFramework(AttributeMatcherFramework matcherFramework) {
-        _matcherFramework = matcherFramework;
-    }
-    
     public void setPlacementManager(PlacementManager placementManager) {
         _placementManager = placementManager;
     }
@@ -85,15 +78,14 @@ public class VPlexScheduler implements Scheduler {
      */
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
-        return getRecommendationsForResources(vArray, project, vPool, performanceParams, capabilities,
+            VirtualPool vPool, VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities) {
+        return getRecommendationsForResources(vArray, project, vPool, volumeTopology, capabilities,
                 new HashMap<VpoolUse, List <Recommendation>>());
     }
 
     public List<Recommendation> getRecommendationsForResources(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+            VirtualPool vPool, VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities,
+            Map<VpoolUse, List<Recommendation>> currentRecommendations) {
 
         _log.info("Getting recommendations for VPlex volume placement");
 
@@ -149,7 +141,7 @@ public class VPlexScheduler implements Scheduler {
         _log.info("VirtualPool: {}, HA VirtualPool: {}", vPool.getId().toString(), haVPool.getId()
                 .toString());
         List<Recommendation> recommendations = scheduleStorage(
-                vArray, vplexSystemsForPlacement, null, vPool, performanceParams, isHAVolumeRequest, 
+                vArray, vplexSystemsForPlacement, null, vPool, volumeTopology, isHAVolumeRequest, 
                 haVArray, haVPool, capabilities, project, VpoolUse.ROOT, currentRecommendations);
 
         return recommendations;
@@ -237,7 +229,7 @@ public class VPlexScheduler implements Scheduler {
      * @param excludeStorageSystem The URI of the storage system that needs to be excluded
      * @param cluster The VPLEX cluster to which resources should be connected
      */
-    public List getRecommendationsForMirrors(VirtualArray vArray, Project project, VirtualPool sourceVPool, VirtualPool mirrorVPool,
+    public List<Recommendation> getRecommendationsForMirrors(VirtualArray vArray, Project project, VirtualPool sourceVPool, VirtualPool mirrorVPool,
             VirtualPoolCapabilityValuesWrapper capabilities, URI vplexStorageSystemURI, URI excludeStorageSystem, String cluster) {
 
         _log.info("Getting recommendations for VPlex volume placement");
@@ -375,7 +367,7 @@ public class VPlexScheduler implements Scheduler {
      *            which the source resource should be limited, or null when it
      *            doesn't matter.
      * @param srcVpool The VirtualPool requested for the source resources.
-     * @param performanceParams The performance parameters map.
+     * @param volumeTopology A reference to a volume topology instance.
      * @param isHARequest Whether or not HA recommendations are also required.
      * @param requestedHaVarray The desired HA varray or null when not
      *            specified.
@@ -386,20 +378,19 @@ public class VPlexScheduler implements Scheduler {
      *         recommended resource placement resources.
      */
     public List<Recommendation> scheduleStorage(VirtualArray srcVarray, Set<URI> requestedVPlexSystems, URI srcStorageSystem,
-            VirtualPool srcVpool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            boolean isHARequest, VirtualArray requestedHaVarray, VirtualPool haVpool,
-            VirtualPoolCapabilityValuesWrapper capabilities, Project project, VpoolUse vpoolUse,
+            VirtualPool srcVpool, VolumeTopology volumeTopology, boolean isHARequest, VirtualArray requestedHaVarray,
+            VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper capabilities, Project project, VpoolUse vpoolUse,
             Map<VpoolUse, List<Recommendation>> currentRecommendations) {
 
         _log.info("Executing VPlex high availability placement strategy");
 
         if (!isHARequest) {
             return scheduleStorageForLocalVPLEXVolume(srcVarray, requestedVPlexSystems,
-                    srcStorageSystem, srcVpool, performanceParams, capabilities, project,
+                    srcStorageSystem, srcVpool, volumeTopology, capabilities, project,
                     vpoolUse, currentRecommendations);
         } else {
             return scheduleStorageForDistributedVPLEXVolume(srcVarray, requestedVPlexSystems,
-                    srcStorageSystem, srcVpool, performanceParams, requestedHaVarray,
+                    srcStorageSystem, srcVpool, volumeTopology, requestedHaVarray,
                     haVpool, capabilities, project, vpoolUse, currentRecommendations);
         }
     }
@@ -414,16 +405,15 @@ public class VPlexScheduler implements Scheduler {
      *            which the source resource should be limited, or null when it
      *            doesn't matter.
      * @param vpool The virtual pool requested for the source resources.
-     * @param performanceParams The performance parameters map.
+     * @param volumeTopology A reference to a volume topology instance.
      * @param capabilities The virtual pool capabilities.
      * 
      * @return A list of VPlexRecommendation instances specifying the
      *         recommended resource placement.
      */
     private List<Recommendation> scheduleStorageForLocalVPLEXVolume(VirtualArray varray, Set<URI> requestedVPlexSystems,
-            URI storageSystem, VirtualPool vpool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VirtualPoolCapabilityValuesWrapper capabilities, Project project, VpoolUse vPoolUse, Map<VpoolUse,
-            List<Recommendation>> currentRecommendations) {
+            URI storageSystem, VirtualPool vpool, VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities,
+            Project project, VpoolUse vPoolUse, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
 
         _log.info("Executing VPlex high availability placement strategy for Local VPLEX volumes");
         
@@ -443,7 +433,7 @@ public class VPlexScheduler implements Scheduler {
                 SCHEDULER_NAME, vpool, vPoolUse);
         _log.info(String.format("Calling next scheduler: %s", nextScheduler.getClass().getSimpleName()));
         List<Recommendation> baseRecommendations = 
-                nextScheduler.getRecommendationsForVpool(varray, project, vpool, performanceParams,
+                nextScheduler.getRecommendationsForVpool(varray, project, vpool, volumeTopology,
                         vPoolUse, capabilities, currentRecommendations);
         _log.info(String.format("Received %d recommendations from %s", 
                 baseRecommendations.size(), nextScheduler.getClass().getSimpleName()));
@@ -491,7 +481,7 @@ public class VPlexScheduler implements Scheduler {
      *            which the source resource should be limited, or null when it
      *            doesn't matter.
      * @param srcVpool The virtual pool requested for the source resources.
-     * @param performanceParams The performance parameters map.
+     * @param volumeTopology A reference to a volume topology instance.
      * @param haVarray The desired HA varray.
      * @param haVpool The virtual pool for the HA resources.
      * @param capabilities The virtual pool capabilities.
@@ -501,9 +491,9 @@ public class VPlexScheduler implements Scheduler {
      */
     private List<Recommendation> scheduleStorageForDistributedVPLEXVolume(VirtualArray srcVarray,
             Set<URI> requestedVPlexSystems, URI srcStorageSystem, VirtualPool srcVpool,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VirtualArray haVarray, VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper capabilities,
-            Project project, VpoolUse srcVpoolUse, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+            VolumeTopology volumeTopology, VirtualArray haVarray, VirtualPool haVpool, 
+            VirtualPoolCapabilityValuesWrapper capabilities, Project project, VpoolUse srcVpoolUse,
+            Map<VpoolUse, List<Recommendation>> currentRecommendations) {
 
         _log.info("Executing VPLEX high availability placement strategy for Distributed VPLEX Volumes.");
 
@@ -524,7 +514,7 @@ public class VPlexScheduler implements Scheduler {
         _log.info(String.format("Calling next scheduler: %s", nextScheduler.getClass().getSimpleName()));
         List<Recommendation> baseRecommendations =
               nextScheduler.getRecommendationsForVpool(
-                      srcVarray, project, srcVpool, performanceParams, srcVpoolUse, capabilities, currentRecommendations);
+                      srcVarray, project, srcVpool, volumeTopology, srcVpoolUse, capabilities, currentRecommendations);
         _log.info(String.format("Received %d recommendations from %s", baseRecommendations.size(), 
               nextScheduler.getClass().getSimpleName()));
         if (baseRecommendations.isEmpty()) {
@@ -536,9 +526,6 @@ public class VPlexScheduler implements Scheduler {
         List<StoragePool> allMatchingPoolsForSrcVarray = _placementManager
                 .getStoragePoolsFromRecommendations(baseRecommendations);
         _log.info("Found {} matching pools for source varray", allMatchingPoolsForSrcVarray.size());
-
-        URI cgURI = capabilities.getBlockConsistencyGroup();
-        BlockConsistencyGroup cg = (cgURI == null ? null : _dbClient.queryObject(BlockConsistencyGroup.class, cgURI));
 
         // Sort the matching pools for the source varray by VPLEX system.
         Map<String, List<StoragePool>> vplexPoolMapForSrcVarray =
@@ -561,7 +548,7 @@ public class VPlexScheduler implements Scheduler {
         URI haStorageSystem = null;
         
         VirtualPoolCapabilityValuesWrapper haCapabilities = overideSourceCapabilitiesForHaPlacement
-                (haVpool, capabilities, performanceParams);
+                (haVpool, capabilities, volumeTopology);
         
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<StoragePool> allMatchingPoolsForHaVarray = getMatchingPools(
@@ -704,21 +691,16 @@ public class VPlexScheduler implements Scheduler {
      *  
      * @param haVpool The HA virtual pool.
      * @param srcCapabilities The capabilities for the source side of the VPLEX volume.
-     * @param performanceParams The performance parameters.
+     * @param volumeTopology A reference to a volume topology instance.
      * 
      * @return The capabilities to use when matching pools for the HA side of the volume.
      */
     private VirtualPoolCapabilityValuesWrapper overideSourceCapabilitiesForHaPlacement(
             VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper srcCapabilities,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams) {
+            VolumeTopology volumeTopology) {
         
         // Get the performance parameters for the source volume.
-        Map<VolumeTopologyRole, URI> sourceParams = null;
-        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamMap = performanceParams.get(VolumeTopologySite.SOURCE);
-        if (sourceParamMap != null && !sourceParamMap.isEmpty()) {
-            // There is only one source volume in a volume topology.
-            sourceParams = sourceParamMap.values().iterator().next();
-        }
+        Map<VolumeTopologyRole, URI> sourceParams = volumeTopology.getSourcePerformanceParams();
         
         VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
                 haVpool, sourceParams, VolumeTopologyRole.HA, srcCapabilities, _dbClient);
@@ -1037,46 +1019,6 @@ public class VPlexScheduler implements Scheduler {
     }
 
     /**
-     * Gets the List of storage systems with the passed ids.
-     * 
-     * @param storageSystemIds The storage system ids.
-     * 
-     * @return A list of the storage systems.
-     */
-    private List<StorageSystem> getStorageSystemsWithIds(Set<String> storageSystemIds) {
-        List<StorageSystem> storageSystems = new ArrayList<StorageSystem>();
-        for (String storageSystemId : storageSystemIds) {
-            storageSystems.add(_dbClient.queryObject(StorageSystem.class,
-                    URI.create(storageSystemId)));
-        }
-        return storageSystems;
-    }
-
-    /**
-     * Get the Ids of the varrays for the passed storage pools.
-     * 
-     * @param storagePools The list of storage pools.
-     * 
-     * @return A list of the ids for the storage pool varrays.
-     */
-    private List<String> getNeighborhoodsForPools(List<StoragePool> storagePools) {
-        List<String> poolNHIds = new ArrayList<String>();
-        for (StoragePool storagePool : storagePools) {
-            StringSet nhIds = storagePool.getTaggedVirtualArrays();
-            if (nhIds == null) {
-                continue;
-            }
-            for (String nhId : nhIds) {
-                if (!poolNHIds.contains(nhId)) {
-                    poolNHIds.add(nhId);
-                }
-            }
-        }
-
-        return poolNHIds;
-    }
-
-    /**
      * Sets the Id of the VPlex storage system into the passed recommendations.
      * 
      * @param vplexStorageSystemId The id of the VPlex storage system.
@@ -1199,10 +1141,9 @@ public class VPlexScheduler implements Scheduler {
     }
 
     @Override
-    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse,
-            List<Recommendation>> currentRecommendations) {
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool,
+            VolumeTopology volumeTopology, VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities,
+            Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         _log.info("Getting recommendations for VPlex volume placement");
 
         // Validate the VirtualPool specifies VPlex high availability, which
@@ -1259,7 +1200,7 @@ public class VPlexScheduler implements Scheduler {
         _log.info("VirtualPool: {}, HA VirtualPool: {}", vPool.getId().toString(), haVPool.getId()
                 .toString());
         List<Recommendation> recommendations = scheduleStorage(vArray, vplexSystemsForPlacement, null,
-                vPool, performanceParams, isHAVolumeRequest, haVArray, haVPool, capabilities, project,
+                vPool, volumeTopology, isHAVolumeRequest, haVArray, haVPool, capabilities, project,
                 vPoolUse, currentRecommendations);
 
         return recommendations;

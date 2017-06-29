@@ -46,9 +46,9 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
@@ -267,14 +267,13 @@ public class RecoverPointScheduler implements Scheduler {
      * @param varray varray requested for source
      * @param project for the storage
      * @param vpool vpool requested
-     * @param performanceParams The performance parameters map.
+     * @param volumeTopology A reference to a volume topology instance.
      * @param capabilities Vpool capabilities parameters
      * @return list of Recommendation objects to satisfy the request
      */
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray varray, Project project,
-            VirtualPool vpool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPool vpool, VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         // Check to see if we need to throttle concurrent requests for the same RP CG
         throttleConncurrentRequests(vpool, capabilities.getBlockConsistencyGroup());
@@ -295,12 +294,7 @@ public class RecoverPointScheduler implements Scheduler {
         // performance parameters for the PRIMARY and if VPLEX distributed, HA side volumes. 
         // It also specifies the performance parameters for the active and standby journal
         // volumes.
-        Map<VolumeTopologyRole, URI> sourceParams = null;
-        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = performanceParams.get(VolumeTopologySite.SOURCE);
-        if (sourceParamsMap != null && !sourceParamsMap.isEmpty()) {
-            // If present, always just one.
-            sourceParams = sourceParamsMap.values().iterator().next();
-        }
+        Map<VolumeTopologyRole, URI> sourceParams = volumeTopology.getSourcePerformanceParams();
 
         VirtualArray haVarray = null;
         VirtualPool haVpool = null;
@@ -337,12 +331,12 @@ public class RecoverPointScheduler implements Scheduler {
             // MetroPoint has been enabled so we need to obtain recommendations for the primary (active) and secondary (HA/Stand-by)
             // VPlex clusters.
             recommendations = createMetroPointRecommendations(container.getSrcVarray(), protectionVarrays, 
-                    container.getSrcVpool(), haVarray, haVpool, project, capabilities, changeVpoolVolume, performanceParams);
+                    container.getSrcVpool(), haVarray, haVpool, project, capabilities, changeVpoolVolume, volumeTopology);
         } else {
             _log.info("Finding recommendations for RecoverPoint volume placement...");
             // Schedule storage based on the source pool constraint.
             recommendations = scheduleStorageSourcePoolConstraint(varray, protectionVarrays, vpool,
-                    performanceParams, capabilities, project, changeVpoolVolume, null);
+                    volumeTopology, capabilities, project, changeVpoolVolume, null);
         }
 
         // There is only one entry of type RPProtectionRecommendation ever in the returned recommendation list.
@@ -356,15 +350,14 @@ public class RecoverPointScheduler implements Scheduler {
      * @param varray varray requested for source
      * @param protectionVarrays Neighborhood to protect this volume to.
      * @param vpool vpool requested
-     * @param performanceParams The performance parameters.
+     * @param volumeTopology A reference to a volume topology instance.
      * @param capabilities parameters
      * @param vpoolChangeVolume vpool change volume, if applicable
      * @param preSelectedCandidateProtectionPoolsMap pre-populated map for tgt varray to storage pools, use null if not needed
      * @return list of Recommendation objects to satisfy the request
      */
     protected List<Recommendation> scheduleStorageSourcePoolConstraint(VirtualArray varray,
-            List<VirtualArray> protectionVarrays, VirtualPool vpool,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
+            List<VirtualArray> protectionVarrays, VirtualPool vpool, VolumeTopology volumeTopology, 
             VirtualPoolCapabilityValuesWrapper capabilities, Project project, Volume vpoolChangeVolume,
             Map<VirtualArray, List<StoragePool>> preSelectedCandidateProtectionPoolsMap) {
 
@@ -372,13 +365,8 @@ public class RecoverPointScheduler implements Scheduler {
         // There should only be one set of performance parameters for
         // the source in the map, which is keyed by the source site
         // varray URI.
-        Map<VolumeTopologyRole, URI> sourcePerformanceParams = null;
-        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = performanceParams.get(VolumeTopologySite.SOURCE);
-        if (sourceParamsMap != null && !sourceParamsMap.isEmpty()) {
-            // If present, always just one.
-            sourcePerformanceParams = sourceParamsMap.values().iterator().next();
-        }
-        
+        Map<VolumeTopologyRole, URI> sourcePerformanceParams = volumeTopology.getSourcePerformanceParams();
+
         // Initialize a list of recommendations to be returned.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
         String candidateSourceInternalSiteName = "";
@@ -613,7 +601,7 @@ public class RecoverPointScheduler implements Scheduler {
                     
                     // Find a solution, given this vpool, and the target varrays
                     if (findSolution(rpProtectionRecommendation, rpSourceRecommendation, varray, vpool, protectionVarrays,
-                            capabilities, satisfiedCount, false, null, project, performanceParams.get(VolumeTopologySite.COPY))) {
+                            capabilities, satisfiedCount, false, null, project, volumeTopology.getCopyPerformanceParams())) {
                         // Found Source, Source Journal, Target, Target Journals...we're good to go.
                         totalSatisfiedCount += satisfiedCount;
                         requestedCount = requestedCount - totalSatisfiedCount;                        
@@ -1141,18 +1129,18 @@ public class RecoverPointScheduler implements Scheduler {
      * @param project the project.
      * @param capabilities the capability params.
      * @param vpoolChangeVolume The volume to which RP protection is being added, or null if not a vpool change.
-     * @param performanceParams The performance parameters.
+     * @param volumeTopology A reference to a volume topology instance.
      * 
      * @return list of Recommendation objects to satisfy the request
      */
     private List<Recommendation> createMetroPointRecommendations(VirtualArray srcVarray, List<VirtualArray> tgtVarrays,
             VirtualPool srcVpool, VirtualArray haVarray, VirtualPool haVpool, Project project,
             VirtualPoolCapabilityValuesWrapper capabilities, Volume vpoolChangeVolume,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams) {
+            VolumeTopology volumeTopology) {
 
         // Initialize a list of recommendations to be returned.
         RPProtectionRecommendation rpProtectionRecommendaton = createRPProtectionRecommendationForMetroPoint(srcVarray,
-                tgtVarrays, srcVpool, haVarray, haVpool, capabilities, vpoolChangeVolume, project, performanceParams);
+                tgtVarrays, srcVpool, haVarray, haVpool, capabilities, vpoolChangeVolume, project, volumeTopology);
 
         _log.info(String.format("Produced %s recommendations for MetroPoint placement.", rpProtectionRecommendaton.getResourceCount()));
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
@@ -1179,14 +1167,14 @@ public class RecoverPointScheduler implements Scheduler {
      * @param capabilities parameters.
      * @param vpoolChangeVolume The volume to which RP protection is being added or null
      * @param project The project
-     * @param performanceParams The performance parameters
+     * @param volumeTopology A reference to a volume topology instance.
      * 
      * @return list of Recommendation objects to satisfy the request
      */
     private RPProtectionRecommendation createRPProtectionRecommendationForMetroPoint(VirtualArray varray,
             List<VirtualArray> protectionVarrays, VirtualPool vpool, VirtualArray haVarray,
             VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper capabilities, Volume vpoolChangeVolume,
-            Project project, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams) {
+            Project project, VolumeTopology volumeTopology) {
         
         // Initialize a list of recommendations to be returned.
         Set<ProtectionSystem> secondaryProtectionSystems = null;
@@ -1204,12 +1192,7 @@ public class RecoverPointScheduler implements Scheduler {
         
         // There should only be one set of performance parameters for the source
         // in the map, which is keyed by the source site varray URI.
-        Map<VolumeTopologyRole, URI> sourceParams = null;
-        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = performanceParams.get(VolumeTopologySite.SOURCE);
-        if (sourceParamsMap != null && !sourceParamsMap.isEmpty()) {
-            // If present, always just one.
-            sourceParams = sourceParamsMap.values().iterator().next();
-        }
+        Map<VolumeTopologyRole, URI> sourceParams = volumeTopology.getSourcePerformanceParams();
 
         // Active journal varray - Either explicitly set by the user or use the default varray. 
         VirtualArray activeJournalVarray = (NullColumnValueGetter.isNotNullValue(vpool.getJournalVarray()) ?
@@ -1418,7 +1401,7 @@ public class RecoverPointScheduler implements Scheduler {
                     _log.info("RP Placement : An RP source placement solution has been identified for the MetroPoint primary (active) cluster.");
                     // Find a solution, given this vpool, and the target varrays
                     if (findSolution(rpProtectionRecommendation, sourceRec, varray, vpool, activeProtectionVarrays,
-                            capabilities, satisfiedSourceVolCount, true, null, project, performanceParams.get(VolumeTopologySite.COPY))) {
+                            capabilities, satisfiedSourceVolCount, true, null, project, volumeTopology.getCopyPerformanceParams())) {
 
                         _log.info("RP Placement : An RP target placement solution has been identified for the MetroPoint primary (active) cluster.");
 
@@ -1554,7 +1537,7 @@ public class RecoverPointScheduler implements Scheduler {
                                     // Find a solution, given this vpool, and the target varrays
                                     if (findSolution(rpProtectionRecommendation, secondaryRpRecommendation, haVarray, vpool,
                                             standbyProtectionVarrays, capabilities, satisfiedSourceVolCount, true, sourceRec,
-                                            project, performanceParams.get(VolumeTopologySite.COPY))) {
+                                            project, volumeTopology.getCopyPerformanceParams())) {
                                         _log.info("RP Placement : An RP target placement solution has been identified for the "
                                                 + "MetroPoint secondary (standby) cluster.");
                                         secondaryRecommendationSolution = true;
@@ -1760,15 +1743,15 @@ public class RecoverPointScheduler implements Scheduler {
      *
      * @param volume volume that is being changed to a protected vpool
      * @param newVpool vpool requested to change to (must be protected)
-     * @param performanceParams The performance parameters map.
+     * @param volumeTopology A reference to a volume topology instance.
      * @param capabilities Vpool capabilities parameters
      * @param protectionVirtualArraysForVirtualPool Varrays to protect this volume to.
      * 
      * @return list of Recommendation objects to satisfy the request
      */
     public List<Recommendation> scheduleStorageForVpoolChangeProtected(Volume volume, VirtualPool newVpool,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap, 
-            VirtualPoolCapabilityValuesWrapper capabilities, List<VirtualArray> protectionVirtualArraysForVirtualPool) {
+            VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities,
+            List<VirtualArray> protectionVirtualArraysForVirtualPool) {
         _log.info(String.format("Schedule storage for vpool change to vpool [%s : %s] for volume [%s : %s]",
                 newVpool.getLabel(), newVpool.getId().toString(),
                 volume.getLabel(), volume.getId().toString()));
@@ -1778,17 +1761,9 @@ public class RecoverPointScheduler implements Scheduler {
         VirtualArray varray = dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
         
         // Get performance parameters, if any, for the source site.
-        Map<VolumeTopologyRole, URI> sourceParams = null;
-        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = performanceParamsMap.get(VolumeTopologySite.SOURCE);
-        if (sourceParamsMap != null && !sourceParamsMap.isEmpty()) {
-            // If present, always just one.
-            sourceParams = sourceParamsMap.values().iterator().next();
-        }
+        Map<VolumeTopologyRole, URI> sourceParams = volumeTopology.getSourcePerformanceParams();
 
         // Swap src and ha if the flag has been set on the vpool
-        // TBD Heg - Don't know why this is done? This is only called for upgrade to MP, so
-        // we would never swap because we only swap if VirtualPool.isRPVPlexProtectHASide
-        // is true, which is not the case for MP.
         SwapContainer container = this.swapSrcAndHAIfNeeded(varray, newVpool, capabilities, sourceParams);
 
         // Get the project.
@@ -1813,7 +1788,7 @@ public class RecoverPointScheduler implements Scheduler {
                             project, container.getSrcVpool(), dbClient, _permissionsHelper);
 
             recommendations = createMetroPointRecommendations(container.getSrcVarray(), tgtVarrays, container.getSrcVpool(),
-                    haVarray, haVpool, project, capabilities, volume, performanceParamsMap);
+                    haVarray, haVpool, project, capabilities, volume, volumeTopology);
         }
 
         // There is only one entry of type RPProtectionRecommendation ever in the returned recommendation list.
@@ -3782,12 +3757,12 @@ public class RecoverPointScheduler implements Scheduler {
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities,
+            VirtualPool vPool, VolumeTopology volumeTopology, VpoolUse vPoolUse, 
+            VirtualPoolCapabilityValuesWrapper capabilities,
             Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // No special implementation based on Vpool - using original implementation
         return getRecommendationsForResources(vArray, project, vPool,
-                new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(), capabilities);
+               volumeTopology, capabilities);
     }
 
     @Override

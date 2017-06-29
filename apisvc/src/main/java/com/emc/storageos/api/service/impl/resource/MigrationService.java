@@ -46,8 +46,8 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -183,8 +183,7 @@ public class MigrationService extends TaskResourceService {
         // Make sure the capabilities reflect the new vpool and performance parameters of the
         // source volume of the Migration. We are migrating to a new vpool, but not a new
         // performance parameters and the capabilities must reflect these when placing and 
-        // preparing the volume. Note that the role passed here is really irrelevant since we
-        // are setting up the map.
+        // preparing the volume.
         // TBD Heg - This is another place where it would seem that maybe we need to set pre-allocation size
         // based on allocated capacity of the source volume. I saw this was done for full copy, but not really
         // elsewhere. Further, after placing the volume the value is reset in the capabilities to be based on 
@@ -193,19 +192,16 @@ public class MigrationService extends TaskResourceService {
         // everywhere you placing a volume based on the size of some other "source" volume. 
         boolean isHA = !vplexVolume.getVirtualArray().equals(migrationTargetVarray.getId());
         URI performanceParamsURI = migrationSrc.getPerformanceParams();
-        Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
-        Map<URI, Map<VolumeTopologyRole, URI>> sourceParamsMap = new HashMap<>();
-        Map<VolumeTopologyRole, URI> performanceParams = new HashMap<>();
+        Map<VolumeTopologyRole, URI> sourceParams = new HashMap<>();
         VolumeTopologyRole role = isHA ? VolumeTopologyRole.HA : VolumeTopologyRole.PRIMARY;
-        performanceParams.put(role, performanceParamsURI);
-        sourceParamsMap.put(migrationTargetVarray.getId(), performanceParams);
-        performanceParamsMap.put(VolumeTopologySite.SOURCE, sourceParamsMap);
+        sourceParams.put(role, performanceParamsURI);
+        VolumeTopology volumeTopology = new VolumeTopology(sourceParams, null);
         vpoolCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                migrationTgtVpool, performanceParams, role, vpoolCapabilities, _dbClient);        
+                migrationTgtVpool, sourceParams, role, vpoolCapabilities, _dbClient);        
         
         List<Recommendation> recommendations = vplexScheduler.scheduleStorage(migrationTargetVarray, 
                 requestedVPlexSystems, migrateParam.getTgtStorageSystem(), migrationTgtVpool,
-                performanceParamsMap, false, null, null, vpoolCapabilities, migrationTgtProject,
+                volumeTopology, false, null, null, vpoolCapabilities, migrationTgtProject,
                 VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
 
         if (recommendations.isEmpty()) {

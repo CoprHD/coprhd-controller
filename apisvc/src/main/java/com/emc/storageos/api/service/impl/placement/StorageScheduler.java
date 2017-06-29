@@ -57,10 +57,9 @@ import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -161,8 +160,7 @@ public class StorageScheduler implements Scheduler {
      */
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project,
-            VirtualPool cos, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPool cos, VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
 
@@ -459,10 +457,12 @@ public class StorageScheduler implements Scheduler {
                     // then update storage system corresponding to target CG
                     // source Label is set as alternate name for target Cgs, so that the same name can be used to create targte CGs in
                     // Array.
-                    List<URI> cgUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                            .getBlockConsistencyGroupByAlternateNameConstraint(consistencyGroup.getLabel()));
-                    if (!cgUris.isEmpty()) {
-                        BlockConsistencyGroup targetCgGroup = _dbClient.queryObject(BlockConsistencyGroup.class, cgUris.get(0));
+                    URIQueryResultList queryResults = new URIQueryResultList();
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getBlockConsistencyGroupByAlternateNameConstraint(consistencyGroup.getLabel()), queryResults);
+                    Iterator<URI> queryResultsIter = queryResults.iterator(); 
+                    if (queryResultsIter.hasNext()) {
+                        BlockConsistencyGroup targetCgGroup = _dbClient.queryObject(BlockConsistencyGroup.class, queryResultsIter.next());
                         if (null != targetCgGroup && !targetCgGroup.getInactive() && null != targetCgGroup.getStorageController() &&
                                 !NullColumnValueGetter.isNullURI(targetCgGroup.getStorageController())) {
                             storageSystemSet.add(targetCgGroup.getStorageController().toString());
@@ -555,7 +555,7 @@ public class StorageScheduler implements Scheduler {
             }
         }
 
-        Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings = vpool.getRemoteProtectionSettings(vpool, _dbClient);
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings = VirtualPool.getRemoteProtectionSettings(vpool, _dbClient);
         if (null != remoteProtectionSettings && !remoteProtectionSettings.isEmpty()) {
             provMapBuilder.putAttributeInMap(Attributes.remote_copy.toString(),
                     VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteProtectionSettings));
@@ -1870,7 +1870,7 @@ public class StorageScheduler implements Scheduler {
         StoragePool pool = _dbClient.queryObject(StoragePool.class, poolId);
         StringMap reservationMap = pool.getReservedCapacityMap();
         reservationMap.put(volume.getId().toString(), String.valueOf(reservedCapacity));
-        _dbClient.persistObject(pool);
+        _dbClient.updateObject(pool);
 
     }
 
@@ -1887,17 +1887,17 @@ public class StorageScheduler implements Scheduler {
         StoragePool pool = _dbClient.queryObject(StoragePool.class, poolId);
         StringMap reservationMap = pool.getReservedCapacityMap();
         reservationMap.put(volume.getId().toString(), String.valueOf(reservedCapacity));
-        _dbClient.persistObject(pool);
+        _dbClient.updateObject(pool);
     }
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
-            VirtualPool vPool, Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
+            VirtualPool vPool, VolumeTopology volumeTopology,
             VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities,
             Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // Initially we're only going to return one recommendation set.
         List<Recommendation> recommendations = getRecommendationsForResources(
-                vArray, project, vPool, performanceParams, capabilities);
+                vArray, project, vPool, volumeTopology, capabilities);
         return recommendations;
     }
 

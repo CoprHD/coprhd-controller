@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -45,8 +46,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -97,28 +98,22 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood, VirtualPool cos,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
+            VolumeTopology volumeTopology, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
         
         Long size = SizeUtil.translateSize(param.getSize());
         List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
         
         // Get the performance parameters for the source volume.
-        // There should only be one set of performance parameters for
-        // the source in the map, which is keyed by the source site
-        // varray URI.
         URI performanceParamsURI = null;
-        Map<URI, Map<VolumeTopologyRole, URI>> sourcePerformanceParamsMap = performanceParams.get(VolumeTopologySite.SOURCE);
-        if (sourcePerformanceParamsMap != null && !sourcePerformanceParamsMap.isEmpty()) {
-            // Always one for the source site.
-            performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(
-                    sourcePerformanceParamsMap.values().iterator().next(), VolumeTopologyRole.PRIMARY, _dbClient);
+        PerformanceParams performanaceParams = volumeTopology.getPerformanceParamsForSourceRole(VolumeTopologyRole.PRIMARY, _dbClient);
+        if (performanaceParams != null) {
+            performanceParamsURI = performanaceParams.getId();
         }
 
         List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(
                 existingDescriptors, param.getName(), size, project, neighborhood, cos, 
-                performanceParamsURI, performanceParams.get(VolumeTopologySite.COPY),
+                performanceParamsURI, volumeTopology.getCopyPerformanceParams(),
                 recommendationMap.get(VpoolUse.ROOT), taskList, task, cosCapabilities);
         List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
         

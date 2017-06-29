@@ -46,6 +46,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -59,8 +60,8 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.VolumeAccessState;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -691,8 +692,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray, VirtualPool vpool,
-            Map<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>> performanceParams,
-            Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
+            VolumeTopology volumeTopology, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
         List<Recommendation> volRecommendations = recommendationMap.get(VpoolUse.ROOT);
         Long size = SizeUtil.translateSize(param.getSize());
@@ -705,17 +705,16 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         // for the source in the map, which is keyed by the source
         // site varray URI.
         URI performanceParamsURI = null;
-        Map<URI, Map<VolumeTopologyRole, URI>> sourcePerformanceParamsMap = performanceParams.get(VolumeTopologySite.SOURCE);
-        if (sourcePerformanceParamsMap != null && !sourcePerformanceParamsMap.isEmpty()) {
-            performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(
-                    sourcePerformanceParamsMap.values().iterator().next(), VolumeTopologyRole.PRIMARY, _dbClient);
+        PerformanceParams performanceParams = volumeTopology.getPerformanceParamsForSourceRole(VolumeTopologyRole.PRIMARY, _dbClient);
+        if (performanceParams != null) {
+            performanceParamsURI = performanceParams.getId();
         }
 
         for (Recommendation volRecommendation : volRecommendations) {
             List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
             List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(existingDescriptors,
                     param.getName(), size, project, varray, vpool, performanceParamsURI,
-                    performanceParams.get(VolumeTopologySite.COPY), volRecommendations,
+                    volumeTopology.getCopyPerformanceParams(), volRecommendations,
                     taskList, task, capabilities);
             List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
 
@@ -1024,7 +1023,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
-        createVolumes(param, project, varray, vpool, new HashMap<VolumeTopologySite, Map<URI, Map<VolumeTopologyRole, URI>>>(),
+        createVolumes(param, project, varray, vpool, new VolumeTopology(),
                 recommendationMap, null, taskId, capabilities);
 
     }

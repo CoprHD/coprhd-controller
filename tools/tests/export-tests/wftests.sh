@@ -1962,6 +1962,14 @@ test_2() {
       # Should be able to delete the CG and recreate it.
       runcmd blockconsistencygroup delete ${CGNAME}
 
+      if [ "${failure}" = "failure_004:failure_015_SmisCommandHelper.invokeMethod_DeleteGroup" ]; then
+        CGNAME=wf-test2-cg-${item}1
+        if [ "${SS}" = "srdf" ]
+        then
+          CGNAME=cg${item}1
+        fi
+      fi 
+
       # Re-create the consistency group
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
@@ -2483,6 +2491,8 @@ test_7() {
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_004:failure_016_Export_doRemoveInitiator"
 
+    zone2new="true"
+
     for failure in ${failure_injections}
     do
       item=${RANDOM}
@@ -2526,11 +2536,17 @@ test_7() {
 
       if [ $? -eq 0 ]
       then
-	  # Make sure it fails with additional errors accounted for in the error message
+	      # Make sure it fails with additional errors accounted for in the error message
       	  fail -with_error "Additional errors occurred" export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
       else
-	  # Attempt to add an initiator
-	  fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+	      # Attempt to add an initiator
+	      fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+      fi
+      
+      if [ "${failure}" = "failure_004:failure_024_Export_zone_removeInitiator_before_delete" ]; then
+          # This specific failure does not rollback the zone for host initiator 2.  Therefore from this point on, the zone
+          # will be existing and all verfications to see if zone 2 has been removed can be skipped.
+          zone2new="false"
       fi
 
       # Verify injected failures were hit
@@ -2546,17 +2562,14 @@ test_7() {
       set_artificial_failure none
       runcmd export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
-      # Verify the zone names, as we know them, are on the switch
+      # Verify the zone for host initiator 2
       zone2=`get_zone_name ${HOST1} ${H1PI2}`
       if [[ -z $zone2 ]]; then
         echo -e "\e[91mERROR\e[0m: Could not find a ViPR zone corresponding to host ${HOST1} and initiator ${H1PI2}. COP-30518 has been created to track this issue"
         incr_fail_count
       else
-        # Only verify that the zone exists on the switch if the zone is newly created.  
-        # Newly created zone names will contain the current host name.  
-        if newly_created_zone_for_host $zone2 $HOST1; then      
-            verify_zone ${zone2} ${FC_ZONE_A} exists
-        fi      
+        # Verify the zone exists
+        verify_zone ${zone2} ${FC_ZONE_A} exists
       fi
 
       # Perform any DB validation in here
@@ -2567,21 +2580,25 @@ test_7() {
 
       # Only verify the zone has been removed if it is a newly created zone
       if [ "${zone1}" != "" ]; then
-        # Only verify that the zone is removed from the switch if the zone was newly created.  
-        # Newly created zone names will contain the current host name.    
-        if newly_created_zone_for_host $zone1 $HOST1; then
-            verify_zone ${zone1} ${FC_ZONE_A} gone    
-        fi          
+          # Only verify that the zone is removed from the switch if the zone was newly created.  
+          # Newly created zone names will contain the current host name.    
+          if newly_created_zone_for_host $zone1 $HOST1; then
+              verify_zone ${zone1} ${FC_ZONE_A} gone    
+          fi          
       fi
-
-      # Only verify the zone has been removed if it is a newly created zone
+       
       if [ "${zone2}" != "" ]; then
-        # Only verify that the zone is removed from the switch if the zone was newly created.  
-        # Newly created zone names will contain the current host name.    
-        if newly_created_zone_for_host $zone2 $HOST1; then
-            verify_zone ${zone2} ${FC_ZONE_A} gone    
-        fi          
-      fi   
+          if newly_created_zone_for_host $zone2 $HOST1; then
+              if [ "${zone2new}" = "true" ]; then
+                  # Only verify that the zone is removed from the switch if the zone was newly created.  
+                  verify_zone ${zone2} ${FC_ZONE_A} gone  
+              else
+                  echo "Skipping check to see if zone ${zone2} has been removed because it is an existing zone"       
+              fi
+          else
+              echo "Skipping check to see if zone ${zone2} has been removed because it is an existing zone"            
+          fi    
+      fi          
 
       # Verify the DB is back to the original state
       snap_db 5 "${cfs[@]}"

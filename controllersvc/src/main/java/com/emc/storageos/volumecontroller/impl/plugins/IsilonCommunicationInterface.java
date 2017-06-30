@@ -3451,22 +3451,39 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     private String getCustomConfigPath() {
+        String custompath = "";
         URIQueryResultList results = new URIQueryResultList();
 
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getCustomConfigByConfigType(ISILON_PATH_CUSTOMIZATION), results);
 
         Iterator<URI> iter = results.iterator();
 
-        CustomConfig tempConfig = null;
+        List<CustomConfig> configList = new ArrayList<>();
 
         while (iter.hasNext()) {
-            tempConfig = _dbClient.queryObject(CustomConfig.class, iter.next());
-            if (tempConfig != null && !tempConfig.getInactive()) {
-                _log.info("Getting custom Config {}  ", tempConfig.getLabel());
-                break;
+            CustomConfig config = _dbClient.queryObject(CustomConfig.class, iter.next());
+            if (config != null && !config.getInactive()) {
+                configList.add(config);
+                _log.info("Getting custom Config {}  ", config.getLabel());
             }
         }
-        return tempConfig.getValue();
+
+        // only 1 config value means only default
+        if (configList.size() == 1) {
+            custompath = configList.get(0).getValue();
+            _log.info("Selecting custom Config {} with value: {} ", configList.get(0).getLabel(), configList.get(0).getValue());
+            // More than 1 config means return the custom one, NOT the default one..
+        } else {
+            for (CustomConfig conf : configList) {
+                if (conf.getSystemDefault()) {
+                    continue;
+                } else {
+                    custompath = conf.getValue();
+                    _log.info("Selecting custom Config {} with value: {} ", conf.getLabel(), conf.getValue());
+                }
+            }
+        }
+        return custompath;
     }
 
     /**

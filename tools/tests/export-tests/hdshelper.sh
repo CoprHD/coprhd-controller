@@ -8,15 +8,22 @@
 # Script to help manage HDS storage system outside of ViPR.
 # Used to perform various operations.
 #
-# Usage: ./hdshelper.sh verify_export <HOST_STORAGE_DOMAIN (hds1 hsd2 ...)> <SYS_NATIVE_ID> <SYS_MODEL> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
+# Usage: ./hdshelper.sh verify_export <HOST_STORAGE_DOMAIN (hds1 hsd2 ...)> <INITIATOR (initiator1 initiator2 ...)> <SYS_NATIVE_ID> <SYS_MODEL> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
 #        ./hdshelper.sh get_hlus <HOST_STORAGE_DOMAIN (hds1 hsd2 ...)> <SYS_NATIVE_ID> <SYS_MODEL>
 #        ./hdshelper.sh create_volume <NAME> <SIZE> <IS_THIN_VOL> <POOL_ID> <SYS_NATIVE_ID> <SYS_MODEL>
 #        ./hdshelper.sh delete_volume <DEVICE_ID> <SYS_NATIVE_ID> <SYS_MODEL>
+#        ./hdshelper.sh create_mask <HOST_NAME> <HOST_OS> <HOST_TYPE> <MODE_OPTION> <INITIATOR...> <VOLUME:HLU...> <TARGET_PORT...> <SYS_NATIVE_ID> <SYS_MODEL>
+#        ./hdshelper.sh delete_mask <HOST_STORAGE_DOMAIN...> <SYS_NATIVE_ID> <SYS_MODEL>
+#        ./hdshelper.sh add_volume_to_mask <HOST_STORAGE_DOMAIN...> <DEVICE_ID:HLU...> <SYS_NATIVE_ID> <SYS_MODEL>
+#        ./hdshelper.sh remove_volume_from_mask <HOST_STORAGE_DOMAIN...> <DEVICE_ID...> <SYS_NATIVE_ID> <SYS_MODEL>
+#        ./hdshelper.sh add_initiator_to_mask <HOST_STORAGE_DOMAIN...> <INITIATOR...> <SYS_NATIVE_ID> <SYS_MODEL>
+#        ./hdshelper.sh remove_initiator_from_mask <HOST_STORAGE_DOMAIN...> <INITIATOR...> <SYS_NATIVE_ID> <SYS_MODEL>
+
 #set -x
 
 TMPFILE1=/tmp/verify-${RANDOM}
 TMPFILE2=$TMPFILE1-error
-
+echo Temp files - $TMPFILE1 $TMPFILE2
 HOST_STORAGE_DOMAIN="hostStorageDomain:"
 NUMBER_OF_INITIATORS="numberOfInitiators:"
 NUMBER_OF_LUNS="numberOfLUNs:"
@@ -26,11 +33,18 @@ verify_export() {
     # Parameters: Storage View Name Name, Number of Initiators, Number of Luns, HLUs
     # If checking if the Storage View does not exist, then parameter $2 should be "gone"
     HSDS=$1
-    NUM_INITIATORS=$4
-    NUM_LUNS=$5
-    HLUS=$6
+    INITIATORS=$2
+	SYSID=$3
+    NUM_INITIATORS=$5
+    NUM_LUNS=$6
+    HLUS=$7
 
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method get_mask_info -params "$HSDS,$2" > ${TMPFILE1} 2> ${TMPFILE2}
+	IDENTIFIER=$INITIATORS
+	if [ "$HSDS" != "" ]; then
+        IDENTIFIER=$HSDS
+    fi
+
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method get_mask_info -params "$HSDS,$INITIATORS,$SYSID" > ${TMPFILE1} 2> ${TMPFILE2}
     if [ -s $TMPFILE1 ]; then
         grep -n "${HOST_STORAGE_DOMAIN}" ${TMPFILE1} > /dev/null
         if [ $? -ne 0 ]; then
@@ -38,17 +52,17 @@ verify_export() {
             exit 1;
         fi
 
-        grep -n "${HSDS}" ${TMPFILE1} > /dev/null
+        grep -n "${IDENTIFIER}" ${TMPFILE1} > /dev/null
         if [ $? -ne 0 ]; then
-            if [ "$4" = "gone" ]; then
-                echo "PASSED: Verified HDSs ${HSDS} doesn't exist."
+            if [ "$5" = "gone" ]; then
+                echo "PASSED: Verified HDSs/initiators ${INITIATORS} doesn't exist."
                 exit 0;
             fi
-            echo -e "\e[91mERROR\e[0m: Expected HDSs ${HSDS}, but could not find";
+            echo -e "\e[91mERROR\e[0m: Expected HDSs/initiators ${INITIATORS}, but could not find";
             exit 1;
         else
-            if [ "$4" = "gone" ]; then
-                echo -e "\e[91mERROR\e[0m: Expected HSDs ${HSDS} to be gone, but found"
+            if [ "$6" = "gone" ]; then
+                echo -e "\e[91mERROR\e[0m: Expected initiators ${INITIATORS} to be gone, but found in HSD"
                 exit 1;
             fi
         fi
@@ -62,8 +76,6 @@ verify_export() {
 
     num_inits=`grep ${NUMBER_OF_INITIATORS} ${TMPFILE1} | awk -F: '{print $2}'`
     num_luns=`grep ${NUMBER_OF_LUNS} ${TMPFILE1} | awk -F: '{print $2}'`
-    hlus=`grep ${USED_HLUS} ${TMPFILE1} | awk -F: '{print $2}'`
-
     failed=false
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
@@ -80,6 +92,8 @@ verify_export() {
 
     if [ -n "${HLUS}" ]
     then
+	    hlus=`grep ${USED_HLUS} ${TMPFILE1} | awk -F: '{print $2}'`
+
         hlu_arr=(${HLUS//,/, })
         hlus=${hlus:1:-1}
         if [ "${hlus[*]}" != "${hlu_arr[*]}" ]
@@ -96,9 +110,9 @@ verify_export() {
 
     if [ -n "${HLUS}" ]
     then
-        echo "PASSED: HDSs '$HSDS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns with hlus ${HLUS}"
+        echo "PASSED: HDSs/initiators '$IDENTIFIER' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns with hlus ${HLUS}"
     else
-        echo "PASSED: HSDs '$HSDS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns"
+        echo "PASSED: HSDs/initiators '$IDENTIFIER' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns"
     fi
 
     exit 0;
@@ -151,6 +165,36 @@ delete_volume() {
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method delete_volume -params "${device_id},${thin_vol},${sys},${model}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
+create_mask() {
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method create_mask -params "$1,$2,$3,$4,$5,$6,$7,$8,$9" > ${TMPFILE1} 2> ${TMPFILE2}
+    cat ${TMPFILE1}
+}
+
+## Convenience method for deleting a host outside of ViPR
+delete_mask() {
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method delete_mask -params "$1,$2,$3"
+    echo "Deleted HSDs $1"
+}
+
+add_volume_to_mask() {
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method add_volume_to_mask -params "$1,$2,$3,$4" > ${TMPFILE1} 2> ${TMPFILE2}
+    cat ${TMPFILE1}
+    echo "Added volume $2 to HSDs $1"
+}
+
+remove_volume_from_mask() {
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method remove_volume_from_mask -params "$1,$2,$3,$4"
+    echo "Removed volume $2 from HSDs $1"
+}
+
+add_initiator_to_mask() {
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method add_initiator_to_mask -params "$1,$2,$3,$4"
+}
+
+remove_initiator_from_mask() {
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method remove_initiator_from_mask -params "$1,$2,$3,$4"
+}
+
 # Check to see if this is an operational request or a verification of export request
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tools_file="${DIR}/tools.yml"
@@ -175,13 +219,13 @@ fi
 
 if [[ $# -lt 4 ]]; then
     echo "Missing operation/params"
-    echo "Usage: $0 [verify_export | get_hlus | create_volume | delete_volume] {params}"
+    echo "Usage: $0 [verify_export | get_hlus | create_volume | delete_volume | create_mask | delete_mask | add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask] {params}"
     exit 1
 fi
 
 if [ "$1" = "verify_export" ]; then
     shift
-    verify_export "$1" "$2" "$3" "$4" "$5"
+    verify_export "$1" "$2" "$3" "$4" "$5" "$6" "$7"
 elif [ "$1" = "get_hlus" ]; then
     shift
     get_hlus "$1" "$2" "$3"
@@ -191,6 +235,25 @@ elif [ "$1" = "create_volume" ]; then
 elif [ "$1" = "delete_volume" ]; then
     shift
     delete_volume "$1" "$2" "$3" "$4"
+elif [ "$1" = "create_mask" ]; then
+    shift
+    create_mask "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9"
+elif [ "$1" = "delete_mask" ]; then
+    shift
+    delete_mask "$1" "$2" "$3"
+elif [ "$1" = "add_volume_to_mask" ]; then
+    shift
+    add_volume_to_mask "$1" "$2" "$3" "$4"
+elif [ "$1" = "remove_volume_from_mask" ]; then
+    shift
+    remove_volume_from_mask "$1" "$2" "$3" "$4"
+elif [ "$1" = "add_initiator_to_mask" ]; then
+    shift
+    add_initiator_to_mask "$1" "$2" "$3" "$4"
+elif [ "$1" = "remove_initiator_from_mask" ]; then
+    shift
+    remove_initiator_from_mask "$1" "$2" "$3" "$4"
 else
-    echo "Usage: $0 [verify_export | get_hlus | create_volume | delete_volume] {params}"
+    echo "Unsupported operation $1"
+    echo "Usage: $0 [verify_export | get_hlus | create_volume | delete_volume | create_mask | delete_mask | add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask] {params}"
 fi

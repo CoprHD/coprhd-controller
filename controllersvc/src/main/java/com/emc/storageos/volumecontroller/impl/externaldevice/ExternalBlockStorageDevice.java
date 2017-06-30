@@ -58,9 +58,11 @@ import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.HostIOLimitsCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
@@ -165,9 +167,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 if (storageCapabilities == null) {
                     // All volumes created in a request will have the same capabilities.
                     storageCapabilities = new StorageCapabilities();
-                    addAutoTieringPolicyCapability(storageCapabilities, volume.getAutoTieringPolicyUri());
-                    addDeduplicationCapability(storageCapabilities, volume.getIsDeduplicated());
-                    addHostIOLimitsCapability(storageCapabilities, volume.getVirtualPool());
+                    CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
+                    if (commonCapabilities == null) {
+                        commonCapabilities = new CommonStorageCapabilities();
+                        storageCapabilities.setCommonCapabilitis(commonCapabilities);
+                    }
+                    addAutoTieringPolicyCapability(commonCapabilities, volume.getAutoTieringPolicyUri());
+                    addDeduplicationCapability(commonCapabilities, volume.getIsDeduplicated());
+                    addHostIOLimitsCapability(commonCapabilities, volume.getVirtualPool());
                 }
                 StorageVolume driverVolume = new StorageVolume();
                 driverVolume.setStorageSystemId(storageSystem.getNativeId());
@@ -223,12 +230,12 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     /**
      * Create the auto tiering policy capability and add it to the passed
-     * storage capabilities
+     * common storage capabilities
      *
-     * @param storageCapabilities A reference to all storage capabilities.
+     * @param storageCapabilities A reference to common storage capabilities.
      * @param autoTieringPolicyURI The URI of the AutoTieringPolicy or null.
      */
-    private void addAutoTieringPolicyCapability(StorageCapabilities storageCapabilities, URI autoTieringPolicyURI) {
+    private void addAutoTieringPolicyCapability(CommonStorageCapabilities storageCapabilities, URI autoTieringPolicyURI) {
         if (!NullColumnValueGetter.isNullURI(autoTieringPolicyURI)) {
             AutoTieringPolicy autoTieringPolicy = dbClient.queryObject(AutoTieringPolicy.class, autoTieringPolicyURI);
             if (autoTieringPolicy == null) {
@@ -245,12 +252,17 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             CapabilityInstance autoTieringCapability = new CapabilityInstance(capabilityDefinition.getId(),
                     autoTieringPolicy.getPolicyName(), capabilityProperties);
 
-            ExternalDeviceUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(autoTieringCapability));
+            StorageCapabilitiesUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(autoTieringCapability));
         }
     }
 
 
-    private void addHostIOLimitsCapability(StorageCapabilities storageCapabilities, URI vpoolUri) {
+    /**
+     * Create new hostIO Limits capability insance and it to the passed common capabilities
+     * @param storageCapabilities common capabilities
+     * @param vpoolUri virtual pool URI
+     */
+    private void addHostIOLimitsCapability(CommonStorageCapabilities storageCapabilities, URI vpoolUri) {
         VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, vpoolUri);
         String msg = String.format("Processing hostIOLimits for vpool %s / %s : bandwidth: %s, iops: %s",
                 virtualPool.getLabel(), virtualPool.getId(), virtualPool.getHostIOLimitBandwidth(), virtualPool.getHostIOLimitIOPs());
@@ -270,18 +282,18 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             CapabilityInstance hostIOLimitsCapability = new CapabilityInstance(capabilityDefinition.getId(),
                     capabilityDefinition.getId(), capabilityProperties);
 
-            ExternalDeviceUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(hostIOLimitsCapability));
+            StorageCapabilitiesUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(hostIOLimitsCapability));
         }
     }
 
     /**
      * Create deduplication capability and add it to the passed
-     * storage capabilities
+     * common storage capabilities
      *
-     * @param storageCapabilities reference to storage capbilities
+     * @param storageCapabilities reference to common storage capabilities
      * @param deduplication indicates if deduplication is required
      */
-    private void addDeduplicationCapability(StorageCapabilities storageCapabilities, Boolean deduplication) {
+    private void addDeduplicationCapability(CommonStorageCapabilities storageCapabilities, Boolean deduplication) {
         if (deduplication) {
             // Create the deduplicated capability.
             DeduplicationCapabilityDefinition capabilityDefinition = new DeduplicationCapabilityDefinition();
@@ -291,7 +303,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             CapabilityInstance dedupCapability = new CapabilityInstance(capabilityDefinition.getId(),
                     capabilityDefinition.getId(), capabilityProperties);
 
-            ExternalDeviceUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(dedupCapability));
+            StorageCapabilitiesUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(dedupCapability));
         }
     }
 

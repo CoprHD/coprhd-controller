@@ -49,6 +49,10 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.HostIOLimitsCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
@@ -350,39 +354,26 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.NATIVE_ID.toString(),
                 nativeId);
 
-        // todo: add hostiolimits from driver volumes capabilities
-        //////////////////////////////////////////
-        VolHostIOObject obj = exportedVolumes.get(volumeNativeGuid);
-        if (null != obj) {
-            StringSet bwValues = new StringSet();
-            bwValues.add(obj.getHostIoBw());
-            if (unManagedVolumeInformation.get(SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH
-                    .toString()) == null) {
-                unManagedVolumeInformation.put(
-                        SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), bwValues);
-            } else {
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString()).replace(
-                        bwValues);
+        // process hostiolimits from driver volume common capabilities
+        CapabilityInstance hostIOLimits =
+                StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(), CapabilityDefinition.CapabilityUid.hostIOLimits);
+        if (hostIOLimits != null) {
+            String bandwidth = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_BANDWIDTH.toString());
+            String iops = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_IOPS.toString());
+            if (bandwidth != null) {
+                StringSet bwValue = new StringSet();
+                bwValue.add(bandwidth);
+                unManagedVolume.putVolumeInfo(
+                        UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), bwValue);
             }
-
-            StringSet iopsVal = new StringSet();
-            iopsVal.add(obj.getHostIops());
-
-            if (unManagedVolumeInformation
-                    .get(SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString()) == null) {
-                unManagedVolumeInformation.put(
-                        SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), iopsVal);
-            } else {
-                unManagedVolumeInformation
-                        .get(SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString()).replace(iopsVal);
+            if (iops != null) {
+                StringSet iopsValue = new StringSet();
+                iopsValue.add(iops);
+                unManagedVolume.putVolumeInfo(
+                        UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), iopsValue);
             }
         }
-        unManagedVolumeCharacteristics.put(
-                SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), TRUE);
 
-        ///////////////////////////////////
-        // todo: end
         unManagedVolume.putVolumeCharacterstics(
                 UnManagedVolume.SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);
 

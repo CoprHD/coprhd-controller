@@ -1888,7 +1888,8 @@ def vpool_getrdfgroups(args):
                                        'source_group_id',
                                        'connectivity_status',
                                        'supported_copy_mode',
-                                       'native_guid']).printTable()
+                                       'native_guid',
+                                       'module/id']).printTable()
     except SOSError as e:
         common.format_err_msg_and_raise("get_rdfgroups", "vpool", e.err_text,
                                         e.err_code)

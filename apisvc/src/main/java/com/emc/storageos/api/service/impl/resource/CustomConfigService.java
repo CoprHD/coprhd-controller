@@ -91,6 +91,7 @@ public class CustomConfigService extends ResourceService {
     private static final String VALUE = "value";
     private static final String SCOPE_DELIMETER = ",";
     private static final String NAME = "name";
+    private static final String SIMPLE_VALUE_TYPE = "SimpleValue";
 
     @Autowired
     private CustomConfigHandler customConfigHandler;
@@ -643,8 +644,7 @@ public class CustomConfigService extends ResourceService {
         @QueryParam("scope") String scope ) {
         ArgValidator.checkFieldNotEmpty(configName, "configName");
         CustomConfigType item = customConfigHandler.getCustomConfigType(configName);
-        String simpleValueType = "SimpleValue";
-        if (item != null && !simpleValueType.equals(item.getConfigType())) {
+        if (item != null && !SIMPLE_VALUE_TYPE.equals(item.getConfigType())) {
             throw APIException.badRequests.invalidConfigValueType(configName);
         }
         SimpleValueRep result = new SimpleValueRep();

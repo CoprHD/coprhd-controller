@@ -799,7 +799,7 @@ public class BlockService extends TaskResourceService {
             ArgValidator.checkFieldUriType(portGroupURI, StoragePortGroup.class, "portGroup");
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
             if (portGroup == null || 
-                    !portGroup.getRegistrationStatus().equalsIgnoreCase(RegistrationStatus.REGISTERED.name())) {
+                    !RegistrationStatus.REGISTERED.name().equalsIgnoreCase(portGroup.getRegistrationStatus())) {
                 throw APIException.internalServerErrors.invalidObject(portGroupURI.toString());
             }
             // check if port group's storage system is associated to the requested virtual array

@@ -538,7 +538,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
      * @param unmanagedMask - The corresponding unmanaged export mask
      * @param mask - The ingested export mask
      */
-    protected void updateExportMaskWithPortGroup(StorageSystem system, UnManagedExportMask unmanagedMask, ExportMask mask ) {
+    protected void updateExportMaskWithPortGroup(StorageSystem system, UnManagedExportMask unmanagedMask, ExportMask mask ){
         boolean portGroupEnabled = false;
         if (Type.vmax.name().equals(system.getSystemType())) {
             portGroupEnabled = Boolean.valueOf(

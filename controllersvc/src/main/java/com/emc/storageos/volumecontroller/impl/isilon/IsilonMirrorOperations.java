@@ -301,7 +301,7 @@ public class IsilonMirrorOperations {
     public BiosCommandResult doStopReplicationPolicy(IsilonApi isi, String policyName) {
         try {
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            if (policy.getEnabled()) {
+            if (policy.getEnabled() && !policy.getLastJobState().equals(JobState.running)) {
                 IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
                 modifiedPolicy.setName(policyName);
                 modifiedPolicy.setEnabled(false);
@@ -344,11 +344,7 @@ public class IsilonMirrorOperations {
     public BiosCommandResult doFailover(StorageSystem system, String policyName, TaskCompleter taskCompleter) {
         _log.info("IsilonMirrorOperations -  doFailover started ");
         try {
-            String ip = system.getIpAddress();
             IsilonApi isi = getIsilonDevice(system);
-                       
-            doStopReplicationPolicy(isi, policyName);
-            
             IsilonSyncTargetPolicy syncTargetPolicy = isi.getTargetReplicationPolicy(policyName);
             if (syncTargetPolicy.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
                 _log.info("can't perform failover operation on policy: {} because failover is done already",

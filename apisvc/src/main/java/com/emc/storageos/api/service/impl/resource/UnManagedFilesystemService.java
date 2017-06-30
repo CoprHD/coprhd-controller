@@ -461,6 +461,12 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
+
+                    if (!doesNASServerSupportVPoolProtocols(nasUri, cos.getProtocols())) {
+                        _logger.warn(
+                                "UnManaged FileSystem NAS server {} doesn't support vpool protocols. Skipping Ingestion...", nasUri);
+                        continue;
+                    }
                 }
 
                 if (nativeId != null) {
@@ -505,9 +511,8 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 if (port != null && neighborhood != null) {
 
-                    if (StorageSystem.Type.isilon.toString().equals(system.getSystemType()) ||
-                            StorageSystem.Type.unity.toString().equals(system.getSystemType())) {
-                        sPort = getNASServerStoragePort(cos.getProtocols(), nasUri, neighborhood.getId());
+                    if (StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
+                        sPort = getIsilonStoragePort(port, nasUri, neighborhood.getId());
                     } else {
                         sPort = compareAndSelectPortURIForUMFS(system, port,
                                 neighborhood);
@@ -1243,14 +1248,14 @@ public class UnManagedFilesystemService extends TaggedResource {
      * it return null, if any of the NAS server port is not part of given virtual array
      * 
      * 
-     * @param vpoolProtocols
-     *            set of protocols configured in vpool
+     * @param umfsStoragePort
+     *            port which is assigned to file system while UMFS discovery
      * @param nasUri
      *            NAS server URI
      * @param virtualArray
      *            virtual array
      */
-    private StoragePort getNASServerStoragePort(StringSet vpoolProtocols, String nasUri, URI virtualArray) {
+    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, URI virtualArray) {
         StoragePort sp = null;
         NASServer nasServer = null;
 
@@ -1263,21 +1268,15 @@ public class UnManagedFilesystemService extends TaggedResource {
             List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
             StringSet virtualArrayPortsSet = new StringSet();
 
-            StringSet nasStoragePorts = nasServer.getStoragePorts();
-            StringSet nasStoragePortsWithMatchingProtocols = new StringSet();
-            for (Iterator<String> iterator = nasStoragePorts.iterator(); iterator.hasNext();) {
-                if (nasServer.getProtocols().containsAll(vpoolProtocols)) {
-                    nasStoragePortsWithMatchingProtocols.add(iterator.next());
-                }
-            }
+            StringSet storagePorts = nasServer.getStoragePorts();
 
             for (URI tempVarrayPort : virtualArrayPorts) {
                 virtualArrayPortsSet.add(tempVarrayPort.toString());
             }
 
             StringSet commonPorts = null;
-            if (virtualArrayPorts != null && nasStoragePortsWithMatchingProtocols != null) {
-                commonPorts = new StringSet(nasStoragePortsWithMatchingProtocols);
+            if (virtualArrayPorts != null && storagePorts != null) {
+                commonPorts = new StringSet(storagePorts);
                 commonPorts.retainAll(virtualArrayPortsSet);
             }
 
@@ -1290,6 +1289,28 @@ public class UnManagedFilesystemService extends TaggedResource {
             }
         }
         return null;
+    }
+
+    private boolean doesNASServerSupportVPoolProtocols(String nasUri, StringSet vpoolProtocols) {
+        NASServer nasServer = null;
+        boolean supports = false;
+
+        if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))) {
+            nasServer = _dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+        } else {
+            nasServer = _dbClient.queryObject(PhysicalNAS.class, URI.create(nasUri));
+        }
+        if (nasServer != null) {
+
+            StringSet nasProtocols = nasServer.getProtocols();
+
+            _logger.info("NAS server is: {}. Supported protocols: {}. Vpool protocols: {}", nasServer.getNasName(), nasProtocols,
+                    vpoolProtocols);
+
+            supports = nasProtocols.containsAll(vpoolProtocols);
+        }
+
+        return supports;
     }
 
     /**

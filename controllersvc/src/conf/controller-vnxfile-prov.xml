@@ -206,7 +206,7 @@
     
     <bean id="filesystemmoverinfooperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="processor" ref="selectedfilesysteminfoprocessor" />
+		<property name="processor" ref="selectedfilesystemmoverinfoprocessor" />
 		<property name="instance" ref="retriever" />
 		<property name="method" value="execute" />
 		<property name="arguments">
@@ -1013,7 +1013,7 @@
         <property name="unmarshaller" ref="unmarshaller"/>
     </bean>	
     
-    <bean id="selectedfilesysteminfoprocessor"
+    <bean id="selectedfilesystemmoverinfoprocessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXSelectedFileSystemMoverInfoProcessor">
 		<property name="unmarshaller" ref="unmarshaller"/>
 	</bean>

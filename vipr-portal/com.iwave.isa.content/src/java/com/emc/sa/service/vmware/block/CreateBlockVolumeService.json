@@ -37,6 +37,13 @@
       required:false
     },
 
+	rdfGroup:{
+      type:"assetType.vipr.rdfGroup",
+      lockable: true,
+      required: false,
+      hideIfEmpty: true
+    },
+
     volumes:{
       type:"table",
       items:{

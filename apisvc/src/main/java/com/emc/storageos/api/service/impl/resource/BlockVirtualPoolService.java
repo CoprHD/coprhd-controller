@@ -580,10 +580,12 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
 
     /**
-     * Gets the RDF Groups
+     * Lists the RDF Groups that can be used, given this virtual pool information
+     * Note: This will likely need to be moved with virtual pool protection information is moved as part of
+     * vpool simplification.
      * 
      * @brief List RDF groups that apply to this vpool
-     * @return A reference to a StorageSystemList.
+     * @return An RDFGroupList of RDF Group Rest Resources
      */
     @GET
     @Path("/{id}/rdfgroups")
@@ -619,7 +621,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         while (iter.hasNext()) {
             RemoteDirectorGroup rdg = iter.next();
 
-            // Intentionally broken down logic for easy readability and debuggability
+            // Intentionally broken down logic for easy readability and debug-ability
             if (vpool == null) {
                 rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
             } else if (vpoolStorageSystemIds.contains(rdg.getSourceStorageSystemUri())) {

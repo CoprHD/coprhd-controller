@@ -46,12 +46,15 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             create.setProject(param.getProject());
             create.setName(param.getName());
             create.setSize(volumeSize);
-            
-            Set<String> extensionParams = new HashSet<>();
-            extensionParams.add(String.format("rdfGroup=%s", param.getRdfGroup()));
-            create.setExtensionParams(extensionParams);
             create.setComputeResource(param.getComputeResource());
+            create.setExtensionParams(null);
             
+            if (param.getRdfGroup() != null) {
+                Set<String> extensionParams = new HashSet<>();
+                extensionParams.add(String.format("%s=%s", VolumeCreate.EXTENSION_PARAM_KNOWN_RDFGROUP, param.getRdfGroup()));
+                create.setExtensionParams(extensionParams);
+            }
+                        
             int numberOfVolumes = 1;
             if ((param.getCount() != null) && (param.getCount() > 1)) {
                 numberOfVolumes = param.getCount();

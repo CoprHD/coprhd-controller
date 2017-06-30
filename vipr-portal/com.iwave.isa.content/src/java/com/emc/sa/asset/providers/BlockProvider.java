@@ -360,6 +360,23 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      * @param deletionType
      * @return
      */
+    @Asset("rdfGroupChangeVpool")
+    @AssetDependencies("targetVirtualPool")
+    public List<AssetOption> getRDFGroupsChangeVpool(final AssetOptionsContext ctx, URI vpool) {
+        debug("getting RDF Groups");
+        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().list(vpool);
+        return createRDFOptions(null, rdfGroups);
+    }
+    
+    /**
+     * Get source volumes for a specific project. If the deletionType is VIPR_ONLY, create
+     * a filter that only retrieves Volumes with Host Exports
+     * 
+     * @param ctx
+     * @param project
+     * @param deletionType
+     * @return
+     */
     @Asset("sourceBlockVolumeWithDeletion")
     @AssetDependencies({ "project", "deletionType" })
     public List<AssetOption> getSourceVolumesWithDeletion(final AssetOptionsContext ctx, URI project, String deletionType) {
@@ -3417,19 +3434,44 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         String name = rdfGroupObject.getName();
         final String token = "+";
         if (StringUtils.isNotBlank(name)) {
+            // Desired output:
+            // VMAX 1612 -> 5321 : G#-199 : BillRAGroup [5 Vols, SYNC/ASYNC/CONSISTENT/SPLIT/FAILEDOVER/etc]
+            
             StringBuffer sb = new StringBuffer();
+            
+            // Format of NativeGUID
             //     1           2          3            4        5       6        7
             // SYMMETRIX+000196701343+REMOTEGROUP+000196701343+190+000196701405+190
+            //                                           [1343|190]       [1405]
             StringTokenizer st = new StringTokenizer(rdfGroupObject.getNativeGuid(), token);
-            sb.append(name + ": ");
+            sb.append("VMAX ");
             try {
                 st.nextToken(); // 1
                 st.nextToken(); // 2
                 st.nextToken(); // 3
-                sb.append(st.nextToken()); // 4
+
+                String srcSerial = st.nextToken(); // 4
+                sb.append(srcSerial.substring(Math.max(0, srcSerial.length() - 4))); // 4
+
                 sb.append(" -> ");
                 st.nextToken(); // 5
-                sb.append(st.nextToken()); // 6
+                
+                String tgtSerial = st.nextToken(); // 6
+                sb.append(tgtSerial.substring(Math.max(0, tgtSerial.length() - 4))); // 6
+                
+                sb.append(" : G#-" + rdfGroupObject.getSourceGroupId());
+                sb.append(" : " + rdfGroupObject.getName());
+                sb.append(String.format(" [%d Vols, ", (rdfGroupObject.getVolumes() != null) ? rdfGroupObject.getVolumes().size() : 0));
+                
+                // "ALL" doesn't mean anything to the end user, change it to sync/async
+                if (rdfGroupObject.getSupportedCopyMode().equalsIgnoreCase("ALL")) {
+                    sb.append("ANYMODE");
+                } else {
+                    sb.append(rdfGroupObject.getSupportedCopyMode());
+                }
+                
+                sb.append(", Status: " + rdfGroupObject.getConnectivityStatus() + "]");
+                
             } catch (Exception e) {
                 // Native GUID is missing some fields, or the format changed.  Log and swallow.
                 log.error("Missing native GUID fields not in format: SYMMETRIX+000196701343+REMOTEGROUP+000196701343+190+000196701405+190");

@@ -740,7 +740,7 @@ public class BlockService extends TaskResourceService {
         // Verify the user is authorized.
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
 
-        // RDF WJEIV TODO: Verify RDF Group selection
+        // Verify RDF Group selection
         BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams());
         
         // Get and validate the varray
@@ -3521,6 +3521,9 @@ public class BlockService extends TaskResourceService {
          */
         verifyAllVolumesBelongToSameVpool(volumes);
 
+        // Verify RDF Group selection
+        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams());
+
         // target vPool
         VirtualPool vPool = null;
 
@@ -3676,6 +3679,7 @@ public class BlockService extends TaskResourceService {
         oldParam.setTransferSpeedParam(newParam.getTransferSpeedParam());
         oldParam.setMigrationSuspendBeforeCommit(newParam.isMigrationSuspendBeforeCommit());
         oldParam.setMigrationSuspendBeforeDeleteSource(newParam.isMigrationSuspendBeforeDeleteSource());
+        oldParam.setExtensionParams(newParam.getExtensionParams());
         return oldParam;
     }
 

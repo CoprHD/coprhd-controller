@@ -30,6 +30,9 @@ public class VolumeCreate {
     private URI computeResource;
     private Set<String> extensionParams;
 
+    // A list of implemented extension parameter values.  See the getter method for more info.
+    public static String EXTENSION_PARAM_KNOWN_RDFGROUP = "rdfGroup";
+    
     public VolumeCreate() {
     }
 
@@ -74,6 +77,16 @@ public class VolumeCreate {
         this.consistencyGroup = consistencyGroup;
     }
 
+    /*
+     * Extension parameters gives additional flexibility to volume
+     * creation requests without changing the hard schema of the request
+     * object by providing a name/value set that can be sent down to any
+     * device implementation as needed.
+     * 
+     * Currently Supported:
+     * 
+     * rdfGroup=<RemoteDirectorGroup URI> // Select a specific RDF Group to place the volume into.
+     */
     @XmlElement(name = "extension_parameters")
     @Length(min = 2, max = 128)
     public Set<String> getExtensionParams() {

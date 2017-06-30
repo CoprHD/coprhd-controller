@@ -543,13 +543,12 @@ public class SRDFScheduler implements Scheduler {
                     }
                     _log.info("Chose the first varray for SRDF comparison: " + firstVarray.getLabel());
 
-                    String rdfGroupString = capabilities.getRDFGroup();
-                    URI rdfGroup = URI.create(capabilities.getRDFGroup());
+                    URI rdfGroup = capabilities.getRDFGroup() != null ? URI.create(capabilities.getRDFGroup()) : null;
                     
                     // Now go through each storage system in this varray and see if it matches up
                     findInsertRecommendation(rec, firstVarray, recommendations, candidatePools,
                             recommendedPool, varrayTargetDeviceMap, project, consistencyGroupUri, 
-                            URI.create(capabilities.getRDFGroup()));
+                            rdfGroup);
 
                     // Update the count of resources for which we have created
                     // a recommendation.
@@ -633,6 +632,16 @@ public class SRDFScheduler implements Scheduler {
         wrapper.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         wrapper.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
 
+        // Add the RDF Group
+        Set<String> extensionParams = param.getExtensionParams();
+        if (extensionParams != null) {
+            for (String extensionParam : extensionParams) {
+                if (extensionParam.startsWith(VirtualPoolCapabilityValuesWrapper.RDF_GROUP)) {
+                    wrapper.put(VirtualPoolCapabilityValuesWrapper.RDF_GROUP, 
+                            extensionParam.substring(VirtualPoolCapabilityValuesWrapper.RDF_GROUP.length()+1));
+                }
+            }
+        }        
         // Schedule storage based on source volume storage pool
         List<StoragePool> sourcePools = new ArrayList<StoragePool>();
         sourcePools.add(sourcePool);

@@ -60,9 +60,13 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
         if (computeResource != null) {
             create.setComputeResource(computeResource);
         }
-        Set<String> extensionParams = new HashSet<>();
-        extensionParams.add(String.format("rdfGroup=%s", rdfGroup));
-        create.setExtensionParams(extensionParams);
+        create.setExtensionParams(null);
+        
+        if (rdfGroup != null) {
+            Set<String> extensionParams = new HashSet<>();
+            extensionParams.add(String.format("%s=%s", VolumeCreate.EXTENSION_PARAM_KNOWN_RDFGROUP, rdfGroup));
+            create.setExtensionParams(extensionParams);
+        }
 
         Tasks<VolumeRestRep> tasks = getClient().blockVolumes().create(create);
         // There should only be as many tasks as is the count

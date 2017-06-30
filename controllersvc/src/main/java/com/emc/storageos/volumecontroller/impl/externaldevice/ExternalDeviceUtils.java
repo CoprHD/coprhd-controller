@@ -203,4 +203,3 @@ public class ExternalDeviceUtils {
         return externalProvidersUris;
     }
 }
-

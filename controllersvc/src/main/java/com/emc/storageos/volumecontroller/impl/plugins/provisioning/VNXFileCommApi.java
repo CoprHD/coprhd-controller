@@ -451,8 +451,12 @@ public class VNXFileCommApi {
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         try {
-            isMountRequired = !isMountPresentOnArray(fsName, system);
 
+            if (isMountRequired) {
+                // means there is no fs export in Vipr and mount is needed.
+                // just cross check with array fs have mount.
+                isMountRequired = !isMountPresentOnArray(fsName, system);
+            }
             updateAttributes(reqAttributeMap, system);
 
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);

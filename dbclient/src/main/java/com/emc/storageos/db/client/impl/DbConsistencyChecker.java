@@ -39,21 +39,26 @@ public class DbConsistencyChecker {
     }
 
     public int check() throws ConnectionException {
-        init();
-        int corruptedCount = 0;
-        CheckType checkType = getCheckTypeFromZK();
-        log.info("db consistency check type:{}", checkType);
-        switch (checkType) {
-            case OBJECT_ID:
-                corruptedCount += checkObjectId();
-                setNextCheckType();
-            case OBJECT_INDICES:
-                corruptedCount += checkObjectIndices();
-                setNextCheckType();
-            case INDEX_OBJECTS:
-                corruptedCount += checkIndexObjects();
-        }
-
+    	int corruptedCount = 0;
+    	
+    	try {
+	        init();
+	        CheckType checkType = getCheckTypeFromZK();
+	        log.info("db consistency check type:{}", checkType);
+	        switch (checkType) {
+	            case OBJECT_ID:
+	                corruptedCount += checkObjectId();
+	                setNextCheckType();
+	            case OBJECT_INDICES:
+	                corruptedCount += checkObjectIndices();
+	                setNextCheckType();
+	            case INDEX_OBJECTS:
+	                corruptedCount += checkIndexObjects();
+	        }
+	    } finally {
+	        DbCheckerFileWriter.close();
+	    }
+    	
         return corruptedCount;
     }
 
@@ -154,8 +159,6 @@ public class DbConsistencyChecker {
             }
         }
 
-        DbCheckerFileWriter.close();
-
         String msg = String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END, resumeDataCfs.size(), checkResult.getTotal());
 
         helper.logMessage(checkResult.toString(), false, toConsole);
@@ -190,8 +193,6 @@ public class DbConsistencyChecker {
                 persistStatus(status);
             }
         }
-
-        DbCheckerFileWriter.close();
 
         String msg = String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END, resumeIdxCfs.size(), checkResult.getTotal());
 

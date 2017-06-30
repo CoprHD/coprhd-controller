@@ -495,7 +495,6 @@ public class VNXFileCommApi {
     private boolean isMountPresentOnArray(String fileSysName, StorageSystem system) {
         boolean isMounted = false;
         try {
-            XMLApiResult result = new XMLApiResult();
             _log.info("Query movers for file system with name {}.", fileSysName);
             Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
             updateAttributes(reqAttributeMap, system);
@@ -517,7 +516,6 @@ public class VNXFileCommApi {
         } catch (Exception e) {
             _log.warn("No able to get mover info for VNX File System: fs id {}, ", fileSysName);
         }
-
         return isMounted;
     }
 

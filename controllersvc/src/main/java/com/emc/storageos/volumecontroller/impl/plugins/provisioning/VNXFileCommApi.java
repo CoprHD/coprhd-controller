@@ -73,7 +73,7 @@ public class VNXFileCommApi {
     private static final String PROV_FILE_MOUNT_EXPAND = "vnxfile-prov-file-mount-expand";
     private static final String PROV_SNAP_RESTORE = "vnxfile-prov-snap-restore";
     private static final String PROV_FSIDQUERY_FILE = "vnxfile-prov-filesysid-query";
-    private static final String PROV_FILE_INFO_QUERY = "vnxfile-prov-file-info-query";
+    private static final String PROV_FILE_MOVER_INFO_QUERY = "vnxfile-prov-file-mover-info-query";
     private static final String PROV_FSIDQUERY_FILE_DELETE = "vnxfile-prov-filesysid-delete-query";
     private static final String PROV_CIFS_SERVERS = "vnxfile-prov-cifsserver-query";
 
@@ -504,7 +504,7 @@ public class VNXFileCommApi {
             updateAttributes(reqAttributeMap, system);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSysName);
             _provExecutor.setKeyMap(reqAttributeMap);
-            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_INFO_QUERY));
+            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_MOVER_INFO_QUERY));
             String cmdResult = (String) reqAttributeMap.get(VNXFileConstants.CMD_RESULT);
             if (cmdResult != null && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
                 Set<String> movers = (Set<String>) reqAttributeMap.get(VNXFileConstants.MOVERLIST);

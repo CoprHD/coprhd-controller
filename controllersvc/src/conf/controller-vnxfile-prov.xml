@@ -25,7 +25,7 @@
                 <entry key="vnxfile-prov-force-del-file" value-ref="vnxfileforcedelnamespace" />
                 <entry key="vnxfile-prov-cr-snap" value-ref="vnxsnapcrnamespace" />
                 <entry key="vnxfile-prov-file-export" value-ref="vnxexportnamespace" />
-                <entry key="vnxfile-prov-file-info-query" value-ref="vnxfsinfonamespace" />
+                <entry key="vnxfile-prov-file-mover-info-query" value-ref="vnxfsmoverinfonamespace" />
                 <entry key="vnxfile-prov-file-export-mount" value-ref="vnxexportmountnamespace" />
                 <entry key="vnxfile-prov-delete-snap" value-ref="vnxsnapshotdeletenamespace" />
                 <entry key="vnxfile-prov-snap-restore" value-ref="vnxsnaprestorenamespace" />
@@ -150,12 +150,12 @@
         </property>
     </bean>
     
-    <bean id="vnxfsinfonamespace"
+    <bean id="vnxfsmoverinfonamespace"
           class="com.emc.storageos.plugins.common.domainmodel.Namespace">
         <property name="operations">
             <list>
                 <ref bean="loginoperation" />
-                <ref bean="filesysteminfooperation"/>
+                <ref bean="filesystemmoverinfooperation"/>
                 <ref bean="sessioncleanoperation" />
             </list>
         </property>
@@ -204,9 +204,9 @@
         </property>
     </bean>
     
-    <bean id="filesysteminfooperation"
+    <bean id="filesystemmoverinfooperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="processor" ref="filesysteminfoprocessor" />
+		<property name="processor" ref="selectedfilesysteminfoprocessor" />
 		<property name="instance" ref="retriever" />
 		<property name="method" value="execute" />
 		<property name="arguments">
@@ -1013,8 +1013,8 @@
         <property name="unmarshaller" ref="unmarshaller"/>
     </bean>	
     
-    <bean id="filesysteminfoprocessor"
-		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemInfoProcessor">
+    <bean id="selectedfilesysteminfoprocessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXSelectedFileSystemMoverInfoProcessor">
 		<property name="unmarshaller" ref="unmarshaller"/>
 	</bean>
 

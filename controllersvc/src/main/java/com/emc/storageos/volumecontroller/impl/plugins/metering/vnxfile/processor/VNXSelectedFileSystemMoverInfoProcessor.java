@@ -16,28 +16,28 @@ import org.apache.commons.httpclient.methods.PostMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.plugins.BaseCollectionException;
-import com.emc.storageos.plugins.common.domainmodel.Operation;
-import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
-import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
-import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 import com.emc.nas.vnxfile.xmlapi.FileSystem;
 import com.emc.nas.vnxfile.xmlapi.MoverOrVdmRef;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.Status;
+import com.emc.storageos.plugins.BaseCollectionException;
+import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
+import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
 /**
- * VNXFileShareProcessor is responsible to process the result received from XML API
- * Server after getting the VNX FileShares Information.
+ * VNXSelectedFileSystemMoverInfoProcessor is responsible to process the result received from XML API
+ * Server after getting the one VNX FileSystem Information.
  */
-public class VNXFileSystemInfoProcessor extends VNXFileProcessor {
+public class VNXSelectedFileSystemMoverInfoProcessor extends VNXFileProcessor {
 
     /**
      * Logger instance.
      */
     private final Logger _logger = LoggerFactory
-            .getLogger(VNXFileSystemInfoProcessor.class);
+            .getLogger(VNXSelectedFileSystemMoverInfoProcessor.class);
 
     @Override
     public void processResult(Operation operation, Object resultObj,
@@ -85,6 +85,7 @@ public class VNXFileSystemInfoProcessor extends VNXFileProcessor {
         if (iterator.hasNext()) {
             Status status = (Status) iterator.next();
             if (status.getMaxSeverity() == Severity.OK) {
+                keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                 while (iterator.hasNext()) {
                     FileSystem fileSystem = (FileSystem) iterator.next();
                     volFilesystemMap.put(fileSystem.getVolume(), fileSystem.getFileSystem());
@@ -97,6 +98,7 @@ public class VNXFileSystemInfoProcessor extends VNXFileProcessor {
                     }
                 }
             } else {
+                keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_FAILURE);
                 throw new VNXFilePluginException(
                         "Fault response received from XMLAPI Server.",
                         VNXFilePluginException.ERRORCODE_INVALID_RESPONSE);

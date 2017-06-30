@@ -214,7 +214,7 @@
 				<ref bean="uri" />
 				<ref bean="cookie" />
 				<ref bean="session" />
-				<ref bean="vnxfilesysquery" />
+				<ref bean="vnxselectedfilesysquerywithoutsize" />
 			</list>
 		</property>
 	</bean>
@@ -864,6 +864,13 @@
         <property name="method" value="fetchFileSystemInfo" />
         <property name="value" value="" />
     </bean> 
+    
+    <bean id="vnxselectedfilesysquerywithoutsize"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchSelectedFileSystemInfoWithoutSize" />
+        <property name="value" value="" />
+    </bean>
 
     <bean id="vnxuseraccquery"
         class="com.emc.storageos.plugins.common.domainmodel.Argument">

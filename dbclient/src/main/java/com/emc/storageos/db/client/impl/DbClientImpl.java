@@ -9,12 +9,31 @@ import java.beans.PropertyDescriptor;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.*;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -35,6 +54,7 @@ import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ConstraintImpl;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.model.AllowedGeoVersion;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
@@ -67,6 +87,7 @@ import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.exceptions.FatalDatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
@@ -135,6 +156,7 @@ public class DbClientImpl implements DbClient {
     private int logInterval = 1800; //seconds
     private int logCount = 5;
     private KeyspaceTracerFactoryImpl tracer;
+    private DbConsistencyCheckerHelper checkHelper;
 
     public String getGeoVersion() {
         if (this._geoVersion == null) {
@@ -267,6 +289,8 @@ public class DbClientImpl implements DbClient {
         tracer = new KeyspaceTracerFactoryImpl();
 
         initDone = true;
+        
+        this.checkHelper = new DbConsistencyCheckerHelper(this);
     }
 
     public boolean isInitDone() {
@@ -1177,6 +1201,17 @@ public class DbClientImpl implements DbClient {
             Rows<String, CompositeColumnName> rows = fetchNewest(clazz, ks, objectsToCleanup);
             cleanupOldColumns(clazz, ks, rows);
         }
+        
+        DataObjectType doType = TypeMap.getDoType(clazz);
+        CheckResult checkResult = new CheckResult();
+        try {
+			checkHelper.checkCFIndices(doType, false, checkResult, dataobjects);
+			if (checkResult.getTotal() > 0) {
+				_log.warn("Stack trace:", new RuntimeException("Detect inconsistency data in dbclient"));
+			}
+		} catch (ConnectionException e) {
+			_log.warn("failed to check inconsistency", e);
+		}
     }
 
     protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects) {

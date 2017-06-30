@@ -47,6 +47,8 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
             dbClient.queryByConstraint(
                     AlternateIdConstraint.Factory.getFileShareNativeIdConstraint(nativeGuid),
                     results);
+            // Converting URIQueryResultList result list to ArrayList<URI> since, URIQueryResultList doesn't support
+            // methods that caller of this method is expecting from returned List object..
             Iterator<URI> it = results.iterator();
             while (it.hasNext()) {
                 resultsList.add(it.next());

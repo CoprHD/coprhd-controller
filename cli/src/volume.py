@@ -1040,7 +1040,7 @@ class Volume(object):
 
     # Update a volume information
     # Changed the volume vpool
-    def update(self, prefix_path, name, vpool, suspend):
+    def update(self, prefix_path, name, vpool, rdfgroup, suspend):
         '''
         Makes REST API call to update a volume information
         Parameters:
@@ -1073,6 +1073,9 @@ class Volume(object):
 	    'migration_suspend_before_commit' : suspend,
 	    'migration_suspend_before_delete_source' : suspend
         }
+
+        if (rdfgroup):
+            params['extension_parameters'] = [ "rdfGroup=" + rdfgroup ]
 
         body = json.dumps(params)
 
@@ -2510,6 +2513,10 @@ def update_parser(subcommand_parsers, common_parser):
                                 metavar='<vpoolname>',
                                 dest='vpool',
                                 required=True)
+    update_parser.add_argument('-replicationgroup','-rg',
+                               help='replication group (eg RDF Group) URI',
+                               dest='rdfgroup',
+                               required=False)
     update_parser.add_argument('-suspend', '-ss',
                                 help='Suspend before commit and delete of original source volume',
                                 dest='suspend',
@@ -2527,7 +2534,7 @@ def volume_update(args):
 	if(not args.suspend):
 	    args.suspend = "false"
         res = obj.update(args.tenant + "/" + args.project, args.name,
-                         args.vpool, args.suspend)
+                         args.vpool, args.rdfgroup, args.suspend)
         # return common.format_json_object(res)
     except SOSError as e:
         if (e.err_code == SOSError.NOT_FOUND_ERR):

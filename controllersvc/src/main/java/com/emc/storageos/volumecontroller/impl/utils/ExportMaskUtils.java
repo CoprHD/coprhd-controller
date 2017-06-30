@@ -1196,20 +1196,50 @@ public class ExportMaskUtils {
      * @return -- true if ExportMask in given Varray
      */
     public static boolean exportMaskInVarray(DbClient dbClient, ExportMask exportMask, URI varrayURI) {
+        return exportMaskInVarray(dbClient, exportMask, varrayURI, false);
+    }
+
+    /**
+     * Determine if the ExportMask is "in" a given Varray.
+     * This is determined by if all the target ports are tagged for for the Varray, 
+     * unless the allowSinglePortMatch flag is true.
+     *
+     * @param exportMask -- ExportMask
+     * @param varrayURI -- Varray URI
+     * @param allowSinglePortMatch -- if true, allow only a single port to be considered a match,
+     *                                if false, all ports in the mask must be in the varray
+     * @return -- true if ExportMask in given Varray
+     */
+    public static boolean exportMaskInVarray(DbClient dbClient, ExportMask exportMask, URI varrayURI, boolean allowSinglePortMatch) {
         if (exportMask.getStoragePorts() == null || exportMask.getStoragePorts().isEmpty()) {
             return false;
         }
         List<URI> targetURIs = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
         List<StoragePort> ports = dbClient.queryObject(StoragePort.class, targetURIs);
+        List<String> matchedPorts = new ArrayList<String>();
+        List<String> unmatchedPorts = new ArrayList<String>();
         for (StoragePort port : ports) {
-            if (port.getTaggedVirtualArrays() == null
-                    || !port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
-                return false;
+            if ((port.getTaggedVirtualArrays() == null) 
+                || (!port.getTaggedVirtualArrays().contains(varrayURI.toString()))) {
+                unmatchedPorts.add(port.getPortGroup() + "/" + port.getPortName());
+            } else if (port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
+                matchedPorts.add(port.getPortGroup() + "/" + port.getPortName());
             }
         }
-        return true;
+        _log.info(
+            String.format("export mask %s for varray %s has matched ports %s and unmatched ports %s and allowSinglePortMatch is %b",
+                exportMask.forDisplay(), varrayURI, matchedPorts, unmatchedPorts, allowSinglePortMatch));
+        if (!matchedPorts.isEmpty()) {
+            if (allowSinglePortMatch || (matchedPorts.size() == ports.size())) {
+                return true;
+            }
+        }
+        _log.info(
+                String.format("export mask in varray conditions not met for export mask %s in varray %s, unmatched ports: %s",
+                        exportMask.forDisplay(), varrayURI.toString(), unmatchedPorts.toString()));
+        return false;
     }
-    
+
     /**
      * Get storage ports not in the given varray.
      *
@@ -1482,11 +1512,12 @@ public class ExportMaskUtils {
                 // other process just added the volume to the ExportMask, but the HLU selection by the array has
                 // not completed. In that case, we won't indicate that the volume is added just yet.
                 // That other process should add the volume and its HLU in the ExportMask addVolume post process.
-                if (hlu != null) {
-                    volumesToAdd.put(normalizedWWN, hlu);
-                } else {
+                // UPDATE: existing volumes should definitely be added to ExportMask. If there is no HLU assigned yet, let it be -1.
+                if (hlu == null) {
+                    hlu = ExportGroup.LUN_UNASSIGNED;
                     _log.info("Volume {} does not have an HLU. It could be getting assigned.", normalizedWWN);
                 }
+                volumesToAdd.put(normalizedWWN, hlu);
             }
         }
         return volumesToAdd;

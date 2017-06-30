@@ -17,6 +17,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
@@ -45,6 +46,7 @@ import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.Tasks;
@@ -260,7 +262,14 @@ public class Orders extends OrderExecution {
     public static void resubmitOrder(@Required String orderId) {
         checkAuthenticity();
         OrderRestRep order = OrderUtils.getOrder(uri(orderId));
-        addParametersToFlash(order);
+        try {
+            addParametersToFlash(order);
+        } catch (Exception e) {
+            Logger.error(e, MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            flash.error(MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            Common.handleError();
+        }
+
         Services.showForm(order.getCatalogService().getId().toString());
     }
 
@@ -268,6 +277,12 @@ public class Orders extends OrderExecution {
     private static void addParametersToFlash(OrderRestRep order) {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(order.getCatalogService().getId().toString()));
         HashMap<String, String> tableParams = new HashMap<String, String>();
+
+        if (service==null || service.getServiceDescriptor()==null){
+            flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
+            Logger.error("Service Descriptor not found");
+            throw new IllegalStateException("No Service Descriptor found. Might be Customservices Workflow  is deleted ");
+        }
 
         for (ServiceItemRestRep item : service.getServiceDescriptor().getItems()) {
             if (item.isTable()) {
@@ -339,6 +354,11 @@ public class Orders extends OrderExecution {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         ServiceDescriptorRestRep descriptor = service.getServiceDescriptor();
 
+        if (descriptor == null){
+            flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
+            Logger.error("Service Descriptor not found");
+            throw new IllegalStateException("No Service Descriptor found. Might be Customservices Workflow  is deleted ");
+        }
         // Filter out actual Service Parameters
         Map<String, String> parameters = parseParameters(service, descriptor);
         if (Validation.hasErrors()) {
@@ -507,7 +527,7 @@ public class Orders extends OrderExecution {
 
         public Map<URI, String> viprTaskStepMessages;
 
-        public Map<URI, List<String>> viprTaskWarningMessages;
+        public Set<String> viprTaskWarningMessages;
 
         public OrderDetails(String orderId) {
             order = OrderUtils.getOrder(uri(orderId));
@@ -562,10 +582,10 @@ public class Orders extends OrderExecution {
         }
 
         private void setTaskWarningMessages() {
-            viprTaskWarningMessages = Maps.newHashMap();
+            viprTaskWarningMessages = Sets.newHashSet();
             for (TaskResourceRep task : viprTasks) {
                 if (task != null && task.getWarningMessages() != null && !task.getWarningMessages().isEmpty()) {
-                    viprTaskWarningMessages.put(task.getId(), task.getWarningMessages());
+                    viprTaskWarningMessages.addAll(task.getWarningMessages());
                 }
             }
         }

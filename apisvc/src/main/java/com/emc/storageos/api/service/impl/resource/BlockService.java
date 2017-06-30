@@ -1514,7 +1514,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            Copy to swap
      *
-     * @brief reversing roles of source and target
+     * @brief Reverse roles of source and target
      * @return TaskList
      *
      * @throws ControllerException
@@ -1564,7 +1564,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            Copy to fail back
      *
-     * @brief fail back to source again
+     * @brief Cancel a failover and return to source
      * @return TaskList
      *
      * @throws ControllerException
@@ -1801,6 +1801,23 @@ public class BlockService extends TaskResourceService {
         return taskList;
     }
 
+    /**
+     * Changes Copy Mode
+     * 
+     * @param id
+     * 			the URI of a ViPR Source volume
+     * 
+     * @param param
+     * 			List of copies to sync
+     * 
+     * @brief Change the SRDF copy mode
+     * 
+     * @desc  Change the SRDF copy mode. Copy modes are synchronous, asynchronous, or adaptive
+     * 
+     * @return TaskList
+     * 
+     * @throws ControllerException
+     */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/continuous-copies/copymode")
@@ -1877,7 +1894,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            Copy to change access mode on
      *
-     * @brief Changes the access mode for a copy.
+     * @brief Change the access mode for a copy.
      * @return TaskList
      *
      * @throws ControllerException
@@ -2493,6 +2510,8 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
+     * Create Snapshot Session
+     * 
      * Create an array snapshot of the volume with the passed Id. Creating a
      * snapshot session simply creates and array snapshot point-in-time copy
      * of the volume. It does not automatically create a single target volume
@@ -2511,6 +2530,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            Volume snapshot parameters
      *
+     * @brief Define a new snapshot session
      * @return TaskList
      */
     @POST
@@ -3662,9 +3682,16 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     *
+     * Get Volumes For Virtual Array Change
+     * 
      * @param projectURI
+     * 			the URI of a ViPR project
+     * 
      * @param varrayURI
+     * 			the URI of a ViPR vArray
+     * 
+     * @brief Show potential volumes for virtual array change
+     * 
      * @return Get Volume for Virtual Array Change
      */
     @GET
@@ -4943,7 +4970,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            POST data containing the journal volume(s) creation information.
      *
-     * @brief Add journal volume(s) to the exiting recoverpoint CG copy
+     * @brief Add journal volume(s) to the existing recoverpoint CG copy
      * @return A reference to a BlockTaskList containing a list of
      *         TaskResourceRep references specifying the task data for the
      *         journal volume creation tasks.

@@ -53,8 +53,6 @@ import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
-import com.emc.storageos.db.client.model.Stat;
-import com.emc.storageos.db.client.model.StatTimeSeries;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -83,7 +81,6 @@ import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
-import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -424,7 +421,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         doDeleteExportRulesFromDB(true, null, args); // Delete Export Rules from DB
                         doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                     }
-                    generateZeroStatisticsRecord(fsObj);
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else if (!result.getCommandPending()
                         && FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(deleteType)) {
@@ -472,7 +468,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         cifsSharesMap.clear();
                     }
                     fsObj.setInactive(true);
-                    generateZeroStatisticsRecord(fsObj);
 
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else if (!result.getCommandPending()
@@ -576,35 +571,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 dir.setInactive(true);
                 _dbClient.updateObject(dir);
             }
-        }
-    }
-
-    /**
-     * Generate zero statistics record.
-     * 
-     * @param fsObj
-     *            the file share object
-     */
-    private void generateZeroStatisticsRecord(FileShare fsObj) {
-        try {
-            Stat zeroStatRecord = new Stat();
-            zeroStatRecord.setTimeInMillis(System.currentTimeMillis());
-            zeroStatRecord.setTimeCollected(System.currentTimeMillis());
-            zeroStatRecord.setServiceType(Constants._File);
-            zeroStatRecord.setAllocatedCapacity(0);
-            zeroStatRecord.setProvisionedCapacity(0);
-            zeroStatRecord.setBandwidthIn(0);
-            zeroStatRecord.setBandwidthOut(0);
-            zeroStatRecord.setNativeGuid(fsObj.getNativeGuid());
-            zeroStatRecord.setSnapshotCapacity(0);
-            zeroStatRecord.setSnapshotCount(0);
-            zeroStatRecord.setResourceId(fsObj.getId());
-            zeroStatRecord.setVirtualPool(fsObj.getVirtualPool());
-            zeroStatRecord.setProject(fsObj.getProject().getURI());
-            zeroStatRecord.setTenant(fsObj.getTenant().getURI());
-            _dbClient.insertTimeSeries(StatTimeSeries.class, zeroStatRecord);
-        } catch (Exception e) {
-            _log.error("Zero Stat Record Creation failed for FileShare : {}", fsObj.getId(), e);
         }
     }
 
@@ -992,6 +958,65 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             updateTaskStatus(opId, fs, e);
             if (fs != null) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.EXPAND_FILE_SYSTEM, false, e.getMessage(), "", fs,
+                        String.valueOf(newFSsize));
+            }
+        }
+    }
+    
+    @Override
+    public void reduceFS(URI storage, URI uri, long newFSsize, String opId) throws ControllerException {
+        ControllerUtils.setThreadLocalLogData(uri, opId);
+        FileShare fs = null;
+        StoragePool pool = null;
+        StorageSystem storageObj = null;
+        
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        try {
+        	fs = _dbClient.queryObject(FileShare.class, uri);
+        	pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
+        	storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            
+            args.addFSFileObject(fs);
+            args.addStoragePool(pool);
+            
+            args.setFileOperation(true);
+            args.setNewFSCapacity(newFSsize);
+            args.setOpId(opId);
+            // work flow and we need to add TaskCompleter
+            WorkflowStepCompleter.stepExecuting(opId);
+
+            acquireStepLock(storageObj, opId);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doReduceFS(storageObj, args);
+            if (result.getCommandPending()) {
+                // async operation
+                return;
+            }
+            if (result.isCommandSuccess()) {
+                _log.info("FileSystem old capacity :" + args.getFsCapacity() + ":Reduced Size:" + args.getNewFSCapacity());
+                args.setFsCapacity(args.getNewFSCapacity());
+
+                WorkflowStepCompleter.stepSucceded(opId);
+            } else if (!result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            // Set status
+            fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.updateObject(fs);
+
+            String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
+            recordFileDeviceOperation(_dbClient, OperationTypeEnum.REDUCE_FILE_SYSTEM,
+                    result.isCommandSuccess(), eventMsg, "", fs, String.valueOf(newFSsize));
+        } catch (Exception e) {
+            String[] params = { storage.toString(), uri.toString(), String.valueOf(newFSsize), e.getMessage() };
+            _log.error("Unable to reduce file system: storage {}, FS URI {}, size {}: {}", params);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            updateTaskStatus(opId, fs, e);
+            if (fs != null) {
+                recordFileDeviceOperation(_dbClient, OperationTypeEnum.REDUCE_FILE_SYSTEM, false, e.getMessage(), "", fs,
                         String.valueOf(newFSsize));
             }
         }
@@ -1670,6 +1695,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 break;
 
             case EXPAND_FILE_SYSTEM:
+            case REDUCE_FILE_SYSTEM:
                 auditFile(dbClient, opType, opStatus, opStage,
                         fs.getId().toString(), extParam[1]);
                 break;
@@ -3698,6 +3724,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     static final String DELETE_FILESYSTEMS_STEP = "FileDeviceDeleteFileShares";
     static final String CREATE_FS_MIRRORS_STEP = "FileDeviceCreateMirrors";
     static final String EXPAND_FILESYSTEMS_STEP = "FileDeviceExpandFileShares";
+    static final String REDUCE_FILESYSTEMS_STEP = "FileDeviceReduceFileShares";
 
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 
@@ -3837,6 +3864,30 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
+    
+    /*
+     * Reduce filesystem
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface#addStepsForReduceFileSystems(com.emc.
+     * storageos.workflow.
+     * Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForReduceFileSystems(Workflow workflow, String waitFor,
+            List<FileDescriptor> fileDescriptors, String taskId)
+            throws InternalException {
+        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
+                FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
+                FileDescriptor.Type.FILE_MIRROR_TARGET);
+        if (sourceDescriptors == null || sourceDescriptors.isEmpty()) {
+            return waitFor;
+        } else {
+            createReduceFileshareStep(workflow, waitFor, sourceDescriptors, taskId);
+        }
+        return waitFor;
+    }
 
     /**
      * Return a Workflow.Method for createFileShares.
@@ -3939,6 +3990,46 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
+    
+    /**
+     * Reduce File System Step
+     *
+     * @param workflow
+     * @param waitFor
+     * @param fileDescriptors
+     * @param taskId
+     * @return
+     */
+    private String createReduceFileshareStep(Workflow workflow,
+            String waitFor, List<FileDescriptor> fileDescriptors, String taskId) {
+        _log.info("START Reduce file system");
+        Map<URI, Long> filesharesToReduce = new HashMap<URI, Long>();
+        for (FileDescriptor descriptor : fileDescriptors) {
+        	FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
+            if (fileShare.getCapacity() != null && fileShare.getCapacity().longValue() != 0) {
+            	filesharesToReduce.put(fileShare.getId(), descriptor.getFileSize());
+            }
+        }
+
+        Workflow.Method reduceMethod = null;
+        for (Map.Entry<URI, Long> entry : filesharesToReduce.entrySet()) {
+            _log.info("Creating WF step for Reduce FileShare for  {}", entry.getKey().toString());
+            FileShare fileShareToReduce = _dbClient.queryObject(FileShare.class, entry.getKey());
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fileShareToReduce.getStorageDevice());
+            Long fileSize = entry.getValue();
+            reduceMethod = reduceFileSharesMethod(storage.getId(), fileShareToReduce.getId(), fileSize);
+            waitFor = workflow.createStep(
+                    REDUCE_FILESYSTEMS_STEP,
+                    String.format("Reduce FileShare %s", fileShareToReduce),
+                    waitFor, storage.getId(), storage.getSystemType(), getClass(), reduceMethod, null, null);
+            _log.info("Creating workflow step {}", REDUCE_FILESYSTEMS_STEP);
+        }
+        return waitFor;
+    }
+    
+    
+    
+    
 
     /**
      * Return a WorkFlow.Method for expandFileShares
@@ -3950,6 +4041,18 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      */
     Workflow.Method expandFileSharesMethod(URI uriStorage, URI fileURI, long size) {
         return new Workflow.Method("expandFS", uriStorage, fileURI, size);
+    }
+    
+    /**
+     * Return a WorkFlow.Method for reduceFileShares
+     *
+     * @param uriStorage
+     * @param fileURI
+     * @param size
+     * @return
+     */
+    Workflow.Method reduceFileSharesMethod(URI uriStorage, URI fileURI, long size) {
+        return new Workflow.Method("reduceFS", uriStorage, fileURI, size);
     }
 
     @Override

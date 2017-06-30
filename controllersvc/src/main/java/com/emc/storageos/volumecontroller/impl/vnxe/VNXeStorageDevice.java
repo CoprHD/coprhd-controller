@@ -2764,6 +2764,12 @@ implements FileStorageDevice, BlockStorageDevice {
     }
 
     @Override
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage, Set<URI> volumeURIs)
+            throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> addedPaths,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -2842,6 +2848,12 @@ implements FileStorageDevice, BlockStorageDevice {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "VNXe"));
     }
+
+	@Override
+	public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+		return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Reduce filesystem quota", "VNXe"));
+	}
 
     
     @Override

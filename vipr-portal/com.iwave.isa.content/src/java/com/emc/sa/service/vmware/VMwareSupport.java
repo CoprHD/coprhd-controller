@@ -24,6 +24,8 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockVolumeMachineTag;
 import com.emc.sa.service.vipr.block.tasks.SetBlockVolumeMachineTag;
@@ -235,13 +237,21 @@ public class VMwareSupport {
                 List<HostSystem> clusterHosts = Lists.newArrayList(cluster.getHosts());
                 for (HostSystem clusterHost : clusterHosts) {
                     if (isHostConnected(clusterHost)) {
-                        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
-                        hostDisks.put(clusterHost, disk);
+                        try {
+                            HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
+                            hostDisks.put(clusterHost, disk);
+                        } catch (Exception ex) {
+                            logWarn("vmware.support.multipath.policy.volumenotfound", volume.getWwn(), clusterHost.getName());
+                        }
                     }
                 }
             } else if (host != null) {
-                HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
-                hostDisks.put(host, disk);
+                try {
+                    HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
+                    hostDisks.put(host, disk);
+                } catch (Exception e) {
+                    logWarn("vmware.support.multipath.policy.volumenotfound", volume.getWwn(), host.getName());
+                }
             }
 
             if (hostDisks.size() > 0) {
@@ -249,6 +259,28 @@ public class VMwareSupport {
             }
         }
 
+    }
+
+    /**
+     * Attach the given list of luns on the host or hosts in the cluster
+     * 
+     * @param host host to attach luns
+     * @param cluster cluster to attach luns
+     * @param volumes list of volumes to attach
+     */
+    public void attachLuns(HostSystem hostSystem, ClusterComputeResource cluster, List<URI> volumes) {
+        List<HostSystem> hosts = cluster == null ? Lists.newArrayList(hostSystem) : Lists.newArrayList(cluster.getHosts());
+        for (URI volumeId : volumes) {
+            BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
+            for (HostSystem host : hosts) {
+                if (VMwareSupport.isHostConnected(host)) {
+                    final HostScsiDisk disk = findScsiDisk(host, null, volume);
+                    if (VMwareUtils.isDiskOff(disk)) {
+                        execute(new AttachScsiDisk(host, Collections.singletonList(disk)));
+                    }
+                }
+            }
+        }
     }
 
     public void detachLuns(HostSystem host, List<HostScsiDisk> disks) {
@@ -270,9 +302,25 @@ public class VMwareSupport {
      *            true to enable storage io control or false to disable storage io control
      */
     public void setStorageIOControl(Datastore datastore, Boolean enabled) {
+        setStorageIOControl(datastore, enabled, false);
+    }
+
+    /**
+     * Sets the storage IO control for the given datastore
+     * 
+     * @param datastore
+     *            the datastore to set the storage io control on
+     * @param enabled
+     *            true to enable storage io control or false to disable storage io control
+     * @param failIfErrorDuringEnable
+     *            true to fail the operation of enabling storage I/O if storage I/O is not supported
+     */
+    public void setStorageIOControl(Datastore datastore, Boolean enabled, Boolean failIfErrorDuringEnable) {
         if (enabled != null && datastore != null) {
             if (datastore.getCapability() != null && datastore.getCapability().storageIORMSupported) {
-                execute(new SetStorageIOControl(datastore, enabled));
+                execute(new SetStorageIOControl(datastore, enabled, failIfErrorDuringEnable));
+            } else if (enabled && failIfErrorDuringEnable) {
+                ExecutionUtils.fail("failTask.SetStorageIOControl", new Object[] {}, datastore.getName());
             } else {
                 logWarn("vmware.support.storage.io.control.not.supported", datastore.getName());
             }
@@ -678,9 +726,13 @@ public class VMwareSupport {
                 if (StringUtils.equals(host.getName(), otherHost.getName())) {
                     continue;
                 }
-                if (VMwareSupport.isHostConnected(otherHost)) {
-                    HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly, throwIfNotFound));
-                    disks.put(otherHost, otherDisk);
+                try {
+                    if (VMwareSupport.isHostConnected(otherHost)) {
+                        HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly, throwIfNotFound));
+                        disks.put(otherHost, otherDisk);
+                    }
+                } catch (Exception e) {
+                    logWarn("vmware.support.find.scsi.disk.volumenotfound", volume.getWwn(), otherHost.getName());
                 }
             }
         }
@@ -795,7 +847,7 @@ public class VMwareSupport {
      *            the datastore.
      * @return the volumes backing the host system.
      */
-    public List<VolumeRestRep> findVolumesBackingDatastore(HostSystem host, URI hostId, Datastore datastore) {
+    public List<VolumeRestRep> verifyVolumesBackingDatastore(HostSystem host, URI hostId, Datastore datastore) {
         Set<String> luns = execute(new FindLunsBackingDatastore(host, datastore));
         List<VolumeRestRep> volumes = Lists.newArrayList();
         for (String lun : luns) {
@@ -804,15 +856,17 @@ public class VMwareSupport {
                 // VBDU: Check to ensure the correct datastore tag is in the volume returned
                 String tagValue = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
                 if (tagValue == null || !tagValue.equalsIgnoreCase(datastore.getName())) {
-                    logError("vmware.support.datastore.doesntmatchvolume", volume.getName(), datastore.getName());
-                    return null;
-                }
+                    String viprcliCommand = BlockStorageUtils.getVolumeTagCommand(volume.getId(),
+                            KnownMachineTags.getVMFSDatastoreTagName(hostId), datastore.getName());
+                    throw new IllegalStateException(
+                            ExecutionUtils.getMessage("vmware.support.datastore.doesntmatchvolume", volume.getName(), volume.getWwn(),
+                                    datastore.getName(), viprcliCommand));
 
+                }
                 volumes.add(volume);
             } else {
-                logError("vmware.support.datastore.volumenotfound", datastore.getName());
-                // Don't return any volume objects to quickly report there's an issue to the caller.
-                return null;
+                throw new IllegalStateException(
+                        ExecutionUtils.getMessage("vmware.support.datastore.volumenotfound", lun, datastore.getName()));
             }
         }
         return volumes;
@@ -892,6 +946,59 @@ public class VMwareSupport {
                     detachLuns(host, Collections.singletonList(disk));
                 }
             });
+        }
+    }
+
+    /**
+     * Rescan Vmfs for a list of hosts
+     * 
+     * @param hosts the list of hosts
+     * @throws Exception if an error occurs
+     */
+    public void rescanVmfs(List<HostSystem> hosts) throws Exception {
+        for (HostSystem hostSystem : hosts) {
+            if (VMwareSupport.isHostConnected(hostSystem)) {
+                hostSystem.getHostStorageSystem().rescanVmfs();
+            }
+        }
+    }
+
+    /**
+     * Mount datastores that are backed by the list of volumes
+     * 
+     * @param host the host to mount the datastore on, or null if cluster is being used
+     * @param cluster the cluster to mount the datastore on, or null if host is being used
+     * @param datacenterName name of the datacenter
+     * @param volumeIds the list of volumes
+     * @throws Exception thrown if an error occurs
+     */
+    public void mountDatastores(HostSystem host, ClusterComputeResource cluster, String datacenterName, List<URI> volumeIds)
+            throws Exception {
+        List<HostSystem> hosts = cluster == null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
+        rescanVmfs(hosts);
+        for (URI volumeId : volumeIds) {
+            BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
+            Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
+            for (String datastoreName : datastoreNames) {
+                Datastore datastore = getDatastore(datacenterName, datastoreName);
+                mountDatastore(datastore, hosts);
+            }
+        }
+    }
+
+    /**
+     * Mount a datastore on a given list of hosts if the datastore is not yet mounted
+     * 
+     * @param datastore the datastore to mount
+     * @param hosts list of hosts
+     */
+    public void mountDatastore(Datastore datastore, List<HostSystem> hosts) {
+        for (HostSystem hostSystem : hosts) {
+            if (VMwareSupport.isHostConnected(hostSystem)) {
+                if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                    execute(new MountDatastore(hostSystem, datastore));
+                }
+            }
         }
     }
 }

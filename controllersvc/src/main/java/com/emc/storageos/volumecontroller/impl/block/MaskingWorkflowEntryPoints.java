@@ -7,10 +7,8 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +21,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
-import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -34,10 +30,8 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveVolumeCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RollbackExportGroupCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -53,7 +47,6 @@ import com.google.common.base.Joiner;
 public class MaskingWorkflowEntryPoints implements Controller {
     private static final Logger _log = LoggerFactory.getLogger(MaskingWorkflowEntryPoints.class);
     private static volatile String _beanName;
-    private NetworkDeviceController _networkDeviceController;
     private Map<String, BlockStorageDevice> _devices;
     private DbClient _dbClient;
     private BlockStorageScheduler _blockScheduler;
@@ -85,10 +78,6 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
-    }
-
-    public void setNetworkDeviceController(NetworkDeviceController networkDeviceController) {
-        _networkDeviceController = networkDeviceController;
     }
 
     public void setBlockScheduler(BlockStorageScheduler storageScheduler) {
@@ -320,71 +309,6 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
         doExportGroupRemoveVolumes(storageURI, exportGroupURI, exportMaskURI, list,
                 initiatorURIs, taskCompleter, token);
-    }
-
-    public void exportGroupDelete(URI storageURI, URI exportGroupURI,
-            String token) throws ControllerException {
-        String call = String.format("doExportGroupDelete(%s, %s, %s)",
-                storageURI.toString(), exportGroupURI.toString(), token);
-        TaskCompleter taskCompleter = new ExportDeleteCompleter(exportGroupURI, false, token);
-        try {
-            _log.info(String.format("%s start", call));
-
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
-                    exportGroupURI);
-            StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
-                    storageURI);
-
-            if (exportGroup == null || exportGroup.getInactive()) {
-                taskCompleter.ready(_dbClient);
-                _log.info("Export Group {} already deleted", exportGroupURI);
-                return;
-            }
-
-            /**
-             * If no export mask is found, nothing to be done. Task will be marked
-             * complete by the last real export mask delete completion.
-             */
-            ExportMask exportMask = ExportMaskUtils.getExportMask(_dbClient,
-                    exportGroup, storageURI);
-            if (exportMask != null) {
-                _log.info("export_delete: export mask exists");
-                List<NetworkZoningParam> zoningParam = 
-                    NetworkZoningParam.convertExportMasksToNetworkZoningParam(exportGroup.getId(), 
-                    		Collections.singletonList(exportMask.getId()), _dbClient);
-
-                List<URI> volumeURIs = new ArrayList<>();
-                if (exportMask.getVolumes() != null) {
-                    for (String volumeId : exportMask.getVolumes().keySet()) {
-                        volumeURIs.add(URI.create(volumeId));
-                    }
-                }
-
-                List<URI> initiatorURIs = new ArrayList<>();
-                if (exportMask.getInitiators() != null) {
-                    for (String initiatorId : exportMask.getInitiators()) {
-                        initiatorURIs.add(URI.create(initiatorId));
-                    }
-                }
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_050);
-                getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_051);
-                _networkDeviceController.zoneExportMasksDelete(zoningParam, volumeURIs, 
-                        UUID.randomUUID().toString());
-            } else {
-                _log.info("export_delete: no export mask, task completed");
-                taskCompleter.ready(_dbClient);
-            }
-
-            _log.info(String.format("%s end", call));
-        } catch (final InternalException e) {
-            _log.info(call + " Encountered an exception", e);
-            taskCompleter.error(_dbClient, e);
-        } catch (final Exception e) {
-            _log.info(call + " Encountered an exception", e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            taskCompleter.error(_dbClient, serviceError);
-        }
     }
 
     public void doExportGroupDelete(URI storageURI, URI exportGroupURI,

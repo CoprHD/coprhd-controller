@@ -213,7 +213,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief Show Host
+     * @brief Show host
      * @return All the non-null attributes of the host.
      * @throws DatabaseException
      *             when a DB error occurs.
@@ -280,12 +280,21 @@ public class HostService extends TaskResourceService {
      * Updates one or more of the host attributes. Discovery is initiated
      * after the host is updated.
      *
+     * <p>
+     * Updating the host's cluster:
+     * <ul>
+     *     <li> Adding a host to a cluster: The host will gain access to all volumes in the cluster.
+     *     <li> Removing a host from a cluster: The host will lose access to all volumes in the cluster.
+     *     <li> Updating a host's cluster: The host will lose access to all volumes in the old cluster. The 
+     *          host will gain access to all volumes in the new cluster.
+     * </ul>
+     *
      * @param id
      *            the URN of a ViPR Host
      * @param updateParam
      *            the parameter that has the attributes to be
      *            updated.
-     * @brief Update Host Attributes
+     * @brief Update host attributes
      * @return the host discovery async task representation.
      */
     @PUT
@@ -363,7 +372,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id the URN of host
      * @param hostUpdateParam
-     *
+     * @brief Update the host boot volume
      * @return the task.
      */
     @PUT
@@ -457,6 +466,7 @@ public class HostService extends TaskResourceService {
      *
      * @param param
      *            ArrayAffinityHostParam
+     * @brief Show array affinity information for specified hosts
      * @return the task list
      */
     @POST
@@ -668,7 +678,7 @@ public class HostService extends TaskResourceService {
      * @param deactivateBootVolume
      *            if true, and if the host was provisioned by ViPR the associated boot volume (if exists) will be
      *            deactivated
-     * @brief Deactivate Host
+     * @brief Deactivate host
      * @return OK if deactivation completed successfully
      * @throws DatabaseException
      *             when a DB error occurs
@@ -786,7 +796,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief Detach storage from Host
+     * @brief Detach storage from host
      * @return OK if detaching completed successfully
      * @throws DatabaseException
      *             when a DB error occurs
@@ -819,7 +829,7 @@ public class HostService extends TaskResourceService {
      *            the URN of a ViPR Host
      * @param createParam
      *            the details of the interfaces
-     * @brief Create Host Interface Ip
+     * @brief Create host interface IP
      * @return the details of the host interface, including its id and link,
      *         when creation completes successfully.
      * @throws DatabaseException
@@ -881,7 +891,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief List Host Interfaces
+     * @brief List host interfaces
      * @return a list of interfaces that belong to the host
      * @throws DatabaseException
      *             when a DB error occurs
@@ -910,7 +920,7 @@ public class HostService extends TaskResourceService {
      *            the URN of a ViPR Host
      * @param createParam
      *            the details of the initiator
-     * @brief Create Host Initiator
+     * @brief Create host initiator
      * @return the details of the host initiator when creation
      *         is successfully.
      * @throws DatabaseException
@@ -1010,7 +1020,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief List Host Initiators
+     * @brief List host initiators
      * @return a list of initiators that belong to the host
      * @throws DatabaseException
      *             when a DB error occurs
@@ -1323,6 +1333,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URI of a ViPR Host
+     * @brief List unmanaged volumes exposed to a host
      * @return a list of UnManagedVolumes exposed to this host
      * @throws DatabaseException
      *             when a database error occurs
@@ -1353,6 +1364,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URI of a ViPR Host
+     * @brief List unmanaged export masks for a host
      * @return a list of UnManagedExportMasks found for the Host
      * @throws DatabaseException
      *             when a database error occurs

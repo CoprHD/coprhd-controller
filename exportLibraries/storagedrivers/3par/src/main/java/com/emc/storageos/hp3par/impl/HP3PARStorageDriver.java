@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,8 +25,11 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
+import com.emc.storageos.hp3par.command.CPGSpaceCommandResult;
 import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
+import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
+import com.emc.storageos.hp3par.command.VolumesCommandResult;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
 import com.emc.storageos.hp3par.utils.CompleteError;
 import com.emc.storageos.hp3par.utils.HP3PARConstants;
@@ -131,16 +135,52 @@ public class HP3PARStorageDriver extends DefaultStorageDriver implements BlockSt
 			    CPGMember cpgResult = null;
 			    cpgResult = hp3parApi.getCPGDetails(objectId);
 			    StoragePool sp = new StoragePool();
+                String cpgName = cpgResult.getName();
 
-			    sp.setNativeId(cpgResult.getName()); 
-			    sp.setTotalCapacity((cpgResult.getUsrUsage().getTotalMiB().longValue()
-			            + cpgResult.getSAUsage().getTotalMiB().longValue()
-			            + cpgResult.getSDUsage().getTotalMiB().longValue()) * HP3PARConstants.KILO_BYTE);
-			    sp.setSubscribedCapacity((cpgResult.getUsrUsage().getUsedMiB().longValue()
-			            + cpgResult.getSAUsage().getUsedMiB().longValue()
-			            + cpgResult.getSDUsage().getUsedMiB().longValue()) * HP3PARConstants.KILO_BYTE);
-			    sp.setFreeCapacity(sp.getTotalCapacity() - sp.getSubscribedCapacity());
-			    _log.info("3PARDriver: StoragePool getStorageObject leaving ");
+			    sp.setNativeId(cpgName);
+
+                CPGSpaceCommandResult cpgSpaceResult = hp3parApi.getCPGSpaceDetails(cpgName);
+
+                // CPG common space is space available to the CPG from the common pool
+                Long cpgCommonSpace = cpgSpaceResult.getUsableFreeMiB().longValue();
+
+                // CPG allocated capacity is what is currently allocated to the CPG
+                Long cpgAllocatedCapacity = cpgResult.getUsrUsage().getTotalMiB().longValue()
+                        + cpgResult.getSAUsage().getTotalMiB().longValue()
+                        + cpgResult.getSDUsage().getTotalMiB().longValue();
+                // CPG used capacity is what is currently used within the CPG
+                Long cpgUsedCapacity = cpgResult.getUsrUsage().getUsedMiB().longValue()
+                        + cpgResult.getSAUsage().getUsedMiB().longValue()
+                        + cpgResult.getSDUsage().getUsedMiB().longValue();
+                // CPG Free capacity is what is currently free within the CPG
+                Long cpgFreeCapacity = cpgAllocatedCapacity - cpgUsedCapacity;
+                
+                // CPG total potentially usable capacity is the sum of these two
+                // Here we are assuming that the CPG can potentially use all of the common capacity
+                // Although in practice this is shared with all CPGs of the same type
+                Long cpgTotalCapacity = cpgAllocatedCapacity + cpgCommonSpace;
+                
+                // We add the common space to the free capacity because it can also be used by the CPG
+                cpgFreeCapacity += cpgCommonSpace;
+                
+                sp.setTotalCapacity(cpgTotalCapacity * HP3PARConstants.KILO_BYTE);
+                    sp.setFreeCapacity(cpgFreeCapacity * HP3PARConstants.KILO_BYTE);
+                
+                VolumesCommandResult volumesOfCpg = hp3parApi.getVolumesofCPG(cpgName);
+                Long cpgSubscribedCapacity = (long) 0;
+                Iterator<VolumeDetailsCommandResult> volIter = volumesOfCpg.getMembers().iterator();
+                while (volIter.hasNext()){
+                    cpgSubscribedCapacity += volIter.next().getSizeMiB();
+                }
+                sp.setSubscribedCapacity(cpgSubscribedCapacity * HP3PARConstants.KILO_BYTE);
+
+                _log.info("3PARDriver: For CPG {}:", cpgName);
+                _log.info("Number of volumes in CPG = {}", volumesOfCpg.getTotal());
+                _log.info("Total Capacity = {} MB, Subscribed Capacity = {} MB, Free Capacity = {} MB",
+                    cpgTotalCapacity, cpgSubscribedCapacity, cpgFreeCapacity);
+                
+                // Note that subscribed capacity need not be equal to (total - free capacity) for thin pools
+                _log.info("3PARDriver: StoragePool getStorageObject leaving ");
 			    return (T) sp;
 			}
 		} catch (Exception e) {
@@ -271,8 +311,9 @@ public class HP3PARStorageDriver extends DefaultStorageDriver implements BlockSt
 			// for each ViPR Storage pool = 3PAR CPG
 			for (CPGMember currMember:cpgResult.getMembers()) {
 				StoragePool pool = new StoragePool();
+                String cpgName = currMember.getName();
 
-				pool.setPoolName(currMember.getName());
+				pool.setPoolName(cpgName);
 				pool.setStorageSystemId(storageSystem.getNativeId());
 
 				Set<Protocols> supportedProtocols = new HashSet<>();
@@ -280,13 +321,48 @@ public class HP3PARStorageDriver extends DefaultStorageDriver implements BlockSt
 				supportedProtocols.add(Protocols.FC);
 				pool.setProtocols(supportedProtocols);
 
-				pool.setTotalCapacity((currMember.getUsrUsage().getTotalMiB().longValue()
-						+ currMember.getSAUsage().getTotalMiB().longValue()
-						+ currMember.getSDUsage().getTotalMiB().longValue()) * HP3PARConstants.KILO_BYTE);
-				pool.setSubscribedCapacity((currMember.getUsrUsage().getUsedMiB().longValue()
-						+ currMember.getSAUsage().getUsedMiB().longValue()
-						+ currMember.getSDUsage().getUsedMiB().longValue()) * HP3PARConstants.KILO_BYTE);
-				pool.setFreeCapacity(pool.getTotalCapacity() - pool.getSubscribedCapacity());
+
+                CPGSpaceCommandResult cpgSpaceResult = hp3parApi.getCPGSpaceDetails(cpgName);
+
+                // CPG common space is space available to the CPG from the common pool
+                Long cpgCommonSpace = cpgSpaceResult.getUsableFreeMiB().longValue();
+
+                // CPG allocated capacity is what is currently allocated to the CPG
+                Long cpgAllocatedCapacity = currMember.getUsrUsage().getTotalMiB().longValue()
+                        + currMember.getSAUsage().getTotalMiB().longValue()
+                        + currMember.getSDUsage().getTotalMiB().longValue();
+                // CPG used capacity is what is currently used within the CPG
+                Long cpgUsedCapacity = currMember.getUsrUsage().getUsedMiB().longValue()
+                        + currMember.getSAUsage().getUsedMiB().longValue()
+                        + currMember.getSDUsage().getUsedMiB().longValue();
+                // CPG Free capacity is what is currently free within the CPG
+                Long cpgFreeCapacity = cpgAllocatedCapacity - cpgUsedCapacity;
+                
+                // CPG total potentially usable capacity is the sum of these two
+                // Here we are assuming that the CPG can potentially use all of the common capacity
+                // Although in practice this is shared with all CPGs of the same type
+                Long cpgTotalCapacity = cpgAllocatedCapacity + cpgCommonSpace;
+                
+                // We add the common space to the free capacity because it can also be used by the CPG
+                cpgFreeCapacity += cpgCommonSpace;
+                
+                pool.setTotalCapacity(cpgTotalCapacity * HP3PARConstants.KILO_BYTE);
+                pool.setFreeCapacity(cpgFreeCapacity * HP3PARConstants.KILO_BYTE);
+                
+                VolumesCommandResult volumesOfCpg = hp3parApi.getVolumesofCPG(cpgName);
+                Long cpgSubscribedCapacity = (long) 0;
+                Iterator<VolumeDetailsCommandResult> volIter = volumesOfCpg.getMembers().iterator();
+                while (volIter.hasNext()){
+                    cpgSubscribedCapacity += volIter.next().getSizeMiB();
+                }
+                pool.setSubscribedCapacity(cpgSubscribedCapacity * HP3PARConstants.KILO_BYTE);
+
+                _log.info("3PARDriver: For CPG {}:", cpgName);
+                _log.info("Number of volumes in CPG = {}", volumesOfCpg.getTotal());
+                _log.info("Total Capacity = {} MB, Subscribed Capacity = {} MB, Free Capacity = {} MB",
+                    cpgTotalCapacity, cpgSubscribedCapacity, cpgFreeCapacity);
+                
+                // Note that subscribed capacity need not be equal to (total - free capacity) for thin pools
 
 				pool.setOperationalStatus(
 						currMember.getState() == 1 ? PoolOperationalStatus.READY : PoolOperationalStatus.NOTREADY);

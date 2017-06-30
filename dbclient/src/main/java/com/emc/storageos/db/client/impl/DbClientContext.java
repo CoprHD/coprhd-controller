@@ -101,6 +101,7 @@ public class DbClientContext {
     private String trustStoreFile;
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
+    private int logInterval = 1800; //seconds
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
 
     // whether to retry once with LOCAL_QUORUM for write failure 
@@ -124,6 +125,15 @@ public class DbClientContext {
 
     public boolean isClientToNodeEncrypted() {
         return isClientToNodeEncrypted;
+    }
+
+
+    public void setLogInterval(int interval) {
+        this.logInterval = interval;
+    }
+
+    public int getLogInterval() {
+        return logInterval;
     }
 
     public Keyspace getKeyspace() {
@@ -603,7 +613,7 @@ public class DbClientContext {
         config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);
     }
     
-    static class KeyspaceTracerFactoryImpl implements KeyspaceTracerFactory {
+    class KeyspaceTracerFactoryImpl implements KeyspaceTracerFactory {
         private AtomicLong readOperations = new AtomicLong(0);
         private AtomicLong writeOperations = new AtomicLong(0);
         private AtomicLong otherOperations = new AtomicLong(0);
@@ -611,22 +621,18 @@ public class DbClientContext {
         
         public KeyspaceTracerFactoryImpl() {
             executor.scheduleAtFixedRate(new Runnable() {
-
                 @Override
                 public void run() {
                     long total = readOperations.get() + writeOperations.get() + otherOperations.get();
-                    if (total > REQUEST_WARNING_THRESHOLD_COUNT) {
-                        log.warn("Performance data of DbClient for last 60 seconds");
-                        log.warn("{} read operations, {} write operations, {} other operations", 
-                                readOperations.get(), writeOperations.get(), otherOperations.get());
-                    }
-                    
+                    log.info("Performance data of DbClient for last {} seconds", logInterval);
+                    log.info("{} read operations, {} write operations, {} other operations",
+                            readOperations.get(), writeOperations.get(), otherOperations.get());
+
                     readOperations.set(0);
                     writeOperations.set(0);
                     otherOperations.set(0);
                 }
-                
-            }, REQUEST_MONITOR_INTERVAL_SECOND, REQUEST_MONITOR_INTERVAL_SECOND, TimeUnit.SECONDS);
+            }, logInterval, logInterval, TimeUnit.SECONDS);
         }
         
         @Override

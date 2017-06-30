@@ -1111,6 +1111,18 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException If error occurs during the processing
      */
     public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, Collection<URI> initiatorURIs) throws DeviceControllerException;
+
+    /**
+     * Group volumes by storage group with host IO limit.
+     *
+     * @param storage the storage
+     * @param volumeURIs the volume uris
+     * @return true, if successful
+     * @throws Exception the exception
+     */
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage, Set<URI> volumeURIs)
+            throws Exception;
+
     /**
      * Set an Alias for the supplied initiator on a given Storage System
      * 

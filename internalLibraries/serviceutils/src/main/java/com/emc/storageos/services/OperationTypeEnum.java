@@ -136,6 +136,7 @@ public enum OperationTypeEnum {
     UPDATE_EXPORT_RULES_FILE_SYSTEM("FileSystemExportRulesUpdated", "FileSystemExportRulesUpdateFailed", "File system export rules is updated."),
     UNEXPORT_FILE_SYSTEM("FileSystemUnexported", "FileSystemUnexportFailed", "File system is unexported."),
     EXPAND_FILE_SYSTEM("FileSystemExpanded", "FileSystemExpandFailed", "File system is expanded."),
+    REDUCE_FILE_SYSTEM("FileSystemReduced", "FileSystemReduceFailed", "File system is reduced."),
     RELEASE_FILE_SYSTEM("FileSystemReleased", "", "File system is released."),
     UNDO_RELEASE_FILE_SYSTEM("FileSystemReleaseUndone", "", "File system release undone."),
     CHANGE_FILE_SYSTEM_VPOOL("ChangeFileSystemVpool", "ChangeFileSystemVpoolFailed", "File system's virtual pool is changed."),

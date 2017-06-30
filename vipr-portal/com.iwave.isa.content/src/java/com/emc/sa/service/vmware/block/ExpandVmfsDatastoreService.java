@@ -16,6 +16,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
+import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.vmware.vim25.mo.Datastore;
 
@@ -35,33 +36,23 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
 
     @Override
     public void precheck() throws Exception {
-        StringBuilder preCheckErrors = new StringBuilder();
-
         super.precheck();
         BlockStorageUtils.getVolume(volumeId);
         acquireHostLock();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
 
-        // If no volumes were found (or not all the volumes were found in our DB), indicate an error
-        if (vmware.findVolumesBackingDatastore(host, hostId, datastore) == null) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("expand.vmfs.datastore.notsamewwn", datastoreName) + " ");
-        }
+        vmware.verifyVolumesBackingDatastore(host, hostId, datastore);
 
         vmware.disconnect();
-
-        if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
-        }
     }
 
     @Override
     public void execute() throws Exception {
-    	VolumeRestRep volume = (VolumeRestRep) BlockStorageUtils.getVolume(volumeId);
+    	BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
     	
     	// Skip the expand if the current volume capacity is larger than the requested expand size
     	if (BlockStorageUtils.isVolumeExpanded(volume, sizeInGb)) {
-    		logInfo("expand.vmfs.datastore.skip", volumeId, volume.getCapacity());
+    		logWarn("expand.vmfs.datastore.skip", volumeId, BlockStorageUtils.getCapacity(volume));
     	} else {
     		BlockStorageUtils.expandVolume(volumeId, sizeInGb);
     	}
@@ -74,5 +65,10 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }
+    }
+
+    @Override
+    public boolean checkClusterConnectivity() {
+        return false;
     }
 }

@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -613,5 +614,60 @@ public class NetworkUtil {
         }
         
         return new ArrayList<URI>(zoneRefs);
+    }
+    
+    /**
+     * Get all the current networks in the database
+     */
+    public static List<Network> getDiscoveredNetworks(DbClient dbClient) throws Exception {
+        List<Network> networks = new ArrayList<Network>();
+        List<URI> uriNetworksList = dbClient.queryByType(Network.class, true);
+        Iterator<Network> iNetworks = dbClient.queryIterativeObjects(Network.class, uriNetworksList);
+        while (iNetworks.hasNext()) {
+            Network network = iNetworks.next();
+            if (network != null && Transport.FC.toString().equals(network.getTransportType())) {
+                networks.add(network);
+            }
+        }
+        return networks;
+    }
+    
+    public static List<URI> getDiscoveredNetworkSystems(DbClient dbClient) {    	
+    	return dbClient.queryByType(NetworkSystem.class, true);
+    }
+    
+
+    /**
+     * Get all the local networks that belong to the given network system.
+     *
+     * @param networkSystem
+     * @param allNetworks
+     * @return
+     */
+    public List<Network> getLocalNetworks(NetworkSystem networkSystem, List<Network> allNetworks) {
+        List<Network> realNetworks = new ArrayList<Network>();
+        for (Network network : allNetworks) {
+            if (network.getNetworkSystems() != null &&
+                network.getNetworkSystems().contains(networkSystem.getId().toString())) {
+                realNetworks.add(network);
+            }
+        }
+        return realNetworks;
+    }
+
+    /**
+     * Get the network by the given fabric ID. Return null if not found.
+     *
+     * @param networks
+     * @param fabricId
+     * @return
+     */
+    public Network getNetworkByNativeId(List<Network> networks, String fabricId) {
+        for (Network network : networks) {
+            if (network != null && network.getNativeId() != null && network.getNativeId().equals(fabricId)) {
+                return network;
+            }
+        }
+        return null;
     }
 }

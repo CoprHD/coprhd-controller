@@ -5,8 +5,12 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -25,7 +29,6 @@ import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
@@ -82,47 +85,21 @@ public class FilePolicyServiceUtils {
                         + " is invalid");
                 return false;
             }
-
-            // validating schedule time
-            String period = " AM";
-            int hour;
-            int minute;
-            boolean isValid = true;
             if (policyScheduleparams.getScheduleTime() == null) {
                 errorMsg.append("required parameter schedule_time is missing");
                 return false;
             }
-            if (policyScheduleparams.getScheduleTime() != null && policyScheduleparams.getScheduleTime().contains(":")) {
-                String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
-                hour = Integer.parseInt(splitTime[0]);
-                minute = Integer.parseInt(splitTime[1]);
-                if (splitTime[0].startsWith("-") || splitTime[1].startsWith("-")) {
-                    isValid = false;
-                }
-            } else {
-                hour = Integer.parseInt(policyScheduleparams.getScheduleTime());
-                minute = 0;
-            }
-            StringBuilder scheduleTime = new StringBuilder();
-            if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
-                if (hour > 12) {
-                    period = " PM";
-                    hour-=12;
-                    scheduleTime.append(hour);
-                    scheduleTime.append(":");
-                    if(minute == 0){
-                        scheduleTime.append("00");
-                    } else{
-                        scheduleTime.append(minute);
-                    }
-                    scheduleTime.append(period);
-                    policyScheduleparams.setScheduleTime(scheduleTime.toString());
-                } else {
-                    scheduleTime.append(policyScheduleparams.getScheduleTime().trim()).append(period);
-                    policyScheduleparams.setScheduleTime(scheduleTime.toString());
-                }
-            } else {
-                errorMsg.append("Schedule time: " + policyScheduleparams.getScheduleTime() + " is invalid");
+
+            // Convert time from 24 Hours to 12 Hours using SimpleDateFormat class
+            String time = policyScheduleparams.getScheduleTime();
+            DateFormat sdf24 = new SimpleDateFormat("HH:mm");
+            DateFormat sdf12 = new SimpleDateFormat("hh:mm a");
+            try {
+                Date date = sdf24.parse(time);
+                String time12 = sdf12.format(date);
+                policyScheduleparams.setScheduleTime(time12);
+            } catch (ParseException e) {
+                errorMsg.append("Schedule time: " + time + " is invalid");
                 return false;
             }
 
@@ -434,8 +411,10 @@ public class FilePolicyServiceUtils {
                     }
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
                             targetVArrys);
+
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
                             vPool.getId());
+
                 } else {
                     errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
                     return false;
@@ -665,7 +644,7 @@ public class FilePolicyServiceUtils {
             dbClient.updateObject(task);
         }
     }
-    
+
     /**
      * Resets the filesystem relation due to replication policy assigned at higher level
      * Only to be used when delete FS is FULL type

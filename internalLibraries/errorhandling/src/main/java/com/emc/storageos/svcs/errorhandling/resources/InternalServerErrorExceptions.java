@@ -373,11 +373,20 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedHostOperationError(String cause);
 
+    @DeclareServiceCode(ServiceCode.CUSTOM_SERVICE_EXCEPTION)
+    public InternalServerErrorException customServiceExecutionFailed(String cause);
+
+    @DeclareServiceCode(ServiceCode.CUSTOM_SERVICE_NOTASK)
+    public InternalServerErrorException customServiceNoTaskFound(String cause);
+
     @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_UPLOAD_FAILED)
     public InternalServerErrorException installDriverUploadFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_PRECHECK_FAILED)
     public InternalServerErrorException installDriverPrecheckFailed(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DRIVER_OPERATION_ENV_PRECHECK_FAILED)
+    public InternalServerErrorException driverOperationEnvPrecheckFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_FAILED)
     public InternalServerErrorException installDriverFailed(String errMsg);

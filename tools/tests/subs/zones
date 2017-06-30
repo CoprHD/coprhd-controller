@@ -5,7 +5,7 @@
 verifyzones() {
     fabricid=$1
     matchstr=$2
-    rm .zones.out
+    rm -f .zones.out
     zone list $NETWORK_SYSTEM --fabricid $fabricid >>.zones.out
     num=$(grep $matchstr .zones.out | wc -l)
     if [ $num -ne $count ]; then
@@ -33,7 +33,7 @@ deletezones() {
 verifynozones() {
     fabricid=$1
     matchstr=$2
-    rm .zones.out
+    rm -f .zones.out
     zone list $NETWORK_SYSTEM --fabricid $fabricid >>.zones.out
     num=$(grep $matchstr .zones.out | wc -l)
     if [ $num -gt 0 ]; then

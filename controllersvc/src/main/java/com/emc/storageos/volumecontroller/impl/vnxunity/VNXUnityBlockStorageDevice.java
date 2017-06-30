@@ -1241,6 +1241,12 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     }
 
     @Override
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage, Set<URI> volumeURIs)
+            throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

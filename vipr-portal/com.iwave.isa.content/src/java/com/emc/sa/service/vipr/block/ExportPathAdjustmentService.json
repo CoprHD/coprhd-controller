@@ -70,6 +70,13 @@
 	    exportPathPreview:{
 	       type:"modal",
            items:{
+                previewSystem:{
+                    type:"assetType.vipr.exportPathPreviewStorageSystem",
+                    select: "list",
+                    required: false,
+                    omitNone: true,
+                    modalField: true
+                },
                 resultingPaths:{
                     type:"assetType.vipr.exportPathResultingPaths",
                     select: "list",

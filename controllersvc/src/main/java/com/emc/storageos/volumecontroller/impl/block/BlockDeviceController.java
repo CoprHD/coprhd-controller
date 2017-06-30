@@ -940,8 +940,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, poolURI);
             MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, volumeCompleters, opId);
 
-            Volume volume = volumes.get(0);
-            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             WorkflowStepCompleter.stepExecuting(completer.getOpId());
             getDevice(storageSystem.getSystemType()).doModifyVolumes(storageSystem,
                     storagePool, opId, volumes, completer);
@@ -1013,7 +1011,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, poolURI);
             MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, volumeCompleters, opId);
 
-            Volume volume = volumes.get(0);
             WorkflowStepCompleter.stepExecuting(completer.getOpId());
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_005);
             getDevice(storageSystem.getSystemType()).doCreateVolumes(storageSystem,
@@ -1080,16 +1077,27 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     }
                 }
                 // clearing targets explicitly, during vpool change if target volume creation failed for same reason,
-                // then we need to clear srdfTargets field for source
+                // then we need to clear srdfTargets and personality fields for source
                 if (null != volume.getSrdfTargets()) {
                     _log.info("Clearing targets for existing source");
                     volume.getSrdfTargets().clear();
                     _dbClient.updateObject(volume);
+                    // Clearing Source CG
+                    URI sourceCgUri = volume.getConsistencyGroup();
+                    if (null != sourceCgUri) {
+                        BlockConsistencyGroup sourceCG = _dbClient.queryObject(BlockConsistencyGroup.class, sourceCgUri);
+                        if (null != sourceCG && (null == sourceCG.getTypes()
+                                || NullColumnValueGetter.isNullURI(sourceCG.getStorageController()))) {
+                            sourceCG.getRequestedTypes().remove(Types.SRDF.name());
+                            _dbClient.updateObject(sourceCG);
+                        }
+                    }
                 }
-                // for change Virtual Pool, if failed, clear targets for source
+                // for change Virtual Pool, if failed, clear targets and personality field for source and also
                 if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
                     URI sourceUri = volume.getSrdfParent().getURI();
                     Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceUri);
+                    sourceVolume.setPersonality(NullColumnValueGetter.getNullStr());
                     if (null != sourceVolume.getSrdfTargets()) {
                         sourceVolume.getSrdfTargets().clear();
                         _dbClient.updateObject(sourceVolume);
@@ -1836,6 +1844,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 entryLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
                 exitLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
                 VolumeDeleteCompleter volumeCompleter = new VolumeDeleteCompleter(volumeURI, opId);
+                // Do not notify workflow if a child (single volume) completer gives status.  The MultiVolumeTaskCompleter will 
+                // take care of that.
+                volumeCompleter.setNotifyWorkflow(false);
                 if (volume.getInactive() == false) {
                     // It is possible that there is a BlockSnaphot instance that references the
                     // same device Volume if a VPLEX virtual volume has been created from the
@@ -2256,9 +2267,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             srdfSourceVolumeURI, volumeURI, workflow);
                 } else {
                     // split all members the group
-                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFGroupLinkMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, volumeURI, false);
-                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeGroupPairsMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, volumeURI);
 
                     waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,
@@ -2494,8 +2505,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     private String suspendSRDFLinkWorkflowStep(String waitFor, URI srdfSourceStorageSystemURI,
             URI sourceURI, URI targetURI, Workflow workflow) {
-        Workflow.Method suspendMethod = srdfDeviceController.suspendSRDFLinkMethod(srdfSourceStorageSystemURI, sourceURI, targetURI, false);
-        Workflow.Method resumeMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI, sourceURI, targetURI);
+        Workflow.Method suspendMethod = srdfDeviceController.suspendSRDFGroupLinkMethod(srdfSourceStorageSystemURI, sourceURI, targetURI,
+                false);
+        Workflow.Method resumeMethod = srdfDeviceController.resumeGroupPairsMethod(srdfSourceStorageSystemURI, sourceURI, targetURI);
         return workflow.createStep(SRDFDeviceController.SUSPEND_SRDF_MIRRORS_STEP_GROUP,
                 SRDFDeviceController.SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, srdfSourceStorageSystemURI,
                 getDeviceType(srdfSourceStorageSystemURI), SRDFDeviceController.class, suspendMethod,
@@ -2504,7 +2516,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     private String resumeSRDFLinkWorkflowStep(String waitFor, URI srdfSourceStorageSystemURI,
             URI sourceURI, URI targetURI, Workflow workflow) {
-        Workflow.Method resumeMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI, sourceURI, targetURI);
+        Workflow.Method resumeMethod = srdfDeviceController.resumeGroupPairsMethod(srdfSourceStorageSystemURI, sourceURI, targetURI);
         return workflow.createStep(SRDFDeviceController.RESUME_SRDF_MIRRORS_STEP_GROUP,
                 SRDFDeviceController.RESUME_SRDF_MIRRORS_STEP_DESC, waitFor, srdfSourceStorageSystemURI,
                 getDeviceType(srdfSourceStorageSystemURI), SRDFDeviceController.class, resumeMethod,
@@ -3022,20 +3034,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return stepId;
     }
 
-    private String addStepsToRemoveMirrorFromGroup(Workflow workflow,
-            String waitFor, String stepGroup, List<URI> mirrorList) {
-        List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
-        URI controller = mirrors.get(0).getStorageController();
-        String stepId = workflow.createStep(stepGroup,
-                String.format("Remove mirror from DeviceMaskingGroup: %s", mirrorList.get(0)),
-                waitFor, controller, getDeviceType(controller),
-                this.getClass(),
-                removeMirrorFromGroupMethod(controller, mirrorList),
-                null, null);
-
-        return stepId;
-    }
-
     public static final String PROMOTE_MIRROR_STEP_GROUP = "BlockDevicePromoteMirror";
 
     /**
@@ -3287,6 +3285,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             }
 
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_086);
+            
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
             getDevice(storageObj.getSystemType()).doDeleteConsistencyGroup(storageObj, consistencyGroup, groupName, keepRGName,
@@ -4303,21 +4303,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return false;
     }
 
-    /**
-     * Check if a mirror exists in ViPR as an active model and is pending creation on the
-     * storage array.
-     *
-     * @param mirror
-     * @return true if the mirror is pending creation
-     */
-    private boolean isPending(BlockMirror mirror) {
-        return !isInactive(mirror) && isNullOrEmpty(mirror.getSynchronizedInstance());
-    }
-
-    private boolean isInactive(BlockMirror mirror) {
-        return mirror == null || (mirror.getInactive() != null && mirror.getInactive());
-    }
-
     @Override
     public void noActionRollBackStep(URI deviceURI, String opID) {
         _log.info("Running empty Roll back step for storage system {}", deviceURI);
@@ -4811,10 +4796,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             srdfSourceVolumeURI, source, workflow);
                 } else {
                     // split all members the group
-                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFGroupLinkMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, source, false);
 
-                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeGroupPairsMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, source);
 
                     waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,
@@ -6338,10 +6323,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             srdfSourceVolumeURI, sourceObj.getId(), workflow);
                 } else {
                     // split all members the group
-                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFGroupLinkMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, sourceObj.getId(), false);
 
-                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeGroupPairsMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, sourceObj.getId());
 
                     waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,

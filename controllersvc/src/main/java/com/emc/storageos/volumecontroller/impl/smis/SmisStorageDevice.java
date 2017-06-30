@@ -50,7 +50,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePortGroup;
@@ -82,7 +81,6 @@ import com.emc.storageos.volumecontroller.MetaVolumeOperations;
 import com.emc.storageos.volumecontroller.ReplicaOperations;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
@@ -114,10 +112,6 @@ import com.google.common.collect.Lists;
  */
 public class SmisStorageDevice extends DefaultBlockStorageDevice {
     private static final Logger _log = LoggerFactory.getLogger(SmisStorageDevice.class);
-    private static final BiosCommandResult _ok = new BiosCommandResult(true,
-            Operation.Status.ready.name(), "");
-    private static final BiosCommandResult _err = new BiosCommandResult(false,
-            Operation.Status.error.name(), "");
     private DbClient _dbClient;
     protected SmisCommandHelper _helper;
     private ExportMaskOperations _exportMaskOperationsHelper;
@@ -248,7 +242,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     poolSetting = _smisStorageDevicePreProcessor.createStoragePoolSetting(
                             storageSystem, storagePool, thinVolumePreAllocationSize);
                 }
-                if (storageSystem.checkIfVmax3() && volumeGroupObjectPath != null) {
+                if (storageSystem.checkIfVmax3()) {
                     inArgs = _helper.getCreateVolumesInputArguments(storageSystem, storagePool, volumeLabels,
                             capacity, volumes.size(), isThinlyProvisioned, true, volumeGroupObjectPath,
                             (null != thinVolumePreAllocationSize));
@@ -288,7 +282,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         if (opCreationFailed) {
             for (Volume vol : volumes) {
                 vol.setInactive(true);
-                _dbClient.persistObject(vol);
+                _dbClient.updateObject(vol);
             }
         }
         logMsgBuilder = new StringBuilder(String.format("Create Volumes End - Array:%s, Pool:%s",
@@ -462,7 +456,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             // Check if this is expansion within current total capacity of meta members
             if (recommendation.getMetaMemberCount() == 0) {
                 volume.setCapacity(size);
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
                 _log.info(String.format(
                         "Expanded volume within its total meta volume capacity (simple case) - Array: %s Pool:%s, \n" +
                                 " Volume: %s, IsMetaVolume: %s, Total meta volume capacity: %s, NewSize: %s",
@@ -600,21 +594,51 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             _helper.callRefreshSystem(storageSystem, null, false);
 
-            for (Volume volume : volumes) {
+            Iterator<Volume> volumeItr = volumes.iterator();
+            Set<String> nativeIdsForParkingSG = new HashSet<String>();
+            // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
+            // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
+            // operation on these volumes would fail otherwise.
+            boolean forceFlag = false;
+            while (volumeItr.hasNext()) {
+                Volume volume = volumeItr.next();
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
-                if (storageSystem.checkIfVmax3()) {
-                    // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
-                    // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
-                    // operation on these volumes would fail otherwise.
-                    boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volume.getId());
-                    CIMInstance sloStorageGroup = _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, volume.getNativeId(),
-                            forceFlag);
-                    if (sloStorageGroup != null) {
-                        parkingSLOStorageGroups.add(sloStorageGroup);
-                    }
-                    _log.info("Done invoking remove volume from storage group");
+
+                // check if the volume is on array, if not, no operation on array side
+                CIMInstance volumeInstance = _helper.checkExists(storageSystem,
+                        _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
+                if (volumeInstance == null) {
+                    // related volume state (if any) has been deleted. skip processing, if already
+                    // deleted from array.
+                    _log.info(String.format("Volume %s already deleted: ", volume.getNativeId()));
+                    volume.setInactive(true);
+                    _dbClient.updateObject(volume);
+                    volumeItr.remove(); // remove the volume from the processing list
+                    VolumeTaskCompleter deleteTaskCompleter = multiVolumeTaskCompleter
+                            .skipTaskCompleter(volume.getId());
+                    deleteTaskCompleter.ready(_dbClient);
+                    continue;
                 }
-               
+                nativeIdsForParkingSG.add(volume.getNativeId());
+                if (!forceFlag) {
+                    forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volume.getId());
+                }
+            }
+            if (storageSystem.checkIfVmax3()) {
+                parkingSLOStorageGroups = _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem,
+                        nativeIdsForParkingSG.toArray(new String[] {}), forceFlag);
+                _log.info("Done invoking remove volumes from parking SLO storage group");
+
+                // VMAX3 has parking SLO storage groups that the volumes will be removed from
+                // prior to the deletion. We need to check any of these SLOs StorageGroups to
+                // see if they are empty. If so, we will delete them as part of the volume
+                // delete operation.
+                if (!parkingSLOStorageGroups.isEmpty()) {
+                    _helper.deleteParkingSLOStorageGroupsIfEmpty(storageSystem, parkingSLOStorageGroups);
+                }
+            }
+
+            for (Volume volume : volumes) {
                 if (volume.getConsistencyGroup() != null
                         || NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                     _log.info(String.format("Volume [%s](%s) is a part of CG (%s), extra cleanup operations may be needed.", 
@@ -640,20 +664,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storageSystem, volume);
                 }
 
-                CIMInstance volumeInstance = _helper.checkExists(storageSystem,
-                        _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
                 _helper.doApplyRecoverPointTag(storageSystem, volume, false);
-                if (volumeInstance == null) {
-                    // related volume state (if any) has been deleted. skip processing, if already
-                    // deleted from array.
-                    _log.info(String.format("Volume %s already deleted: ", volume.getNativeId()));
-                    volume.setInactive(true);
-                    _dbClient.updateObject(volume);
-                    VolumeTaskCompleter deleteTaskCompleter = multiVolumeTaskCompleter
-                            .skipTaskCompleter(volume.getId());
-                    deleteTaskCompleter.ready(_dbClient);
-                    continue;
-                }
+
                 // Compare the volume labels of the to-be-deleted and existing volumes
                 /**
                  * This will fail in the case when the user just changes the label of the
@@ -661,6 +673,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                  * that.
                  */
                 String volToDeleteLabel = volume.getDeviceLabel();
+                CIMInstance volumeInstance = _helper.checkExists(storageSystem,
+                        _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
                 String volInstanceLabel = CIMPropertyFactory.getPropertyValue(volumeInstance,
                         SmisConstants.CP_ELEMENT_NAME);
                 if (volToDeleteLabel != null && volInstanceLabel != null
@@ -701,14 +715,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 volumeNativeIds.add(volume.getNativeId());
             }
             _log.info(logMsgBuilder.toString());
-
-            // VMAX3 has parking SLO storage groups that the volumes will be removed from
-            // prior to the deletion. We need to check any of these SLOs StorageGroups to
-            // see if they are empty. If so, we will delete them as part of the volume
-            // delete operation.
-            if (!parkingSLOStorageGroups.isEmpty()) {
-                _helper.deleteParkingSLOStorageGroupsIfEmpty(storageSystem, parkingSLOStorageGroups);
-            }
 
             // execute SMI-S Call , only if any Volumes left for deletion.
             if (!multiVolumeTaskCompleter.isVolumeTaskCompletersEmpty()) {
@@ -1255,6 +1261,16 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             return;
         }
 
+        if (storage == null) {
+            final String errMsg = format(
+                    "Unable to add volumes to consistency group {0}: no storage system provided",
+                    consistencyGroup.getId());
+            _log.error(errMsg);
+            ServiceError error = DeviceControllerErrors.smis.noStorageSystemProvided();
+            taskCompleter.error(_dbClient, error);
+            return;
+        }
+
         if (consistencyGroup == null || !consistencyGroup.created(storage.getId())) {
             final String errMsg = "Unable to add volumes to consistency group: no consistency group provided or it has not been created in the array";
             _log.error(errMsg);
@@ -1273,15 +1289,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     consistencyGroup.getId());
             _log.error(errMsg);
             ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupProvided();
-            taskCompleter.error(_dbClient, error);
-            return;
-        }
-        if (storage == null) {
-            final String errMsg = format(
-                    "Unable to add volumes to consistency group {0}: no storage system provided",
-                    consistencyGroup.getId());
-            _log.error(errMsg);
-            ServiceError error = DeviceControllerErrors.smis.noStorageSystemProvided();
             taskCompleter.error(_dbClient, error);
             return;
         }
@@ -2614,7 +2621,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doCreateLink(final StorageSystem system, final URI sourceURI,
-            final URI targetURI, final TaskCompleter completer) {
+            final URI targetURI, final TaskCompleter completer) throws Exception {
         _srdfOperations.createSRDFVolumePair(system, sourceURI, targetURI, completer);
     }
 
@@ -2634,14 +2641,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doRemoveDeviceGroups(final StorageSystem system, final URI sourceURI,
             final URI targetURI, final TaskCompleter completer) {
-        _srdfOperations.removeDeviceGroups(system, sourceURI, targetURI, completer);
+        _srdfOperations.removeDeviceGroups(system, sourceURI, targetURI, false, completer);
     }
 
     @Override
     public void doRollbackLinks(final StorageSystem system,
             final List<URI> sourceURIs, final List<URI> targetURIs,
-            final boolean isGroupRollback, final TaskCompleter completer) {
-        _srdfOperations.rollbackSRDFMirrors(system, sourceURIs, targetURIs, isGroupRollback, completer);
+            final boolean isGroupRollback, final boolean isVpoolChange, final TaskCompleter completer) {
+        _srdfOperations.rollbackSRDFMirrors(system, sourceURIs, targetURIs, isGroupRollback, isVpoolChange, completer);
     }
 
     @Override
@@ -2672,12 +2679,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doFailoverCancelLink(final StorageSystem system, final Volume targetVolume,
             final TaskCompleter completer) {
         _srdfOperations.failoverCancelSyncPair(system, targetVolume, completer);
-    }
-
-    @Override
-    public void doResyncLink(final StorageSystem system, final URI sourceURI,
-            final URI targetURI, final TaskCompleter completer) {
-        _srdfOperations.reSyncSRDFSyncVolumePair(system, sourceURI, targetURI, completer);
     }
 
     @Override
@@ -2854,7 +2855,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     URI cloneUri = resultsIter.next();
                     Volume theClone = _dbClient.queryObject(Volume.class, cloneUri);
                     theClone.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
-                    _dbClient.persistObject(theClone);
+                    _dbClient.updateObject(theClone);
                 }
 
             }
@@ -2939,11 +2940,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
-            int volumeCount = 0;
-            String[] volumeNativeIds = new String[volumes.size()];
             StringBuilder logMsgBuilder = new StringBuilder(String.format(
                     "Untag Volume Start - Array:%s", storageSystem.getSerialNumber()));
-            MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
             for (Volume volume : volumes) {
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
                 _helper.doApplyRecoverPointTag(storageSystem, volume, false);
@@ -3091,30 +3089,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    /**
-     * Determines whether we do group snapshot session creation on the array.
-     * 
-     * @param snapSessions
-     *            The session(s) to be created.
-     * 
-     * @return true to do group creation, false otherwise.
-     */
-    private boolean doGroupSnapshotSessionCreation(List<BlockSnapshotSession> snapSessions) {
-        boolean doGroupCreation = false;
-        if (snapSessions.size() > 1) {
-            doGroupCreation = true;
-        } else {
-            BlockSnapshotSession snapSession = snapSessions.get(0);
-            URI sourceObjURI = snapSession.getParent().getURI();
-            BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceObjURI);
-            URI cgURI = sourceObj.getConsistencyGroup();
-            if (!NullColumnValueGetter.isNullURI(cgURI)) {
-                doGroupCreation = true;
-            }
-        }
-        return doGroupCreation;
-    }
-
     @Override
     public void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> volumes,
             TaskCompleter taskCompleter) {
@@ -3147,6 +3121,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     .failedToAddMembersToConsistencyGroup(cg.getLabel(),
                             cg.getCgNameOnStorageSystem(storageSystem.getId()), e.getMessage()));
         }
+    }
+
+    @Override
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage, Set<URI> volumeURIs)
+            throws Exception {
+        return _helper.groupVolumesByStorageGroupWithHostIOLimit(storage, volumeURIs);
     }
 
     /**

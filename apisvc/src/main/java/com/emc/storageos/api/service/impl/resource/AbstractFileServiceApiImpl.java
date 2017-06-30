@@ -228,6 +228,49 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         // place the expand filesystem call in queue
         controller.expandFileSystem(fileDescriptors, taskId);
     }
+    
+    /**
+     * Reduce fileshare provision capacity
+     * @param fileshare file share object
+     * @param newSize - new fileshare size
+     * @param taskId - task id
+     * return 
+     */
+   
+    @Override
+    public void  reduceFileShareQuota(FileShare fileshare, Long newSize, String taskId)
+            throws InternalException {
+
+        FileOrchestrationController controller = getController(
+                FileOrchestrationController.class, FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
+
+        if (fileshare.getParentFileShare() != null && fileshare.getPersonality().equals(FileShare.PersonalityTypes.TARGET.name())) {
+            throw APIException.badRequests.reduceMirrorFileSupportedOnlyOnSource(fileshare.getId());
+        } else {
+            List<String> targetfileUris = new ArrayList<String>();
+            // if filesystem is target then throw exception
+            if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
+                targetfileUris.addAll(fileshare.getMirrorfsTargets());
+            }
+
+            FileDescriptor descriptor = new FileDescriptor(
+                    FileDescriptor.Type.FILE_DATA, fileshare.getStorageDevice(), 
+                    fileshare.getId(), fileshare.getPool(), "", false, newSize);
+            fileDescriptors.add(descriptor);
+
+            // Prepare the descriptor for targets
+            for (String target : targetfileUris) {
+                FileShare targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(target));
+                descriptor = new FileDescriptor(
+                        FileDescriptor.Type.FILE_DATA,
+                        targetFileShare.getStorageDevice(), targetFileShare.getId(), targetFileShare.getPool(), "", false, newSize);
+                fileDescriptors.add(descriptor);
+            }
+        }
+        // place the reduce filesystem call in queue
+        controller.reduceFileSystem(fileDescriptors, taskId);
+    }
 
     @Override
     public void share(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String taskId) throws InternalException {

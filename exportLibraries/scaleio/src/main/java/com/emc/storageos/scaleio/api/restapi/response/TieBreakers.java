@@ -4,12 +4,8 @@
  */
 package com.emc.storageos.scaleio.api.restapi.response;
 
-import java.util.List;
-
+import java.util.Arrays;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
-import com.emc.storageos.scaleio.api.ParsePattern;
-import com.emc.storageos.scaleio.api.ScaleIOConstants;
 
 /**
  * Tiebreakers attributes
@@ -17,117 +13,110 @@ import com.emc.storageos.scaleio.api.ScaleIOConstants;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TieBreakers {
-	 private String clusterState;
+	private String port;
+	private String id;
+	private String versionInfo;
+	private String status;
+	private String[] ips;
+	private String name;
+	private String role;
+	private String[] managementIPs;
 
-	    private String id;
+	public String getPort ()
+	{
+		return port;
+	}
 
-	    private String goodNodesNum;
+	public void setPort (String port)
+	{
+		this.port = port;
+	}
 
-	    private TieBreakers[] tieBreakers;
+	public String getId ()
+	{
+		return id;
+	}
 
-	    private String name;
+	public void setId (String id)
+	{
+		this.id = id;
+	}
 
-	    private Slaves[] slaves;
+	public String getVersionInfo ()
+	{
+		return versionInfo;
+	}
 
-	    private String goodReplicasNum;
+	public void setVersionInfo (String versionInfo)
+	{
+		this.versionInfo = versionInfo;
+	}
 
-	    private Master master;
+	public String getStatus ()
+	{
+		return status;
+	}
 
-	    private String clusterMode;
+	public void setStatus (String status)
+	{
+		this.status = status;
+	}
 
-	    public String getClusterState ()
-	    {
-	        return clusterState;
-	    }
+	public String[] getIps ()
+	{
+		if(null == ips){
+			return null;
+		}
+		return Arrays.copyOf(ips,ips.length);
+	}
 
-	    public void setClusterState (String clusterState)
-	    {
-	        this.clusterState = clusterState;
-	    }
+	public void setIps (String[] ips)
+	{
+		if(null == ips){
+			return;
+		}
+		this.ips = Arrays.copyOf(ips,ips.length);
+	}
 
-	    public String getId ()
-	    {
-	        return id;
-	    }
+	public String getName ()
+	{
+		return name;
+	}
 
-	    public void setId (String id)
-	    {
-	        this.id = id;
-	    }
+	public void setName (String name)
+	{
+		this.name = name;
+	}
 
-	    public String getGoodNodesNum ()
-	    {
-	        return goodNodesNum;
-	    }
+	public String getRole ()
+	{
+		return role;
+	}
 
-	    public void setGoodNodesNum (String goodNodesNum)
-	    {
-	        this.goodNodesNum = goodNodesNum;
-	    }
+	public void setRole (String role)
+	{
+		this.role = role;
+	}
 
-	    public TieBreakers[] getTieBreakers ()
-	    {
-	        return tieBreakers;
-	    }
+	public String[] getManagementIPs ()
+	{
+		if(null == managementIPs){
+			return null;
+		}
+		return Arrays.copyOf(managementIPs,managementIPs.length);
+	}
 
-	    public void setTieBreakers (TieBreakers[] tieBreakers)
-	    {
-	        this.tieBreakers = tieBreakers;
-	    }
+	public void setManagementIPs (String[] managementIPs)
+	{
+		if(null == managementIPs){
+			return;
+		}
+		this.managementIPs = Arrays.copyOf(managementIPs,managementIPs.length);
+	}
 
-	    public String getName ()
-	    {
-	        return name;
-	    }
-
-	    public void setName (String name)
-	    {
-	        this.name = name;
-	    }
-
-	    public Slaves[] getSlaves ()
-	    {
-	        return slaves;
-	    }
-
-	    public void setSlaves (Slaves[] slaves)
-	    {
-	        this.slaves = slaves;
-	    }
-
-	    public String getGoodReplicasNum ()
-	    {
-	        return goodReplicasNum;
-	    }
-
-	    public void setGoodReplicasNum (String goodReplicasNum)
-	    {
-	        this.goodReplicasNum = goodReplicasNum;
-	    }
-
-	    public Master getMaster ()
-	    {
-	        return master;
-	    }
-
-	    public void setMaster (Master master)
-	    {
-	        this.master = master;
-	    }
-
-	    public String getClusterMode ()
-	    {
-	        return clusterMode;
-	    }
-
-	    public void setClusterMode (String clusterMode)
-	    {
-	        this.clusterMode = clusterMode;
-	    }
-
-	    @Override
-	    public String toString()
-	    {
-	        return "ClassPojo [clusterState = "+clusterState+", id = "+id+", goodNodesNum = "+goodNodesNum+", tieBreakers = "+tieBreakers+", name = "+name+", slaves = "+slaves+", goodReplicasNum = "+goodReplicasNum+", master = "+master+", clusterMode = "+clusterMode+"]";
-	    }
+	@Override
+	public String toString()
+	{
+		return "ClassPojo [port = "+port+", id = "+id+", versionInfo = "+versionInfo+", status = "+status+", ips = "+ips+", name = "+name+", role = "+role+", managementIPs = "+managementIPs+"]";
+	}
 }

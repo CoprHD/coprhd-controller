@@ -7,6 +7,18 @@
 # ===================================
 #
 
+# Reset the simulator
+# You need plow-through access to the simulator via ssh, which is usually granted
+# thanks to the AIO settings and the cisco simulator.
+# For an example of /root/reset.sh, look at lglw1045.
+reset_simulator() {
+    if [ "${SIM}" = "1" ]; then
+	/usr/bin/sshpass -p ${HW_SIMULATOR_DEFAULT_PASSWORD} ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${HW_SIMULATOR_IP} /root/reset.sh
+    else
+	echo "No simulator set, not resetting simulator"
+    fi
+}
+
 # Method to retrieve all of the tools needed that do not get stored directly in the git repo
 retrieve_tooling() {
     if [ "${TOOLING_AT_JAR_NAME}" = "" ]
@@ -72,6 +84,10 @@ retrieve_preexistingconfig() {
 #
 # But maybe we crawl before we run.
 report_results() {
+    if [ "${REPORT}" != "1" ]; then
+	return;
+    fi
+
     testname=${1}
     failure_scenario=${2}
     branch=`git rev-parse --abbrev-ref HEAD`
@@ -79,7 +95,10 @@ report_results() {
     ss=${SS}
 
     if [ "${SS}" = "vplex" ]; then
-	ss="${SS} ${VPLEX_MODE}"
+	    ss="${SS} ${VPLEX_MODE}"
+    fi
+    if [ "${SS}" = "srdf" ]; then
+        ss="${SS} ${SRDF_MODE}"
     fi
 
     simulator="Hardware"
@@ -99,10 +118,8 @@ report_results() {
 
     echo -e "${result}\n$(cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE})" > ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
-    if [ "${REPORT}" = "1" ]; then
-	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${RESULTS_SET_FILE}" > /dev/null 2> /dev/null
-	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat > ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
-    fi
+    cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${RESULTS_SET_FILE}" > /dev/null 2> /dev/null
+    cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat > ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
 }
 
 # Helper method to increment the failure counts
@@ -151,7 +168,7 @@ get_masking_view_name() {
         fi
     fi
 
-    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
+    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" -o "$SS" = "srdf" ]; then
 	masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
     elif [ "$SS" = "xio" ]; then
         masking_view_name=$host_name
@@ -312,7 +329,7 @@ arrayhelper_volume_mask_operation() {
     pattern=$4
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $device_id $pattern
 	 ;;
     vnx)
@@ -345,7 +362,7 @@ arrayhelper_initiator_mask_operation() {
     pattern=$4
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $pwwn $pattern
 	 ;;
     vnx)
@@ -377,7 +394,7 @@ arrayhelper_delete_volume() {
     device_id=$3
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $device_id
 	 ;;
     vnx)
@@ -411,7 +428,7 @@ arrayhelper_delete_export_mask() {
     ig_name=$5
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $masking_view_name $sg_name $ig_name
 	 ;;
     *)
@@ -431,7 +448,7 @@ arrayhelper_delete_mask() {
     pattern=$3
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $pattern
 	 ;;
     vnx)
@@ -464,7 +481,7 @@ arrayhelper_verify_export() {
     return_status=0
 
     case $SS in
-    vmax2|vmax3)
+    vmax2|vmax3|srdf)
          runcmd symhelper.sh $operation $serial_number $masking_view_name $*
          return_status=$?
 	 ;;
@@ -549,7 +566,65 @@ verify_zones() {
     done
 }
 
-# Cleans zones and zone referencese ($1=fabricId, $2=host)
+# Gets the zone name corresponding to a host and initiator
+get_zone_name() {
+    host=$1
+    initiator=$2
+
+    # Remove the ':' characters
+    initiator=${initiator//:}
+
+    zone=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${host} | grep ${initiator:4} | awk -F= '{print $2}'`
+    if [[ -z $zone ]]; then
+        # Try to find the zone based on the initiator only - might be a pre-existing zone
+        zone=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${initiator:4} | awk -F= '{print $2}'`
+    fi  
+    echo $zone
+}
+
+# Verify that a given zone exists or has been removed.
+# Increments the fail count if check fails and does not return a
+# return code.
+verify_zone() {
+    zone=$1
+    fabricid=$2
+    check=$3  
+    
+    if [ "${SIM}" = "1" ]; then
+        network=fabric-sim
+        # Remove the FABRIC_ prefix for sim fabric
+        fabricid=${fabricid:5} 
+    else
+        network=$BROCADE_NETWORK
+        # Remove the FABRIC_ prefix for non sim fabric
+        fabricid=${fabricid:7}
+    fi
+    
+    recho "zone list $network --fabricid ${fabricid} --zone_name ${zone}"
+    zone list $network --fabricid ${fabricid} --zone_name ${zone} | grep ${zone} > /dev/null
+    returncode=$?
+    if [ $returncode -ne 0 -a "${check}" = "exists" ]; then
+        echo -e "\e[91mERROR\e[0m: Expected to find zone ${zone}, but did not."
+        incr_fail_count           
+    elif [ $returncode -eq 0 -a "${check}" = "gone" ]; then
+        echo -e "\e[91mERROR\e[0m: Expected to not find zone ${zone}, but it is there."
+        incr_fail_count           
+    fi    
+}
+
+# Determines if a zone is newly created.  A newly created zone is one
+# where the specified host name from the test occurrence is contained 
+# within the zone name.
+newly_created_zone_for_host() {
+    zone=$1
+    host=$2
+    if [[ "$zone" == *${host}* ]]; then
+        return 0
+    fi    
+    return 1
+}    
+
+# Cleans zones and zone references ($1=fabricId, $2=host)
 clean_zones() {
     fabricid=$1
 
@@ -812,17 +887,33 @@ setup_yaml() {
     # create the yml file to be used for tooling
     touch $tools_file
 
-    # Append the vcenter attributes 
-    printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
+    if [ "${VCENTER_IP}" != "" ]; then
+	# Append the vcenter attributes 
+	printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: VCENTER_IP not set, vcenter verification operations will not work!"
+    fi
 
-    # Append Windows host attributes
-    printf 'hosts:\n  windows:\n  - ip: %s:%s:false\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file
+    if [ "${WINDOWS_HOST_IP}" != "" ]; then
+	# Append Windows host attributes
+	printf 'hosts:\n  windows:\n  - ip: %s:%s:false\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: WINDOWS_HOST_IP not set.  host verification operations will not work!"
+    fi
 
-    # Append HP-UX host attributes
-    printf '  hpux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${HPUX_HOST_IP}" "${HPUX_HOST_PORT}" "${HPUX_HOST_USERNAME}" "${HPUX_HOST_PASSWORD}" >> $tools_file
+    if [ "${HPUX_HOST_IP}" != "" ]; then
+	# Append HP-UX host attributes
+	printf '  hpux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${HPUX_HOST_IP}" "${HPUX_HOST_PORT}" "${HPUX_HOST_USERNAME}" "${HPUX_HOST_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: HPUX_HOST_IP not set.  host verification operations will not work!"
+    fi
 
-    # Append Linux host attributes
-    printf '  linux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${LINUX_HOST_IP}" "${LINUX_HOST_PORT}" "${LINUX_HOST_USERNAME}" "${LINUX_HOST_PASSWORD}" >> $tools_file
+    if [ "${HPUX_HOST_IP}" != "" ]; then
+	# Append Linux host attributes
+	printf '  linux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${LINUX_HOST_IP}" "${LINUX_HOST_PORT}" "${LINUX_HOST_USERNAME}" "${LINUX_HOST_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: LINUX_HOST_IP not set.  host verification operations will not work!"
+    fi
 
     if [ "$SS" = "xio" -o "$SS" = "vplex" -o "$SS" = "unity" ]; then
     	if [ "${SS}" = "unity" ]; then
@@ -862,19 +953,19 @@ setup_provider() {
     fi
 
     if [ "${storage_password}" = "" ]; then
-	echo "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
+	echo "storage_password is not set.  Cannot make a valid ${tools_file} file without a storage_password"
 	exit;
     fi
 
     sstype=${SS}
-    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "srdf" ]; then
 	sstype="vmax"
     fi
 
     # create the yml file to be used for array tooling
     touch $tools_file
     storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
-    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
+    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | head -n 1`
     storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
     storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
     storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
@@ -1008,5 +1099,13 @@ add_tag() {
     resource_id=$2
     tag=$3
     runcmd tag --resource_type $resource_type --id $resource_id $tag
+    return $?
+}
+
+remove_tag() {
+    resource_type=$1
+    resource_id=$2
+    tag=$3
+    runcmd tag --remove --resource_type $resource_type --id $resource_id $tag
     return $?
 }

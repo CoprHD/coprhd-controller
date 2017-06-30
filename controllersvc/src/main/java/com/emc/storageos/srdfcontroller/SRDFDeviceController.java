@@ -7,6 +7,7 @@ package com.emc.storageos.srdfcontroller;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.TARGET;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Collections2.transform;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
@@ -44,6 +46,7 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.RemoteMirroring;
@@ -54,6 +57,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.NullTaskCompl
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFAddPairToGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFChangeCopyModeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFExpandCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkDetachCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCancelCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkPauseCompleter;
@@ -92,7 +96,6 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String SUSPEND_SRDF_LINK_METHOD = "suspendSRDFLinkStep";
     private static final String SPLIT_SRDF_LINK_METHOD = "splitSRDFLinkStep";
     private static final String REMOVE_DEVICE_GROUPS_METHOD = "removeDeviceGroupsStep";
-    private static final String CREATE_SRDF_RESYNC_PAIR_METHOD = "reSyncSRDFLinkStep";
     private static final String CREATE_SRDF_MIRRORS_STEP_GROUP = "CREATE_SRDF_MIRRORS_STEP_GROUP";
     private static final String CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP = "CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP";
     private static final String CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_DESC = "Synchronize source/target pairs";
@@ -123,15 +126,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String REMOVE_DEVICE_GROUPS_STEP_DESC = "Removing volume from replication group";
     private static final String DETACH_SRDF_MIRRORS_STEP_GROUP = "DETACH_SRDF_MIRRORS_STEP_GROUP";
     public static final String SPLIT_SRDF_MIRRORS_STEP_GROUP = "SPLIT_SRDF_MIRRORS_STEP_GROUP";
-    private static final String RESYNC_SRDF_MIRRORS_STEP_GROUP = "RESYNC_SRDF_MIRRORS_STEP_GROUP";
-    private static final String RESYNC_SRDF_MIRRORS_STEP_DESC = "Reestablishing SRDF Relationship again";
     private static final String STEP_VOLUME_EXPAND = "EXPAND_VOLUME";
     private static final String CREATE_SRDF_RESUME_PAIR_METHOD = "resumeSyncPairStep";
     private static final String RESUME_SRDF_GROUP_METHOD = "resumeSrdfGroupStep";
     private static final String RESTORE_METHOD = "restoreStep";
     private static final String SUSPEND_SRDF_GROUP_METHOD = "suspendSrdfGroupStep";
-    private static final String CHANGE_SRDF_TO_NONSRDF_STEP_DESC = "Converting SRDF Devices to Non Srdf devices";
-    private static final String CONVERT_TO_NONSRDF_DEVICES_METHOD = "convertToNonSrdfDevicesMethodStep";
     private static final String CREATE_LIST_REPLICAS_METHOD = "createListReplicas";
     private static final String UPDATE_VOLUME_PROEPERTIES_METHOD = "updateVolumeProperties";
     private static final String ROLLBACK_REFRESH_SYSTEM_STEP_GROUP = "ROLLBACK_REFRESH_SRDF_SYSTEMS";
@@ -310,19 +309,16 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            completer = new SRDFTaskCompleter(sourceURIs, opId);
+            List<URI> combinedVolumeList = new ArrayList<URI>();
+            combinedVolumeList.addAll(sourceURIs);
+            combinedVolumeList.addAll(targetURIs);
+            completer = new SRDFLinkSyncCompleter(combinedVolumeList, opId);
             getRemoteMirrorDevice().doUpdateSourceAndTargetPairings(sourceURIs, targetURIs);
-            completer.ready(dbClient);
+            return completeAsReady(completer, opId);
         } catch (Exception e) {
             log.error("Failed to update SRDF pairings", e);
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
-        return true;
     }
 
     protected void createNonCGSRDFVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> sourceDescriptors,
@@ -499,7 +495,6 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return CREATE_SRDF_MIRRORS_STEP_GROUP;
     }
 
-    @SuppressWarnings("unchecked")
     protected void createCGSRDFVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> sourceDescriptors,
             List<VolumeDescriptor> targetDescriptors, Map<URI, Volume> uriVolumeMap) {
         RemoteDirectorGroup group = getRAGroup(targetDescriptors, uriVolumeMap);
@@ -543,7 +538,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     if (null != sourceVolume.getSrdfTargets()) {
                         sourceVolume.getSrdfTargets().clear();
                     }
-                    dbClient.updateAndReindexObject(sourceVolume);
+                    dbClient.updateObject(sourceVolume);
                 }
 
             }
@@ -561,7 +556,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     targetVolume.setSrdfGroup(NullColumnValueGetter.getNullURI());
                     targetVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                     targetVolume.setInactive(true);
-                    dbClient.updateAndReindexObject(targetVolume);
+                    dbClient.updateObject(targetVolume);
                 }
 
             }
@@ -570,7 +565,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         }
         group.getVolumes().replace(volumes);
-        dbClient.persistObject(group);
+        dbClient.updateObject(group);
 
         if (volumes.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
             log.info("RA Group {} was empty", group.getId());
@@ -664,7 +659,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(targetDescriptors);
 
         Workflow.Method createGroupsMethod = createSrdfCgPairsMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri);
-        Workflow.Method rollbackGroupsMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, true);
+        Workflow.Method rollbackGroupsMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, true,
+                !NullColumnValueGetter.isNullURI(vpoolChangeUri));
         return workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP, CREATE_SRDF_MIRRORS_STEP_DESC, waitFor,
                 system.getId(), system.getSystemType(), getClass(), createGroupsMethod, rollbackGroupsMethod, null);
     }
@@ -711,9 +707,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          */
         Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
-        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
+        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false,
+                !NullColumnValueGetter.isNullURI(vpoolChangeUri));
 
-        workflow.createStep(CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP,
+        stepId = workflow.createStep(CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP,
                 CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_DESC, stepId, system.getId(),
                 system.getSystemType(), getClass(), createListMethod, rollbackMethod, null);
 
@@ -735,7 +732,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIs, false);
         String addVolumestoCgStep = workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
-                CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
+                CREATE_SRDF_MIRRORS_STEP_DESC, stepId, system.getId(),
                 system.getSystemType(), getClass(), addMethod, rollbackAddMethod,
                 null);
 
@@ -899,7 +896,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, group.getRemoteStorageSystemUri());
         // Suspend all members in the group
-        Method method = suspendSRDFLinkMethod(targetSystem.getId(), sourceVolume.getId(), targetVolume.getId(), false);
+        Method method = suspendSRDFGroupLinkMethod(targetSystem.getId(), sourceVolume.getId(), targetVolume.getId(), false);
         String splitStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                 SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, targetSystem.getId(), targetSystem.getSystemType(), getClass(),
                 method, null, null);
@@ -1041,9 +1038,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     // For ACTIVE pairs, we need to a) Suspend all the pairs in the CG, b) Remove the pairs from the Group
                     // c) Detach the pairs and d)Resume the remaining pairs of the Group.
                     // Keep the methods handy
-                    Workflow.Method suspendPairMethod = suspendSRDFLinkMethod(system.getId(),
+                    Workflow.Method suspendPairMethod = suspendSRDFGroupLinkMethod(system.getId(),
                             source.getId(), targetURI, consExempt);
-                    Workflow.Method resumePairMethod = resumeSyncPairMethod(system.getId(),
+                    Workflow.Method resumePairMethod = resumeGroupPairsMethod(system.getId(),
                             source.getId(), targetURI);
                     if (activeMode) {
                         // suspend the Active pair
@@ -1058,9 +1055,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             removePairFromGroupWorkflowDesc, waitFor, system.getId(),
                             system.getSystemType(), getClass(), removePairFromGroupMethod, rollbackMethodNullMethod(), null);
                     if (!activeMode) {
+                        Workflow.Method suspendMethod = suspendSRDFLinkMethod(system.getId(),
+                                source.getId(), targetURI, consExempt);
                         waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                 SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
-                                system.getSystemType(), getClass(), suspendPairMethod, null, null);
+                                system.getSystemType(), getClass(), suspendMethod, null, null);
                     }
                     // We now detach the active p...
                     // don't proceed if detach fails, earlier we were allowing the delete operation
@@ -1108,67 +1107,6 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return DELETE_SRDF_MIRRORS_STEP_GROUP;
     }
 
-    private Workflow.Method convertToNonSrdfDevicesMethod(final URI systemURI, final URI sourceURI,
-            final URI targetURI, final boolean rollback) {
-        return new Workflow.Method(CONVERT_TO_NONSRDF_DEVICES_METHOD, systemURI, sourceURI, targetURI,
-                rollback);
-    }
-
-    public boolean convertToNonSrdfDevicesMethodStep(final URI systemURI, final URI sourceURI,
-            final URI targetURI, final boolean rollback, final String opId) {
-        log.info("START conversion of srdf to non srdf devices");
-        TaskCompleter completer = null;
-        try {
-            WorkflowStepCompleter.stepExecuting(opId);
-            Volume source = dbClient.queryObject(Volume.class, sourceURI);
-            Volume target = dbClient.queryObject(Volume.class, targetURI);
-            // Change source and target RDF devices to non-srdf devices in DB
-            source.setPersonality(NullColumnValueGetter.getNullStr());
-            source.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-            source.getSrdfTargets().clear();
-            target.setPersonality(NullColumnValueGetter.getNullStr());
-            target.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-            target.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
-            target.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
-            target.setSrdfGroup(NullColumnValueGetter.getNullURI());
-            dbClient.persistObject(source);
-            dbClient.persistObject(target);
-            log.info("SRDF Devices source {} and target {} converted to non srdf devices", source.getId(), target.getId());
-            completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
-            completer.ready(dbClient);
-        } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
-        }
-        return true;
-    }
-
-    private String reSyncSRDFMirrorSteps(final Workflow workflow, final String waitFor,
-            final Volume source) {
-        log.info("START resync SRDF mirrors workflow");
-        StorageSystem system = getStorageSystem(source.getStorageController());
-        StringSet srdfTargets = source.getSrdfTargets();
-        for (String srdfTarget : srdfTargets) {
-            URI targetURI = URI.create(srdfTarget);
-            Volume target = dbClient.queryObject(Volume.class, targetURI);
-            if (null == target) {
-                return waitFor;
-            }
-            log.info("target Volume {} with srdf group {}", target.getNativeGuid(),
-                    target.getSrdfGroup());
-            Workflow.Method reSyncMethod = reSyncSRDFLinkMethod(system.getId(),
-                    source.getId(), targetURI);
-            String reSyncStep = workflow.createStep(RESYNC_SRDF_MIRRORS_STEP_GROUP,
-                    RESYNC_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
-                    system.getSystemType(), getClass(), reSyncMethod, null, null);
-        }
-        return RESYNC_SRDF_MIRRORS_STEP_GROUP;
-    }
-
     private Method detachVolumePairMethod(URI systemURI, URI sourceURI, URI targetURI) {
         return new Workflow.Method(DETACH_SRDF_PAIR_METHOD, systemURI, sourceURI, targetURI, false);
     }
@@ -1184,15 +1122,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
-            completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
+            List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
+            if (onGroup) {
+                SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
+            }
+            completer = new SRDFLinkDetachCompleter(combined, opId);
             getRemoteMirrorDevice().doDetachLink(system, sourceURI, targetURI, onGroup, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1213,12 +1150,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             getRemoteMirrorDevice().doRemoveVolumePair(system, sourceURI, targetURI, rollback,
                     completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1261,7 +1193,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 List<URI> combinedVolumeList = new ArrayList<URI>();
                 combinedVolumeList.addAll(sourceVolumes);
                 combinedVolumeList.addAll(targetVolumes);
-                completer = new SRDFTaskCompleter(combinedVolumeList, opId);
+                completer = new SRDFLinkResumeCompleter(combinedVolumeList, opId);
                 getRemoteMirrorDevice().doResumeLink(system, tgtVolumes.iterator().next(), false, completer);
             } else {
                 log.info("There are no more volumes in the SRDF group {} {}, so no need to call resume.", group.getLabel(), group.getId());
@@ -1269,12 +1201,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
 
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1317,7 +1244,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 List<URI> combinedVolumeList = new ArrayList<URI>();
                 combinedVolumeList.addAll(sourceVolumes);
                 combinedVolumeList.addAll(targetVolumes);
-                completer = new SRDFTaskCompleter(combinedVolumeList, opId);
+                completer = new SRDFLinkSuspendCompleter(combinedVolumeList, opId);
                 getRemoteMirrorDevice().doSuspendLink(system, tgtVolumes.iterator().next(), false, false, completer);
             } else {
                 log.info("There are no more volumes in the SRDF group {} {}, so no need to call suspend.", group.getLabel(), group.getId());
@@ -1325,40 +1252,39 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
 
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
 
     public boolean resumeSyncPairStep(final URI systemURI, final URI sourceURI,
-            final URI targetURI, final String opId) {
-        log.info("START Resume Sync Pair");
+            final URI targetURI, final boolean onGroup, final String opId) {
+        log.info("START Resume Sync Pair onGroup={}", onGroup);
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
-            completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
+            List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
+            if (onGroup) {
+                SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
+            }
+            completer = new SRDFLinkResumeCompleter(combined, opId);
             getRemoteMirrorDevice().doResumeLink(system, targetVolume, false, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
 
     public Method resumeSyncPairMethod(final URI systemURI, final URI sourceURI,
             final URI targetURI) {
-        return new Workflow.Method(CREATE_SRDF_RESUME_PAIR_METHOD, systemURI, sourceURI, targetURI);
+        return new Workflow.Method(CREATE_SRDF_RESUME_PAIR_METHOD, systemURI, sourceURI, targetURI, false);
+    }
+
+    public Method resumeGroupPairsMethod(final URI systemURI, final URI sourceURI,
+            final URI targetURI) {
+        return new Workflow.Method(CREATE_SRDF_RESUME_PAIR_METHOD, systemURI, sourceURI, targetURI, true);
     }
 
     public boolean restoreStep(final URI systemURI, final URI sourceURI,
@@ -1369,15 +1295,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
-            completer = new SRDFLinkSyncCompleter(Arrays.asList(sourceURI, targetURI), opId);
+            List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
+            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
+            completer = new SRDFLinkSyncCompleter(combined, opId);
             getRemoteMirrorDevice().doSyncLink(system, targetVolume, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1387,61 +1310,73 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(RESTORE_METHOD, systemURI, sourceURI, targetURI);
     }
 
-    private Method reSyncSRDFLinkMethod(final URI systemURI, final URI sourceURI,
-            final URI targetURI) {
-        return new Workflow.Method(CREATE_SRDF_RESYNC_PAIR_METHOD, systemURI, sourceURI, targetURI);
-    }
-
-    public boolean reSyncSRDFLinkStep(final URI systemURI, final URI sourceURI,
-            final URI targetURI, final String opId) {
-        log.info("START ReSync SRDF Links");
-        TaskCompleter completer = null;
-        try {
-            WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem system = getStorageSystem(systemURI);
-            completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
-            getRemoteMirrorDevice().doResyncLink(system, sourceURI, targetURI, completer);
-        } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
-        }
-        return true;
-    }
-
     private Workflow.Method rollbackSRDFLinksMethod(final URI systemURI, final List<URI> sourceURIs,
-            final List<URI> targetURIs, final boolean isGroupRollback) {
-        return new Workflow.Method(ROLLBACK_SRDF_LINKS_METHOD, systemURI, sourceURIs, targetURIs, isGroupRollback);
+            final List<URI> targetURIs, final boolean isGroupRollback, final boolean isVpoolChange) {
+        return new Workflow.Method(ROLLBACK_SRDF_LINKS_METHOD, systemURI, sourceURIs, targetURIs, isGroupRollback, isVpoolChange);
     }
 
     // Convenience method for singular usage of #rollbackSRDFLinksMethod
     private Workflow.Method rollbackSRDFLinkMethod(final URI systemURI, final URI sourceURI,
             final URI targetURI, final boolean isGroupRollback) {
-        return rollbackSRDFLinksMethod(systemURI, asList(sourceURI), asList(targetURI), isGroupRollback);
+        return rollbackSRDFLinksMethod(systemURI, asList(sourceURI), asList(targetURI), isGroupRollback, false);
     }
 
     public boolean rollbackSRDFLinksStep(URI systemURI, List<URI> sourceURIs,
-            List<URI> targetURIs, boolean isGroupRollback, String opId) {
+            List<URI> targetURIs, boolean isGroupRollback, boolean isVpoolChange, String opId) {
         log.info("START rollback multiple SRDF links");
-        TaskCompleter completer = null;
+        SRDFMirrorRollbackCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             completer = new SRDFMirrorRollbackCompleter(sourceURIs, opId);
-            getRemoteMirrorDevice().doRollbackLinks(system, sourceURIs, targetURIs, isGroupRollback, completer);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_076);
+            getRemoteMirrorDevice().doRollbackLinks(system, sourceURIs, targetURIs, isGroupRollback, isVpoolChange, completer);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_077);
         } catch (Exception e) {
-            log.error("Ignoring exception while rolling back SRDF sources: {}", sourceURIs, e);
+            log.error("Exception while rolling back SRDF sources: {}", sourceURIs, e);
             // Succeed here, to allow other rollbacks to run
-            if (null != completer) {
-                completer.ready(dbClient);
+            cleanupCGsOnRollbackError(sourceURIs, targetURIs, systemURI, isVpoolChange);
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
+        } finally {
+            if (completer.hasRollbackFailures()) {
+                return completeAsError(completer, DeviceControllerException.errors.unforeseen(), opId);
+            } else {
+                return completeAsReady(completer, opId);
             }
-            WorkflowStepCompleter.stepSucceded(opId);
-            return false;
         }
-        return true;
+    }
+
+    /**
+     * Cleanup the consistency groups in the event that the SRDF rollback step fails.
+     *
+     * @param sourceURIs    Source volume URIs being rolled back.
+     * @param targetURIs    Target volume URIs being rolled back.
+     * @param systemURI     System URI
+     * @param isVpoolChange True, if operation is for a VPool change.
+     */
+    private void cleanupCGsOnRollbackError(List<URI> sourceURIs, List<URI> targetURIs, URI systemURI, boolean isVpoolChange) {
+        try {
+            Volume srcVol = dbClient.queryObject(Volume.class, sourceURIs.get(0));
+            Volume tgtVol = dbClient.queryObject(Volume.class, targetURIs.get(0));
+
+            if (srcVol.hasConsistencyGroup()) {
+                // Clean up target and source CGs since this is a rollback
+                BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, tgtVol.getConsistencyGroup());
+                BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, srcVol.getConsistencyGroup());
+
+                List<Volume> sourceVolumes = queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        getVolumesByConsistencyGroup(sourceCG.getId()));
+
+                log.info("Rolling back {}/{} volumes in CG...", sourceVolumes.size(), sourceURIs.size());
+                if (sourceVolumes.size() == sourceURIs.size()) {
+                    log.info("Cleaning up source and target CGs");
+                    SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, systemURI, isVpoolChange, dbClient);
+                }
+            }
+            SRDFUtils.cleanupRDG(srcVol, tgtVol, dbClient);
+        } catch (Exception e) {
+            log.warn("Exception whilst cleaning CGs", e);
+        }
     }
 
     private Workflow.Method
@@ -1463,17 +1398,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             combined.addAll(targetURIs);
 
             completer = new SRDFMirrorCreateCompleter(combined, vpoolChangeUri, opId);
-            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, addWaitForCopyState, completer);
             log.info("Sources: {}", Joiner.on(',').join(sourceURIs));
             log.info("Targets: {}", Joiner.on(',').join(targetURIs));
             log.info("OpId: {}", opId);
+            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, addWaitForCopyState, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1523,22 +1453,19 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     public boolean createSRDFVolumePairStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final URI vpoolChangeUri, final String opId) {
         log.info("START Add srdf volume pair");
-        TaskCompleter completer = null;
+        TaskCompleter completer = new SRDFMirrorCreateCompleter(sourceURI, targetURI, vpoolChangeUri, opId);
         try {
-            WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem system = getStorageSystem(systemURI);
-            completer = new SRDFMirrorCreateCompleter(sourceURI, targetURI, vpoolChangeUri, opId);
-            getRemoteMirrorDevice().doCreateLink(system, sourceURI, targetURI, completer);
             log.info("Source: {}", sourceURI);
             log.info("Target: {}", targetURI);
             log.info("OpId: {}", opId);
+
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem system = getStorageSystem(systemURI);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_074);
+            getRemoteMirrorDevice().doCreateLink(system, sourceURI, targetURI, completer);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_075);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1579,7 +1506,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          */
         Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, true);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
-        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
+        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false, vpoolChangeUri != null);
 
         String stepId = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
                 CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_DESC, waitFor, system.getId(),
@@ -1643,7 +1570,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          */
         Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
-        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
+        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false,
+                !NullColumnValueGetter.isNullURI(vpoolChangeUri));
 
         String createListReplicaStep = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
                 CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_DESC, suspendGroupStep, system.getId(),
@@ -1718,12 +1646,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         } catch (Exception e) {
             log.warn("Error during rollback for adding sync pairs", e);
         } finally {
-            if (completer != null) {
-                completer.ready(dbClient);
-            }
-            WorkflowStepCompleter.stepSucceded(opId);
+            return completeAsReady(completer, opId);
         }
-        return true;
     }
 
     private void rollbackAddSyncVolumePair(StorageSystem system, Volume source, Volume target) {
@@ -1751,46 +1675,40 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFAddPairToGroupCompleter(sourceURIs, vpoolChangeUri, opId);
             getRemoteMirrorDevice().doAddVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
 
     public Workflow.Method suspendSRDFLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt) {
-        return new Workflow.Method(SUSPEND_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, consExempt);
+        return new Workflow.Method(SUSPEND_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, consExempt, false);
     }
 
-    public boolean suspendSRDFLinkStep(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt, String opId) {
-        log.info("START Suspend SRDF link");
-        TaskCompleter completer = null;
+    public Workflow.Method suspendSRDFGroupLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt) {
+        return new Workflow.Method(SUSPEND_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, consExempt, true);
+    }
 
+    public boolean suspendSRDFLinkStep(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt, boolean onGroup, String opId) {
+        log.info("START Suspend SRDF link OnGroup={}", onGroup);
+        TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             Volume target = dbClient.queryObject(Volume.class, targetURI);
             List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
-            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
-            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
-            completer = new SRDFLinkPauseCompleter(combined, opId);
+            if (onGroup) {
+                SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
+            }
+            completer = new SRDFLinkSuspendCompleter(combined, opId);
             getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, false, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
 
         return true;
     }
 
-    public Workflow.Method splitSRDFLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean rollback) {
+    public Workflow.Method splitSRDFGroupLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean rollback) {
         return new Workflow.Method(SPLIT_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, rollback);
     }
 
@@ -1803,17 +1721,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             StorageSystem system = getStorageSystem(systemURI);
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
             List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
-            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
-            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
+            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
             completer = new SRDFLinkPauseCompleter(combined, opId);
             getRemoteMirrorDevice().doSplitLink(system, targetVolume, rollback, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return true;
     }
@@ -1834,12 +1746,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFRemoveDeviceGroupsCompleter(combined, opId);
             getRemoteMirrorDevice().doRemoveDeviceGroups(system, sourceURI, targetURI, completer);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
+            return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
         return false;
     }
@@ -1854,19 +1761,18 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
-            List<URI> combined = new ArrayList<URI>(sourceURIs);
+            List<URI> combined = new ArrayList<>(sourceURIs);
             combined.addAll(targetURIs);
             completer = new SRDFMirrorCreateCompleter(combined, vpoolChangeUri, opId);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_078);
             getRemoteMirrorDevice().doCreateCgPairs(system, sourceURIs, targetURIs, completer);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_079);
+            // No code after this point.
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
+            completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
             return false;
         }
-        return false;
+        return true;
     }
 
     /**
@@ -1973,7 +1879,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 }
             }
 
-            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVol, dbClient, combined);
+            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVolumeUri, dbClient, combined);
             log.info("Combined ids : {}", Joiner.on("\t").join(combined));
             if (op.equalsIgnoreCase("failover")) {
                 completer = new SRDFLinkFailOverCompleter(combined, task);
@@ -2054,10 +1960,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
         } catch (Exception e) {
             log.error("Failed operation {}", op, e);
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
+            completeAsError(completer, DeviceControllerException.errors.jobFailed(e), task);
         }
     }
 
@@ -2155,7 +2058,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                         if (volumes.size() == 1) {
 
                             // split all members the group
-                            Workflow.Method splitMethod = splitSRDFLinkMethod(system.getId(),
+                            Workflow.Method splitMethod = splitSRDFGroupLinkMethod(system.getId(),
                                     source.getId(), target.getId(), false);
                             String splitStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
@@ -2164,11 +2067,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             // Second we detach the group...
                             Workflow.Method detachMethod = detachGroupPairsMethod(system.getId(),
                                     source.getId(), target.getId());
-                            Workflow.Method resumeSyncPairMethod = resumeSyncPairMethod(system.getId(),
+                            Workflow.Method resumeMethod = resumeGroupPairsMethod(system.getId(),
                                     source.getId(), target.getId());
                             String detachMirrorStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     DETACH_SRDF_MIRRORS_STEP_DESC, splitStep, system.getId(),
-                                    system.getSystemType(), getClass(), detachMethod, resumeSyncPairMethod, null);
+                                    system.getSystemType(), getClass(), detachMethod, resumeMethod, null);
 
                             // Expand the source and target Volumes
                             String expandStep = addExpandBlockVolumeSteps(workflow, detachMirrorStep, source.getPool(), volumeId, size, task);
@@ -2232,10 +2135,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
            
         } catch (Exception e) {
             log.error("Failed SRDF Expand Volume operation ", e);
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
+            completeAsError(completer, DeviceControllerException.errors.jobFailed(e), task);
             throw e;
         }
         return waitFor;
@@ -2297,7 +2197,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                         if (volumes.size() == 1) {
 
                             // split all members the group
-                            Workflow.Method splitMethod = splitSRDFLinkMethod(system.getId(),
+                            Workflow.Method splitMethod = splitSRDFGroupLinkMethod(system.getId(),
                                     source.getId(), target.getId(), false);
                             String splitStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
@@ -2306,11 +2206,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             // Second we detach the group...
                             Workflow.Method detachMethod = detachGroupPairsMethod(system.getId(),
                                     source.getId(), target.getId());
-                            Workflow.Method resumeSyncPairMethod = resumeSyncPairMethod(system.getId(),
+                            Workflow.Method resumeMethod = resumeGroupPairsMethod(system.getId(),
                                     source.getId(), target.getId());
                             String detachMirrorStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     DETACH_SRDF_MIRRORS_STEP_DESC, splitStep, system.getId(),
-                                    system.getSystemType(), getClass(), detachMethod, resumeSyncPairMethod, null);
+                                    system.getSystemType(), getClass(), detachMethod, resumeMethod, null);
 
                             // Expand the source and target Volumes
                             String expandStep = addExpandBlockVolumeSteps(workflow, detachMirrorStep, pool, volumeId, size, task);
@@ -2376,10 +2276,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             workflow.executePlan(completer, successMessage);
         } catch (Exception e) {
             log.error("Failed SRDF Expand Volume operation ", e);
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
+            completeAsError(completer, DeviceControllerException.errors.jobFailed(e), task);
         }
     }
 
@@ -2519,5 +2416,43 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
             taskCompleter.addConsistencyGroupId(volume.getConsistencyGroup());
         }
+    }
+
+    /**
+     * Convenience method for completing a completer with ready status.
+     *
+     * @param completer TaskCompleter
+     * @param stepId    Step ID
+     * @return          true for success
+     */
+    private boolean completeAsReady(TaskCompleter completer, String stepId) {
+        if (completer != null) {
+            if (!completer.isCompleted()) {
+                completer.ready(dbClient);
+            }
+        } else {
+            log.warn("Encountered a null completer which should not have happened");
+            WorkflowStepCompleter.stepSucceded(stepId);
+        }
+        return true;
+    }
+
+    /**
+     * Convenience method for completing a completer with error status.
+     *
+     * @param completer TaskCompleter
+     * @param stepId    Step ID
+     * @return          false for failure
+     */
+    private boolean completeAsError(TaskCompleter completer, ServiceError error, String stepId) {
+        if (completer != null) {
+            if (!completer.isCompleted()) {
+                completer.error(dbClient, error);
+            }
+        } else {
+            log.warn("Encountered a null completer which should not have happened");
+            WorkflowStepCompleter.stepFailed(stepId, error);
+        }
+        return false;
     }
 }

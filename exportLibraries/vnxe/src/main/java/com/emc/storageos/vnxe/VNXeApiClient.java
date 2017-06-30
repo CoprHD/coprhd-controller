@@ -1769,7 +1769,7 @@ public class VNXeApiClient {
         _logger.info("Done exporting lun snap: {}", snapId);
         return result;
     }
-   
+
     /**
      * Unexport a snapshot
      * 
@@ -1802,7 +1802,7 @@ public class VNXeApiClient {
             }
             VNXeBase snapGroup = snap.getSnapGroup();
             parentLunId = snap.getLun().getId();
-            
+
             if (snapGroup == null && (snap.isAttached())) {
                 _logger.info("Detaching the snap: {}", snapId);
                 detachSnap(snapId);
@@ -1840,12 +1840,12 @@ public class VNXeApiClient {
 
             } else if (detach && !needReattach &&
                     (accessMask == HostLUNAccessEnum.BOTH.getValue() ||
-                            accessMask == HostLUNAccessEnum.SNAPSHOT.getValue())) {
+                    accessMask == HostLUNAccessEnum.SNAPSHOT.getValue())) {
                 needReattach = true;
             }
             changedHostAccessList.add(hostAccess);
         }
-        
+
         if (changedHostAccessList.isEmpty()) {
             // the removing hosts are not exported
             _logger.info("The unexport hosts were not exported.");
@@ -1869,7 +1869,7 @@ public class VNXeApiClient {
                     for (BlockHostAccess hostA : hostAccess) {
                         int mask = hostA.getAccessMask();
                         if (mask == HostLUNAccessEnum.BOTH.getValue() ||
-                            mask == HostLUNAccessEnum.SNAPSHOT.getValue()) {
+                                mask == HostLUNAccessEnum.SNAPSHOT.getValue()) {
                             needReattach = true;
                             break;
                         }
@@ -1878,10 +1878,10 @@ public class VNXeApiClient {
                         break;
                     }
                 }
-            
+
             } else {
                 _logger.warn(String.format("The storage resource id is empty for the lun ", parentLun.getName()));
-                
+
             }
         }
         LunParam lunParam = new LunParam();
@@ -2412,8 +2412,8 @@ public class VNXeApiClient {
     /**
      * create tree quota
      * 
-     * @param fsName
-     *            file system name
+     * @param fsID
+     *            file system ID
      * @param quotaName
      *            name of quota to be created
      * @param hardLimit
@@ -2425,24 +2425,23 @@ public class VNXeApiClient {
      * @return VNXeCommandJob
      * @throws VNXeException
      */
-    public VNXeCommandJob createQuotaDirectory(final String fsName, final String quotaName,
+    public VNXeCommandJob createQuotaDirectory(final String fsID, final String quotaName,
             final Long hardLimit, final Long softLimit, final long softGrace) throws VNXeException {
 
-        _logger.info("Creating quota directory with path: {} for fs: {}",
-                "/" + quotaName, fsName);
+        _logger.info("Creating quota directory with path: {} for fs ID: {}",
+                "/" + quotaName, fsID);
 
         FileSystemQuotaCreateParam param = new FileSystemQuotaCreateParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
         if (softGrace > 0) {
             qcParam.setGracePeriod(softGrace);
         }
-        FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
         param.setPath("/" + quotaName);
         if (hardLimit > 0) {
             param.setHardLimit(hardLimit);
         }
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
-        param.setFilesystem(fsReq.getByFSName(fsName).getId());
+        param.setFilesystem(fsID);
         if (softLimit > 0) {
             param.setSoftLimit(softLimit);
         }

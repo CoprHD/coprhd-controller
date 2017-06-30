@@ -10,7 +10,7 @@
     dbsvc\src\conf\db-custom-migration-callbacks.xml
     If you have any concern about this file, feel free to contact infrastructure team.
     -->
-    <util:map id="versionedCustomMigrationCallbacks">
+        <util:map id="versionedCustomMigrationCallbacks">
         <entry key="1.0">
             <list>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.DataObjectInactiveFieldScrubber"/>
@@ -140,6 +140,12 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolFileReplicationPolicyMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VolumeBootVolumeMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileSnapshotPolicyMigration"/>
+            </list>
+        </entry>
+        <entry key="3.6">
+        	<list>
+        		<bean class="com.emc.storageos.db.client.upgrade.callbacks.StatsCleanupMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileReplicationPolicyUpdateTargetPoolMigration"/>
             </list>
         </entry>
     </util:map>

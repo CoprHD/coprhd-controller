@@ -719,9 +719,7 @@ public class ExportMaskUtils {
             List<URI> targets, ZoneInfoMap zoneInfoMap,
             T volume, Set<String> unManagedInitiators, String nativeId,
             List<Initiator> userAddedInis, DbClient dbClient,
-            Map<String, Integer> wwnToHluMap,
-            String portGroupName,
-            Boolean portGroupImmutable) throws Exception {
+            Map<String, Integer> wwnToHluMap) throws Exception {
 
         ExportMask exportMask = new ExportMask();
         exportMask.setId(URIUtil.createId(ExportMask.class));
@@ -754,41 +752,6 @@ public class ExportMaskUtils {
         exportMask.addToExistingInitiatorsIfAbsent(new ArrayList<String>(unManagedInitiators));
         exportMask.addToUserCreatedInitiators(userAddedInis);
 
-        // Set port group
-        if (NullColumnValueGetter.isNotNullValue(portGroupName)) {
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
-            String guid = String.format("%s+%s" , system.getNativeGuid(), portGroupName);
-            URIQueryResultList result = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getPortGroupNativeGuidConstraint(guid), result);
-            Iterator<URI> it = result.iterator();
-            boolean foundPG = it.hasNext();
-            StoragePortGroup portGroup = null;
-            if (!foundPG) {
-                portGroup = new StoragePortGroup();
-                portGroup.setId(URIUtil.createId(StoragePortGroup.class));
-                portGroup.setLabel(portGroupName);
-                portGroup.setNativeGuid(guid);
-                portGroup.setStorageDevice(storage);
-                portGroup.setInactive(false);
-                
-                portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(targets));
-                dbClient.createObject(portGroup);
-            } else {
-                URI pgURI = it.next();
-                portGroup = dbClient.queryObject(StoragePortGroup.class, pgURI);
-            }
-            if (portGroupImmutable) {
-                portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
-                portGroup.setMutable(false);
-            } else {
-                portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.name());
-                portGroup.setMutable(true);
-            }
-            dbClient.updateObject(portGroup);
-            exportMask.setPortGroup(portGroup.getId());
-            
-        }
         // if the block object is marked as internal, then add to existing volumes of the mask
         if (volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             _log.info("Block object {} is marked internal. Adding to existing volumes of the mask {}", volume.getNativeGuid(),

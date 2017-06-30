@@ -352,12 +352,7 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
 
-        
-        if (pathParam == null) {
-            validatePortGroupWhenAddVolumesForExportGroup(volumeMap.keySet(), null, null);
-        } else {
-            validatePortGroupWhenAddVolumesForExportGroup(volumeMap.keySet(), pathParam.getPortGroup(), null);
-        }
+        validatePortGroupWhenAddVolumesForExportGroup(volumeMap.keySet(), (pathParam != null ? pathParam.getPortGroup() : null), null);
         
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are

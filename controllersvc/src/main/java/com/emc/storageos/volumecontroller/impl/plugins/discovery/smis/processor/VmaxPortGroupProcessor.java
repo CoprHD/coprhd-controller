@@ -85,10 +85,12 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                     if (!storagePorts.isEmpty()) {
                         StoragePortGroup portGroup = getPortGroupInDB(portGroupName, device);
                         if (portGroup == null) {
-                            // Check if the port group is ViPR created
+                            // Check if the port group is used in any export mask. If the port group is not in the DB, but
+                            // it is used by any existing ExportMask, then this is a upgrade case, and this is the first time 
+                            // discovery after the upgrade.
                             if (hasVolume) {
                                 List<ExportMask> masks = getExportMasksForPortGroup(client, groupPath, portGroupName, device);
-                                boolean viprCreated = (masks.size() == 1);
+                                boolean viprCreated = (!masks.isEmpty());
                                 portGroup = createPortGroup(portGroupName, device, viprCreated);
                                
                                 for (ExportMask mask : masks) {

@@ -894,7 +894,7 @@ class Volume(object):
     # Creates a volume given label, project, vpool and size
     def create(self, project, label, size, varray, vpool,
                protocol, sync, number_of_volumes, thin_provisioned,
-               consistencygroup,synctimeout=0):
+               consistencygroup,rdfgroup,synctimeout=0):
         '''
         Makes REST API call to create volume under a project
         Parameters:
@@ -904,6 +904,7 @@ class Volume(object):
             varray: name of varray
             vpool: name of vpool
             protocol: protocol used for the volume (FC or iSCSI)
+            rdfgroup: replication group URI (since name isn't unique)
         Returns:
             Created task details in JSON response payload
         '''
@@ -943,7 +944,11 @@ class Volume(object):
                 tenant)
             request['consistency_group'] = consuri
 
+        if (rdfgroup):
+            request['extension_parameters'] = [ "rdfGroup=" + rdfgroup ]
+
         body = json.dumps(request)
+        print body
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
                                              Volume.URI_VOLUMES,
@@ -1826,6 +1831,10 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='synctimeout',
                                default=0,
                                type=int)
+    create_parser.add_argument('-replicationgroup','-rg',
+                               help='replication group (eg RDF Group) URI',
+                               dest='rdfgroup',
+                               required=False)
     create_parser.set_defaults(func=volume_create)
     
     
@@ -2419,7 +2428,8 @@ def volume_create(args):
         res = obj.create(
             args.tenant + "/" + args.project, args.name, size,
             args.varray, args.vpool, None, args.sync,
-            args.count, None, args.consistencygroup,args.synctimeout)
+            args.count, None, args.consistencygroup,
+            args.rdfgroup,args.synctimeout)
 #        if(args.sync == False):
 #            return common.format_json_object(res)
     except SOSError as e:

@@ -344,6 +344,7 @@ public class IsilonMirrorOperations {
     public BiosCommandResult doFailover(StorageSystem system, String policyName, TaskCompleter taskCompleter) {
         _log.info("IsilonMirrorOperations -  doFailover started ");
         try {
+            String ip = system.getIpAddress();
             IsilonApi isi = getIsilonDevice(system);
                        
             doStopReplicationPolicy(isi, policyName);

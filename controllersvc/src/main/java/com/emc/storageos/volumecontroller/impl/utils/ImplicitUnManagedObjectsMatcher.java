@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +48,7 @@ import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 public class ImplicitUnManagedObjectsMatcher {
     private static final String LOCAL = "LOCAL";
+    private static final String DISTRIBUTED = "DISTRIBUTED";
     private static final Logger _log = LoggerFactory
             .getLogger(ImplicitUnManagedObjectsMatcher.class);
     private static final String INVALID = "Invalid";
@@ -53,6 +56,7 @@ public class ImplicitUnManagedObjectsMatcher {
     private static final int VOLUME_BATCH_SIZE = 200;
     private static final int FILESHARE_BATCH_SIZE = 200;
     private static final String TRUE = "TRUE";
+    private static final Executor _executor = Executors.newCachedThreadPool();
 
     /**
      * run implicit unmanaged matcher during rediscovery
@@ -69,6 +73,13 @@ public class ImplicitUnManagedObjectsMatcher {
         }
     }
 
+    public static void matchVirtualPoolsWithUnManagedVolumesInBackground(VirtualPool virtualPool, Set<URI> srdfEnabledTargetVPools,
+            Set<URI> rpEnabledTargetVPools, DbClient dbClient, boolean recalcVplexVolumes) {
+        ImplicitUnManagedObjectsMatcherThread matcherThread = 
+                new ImplicitUnManagedObjectsMatcherThread(virtualPool, srdfEnabledTargetVPools, rpEnabledTargetVPools, dbClient, recalcVplexVolumes);
+        _executor.execute(matcherThread);
+    }
+    
     public static void matchVirtualPoolsWithUnManagedVolumes(VirtualPool virtualPool, Set<URI> srdfEnabledTargetVPools,
             Set<URI> rpEnabledTargetVPools, DbClient dbClient, boolean recalcVplexVolumes) {
         List<UnManagedVolume> modifiedUnManagedVolumes = new ArrayList<UnManagedVolume>();
@@ -210,11 +221,16 @@ public class ImplicitUnManagedObjectsMatcher {
                     String haFound = volume.getVolumeInformation().get(SupportedVolumeInformation.VPLEX_LOCALITY.toString()).iterator().next();
                     if (haFound.equalsIgnoreCase(LOCAL)) {
                         highAvailability = VirtualPool.HighAvailabilityType.vplex_local.name();
-                    } else {
+                    } else if (haFound.equalsIgnoreCase(DISTRIBUTED)) {
                         highAvailability = VirtualPool.HighAvailabilityType.vplex_distributed.name();
+                    } else {
+                        _log.warn(String.format("could not determine high availability setting for the unmanaged volume %s", 
+                                volume.forDisplay()));
+                        continue;
                     }
                 }
-                _log.debug("finding valid virtual pools for UnManagedVolume {}", volume.getLabel());
+
+                _log.info("finding valid virtual pools for UnManagedVolume {}", volume.getLabel());
 
                 // Check to see if:
                 // - The vpool's HA type doesn't match the volume's, unless...
@@ -255,10 +271,7 @@ public class ImplicitUnManagedObjectsMatcher {
                     if (!ConnectivityUtil.CLUSTER_UNKNOWN.equals(varrayClusterId)) {
                         String varrayClusterName = clusterIdToNameMap.get(varrayClusterId);
                         if (volumeClusters.contains(varrayClusterName)) {
-                            if (volume.getSupportedVpoolUris() == null) {
-                                volume.setSupportedVpoolUris(new StringSet());
-                            }
-                            volume.getSupportedVpoolUris().add(vpool.getId().toString());
+                            // default to true in the case of no backend vols discovered
                             List<UnManagedVolume> backendVols = 
                                     VplexBackendIngestionContext.findBackendUnManagedVolumes(volume, dbClient);
                             if (backendVols != null) {
@@ -270,6 +283,10 @@ public class ImplicitUnManagedObjectsMatcher {
                                     modifiedUnManagedVolumes.add(backendVol);
                                 }
                             }
+                            if (volume.getSupportedVpoolUris() == null) {
+                                volume.setSupportedVpoolUris(new StringSet());
+                            }
+                            volume.getSupportedVpoolUris().add(vpool.getId().toString());
                             modifiedUnManagedVolumes.add(volume);
                             break;
                         }

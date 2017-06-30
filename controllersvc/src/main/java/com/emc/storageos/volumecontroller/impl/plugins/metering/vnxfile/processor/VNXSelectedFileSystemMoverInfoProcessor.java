@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -80,7 +79,6 @@ public class VNXSelectedFileSystemMoverInfoProcessor extends VNXFileProcessor {
     private void processFilesystemList(List<Object> filesystemList,
             Map<String, Object> keyMap) throws VNXFilePluginException {
         Iterator<Object> iterator = filesystemList.iterator();
-        Map<String, String> volFilesystemMap = new HashMap<String, String>();
         Set<String> moverIds = new HashSet<String>();
         if (iterator.hasNext()) {
             Status status = (Status) iterator.next();
@@ -88,12 +86,18 @@ public class VNXSelectedFileSystemMoverInfoProcessor extends VNXFileProcessor {
                 keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                 while (iterator.hasNext()) {
                     FileSystem fileSystem = (FileSystem) iterator.next();
-                    volFilesystemMap.put(fileSystem.getVolume(), fileSystem.getFileSystem());
                     List<MoverOrVdmRef> roFileSysHosts = fileSystem
                             .getRoFileSystemHosts();
                     Iterator<MoverOrVdmRef> roFileSysHostItr = roFileSysHosts.iterator();
                     while (roFileSysHostItr.hasNext()) {
                         MoverOrVdmRef mover = roFileSysHostItr.next();
+                        moverIds.add(mover.getMover());
+                    }
+                    List<MoverOrVdmRef> rwFileSysHosts = fileSystem
+                            .getRwFileSystemHosts();
+                    Iterator<MoverOrVdmRef> rwFileSysHostItr = rwFileSysHosts.iterator();
+                    while (rwFileSysHostItr.hasNext()) {
+                        MoverOrVdmRef mover = rwFileSysHostItr.next();
                         moverIds.add(mover.getMover());
                     }
                 }
@@ -105,7 +109,6 @@ public class VNXSelectedFileSystemMoverInfoProcessor extends VNXFileProcessor {
             }
         }
         keyMap.put(VNXFileConstants.MOVERLIST, moverIds);
-        keyMap.put(VNXFileConstants.VOLFILESHAREMAP, volFilesystemMap);
     }
 
     @Override

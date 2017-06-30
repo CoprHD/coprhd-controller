@@ -60,6 +60,7 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
                         system = dbClient.queryObject(StorageSystem.class, systemUri);
                         if (system != null) {
                             systemTypeMap.put(systemUri, system.getSystemType());
+                            systemType = system.getSystemType();
                         }
                     }
 

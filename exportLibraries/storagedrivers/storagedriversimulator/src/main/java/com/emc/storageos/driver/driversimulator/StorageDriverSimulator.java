@@ -1078,6 +1078,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         CommonStorageCapabilities commonStorageCapabilities = driverVolume.getCommonCapabilities();
         if (commonStorageCapabilities == null) {
             commonStorageCapabilities = new CommonStorageCapabilities();
+            driverVolume.setCommonCapabilities(commonStorageCapabilities);
         }
         StorageDriverSimulatorUtils.addHostIOLimitsCapabilities(commonStorageCapabilities);
     }

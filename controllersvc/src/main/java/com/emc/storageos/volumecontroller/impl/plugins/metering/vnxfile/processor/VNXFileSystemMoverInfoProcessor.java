@@ -27,16 +27,16 @@ import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
 /**
- * VNXSelectedFileSystemMoverInfoProcessor is responsible to process the result received from XML API
- * Server after getting the one VNX FileSystem Information.
+ * VNXFileSystemMoverInfoProcessor is responsible to process the result received from XML API
+ * Server after getting the one VNX FileSystem Information it process the mover associated to a file system
  */
-public class VNXSelectedFileSystemMoverInfoProcessor extends VNXFileProcessor {
+public class VNXFileSystemMoverInfoProcessor extends VNXFileProcessor {
 
     /**
      * Logger instance.
      */
     private final Logger _logger = LoggerFactory
-            .getLogger(VNXSelectedFileSystemMoverInfoProcessor.class);
+            .getLogger(VNXFileSystemMoverInfoProcessor.class);
 
     @Override
     public void processResult(Operation operation, Object resultObj,

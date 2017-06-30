@@ -2812,7 +2812,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             
             //for multiple replication code need to organized.
-            if(systemTarget.getId().compareTo(fs.getId()) == 0) {
+            if(systemTarget.getId().compareTo(fs.getStorageDevice()) == 0) {
                 // get the failover storage device
                 if(null != fs.getParentFileShare() && null != fs.getParentFileShare().getURI()) {
                     failoverFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());

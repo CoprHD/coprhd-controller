@@ -167,10 +167,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 if (storageCapabilities == null) {
                     // All volumes created in a request will have the same capabilities.
                     storageCapabilities = new StorageCapabilities();
-                    CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
+                    CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilities();
                     if (commonCapabilities == null) {
                         commonCapabilities = new CommonStorageCapabilities();
-                        storageCapabilities.setCommonCapabilitis(commonCapabilities);
+                        storageCapabilities.setCommonCapabilities(commonCapabilities);
                     }
                     addAutoTieringPolicyCapability(commonCapabilities, volume.getAutoTieringPolicyUri());
                     addDeduplicationCapability(commonCapabilities, volume.getIsDeduplicated());

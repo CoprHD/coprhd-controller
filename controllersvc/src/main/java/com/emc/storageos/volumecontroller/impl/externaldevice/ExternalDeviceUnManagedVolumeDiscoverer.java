@@ -358,6 +358,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         CapabilityInstance hostIOLimits =
                 StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(), CapabilityDefinition.CapabilityUid.hostIOLimits);
         if (hostIOLimits != null) {
+            log.info("HostIOLimits for volume {}: {} ", driverVolume.getNativeId(),hostIOLimits.toString());
             String bandwidth = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_BANDWIDTH.toString());
             String iops = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_IOPS.toString());
             if (bandwidth != null) {

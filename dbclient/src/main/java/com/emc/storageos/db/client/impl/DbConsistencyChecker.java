@@ -39,26 +39,21 @@ public class DbConsistencyChecker {
     }
 
     public int check() throws ConnectionException {
-    	int corruptedCount = 0;
-    	
-    	try {
-	        init();
-	        CheckType checkType = getCheckTypeFromZK();
-	        log.info("db consistency check type:{}", checkType);
-	        switch (checkType) {
-	            case OBJECT_ID:
-	                corruptedCount += checkObjectId();
-	                setNextCheckType();
-	            case OBJECT_INDICES:
-	                corruptedCount += checkObjectIndices();
-	                setNextCheckType();
-	            case INDEX_OBJECTS:
-	                corruptedCount += checkIndexObjects();
-	        }
-	    } finally {
-	        DbCheckerFileWriter.close();
-	    }
-    	
+    	init();
+        int corruptedCount = 0;
+        CheckType checkType = getCheckTypeFromZK();
+        log.info("db consistency check type:{}", checkType);
+        switch (checkType) {
+            case OBJECT_ID:
+                corruptedCount += checkObjectId();
+                setNextCheckType();
+            case OBJECT_INDICES:
+                corruptedCount += checkObjectIndices();
+                setNextCheckType();
+            case INDEX_OBJECTS:
+                corruptedCount += checkIndexObjects();
+        }
+        
         return corruptedCount;
     }
 

@@ -2804,9 +2804,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // In case of failback we do failover on the source file system, so we need to append _mirror
             if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
                 policyName = policyName.concat(MIRROR_POLICY);
-                StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-                syncPolicy = mirrorOperations.doEnableReplicationPolicy(storage, policyName);
-                _log.info("Replication policy on device and policy details:", syncPolicy.toString());
             }
             
             return mirrorOperations.doFailover(systemTarget, policyName, completer);

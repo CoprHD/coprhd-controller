@@ -330,6 +330,12 @@ public class IsilonMirrorOperations {
         _log.info("IsilonMirrorOperations -  doFailover started ");
         try {
             IsilonApi isi = getIsilonDevice(system);
+            IsilonSyncPolicy syncPolicy = isi.getReplicationPolicy(policyName);
+            if(syncPolicy.getEnabled()) {
+                this.doEnableReplicationPolicy(isi, policyName);
+            }
+            _log.info("Replication policy on device and policy details:", syncPolicy.toString());
+            
             IsilonSyncTargetPolicy syncTargetPolicy = isi.getTargetReplicationPolicy(policyName);
             if (syncTargetPolicy.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
                 _log.info("can't perform failover operation on policy: {} because failover is done already",

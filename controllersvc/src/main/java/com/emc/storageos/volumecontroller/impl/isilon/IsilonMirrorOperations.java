@@ -219,7 +219,7 @@ public class IsilonMirrorOperations {
             syncJob.setState(JobState.canceled.name());
             isi.modifyReplicationJob(policyName, syncJob);
             _log.info("Sleeping for 10 seconds for cancel operation to complete...");
-            TimeUnit.SECONDS.sleep(10);
+            TimeUnit.SECONDS.sleep(40);
             return BiosCommandResult.createSuccessfulResult();
 
         } catch (IsilonException e) {
@@ -298,15 +298,15 @@ public class IsilonMirrorOperations {
      * @param policyName
      * @return
      */
-    public BiosCommandResult doStopReplicationPolicy(StorageSystem system, String policyName) {
+    public BiosCommandResult doStopReplicationPolicy(IsilonApi isi, String policyName) {
         try {
-            IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
             if (policy.getEnabled()) {
                 IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
                 modifiedPolicy.setName(policyName);
                 modifiedPolicy.setEnabled(false);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                TimeUnit.SECONDS.sleep(40);
                 _log.info("Replication Policy -{}  disabled successfully.", policy.toString());
                 return BiosCommandResult.createSuccessfulResult();
             } else {
@@ -315,7 +315,22 @@ public class IsilonMirrorOperations {
             }
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
+        } catch (InterruptedException e) {
+            _log.warn("Stoping ReplicationPolicy - {} intertupted", policyName);
+            return BiosCommandResult.createSuccessfulResult();
         }
+    }
+    
+    /**
+     * Call to device to delete policy
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     */
+    public BiosCommandResult doStopReplicationPolicy(StorageSystem system, String policyName) {
+        IsilonApi isi = getIsilonDevice(system);
+        return doStopReplicationPolicy(isi, policyName);
     }
 
     /**
@@ -330,11 +345,8 @@ public class IsilonMirrorOperations {
         _log.info("IsilonMirrorOperations -  doFailover started ");
         try {
             IsilonApi isi = getIsilonDevice(system);
-            IsilonSyncPolicy syncPolicy = isi.getReplicationPolicy(policyName);
-            if(syncPolicy.getEnabled()) {
-                this.doEnableReplicationPolicy(isi, policyName);
-            }
-            _log.info("Replication policy on device and policy details:", syncPolicy.toString());
+                       
+            doStopReplicationPolicy(isi, policyName);
             
             IsilonSyncTargetPolicy syncTargetPolicy = isi.getTargetReplicationPolicy(policyName);
             if (syncTargetPolicy.getFoFbState().equals(FOFB_STATES.writes_enabled)) {

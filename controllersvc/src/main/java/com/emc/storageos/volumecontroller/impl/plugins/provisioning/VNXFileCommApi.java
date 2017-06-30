@@ -501,10 +501,9 @@ public class VNXFileCommApi {
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSysName);
             _provExecutor.setKeyMap(reqAttributeMap);
             _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_INFO_QUERY));
-            String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
-
+            String cmdResult = (String) reqAttributeMap.get(VNXFileConstants.CMD_RESULT);
             if (cmdResult != null && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
-                Set<String> movers = (Set<String>) _provExecutor.getKeyMap().get(VNXFileConstants.MOVERLIST);
+                Set<String> movers = (Set<String>) reqAttributeMap.get(VNXFileConstants.MOVERLIST);
                 if (movers != null && !movers.isEmpty()) {
                     isMounted = true;
                     _log.info("Movers or mount is present for  VNX File System: fs name {}, ", fileSysName);

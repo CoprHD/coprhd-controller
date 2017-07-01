@@ -72,6 +72,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
@@ -892,4 +893,22 @@ public class BlockServiceUtils {
         }
     }
 
+    /**
+     * Add any extension parameters to the capabilities wrapper
+     * 
+     * @param capabilities capabilities object
+     * @param param parameters from NB API request
+     */
+    public static void addExtensionParamsToCapabilitiesWrapper(VirtualPoolCapabilityValuesWrapper capabilities, VolumeCreate param) {
+        // Add the RDF Group
+        Set<String> extensionParams = param.getExtensionParams();
+        if (extensionParams != null) {
+            for (String extensionParam : extensionParams) {
+                if (extensionParam.startsWith(VirtualPoolCapabilityValuesWrapper.RDF_GROUP)) {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.RDF_GROUP, 
+                            extensionParam.substring(VirtualPoolCapabilityValuesWrapper.RDF_GROUP.length()+1));
+                }
+            }
+        }
+    }
 }

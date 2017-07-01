@@ -29,6 +29,7 @@ import com.emc.storageos.api.service.impl.placement.SRDFScheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
@@ -1015,16 +1016,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     capabilities.getMetaVolumeMemberCount()));
         }
 
-        // Add the RDF Group
-        Set<String> extensionParams = param.getExtensionParams();
-        if (extensionParams != null) {
-            for (String extensionParam : extensionParams) {
-                if (extensionParam.startsWith(VirtualPoolCapabilityValuesWrapper.RDF_GROUP)) {
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.RDF_GROUP, 
-                            extensionParam.substring(VirtualPoolCapabilityValuesWrapper.RDF_GROUP.length()+1));
-                }
-            }
-        }
+        // Add extension params (such as RDF Group) to the capabilities object
+        BlockServiceUtils.addExtensionParamsToCapabilitiesWrapper(capabilities, param);
         
         TaskList taskList = new TaskList();
 

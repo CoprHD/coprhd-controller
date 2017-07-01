@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.cinder.QosService;
 import com.emc.storageos.api.service.impl.response.BulkList;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -588,7 +587,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * @return An RDFGroupList of RDF Group Rest Resources
      */
     @GET
-    @Path("/{id}/rdfgroups")
+    @Path("/{id}/rdf-groups")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public RDFGroupList getRDFGroups(@PathParam("id") URI vpoolId) {
@@ -623,14 +622,14 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
             // Intentionally broken down logic for easy readability and debug-ability
             if (vpool == null) {
-                rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
+                rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient));
             } else if (vpoolStorageSystemIds.contains(rdg.getSourceStorageSystemUri())) {
                 if (rdg.getSupportedCopyMode().equalsIgnoreCase(RemoteDirectorGroup.SupportedCopyModes.ALL.name())) {
                     // Check to see if the RDG supports all copy modes
-                    rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
+                    rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient));
                 } else if (vpoolCopyMode.equalsIgnoreCase(rdg.getSupportedCopyMode())) {
                     // Check to see if the RDG supports the exact copy mode
-                    rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient, _coordinator));
+                    rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient));
                 }
             }
         }
@@ -638,8 +637,14 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         return rdfGroupList;
     }
     
-    private RDFGroupRestRep toRDFGroupRep(RemoteDirectorGroup rdfGroup, DbClient dbClient,
-            CoordinatorClient coordinator) {
+    /**
+     * Convert a database object into a REST object for RDF Group
+     * 
+     * @param rdfGroup RDF Group DB object
+     * @param dbClient DB client
+     * @return a rest representation of an RDF Group object
+     */
+    public static RDFGroupRestRep toRDFGroupRep(RemoteDirectorGroup rdfGroup, DbClient dbClient) {
 
         List<URI> volumeList = new ArrayList<URI>();
         StringSet volumes = rdfGroup.getVolumes();

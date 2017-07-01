@@ -42,7 +42,7 @@ class VirtualPool(object):
     URI_VPOOL_ASSIGN_POOLS = URI_VPOOL_SHOW + "/assign-matched-pools"
     URI_VPOOL_SEARCH = URI_VPOOL + "/search?name={1}"
     URI_OBJECT_VPOOL = '/object/vpools'
-    URI_VPOOL_RDF_GROUPS = URI_VPOOL_SHOW + "/rdfgroups"
+    URI_VPOOL_RDF_GROUPS = URI_VPOOL_SHOW + "/rdf-groups"
 
     PROTOCOL_TYPE_LIST = ['FC', 'iSCSI', 'NFS', 'CIFS' , 'S3' , 'Atmos' ,'Swift']
     RAID_LEVEL_LIST = ['RAID1', 'RAID2', 'RAID3', 'RAID4',

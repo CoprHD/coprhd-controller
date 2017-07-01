@@ -944,11 +944,11 @@ class Volume(object):
                 tenant)
             request['consistency_group'] = consuri
 
-        if (rdfgroup):
+        if rdfgroup:
             request['extension_parameters'] = [ "rdfGroup=" + rdfgroup ]
 
         body = json.dumps(request)
-        print body
+
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
                                              Volume.URI_VOLUMES,
@@ -1074,7 +1074,7 @@ class Volume(object):
 	    'migration_suspend_before_delete_source' : suspend
         }
 
-        if (rdfgroup):
+        if rdfgroup:
             params['extension_parameters'] = [ "rdfGroup=" + rdfgroup ]
 
         body = json.dumps(params)

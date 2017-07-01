@@ -1882,7 +1882,7 @@ def vpool_getrdfgroups(args):
     obj = VirtualPool(args.ip, args.port)
     try:
         rdfgroups = obj.vpool_getrdfgroups(args.name)
-        if(len(rdfgroups) > 0):
+        if len(rdfgroups) > 0:
             from common import TableGenerator
             TableGenerator(rdfgroups, ['name', 
                                        'source_group_id',

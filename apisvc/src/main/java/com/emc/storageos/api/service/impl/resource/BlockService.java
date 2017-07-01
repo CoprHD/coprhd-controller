@@ -741,7 +741,7 @@ public class BlockService extends TaskResourceService {
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
 
         // Verify RDF Group selection
-        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams());
+        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams(), _dbClient);
         
         // Get and validate the varray
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
@@ -3522,7 +3522,7 @@ public class BlockService extends TaskResourceService {
         verifyAllVolumesBelongToSameVpool(volumes);
 
         // Verify RDF Group selection
-        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams());
+        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams(), _dbClient);
 
         // target vPool
         VirtualPool vPool = null;

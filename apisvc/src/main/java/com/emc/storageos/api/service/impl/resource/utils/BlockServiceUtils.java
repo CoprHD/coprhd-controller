@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.UUID;
 
 import javax.ws.rs.core.SecurityContext;
@@ -46,6 +47,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
@@ -61,6 +63,7 @@ import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
@@ -857,11 +860,36 @@ public class BlockServiceUtils {
     /**
      * Verify RDF Group for requests
      * 
-     * @param extensionParams
+     * @param extensionParams extension parameters, like rdfGroup
+     * @param dbClient db client
      */
-    public static void verifyRDFGroupForRequest(Set<String> extensionParams) {
-        // TODO WJEIV RDF Fill this in.
-        return;        
+    public static void verifyRDFGroupForRequest(Set<String> extensionParams, DbClient dbClient) {
+        if (extensionParams == null) {
+            return;
+        }
+        
+        String rdfGroupId = "Remote Director Group ID Not Specified";
+        try {
+            for (String extensionParam : extensionParams) {
+                StringTokenizer st = new StringTokenizer(extensionParam, "=");
+                
+                // This is pretty much a guarantee, unless it's an empty string altogether
+                if (st.hasMoreElements()) {
+                    String key = st.nextToken();
+                    
+                    // Check the RDF Group param
+                    if (key.equalsIgnoreCase(VolumeCreate.EXTENSION_PARAM_KNOWN_RDFGROUP)) {
+                        rdfGroupId = st.nextToken();
+                        RemoteDirectorGroup rdg = dbClient.queryObject(RemoteDirectorGroup.class, URI.create(rdfGroupId));
+                        if (rdg == null) {
+                            throw new NullPointerException("RemoteDirectGroup doesn't exist"); 
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw APIException.badRequests.badReplicationGroup(rdfGroupId);                
+        }
     }
 
 }

@@ -3343,4 +3343,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storageSystemClientException(final String storageSystemType, final String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException badReplicationGroup(final String rdfGroupId);
+
 }

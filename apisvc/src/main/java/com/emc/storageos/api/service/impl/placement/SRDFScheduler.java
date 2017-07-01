@@ -232,9 +232,8 @@ public class SRDFScheduler implements Scheduler {
             candidatePools.addAll(pools);
         }
         // Schedule storage based on the source pool constraint.
-        List<Recommendation> recommendations = scheduleStorageSourcePoolConstraint(varray, project, vpool, capabilities,
+        return scheduleStorageSourcePoolConstraint(varray, project, vpool, capabilities,
                 candidatePools, null, capabilities.getBlockConsistencyGroup());
-        return recommendations;
     }
 
     private List<StoragePool> filterPoolsForSupportedActiveModeProvider(List<StoragePool> candidatePools, VirtualPool vpool) {
@@ -355,8 +354,6 @@ public class SRDFScheduler implements Scheduler {
 
         }
 
-        
-        
         // Reduce the source and target pool down to the pools available via target.
         Set<SRDFPoolMapping> tmpDestPoolsList = getSRDFPoolMappings(varray, candidatePools,
                 varrayPoolMap, vpool, vpoolChangeVolume, capabilities.getSize());
@@ -1068,8 +1065,8 @@ public class SRDFScheduler implements Scheduler {
                             .getVirtualArrayTargetMap().get(compareVarray.getId()).getCopyMode(),
                             project, consistencyGroupUri);
                     } else {
-                        // Make sure this RA Group's source storage system is the source storage system
-                        // and target storage system.  Maybe stick this in findRAGroup.
+                        // Make sure this RA Group's source and target storage systems are the 
+                        // the chosen source and target storage system.
                         RemoteDirectorGroup rdg = _dbClient.queryObject(RemoteDirectorGroup.class, raGroupID);
                         if (!rdg.getSourceStorageSystemUri().equals(sourceStorageSystem.getId()) ||
                             !rdg.getRemoteStorageSystemUri().equals(targetStorageSystem.getId())) {
@@ -1077,6 +1074,7 @@ public class SRDFScheduler implements Scheduler {
                             raGroupToUse = null;
                         }
                     }
+                    
                     if (raGroupToUse != null) {
                         found++;
                         // Set the RA Group ID, which will get set in the volume descriptor for the
@@ -1096,8 +1094,7 @@ public class SRDFScheduler implements Scheduler {
             _log.info("Storage System " + sourceStorageSystem.getLabel()
                     + " is found with connectivity to targets in all varrays required");
         } else {
-            // Bad News, we couldn't find a match in all of the varrays that all of the storage
-            // systems
+            // Bad News, we couldn't find a match in all of the varrays that all of the storage systems
             _log.error("No matching storage system was found in all target varrays requested with the correct RDF groups.");
             throw APIException.badRequests
                     .unableToFindSuitableStorageSystemsforSRDF(StringUtils.join(SRDFUtils.getQualifyingRDFGroupNames(project), ","));

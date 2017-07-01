@@ -9,6 +9,7 @@ import static com.emc.sa.util.ResourceType.VOLUME;
 import static com.emc.sa.util.ResourceType.VPLEX_CONTINUOUS_COPY;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -16,23 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import models.datatable.BlockVolumesDataTable;
-
 import org.apache.commons.lang.StringUtils;
-
-import play.data.binding.As;
-import play.i18n.Messages;
-import play.mvc.Util;
-import play.mvc.With;
-import plugin.StorageOsPlugin;
-import util.BlockConsistencyGroupUtils;
-import util.BourneUtil;
-import util.MessagesUtils;
-import util.StorageSystemUtils;
-import util.StringOption;
-import util.VirtualArrayUtils;
-import util.VirtualPoolUtils;
-import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -55,12 +40,27 @@ import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.util.FlashException;
+import models.datatable.BlockVolumesDataTable;
+import play.data.binding.As;
+import play.i18n.Messages;
+import play.mvc.Util;
+import play.mvc.With;
+import plugin.StorageOsPlugin;
+import util.BlockConsistencyGroupUtils;
+import util.BourneUtil;
+import util.MessagesUtils;
+import util.StorageSystemUtils;
+import util.StringOption;
+import util.VirtualArrayUtils;
+import util.VirtualPoolUtils;
+import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class BlockVolumes extends ResourceController {
@@ -157,7 +157,10 @@ public class BlockVolumes extends ResourceController {
         if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
             renderArgs.put("isAccessStateEmpty", "true");
         }
-
+        if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null && volume.getProtection().getSrdfRep().getSrdfLabels() != null) {
+            renderArgs.put("replicationGroups", Joiner.on(",").join(volume.getProtection().getSrdfRep().getSrdfLabels()));
+        }
+        
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());
         List<Task<VolumeRestRep>> tasks = tasksResponse.getTasks();
         renderArgs.put("tasks", tasks);

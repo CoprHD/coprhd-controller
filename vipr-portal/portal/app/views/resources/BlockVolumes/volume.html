@@ -137,6 +137,12 @@ function accessStatus(){
       
       <dt class="moreDetails">&{'resources.volume.nativeid'}:</dt>
       <dd class="moreDetails">#{spaceForNull volume.nativeId/}</dd>
+
+      #{if replicationGroups}
+        <dt class="moreDetails">&{'resources.volume.replicationGroups'}:</dt>
+        <dd class="moreDetails">#{spaceForNull volume.replicationGroups/}</dd>
+      #{/if}
+
       #{if !isAccessStateEmpty}
       <dt class="moreDetails">&{'resources.volume.accessstate'}:</dt>
       <dd class="moreDetails" id="accessState"></dd>

@@ -1,16 +1,12 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 Dell EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
 
-import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
-
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.model.BulkIdParam;
-import com.emc.storageos.model.block.RDFGroupBulkRep;
 import com.emc.storageos.model.rdfgroup.RDFGroupList;
 import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -19,11 +15,15 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
 
 /**
- * Block Volumes resources.
+ * SRDF Group Resources
  * <p>
- * Base URL: <tt>/block/volumes</tt>
+ * Base URL: <tt>/block/virtualpool/{id}/rdf-groups</tt>
+ * 
+ * Note: RDF Groups can also be returned by the NB API via:
+ *       /vdc/storage-systems/{id}/rdf-groups
+ *       However it is not implemented by vipr-client at this time.
  */
-public class RDFGroups extends BulkExportResources<RDFGroupRestRep> {
+public class RDFGroups extends AbstractCoreResources<RDFGroupRestRep> {
 
     public RDFGroups(ViPRCoreClient parent, RestClient client) {
         super(parent, client, RDFGroupRestRep.class, PathConstants.RDF_GROUPS_URL);
@@ -39,16 +39,10 @@ public class RDFGroups extends BulkExportResources<RDFGroupRestRep> {
         return (RDFGroups) super.withInternal(internal);
     }
 
-    @Override
-    protected List<RDFGroupRestRep> getBulkResources(BulkIdParam input) {
-        RDFGroupBulkRep response = client.post(RDFGroupBulkRep.class, input, getBulkUrl());
-        return defaultList(response.getRDFGroups());
-    }
-
     /**
-     * Lists all storage systems.
+     * Lists all RDF Groups for a virtual pool
      * <p>
-     * API Call: <tt>GET /vdc/storage-systems</tt>
+     * API Call: <tt>GET /block/virtual-pool/{id}/rdf-groups</tt>
      * 
      * @return the list of storage system references.
      */
@@ -56,5 +50,4 @@ public class RDFGroups extends BulkExportResources<RDFGroupRestRep> {
         RDFGroupList response = client.get(RDFGroupList.class, baseUrl, virtualPoolId);
         return ResourceUtils.defaultList(response.getRdfGroups());
     }
-
 }

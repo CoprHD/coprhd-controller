@@ -31,7 +31,7 @@ public class VolumeCreate {
     private Set<String> extensionParams;
 
     // A list of implemented extension parameter values.  See the getter method for more info.
-    public static String EXTENSION_PARAM_KNOWN_RDFGROUP = "rdfGroup";
+    public static final String EXTENSION_PARAM_KNOWN_RDFGROUP = "rdfGroup";
     
     public VolumeCreate() {
     }

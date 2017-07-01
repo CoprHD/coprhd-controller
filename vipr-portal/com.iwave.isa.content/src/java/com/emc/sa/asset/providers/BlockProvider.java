@@ -335,37 +335,34 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     /**
-     * Get source volumes for a specific project. If the deletionType is VIPR_ONLY, create
-     * a filter that only retrieves Volumes with Host Exports
+     * Get RDF Groups that apply for a specific virtual pool.
      * 
-     * @param ctx
-     * @param project
-     * @param deletionType
-     * @return
+     * @param ctx context
+     * @param vpool virtual pool to filter on
+     * @return list of RDF group assets
      */
     @Asset("rdfGroup")
     @AssetDependencies("blockVirtualPool")
     public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx, URI vpool) {
         debug("getting RDF Groups");
         List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().list(vpool);
-        return createRDFOptions(null, rdfGroups);
+        return createRDFOptions(rdfGroups);
     }
 
     /**
-     * Get source volumes for a specific project. If the deletionType is VIPR_ONLY, create
-     * a filter that only retrieves Volumes with Host Exports
+     * Get RDF Groups that apply for a specific virtual pool specifically for change vpool
+     * operations
      * 
-     * @param ctx
-     * @param project
-     * @param deletionType
-     * @return
+     * @param ctx context
+     * @param vpool virtual pool to filter on
+     * @return list of RDF group assets
      */
     @Asset("rdfGroupChangeVpool")
     @AssetDependencies("targetVirtualPool")
     public List<AssetOption> getRDFGroupsChangeVpool(final AssetOptionsContext ctx, URI vpool) {
         debug("getting RDF Groups");
         List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().list(vpool);
-        return createRDFOptions(null, rdfGroups);
+        return createRDFOptions(rdfGroups);
     }
     
     /**
@@ -3420,23 +3417,37 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return ResourceUtils.mapById(client.varrays().getByIds(varrays));
     }
 
-    protected List<AssetOption> createRDFOptions(ViPRCoreClient client, List<RDFGroupRestRep> rdfGroups) {
+    /**
+     * Generate a list of RDF Group asset options for drop-down lists
+     * 
+     * @param rdfGroups rdfgroups
+     * @return
+     */
+    protected List<AssetOption> createRDFOptions(List<RDFGroupRestRep> rdfGroups) {
         List<AssetOption> options = Lists.newArrayList();
         for (RDFGroupRestRep rdfGroupObject : rdfGroups) {
-            options.add(createRDFGroupOption(client, rdfGroupObject));
+            options.add(createRDFGroupOption(rdfGroupObject));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
 
-    protected static AssetOption createRDFGroupOption(ViPRCoreClient client, RDFGroupRestRep rdfGroupObject) {
+    /**
+     * Given a single RDF Group REST object, create a single row for the drop-down list
+     * that represents the key information the user needs to know in order to decide
+     * which RDF Group to select.
+     * 
+     * Example:
+     * VMAX 1612 -> 5321 : G#-199 : BillRAGroup [5 Vols, SYNC/ASYNC/ANYMODE, Status: UP]
+     * 
+     * @param rdfGroupObject RDF rest representation
+     * @return a drop-down asset option
+     */
+    protected static AssetOption createRDFGroupOption(RDFGroupRestRep rdfGroupObject) {
         String label = rdfGroupObject.getName();
         String name = rdfGroupObject.getName();
         final String token = "+";
         if (StringUtils.isNotBlank(name)) {
-            // Desired output:
-            // VMAX 1612 -> 5321 : G#-199 : BillRAGroup [5 Vols, SYNC/ASYNC/CONSISTENT/SPLIT/FAILEDOVER/etc]
-            
             StringBuffer sb = new StringBuffer();
             
             // Format of NativeGUID
@@ -3463,7 +3474,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 sb.append(" : " + rdfGroupObject.getName());
                 sb.append(String.format(" [%d Vols, ", (rdfGroupObject.getVolumes() != null) ? rdfGroupObject.getVolumes().size() : 0));
                 
-                // "ALL" doesn't mean anything to the end user, change it to sync/async
+                // "ALL" doesn't mean anything to the end user, change it to ANYMODE
                 if (rdfGroupObject.getSupportedCopyMode().equalsIgnoreCase("ALL")) {
                     sb.append("ANYMODE");
                 } else {

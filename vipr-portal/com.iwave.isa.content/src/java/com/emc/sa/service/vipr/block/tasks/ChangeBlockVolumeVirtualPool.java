@@ -11,7 +11,6 @@ import java.util.Set;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.vipr.client.Tasks;
@@ -63,7 +62,7 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
         
         if (rdfGroup != null) {
             Set<String> extensionParams = new HashSet<>();
-            extensionParams.add(String.format("%s=%s", VolumeCreate.EXTENSION_PARAM_KNOWN_RDFGROUP, rdfGroup));
+            extensionParams.add(String.format("%s=%s", VolumeVirtualPoolChangeParam.EXTENSION_PARAM_KNOWN_RDFGROUP, rdfGroup));
             input.setExtensionParams(extensionParams);
         }
 

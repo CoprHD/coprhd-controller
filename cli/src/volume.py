@@ -1074,7 +1074,7 @@ class Volume(object):
 	    'migration_suspend_before_delete_source' : suspend
         }
 
-        if (rdfgroup):
+        if rdfgroup:
             params['extension_parameters'] = [ "rdfGroup=" + rdfgroup ]
 
         body = json.dumps(params)

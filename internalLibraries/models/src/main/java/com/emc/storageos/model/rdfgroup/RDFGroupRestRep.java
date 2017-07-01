@@ -220,15 +220,15 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
      * Given a single RDF Group REST object, create a single String for the drop-down list
      * or display field that represents the key information the user needs to know
      * 
-     * Example:
-     * VMAX 1612 -> 5321 : G#-199 : BillRAGroup [5 Vols, SYNC/ASYNC/ANYMODE, Status: UP]
-	 * 
 	 * @return String
 	 */
 	public String forDisplay(Logger log) {
         StringBuffer sb = new StringBuffer();
         final String token = "+";
         
+        // Example:
+        // VMAX 1612 -> 5321 : G#-199 : BillRAGroup [5 Vols, SYNC/ASYNC/ANYMODE, Status: UP]
+        // 
         // Format of NativeGUID
         //     1           2          3            4        5       6        7
         // SYMMETRIX+000196701343+REMOTEGROUP+000196701343+190+000196701405+190

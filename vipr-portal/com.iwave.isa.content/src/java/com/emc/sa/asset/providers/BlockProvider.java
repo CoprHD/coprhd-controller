@@ -3446,53 +3446,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     protected static AssetOption createRDFGroupOption(RDFGroupRestRep rdfGroupObject) {
         String label = rdfGroupObject.getName();
         String name = rdfGroupObject.getName();
-        final String token = "+";
         if (StringUtils.isNotBlank(name)) {
-            StringBuffer sb = new StringBuffer();
-            
-            // Format of NativeGUID
-            //     1           2          3            4        5       6        7
-            // SYMMETRIX+000196701343+REMOTEGROUP+000196701343+190+000196701405+190
-            //                                           [1343|190]       [1405]
-            StringTokenizer st = new StringTokenizer(rdfGroupObject.getNativeGuid(), token);
-            sb.append("VMAX ");
-            try {
-                st.nextToken(); // 1
-                st.nextToken(); // 2
-                st.nextToken(); // 3
-
-                String srcSerial = st.nextToken(); // 4
-                sb.append(srcSerial.substring(Math.max(0, srcSerial.length() - 4))); // 4
-
-                sb.append(" -> ");
-                st.nextToken(); // 5
-                
-                String tgtSerial = st.nextToken(); // 6
-                sb.append(tgtSerial.substring(Math.max(0, tgtSerial.length() - 4))); // 6
-                
-                sb.append(" : G#-" + rdfGroupObject.getSourceGroupId());
-                sb.append(" : " + rdfGroupObject.getName());
-                sb.append(String.format(" [%d Vols, ", (rdfGroupObject.getVolumes() != null) ? rdfGroupObject.getVolumes().size() : 0));
-                
-                // "ALL" doesn't mean anything to the end user, change it to ANYMODE
-                if (rdfGroupObject.getSupportedCopyMode().equalsIgnoreCase("ALL")) {
-                    sb.append("ANYMODE");
-                } else {
-                    sb.append(rdfGroupObject.getSupportedCopyMode());
-                }
-                
-                sb.append(", Status: " + rdfGroupObject.getConnectivityStatus() + "]");
-                
-            } catch (Exception e) {
-                // Native GUID is missing some fields, or the format changed.  Log and swallow.
-                log.error("Missing native GUID fields not in format: SYMMETRIX+000196701343+REMOTEGROUP+000196701343+190+000196701405+190");
-                if (rdfGroupObject.getNativeGuid() != null) {
-                    log.error("Native GUID for RDF Group: " + rdfGroupObject.getNativeGuid());                    
-                }
-                sb = new StringBuffer();
-                sb.append(name);
-            }
-            label = sb.toString();
+            label = rdfGroupObject.forDisplay(log);
         }
         return new AssetOption(rdfGroupObject.getId(), label);
     }

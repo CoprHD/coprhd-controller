@@ -1957,7 +1957,7 @@ public class BlockService extends TaskResourceService {
         }
         ArgValidator.checkFieldUriType(id, type, "id");
         Volume volume = queryVolumeResource(id);
-        return map(_dbClient, volume);
+        return map(_dbClient, volume, null, true);
     }
 
     /**

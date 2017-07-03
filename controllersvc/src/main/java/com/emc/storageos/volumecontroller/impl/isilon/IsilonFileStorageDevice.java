@@ -2813,7 +2813,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if(systemTarget.getId().compareTo(fs.getStorageDevice()) == 0) {
                 // get the failover storage device
                 if(null != fs.getParentFileShare() && null != fs.getParentFileShare().getURI()) {
-                    failoverFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
+                    failoverFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare().getURI());
                 } else {
                     List<String> failTargetfileUris = new ArrayList<String>();
                     failTargetfileUris.addAll(fs.getMirrorfsTargets());

@@ -127,8 +127,9 @@ public class IsilonMirrorOperations {
         if(!policy.getEnabled()) {
             isi.modifyReplicationPolicy(policyName, modifiedPolicy);
         }
-        _log.info("doEnableReplicationPolicy - replication policy on device and policy details:", policy.toString());
-        return isi.getReplicationPolicy(policyName);
+        policy = isi.getReplicationPolicy(policyName);
+        _log.info("Replication Policy -{}  enabled successfully.", policy.toString());
+        return policy;
     }
     
     /**

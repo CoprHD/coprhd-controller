@@ -2792,8 +2792,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doFailoverLink(StorageSystem systemTarget, FileShare fs, TaskCompleter completer) {
         FileShare sourceFS = null;
-        BiosCommandResult cmdResult = null;
-        
         if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
             sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
         } else if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
@@ -2802,7 +2800,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
-            IsilonSyncPolicy syncPolicy = null;
             String policyName = policyStrRes.getPolicyNativeId();
             // In case of failback we do failover on the source file system, so we need to append _mirror
             if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
@@ -2811,6 +2808,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             
             FileShare failoverFS = null;
             StorageSystem failoverSystem = null;
+            BiosCommandResult cmdResult = null;
             //for multiple replication code need to organized.
             if(systemTarget.getId().compareTo(fs.getStorageDevice()) == 0) {
                 // get the failover storage device

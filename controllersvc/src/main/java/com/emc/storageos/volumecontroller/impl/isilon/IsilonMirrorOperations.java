@@ -377,10 +377,11 @@ public class IsilonMirrorOperations {
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy syncPolicy = isi.getReplicationPolicy(policyName);
             _log.info("replication policy on device and policy details:", syncPolicy.toString());
+            //Before 'resync-prep' operation, Original source to target policy should be enabled.
             if (!syncPolicy.getEnabled()) {
                 this.doEnableReplicationPolicy(isi, policyName);
                 syncPolicy = isi.getReplicationPolicy(policyName);
-                _log.info("replication policy on source device enabled and policy details:", syncPolicy.toString());
+                _log.info("Replication Policy of details on source device:", syncPolicy.toString());
             }
             IsilonSyncJob job = new IsilonSyncJob();
             job.setId(policyName);

@@ -279,7 +279,7 @@ public class IsilonMirrorOperations {
     }
 
     /**
-     * Call to device to delete policy
+     * Call to device to stop policy
      * 
      * @param system
      * @param policyName
@@ -309,7 +309,7 @@ public class IsilonMirrorOperations {
     }
     
     /**
-     * Call to device to delete policy
+     * Call to device to stop replication policy
      * 
      * @param system
      * @param policyName
@@ -376,12 +376,12 @@ public class IsilonMirrorOperations {
             _log.info("resync-prep between source file system to target file system started and device ip:", system.getIpAddress());
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy syncPolicy = isi.getReplicationPolicy(policyName);
-            _log.info("replication policy on device and policy details:", syncPolicy.toString());
+            
             //Before 'resync-prep' operation, Original source to target policy should be enabled.
             if (!syncPolicy.getEnabled()) {
                 this.doEnableReplicationPolicy(isi, policyName);
                 syncPolicy = isi.getReplicationPolicy(policyName);
-                _log.info("Replication Policy of details on source device:", syncPolicy.toString());
+                _log.info("Replication Policy -{}  Enabled successfully.", syncPolicy.toString());
             }
             IsilonSyncJob job = new IsilonSyncJob();
             job.setId(policyName);

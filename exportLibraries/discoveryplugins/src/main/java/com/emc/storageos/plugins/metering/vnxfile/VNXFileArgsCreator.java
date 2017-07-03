@@ -413,6 +413,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             fsQueryParam.setAspectSelection(selection);
             FileSystemAlias fsAlias = new FileSystemAlias();
             fsAlias.setName((String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME));
+            _logger.info("Querying mount info for file system {}", fsAlias.getName());
             fsQueryParam.setAlias(fsAlias);
             query.getQueryRequestChoice().add(fsQueryParam);
             iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);

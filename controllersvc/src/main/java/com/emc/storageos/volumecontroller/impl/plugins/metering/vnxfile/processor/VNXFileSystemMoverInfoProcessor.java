@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
@@ -86,19 +86,21 @@ public class VNXFileSystemMoverInfoProcessor extends VNXFileProcessor {
                 keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                 while (iterator.hasNext()) {
                     FileSystem fileSystem = (FileSystem) iterator.next();
-                    List<MoverOrVdmRef> roFileSysHosts = fileSystem
-                            .getRoFileSystemHosts();
-                    Iterator<MoverOrVdmRef> roFileSysHostItr = roFileSysHosts.iterator();
-                    while (roFileSysHostItr.hasNext()) {
-                        MoverOrVdmRef mover = roFileSysHostItr.next();
-                        moverIds.add(mover.getMover());
+                    List<MoverOrVdmRef> roFileSysHosts = fileSystem.getRoFileSystemHosts();
+                    if (null != roFileSysHosts) {
+                        Iterator<MoverOrVdmRef> roFileSysHostItr = roFileSysHosts.iterator();
+                        while (roFileSysHostItr.hasNext()) {
+                            MoverOrVdmRef mover = roFileSysHostItr.next();
+                            moverIds.add(mover.getMover());
+                        }
                     }
-                    List<MoverOrVdmRef> rwFileSysHosts = fileSystem
-                            .getRwFileSystemHosts();
-                    Iterator<MoverOrVdmRef> rwFileSysHostItr = rwFileSysHosts.iterator();
-                    while (rwFileSysHostItr.hasNext()) {
-                        MoverOrVdmRef mover = rwFileSysHostItr.next();
-                        moverIds.add(mover.getMover());
+                    List<MoverOrVdmRef> rwFileSysHosts = fileSystem.getRwFileSystemHosts();
+                    if (null != rwFileSysHosts) {
+                        Iterator<MoverOrVdmRef> rwFileSysHostItr = rwFileSysHosts.iterator();
+                        while (rwFileSysHostItr.hasNext()) {
+                            MoverOrVdmRef mover = rwFileSysHostItr.next();
+                            moverIds.add(mover.getMover());
+                        }
                     }
                 }
             } else {

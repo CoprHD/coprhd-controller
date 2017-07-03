@@ -218,7 +218,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 || (param.getUnManagedFileSystems().isEmpty())
                 || (param.getUnManagedFileSystems().get(0).toString().isEmpty())) {
             throw APIException.badRequests
-                    .invalidParameterUnManagedFsListEmpty();
+            .invalidParameterUnManagedFsListEmpty();
         }
 
         if (null == param.getProject() || (param.getProject().toString().length() == 0)) {
@@ -425,7 +425,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                         _logger.warn(
                                 "UnManaged FileSystem {} storagepool doesn't related to the Virtual Array {}. Skipping Ingestion..",
                                 unManagedFileSystemUri, neighborhood.getId()
-                                        .toString());
+                                .toString());
                         continue;
                     }
                 } else {
@@ -736,15 +736,15 @@ public class UnManagedFilesystemService extends TaggedResource {
 
             quotaDirectory.setSoftLimit(
                     unManagedFileQuotaDirectory.getSoftLimit() != null && unManagedFileQuotaDirectory.getSoftLimit() != 0
-                            ? unManagedFileQuotaDirectory.getSoftLimit()
+                    ? unManagedFileQuotaDirectory.getSoftLimit()
                             : parentFS.getSoftLimit() != null ? parentFS.getSoftLimit().intValue() : 0);
             quotaDirectory.setSoftGrace(
                     unManagedFileQuotaDirectory.getSoftGrace() != null && unManagedFileQuotaDirectory.getSoftGrace() != 0
-                            ? unManagedFileQuotaDirectory.getSoftGrace()
+                    ? unManagedFileQuotaDirectory.getSoftGrace()
                             : parentFS.getSoftGracePeriod() != null ? parentFS.getSoftGracePeriod() : 0);
             quotaDirectory.setNotificationLimit(
                     unManagedFileQuotaDirectory.getNotificationLimit() != null && unManagedFileQuotaDirectory.getNotificationLimit() != 0
-                            ? unManagedFileQuotaDirectory.getNotificationLimit()
+                    ? unManagedFileQuotaDirectory.getNotificationLimit()
                             : parentFS.getNotificationLimit() != null ? parentFS.getNotificationLimit().intValue() : 0);
             String convertedName = unManagedFileQuotaDirectory.getLabel().replaceAll("[^\\dA-Za-z_]", "");
             _logger.info("FileService::QuotaDirectory Original name {} and converted name {}", unManagedFileQuotaDirectory.getLabel(),
@@ -1113,7 +1113,7 @@ public class UnManagedFilesystemService extends TaggedResource {
      */
     public void recordBourneFileSystemEvent(DbClient dbClient,
             String evtType, Operation.Status status, String desc, URI id)
-            throws Exception {
+                    throws Exception {
 
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
@@ -1318,6 +1318,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                             vpoolProtocols);
                     supports = nasProtocols.containsAll(vpoolProtocols);
                 } else {
+                    _logger.warn("NAS server: {} not in LOADED state. So this vNAS server is not supported.", nasServer.getNasName());
                     supports = false;
                 }
             } else {
@@ -1351,7 +1352,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 auditType,
                 System.currentTimeMillis(),
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
-                description,
-                descparams);
+                        description,
+                        descparams);
     }
 }

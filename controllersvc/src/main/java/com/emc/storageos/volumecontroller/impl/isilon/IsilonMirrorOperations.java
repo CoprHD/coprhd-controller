@@ -131,19 +131,6 @@ public class IsilonMirrorOperations {
         return isi.getReplicationPolicy(policyName);
     }
     
-    
-    /**
-     * Enable the Isilon syncIQ policy
-     * 
-     * @param isi
-     * @param policyName
-     * @return
-     */
-    IsilonSyncPolicy doEnableReplicationPolicy(StorageSystem system, String policyName) {
-        IsilonApi isi = getIsilonDevice(system);
-        return doEnableReplicationPolicy(isi, policyName);
-    }
-    
     /**
      * Enable the Isilon syncIQ policy
      * 

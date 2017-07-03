@@ -2792,8 +2792,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doFailoverLink(StorageSystem systemTarget, FileShare fs, TaskCompleter completer) {
         FileShare sourceFS = null;
-        FileShare failoverFS = null;
-        StorageSystem systemSource = null;
         BiosCommandResult cmdResult = null;
         
         if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
@@ -2811,6 +2809,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 policyName = policyName.concat(MIRROR_POLICY);
             }
             
+            FileShare failoverFS = null;
+            StorageSystem failoverSystem = null;
             //for multiple replication code need to organized.
             if(systemTarget.getId().compareTo(fs.getStorageDevice()) == 0) {
                 // get the failover storage device
@@ -2821,17 +2821,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     failTargetfileUris.addAll(fs.getMirrorfsTargets());
                     failoverFS = _dbClient.queryObject(FileShare.class, URI.create(failTargetfileUris.get(0)));
                 }
-                systemSource = _dbClient.queryObject(StorageSystem.class, failoverFS.getStorageDevice());
+                failoverSystem = _dbClient.queryObject(StorageSystem.class, failoverFS.getStorageDevice());
             } else {
-                systemSource = _dbClient.queryObject(StorageSystem.class, fs.getId());
+                failoverSystem = _dbClient.queryObject(StorageSystem.class, fs.getId());
             }
             //if policy enables on failed storage then We should disable it before failover job
-            cmdResult =  mirrorOperations.doStopReplicationPolicy(systemSource, policyName);
+            cmdResult =  mirrorOperations.doStopReplicationPolicy(failoverSystem, policyName);
             if(!cmdResult.isCommandSuccess()) {
                 return cmdResult;
             }
             
-            //call isilon api failover job
+            //Call Isilon Api failover job
             return mirrorOperations.doFailover(systemTarget, policyName, completer);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon

@@ -124,7 +124,7 @@ public class IsilonMirrorOperations {
         modifiedPolicy.setEnabled(true);
         
         IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-        if(!policy.getEnabled()) {
+        if(null != policy && !policy.getEnabled()) {
             isi.modifyReplicationPolicy(policyName, modifiedPolicy);
         }
         policy = isi.getReplicationPolicy(policyName);

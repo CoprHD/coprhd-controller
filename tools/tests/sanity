@@ -7263,7 +7263,7 @@ sbsdk_remote_replication_tests()
     fi
 
     # save this replication pair id for move operation
-    SBSDK_DRIVER_REPLICATION_PAIR_URN=`echo "${rr_pairs}" | sed 's/.*\(urn:storageos:RemoteReplicationPair.*vdc1).*/\1/g'`
+    SBSDK_DRIVER_REPLICATION_PAIR_URN=`echo "${rr_pairs}" | sed 's/.*\(urn:storageos:RemoteReplicationPair.*vdc1\).*/\1/g'`
     secho "SBSDK_DRIVER_REPLICATION_PAIR_URN: ${SBSDK_DRIVER_REPLICATION_PAIR_URN}"
 
     #Create a volume outside of replication group

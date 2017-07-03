@@ -65,7 +65,7 @@ public interface IsilonErrors {
     public ServiceError unableUpdateQuotaDirectory(String msg);
     
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
-    public ServiceError unableToFailoverReplicationPolicy(final String storageSystem);
+    public ServiceError unableToFailoverReplicationPolicy(final String storageSystem, String fsName);
     
     
 }

@@ -2833,7 +2833,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return mirrorOperations.doFailover(systemTarget, policyName, completer);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon
-                .unableToFailoverReplicationPolicy(systemTarget.getIpAddress());
+                .unableToFailoverReplicationPolicy(systemTarget.getIpAddress(), fs.getName());
         return BiosCommandResult.createErrorResult(serviceError);
     }
 

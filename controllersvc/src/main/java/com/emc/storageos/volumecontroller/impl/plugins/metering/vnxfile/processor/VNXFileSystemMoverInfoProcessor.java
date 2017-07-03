@@ -86,12 +86,14 @@ public class VNXFileSystemMoverInfoProcessor extends VNXFileProcessor {
                 keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                 while (iterator.hasNext()) {
                     FileSystem fileSystem = (FileSystem) iterator.next();
+                    _logger.info("Processing result for file system {}", fileSystem.getName());
                     List<MoverOrVdmRef> roFileSysHosts = fileSystem.getRoFileSystemHosts();
                     if (null != roFileSysHosts) {
                         Iterator<MoverOrVdmRef> roFileSysHostItr = roFileSysHosts.iterator();
                         while (roFileSysHostItr.hasNext()) {
                             MoverOrVdmRef mover = roFileSysHostItr.next();
                             moverIds.add(mover.getMover());
+                            _logger.debug("Mover id for read only host is {}", mover.getMover());
                         }
                     }
                     List<MoverOrVdmRef> rwFileSysHosts = fileSystem.getRwFileSystemHosts();
@@ -100,6 +102,7 @@ public class VNXFileSystemMoverInfoProcessor extends VNXFileProcessor {
                         while (rwFileSysHostItr.hasNext()) {
                             MoverOrVdmRef mover = rwFileSysHostItr.next();
                             moverIds.add(mover.getMover());
+                            _logger.debug("Mover id for read write host is {}", mover.getMover());
                         }
                     }
                 }

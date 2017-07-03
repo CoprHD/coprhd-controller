@@ -2821,7 +2821,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 }
                 failoverSystem = _dbClient.queryObject(StorageSystem.class, failoverFS.getStorageDevice());
             } else {
-                failoverSystem = _dbClient.queryObject(StorageSystem.class, fs.getId());
+                failoverSystem = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
             }
             //if policy enables on failed storage then We should disable it before failover job
             cmdResult =  mirrorOperations.doStopReplicationPolicy(failoverSystem, policyName);

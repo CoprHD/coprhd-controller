@@ -3240,9 +3240,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     // if the replication happens from user defined access zone to system access zone!!
                     if (sourceFS.getVirtualNAS() != null) {
                         VirtualNAS sourcevNAS = _dbClient.queryObject(VirtualNAS.class, sourceFS.getVirtualNAS());
-                        String vNASName = sourcevNAS.getNasName();
-                        vNASName = getNameWithNoSpecialCharacters(vNASName, args);
-                        clusterName = clusterName + vNASName;
+                        if (sourcevNAS != null) {
+                            String vNASName = sourcevNAS.getNasName();
+                            vNASName = getNameWithNoSpecialCharacters(vNASName, args);
+                            clusterName = clusterName + vNASName;
+                        }
                     }
                     _log.debug("Generating path for target and the source cluster is is  {}", clusterName);
                 }

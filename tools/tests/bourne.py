@@ -9624,9 +9624,9 @@ class Bourne:
         else:
             return o['remote_replication_pair']
 
-    def replicationpair_move(self, pair_uri, target_group):
+    def replicationpair_move(self, pair_uri, group_uri):
         params = {
-            'replication_group': target_group
+            'replication_group': group_uri
         }
         o = self.api('POST', URI_REMOTEREPLICATIONPAIR_MOVE.format(pair_uri), params)
         self.assert_is_dict(o)

@@ -25,7 +25,9 @@ def remotereplicationpair_list(args):
 def remotereplicationpair_move(args):
     bourne.connect(args.ip)
 
-    s = bourne.replicationpair_move(args.replicationpair_uri, args.to)
+    replicationgroup_uri = bourne.replicationgroup_query(args.to)
+    s = bourne.replicationpair_move(args.replicationpair_uri, replicationgroup_uri)
+
     if (s['state'] == 'ready'):
         print 'Moved remote replication pair ' + args.replicationpair_uri + ' to ' + args.to
     else:

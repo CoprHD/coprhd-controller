@@ -63,6 +63,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
@@ -1291,23 +1292,38 @@ public class UnManagedFilesystemService extends TaggedResource {
         return null;
     }
 
+    /**
+     * Checks the NAS server protocols with vpool protocols
+     * 
+     * @param nasUri the NAS server ID
+     * @param vpoolProtocols the protocols configured in vpool
+     * @return true if NAS server protocols matches with vpool protocols; false otherwise
+     */
     private boolean doesNASServerSupportVPoolProtocols(String nasUri, StringSet vpoolProtocols) {
         NASServer nasServer = null;
         boolean supports = false;
+        boolean isVNAS = false;
 
         if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))) {
             nasServer = _dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+            isVNAS = true;
         } else {
             nasServer = _dbClient.queryObject(PhysicalNAS.class, URI.create(nasUri));
         }
         if (nasServer != null) {
-
             StringSet nasProtocols = nasServer.getProtocols();
-
-            _logger.info("NAS server is: {}. Supported protocols: {}. Vpool protocols: {}", nasServer.getNasName(), nasProtocols,
-                    vpoolProtocols);
-
-            supports = nasProtocols.containsAll(vpoolProtocols);
+            if (isVNAS) {
+                if (VirtualNasState.LOADED.name().equals(nasServer.getNasState())) {
+                    _logger.info("NAS server is: {}. Supported protocols: {}. Vpool protocols: {}", nasServer.getNasName(), nasProtocols,
+                            vpoolProtocols);
+                    supports = nasProtocols.containsAll(vpoolProtocols);
+                } else {
+                    supports = false;
+                }
+            } else {
+                // Perform check on Physical NAS
+                supports = nasProtocols.containsAll(vpoolProtocols);
+            }
         }
 
         return supports;

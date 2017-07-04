@@ -291,8 +291,17 @@ public class IsilonMirrorOperations {
                 BiosCommandResult cmdResult = doCancelReplicationPolicy(isi, policyName);
                 if(!cmdResult.isCommandSuccess()) {
                     return cmdResult;
+                } else {
+                    //if the replication still running through exception
+                    policy = isi.getReplicationPolicy(policyName);
+                    if(policy.getLastJobState().equals(JobState.running)) {
+                        ServiceError error = DeviceControllerErrors.isilon.jobFailed(
+                                "Unable Stop Replication policy and policy state  :" + policy.getLastJobState().toString());
+                        return BiosCommandResult.createErrorResult(error);
+                    }
                 }
-            }
+            } 
+            // disable the policy
             if (policy.getEnabled()) {
                 IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
                 modifiedPolicy.setName(policyName);

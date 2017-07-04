@@ -419,7 +419,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         doFSDeleteQuotaDirsFromDB(args); // Delete Quota Directory from DB
                         deleteShareACLsFromDB(args); // Delete CIFS Share ACLs from DB
                         doDeleteExportRulesFromDB(true, null, args); // Delete Export Rules from DB
-                        doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
+                        doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from File Policy
                     }
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else if (!result.getCommandPending()
@@ -430,6 +430,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         && (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType))) {
                     boolean snapshotsExist = snapshotsExistsOnFS(fsObj);
                     boolean quotaDirsExist = quotaDirectoriesExistsOnFS(fsObj);
+                    boolean policyExists = fileProtectionPoliciesExistsOnFS(fsObj);
                     boolean fsCheck = getDevice(storageObj.getSystemType()).doCheckFSExists(storageObj, args);
 
                     if (fsCheck) {
@@ -442,6 +443,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             errMsg = new String(
                                     "delete file system from ViPR database failed because quota directories exist for file system "
                                             + fsObj.getLabel() + " and once deleted the quota directory cannot be ingested into ViPR");
+                        } else if (policyExists) {
+                            errMsg = new String(
+                                    "delete file system from ViPR database failed because file protection policies exist for file system "
+                                            + fsObj.getLabel() + " and once deleted the policy cannot be ingested into ViPR");
                         }
                         if (errMsg != null) {
                             _log.error(errMsg);
@@ -462,7 +467,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     doFSDeleteQuotaDirsFromDB(args);
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
-                    doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
+                    doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from File Policy
                     SMBShareMap cifsSharesMap = fsObj.getSMBFileShares();
                     if (cifsSharesMap != null && !cifsSharesMap.isEmpty()) {
                         cifsSharesMap.clear();
@@ -2341,13 +2346,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         _log.info("Removing policy reference for file system  " + fs.getName());
         for (String policy : fs.getFilePolicies()) {
-
-            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
-
-            StringSet fsURIs = fp.getAssignedResources();
-            fsURIs.remove(fs.getId().toString());
-            fp.setAssignedResources(fsURIs);
-            _dbClient.updateObject(fp);
+            FilePolicy fp = _dbClient.queryObject(FilePolicy.class, URI.create(policy));
+            if (fp != null && !fp.getInactive()) {
+                StringSet fsURIs = fp.getAssignedResources();
+                fsURIs.remove(fs.getId().toString());
+                fp.setAssignedResources(fsURIs);
+                _dbClient.updateObject(fp);
+            }
 
         }
 
@@ -3158,6 +3163,23 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return false;
     }
 
+    /*
+     * This function verifies that the file system has any protection policies
+     * return true, if there are any; false otherwise.
+     */
+    private boolean fileProtectionPoliciesExistsOnFS(FileShare fs) {
+        _log.info("Verifying file protection policies on file system  " + fs.getName());
+        if (fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+            for (String policy : fs.getFilePolicies()) {
+                FilePolicy fp = _dbClient.queryObject(FilePolicy.class, URI.create(policy));
+                if (fp != null && !fp.getInactive()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private List<ShareACL> queryExistingShareAcls(FileDeviceInputOutput args) {
 
         _log.info("Querying for Share ACLs of share {}", args.getShareName());
@@ -3757,7 +3779,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-                    throws InternalException {
+            throws InternalException {
 
         if (filesystems != null && !filesystems.isEmpty()) {
             // create source filesystems
@@ -3804,7 +3826,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-                    throws InternalException {
+            throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                 FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
                 FileDescriptor.Type.FILE_MIRROR_SOURCE);
@@ -3879,7 +3901,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-                    throws InternalException {
+            throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                 FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
                 FileDescriptor.Type.FILE_MIRROR_TARGET);
@@ -3903,7 +3925,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForReduceFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-                    throws InternalException {
+            throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                 FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
                 FileDescriptor.Type.FILE_MIRROR_TARGET);
@@ -4674,7 +4696,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public void assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String opId)
-                    throws ControllerException {
+            throws ControllerException {
         StorageSystem storageObj = null;
         FilePolicy filePolicy = null;
         VirtualNAS vNAS = null;

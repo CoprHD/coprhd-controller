@@ -98,7 +98,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileShareExport;
-import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
@@ -920,9 +919,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, expandedQuota);
     }
-    
+
     /**
      * restapi request for reduction of fileshare size.
+     * 
      * @param isi
      * @param quotaId
      * @param args
@@ -936,7 +936,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         quota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, quota);
     }
-
 
     private IsilonSmartQuota getExpandedQuota(IsilonApi isi, FileDeviceInputOutput args, Long capacity) {
         Long notificationLimit = 0L;
@@ -1154,45 +1153,45 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createErrorResult(serviceError);
         }
     }
-    
-    
+
     @Override
     public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-    	try {
-    		 _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
-             IsilonApi isi = getIsilonDevice(storage);
-             String quotaId = null;
-             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
-                 quotaId = args.getFsExtensions().get(QUOTA);
-                 
-                 Long capacity = args.getNewFSCapacity();
-                 IsilonSmartQuota quota = isi.getQuota(quotaId);
-                 //new capacity should be less than usage capacity of a filehare
-                 if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
-                	 
-                	 Double dUsageSize = SizeUtil.translateSize(quota.getUsagePhysical(), SizeUtil.SIZE_GB);
-                	 Double dNewCapacity = SizeUtil.translateSize(capacity, SizeUtil.SIZE_GB);
-                	 
-                	 String msg = String.format("as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s", 
-                			 dNewCapacity, dUsageSize, args.getFs().getName());
-                	 
-                     _log.error(msg);
-                     final ServiceError serviceError = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
-                     return BiosCommandResult.createErrorResult(serviceError);
-                 } else {
-                	 isiReduceFS(isi, quotaId, args);
-                 }
-             } else {
-                 final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
-                 _log.error(serviceError.getMessage());
-                 return BiosCommandResult.createErrorResult(serviceError);
-             }
-             _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
-             return BiosCommandResult.createSuccessfulResult();
+        try {
+            _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
+            IsilonApi isi = getIsilonDevice(storage);
+            String quotaId = null;
+            if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
+                quotaId = args.getFsExtensions().get(QUOTA);
+
+                Long capacity = args.getNewFSCapacity();
+                IsilonSmartQuota quota = isi.getQuota(quotaId);
+                // new capacity should be less than usage capacity of a filehare
+                if (capacity.compareTo(quota.getUsagePhysical()) < 0) {
+
+                    Double dUsageSize = SizeUtil.translateSize(quota.getUsagePhysical(), SizeUtil.SIZE_GB);
+                    Double dNewCapacity = SizeUtil.translateSize(capacity, SizeUtil.SIZE_GB);
+
+                    String msg = String.format(
+                            "as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s",
+                            dNewCapacity, dUsageSize, args.getFs().getName());
+
+                    _log.error(msg);
+                    final ServiceError serviceError = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
+                    return BiosCommandResult.createErrorResult(serviceError);
+                } else {
+                    isiReduceFS(isi, quotaId, args);
+                }
+            } else {
+                final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
+                _log.error(serviceError.getMessage());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
+            _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
+            return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("doReduceFS failed.", e);
-            return BiosCommandResult.createErrorResult(e);	
-        } 
+            return BiosCommandResult.createErrorResult(e);
+        }
     }
 
     @Override
@@ -1508,12 +1507,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput args,
-    		QuotaDirectory quotaDir) throws ControllerException {
+            QuotaDirectory quotaDir) throws ControllerException {
         // Get Parent FS mount path
         // Get Quota Directory Name
         // Get Quota Size
         // Call Update Quota (Aways use that quota for updating the size)
-    	QuotaDirectory quotaDirObj = null;
+        QuotaDirectory quotaDirObj = null;
         String fsMountPath = args.getFsMountPath();
         Long qDirSize = quotaDir.getSize();
         String qDirPath = fsMountPath + "/" + quotaDir.getName();
@@ -1529,22 +1528,23 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             if (quotaId != null) {
-            	// Isilon does not allow to update quota directory to zero.
-            	IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
+                // Isilon does not allow to update quota directory to zero.
+                IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
                 long quotaUsageSpace = isiCurrentSmartQuota.getUsagePhysical();
-                
+
                 if (qDirSize > 0 && qDirSize.compareTo(quotaUsageSpace) > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 } else {
-                	Double dUsage = SizeUtil.translateSize(quotaUsageSpace, SizeUtil.SIZE_GB);
-                	Double dQuotaSize = SizeUtil.translateSize(qDirSize, SizeUtil.SIZE_GB);
-                	String msg = String.format("as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s", 
-                			dQuotaSize, dUsage, args.getFs().getName());
-                	_log.error("doUpdateQuotaDirectory : " + msg);
-                	ServiceError error = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
-                	return BiosCommandResult.createErrorResult(error);
+                    Double dUsage = SizeUtil.translateSize(quotaUsageSpace, SizeUtil.SIZE_GB);
+                    Double dQuotaSize = SizeUtil.translateSize(qDirSize, SizeUtil.SIZE_GB);
+                    String msg = String.format(
+                            "as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s",
+                            dQuotaSize, dUsage, args.getFs().getName());
+                    _log.error("doUpdateQuotaDirectory : " + msg);
+                    ServiceError error = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
+                    return BiosCommandResult.createErrorResult(error);
                 }
 
             } else {
@@ -1605,7 +1605,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return createQuotaWithThreshold(qDirPath, qDirSize,
                 softlimit, notificationLimit, softGrace, fsSize, isi);
     }
-    
+
     public String createQuotaWithThreshold(String qDirPath, Long qDirSize, Long softLimitSize, Long notificationLimitSize,
             Long softGracePeriod, Long fsSize, IsilonApi isi) {
         boolean bThresholdsIncludeOverhead = true;
@@ -3311,9 +3311,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     // if the replication happens from user defined access zone to system access zone!!
                     if (sourceFS.getVirtualNAS() != null) {
                         VirtualNAS sourcevNAS = _dbClient.queryObject(VirtualNAS.class, sourceFS.getVirtualNAS());
-                        String vNASName = sourcevNAS.getNasName();
-                        vNASName = getNameWithNoSpecialCharacters(vNASName, args);
-                        clusterName = clusterName + vNASName;
+                        if (sourcevNAS != null) {
+                            String vNASName = sourcevNAS.getNasName();
+                            vNASName = getNameWithNoSpecialCharacters(vNASName, args);
+                            clusterName = clusterName + vNASName;
+                            _log.info("Source file system is on virtual NAS {}", vNASName);
+                        }
                     }
                     _log.debug("Generating path for target and the source cluster is is  {}", clusterName);
                 }

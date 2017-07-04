@@ -23,9 +23,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
-import com.emc.storageos.db.client.model.uimodels.ExecutionState;
-import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.Logger;
@@ -36,6 +33,9 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionState;
+import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.google.common.collect.Lists;
@@ -43,8 +43,6 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.exceptions.NotFoundException;
-import com.netflix.astyanax.cql.CqlStatement;
-import com.netflix.astyanax.cql.CqlStatementResult;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
@@ -60,7 +58,8 @@ import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class DbConsistencyCheckerHelper {
-    private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
+    
+	private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
     public static final String MSG_OBJECT_ID_START = "\nStart to check DataObject records id that is illegal.\n";
     public static final String MSG_OBJECT_ID_END = "\nFinish to check DataObject records id: totally checked %d data CFs, %d corrupted rows found.\n";
     public static final String MSG_OBJECT_ID_END_SPECIFIED = "\nFinish to check DataObject records id for CF %s, %d corrupted rows found.\n";
@@ -81,6 +80,8 @@ public class DbConsistencyCheckerHelper {
     private static final int THREAD_POOL_QUEUE_SIZE = 50;
     private static final int WAITING_TIME_FOR_QUEUE_FULL_MS = 3000;
     private static final int THRESHHOLD_FOR_OUTPUT_DEBUG = 10000;
+    private static final int COLUMN_RANGE_SIZE_COMMON_INDEX = 50;
+	private static final int COLUMN_RANGE_SIZE_DECOMMISSIONED = 1000;
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
@@ -278,7 +279,7 @@ public class DbConsistencyCheckerHelper {
             for (Row<String, IndexColumnName> row : result.getResult()) {
                 RowQuery<String, IndexColumnName> rowQuery = indexAndCf.keyspace.prepareQuery(indexAndCf.cf).getKey(row.getKey())
                         .autoPaginate(true)
-                        .withColumnRange(new RangeBuilder().setLimit(1000).build());
+                        .withColumnRange(new RangeBuilder().setLimit(COLUMN_RANGE_SIZE_DECOMMISSIONED).build());
                 ColumnList<IndexColumnName> columns;
                 
                 while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
@@ -288,7 +289,7 @@ public class DbConsistencyCheckerHelper {
         } else {
         	OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
                     .setRowLimit(dbClient.DEFAULT_PAGE_SIZE)
-                    .withColumnRange(new RangeBuilder().setLimit(50).build())
+                    .withColumnRange(new RangeBuilder().setLimit(COLUMN_RANGE_SIZE_COMMON_INDEX).build())
                     .execute();
         	for (Row<String, IndexColumnName> objRow : result.getResult()) {
             	handleIndex(indexAndCf, toConsole, objCfs, objsToCheck, scannedRows, objRow, objRow.getColumns(), isParallel, checkResult, beginTime);

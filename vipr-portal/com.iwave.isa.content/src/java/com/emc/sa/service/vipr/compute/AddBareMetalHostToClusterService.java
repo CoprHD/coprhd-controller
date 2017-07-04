@@ -126,6 +126,8 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         if (cvp.getServiceProfileTemplates().isEmpty()) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
+        } else {
+            preCheckErrors = ComputeUtils.verifyCVPToSPTAssociationPrecheck(getClient(), cvp, preCheckErrors);
         }
         //TODO COP-28922 Can we add a check to see if the blades and the templates match?
         // e.g. the blades can be from multiple UCS clusters

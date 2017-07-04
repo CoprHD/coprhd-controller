@@ -130,6 +130,8 @@ public class CreateBareMetalClusterService extends ViPRService {
         if (cvp.getServiceProfileTemplates().isEmpty()) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
+        } else {
+            preCheckErrors = ComputeUtils.verifyCVPToSPTAssociationPrecheck(getClient(), cvp, preCheckErrors);
         }
 
         if (preCheckErrors.length() > 0) {

@@ -2789,33 +2789,75 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return BiosCommandResult.createErrorResult(serviceError);
     }
 
+    /**
+     * perform failover operation
+     * 
+     * fs - target filesystem
+     * systemTarget - failover to target system
+     * completer - task completer
+     * 
+     * return BiosCommandResult
+     */
     @Override
     public BiosCommandResult doFailoverLink(StorageSystem systemTarget, FileShare fs, TaskCompleter completer) {
+        _log.info("IsilonFileStorageDevice -  doFailoverLink started ");
         FileShare sourceFS = null;
+        FileShare targetFS = null;
+        StorageSystem sourceSystem = null;
+        StorageSystem targetSystem = null;
+        
+        boolean failback = false;
         if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
             sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
+            targetFS = fs;
         } else if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
             sourceFS = fs;
+            List<String> targetfileUris = new ArrayList<String>();
+            targetfileUris.addAll(fs.getMirrorfsTargets());
+            if(!targetfileUris.isEmpty()) {
+                targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            } else {
+                ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverReplicationPolicy(
+                        systemTarget.getIpAddress(), "Unable to Target Filesystem details");
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
+            failback = true;
         }
+        
+        sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
+        targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());    
         
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
+            BiosCommandResult cmdResult = null;
             // In case of failback we do failover on the source file system, so we need to append _mirror
-            if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            if (failback) {
                 policyName = policyName.concat(MIRROR_POLICY);
-            }
-            //prepared policy for failover
-            BiosCommandResult cmdResult = prepareFailoverOp(systemTarget, fs, policyName);
-            if(!cmdResult.isCommandSuccess()) {
-                return cmdResult;
+                
+                //prepared policy for failback
+                cmdResult = prepareFailbackOp(targetSystem, policyName);
+                if(!cmdResult.isCommandSuccess()) {
+                    return cmdResult;
+                }
+              //Call Isilon Api failback job
+                return mirrorOperations.doFailover(sourceSystem, policyName, completer);
+            } else {
+                //prepared policy for failover
+                cmdResult = prepareFailoverOp(sourceSystem, policyName);
+                if(!cmdResult.isCommandSuccess()) {
+                    _log.info("Unable to stop replication policy on source");
+                    _log.info("Proceeding with failover anyway");
+                }
+              //Call Isilon Api failover job
+                return mirrorOperations.doFailover(targetSystem, policyName, completer);
             }
             
-            //Call Isilon Api failover job
-            return mirrorOperations.doFailover(systemTarget, policyName, completer);
+            
         }
         ServiceError serviceError = DeviceControllerErrors.isilon
-                .unableToFailoverReplicationPolicy(systemTarget.getIpAddress(), fs.getName());
+                .unableToFailoverReplicationPolicy(
+                        systemTarget.getIpAddress(),"Unable to get the policy details");
         return BiosCommandResult.createErrorResult(serviceError);
     }
     
@@ -2826,24 +2868,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @param policyName
      * @return
      */
-    public BiosCommandResult prepareFailoverOp(final StorageSystem systemTarget, FileShare fs, String policyName) {
-        FileShare sourceFS = null;
-        StorageSystem sourceSystem = null;
+    private BiosCommandResult prepareFailoverOp(final StorageSystem sourceSystem, String policyName) {
         BiosCommandResult cmdResult = null;
-        //for multiple replication code need to organized.
-        if(systemTarget.getId().compareTo(fs.getStorageDevice()) == 0) {
-            // get the failover storage device
-            if(null != fs.getParentFileShare()) {
-                sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare().getURI());
-            } else {
-                List<String> failTargetfileUris = new ArrayList<String>();
-                failTargetfileUris.addAll(fs.getMirrorfsTargets());
-                sourceFS = _dbClient.queryObject(FileShare.class, URI.create(failTargetfileUris.get(0)));
-            }
-            sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
-        } else {
-            sourceSystem = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        }
         //check for device is up and able query the data.
         cmdResult = mirrorOperations.doTestReplicationPolicy(sourceSystem, policyName);
         if(cmdResult.isCommandSuccess()) {
@@ -2851,7 +2877,32 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             cmdResult =  mirrorOperations.doStopReplicationPolicy(sourceSystem, policyName);
         } else {
             _log.error("Unabled get the replcation policy details.", cmdResult.getMessage());
-            return BiosCommandResult.createSuccessfulResult();
+            ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverReplicationPolicy(
+                                                                sourceSystem.getIpAddress(), policyName, cmdResult.getMessage());
+                return BiosCommandResult.createErrorResult(serviceError);
+        }
+        return cmdResult;
+    }
+    
+    
+    /**
+     * prepare policy to failback.
+     * @param systemTarget
+     * @param fs
+     * @param policyName
+     * @return
+     */
+    private BiosCommandResult prepareFailbackOp(final StorageSystem targetSystem, String policyName) {
+        BiosCommandResult cmdResult = null;
+        //check for target device up and then disable the policy
+        cmdResult = mirrorOperations.doTestReplicationPolicy(targetSystem, policyName);
+        if(cmdResult.isCommandSuccess()) {
+          //if policy enables on target storage then We should disable it before failback job
+            cmdResult =  mirrorOperations.doStopReplicationPolicy(targetSystem, policyName);
+        } else {
+            ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailbackReplicationPolicy(
+                                                            targetSystem.getIpAddress(), policyName, cmdResult.getMessage());
+            return BiosCommandResult.createErrorResult(serviceError);
         }
         return cmdResult;
     }

@@ -3595,7 +3595,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             isilonFSList.setToken(quotas.getToken());
 
             for (IsilonSmartQuota quota : quotas.getList()) {
-
+                if(quota.getType().compareTo("directory") != 0) {
+                    continue;
+                }
                 if ("/ifs/".equals(umfsDiscoverPath) &&
                         isQuotaUnderAccessZonePath(quota.getPath(), tempAccessZonePath)) {
                     continue;

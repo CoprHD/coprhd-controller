@@ -288,7 +288,8 @@ public class DbConsistencyCheckerHelper {
                 ColumnList<IndexColumnName> columns;
                 
                 while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
-                    handleIndex(indexAndCf, toConsole, objCfs, objsToCheck, scannedRows, row, columns, isParallel, checkResult, beginTime);
+                    checkConsistencyForIndex(indexAndCf, toConsole, objCfs, objsToCheck, scannedRows, 
+                    		row, columns, isParallel, checkResult, beginTime, doType);
                 }
             }
         } else {
@@ -297,7 +298,8 @@ public class DbConsistencyCheckerHelper {
                     .withColumnRange(new RangeBuilder().setLimit(COLUMN_RANGE_SIZE_COMMON_INDEX).build())
                     .execute();
         	for (Row<String, IndexColumnName> objRow : result.getResult()) {
-            	handleIndex(indexAndCf, toConsole, objCfs, objsToCheck, scannedRows, objRow, objRow.getColumns(), isParallel, checkResult, beginTime);
+            	checkConsistencyForIndex(indexAndCf, toConsole, objCfs, objsToCheck, scannedRows, 
+            			objRow, objRow.getColumns(), isParallel, checkResult, beginTime, doType);
             }
         }
         
@@ -309,11 +311,11 @@ public class DbConsistencyCheckerHelper {
         }
     }
 
-	private void handleIndex(IndexAndCf indexAndCf, boolean toConsole,
+	private void checkConsistencyForIndex(IndexAndCf indexAndCf, boolean toConsole,
 			Map<String, ColumnFamily<String, CompositeColumnName>> objCfs,
 			Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck,
 			Integer scannedRows, Row<String, IndexColumnName> row, ColumnList<IndexColumnName> columns,
-			boolean isParallel, CheckResult checkResult, Long beginTime) throws ConnectionException {
+			boolean isParallel, CheckResult checkResult, Long beginTime, DataObjectType doType) throws ConnectionException {
 		for (Column<IndexColumnName> column : columns) {
 			scannedRows++;
 		    ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
@@ -321,6 +323,11 @@ public class DbConsistencyCheckerHelper {
 		    if (objEntry == null) {
 		        continue;
 		    }
+		    
+		    if (doType != null && !doType.getDataObjectClass().getSimpleName().equals(objEntry.getClassName())) {
+            	continue;
+            }
+		    
 		    ColumnFamily<String, CompositeColumnName> objCf = objCfs
 		            .get(objEntry.getClassName());
 

@@ -3596,6 +3596,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             for (IsilonSmartQuota quota : quotas.getList()) {
                 if(quota.getType().compareTo("directory") != 0) {
+                    _log.debug("ignore quota path {} with quota id {}:", 
+                            quota.getPath(), quota.getId() + " and quota type" + quota.getType());
                     continue;
                 }
                 if ("/ifs/".equals(umfsDiscoverPath) &&

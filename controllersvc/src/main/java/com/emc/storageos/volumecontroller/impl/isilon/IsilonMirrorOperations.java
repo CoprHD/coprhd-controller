@@ -213,7 +213,7 @@ public class IsilonMirrorOperations {
             _log.warn("Canceling ReplicationPolicy - {} intertupted", policyName);
             ServiceError error = DeviceControllerErrors.isilon.jobFailed(
                     "Canceling ReplicationPolicy is Failed with Intertupt exception and message :" + ex.getMessage());
-            return BiosCommandResult.createSuccessfulResult();
+            return BiosCommandResult.createErrorResult(error);
         }
 
     }

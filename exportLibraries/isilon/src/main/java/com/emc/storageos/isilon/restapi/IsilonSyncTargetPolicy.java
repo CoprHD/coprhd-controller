@@ -12,6 +12,7 @@ public class IsilonSyncTargetPolicy extends IsilonSyncPolicy {
 
     private FOFB_STATES failover_failback_state;
     private String source_host;
+
     public FOFB_STATES getFoFbState() {
         return failover_failback_state;
     }

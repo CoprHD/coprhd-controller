@@ -490,7 +490,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void updateExportRules(URI storage, URI uri, FileExportUpdateParams param, boolean unmountExport, String opId)
             throws ControllerException {
-        s_logger.info("FileOrchestrationDeviceController - updateExportRules started");
         FileObject fileObj = null;
         String stepDescription = null;
         String successMessage = null;
@@ -530,7 +529,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         null, "Verifying mount dependencies", storage, args);
             }
             Object[] args = new Object[] { storage, uri, param };
-            s_logger.info("create Work flow for updateExportRules and step description", stepDescription);
             _fileDeviceController.createMethod(workflow, waitFor, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, null, stepDescription,
                     storage, args);
             workflow.executePlan(completer, successMessage);
@@ -1514,7 +1512,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             SMBFileShare sourceSMBShare, CifsShareACLUpdateParams params) {
         String stepDescription = String.format(
                 "updating CIFS share : %s, ACLs : %s", sourceSMBShare.getName(), params.toString());
-        s_logger.info("stepDescription");
         String shareACLUpdateStep = workflow.createStepId();
         Object[] args = new Object[] { systemTarget, targetFileShare.getId(), sourceSMBShare.getName(), params };
         _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_SHARE_ACLS_METHOD, shareACLUpdateStep,
@@ -1524,12 +1521,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static void updateFSExportRulesOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare, String exportPath,
             FileExportUpdateParams params) {
         String stepDescription = String.format("updating NFS export rules for path : %s, %s", exportPath, params.toString());
-        s_logger.info("stepDescription");
         String exportRuleUpdateStep = workflow.createStepId();
         Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
         _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep,
                 stepDescription, systemTarget, args);
-        s_logger.info("created Step Method : " + UPDATE_FILESYSTEM_EXPORT_RULES_METHOD);
     }
 
     private static void updateNFSACLOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare,

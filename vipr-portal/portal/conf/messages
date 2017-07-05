@@ -3647,6 +3647,7 @@ resources.volume.accessState.write=Write Only
 resources.volume.accessState.readwrite=Read Write
 resources.volume.accessState.writeonce=Write Once
 resources.volume.accessState.notready=Not Ready
+resources.volume.replicationGroups=Replication Groups
 
 resources.volume.resourceLimitAlert=The number of volumes is approaching or exceeding resource limit (%d) for current project. System performance may be degraded. 
 

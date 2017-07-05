@@ -123,6 +123,9 @@ public class UpgradeService {
         if (!_coordinator.isClusterUpgradable()) {
             throw APIException.serviceUnavailable.clusterStateNotStable();
         }
+        if (!_coordinator.isAllDatabaseServiceUp()) {
+            throw APIException.serviceUnavailable.databaseServiceNotAllUp();
+        }
 
         // check if all DR sites are in stable or paused status
         checkClusterState(true);

@@ -414,12 +414,18 @@ public class StorageScheduler implements Scheduler {
 
         List<StoragePool> storagePools = new ArrayList<StoragePool>();
         String varrayId = varray.getId().toString();
+        StringBuffer errorMessage = new StringBuffer();
 
-        // Verify that if the VirtualPool is assigned to one or more VirtualArrays
+        // Verify that if the VirtualPool has been assigned one or more VirtualArrays,
         // there is a match with the passed VirtualArray.
         StringSet vpoolVarrays = vpool.getVirtualArrays();
         if ((vpoolVarrays != null) && (!vpoolVarrays.contains(varrayId))) {
-            _log.error("VirtualPool {} is not in virtual array {}", vpool.getId(), varrayId);
+            String message = String.format("Virtual Array %s is not assigned to Virtual Pool %s. ", varray.forDisplay(), vpool.forDisplay());
+            errorMessage.append(message);
+            _log.error(message);
+            if (optionalAttributes != null) {
+                optionalAttributes.put(AttributeMatcher.ERROR_MESSAGE, errorMessage);
+            }
             return storagePools;
         }
         // Get pools for VirtualPool and VirtualArray
@@ -634,7 +640,6 @@ public class StorageScheduler implements Scheduler {
             attributeMap.putAll(optionalAttributes);
         }
         _log.info("Populated attribute map: {}", attributeMap);
-        StringBuffer errorMessage = new StringBuffer();
         // Execute basic precondition check to verify that vArray has active storage pools in the vPool.
         // We will return a more accurate error condition if this basic check fails.
         List<StoragePool> matchedPools = _matcherFramework.matchAttributes(

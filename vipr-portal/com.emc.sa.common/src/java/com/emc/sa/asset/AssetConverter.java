@@ -13,19 +13,19 @@ import org.apache.commons.lang.StringUtils;
 
 /**
  * Simple class for supporting converting string asset values into types objects, mainly for URIs used as IDs.
- * 
- * @author jonnymiller
  */
 public class AssetConverter {
-    private static ConvertUtilsBean CONVERTER;
+    private static ConvertUtilsBean converter;
 
     static {
-        CONVERTER = new ConvertUtilsBean();
-        CONVERTER.register(new URIConverter(), URI.class);
+        converter = new ConvertUtilsBean();
+        converter.register(new URIConverter(), URI.class);
+        converter.deregister(String.class);
+        converter.register(new StringConverter(), String.class);
     }
 
     public static Object convert(String value, Class<?> type) {
-        return CONVERTER.convert(value, type);
+        return converter.convert(value, type);
     }
 
     private static class URIConverter implements Converter {
@@ -51,4 +51,20 @@ public class AssetConverter {
         }
     }
 
+    private static class StringConverter implements Converter {
+        @SuppressWarnings("rawtypes")
+        @Override
+        public Object convert(Class type, Object value) {
+            final String thisString = value.toString();
+            // String parameters may have quotes on them - remove them for Asset Providers
+            // Note: it may be desirable to have parameter fields of type String containing
+            // URIs (if sometimes non-URI values are desired in a field that typically has URIs).
+            // Remove quotes so asset providers can properly handle the values
+            if ((thisString != null) &&
+                    thisString.startsWith("\"") && thisString.endsWith("\"")) {
+                return thisString.substring(1, thisString.length()-1);
+            }
+            return thisString;
+        }
+    }
 }

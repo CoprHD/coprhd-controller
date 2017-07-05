@@ -2267,9 +2267,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             srdfSourceVolumeURI, volumeURI, workflow);
                 } else {
                     // split all members the group
-                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFGroupLinkMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, volumeURI, false);
-                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeGroupPairsMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, volumeURI);
 
                     waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,
@@ -2505,8 +2505,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     private String suspendSRDFLinkWorkflowStep(String waitFor, URI srdfSourceStorageSystemURI,
             URI sourceURI, URI targetURI, Workflow workflow) {
-        Workflow.Method suspendMethod = srdfDeviceController.suspendSRDFLinkMethod(srdfSourceStorageSystemURI, sourceURI, targetURI, false);
-        Workflow.Method resumeMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI, sourceURI, targetURI);
+        Workflow.Method suspendMethod = srdfDeviceController.suspendSRDFGroupLinkMethod(srdfSourceStorageSystemURI, sourceURI, targetURI,
+                false);
+        Workflow.Method resumeMethod = srdfDeviceController.resumeGroupPairsMethod(srdfSourceStorageSystemURI, sourceURI, targetURI);
         return workflow.createStep(SRDFDeviceController.SUSPEND_SRDF_MIRRORS_STEP_GROUP,
                 SRDFDeviceController.SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, srdfSourceStorageSystemURI,
                 getDeviceType(srdfSourceStorageSystemURI), SRDFDeviceController.class, suspendMethod,
@@ -2515,7 +2516,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     private String resumeSRDFLinkWorkflowStep(String waitFor, URI srdfSourceStorageSystemURI,
             URI sourceURI, URI targetURI, Workflow workflow) {
-        Workflow.Method resumeMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI, sourceURI, targetURI);
+        Workflow.Method resumeMethod = srdfDeviceController.resumeGroupPairsMethod(srdfSourceStorageSystemURI, sourceURI, targetURI);
         return workflow.createStep(SRDFDeviceController.RESUME_SRDF_MIRRORS_STEP_GROUP,
                 SRDFDeviceController.RESUME_SRDF_MIRRORS_STEP_DESC, waitFor, srdfSourceStorageSystemURI,
                 getDeviceType(srdfSourceStorageSystemURI), SRDFDeviceController.class, resumeMethod,
@@ -4795,10 +4796,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             srdfSourceVolumeURI, source, workflow);
                 } else {
                     // split all members the group
-                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFGroupLinkMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, source, false);
 
-                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeGroupPairsMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, source);
 
                     waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,
@@ -6322,10 +6323,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             srdfSourceVolumeURI, sourceObj.getId(), workflow);
                 } else {
                     // split all members the group
-                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFGroupLinkMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, sourceObj.getId(), false);
 
-                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
+                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeGroupPairsMethod(srdfSourceStorageSystemURI,
                             srdfSourceVolumeURI, sourceObj.getId());
 
                     waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,

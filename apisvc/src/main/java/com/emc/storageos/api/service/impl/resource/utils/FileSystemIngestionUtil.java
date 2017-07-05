@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.math.BigInteger;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -17,10 +18,19 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.FileSystemObjectProperties;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.base.Joiner;
@@ -234,5 +244,21 @@ public class FileSystemIngestionUtil {
             }
         }
         return true;
+    }
+
+    public static boolean checkForDuplicateFSName(DbClient _dbClient, URI project, String fsName, List<FileShare> filesystems) {
+        List<FileShare> objectList = new ArrayList<>();
+        objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project",
+                        project, fsName));
+        if (objectList != null && !objectList.isEmpty()) {
+            return true;
+        }
+        for (FileShare fs : filesystems) {
+            if (fs.getLabel().equals(fsName) || fs.getName().equals(fsName)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

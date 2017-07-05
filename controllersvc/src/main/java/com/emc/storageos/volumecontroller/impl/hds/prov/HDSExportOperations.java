@@ -1064,7 +1064,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     String.format("removeVolume failed - maskURI: %s",
                             exportMaskURI.toString()),
                     e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(e.getMessage(), e);
             taskCompleter.error(dbClient, serviceError);
         }
         log.info("{} removeVolumes END...", storage.getSerialNumber());
@@ -2111,6 +2111,9 @@ public class HDSExportOperations implements ExportMaskOperations {
                             HDSJob modifyHDSJob = new HDSModifyVolumeJob(asyncMessageId, volume.getStorageController(),
                                     taskCompleter, HDSModifyVolumeJob.VOLUME_VPOOL_CHANGE_JOB);
                             ControllerServiceImpl.enqueueJob(new QueueJob(modifyHDSJob));
+                        } else {
+                            throw HDSException.exceptions
+                                    .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the modify volume call");
                         }
                     }
                 }
@@ -2121,7 +2124,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                             volumeURIs);
             log.error(errMsg, e);
             ServiceError serviceError = DeviceControllerException.errors
-                    .jobFailedMsg(errMsg, e);
+                    .jobFailedMsg(e.getMessage(), e);
             taskCompleter.error(dbClient, serviceError);
         }
 

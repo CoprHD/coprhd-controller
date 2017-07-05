@@ -727,15 +727,18 @@ public class XIVExportOperations implements ExportMaskOperations {
 
                     // Update the tracking containers
                     exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
-                    exportMask
-                            .addToExistingInitiatorsIfAbsent(matchingInitiators);
-                    builder.append(String.format(
-                            "XM %s is matching. " + "EI: { %s }, EV: { %s }%n",
-                            name,
-                            Joiner.on(',').join(
-                                    exportMask.getExistingInitiators()),
-                            Joiner.on(',').join(
-                                    exportMask.getExistingVolumes().keySet())));
+                    exportMask.addToExistingInitiatorsIfAbsent(matchingInitiators);
+                    
+                    if(exportMask.hasAnyExistingInitiators()) {
+                        builder.append(String.format("XM %s is matching. " + "EI: { %s }",
+                                name, Joiner.on(',').join(exportMask.getExistingInitiators())));
+                    }
+                    
+                    if(exportMask.hasAnyExistingVolumes()) {
+                        builder.append(String.format(" EV: { %s }%n",
+                                Joiner.on(',').join(exportMask.getExistingVolumes().keySet())));                        
+                    }
+                    
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
                         _dbClient.updateObject(exportMask);

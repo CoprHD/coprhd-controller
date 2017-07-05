@@ -407,7 +407,7 @@ class ExportGroup(object):
             path_parameters['min_paths'] = minpaths
         if(pathsperinitiator is not None):
             path_parameters['paths_per_initiator'] = pathsperinitiator
-        
+
         from storageportgroup import Storageportgroup
         if(portgroupname):
             storage_system = StorageSystem(self.__ipAddr, self.__port)

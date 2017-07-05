@@ -1632,16 +1632,13 @@ public class VirtualArrayService extends TaggedResource {
     }
     
     /**
-     * This method gets sorted storage port groups for a given virtual array. The storage ports in the port group
+     * This method gets storage port groups for a given virtual array. The storage ports in the port group
      * should all be assigned or connected to the virtual array. 
-     * If export group is specified, it will return the port group used in the export masks belonging to 
-     * the export group. 
+     * If export group is specified, it will return the port group used in the export masks belonging to the export group, plus
+     *     the port groups in the virtual array, but in different storage system from the export masks.
      * If storage system is specified, it will only return the port groups belonging to the storage system. 
-     * If vpool is specified, it will get the port groups from the same storage system as vpool's storage 
-     * pools reside. 
-     * If consistency group is specified, and it has volumes, it would only return the port group in the same storage system 
-     * as the consistency group.
-     * This API is used by UI to get storage port group list for export related catalog services 
+     * If vpool is specified, it will get the port groups from the same storage system as vpool's storage pools reside. 
+     * This API is used by UI to get storage port group list for create and export volumes related catalog services 
      * 
      * @param id - Virtual array URI
      * @param storageURI - OPTIONAL Storage system URI
@@ -1747,7 +1744,9 @@ public class VirtualArrayService extends TaggedResource {
             }
         }
         if (exportGroupURI != null) {
-            // Get the storage port groups used in export masks
+            // When export group URI is specified, it would return all the port groups current used in the export masks,
+            // (no other port groups in the same storage system will be returned.) plus the port groups in the other storage systems
+            // which are available in the virtual array.
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             if (exportGroup == null ||
                     !id.equals(exportGroup.getVirtualArray())) {
@@ -1769,6 +1768,8 @@ public class VirtualArrayService extends TaggedResource {
                             || includedSystems.isEmpty() || includedSystems.contains(exportMask.getStorageDevice())) {
                         portGroupURIs.add(exportMask.getPortGroup());
                     } 
+                    // Add the export mask storage system to the exclude systems, so that no other port groups from the
+                    // same storage system would be returned
                     excludeSystem.add(exportMask.getStorageDevice());
                     
                 }

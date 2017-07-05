@@ -1442,9 +1442,6 @@ public class ComputeUtils {
 
                         } catch (ExecutionException e) {
                             if (e.getCause() instanceof IllegalStateException) {
-                                ExecutionUtils.currentContext().logError(
-                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
-                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
                                 preCheckErrors.append(ExecutionUtils.getMessage(
                                         "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
                                         cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));

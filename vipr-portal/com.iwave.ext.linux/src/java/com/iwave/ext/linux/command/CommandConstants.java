@@ -18,7 +18,7 @@ public class CommandConstants {
     public static final String RESIZE2FS = "/sbin/resize2fs";
     public static final String MKFS = "/sbin/mkfs";
     public static final String TIMEOUT = "timeout";
-    public static final String DF = "df";
+    public static final String DF = "df -P";
 
     public static final String VGDISPLAY = "PATH=/sbin:/usr/sbin vgdisplay";
     public static final String VGCREATE = "PATH=/sbin:/usr/sbin vgcreate";

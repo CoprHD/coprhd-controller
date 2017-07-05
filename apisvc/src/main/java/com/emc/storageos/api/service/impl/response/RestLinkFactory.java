@@ -152,7 +152,7 @@ public final class RestLinkFactory
             return null;        // imposssible
         }
     }
-
+    
     public static URI simpleServiceLink(ResourceTypeEnum res, URI resourceId)
             throws URISyntaxException {
         return simpleServiceLink(res.getService(), resourceId);
@@ -172,7 +172,7 @@ public final class RestLinkFactory
                 append(resourceId);
         return new URI(build.toString());
     }
-
+    
     /**
      * Set db client
      * 

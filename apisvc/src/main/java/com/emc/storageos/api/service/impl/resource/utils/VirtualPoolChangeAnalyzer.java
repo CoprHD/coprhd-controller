@@ -758,13 +758,6 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         // Throw an exception if any of the following properties are different
         // between the current and new Vpool. The check for continuous and protection-
         // based settings change is below.
-        //
-        // TBD Heg - This seems to be that it should be more like adding VPLEX protection to a 
-        // non-VPLEX volume. We should be setting an exclude list and if anything else changes 
-        // it is not allowed (see isVPlexImport). The existing source volume must match the new
-        // vpool. For example, say the source volume is Thick provisioned and say the new vpool
-        // is Thin provisioning. The Vpool change will not be prevented and now you will have a 
-        // vpool for the source volume, that says it is Thin provisioned when actually it is think.
         String[] include = new String[] { TYPE, VARRAYS,
                 REF_VPOOL, MIRROR_VPOOL, HIGH_AVAILABILITY, PROTECTION_VARRAY_SETTINGS,
                 FAST_EXPANSION, ACLS, INACTIVE,

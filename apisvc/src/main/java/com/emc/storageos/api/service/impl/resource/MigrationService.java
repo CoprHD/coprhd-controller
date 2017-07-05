@@ -184,12 +184,6 @@ public class MigrationService extends TaskResourceService {
         // source volume of the Migration. We are migrating to a new vpool, but not a new
         // performance parameters and the capabilities must reflect these when placing and 
         // preparing the volume.
-        // TBD Heg - This is another place where it would seem that maybe we need to set pre-allocation size
-        // based on allocated capacity of the source volume. I saw this was done for full copy, but not really
-        // elsewhere. Further, after placing the volume the value is reset in the capabilities to be based on 
-        // the thin volume pre-allocation percentage so that the value in the prepare volume reflects the 
-        // pre-allocation percentage. Need to determine why that was done and if it needs to be carried over 
-        // everywhere you placing a volume based on the size of some other "source" volume. 
         boolean isHA = !vplexVolume.getVirtualArray().equals(migrationTargetVarray.getId());
         URI performanceParamsURI = migrationSrc.getPerformanceParams();
         Map<VolumeTopologyRole, URI> sourceParams = new HashMap<>();

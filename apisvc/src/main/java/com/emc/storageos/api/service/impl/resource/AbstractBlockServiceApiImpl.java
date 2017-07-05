@@ -2123,9 +2123,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void validatePerformanceParametersForVolumeCreate(VirtualPool vpool, VolumeCreatePerformanceParams requestParams) {
-        // TBD Heg could maybe have some base verification to ensure that
-        // only valid VoloumeTopologyRoles are specified and error if not
-        // or ignore them as is done now.
     }    
 
     /**
@@ -2133,8 +2130,5 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void validatePerformanceParametersForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformanceParamsMap performanceParams) {
-        // TBD Heg could maybe have some base verification to ensure that
-        // only valid VoloumeTopologyRoles are specified and error if not
-        // or ignore them as is done now.
     }
 }

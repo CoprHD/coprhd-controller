@@ -632,7 +632,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         Volume.determineFastExpansionForVolume(sourceVolume, _dbClient), null);
                 MetaVolumeRecommendation targetVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(targetSystem, targetPool,
                         targetVolume.getCapacity(), targetVolume.getThinlyProvisioned(),
-                        Volume.determineFastExpansionForVolume(targetVolume, _dbClient), null); // // TBD Heg: Was using passed source vpool?? Will now use target vpool
+                        Volume.determineFastExpansionForVolume(targetVolume, _dbClient), null);
                 isCapacityReset = computeCapacityforSRDFV3ToV2Meta(sourcePool, targetPool, sourceVolume, targetVolume,
                         sourceVolumeRecommendation, targetVolumeRecommendation);
             }
@@ -986,8 +986,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     private void upgradeToTargetVolume(final Volume volume, final VirtualPool vpool,
             final VirtualPoolChangeParam cosChangeParam, final String taskId)
                     throws InternalException {
-        // TBD Heg - This is only called by the changeVolumeVirtualPool method that does not appear to be
-        // used at all, so can this go too?
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
         List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(
@@ -1154,8 +1152,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     public TaskList changeVolumeVirtualPool(final URI systemURI, final Volume volume,
             final VirtualPool vpool, final VirtualPoolChangeParam vpoolChangeParam, String taskId)
                     throws InternalException {
-        
-        // TBD Heg - Seems like nothing calls this. BlockService always calls the other form of this overloaded method.
         _log.debug("Volume {} VirtualPool change.", volume.getId());
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
@@ -1545,8 +1541,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         
         // Now validate the performance parameters for the PRIMARY role at the copy site.
         // When specified, there should only be parameters for the one supported SRDF copy.
-        // TBD Heg We could validate and error if there are more than one or just ignore
-        // and take the first as done here.
         List<BlockPerformanceParamsMap> copyParamsList = requestParams.getCopyParams();
         if (!CollectionUtils.isEmpty(copyParamsList)) {
             BlockPerformanceParamsMap copyParams = copyParamsList.get(0);

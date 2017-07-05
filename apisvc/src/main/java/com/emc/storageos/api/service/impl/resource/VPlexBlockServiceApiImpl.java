@@ -1106,15 +1106,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // Set capabilities for volume placement and preparation. Note that there are no 
             // performance parameters to account for when placing a new HA volume.
-            // TBD Heg - Thin provisioning was gotten from the import volume and not the value for the requested HA vpool
-            // which seems wrong???
-            // TBD Heg - Seems auto tiering name should be set in capabilities for pool matching, which it was not.
-            // TBD Heg - This is another place where it would seem that maybe we need to set pre-allocation size
-            // based on allocated capacity of the source volume. I saw this was done for full copy, but not really
-            // elsewhere. Further, after placing the volume the value is reset in the capabilities to be based on 
-            // the thin volume pre-allocation percentage so that the value in the prepare volume reflects the 
-            // pre-allocation percentage. Need to determine why that was done and if it needs to be carried over 
-            // everywhere you placing a volume based on the size of some other "source" volume.
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper();
             vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, getVolumeCapacity(importVolume));
             vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
@@ -1138,8 +1129,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // Prepare the created volume.
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class,
                     vplexRecommendation.getVirtualArray());
-            // TBD Heg - vpool was passed, but seems it should be the request HA virtual pool since this
-            // is the HA backend volume????
             createVolume = prepareVolumeForRequest(getVolumeCapacity(importVolume),
                     vplexProject, haVirtualArray, requestedHaVirtualPool, null, vpoolCapabilities, 
                     vplexRecommendation.getSourceStorageSystem(), vplexRecommendation.getSourceStoragePool(),
@@ -1265,20 +1254,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper();
             vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, getVolumeCapacity(existingVolume));
             vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-            // TBD Heg - Thin was gotten from the existing volume and not the value for the requested HA vpool???
             if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
                     requestedHaVirtualPool.getSupportedProvisioningType())) {
                 vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
                 
-                // TBD Heg - To guarantee that storage pool for the HA side has enough 
-                // physical space use the current allocated capacity of the existing volume
-                // when placing the volume. This is done when creating full copies and thought
-                // it should be done here for the same reason.
+                // To guarantee that storage pool for the HA side has enough physical space use the 
+                // current allocated capacity of the existing volume when placing the volume. This is 
+                // done when creating full copies and thought it should be done here for the same reason.
                 vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
                         BlockFullCopyUtils.getAllocatedCapacityForFullCopySource(existingVolume, _dbClient));
             }
 
-            // TBD Heg - Seems auto tiering name should be set in capabilities for pool matching.
+            // Set auto tiering name in capabilities for pool matching.
             String autoTierPolicyName = requestedHaVirtualPool.getAutoTierPolicyName();
             if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
                 vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
@@ -1306,9 +1293,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexURI);
             Project vplexProject = getVplexProject(vplexSystem, _dbClient, _tenantsService);
 
-            // TBD Heg - Now that the volume is placed, reset the thin volume pre-allocation to
+            // Now that the volume is placed, reset the thin volume pre-allocation to
             // reflect the thin volume preallocation in the requested HA virtual pool. Again,
-            // this is done in full copy creation, so thought it should be done here.
+            // this is done in full copy creation, so make sense here.
             Integer thinVolumePreAllocPercentage = requestedHaVirtualPool.getThinVolumePreAllocationPercentage();
             if (null != thinVolumePreAllocPercentage && 0 < thinVolumePreAllocPercentage) {
                 vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
@@ -2100,12 +2087,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // source volume of the Migration. We are migrating to a new vpool, but not a new
         // performance parameters and the capabilities must reflect these when placing and 
         // preparing the volume.
-        // TBD Heg - This is another place where it would seem that maybe we need to set pre-allocation size
-        // based on allocated capacity of the source volume. I saw this was done for full copy, but not really
-        // elsewhere. Further, after placing the volume the value is reset in the capabilities to be based on 
-        // the thin volume pre-allocation percentage so that the value in the prepare volume reflects the 
-        // pre-allocation percentage. Need to determine why that was done and if it needs to be carried over 
-        // everywhere you placing a volume based on the size of some other "source" volume. 
         Map<VolumeTopologyRole, URI> sourceParams = new HashMap<>();
         VolumeTopologyRole role = isHA ? VolumeTopologyRole.HA : VolumeTopologyRole.PRIMARY;
         sourceParams.put(role, performanceParamsURI);
@@ -4639,8 +4620,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // We need to verify that the passed performance parameters are appropriate for
         // a VPLEX block volume. Validate that if performance parameters are passed for
         // the primary side mirror that they exist and are active.
-        // TBD Heg - Maybe refine to examine which sides of the distributed volume will
-        // actually get a mirror and only verify performance params for that side(s).
         List<VolumeTopologyRole> roles = new ArrayList<>();
         roles.add(VolumeTopologyRole.PRIMARY_MIRROR);
         if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(sourceVolumeVpool)) {

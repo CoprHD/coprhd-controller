@@ -39,10 +39,10 @@ public interface Scheduler {
      * @param vArray -- Virtual Array
      * @param project -- Project
      * @param vPool -- Virtual Pool
-     * @param performanceParams -- The performance parameters.
+     * @param volumeTopology -- A reference to a volume topology instance.
      * @param vPoolUse -- Use of Virtual Pool (i.e. whether this Virtual Pool is nested inside
      *    the ROOT virtual pool, e.g. a VPLEX_HA or SRDF_COPY virtual pool within the outer ROOT.)
-     * @param capabilities -- the capabilites needed
+     * @param capabilities -- the capabilities needed
      * @param currentRecommendations -- any existing recommendations in the current solution set.
      * This is used to let recommendations be based on previously generated recommendations, e.g.
      * SRDF_COPY recommendations are generated from the SRDF source recommendation.

@@ -1251,7 +1251,7 @@ public class Volume extends BlockObject implements ProjectResource {
     }
     
     /**
-     * Helper method determine the host IO IOPs limit for a volume. If
+     * Helper method determine if compression is enabled for the volume. If
      * the volume references an active PerformanceParams instance then use the
      * the value specified in the instance. Otherwise, take the value for the 
      * volume's virtual pool.
@@ -1259,7 +1259,7 @@ public class Volume extends BlockObject implements ProjectResource {
      * @param volume A reference to a volume.
      * @param dbClient A reference to a DB client.
      * 
-     * @return The host IO IOPs limit.
+     * @return Boolean.TRUE if compression enabled, else Boolean.FALSE.
      */
     public static Boolean determineCompressionEnabledForVolume(Volume volume, DbClient dbClient) {
         URI performanceParamsURI = volume.getPerformanceParams();

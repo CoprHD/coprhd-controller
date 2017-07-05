@@ -1022,13 +1022,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // The snapshot target should be thin if the source volume was
         // thinly provisioned. This will whether or not thin rebuilds
         // occur when the volume we create is distributed.
-        volume.setThinlyProvisioned(sourceVolume.getThinlyProvisioned());
-        
-        // TBD Heg - This operation is similar to creating a full copy of 
-        // a VPLEX snapshot. In that case, which I also questioned, the
-        // pre-allocation size is set to the allocation capacity of the 
-        // parent. I was not sure why, but seems maybe these should be 
-        // consistent.
+        volume.setThinlyProvisioned(sourceVolume.getThinlyProvisioned());        
         volume.setThinVolumePreAllocationSize(sourceVolume.getThinVolumePreAllocationSize());
 
         // The source side backend volume for a VPLEX volume always

@@ -24,6 +24,17 @@ public class ImplicitUnManagedObjectsMatcherThread implements Runnable {
     private DbClient _dbClient = null;
     boolean _recalcVplexVolumes = false;
 
+    /**
+     * A Runnable implementation to execute UnManagedVolume to VirtualPool matching
+     * on a separate background thread, so that the caller (for example, the Virtual Pool
+     * edit API) can return more quickly.
+     * 
+     * @param virtualPool the virtual pool being matched
+     * @param srdfEnabledTargetVPools a cached Set of SRDF enabled target Virtual Pools
+     * @param rpEnabledTargetVPools a cached Set of RecoverPoint enabled target Virtual Pools
+     * @param dbClient a reference to the VPLEX client
+     * @param recalcVplexVolumes flag indicating whether or not VPLEX volumes should be rematched
+     */
     public ImplicitUnManagedObjectsMatcherThread(VirtualPool virtualPool, Set<URI> srdfEnabledTargetVPools,
             Set<URI> rpEnabledTargetVPools, DbClient dbClient, boolean recalcVplexVolumes) {
         this._virtualPool = virtualPool;

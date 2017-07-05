@@ -73,13 +73,33 @@ public class ImplicitUnManagedObjectsMatcher {
         }
     }
 
+    /**
+     * Execute UnManagedVolume to VirtualPool matching
+     * on a separate background thread, so that the caller (for example, the Virtual Pool
+     * edit API) can return more quickly.
+     * 
+     * @param virtualPool the virtual pool being matched
+     * @param srdfEnabledTargetVPools a cached Set of SRDF enabled target Virtual Pools
+     * @param rpEnabledTargetVPools a cached Set of RecoverPoint enabled target Virtual Pools
+     * @param dbClient a reference to the VPLEX client
+     * @param recalcVplexVolumes flag indicating whether or not VPLEX volumes should be rematched
+     */
     public static void matchVirtualPoolsWithUnManagedVolumesInBackground(VirtualPool virtualPool, Set<URI> srdfEnabledTargetVPools,
             Set<URI> rpEnabledTargetVPools, DbClient dbClient, boolean recalcVplexVolumes) {
         ImplicitUnManagedObjectsMatcherThread matcherThread = 
                 new ImplicitUnManagedObjectsMatcherThread(virtualPool, srdfEnabledTargetVPools, rpEnabledTargetVPools, dbClient, recalcVplexVolumes);
         _executor.execute(matcherThread);
     }
-    
+
+    /**
+     * Execute UnManagedVolume to VirtualPool matching.
+     * 
+     * @param virtualPool the virtual pool being matched
+     * @param srdfEnabledTargetVPools a cached Set of SRDF enabled target Virtual Pools
+     * @param rpEnabledTargetVPools a cached Set of RecoverPoint enabled target Virtual Pools
+     * @param dbClient a reference to the VPLEX client
+     * @param recalcVplexVolumes flag indicating whether or not VPLEX volumes should be rematched
+     */
     public static void matchVirtualPoolsWithUnManagedVolumes(VirtualPool virtualPool, Set<URI> srdfEnabledTargetVPools,
             Set<URI> rpEnabledTargetVPools, DbClient dbClient, boolean recalcVplexVolumes) {
         List<UnManagedVolume> modifiedUnManagedVolumes = new ArrayList<UnManagedVolume>();

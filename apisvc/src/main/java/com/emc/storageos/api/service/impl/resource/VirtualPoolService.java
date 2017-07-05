@@ -477,7 +477,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                 ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumesInBackground(vpool, allSrdfTargetVPools, allRpTargetVpools, _dbClient, false);
             }
 
-            _dbClient.updateAndReindexObject(vpool);
+            _dbClient.updateObject(vpool);
         }
 
         return vpool;
@@ -1029,7 +1029,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
         _permissionsHelper.updateACLs(vpool, changes,
                 new PermissionsHelper.UsageACLFilter(_permissionsHelper, vpool.getType()));
-        _dbClient.updateAndReindexObject(vpool);
+        _dbClient.updateObject(vpool);
 
         auditOp(OperationTypeEnum.MODIFY_VPOOL_ACL, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType());
         return getAclsOnVirtualPool(type, id);
@@ -1083,7 +1083,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
         StringBuffer errorMessage = new StringBuffer();
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);
-        _dbClient.updateAndReindexObject(vpool);
+        _dbClient.updateObject(vpool);
         StringSet matchedPools = vpool.getMatchedStoragePools();
         if (null != matchedPools && !matchedPools.isEmpty()) {
             Iterator<String> vpoolItr = matchedPools.iterator();

@@ -2817,7 +2817,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
             } else {
                 ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverFileSystem(
-                        systemTarget.getIpAddress(), "Unable to get Target Filesystem for " + fs.getName());
+                        systemTarget.getIpAddress(), "Unable to get target filesystem for source filesystem " + fs.getName());
                 return BiosCommandResult.createErrorResult(serviceError);
             }
             failback = true;

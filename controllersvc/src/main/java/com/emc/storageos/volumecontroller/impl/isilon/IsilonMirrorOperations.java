@@ -413,6 +413,7 @@ public class IsilonMirrorOperations {
             
             //Before 'resync-prep' operation, Original source to target policy should be enabled.
             if (!syncPolicy.getEnabled()) {
+                _log.info("Policy {} is in disabled state, enabling the policy before do resync-prep", policyName);
                 syncPolicy = doEnableReplicationPolicy(isi, policyName);
                 _log.info("Sleeping for 40 seconds for cancel operation to complete...");
                 TimeUnit.SECONDS.sleep(40);

@@ -2036,7 +2036,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             args.setSubDirectory(param.getSubDir());
             args.setAllExportRules(param);
-            args.setBypassDnsCheck(param.getBypassDnsCheck());
+            if(null != param.getBypassDnsCheck()) {
+                args.setBypassDnsCheck(param.getBypassDnsCheck());
+            } else {
+                args.setBypassDnsCheck(false);
+            }
 
             _log.info("Controller Recieved FileExportUpdateParams {}", param);
 

@@ -157,8 +157,8 @@ public class BlockVolumes extends ResourceController {
         if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
             renderArgs.put("isAccessStateEmpty", "true");
         }
-        if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null && volume.getProtection().getSrdfRep().getSrdfLabels() != null) {
-            renderArgs.put("replicationGroups", Joiner.on(",").join(volume.getProtection().getSrdfRep().getSrdfLabels()));
+        if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null && volume.getProtection().getSrdfRep().getSrdfGroupLabels() != null) {
+            renderArgs.put("replicationGroups", Joiner.on(",").join(volume.getProtection().getSrdfRep().getSrdfGroupLabels()));
         }
         
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());

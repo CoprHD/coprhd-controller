@@ -138,7 +138,7 @@ function accessStatus(){
       <dt class="moreDetails">&{'resources.volume.nativeid'}:</dt>
       <dd class="moreDetails">#{spaceForNull volume.nativeId/}</dd>
 
-      #{ifnot replicationGroups}
+      #{if replicationGroups}
         <dt class="moreDetails">&{'resources.volume.replicationGroups'}:</dt>
         <dd class="moreDetails">#{spaceForNull resources.replicationGroups/}</dd>
       #{/if}

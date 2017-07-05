@@ -591,7 +591,8 @@ public class RemoteReplicationUtils {
                     rrPairs = getRemoteReplicationPairsForTargetElement(srcUri, dbClient);
                     if (rrPairs != null) {
                         for (RemoteReplicationPair rrPair : rrPairs) {
-                            if (srcUris.contains(rrPair.getSourceElement().getURI())) {
+                            // rr pair source should be target in srdf pair
+                            if (tgtUris.contains(rrPair.getSourceElement().getURI())) {
                                 rrPairsToDelete.add(rrPair);
                             }
                         }

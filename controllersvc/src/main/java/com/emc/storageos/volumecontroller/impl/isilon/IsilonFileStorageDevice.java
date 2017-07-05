@@ -2791,9 +2791,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     /**
      * perform failover operation
-     * 
-     * fs - target filesystem
      * systemTarget - failover to target system
+     * fs  - target filesystem
      * completer - task completer
      * 
      * return BiosCommandResult
@@ -2817,8 +2816,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if(!targetfileUris.isEmpty()) {
                 targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
             } else {
-                ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverReplicationPolicy(
-                        systemTarget.getIpAddress(), "Unable to Target Filesystem details");
+                ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverFileSystem(
+                        systemTarget.getIpAddress(), "Unable to get Target Filesystem for " + fs.getName());
                 return BiosCommandResult.createErrorResult(serviceError);
             }
             failback = true;
@@ -2852,20 +2851,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
               //Call Isilon Api failover job
                 return mirrorOperations.doFailover(targetSystem, policyName, completer);
             }
-            
-            
         }
         ServiceError serviceError = DeviceControllerErrors.isilon
-                .unableToFailoverReplicationPolicy(
-                        systemTarget.getIpAddress(),"Unable to get the policy details");
+                .unableToFailoverFileSystem(
+                        systemTarget.getIpAddress(),"Unable to get the policy details for filesystem :" + fs.getName());
         return BiosCommandResult.createErrorResult(serviceError);
     }
     
     /**
      * prepare policy to failover.
-     * @param systemTarget
-     * @param fs
-     * @param policyName
+     * @param sourceSystem - source storagesystem
+     * @param policyName - failover policy
      * @return
      */
     private BiosCommandResult prepareFailoverOp(final StorageSystem sourceSystem, String policyName) {
@@ -2887,9 +2883,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     
     /**
      * prepare policy to failback.
-     * @param systemTarget
-     * @param fs
-     * @param policyName
+     * @param systemTarget - target storagesystem 
+     * @param policyName -failback mirror policy
      * @return
      */
     private BiosCommandResult prepareFailbackOp(final StorageSystem targetSystem, String policyName) {

@@ -71,6 +71,6 @@ public interface IsilonErrors {
     public ServiceError unableToFailbackReplicationPolicy(final String storageSystem, String policyName, String msg);
     
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
-    public ServiceError unableToFailoverReplicationPolicy(final String fileSystem, String msg);
+    public ServiceError unableToFailoverFileSystem(final String storageSystem, String msg);
     
 }

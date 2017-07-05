@@ -210,9 +210,9 @@ public class IsilonMirrorOperations {
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
         } catch (InterruptedException ex) {
-            _log.warn("Canceling ReplicationPolicy - {} intertupted", policyName);
+            _log.warn("Canceling ReplicationPolicy - {} Interrupted", policyName);
             ServiceError error = DeviceControllerErrors.isilon.jobFailed(
-                    "Canceling ReplicationPolicy is Failed with Intertupt exception and message :" + ex.getMessage());
+                    "Canceling ReplicationPolicy is Failed with Interrupt exception and message :" + ex.getMessage());
             return BiosCommandResult.createErrorResult(error);
         }
 
@@ -271,7 +271,7 @@ public class IsilonMirrorOperations {
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
         } catch (InterruptedException e) {
-            _log.warn("dodeleteReplicationPolicy - {} intertupted");
+            _log.warn("dodeleteReplicationPolicy - {} Interrupted");
             return BiosCommandResult.createSuccessfulResult();
         }
 
@@ -318,9 +318,9 @@ public class IsilonMirrorOperations {
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
         } catch (InterruptedException ex) {
-            _log.warn("Stoping ReplicationPolicy - {} intertupted", policyName);
+            _log.warn("Stoping ReplicationPolicy - {} Interrupted", policyName);
             ServiceError error = DeviceControllerErrors.isilon.jobFailed(
-                    "Stoping ReplicationPolicy is Failed with Intertupt exception and message :" + ex.getMessage());
+                    "Stoping ReplicationPolicy is Failed with Interrupt exception and message :" + ex.getMessage());
             return BiosCommandResult.createErrorResult(error);
         }
     }

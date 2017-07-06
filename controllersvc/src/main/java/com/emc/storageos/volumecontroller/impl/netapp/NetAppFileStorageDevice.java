@@ -137,16 +137,6 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
             if (!nApi.createFS(args.getFsName(), args.getPoolNativeId(),
                     strFsSize, args.getThinProvision())) {
                 _log.error("NetAppFileStorageDevice doCreateFS {} - failed", args.getFsName());
-
-                BiosCommandResult rollbackResult = doDeleteFS(storage, args);
-                if (rollbackResult.isCommandSuccess()) {
-                    _log.info(
-                            "NetAppFileStorageDevice doCreateFS rollback completed failed for fs, {}", args.getFsName());
-                } else {
-                    _log.error(
-                            "NetAppFileStorageDevice doCreateFS rollback failed for fs, {} with {}.",
-                            args.getFsName(), rollbackResult.getMessage());
-                }
                 ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();
                 result = BiosCommandResult.createErrorResult(serviceError);
             } else {
@@ -209,7 +199,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
             NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).vFiler(portGroup).build();
-            if (!nApi.deleteFS(args.getFsName())) {
+            if (!nApi.deleteFS(args.getFsName(), true)) {
                 failedStatus = true;
             }
             if (failedStatus == true) {
@@ -332,7 +322,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         _log.info("NetAppFileStorageDevice doExport - start");
         // Verify inputs.
         validateExportArgs(exportList);
@@ -533,7 +523,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doUnexport: {} - start", args.getFileObjId());
@@ -633,7 +623,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         // To be in-sync with isilon implementation, currently forceGroup is
         // set to null which will set the group name as "everyone" by default.
         String forceGroup = null;
@@ -693,7 +683,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doDeleteShare - start");

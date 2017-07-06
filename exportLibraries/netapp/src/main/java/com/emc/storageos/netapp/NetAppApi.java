@@ -194,12 +194,20 @@ public class NetAppApi {
                 // If adding a volume to a vfiler fails, then delete the volume.
                 if (!status) {
                     _logger.error("Adding volume {} to vfiler {} failed", volName, _vFilerName);
-                    deleteFS(volName);
+                    // File system volume created in this request does not have any Qtrees on it.
+                    // Qtree objects created only when fs got exported or
+                    // if there is any qtree created explicitly
+                    // so passing false to this method to delete the fs created in this request!!
+                    deleteFS(volName, false);
                 }
             } catch (Exception e) {
                 // If adding a volume to a vfiler fails, then delete the volume.
                 _logger.error("Exception when adding volume {} to vfiler {}.", volName, _vFilerName);
-                deleteFS(volName);
+                // File system volume created in this request does not have any Qtrees on it.
+                // Qtree objects created only when fs got exported or
+                // if there is any qtree created explicitly
+                // so passing false to this method to delete the fs created in this request!!
+                deleteFS(volName, false);
                 throw e;
             }
 
@@ -225,7 +233,7 @@ public class NetAppApi {
         return true;
     }
 
-    public Boolean deleteFS(String volName) throws NetAppException {
+    public Boolean deleteFS(String volName, boolean deleteQds) throws NetAppException {
         try {
 
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
@@ -235,8 +243,11 @@ public class NetAppApi {
                 _logger.info("Volume not found on array to delete {}", volName);
                 return true;
             }
-            // Delete Qtrees and its quotas, if any.
-            deleteAllQTrees(volName);
+
+            if (deleteQds) {
+                // Delete Qtrees and its quotas, if any.
+                deleteAllQTrees(volName);
+            }
 
             if (offlineVol(volName)) {
                 netAppFacade.destroyVolume(volName, false);
@@ -290,8 +301,7 @@ public class NetAppApi {
 
         try {
 
-            if (volName != null && !volName.isEmpty() && !volName.startsWith("/"))
-            {
+            if (volName != null && !volName.isEmpty() && !volName.startsWith("/")) {
                 exportPath = "/" + volName;
             }
 
@@ -469,21 +479,21 @@ public class NetAppApi {
             throw NetAppException.exceptions.listVolumeInfoFailed(volume);
         }
     }
-    
+
     public List<Qtree> listQtrees() throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https,_vFilerName);
+                    _password, _https, _vFilerName);
             return netAppFacade.listQtrees();
         } catch (Exception e) {
             throw NetAppException.exceptions.listQtreesFailed(_ipAddress, e.getMessage());
         }
     }
-    
+
     public List<Quota> listQuotas() throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https,_vFilerName);
+                    _password, _https, _vFilerName);
             return netAppFacade.listQuotas();
         } catch (Exception e) {
             throw NetAppException.exceptions.listQuotasFailed(_ipAddress, e.getMessage());
@@ -540,7 +550,7 @@ public class NetAppApi {
             String convertedVers = "";
             for (int i = 0; i < parseVersion.length; i++) {
                 _logger.info(parseVersion[i]);
-                Number num = ((Number) NumberFormat.getInstance().parse(parseVersion[i])).intValue();
+                Number num = NumberFormat.getInstance().parse(parseVersion[i]).intValue();
                 convertedVers = convertedVers + num.toString() + ".";
             }
             convertedVers = convertedVers.substring(0, convertedVers.length() - 1);

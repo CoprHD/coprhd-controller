@@ -49,6 +49,10 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.HostIOLimitsCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
@@ -309,6 +313,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.FULL_COPIES.toString(), new StringSet());
             // Clear old export mask information
             unManagedVolume.getUnmanagedExportMasks().clear();
+
+            // cleanup hostiolimits from previous discoveries
+            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), new StringSet());
+            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), new StringSet());
         }
 
         unManagedVolume.setLabel(driverVolume.getDeviceLabel());
@@ -345,6 +353,27 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         nativeId.add(driverVolume.getNativeId());
         unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.NATIVE_ID.toString(),
                 nativeId);
+
+        // process hostiolimits from driver volume common capabilities
+        CapabilityInstance hostIOLimits =
+                StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(), CapabilityDefinition.CapabilityUid.hostIOLimits);
+        if (hostIOLimits != null) {
+            log.info("HostIOLimits for volume {}: {} ", driverVolume.getNativeId(),hostIOLimits.toString());
+            String bandwidth = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_BANDWIDTH.toString());
+            String iops = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_IOPS.toString());
+            if (bandwidth != null) {
+                StringSet bwValue = new StringSet();
+                bwValue.add(bandwidth);
+                unManagedVolume.putVolumeInfo(
+                        UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), bwValue);
+            }
+            if (iops != null) {
+                StringSet iopsValue = new StringSet();
+                iopsValue.add(iops);
+                unManagedVolume.putVolumeInfo(
+                        UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), iopsValue);
+            }
+        }
 
         unManagedVolume.putVolumeCharacterstics(
                 UnManagedVolume.SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);

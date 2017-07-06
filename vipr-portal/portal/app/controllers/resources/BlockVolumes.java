@@ -11,7 +11,6 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -159,12 +158,7 @@ public class BlockVolumes extends ResourceController {
             renderArgs.put("isAccessStateEmpty", "true");
         }
         if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null && volume.getProtection().getSrdfRep().getSrdfGroupLabels() != null) {
-            // This field has commas in it, which cause newlines in the UI.  So we will remove them.
-            List<String> srdfGroupLabels = new ArrayList<String>();
-            for (String srdfGroupLabel : volume.getProtection().getSrdfRep().getSrdfGroupLabels()) {
-                srdfGroupLabels.add(srdfGroupLabel.replace(',', ' '));
-            }
-            renderArgs.put("replicationGroups", Joiner.on(",").join(srdfGroupLabels));
+            renderArgs.put("replicationGroups", Joiner.on(",").join(volume.getProtection().getSrdfRep().getSrdfGroupLabels()));
         }
         
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());

@@ -249,18 +249,23 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
             String tgtSerial = st.nextToken(); // 6
             sb.append(tgtSerial.substring(Math.max(0, tgtSerial.length() - 4))); // 6
             
-            sb.append(" : G#-" + getSourceGroupId());
-            sb.append(" : " + getName());
-            sb.append(String.format(" [%d Vols, ", (getVolumes() != null) ? getVolumes().size() : 0));
+            sb.append(": G#-" + getSourceGroupId());
+            sb.append(": " + getName());
+            // Using pipes "|" instead of commas because the UI order page treats the commas as newlines
+            sb.append(String.format(" [%d Vols | ", (getVolumes() != null) ? getVolumes().size() : 0));
             
             // "ALL" doesn't mean anything to the end user, change it to ANYMODE
             if (getSupportedCopyMode().equalsIgnoreCase("ALL")) {
                 sb.append("ANYMODE");
+            } else if (getSupportedCopyMode().equalsIgnoreCase("SYNCHRONOUS")) {
+                sb.append("SYNC"); // Brief versions of the word, since space is at a premium
+            } else if (getSupportedCopyMode().equalsIgnoreCase("ASYNCHRONOUS")) {
+                sb.append("ASYNC");
             } else {
                 sb.append(getSupportedCopyMode());
             }
             
-            sb.append(", Status: " + getConnectivityStatus() + "]");
+            sb.append(" | Status: " + getConnectivityStatus() + "]");
             
         } catch (Exception e) {
             // Native GUID is missing some fields, or the format changed.  Log and swallow.

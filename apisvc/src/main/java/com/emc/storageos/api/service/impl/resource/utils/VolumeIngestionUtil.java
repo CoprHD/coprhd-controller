@@ -919,26 +919,19 @@ public class VolumeIngestionUtil {
             volumeStoragePoolIsOkay = true;
         } else if (spool != null) {
             // check the matched or assigned pools, based on the vpool settings
-            List<URI> matchedPoolUris = new ArrayList<URI>();
-            if (vpool.getUseMatchedPools() && null != vpool.getMatchedStoragePools()) {
-                matchedPoolUris.addAll(URIUtil.toURIList(vpool.getMatchedStoragePools()));
-            } else if (null != vpool.getAssignedStoragePools()) {
-                matchedPoolUris.addAll(URIUtil.toURIList(vpool.getAssignedStoragePools()));
-            }
+            List<StoragePool> matchedPools = VirtualPool.getValidStoragePools(vpool, dbClient, false);
+            List<URI> matchedPoolUris = URIUtil.toUris(matchedPools);
             if (matchedPoolUris.contains(spool.getId())) {
                 volumeStoragePoolIsOkay = true;
             } else if (isVplexBackendVolume(unManagedVolume) && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
                 // vplex backend volumes into a distributed pool should check the HA side's storage pools as well
-                List<URI> haMatchedPoolUris = new ArrayList<URI>();
+                List<URI> haMatchedPoolUris = null;
                 VirtualPool haVpool = VirtualPool.getHAVPool(vpool, dbClient);
                 if (haVpool != null) {
-                    if (haVpool.getUseMatchedPools() && null != haVpool.getMatchedStoragePools()) {
-                        haMatchedPoolUris.addAll(URIUtil.toURIList(haVpool.getMatchedStoragePools()));
-                    } else if (null != haVpool.getAssignedStoragePools()) {
-                        haMatchedPoolUris.addAll(URIUtil.toURIList(haVpool.getAssignedStoragePools()));
-                    }
+                    List<StoragePool> haMatchedPools = VirtualPool.getValidStoragePools(haVpool, dbClient, false);
+                    haMatchedPoolUris = URIUtil.toUris(haMatchedPools);
                 }
-                if (haMatchedPoolUris.contains(spool.getId())) {
+                if (haMatchedPoolUris != null && haMatchedPoolUris.contains(spool.getId())) {
                     volumeStoragePoolIsOkay = true;
                 }
             }

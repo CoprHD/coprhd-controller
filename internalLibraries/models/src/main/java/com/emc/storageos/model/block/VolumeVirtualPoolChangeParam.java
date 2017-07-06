@@ -38,7 +38,7 @@ public class VolumeVirtualPoolChangeParam {
     boolean forceFlag = false;
 
     // A list of implemented extension parameter values.  See the getter method for more info.
-    public static final String EXTENSION_PARAM_KNOWN_RDFGROUP = "rdfGroup";
+    public static final String EXTENSION_PARAM_KNOWN_RDFGROUP = "replication_group";
 
     public VolumeVirtualPoolChangeParam() {
     }

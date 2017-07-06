@@ -501,31 +501,35 @@ public class NetworkScheduler {
      */
     public void determineIfLastZoneReferences(List<NetworkFCZoneInfo> infos) {
         // First make a map of zoneName to all last references.
-        Map<String, List<FCZoneReference>> zoneNameToZoneReferencesList = new HashMap<String, List<FCZoneReference>>();
+        Map<String, Set<URI>> zoneNameToZoneReferencesSet = new HashMap<String, Set<URI>>();
         for (NetworkFCZoneInfo info : infos) {
             String zoneName = info.getZoneName();
-            if (zoneNameToZoneReferencesList.containsKey(zoneName)) {
+            if (zoneNameToZoneReferencesSet.containsKey(zoneName)) {
                 // already looked up zone references for this zone
                 continue;
             }
-            List<FCZoneReference> references = getFCZoneReferencesForKey(zoneName);
-            zoneNameToZoneReferencesList.put(zoneName, references);
+            String key = FCZoneReference.makeEndpointsKey(info.getEndPoints());
+            URIQueryResultList result = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory. getFCZoneReferenceKeyConstraint(key), result);
+            Iterator<URI> iter = result.iterator();
+            Set<URI> referenceSet = new HashSet<URI>();
+            while (iter.hasNext()) {
+                referenceSet.add(iter.next());
+            }
+            zoneNameToZoneReferencesSet.put(zoneName, referenceSet);
         }
+        _log.info(String.format("Checking if last references for zones: %s" , 
+        		zoneNameToZoneReferencesSet.keySet().toString()));
         // Now loop through all zone infos, removing the FCZoneReferences that are known
         for (NetworkFCZoneInfo info : infos) {
-            List<FCZoneReference> references = zoneNameToZoneReferencesList.get(info.getZoneName());
-            for (FCZoneReference ref : references) {
-                if (ref.getId().equals(info.getFcZoneReferenceId())) {
-                    references.remove(ref);
-                    break;
-                }
-            }
+           zoneNameToZoneReferencesSet.get(info.getZoneName()).remove(info.getFcZoneReferenceId());
         }
         // Now loop through zone infos again. Any zone info whoose corresponding zoneNameToZoneReferencesList
         // has an empty list (no more zone references), can be marked lastRef = true so the zone will be deleted.
         for (NetworkFCZoneInfo info : infos) {
-            boolean noReferences = zoneNameToZoneReferencesList.get(info.getZoneName()).isEmpty();
+            Boolean noReferences = zoneNameToZoneReferencesSet.get(info.getZoneName()).isEmpty();
             info.setLastReference(noReferences);
+            Log.info(String.format("Zone %s lastRef %s", info.getZoneName(), noReferences.toString()));
         }
     }
 

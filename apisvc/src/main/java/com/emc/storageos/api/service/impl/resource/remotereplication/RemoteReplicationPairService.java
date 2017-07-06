@@ -1208,7 +1208,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             case FAILBACK_REMOTE_REPLICATION_CG_LINK:
                 copy.setCopyID(targetVolume.getVirtualArray());
                 param.getCopies().add(copy);
-                taskList = blockConsistencyGroupService.failoverCancel(cgURI, param);
+                taskList = blockConsistencyGroupService.failoverProtection(cgURI, param);
                 break;
             case SWAP_REMOTE_REPLICATION_CG_LINK:
                 copy.setCopyID(targetVolume.getVirtualArray());
@@ -1306,7 +1306,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 break;
             case FAILBACK_REMOTE_REPLICATION_PAIR_LINK:
                 param.getCopies().add(copy);
-                taskList = blockService.failoverCancel(sourceVolumeURI, param);
+                taskList = blockService.failoverProtection(sourceVolumeURI, param);
                 break;
             case SWAP_REMOTE_REPLICATION_PAIR_LINK:
                 param.getCopies().add(copy);

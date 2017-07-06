@@ -99,7 +99,6 @@ public class HDSVolumeDiscoverer {
                     continue;
                 }
 
-                
                 log.info("Processing LogicalUnit: {}", logicalUnit.getObjectID());
                 UnManagedVolume unManagedVolume = null;
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(

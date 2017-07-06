@@ -298,7 +298,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
-
             discoverUmanagedFileSystems(accessProfile);
             // discoverUnmanagedExports(accessProfile);
             discoverUnmanagedNewExports(accessProfile);

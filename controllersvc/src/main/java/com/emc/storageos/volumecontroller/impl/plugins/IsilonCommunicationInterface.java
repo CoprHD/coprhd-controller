@@ -698,7 +698,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
-
             discoverUmanagedFileSystems(accessProfile);
         } else {
             discoverAll(accessProfile);

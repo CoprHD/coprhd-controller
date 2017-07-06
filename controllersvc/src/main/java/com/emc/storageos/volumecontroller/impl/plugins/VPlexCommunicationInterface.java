@@ -1580,7 +1580,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             for (String clusterName : clusterIdToNameMap.values()) {
                 List<VPlexStorageViewInfo> storageViews = client.getStorageViewsForCluster(clusterName);
                 for (VPlexStorageViewInfo storageView : storageViews) {
-
                     s_logger.info("discovering storage view: " + storageView.toString());
                     List<Initiator> knownInitiators = new ArrayList<Initiator>();
                     List<StoragePort> knownPorts = new ArrayList<StoragePort>();

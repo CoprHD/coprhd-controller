@@ -681,7 +681,6 @@ public class NetAppFileCommunicationInterface extends
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
-
             discoverUmanagedFileSystems(accessProfile);
             discoverUmanagedFileQuotaDirectory(accessProfile);
             // discoverUnManagedExports(accessProfile);
@@ -744,7 +743,6 @@ public class NetAppFileCommunicationInterface extends
             List<VFilerInfo> vFilers = netAppApi.listVFilers(null);
 
             for (Map<String, String> fileSystemChar : fileSystemInfo) {
-
                 String poolName = fileSystemChar
                         .get(SupportedNtpFileSystemInformation
                                 .getFileSystemInformation(SupportedNtpFileSystemInformation.STORAGE_POOL

@@ -134,7 +134,6 @@ public class VNXeCommunicationInterface extends
                             .getnamespace()
                             .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                     .toString()))) {
-
                 discoverUnmanagedObjects(accessProfile);
             } else {
                 // Get the Vnxe storage system from the database.

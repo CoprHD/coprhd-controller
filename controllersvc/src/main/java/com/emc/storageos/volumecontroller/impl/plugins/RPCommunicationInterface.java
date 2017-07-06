@@ -69,7 +69,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.recoverpoint.RPUnManagedObjectDiscoverer;
-import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**

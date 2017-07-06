@@ -302,7 +302,6 @@ public class ExternalDeviceCommunicationInterface extends
         try {
             if (null != accessProfile.getnamespace()
                     && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()))) {
-
                 discoverUnManagedBlockObjects(driver, accessProfile);
                 _completer.statusReady(_dbClient, "Completed unmanaged block object discovery");
             } else if (null != accessProfile.getnamespace()

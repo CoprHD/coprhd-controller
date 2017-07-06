@@ -180,7 +180,6 @@ public class NetAppClusterModeCommIntf extends
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
-
             discoverUmanagedFileSystems(accessProfile);
             discoverUmanagedFileQuotaDirectory(accessProfile);
             discoverUnManagedCifsShares(accessProfile);
@@ -241,7 +240,6 @@ public class NetAppClusterModeCommIntf extends
             List<StorageVirtualMachineInfo> svms = netAppCApi.listSVM();
 
             for (Map<String, String> fileSystemChar : fileSystemInfo) {
-
                 String poolName = fileSystemChar
                         .get(SupportedNtpFileSystemInformation
                                 .getFileSystemInformation(SupportedNtpFileSystemInformation.STORAGE_POOL

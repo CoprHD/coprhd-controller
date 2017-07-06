@@ -103,7 +103,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         CIMObjectPath storagePoolPath = null;
         WBEMClient client = null;
         try {
-
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             client = SMICommunicationInterface.getCIMClient(keyMap);
             _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);

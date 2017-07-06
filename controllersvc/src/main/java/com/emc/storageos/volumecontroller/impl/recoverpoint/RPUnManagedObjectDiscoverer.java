@@ -119,7 +119,6 @@ public class RPUnManagedObjectDiscoverer {
 
         for (GetCGsResponse cg : cgs) {
             try {
-
                 log.info("Processing returned CG: " + cg.getCgName());
                 boolean newCG = false;
 

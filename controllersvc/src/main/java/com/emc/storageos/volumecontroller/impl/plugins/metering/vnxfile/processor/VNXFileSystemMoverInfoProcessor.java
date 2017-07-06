@@ -1,13 +1,14 @@
 /*
- * Copyright (c) 2008-2013 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.methods.PostMethod;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.nas.vnxfile.xmlapi.FileSystem;
+import com.emc.nas.vnxfile.xmlapi.MoverOrVdmRef;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.Status;
@@ -25,16 +27,20 @@ import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
 /**
- *
+ * VNXFileSystemMoverInfoProcessor is responsible to process the result received from XML API
+ * Server after getting the one VNX FileSystem Information it process the mover associated to a file system
  */
-public class VNXFileSystemIdProcessor extends VNXFileProcessor {
+public class VNXFileSystemMoverInfoProcessor extends VNXFileProcessor {
 
-    private final Logger _logger = LoggerFactory.getLogger(VNXFileSystemIdProcessor.class);
+    /**
+     * Logger instance.
+     */
+    private final Logger _logger = LoggerFactory
+            .getLogger(VNXFileSystemMoverInfoProcessor.class);
 
     @Override
     public void processResult(Operation operation, Object resultObj,
             Map<String, Object> keyMap) throws BaseCollectionException {
-        _logger.info("Processing VNX File System ID Query response: {}", resultObj);
         final PostMethod result = (PostMethod) resultObj;
         try {
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller.unmarshal(result
@@ -53,14 +59,11 @@ public class VNXFileSystemIdProcessor extends VNXFileProcessor {
             } else {
                 List<Object> filesystemList = getQueryResponse(responsePacket);
                 processFilesystemList(filesystemList, keyMap);
-                keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
             }
         } catch (final Exception ex) {
             _logger.error(
                     "Exception occurred while processing the vnx fileShare response due to {}",
                     ex.getMessage());
-            keyMap.put(VNXFileConstants.FAULT_DESC, ex.getMessage());
-            keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_FAILURE);
         } finally {
             result.releaseConnection();
         }
@@ -75,42 +78,42 @@ public class VNXFileSystemIdProcessor extends VNXFileProcessor {
      */
     private void processFilesystemList(List<Object> filesystemList,
             Map<String, Object> keyMap) throws VNXFilePluginException {
-
-        String fsName = (String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
-        String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
-        boolean foundId = false;
-
         Iterator<Object> iterator = filesystemList.iterator();
+        Set<String> moverIds = new HashSet<String>();
         if (iterator.hasNext()) {
             Status status = (Status) iterator.next();
             if (status.getMaxSeverity() == Severity.OK) {
+                keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                 while (iterator.hasNext()) {
                     FileSystem fileSystem = (FileSystem) iterator.next();
-
-                    if (fileSystem.getName().equals(fsName) ||
-                            fileSystem.getFileSystem().equals(fsId)) {
-                        String id = fileSystem.getFileSystem();
-                        _logger.info("Found matching file system: {}", id);
-                        keyMap.put(VNXFileConstants.FILESYSTEM_ID, id);
-                        keyMap.put(VNXFileConstants.FILESYSTEM, fileSystem);
-                        keyMap.put(VNXFileConstants.IS_FILESYSTEM_AVAILABLE_ON_ARRAY, Boolean.TRUE);
-                        foundId = true;
-                        break;
+                    _logger.info("Processing result for file system {}", fileSystem.getName());
+                    List<MoverOrVdmRef> roFileSysHosts = fileSystem.getRoFileSystemHosts();
+                    if (null != roFileSysHosts) {
+                        Iterator<MoverOrVdmRef> roFileSysHostItr = roFileSysHosts.iterator();
+                        while (roFileSysHostItr.hasNext()) {
+                            MoverOrVdmRef mover = roFileSysHostItr.next();
+                            moverIds.add(mover.getMover());
+                            _logger.debug("Mover id for read only host is {}", mover.getMover());
+                        }
+                    }
+                    List<MoverOrVdmRef> rwFileSysHosts = fileSystem.getRwFileSystemHosts();
+                    if (null != rwFileSysHosts) {
+                        Iterator<MoverOrVdmRef> rwFileSysHostItr = rwFileSysHosts.iterator();
+                        while (rwFileSysHostItr.hasNext()) {
+                            MoverOrVdmRef mover = rwFileSysHostItr.next();
+                            moverIds.add(mover.getMover());
+                            _logger.debug("Mover id for read write host is {}", mover.getMover());
+                        }
                     }
                 }
-
-                if (!foundId) {
-                    _logger.error("Did not find file system ID for {}", fsName);
-                    keyMap.put(VNXFileConstants.IS_FILESYSTEM_AVAILABLE_ON_ARRAY, Boolean.FALSE);
-                }
-
             } else {
+                keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_FAILURE);
                 throw new VNXFilePluginException(
                         "Fault response received from XMLAPI Server.",
                         VNXFilePluginException.ERRORCODE_INVALID_RESPONSE);
             }
         }
-
+        keyMap.put(VNXFileConstants.MOVERLIST, moverIds);
     }
 
     @Override

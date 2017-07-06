@@ -908,17 +908,22 @@ setup_yaml() {
 	echo "WARNING: HPUX_HOST_IP not set.  host verification operations will not work!"
     fi
 
-    if [ "${HPUX_HOST_IP}" != "" ]; then
+    if [ "${LINUX_HOST_IP}" != "" ]; then
 	# Append Linux host attributes
 	printf '  linux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${LINUX_HOST_IP}" "${LINUX_HOST_PORT}" "${LINUX_HOST_USERNAME}" "${LINUX_HOST_PASSWORD}" >> $tools_file
     else
 	echo "WARNING: LINUX_HOST_IP not set.  host verification operations will not work!"
     fi
 
+    if [ "${SS}" = "hds" ]; then
+        echo "Creating ${tools_file}"
+        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s\n    usessl: false' "${SS}" "${HDS_PROVIDER_IP}" "${HDS_PROVIDER_PORT}" "${HDS_PROVIDER_USER}" "${HDS_PROVIDER_PASSWD}" >> $tools_file
+        return
+    fi
+
     if [ "$SS" = "xio" -o "$SS" = "vplex" -o "$SS" = "unity" ]; then
     	if [ "${SS}" = "unity" ]; then
             echo "Creating ${tools_file}"
-       	    touch $tools_file
             printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "${SS}" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
             return
     	fi

@@ -8396,17 +8396,24 @@ file_tests()
 	    run fileshare delete $PROJECT/${fs2}
     fi
 
-    run fileshare delete $PROJECT/$fsname --forceDelete true
+    run fileshare delete $PROJECT/$fsname
 
     if [ $cos = $COS_VNXFILE ] ; then
-        fsForceDelete="forceDeleteTestVNX"
-        echo "--Force Delete tests for VNXFile--"
+        fsForceDelete="deleteTestVNX"
+        echo "--Delete tests for VNXFile--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run fileshare export $PROJECT/$fsForceDelete $exp_args
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
         run snapshot export $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete $SNAPEXP_DEFAULT_EPS
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot unexport $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare unexport $PROJECT/$fsForceDelete
+        run fileshare delete $PROJECT/$fsForceDelete
+        
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8415,12 +8422,16 @@ file_tests()
 
 
     if [ $cos = $COS_NETAPP ] ; then
-        fsForceDelete="forceDeleteTestNETAPP"
-        echo "--Force Delete tests for NETAPP--"
+        fsForceDelete="deleteTestNETAPP"
+        echo "--Delete tests for NETAPP--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8428,12 +8439,16 @@ file_tests()
     fi
 
     if [ $cos = $COS_NETAPPC ] ; then
-        fsForceDelete="forceDeleteTestNETAPPC"
-        echo "--Force Delete tests for NETAPPC--"
+        fsForceDelete="deleteTestNETAPPC"
+        echo "--Delete tests for NETAPPC--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8441,12 +8456,16 @@ file_tests()
     fi
 
     if [ $cos = $COS_ISIFILE ] ; then
-        fsForceDelete="forceDeleteTestISILON"
-        echo "--Force Delete tests for ISILON--"
+        fsForceDelete="deleteTestISILON"
+        echo "--delete tests for ISILON--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
 	# duplicate label Test - Should fail
 	# run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
 	# run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8454,14 +8473,14 @@ file_tests()
 
     # Force Delete test for Data Domain
     if [ $cos = $COS_DDFILE ] ; then
-        fsForceDelete="forceDeleteTestDATADOMAIN"
+        fsForceDelete="deleteTestDATADOMAIN"
         #File systems (mtrees) are not deleted from DDMC, just marked inactive
         #until the GC runs.  To avoid conflict with the previous run, we attach
         #a timestamp to FS name.
         fsForceDeleteTimed=$fsForceDelete-$datetime
-        echo "--Force Delete tests for DATADOMAIN--"
+        echo "--Delete tests for DATADOMAIN--"
         run fileshare create $fsForceDeleteTimed $PROJECT $NH $cos $FS_SIZE
-        run fileshare delete $PROJECT/$fsForceDeleteTimed --forceDelete true
+        run fileshare delete $PROJECT/$fsForceDeleteTimed
     fi
 
     # File System Quota directory ops.
@@ -8475,8 +8494,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8490,7 +8509,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8504,8 +8524,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8521,8 +8541,9 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs"
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare unexport $PROJECT/$fsQuotaDir
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
 
 }

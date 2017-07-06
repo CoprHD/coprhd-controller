@@ -17,7 +17,7 @@ REDIRECT_STDOUT_TO_LOG=false
 DISK_USED_PERCENTAGE_WARNING_LIMIT=50
 DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
 MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StorageProvider StoragePool StoragePort StorageSystem Vcenter VirtualArray VirtualDataCenter VirtualPool Volume)
-LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc controllersvc-discovery controllersvc-metering controllersvc-vplex-api syssvc sasvc geodbsvc)
+LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc controllersvc-discovery controllersvc-metering controllersvc-vplex-api controllersvc-xio-api syssvc sasvc geodbsvc)
 
 
 #This script is used to help user to restore a backupset simply

@@ -17,13 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.storagedriver.storagecapabilities.DataProtectionServiceOption;
-import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
-
-import com.emc.storageos.storagedriver.HostExportInfo;
-import com.emc.storageos.storagedriver.model.StorageBlockObject;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +27,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -42,9 +36,10 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
@@ -60,12 +55,14 @@ import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.RemoteReplicationDriver;
 import com.emc.storageos.storagedriver.StorageDriver;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
+import com.emc.storageos.storagedriver.model.StorageBlockObject;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
@@ -76,9 +73,12 @@ import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplication
 import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
-import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
+import com.emc.storageos.storagedriver.storagecapabilities.DataProtectionServiceOption;
 import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.HostIOLimitsCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
@@ -195,8 +195,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 if (storageCapabilities == null) {
                     // All volumes created in a request will have the same capabilities.
                     storageCapabilities = new StorageCapabilities();
-                    addAutoTieringPolicyCapability(storageCapabilities, volume.getAutoTieringPolicyUri());
-                    addDeduplicationCapability(storageCapabilities, volume.getIsDeduplicated());
+                    CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilities();
+                    if (commonCapabilities == null) {
+                        commonCapabilities = new CommonStorageCapabilities();
+                        storageCapabilities.setCommonCapabilities(commonCapabilities);
+                    }
+                    addAutoTieringPolicyCapability(commonCapabilities, volume.getAutoTieringPolicyUri());
+                    addDeduplicationCapability(commonCapabilities, volume.getIsDeduplicated());
+                    addHostIOLimitsCapability(commonCapabilities, volume.getVirtualPool());
                 }
                 StorageVolume driverVolume = new StorageVolume();
                 driverVolume.setStorageSystemId(storageSystem.getNativeId());
@@ -249,15 +255,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             }
         }
     }
-    
+
     /**
      * Create the auto tiering policy capability and add it to the passed
-     * storage capabilities
-     * 
-     * @param storageCapabilities A reference to all storage capabilities.
+     * common storage capabilities
+     *
+     * @param storageCapabilities A reference to common storage capabilities.
      * @param autoTieringPolicyURI The URI of the AutoTieringPolicy or null.
      */
-    private void addAutoTieringPolicyCapability(StorageCapabilities storageCapabilities, URI autoTieringPolicyURI) {
+    private void addAutoTieringPolicyCapability(CommonStorageCapabilities storageCapabilities, URI autoTieringPolicyURI) {
         if (!NullColumnValueGetter.isNullURI(autoTieringPolicyURI)) {
             AutoTieringPolicy autoTieringPolicy = dbClient.queryObject(AutoTieringPolicy.class, autoTieringPolicyURI);
             if (autoTieringPolicy == null) {
@@ -268,43 +274,54 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             AutoTieringPolicyCapabilityDefinition capabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
             Map<String, List<String>> capabilityProperties = new HashMap<>();
             capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(),
-                    Arrays.asList(autoTieringPolicy.getPolicyName()));
+                    Collections.singletonList(autoTieringPolicy.getPolicyName()));
             capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(),
-                    Arrays.asList(autoTieringPolicy.getProvisioningType()));
-            CapabilityInstance autoTieringCapability = new CapabilityInstance(capabilityDefinition.getId(), 
+                    Collections.singletonList(autoTieringPolicy.getProvisioningType()));
+            CapabilityInstance autoTieringCapability = new CapabilityInstance(capabilityDefinition.getId(),
                     autoTieringPolicy.getPolicyName(), capabilityProperties);
 
-            // Get the common capabilities for the passed storage capabilities.
-            // If null, create and set it.
-            CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
-            if (commonCapabilities == null) {
-                commonCapabilities = new CommonStorageCapabilities();
-                storageCapabilities.setCommonCapabilitis(commonCapabilities);
+            StorageCapabilitiesUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(autoTieringCapability));
+        }
+    }
+
+
+    /**
+     * Create new hostIO Limits capability insance and it to the passed common capabilities
+     * @param storageCapabilities common capabilities
+     * @param vpoolUri virtual pool URI
+     */
+    private void addHostIOLimitsCapability(CommonStorageCapabilities storageCapabilities, URI vpoolUri) {
+        VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, vpoolUri);
+        String msg = String.format("Processing hostIOLimits for vpool %s / %s : bandwidth: %s, iops: %s",
+                virtualPool.getLabel(), virtualPool.getId(), virtualPool.getHostIOLimitBandwidth(), virtualPool.getHostIOLimitIOPs());
+        _log.info(msg);
+        if (virtualPool.isHostIOLimitBandwidthSet() || virtualPool.isHostIOLimitIOPsSet()) {
+            // Create the host io limits capability.
+            HostIOLimitsCapabilityDefinition capabilityDefinition = new HostIOLimitsCapabilityDefinition();
+            Map<String, List<String>> capabilityProperties = new HashMap<>();
+            if (virtualPool.isHostIOLimitBandwidthSet()) {
+                capabilityProperties.put(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_BANDWIDTH.name(),
+                        Collections.singletonList(virtualPool.getHostIOLimitBandwidth().toString()));
             }
-            
-            // Get the data storage service options for the common capabilities.
-            // If null, create it and set it.
-            List<DataStorageServiceOption> dataStorageSvcOptions = commonCapabilities.getDataStorage();
-            if (dataStorageSvcOptions == null) {
-                dataStorageSvcOptions = new ArrayList<>();
-                commonCapabilities.setDataStorage(dataStorageSvcOptions);
+            if (virtualPool.isHostIOLimitIOPsSet()) {
+                capabilityProperties.put(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_IOPS.name(),
+                        Collections.singletonList(virtualPool.getHostIOLimitIOPs().toString()));
             }
-            
-            // Create a new data storage service option for the AutoTiering policy capability
-            // and add it to the list.
-            DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(Arrays.asList(autoTieringCapability));
-            dataStorageSvcOptions.add(dataStorageSvcOption);
-        }        
+            CapabilityInstance hostIOLimitsCapability = new CapabilityInstance(capabilityDefinition.getId(),
+                    capabilityDefinition.getId(), capabilityProperties);
+
+            StorageCapabilitiesUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(hostIOLimitsCapability));
+        }
     }
 
     /**
      * Create deduplication capability and add it to the passed
-     * storage capabilities
+     * common storage capabilities
      *
-     * @param storageCapabilities reference to storage capbilities
+     * @param storageCapabilities reference to common storage capabilities
      * @param deduplication indicates if deduplication is required
      */
-    private void addDeduplicationCapability(StorageCapabilities storageCapabilities, Boolean deduplication) {
+    private void addDeduplicationCapability(CommonStorageCapabilities storageCapabilities, Boolean deduplication) {
         if (deduplication) {
             // Create the deduplicated capability.
             DeduplicationCapabilityDefinition capabilityDefinition = new DeduplicationCapabilityDefinition();
@@ -314,26 +331,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             CapabilityInstance dedupCapability = new CapabilityInstance(capabilityDefinition.getId(),
                     capabilityDefinition.getId(), capabilityProperties);
 
-            // Get the common capabilities for the passed storage capabilities.
-            // If null, create and set it.
-            CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
-            if (commonCapabilities == null) {
-                commonCapabilities = new CommonStorageCapabilities();
-                storageCapabilities.setCommonCapabilitis(commonCapabilities);
-            }
-
-            // Get the data storage service options for the common capabilities.
-            // If null, create it and set it.
-            List<DataStorageServiceOption> dataStorageSvcOptions = commonCapabilities.getDataStorage();
-            if (dataStorageSvcOptions == null) {
-                dataStorageSvcOptions = new ArrayList<>();
-                commonCapabilities.setDataStorage(dataStorageSvcOptions);
-            }
-
-            // Create a new data storage service option for the auto tiering policy capability
-            // and add it to the list.
-            DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(Collections.singletonList(dedupCapability));
-            dataStorageSvcOptions.add(dataStorageSvcOption);
+            StorageCapabilitiesUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(dedupCapability));
         }
     }
 
@@ -2051,7 +2049,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void stop(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+    public void stop(final RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
         _log.info("Stop remote replication element {} with system id {}", replicationElement.getType(), replicationElement.getElementUri());
 
         RemoteReplicationOperationHandler stopHandler = new RemoteReplicationOperationHandler() {
@@ -2090,7 +2088,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void changeReplicationMode(RemoteReplicationElement replicationElement, String newMode, TaskCompleter taskCompleter) {
+    public void changeReplicationMode(final RemoteReplicationElement replicationElement, final String newMode, TaskCompleter taskCompleter) {
         _log.info("Change mode of remote replication element {} with system id {} to {}", replicationElement.getType(),
                 replicationElement.getElementUri(), newMode);
 
@@ -2351,10 +2349,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
             // Get the common capabilities for the passed storage capabilities.
             // If null, create and set it.
-            CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
+            CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilities();
             if (commonCapabilities == null) {
                 commonCapabilities = new CommonStorageCapabilities();
-                storageCapabilities.setCommonCapabilitis(commonCapabilities);
+                storageCapabilities.setCommonCapabilities(commonCapabilities);
             }
 
             // Get the data protection service options for the common capabilities.

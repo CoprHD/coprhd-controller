@@ -113,4 +113,17 @@ public class CapabilityInstance {
         }
         return propValue;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder capability = new StringBuilder();
+        capability.append(" CapabilityDefinitionUid: ").append(capabilityDefinitionUid).append(", ");
+        capability.append("Name: ").append(name).append(", \n");
+        if (properties != null) {
+            for (Map.Entry<String, List<String>> entry : properties.entrySet()) {
+                capability.append("\t ").append(entry.getKey()).append(": ").append(entry.getValue().toString()).append(",");
+            }
+        }
+        return capability.toString();
+    }
 }

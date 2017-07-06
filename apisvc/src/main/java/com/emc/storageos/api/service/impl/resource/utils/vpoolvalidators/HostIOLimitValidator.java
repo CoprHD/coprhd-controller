@@ -42,7 +42,8 @@ public class HostIOLimitValidator extends VirtualPoolValidator<BlockVirtualPoolP
         }
 
         if (null != updateParam.getSystemType()) {
-            if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType())) {
+            if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType()) &&
+                    !getStorageDriverManager().isDriverManaged(updateParam.getSystemType())) {
                 throw APIException.badRequests.invalidParameterSystemTypeforHostIOLimits();
             }
         } else if (null != arrayInfo
@@ -63,7 +64,8 @@ public class HostIOLimitValidator extends VirtualPoolValidator<BlockVirtualPoolP
             throw APIException.badRequests.missingParameterSystemTypeforHostIOLimits();
         }
 
-        if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType())) {
+        if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType()) &&
+                      !getStorageDriverManager().isDriverManaged(createParam.getSystemType())) {
             throw APIException.badRequests.invalidParameterSystemTypeforHostIOLimits();
         }
 

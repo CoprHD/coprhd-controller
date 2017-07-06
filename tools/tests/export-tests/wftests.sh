@@ -1074,8 +1074,8 @@ srdf_sim_setup() {
     SRDF_V3_VMAXA_NATIVEGUID=${VMAX3_SIMULATOR_NATIVE_GUID}
     SRDF_V3_VMAXB_NATIVEGUID=${VMAX3_SIMULATOR_R2_NATIVE_GUID}
 
-    SRDF_V3_VMAXA_POLICY="${SRDF_V3_VMAXA_NATIVEGUID}+${SIMULATOR_VMAX3_FAST_POLICY_SUFFIX}"
-    SRDF_V3_VMAXB_POLICY="${SRDF_V3_VMAXB_NATIVEGUID}+${SIMULATOR_VMAX3_FAST_POLICY_SUFFIX}"
+    SRDF_V3_VMAXA_FAST_POLICY="${SRDF_V3_VMAXA_NATIVEGUID}+${SIMULATOR_VMAX3_FAST_POLICY_SUFFIX}"
+    SRDF_V3_VMAXB_FAST_POLICY="${SRDF_V3_VMAXB_NATIVEGUID}+${SIMULATOR_VMAX3_FAST_POLICY_SUFFIX}"
 }
 
 srdf_setup() {
@@ -3814,10 +3814,6 @@ test_delete_srdf() {
         return
     fi
 
-    # Clear existing volumes
-    volume delete --project ${PROJECT} --wait
-    cleanup_srdf $PROJECT
-
     common_failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes&1 \
                         failure_087_BlockDeviceController.before_doDeleteVolumes&2 \
                         failure_088_BlockDeviceController.after_doDeleteVolumes&1 \
@@ -3856,6 +3852,9 @@ test_delete_srdf() {
         mkdir -p results/${item}
         volname=${VOLNAME}-${item}
 
+        # Clear existing volumes
+        cleanup_srdf $PROJECT
+
         runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
         # run discovery to update RemoteDirectorGroups
         runcmd storagedevice discover_all
@@ -3865,12 +3864,21 @@ test_delete_srdf() {
         set_artificial_failure ${failure}
 
         # Remove the volume
-        if [ "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ];
+        if [ "${failure}" = "failure_088_BlockDeviceController.after_doDeleteVolumes&1" -o \
+               "${failure}" = "failure_088_BlockDeviceController.after_doDeleteVolumes&2" -o \
+               "${failure}" = "failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData" -o \
+               "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o \
+               "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ]
         then
+          # Failure on GetDefaultReplicationSettingData is ignored.
+          # failure_90, failure_092 occurs at the idempotent-friendly SRDF phase, where enough has already happened for volume deletion to succeed.
+          # failure_088 is expected to pass due to the asynchronous job taking control of the completer status.
           runcmd volume delete ${PROJECT}/${volname} --wait
 
           # Verify injected failures were hit
           verify_failures ${failure}
+
+          set_artificial_failure none
         else
           fail volume delete ${PROJECT}/${volname} --wait
 
@@ -3880,13 +3888,23 @@ test_delete_srdf() {
           # Verify injected failures were hit
           verify_failures ${failure}
 
-          # Validate volume was left for retry
-          validate_db 1 2 ${cfs}
-
           set_artificial_failure none
 
-          # Retry the delete operation
-          runcmd volume delete ${PROJECT}/${volname} --wait
+          # No sense in validating db for failure_087, since source or target would have been deleted.
+          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" ]
+          then
+            # failure_087 leaves the source or target behind, so we expect to be able to retry deleting whichever one was left behind.
+            runcmd volume delete --project ${PROJECT} --wait
+          else
+            # Validate volume was left for retry
+            validate_db 1 2 ${cfs}
+
+            # Retry the delete operation on remaining source volumes
+            for vol in `volume list $PROJECT | grep "SOURCE" | awk '{ print $7}'`
+            do
+              runcmd volume delete $vol --wait
+            done
+          fi
         fi
 
         if [ "${SIM}" = "0" ]
@@ -4188,7 +4206,6 @@ cleanup_previous_run_artifacts() {
 
 cleanup_srdf() {
   project=$1
-  SOURCES=
 
   for source in `volume list $project | grep SOURCE | awk '{ print $7}'`
   do

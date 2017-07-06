@@ -120,11 +120,6 @@ public class RPUnManagedObjectDiscoverer {
         for (GetCGsResponse cg : cgs) {
             try {
 
-                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                    log.warn("Discovery kill switch is on, discontinuing unmanaged CG discovery.");
-                    return;
-                }
-
                 log.info("Processing returned CG: " + cg.getCgName());
                 boolean newCG = false;
 

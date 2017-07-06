@@ -153,12 +153,6 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
             if (StorageSystem.Discovery_Namespaces.UNMANAGED_CGS.toString().equalsIgnoreCase(accessProfile.getnamespace())) {
                 try {
-
-                    if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                        _log.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
-                        return;
-                    }
-
                     unManagedCGDiscoverer.discoverUnManagedObjects(accessProfile, _dbClient, _partitionManager);
                 } catch (RecoverPointException rpe) {
                     discoverySuccess = false;

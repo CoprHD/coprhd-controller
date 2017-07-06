@@ -94,11 +94,6 @@ public class HDSVolumeDiscoverer {
             }
             for (LogicalUnit logicalUnit : luList) {
 
-                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                    log.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
-                    return;
-                }
-
                 if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(logicalUnit.getObjectID())) {
                     // skipping this volume because the filter doesn't match
                     continue;

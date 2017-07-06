@@ -682,11 +682,6 @@ public class NetAppFileCommunicationInterface extends
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
 
-            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                _logger.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
-                return;
-            }
-
             discoverUmanagedFileSystems(accessProfile);
             discoverUmanagedFileQuotaDirectory(accessProfile);
             // discoverUnManagedExports(accessProfile);
@@ -749,11 +744,6 @@ public class NetAppFileCommunicationInterface extends
             List<VFilerInfo> vFilers = netAppApi.listVFilers(null);
 
             for (Map<String, String> fileSystemChar : fileSystemInfo) {
-
-                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                    _logger.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
-                    return;
-                }
 
                 String poolName = fileSystemChar
                         .get(SupportedNtpFileSystemInformation

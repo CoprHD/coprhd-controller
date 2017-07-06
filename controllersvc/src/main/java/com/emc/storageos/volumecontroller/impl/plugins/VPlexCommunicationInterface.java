@@ -712,11 +712,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap,
             Set<String> recoverPointExportMasks, UnmanagedDiscoveryPerformanceTracker tracker) throws BaseCollectionException {
 
-        if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-            s_logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
-            return;
-        }
-
         String statusMessage = "Starting discovery of Unmanaged VPLEX Volumes.";
         s_logger.info(statusMessage + " Access Profile Details :  IpAddress : "
                 + "PortNumber : {}, namespace : {}",
@@ -772,11 +767,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 }
                 
                 for (String name : allVirtualVolumes.keySet()) {
-
-                    if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                        s_logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
-                        return;
-                    }
 
                     if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(name)) {
                         // skipping this volume because the filter doesn't match
@@ -1590,11 +1580,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             for (String clusterName : clusterIdToNameMap.values()) {
                 List<VPlexStorageViewInfo> storageViews = client.getStorageViewsForCluster(clusterName);
                 for (VPlexStorageViewInfo storageView : storageViews) {
-
-                    if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                        s_logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
-                        return;
-                    }
 
                     s_logger.info("discovering storage view: " + storageView.toString());
                     List<Initiator> knownInitiators = new ArrayList<Initiator>();

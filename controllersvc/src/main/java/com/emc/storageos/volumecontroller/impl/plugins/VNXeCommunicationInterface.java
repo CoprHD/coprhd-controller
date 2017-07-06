@@ -135,11 +135,6 @@ public class VNXeCommunicationInterface extends
                             .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                     .toString()))) {
 
-                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                    _logger.warn("Discovery kill switch is on, discontinuing unmanaged discovery.");
-                    return;
-                }
-
                 discoverUnmanagedObjects(accessProfile);
             } else {
                 // Get the Vnxe storage system from the database.

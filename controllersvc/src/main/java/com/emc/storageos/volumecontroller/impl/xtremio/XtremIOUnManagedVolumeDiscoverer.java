@@ -228,11 +228,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
             for (XtremIOVolume volume : volumes) {
                 try {
 
-                    if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                        log.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
-                        return;
-                    }
-
                     if (volume.getVolInfo() != null && 
                             !DiscoveryUtils.isUnmanagedVolumeFilterMatching(volume.getVolInfo().get(1))) {
                         // skipping this volume because the filter doesn't match

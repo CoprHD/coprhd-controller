@@ -68,8 +68,6 @@ public class DiscoveryUtils {
     private static final String UNMANAGED_VOLUME = "UnManagedVolume";
     private static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
     private static final String UNMANAGED_VOLUME_DISCOVERY_FILTER = "controller_unmanaged_object_discovery_filter";
-    private static final String UNMANAGED_VOLUME_DISCOVERY_KILL_SWITCH = "controller_unmanaged_object_discovery_kill_switch";
-    private static final String UNMANAGED_VOLUME_DISCOVERY_KILL_SWITCH_STOP = "stop";
     private static final String TRUE = "true";
 
     private static CoordinatorClient _coordinator;
@@ -1024,34 +1022,6 @@ public class DiscoveryUtils {
         }
 
         return objectPaths;
-    }
-
-    /**
-     * Returns true if the system config setting value of controller_unmanaged_volume_discovery_kill_switch
-     * is set to "stop". This can be used to determine if any currently running UnManagedVolume discovery
-     * process should be stopped.
-     * 
-     * Discovery interfaces that use this method probably would want to do the check once at the very
-     * beginning of discovery (so that the whole process can be short circuited in the case of multi-array
-     * discovery running in a single Order) and once at the beginning of every volume discovery iteration 
-     * (so that discovery can be exited after individual volume discovery is underway).
-     * 
-     * @return true if currently running UnManagedVolume discovery process(es) should be stopped
-     */
-    public static boolean isUnmanagedDiscoveryKillSwitchOn() {
-        if (_coordinator != null) {
-            String discoveryKillSwitch = ControllerUtils
-                    .getPropertyValueFromCoordinator(
-                            _coordinator, DiscoveryUtils.UNMANAGED_VOLUME_DISCOVERY_KILL_SWITCH);
-            if (UNMANAGED_VOLUME_DISCOVERY_KILL_SWITCH_STOP.equals(discoveryKillSwitch)) {
-                _log.warn("discovery kill switch is set to 'stop'!");
-                return true;
-            }
-        } else {
-            _log.error("Bean wiring error: Coordinator not set, therefore discovery kill switch will default to 'run'.");
-        }
-
-        return false;
     }
 
     /**

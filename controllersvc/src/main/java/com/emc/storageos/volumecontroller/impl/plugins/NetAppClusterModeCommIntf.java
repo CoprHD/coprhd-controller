@@ -181,11 +181,6 @@ public class NetAppClusterModeCommIntf extends
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
 
-            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                _logger.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
-                return;
-            }
-
             discoverUmanagedFileSystems(accessProfile);
             discoverUmanagedFileQuotaDirectory(accessProfile);
             discoverUnManagedCifsShares(accessProfile);
@@ -246,11 +241,6 @@ public class NetAppClusterModeCommIntf extends
             List<StorageVirtualMachineInfo> svms = netAppCApi.listSVM();
 
             for (Map<String, String> fileSystemChar : fileSystemInfo) {
-
-                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                    _logger.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
-                    return;
-                }
 
                 String poolName = fileSystemChar
                         .get(SupportedNtpFileSystemInformation

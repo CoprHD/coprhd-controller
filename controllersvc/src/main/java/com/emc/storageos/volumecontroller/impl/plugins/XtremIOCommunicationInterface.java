@@ -157,11 +157,6 @@ public class XtremIOCommunicationInterface extends
         if (null != accessProfile.getnamespace()
                 && (accessProfile.getnamespace().equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()))) {
 
-            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                _logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
-                return;
-            }
-
             discoverUnManagedVolumes(accessProfile);
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());

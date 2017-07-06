@@ -359,11 +359,6 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
                                 .toString()))) {
 
-            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                _logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
-                return;
-            }
-
             discoverUnManagedVolumes(accessProfile);
         } else {
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());

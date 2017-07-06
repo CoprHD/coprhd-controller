@@ -299,11 +299,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
 
-            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                _logger.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
-                return;
-            }
-
             discoverUmanagedFileSystems(accessProfile);
             // discoverUnmanagedExports(accessProfile);
             discoverUnmanagedNewExports(accessProfile);
@@ -1571,11 +1566,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             StringSet umfsIds = new StringSet();
             if (discoveredFS != null) {
                 for (VNXFileSystem fs : discoveredFS) {
-
-                    if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                        _logger.warn("Discovery kill switch is on, discontinuing unmanaged file system discovery.");
-                        return;
-                    }
 
                     if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getFsName())) {
                         // skipping this file system because the filter doesn't match

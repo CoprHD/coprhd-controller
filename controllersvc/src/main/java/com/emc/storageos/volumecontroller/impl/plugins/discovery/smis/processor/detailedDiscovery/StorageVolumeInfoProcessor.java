@@ -104,11 +104,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         WBEMClient client = null;
         try {
 
-            if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                _logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
-                return;
-            }
-
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             client = SMICommunicationInterface.getCIMClient(keyMap);
             _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
@@ -250,11 +245,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             CIMInstance volumeViewInstance = null;
             try {
                 volumeViewInstance = it.next();
-
-                if (DiscoveryUtils.isUnmanagedDiscoveryKillSwitchOn()) {
-                    _logger.warn("Discovery kill switch is on, discontinuing unmanaged volume discovery.");
-                    return;
-                }
 
                 String deviceId = null;
                 if (system.getUsingSmis80()) {

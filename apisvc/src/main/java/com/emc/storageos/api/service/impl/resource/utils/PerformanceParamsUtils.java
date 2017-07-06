@@ -76,7 +76,9 @@ public class PerformanceParamsUtils {
         Map<URI, Map<VolumeTopologyRole, URI>> resultMap = new HashMap<>();
         if (!CollectionUtils.isEmpty(performanceParamsMapList)) {
             for (BlockPerformanceParamsMap performanceParamsMap : performanceParamsMapList) {
-                resultMap.put(performanceParamsMap.getVirtualArray(), transformPerformanceParams(performanceParamsMap));
+                if (performanceParamsMap != null) {
+                    resultMap.put(performanceParamsMap.getVirtualArray(), transformPerformanceParams(performanceParamsMap));
+                }
             }
         }
         return resultMap;

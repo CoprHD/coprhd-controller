@@ -25,6 +25,7 @@ import java.util.Map;
 
 import javax.ws.rs.core.UriBuilder;
 
+import com.emc.storageos.db.client.model.Task;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -179,6 +180,11 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             if (classname.contains(RESTHelper.TASKLIST)) {
                 responseString = updateState(responseString, taskState);
             }
+            final boolean isSuccess = isSuccess(taskState, response.getStatus());
+            if (!isSuccess) {
+                throw InternalServerErrorException.internalServerErrors.
+                        customServiceExecutionFailed("Failed to Execute ViPR request");
+            }
             return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), taskState);
 
         } catch (final InternalServerErrorException e) {
@@ -197,6 +203,32 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }
+    }
+
+    private boolean isSuccess(final Map<URI, String> states, final int returnCode) {
+
+        if (states != null) {
+            for (Map.Entry<URI, String> e : states.entrySet()) {
+                if (!StringUtils.isEmpty(e.getValue())) {
+                    if (e.getValue().equals(Task.Status.error.toString())) {
+                        ExecutionUtils.currentContext().logError("customServicesService.logStatus",
+                                "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
+                                        + " Task Failed TaskId: " + e.getKey() + " State:" + e.getValue());
+                        return false;
+                    }
+                }
+            }
+        }
+        if (!(returnCode >= 200 && returnCode < 300)) {
+            ExecutionUtils.currentContext().logError("customServicesService.logStatus",
+                    "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
+                            + " Operation Failed ReturnCode: " + returnCode);
+
+            return false;
+        }
+
+        return true;
+
     }
 
     private String updateState(final String response, final Map<URI, String> uristates) {

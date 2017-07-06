@@ -142,15 +142,14 @@ public class CustomServicesService extends ViPRService {
 
                 res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
 
-                boolean isSuccess = isSuccess(step, res);
-                if (isSuccess) {
-                    try {
-                        updateOutputPerStep(step, res);
-                    } catch (final Exception e) {
-                        logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
-                    }
+                try {
+                    updateOutputPerStep(step, res);
+                } catch (final Exception e) {
+                    logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
                 }
-                next = getNext(isSuccess, res, step);
+
+                next = getNext(true, res, step);
+
             } catch (final Exception e) {
                 logger.warn(
                         "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:", e);

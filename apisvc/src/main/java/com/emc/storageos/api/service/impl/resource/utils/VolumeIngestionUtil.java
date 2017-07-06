@@ -102,7 +102,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
-import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
@@ -2697,6 +2696,9 @@ public class VolumeIngestionUtil {
         Map<String, UnManagedExportMask> cache = new HashMap<String, UnManagedExportMask>();
         Host host = dbClient.queryObject(Host.class, hostUri);
         Set<String> clusterInis = new HashSet<String>();
+        Map<URI, UnManagedVolume> localUmvCache = new HashMap<URI, UnManagedVolume>();
+        Map<URI, UnManagedExportMask> localUemCache = new HashMap<URI, UnManagedExportMask>();
+
         /**
          * If host is part of a cluster, then unmanaged volumes which are exclusive to this host will be selected
          * Get the remaining Host initiators of this cluster, and if there is at least a match between the cluster inis and
@@ -2720,8 +2722,15 @@ public class VolumeIngestionUtil {
                     AlternateIdConstraint.Factory.getUnManagedVolumeInitiatorNetworkIdConstraint(initiator.getInitiatorPort()), results);
             if (results.iterator() != null) {
                 for (URI uri : results) {
-                    _logger.debug("      found UnManagedVolume " + uri);
-                    unManagedVolumeUris.add(uri);
+                    UnManagedVolume umv = getUnManagedVolumeFromCache(uri, localUmvCache, dbClient);
+                    if (umv != null) {
+                        _logger.info("      checking UnManagedVolume " + umv.forDisplay());
+                        Set<String> initPortsInAllMasks = getAllInitiatorNetworkIdsInUnmanagedExportMasks(umv, localUemCache, dbClient);
+                        if (initPortsInAllMasks.contains(initiator.getInitiatorPort())) {
+                            _logger.info("         UnManagedVolume's masks contain host port {}, so it's a possible match.", initiator.getInitiatorPort());
+                            unManagedVolumeUris.add(uri);
+                        }
+                    }
                 }
             }
         }
@@ -2776,6 +2785,56 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Collects and returns a Set of all the Initiator Network ID Strings 
+     * for all the given UnManagedExportMasks.  It will cache the UnManagedExportMasks
+     * if a cache is supplied in the arguments.
+     *
+     * @param unManagedVolume the UnManagedVolume
+     * @param cache a Map of UnManagedExportMask URIs to UnManagedExportMask objects to check
+     * @param dbClient a reference to the database client
+     * @return a List of all the Initiator Network IDs for the given UnManagedExportMask
+     */
+    private static Set<String> getAllInitiatorNetworkIdsInUnmanagedExportMasks(UnManagedVolume unManagedVolume,
+            Map<URI, UnManagedExportMask> cache, DbClient dbClient) {
+        Set<String> inis = new HashSet<String>();
+        for (String eMaskUri : unManagedVolume.getUnmanagedExportMasks()) {
+            UnManagedExportMask unManagedExportMask = cache != null ? cache.get(eMaskUri) : null;
+            if (null == unManagedExportMask) {
+                unManagedExportMask = dbClient.queryObject(UnManagedExportMask.class, URI.create(eMaskUri));
+            }
+            if (null != unManagedExportMask) {
+                if (cache != null) {
+                    cache.put(unManagedExportMask.getId(), unManagedExportMask);
+                }
+                inis.addAll(unManagedExportMask.getKnownInitiatorNetworkIds());
+            }
+        }
+        return inis;
+    }
+
+    /**
+     * Gets an UnManagedVolume already loaded from the database if it can be found in the
+     * supplied cache, otherwise loads it, or returns null if not found in the database.
+     * 
+     * @param unManagedVolumeUri the UnManagedVolume URI to look for
+     * @param cache the UnManagedVolume cache (mapping of UnManagedVolume URI to object) to check
+     * @param dbClient a reference to the database client
+     * @return the UnManagedVolume or null if not found in the database.
+     */
+    public static UnManagedVolume getUnManagedVolumeFromCache(URI unManagedVolumeUri,
+            Map<URI, UnManagedVolume> cache, DbClient dbClient) {
+        UnManagedVolume unManagedVolume = cache != null ? cache.get(unManagedVolumeUri) : null;
+        if (null == unManagedVolume) {
+            unManagedVolume = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeUri);
+            if (null != unManagedVolume && null != cache) {
+                cache.put(unManagedVolumeUri, unManagedVolume);
+            }
+        }
+
+        return unManagedVolume;
+    }
+
+    /**
      * Returns a List of UnManagedVolumes for the given Cluster URI.
      *
      * @param clusterUri the Cluster URI to check
@@ -2787,6 +2846,8 @@ public class VolumeIngestionUtil {
         _logger.info("finding unmanaged volumes for cluster " + clusterUri);
         Set<URI> consistentVolumeUris = new HashSet<URI>();
         List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterUri, Host.class, "cluster");
+        Map<URI, UnManagedVolume> localUmvCache = new HashMap<URI, UnManagedVolume>();
+        Map<URI, UnManagedExportMask> localUemCache = new HashMap<URI, UnManagedExportMask>();
 
         int hostIndex = 0;
         for (URI hostUri : hostUris) {
@@ -2801,8 +2862,15 @@ public class VolumeIngestionUtil {
                         results);
                 if (results.iterator() != null) {
                     for (URI uri : results) {
-                        _logger.info("      found UnManagedVolume " + uri);
-                        unManagedVolumeUris.add(uri);
+                        UnManagedVolume umv = getUnManagedVolumeFromCache(uri, localUmvCache, dbClient);
+                        if (umv != null) {
+                            _logger.info("      checking UnManagedVolume " + umv.forDisplay());
+                            Set<String> initPortsInAllMasks = getAllInitiatorNetworkIdsInUnmanagedExportMasks(umv, localUemCache, dbClient);
+                            if (initPortsInAllMasks.contains(initiator.getInitiatorPort())) {
+                                _logger.info("         UnManagedVolume's masks contain host port {}, so it's a possible match.", initiator.getInitiatorPort());
+                                unManagedVolumeUris.add(uri);
+                            }
+                        }
                     }
                 }
             }

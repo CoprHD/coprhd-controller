@@ -1745,7 +1745,7 @@
         allowedValues : ( "run", "stop" ),
         userConfigurable : false,
         userMutable : true,
-        hidden : false,
+        hidden : true,
         advanced : true,
         tag : "Controller",
         reconfigRequired : false,
@@ -2056,7 +2056,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "28800",
+        value : "21600",
         hidden : "true"
     },
     {

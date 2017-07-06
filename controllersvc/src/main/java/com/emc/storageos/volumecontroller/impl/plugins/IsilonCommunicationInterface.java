@@ -1938,17 +1938,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if (!quota.getId().equalsIgnoreCase("null")) {
             fs.getExtensions().put(QUOTA, quota.getId());
         }
-
-        if (null != quota.getThresholds().getSoft() && capacity != 0) {
-            softLimit = quota.getThresholds().getSoft() * 100 / capacity;
+        if (null != quota.getThresholds()) {
+            if (null != quota.getThresholds().getSoft() && capacity != 0) {
+                softLimit = quota.getThresholds().getSoft() * 100 / capacity;
+            }
+            if (null != quota.getThresholds().getSoftGrace() && capacity != 0) {
+                softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
+            }
+            if (null != quota.getThresholds().getAdvisory() && capacity != 0) {
+                notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
+            }
         }
-        if (null != quota.getThresholds().getSoftGrace() && capacity != 0) {
-            softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
-        }
-        if (null != quota.getThresholds().getAdvisory() && capacity != 0) {
-            notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
-        }
-
         fs.setSoftLimit(softLimit);
         fs.setSoftGracePeriod(softGrace);
         fs.setNotificationLimit(notificationLimit);
@@ -2421,6 +2421,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         StringSet fsId = new StringSet();
         fsId.add(fileSystem.getNativeId());
 
+        StringSet softLimit = new StringSet();
+        softLimit.add(fileSystem.getSoftLimit().toString());
+
+        StringSet softGrace = new StringSet();
+        softGrace.add(fileSystem.getSoftGracePeriod().toString());
+
+        StringSet notificationLimit = new StringSet();
+        notificationLimit.add(fileSystem.getNotificationLimit().toString());
+
         unManagedFileSystem.setLabel(fileSystem.getName());
 
         unManagedFileSystemInformation.put(
@@ -2433,6 +2442,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 UnManagedFileSystem.SupportedFileSystemInformation.PATH.toString(), fsPath);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.MOUNT_PATH.toString(), fsMountPath);
+        unManagedFileSystemInformation.put(
+                UnManagedFileSystem.SupportedFileSystemInformation.SOFT_LIMIT.toString(), softLimit);
+        unManagedFileSystemInformation.put(
+                UnManagedFileSystem.SupportedFileSystemInformation.SOFT_GRACE.toString(), softGrace);
+        unManagedFileSystemInformation.put(
+                UnManagedFileSystem.SupportedFileSystemInformation.NOTIFICATION_LIMIT.toString(), notificationLimit);
 
         StringSet provisionedCapacity = new StringSet();
         long capacity = 0;

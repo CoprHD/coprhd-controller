@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -64,6 +65,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     private static final boolean SNAPS_IN_CG = true;
     private static final boolean CLONES_IN_CG = true;
     private static final boolean GENERATE_EXPORT_DATA = true;
+    private static final boolean GENERATE_CAPABILITIES_DATA = true;
     private static final String SIMULATOR_CONF_FILE = "simulator-conf.xml";
     private static final String CONFIG_BEAN_NAME = "simulatorConfig";
 
@@ -410,6 +412,11 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
         //String newVolumes = "";
         Set<String> newVolumes = new HashSet<>();
+
+        CapabilityInstance hostIOLimits = StorageDriverSimulatorUtils.getHostIOLimitsCapabilities(capabilities);
+        if (hostIOLimits != null) {
+            _log.info("HostIOLimits for volumes: " +hostIOLimits.toString());
+        }
 
         for (StorageVolume volume : volumes) {
             volume.setNativeId("driverSimulatorVolume" + UUID.randomUUID().toString());
@@ -817,12 +824,16 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
             driverVolume.setThinlyProvisioned(true);
             driverVolume.setThinVolumePreAllocationSize(3000L);
-            driverVolume.setProvisionedCapacity(3*1024*1024*1024L);
+            driverVolume.setProvisionedCapacity(3 * 1024 * 1024 * 1024L);
             driverVolume.setAllocatedCapacity(50000L);
             driverVolume.setDeviceLabel(driverVolume.getNativeId());
             driverVolume.setWwn(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
             storageVolumes.add(driverVolume);
             _log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
+
+            if (GENERATE_CAPABILITIES_DATA) {
+                generateStorageCapabilitiesDataForVolume(driverVolume);
+            }
 
             if (GENERATE_EXPORT_DATA) {
                 // add entry to arrayToVolumeToVolumeExportInfoMap for this volume
@@ -1060,6 +1071,15 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 storageProvider.getProviderType(), storageProvider.getProviderHost(), storageProvider.getPortNumber());
         _log.info(msg);
         return true;
-}
+    }
 
+
+    private void generateStorageCapabilitiesDataForVolume(StorageVolume driverVolume) {
+        CommonStorageCapabilities commonStorageCapabilities = driverVolume.getCommonCapabilities();
+        if (commonStorageCapabilities == null) {
+            commonStorageCapabilities = new CommonStorageCapabilities();
+            driverVolume.setCommonCapabilities(commonStorageCapabilities);
+        }
+        StorageDriverSimulatorUtils.addHostIOLimitsCapabilities(commonStorageCapabilities);
+    }
 }

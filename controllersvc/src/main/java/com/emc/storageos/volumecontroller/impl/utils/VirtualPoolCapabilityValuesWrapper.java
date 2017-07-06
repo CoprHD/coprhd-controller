@@ -43,7 +43,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SUPPORT_NOTIFICATION_LIMIT = "notification_limit";
     public static final String QUOTA = "quota";
     public static final String DEDUP = "dedup";
-    public static final String RDF_GROUP = "rdfGroup";
+    public static final String RDF_GROUP = "replication_group";
 
     public static final String FILE_REPLICATION_RPO_VALUE = "fileReplicationRpoValue";
     public static final String FILE_REPLICATION_RPO_TYPE = "fileReplicationRpoType";

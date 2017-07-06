@@ -1776,6 +1776,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PLACEMENT_ERROR)
     public BadRequestException unableToFindSuitableStorageSystemsforSRDF(final String grpname1);
 
+    @DeclareServiceCode(ServiceCode.API_PLACEMENT_ERROR)
+    public BadRequestException unableToFindSuitableStorageSystemsforSRDFSpecifiedRDFGroup(final String grpname1);
+    
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException unsupportedConfigurationWithMultipleAsyncModes();
 

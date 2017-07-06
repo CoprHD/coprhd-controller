@@ -1094,10 +1094,21 @@ public class SRDFScheduler implements Scheduler {
             _log.info("Storage System " + sourceStorageSystem.getLabel()
                     + " is found with connectivity to targets in all varrays required");
         } else {
+
             // Bad News, we couldn't find a match in all of the varrays that all of the storage systems
             _log.error("No matching storage system was found in all target varrays requested with the correct RDF groups.");
-            throw APIException.badRequests
-                    .unableToFindSuitableStorageSystemsforSRDF(StringUtils.join(SRDFUtils.getQualifyingRDFGroupNames(project), ","));
+            RemoteDirectorGroup rdg = null;
+            if (raGroupID != null) {
+                rdg = _dbClient.queryObject(RemoteDirectorGroup.class, raGroupID);
+            }
+            
+            if (rdg == null) {
+                throw APIException.badRequests
+                .unableToFindSuitableStorageSystemsforSRDF(StringUtils.join(SRDFUtils.getQualifyingRDFGroupNames(project), ","));
+            } else {
+                throw APIException.badRequests
+                .unableToFindSuitableStorageSystemsforSRDFSpecifiedRDFGroup(rdg.forDisplay());
+            }
         }
     }
 

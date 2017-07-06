@@ -1858,16 +1858,15 @@ def vpool_getpools(args):
         common.format_err_msg_and_raise("get_pools", "vpool", e.err_text,
                                         e.err_code)
 
-# VPool get RDF Groups routines
-
+# VPool get Replication Groups (RDF Groups) routines
 def getrdfgroups_parser(subcommand_parsers, common_parser):
     # show command parser
     getrdfgroups_parser = subcommand_parsers.add_parser(
-        'get_rdfgroups',
-        description='ViPR Vpool Get VMAX RDF Groups CLI usage',
+        'get_replication_groups',
+        description='ViPR Vpool Get Replication Groups CLI usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get the VMAX RDF Groups of a Vpool')
+        help='Get the replication groups (VMAX=RDF Groups) of a Vpool')
     mandatory_args = getrdfgroups_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of Vpool',
@@ -1878,7 +1877,6 @@ def getrdfgroups_parser(subcommand_parsers, common_parser):
 
 
 def vpool_getrdfgroups(args):
-
     obj = VirtualPool(args.ip, args.port)
     try:
         rdfgroups = obj.vpool_getrdfgroups(args.name)
@@ -1891,7 +1889,7 @@ def vpool_getrdfgroups(args):
                                        'native_guid',
                                        'module/id']).printTable()
     except SOSError as e:
-        common.format_err_msg_and_raise("get_rdfgroups", "vpool", e.err_text,
+        common.format_err_msg_and_raise("get_replication_groups", "vpool", e.err_text,
                                         e.err_code)
 
 # VPool refresh pools routines

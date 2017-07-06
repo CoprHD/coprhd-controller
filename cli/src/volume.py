@@ -1075,7 +1075,7 @@ class Volume(object):
         }
 
         if rdfgroup:
-            params['extension_parameters'] = [ "rdfGroup=" + rdfgroup ]
+            params['extension_parameters'] = [ "replication_group=" + rdfgroup ]
 
         body = json.dumps(params)
 

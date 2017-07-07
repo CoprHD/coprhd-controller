@@ -81,15 +81,15 @@
             $('#message').css('display','none');
 
     		if (status == 'DONE') {
-    			var doneMsg = Messages.get("renderFunctions.recovery.result.done");
-    			$('#errorMsg').html("<span>" + doneMsg + formatLocalDateTime(new Date(endtime)) + ".</span>");
+    			var doneMsg = Messages.get("renderFunctions.recovery.result.done", formatLocalDateTime(new Date(endtime)));
+    			$('#errorMsg').html("<span>" + doneMsg + "</span>");
     		}
     		else if (status == 'FAILED') {
-    			var failedMsg = Messages.get("renderFunctions.recovery.result.failed");
-    			$('#errorMsg').html("<span>" + failedMsg + formatLocalDateTime(new Date(endtime)) + ".</span>");
+    			var failedMsg = Messages.get("renderFunctions.recovery.result.failed", formatLocalDateTime(new Date(endtime)));
+    			$('#errorMsg').html("<span>" + failedMsg + "</span>");
 
-                var reasonMsg = Messages.get("renderFunctions.recovery.result.reason");
-    			$('#errorResult').html("<span>" + reasonMsg + errorcode + "</span>");
+                var reasonMsg = Messages.get("renderFunctions.recovery.result.reason", String(errorcode));
+    			$('#errorResult').html("<span>" + reasonMsg + "</span>");
     		}
             if(precheckstatus == 'RECOVERY_NEEDED' && clusterState && clusterState != 'UPDATING'){
                 $('#startNodeRecoveryBtn').prop("disabled", false);

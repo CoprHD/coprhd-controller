@@ -1565,7 +1565,7 @@ public class VolumeIngestionUtil {
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
                     eligibleMask.getMaskName(), unManagedVolume.getLabel());
-            unManagedVolume.getUnmanagedExportMasks().remove(eligibleMask.getId().toString());
+            unManagedVolume.removeUnManagedExportMask(eligibleMask);
             eligibleMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
         }
 
@@ -3347,7 +3347,7 @@ public class VolumeIngestionUtil {
                         if (foundExportMask) {
                             _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
                                     unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
-                            unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
+                            unManagedVolume.removeUnManagedExportMask(unManagedExportMask);
                             unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
                             updatedObjects.add(unManagedExportMask);
                         }

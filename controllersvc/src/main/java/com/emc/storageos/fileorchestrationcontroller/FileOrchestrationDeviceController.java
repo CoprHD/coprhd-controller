@@ -1362,6 +1362,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     ExportRules deleteExportRules = new ExportRules();
                     deleteExportRules.setExportRules(exportRulesToDelete);
                     params.setExportRulesToDelete(deleteExportRules);
+                    // we do not have information about whether source export used BypassDnsCheck or not .
+                    // For updating export rule on target we use bypass DNS check true for safer side.
+                    params.setBypassDnsCheck(true);
                     updateFSExportRulesOnTarget(workflow, systemTarget, targetFileShare, exportPath, params);
                 }
 
@@ -2566,9 +2569,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * @param taskId
      * @throws ControllerException
      */
-	@Override
-	public void reduceFileSystem(List<FileDescriptor> fileDescriptors, String taskId) throws ControllerException {
-	    List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
+    @Override
+    public void reduceFileSystem(List<FileDescriptor> fileDescriptors, String taskId) throws ControllerException {
+        List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fileShareUris, taskId);
         Workflow workflow = null;
         String waitFor = null; // the wait for key returned by previous call
@@ -2588,10 +2591,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.REDUCE_FILE_SYSTEM.getName();
             ServiceError serviceError = DeviceControllerException.errors.reduceFileShareFailed(
-            							fileShareUris.toString(), opName, ex);
+                    fileShareUris.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
-		
-	}
+
+    }
 
 }

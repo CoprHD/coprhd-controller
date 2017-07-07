@@ -245,4 +245,8 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
         this.vpoolTemplates = vpoolTemplates;
     }
 
+    public static Map<String, VarrayGeneratorInterface> getRegistrationMap() {
+        return registrationMap;
+    }
+
 }

@@ -27,27 +27,39 @@ import java.util.Base64;
 public class RestAPI implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(RestAPI.class);
-    private static final String URI_HTTPS = "https://";
+    public static final String URI_HTTPS = "https://%s:%s%s";
+
+    public String getHost() {
+        return host;
+    }
 
     private String host;
+
+    public String getPort() {
+        return port;
+    }
+
     private String port;
+
+    public String getUser() {
+        return user;
+    }
+
     private String user;
+
+    public String getPassword() {
+        return password;
+    }
+
     private String password;
+
+    public String getPathVendorPrefix() {
+        return pathVendorPrefix;
+    }
+
     private String pathVendorPrefix;
 
-    public enum BackendType {
-        VMAX {
-            String getAuthField() {
-                return "Authorization";
-            }
-            String getAuthFieldValue(String username, String password) {
-                return "Basic " + Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
-            }
-        };
 
-        abstract String getAuthField();
-        abstract String getAuthFieldValue(String username, String password);
-    }
 
     public RestAPI(String host, int port, String user, String password, String pathVendorPrefix) {
         this.host = host;
@@ -123,7 +135,7 @@ public class RestAPI implements AutoCloseable {
         Client client = new Client(handler, configureClient(verify));
         WebResource r = client.resource(path);
         ClientResponse cr = r.header("Content-Type", "application/json")
-                .header(backendType.getAuthField(), backendType.getAuthFieldValue(username, password))
+                .header(BackendType.VMAX.getAuthField(), backendType.getAuthFieldValue(username, password))
                 .delete(ClientResponse.class);
         if (cr == null) {
             LOG.error("No response.");

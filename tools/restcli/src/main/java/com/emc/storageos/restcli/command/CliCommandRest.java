@@ -5,6 +5,7 @@
 
 package com.emc.storageos.restcli.command;
 
+import com.emc.storageos.driver.restvmax.rest.BackendType;
 import com.emc.storageos.driver.restvmax.rest.RestAPI;
 import com.emc.storageos.driver.restvmax.rest.RestMethod;
 import com.emc.storageos.restcli.Util;
@@ -50,16 +51,16 @@ public class CliCommandRest extends CliCommand {
             parseRestArgs(args);
             switch (this.method) {
                 case GET:
-                    cr = RestAPI.get(this.url, false, RestAPI.BackendType.VMAX, this.user, this.pass);
+                    cr = RestAPI.get(this.url, false, BackendType.VMAX, this.user, this.pass);
                     break;
                 case DELETE:
-                    cr = RestAPI.delete(this.url, false, RestAPI.BackendType.VMAX, this.user, this.pass);
+                    cr = RestAPI.delete(this.url, false, BackendType.VMAX, this.user, this.pass);
                     break;
                 case POST:
-                    cr = RestAPI.post(this.url, this.restParam, false, RestAPI.BackendType.VMAX, this.user, this.pass);
+                    cr = RestAPI.post(this.url, this.restParam, false, BackendType.VMAX, this.user, this.pass);
                     break;
                 case PUT:
-                    cr = RestAPI.put(this.url, this.restParam, false, RestAPI.BackendType.VMAX, this.user, this.pass);
+                    cr = RestAPI.put(this.url, this.restParam, false, BackendType.VMAX, this.user, this.pass);
                     break;
                 default:
                     throw new IllegalArgumentException("unsupported REST action: " + this.method.name());

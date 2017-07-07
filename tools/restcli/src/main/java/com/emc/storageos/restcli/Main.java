@@ -10,13 +10,14 @@ import com.emc.storageos.restcli.command.*;
 public class Main {
 
     private enum Cmd {
-        HELP, REST;
+        HELP, REST, PROVIDER, VOLUME;
     }
-
     private static void usage() {
         System.out.println("Available commands:");
         System.out.println("\t" + Cmd.HELP.name().toLowerCase());
         System.out.println("\t" + Cmd.REST.name().toLowerCase());
+        System.out.println("\t" + Cmd.PROVIDER.name().toLowerCase());
+        System.out.println("\t" + Cmd.VOLUME.name().toLowerCase());
         System.out.println("please use \"restcli help <command>\" to show each command's usage.");
     }
 
@@ -54,6 +55,22 @@ public class Main {
                     cc.usage();
                 } else {
                     cc.run(args);
+                }
+                break;
+            case PROVIDER:
+                ProviderCommand pc = new ProviderCommand();
+                if (showUsage) {
+                    pc.usage();
+                } else {
+                    pc.run(args);
+                }
+                break;
+            case VOLUME:
+                VolumeCommand vc = new VolumeCommand();
+                if (showUsage) {
+                    vc.usage();
+                } else {
+                    vc.run(args);
                 }
                 break;
         }

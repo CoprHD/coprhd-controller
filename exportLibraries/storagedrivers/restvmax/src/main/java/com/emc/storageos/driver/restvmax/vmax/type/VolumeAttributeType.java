@@ -9,8 +9,10 @@ public class VolumeAttributeType extends ParamType {
     private CapacityUnitType capacityUnit;
     private String volume_size;
 
-    VolumeAttributeType(CapacityUnitType capacityUnit, String volumeSize) {
+    public VolumeAttributeType(CapacityUnitType capacityUnit, String volumeSize) {
         this.capacityUnit = capacityUnit;
         this.volume_size = volumeSize;
     }
+
+
 }

@@ -8,12 +8,12 @@ package com.emc.storageos.driver.restvmax.vmax.type;
 public class SloBasedStorageGroupParamType extends ParamType {
     private String sloId;
     private String workloadSelection;
-    private long num_of_vols;
+    private Long num_of_vols;
     private VolumeAttributeType volumeAttribute;
-    private boolean allocate_capacity_for_each_vol;
-    private boolean persist_preallocated_capacity_through_reclaim_or_copy;
+    private Boolean allocate_capacity_for_each_vol;
+    private Boolean persist_preallocated_capacity_through_reclaim_or_copy;
 
-    SloBasedStorageGroupParamType(long numOfVols, VolumeAttributeType volumeAttribute) {
+    public SloBasedStorageGroupParamType(Long num_of_vols, VolumeAttributeType volumeAttribute) {
         this.num_of_vols = num_of_vols;
         this.volumeAttribute = volumeAttribute;
     }

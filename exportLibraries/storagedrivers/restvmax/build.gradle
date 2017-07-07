@@ -4,6 +4,7 @@ dependencies {
         library(httpclient4),
         library(log4j),
         library(slf4j),
+        library(json_sanitizer),
         library(commons_lang),
         library(jersey)
 

@@ -25,6 +25,9 @@ public class StorageVolume extends StorageBlockObject {
     // thinVolumePreAllocate size in bytes. Type: Input.
     private Long thinVolumePreAllocationSize;
 
+    // storage group id of this volume. Type: input.
+    private String storageGroupId;
+
     // thin or thick volume type. Type: Input.
     Boolean thinlyProvisioned = false;
 
@@ -78,6 +81,14 @@ public class StorageVolume extends StorageBlockObject {
 
     public Boolean getThinlyProvisioned() {
         return thinlyProvisioned;
+    }
+
+    public String getStorageGroupId() {
+        return storageGroupId;
+    }
+
+    public void setStorageGroupId(String storageGroupId) {
+        this.storageGroupId = storageGroupId;
     }
 
     public void setThinlyProvisioned(Boolean thinlyProvisioned) {

@@ -20,15 +20,15 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 
 @SuppressWarnings("serial")
-public class RemoteReplicationChangeModeCompleter extends TaskCompleter {
+public class RemoteReplicationMovePairCompleter extends TaskCompleter {
 
-    private static final Logger log = LoggerFactory.getLogger(RemoteReplicationChangeModeCompleter.class);
+    private static final Logger log = LoggerFactory.getLogger(RemoteReplicationMovePairCompleter.class);
 
     private DbClient dbClient;
     private RemoteReplicationSet.ElementType elementType;
     private URI elementURI;
 
-    public RemoteReplicationChangeModeCompleter(RemoteReplicationElement remoteReplicationElement, String opId) {
+    public RemoteReplicationMovePairCompleter(RemoteReplicationElement remoteReplicationElement, String opId) {
         elementType = remoteReplicationElement.getType();
         elementURI = remoteReplicationElement.getElementUri();
 

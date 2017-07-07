@@ -550,6 +550,7 @@ URI_REMOTEREPLICATIONGROUP_CHANGEMODE    = URI_SERVICES_BASE   + '/vdc/block/rem
 URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/tasks/{1}'
 URI_STORAGE_SYSTEM_TYPE_CREATE           = URI_SERVICES_BASE   + '/vdc/storage-system-types/internal'
 URI_REMOTEREPLICATIONPAIR_LIST           = URI_SERVICES_BASE   + '/vdc/block/remotereplicationpairs'
+URI_REMOTEREPLICATIONPAIR_MOVE           = URI_SERVICES_BASE   + '/vdc/block/remotereplicationpairs/{0}/change-group'
 
 URI_VNAS_SERVERS                = URI_SERVICES_BASE + '/vdc/vnas-servers'
 URI_VNAS_SERVER                 = URI_SERVICES_BASE + '/vdc/vnas-servers/{0}'
@@ -9623,6 +9624,15 @@ class Bourne:
         else:
             return o['remote_replication_pair']
 
+    def replicationpair_move(self, pair_uri, group_uri):
+        params = {
+            'replication_group': group_uri
+        }
+        o = self.api('POST', URI_REMOTEREPLICATIONPAIR_MOVE.format(pair_uri), params)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
 
     #
     #  End of remote replication API

@@ -21,6 +21,18 @@ def remotereplicationpair_list(args):
     for pair in pairs:
         print pair
 
+# move remote replication pair
+def remotereplicationpair_move(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.to)
+    s = bourne.replicationpair_move(args.replicationpair_uri, replicationgroup_uri)
+
+    if (s['state'] == 'ready'):
+        print 'Moved remote replication pair ' + args.replicationpair_uri + ' to ' + args.to
+    else:
+        print 'Failed to move remote replication pair ' + args.replicationpair_uri + ' to ' + args.to
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -38,6 +50,11 @@ parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', d
 # remote replication pair list
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 
+# move remote replication pair move from current group to another
+move = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+move.add_argument('replicationpair_uri', help = 'Remote replication pair to be moved')
+move.add_argument('--to', help = 'Target remote replication group')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -54,6 +71,9 @@ try:
     if (cmd == "list"):
         args = list.parse_args()
         remotereplicationpair_list(args)
+    elif (cmd == "move"):
+        args = move.parse_args()
+        remotereplicationpair_move(args)
     else:
         parser.print_help()
 

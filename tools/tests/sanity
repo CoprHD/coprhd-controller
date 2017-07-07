@@ -7079,6 +7079,7 @@ sbsdk_remote_replication_setup()
     # System names are important to align with remote replication configuration in driver simulator.
     SBSDK_DRIVER_REPLICATION_SET1=replicationSet1
     SBSDK_DRIVER_REPLICATION_SET1_GROUP1=replicationGroup1_set1
+    SBSDK_DRIVER_REPLICATION_SET1_GROUP2=replicationGroup2_set1
     ##
     SBSDK_DRIVER_SYS_VPOOL_NAME=SBSDK_VPOOL
     SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME=SBSDK_VPOOL_RR
@@ -7256,13 +7257,18 @@ sbsdk_remote_replication_tests()
                    --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:SYNCHRONOUS"
 
     # check that we created remote replication pair for this remote replication volume
-    rr_pairs=`remotereplicationpair list | wc -l`
-    secho "Found ${rr_pairs} remote replication pairs."
-    if [ "$rr_pairs" -eq 0 ]; then
+    rr_pairs=`remotereplicationpair list`
+    pairs_num=`echo "${rr_pairs}" | wc -l`
+    secho "Found ${pairs_num} remote replication pairs."
+    if [ "$pairs_num" -eq 0 ]; then
            secho "Could not find any remote replication pairs."
            exit 1
     fi
-    
+
+    # save this replication pair id for move operation
+    SBSDK_DRIVER_REPLICATION_PAIR_URN=`echo "${rr_pairs}" | sed 's/.*\(urn:storageos:RemoteReplicationPair.*vdc1\).*/\1/g'`
+    secho "SBSDK_DRIVER_REPLICATION_PAIR_URN: ${SBSDK_DRIVER_REPLICATION_PAIR_URN}"
+
     #Create a volume outside of replication group
     echo "***** Creating volume ${VOLUME_NO_GROUP_NAME} *****"
     run volume create ${VOLUME_NO_GROUP_NAME} $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
@@ -7296,6 +7302,12 @@ sbsdk_remote_replication_tests()
 
     echo "**** Stop links for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup stop ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Move replication pair from ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2} *******"
+    run remotereplicationpair move ${SBSDK_DRIVER_REPLICATION_PAIR_URN} --to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2}
+
+    echo "**** Move replication pair from ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2} to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationpair move ${SBSDK_DRIVER_REPLICATION_PAIR_URN} --to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
     echo "**** Suspend replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset suspend ${SBSDK_DRIVER_REPLICATION_SET1}

@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType;
 import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -31,6 +32,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.Rem
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailbackCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailoverCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationGroupCompleter;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationMovePairCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationPairCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationResumeCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSplitCompleter;
@@ -204,7 +206,10 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public void movePair(URI replicationPair, URI targetGroup, String opId) {
-
+        RemoteReplicationMovePairCompleter taskCompleter = new RemoteReplicationMovePairCompleter(
+                new RemoteReplicationElement(ElementType.REPLICATION_PAIR, replicationPair), opId);
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.movePair(replicationPair, targetGroup, taskCompleter);
     }
 
     @Override

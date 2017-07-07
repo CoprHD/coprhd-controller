@@ -1134,6 +1134,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
                 quotaId = args.getFsExtensions().get(QUOTA);
             } else {
+              //when policy is applied at higher level, we will ignore the target file system 
+                FileShare fileShare = args.getFs();
+                if (fileShare.getPersonality().equals(PersonalityTypes.TARGET.name()) && null == fileShare.getExtensions()){
+                    _log.info("Replication policy applied at higher level and we don't have quota id so ignore the expand for ", fileShare.getLabel());
+                    return BiosCommandResult.createSuccessfulResult();
+                }
                 final ServiceError serviceError = DeviceControllerErrors.isilon.doExpandFSFailed(args.getFsId());
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);
@@ -1181,7 +1187,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 } else {
                     isiReduceFS(isi, quotaId, args);
                 }
+                
             } else {
+               //when policy is applied at higher level, we will ignore the target filesystem 
+                FileShare fileShare = args.getFs();
+                if (fileShare.getPersonality().equals(PersonalityTypes.TARGET.name()) && null != fileShare.getExtensions()){
+                    _log.info("Replication policy applied at higher level and we don't have quota id so ignore the reduce for ", fileShare.getLabel());
+                    return BiosCommandResult.createSuccessfulResult();
+                }
                 final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);

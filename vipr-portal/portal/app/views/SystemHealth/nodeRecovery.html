@@ -12,7 +12,7 @@
     });
     
     function renderRecoveryStatus(status, startime, endtime, errorcode){
-    	
+        $('#recStatusAnim').unbind('click');
         var clusterState = $('#clusterState').data('state');
         
     	if (!status && !endtime) {
@@ -64,7 +64,14 @@
 	            $('#startNodeRecoveryBtn').prop("disabled", true);
 	            
 	            $('#recStatus').css('display','none');
-	            $('#recStatusAnim').css('display','block');
+	            $('#recStatusAnim').click(function(){
+	                window.location.href="/systemhealth/dbhealth";
+	            });
+
+	            $('#recStatusAnim').css({
+	                'display':'block',
+                    'cursor' : 'pointer'
+                });
 	    	 } else {
 	           // Recovery is not running, enable Start Node Recovery if cluster is not stable.
 	           if(clusterState != 'STABLE' && clusterState != 'UPDATING'){

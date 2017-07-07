@@ -58,7 +58,7 @@
         loadRecoveryStatus();
     });
     function renderRecoveryStatus(precheckstatus, status, startime, endtime, errorcode){
-
+        $('#recStatusAnim').unbind('click');
         var clusterState = $('#clusterState').data('state');
         (startime) ? $('#startTime').append(formatLocalDateTime(new Date(startime))) : $('#startTime').append("NA");
 	    (endtime) ? $('#endTime').append(formatLocalDateTime(new Date(endtime))) : $('#endTime').append("NA");
@@ -113,7 +113,15 @@
 	            $('#message').css('display','block');
 	            document.getElementById("message").innerHTML = "${recoveringMsg}";
 	            $('#recStatus').css('display','none');
-	            $('#recStatusAnim').css('display','block');
+
+	            $('#recStatusAnim').click(function(){
+	                window.location.href="/systemhealth/dbhealth";
+	            });
+
+	            $('#recStatusAnim').css({
+	                'display':'block',
+                    'cursor' : 'pointer'
+                });
 	    	 } else {
 	           // Recovery is not running, enable Start Node Recovery if cluster is not stable.
 	           if(precheckstatus == 'RECOVERY_NEEDED' && clusterState != 'UPDATING'){

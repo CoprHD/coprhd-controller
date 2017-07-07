@@ -2792,7 +2792,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * perform failover operation
      * systemTarget - failover to target system
-     * fs  - target filesystem
+     * fs - target filesystem
      * completer - task completer
      * 
      * return BiosCommandResult
@@ -2804,7 +2804,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         FileShare targetFS = null;
         StorageSystem sourceSystem = null;
         StorageSystem targetSystem = null;
-        
+
         boolean failback = false;
         if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
             sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
@@ -2813,7 +2813,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             sourceFS = fs;
             List<String> targetfileUris = new ArrayList<String>();
             targetfileUris.addAll(fs.getMirrorfsTargets());
-            if(!targetfileUris.isEmpty()) {
+            if (!targetfileUris.isEmpty()) {
                 targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
             } else {
                 ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverFileSystem(
@@ -2822,10 +2822,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             failback = true;
         }
-        
+
         sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
-        targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());    
-        
+        targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
+
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
@@ -2833,70 +2833,71 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // In case of failback we do failover on the source file system, so we need to append _mirror
             if (failback) {
                 policyName = policyName.concat(MIRROR_POLICY);
-                
-                //prepared policy for failback
+
+                // prepared policy for failback
                 cmdResult = prepareFailbackOp(targetSystem, policyName);
-                if(!cmdResult.isCommandSuccess()) {
+                if (!cmdResult.isCommandSuccess()) {
                     return cmdResult;
                 }
-              //Call Isilon Api failback job
+                // Call Isilon Api failback job
                 return mirrorOperations.doFailover(sourceSystem, policyName, completer);
             } else {
-                //prepared policy for failover
+                // prepared policy for failover
                 cmdResult = prepareFailoverOp(sourceSystem, policyName);
-                if(!cmdResult.isCommandSuccess()) {
+                if (!cmdResult.isCommandSuccess()) {
                     _log.info("Unable to stop replication policy on source");
                     _log.info("Proceeding with failover anyway");
                 }
-              //Call Isilon Api failover job
+                // Call Isilon Api failover job
                 return mirrorOperations.doFailover(targetSystem, policyName, completer);
             }
         }
         ServiceError serviceError = DeviceControllerErrors.isilon
                 .unableToFailoverFileSystem(
-                        systemTarget.getIpAddress(),"Unable to get the policy details for filesystem :" + fs.getName());
+                        systemTarget.getIpAddress(), "Unable to get the policy details for filesystem :" + fs.getName());
         return BiosCommandResult.createErrorResult(serviceError);
     }
-    
+
     /**
      * prepare policy to failover.
+     * 
      * @param sourceSystem - source storagesystem
      * @param policyName - failover policy
      * @return
      */
     private BiosCommandResult prepareFailoverOp(final StorageSystem sourceSystem, String policyName) {
         BiosCommandResult cmdResult = null;
-        //check for device is up and able query the data.
+        // check for device is up and able query the data.
         cmdResult = mirrorOperations.doTestReplicationPolicy(sourceSystem, policyName);
-        if(cmdResult.isCommandSuccess()) {
-          //if policy enables on failed storage then We should disable it before failover job
-            cmdResult =  mirrorOperations.doStopReplicationPolicy(sourceSystem, policyName);
+        if (cmdResult.isCommandSuccess()) {
+            // if policy enables on failed storage then We should disable it before failover job
+            cmdResult = mirrorOperations.doStopReplicationPolicy(sourceSystem, policyName);
         } else {
             _log.error("Unabled get the replcation policy details.", cmdResult.getMessage());
             ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverReplicationPolicy(
-                                                                sourceSystem.getIpAddress(), policyName, cmdResult.getMessage());
-                return BiosCommandResult.createErrorResult(serviceError);
+                    sourceSystem.getIpAddress(), policyName, cmdResult.getMessage());
+            return BiosCommandResult.createErrorResult(serviceError);
         }
         return cmdResult;
     }
-    
-    
+
     /**
      * prepare policy to failback.
-     * @param systemTarget - target storagesystem 
+     * 
+     * @param systemTarget - target storagesystem
      * @param policyName -failback mirror policy
      * @return
      */
     private BiosCommandResult prepareFailbackOp(final StorageSystem targetSystem, String policyName) {
         BiosCommandResult cmdResult = null;
-        //check for target device up and then disable the policy
+        // check for target device up and then disable the policy
         cmdResult = mirrorOperations.doTestReplicationPolicy(targetSystem, policyName);
-        if(cmdResult.isCommandSuccess()) {
-          //if policy enables on target storage then We should disable it before failback job
-            cmdResult =  mirrorOperations.doStopReplicationPolicy(targetSystem, policyName);
+        if (cmdResult.isCommandSuccess()) {
+            // if policy enables on target storage then We should disable it before failback job
+            cmdResult = mirrorOperations.doStopReplicationPolicy(targetSystem, policyName);
         } else {
             ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailbackReplicationPolicy(
-                                                            targetSystem.getIpAddress(), policyName, cmdResult.getMessage());
+                    targetSystem.getIpAddress(), policyName, cmdResult.getMessage());
             return BiosCommandResult.createErrorResult(serviceError);
         }
         return cmdResult;
@@ -3482,7 +3483,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     String targetFs = fs.getMirrorfsTargets().iterator().next();
                     targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetFs));
                     targetPath = generatePathForPolicy(filePolicy, targetFS, args);
-                    if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())) {
+                    // _localTarget suffix is not needed for policy at file system level
+                    // as the suffix already present in target file system native id
+                    // Add the suffix only for local replication policy at higher level
+                    if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())
+                            && !FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(filePolicy.getApplyAt())) {
                         targetPath = targetPath + "_localTarget";
                     }
                     // Get the target smart connect zone!!

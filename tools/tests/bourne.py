@@ -3754,7 +3754,7 @@ class Bourne:
     def volume_exports(self, uri):
         return self.api('GET', URI_VOLUMES_EXPORTS.format(uri))
 
-    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource):
+    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource, sourcePerfParams, copyPerfParams):
         parms = {
             'name'              : label,
             'varray'      : neighborhood,
@@ -3772,6 +3772,50 @@ class Bourne:
 
         if (computeResource):
             parms['computeResource'] = computeResource
+
+        # Initialize the performance parameters
+        pp = dict()
+
+        # Source params first. Should be in form: role:uri,role:uri,...
+        if (sourcePerfParams):
+            spp_roles = []
+            spp_entries = sourcePerfParams.split(',')
+            for spp_entry in spp_entries:
+                spp_role_details = spp_entry.split(":")
+                spp_role = dict()
+                spp_role['role'] = spp_role_details[0]
+                spp_role['id'] = self.pp_query(spp_role_details[1])
+                spp_roles.append(spp_role)
+            spp_varray = dict()
+            spp_varray['varray'] = neighborhood
+            spp_varray['param'] = spp_roles
+            pp['source_params'] = spp_varray
+
+        # Now copy params. Should be in the form: varray|role:uri|role:uri|...,varray|role:uri|role:uri...,...
+        if (copyPerfParams):
+            cpp_varrays = []
+            cpp_entries = copyPerfParams.split(',')
+            for cpp_entry in cpp_entries:
+                index = 0
+                cpp_varray = dict()
+                cpp_roles = []
+                cpp_varray_details = cpp_entry.split('|')
+                for cpp_varray_details_entry in cpp_varray_details:
+                    if (index == 0):
+                        cpp_varray['varray'] = self.pp_query(cpp_varray_details_entry)
+                        index = index + 1
+                    else:
+                        cpp_role_details = cpp_varray_details_entry.split(":")
+                        cpp_role = dict()
+                        cpp_role['role'] = cpp_role_details[0]
+                        cpp_role['id'] = self.pp_query(cpp_role_details[1])
+                        cpp_roles.append(cpp_role)
+                cpp_varray['param'] = cpp_roles
+                cpp_varrays.append(cpp_varray)
+            pp['copy_params'] = cpp_varrays
+
+        # Finally, set the performance params
+        parms['performance_params'] = pp
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})

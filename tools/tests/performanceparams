@@ -17,14 +17,24 @@ import __builtin__
 
 def pp_create(args):
     bourne.connect(args.ip)
-    pp = bourne.pp_create(args.name, args.description, args.auto_tiering_policy_name, args.host_io_limit_bandwidth, args.host_io_limit_iops,
+
+    autoTierPolicy = None
+    if (args.auto_tiering_policy_name):
+   	 autoTierPolicy = ' '.join(args.auto_tiering_policy_name)
+
+    pp = bourne.pp_create(args.name, args.description, autoTierPolicy, args.host_io_limit_bandwidth, args.host_io_limit_iops,
                           args.thin_vol_prealloc_percentage, args.compression_enabled, args.fast_expansion_enabled, args.deduplication_enabled)
     print pp
 
 def pp_update(args):
     bourne.connect(args.ip)
     pp_uri = bourne.pp_query(args.name)
-    pp = bourne.pp_update(pp_uri, args.new_name, args.description, args.auto_tiering_policy_name, args.host_io_limit_bandwidth, args.host_io_limit_iops,
+
+    autoTierPolicy = None
+    if (args.auto_tiering_policy_name):
+   	 autoTierPolicy = ' '.join(args.auto_tiering_policy_name)
+
+    pp = bourne.pp_update(pp_uri, args.new_name, args.description, autoTierPolicy, args.host_io_limit_bandwidth, args.host_io_limit_iops,
                           args.thin_vol_prealloc_percentage, args.compression_enabled, args.fast_expansion_enabled, args.deduplication_enabled)
     print pp
 
@@ -107,7 +117,7 @@ parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', d
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 create.add_argument('name',	help = 'The name of the performance parameters instance to be created')
 create.add_argument('--description', help = 'Description for the performance parameters instance')
-create.add_argument('--auto_tiering_policy_name', help = 'The auto tiering policy name') 
+create.add_argument('--auto_tiering_policy_name', help = 'The auto tiering policy name', nargs='*') 
 create.add_argument('--host_io_limit_bandwidth', help = 'The VMAX host IO bandwidth limit in Mb/second')
 create.add_argument('--host_io_limit_iops', help = 'The VMAX host IO IOPs limit')
 create.add_argument('--thin_vol_prealloc_percentage', help='The pre-allocation percentage for thinly provisioned volumes')
@@ -120,7 +130,7 @@ update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 update.add_argument('name',	help = 'The name of the performance parameters instance to be updated')
 update.add_argument('--new_name', help = 'The new name for the performance parameters instance')
 update.add_argument('--description', help = 'Description for the performance parameters instance')
-update.add_argument('--auto_tiering_policy_name', help = 'The auto tiering policy name') 
+update.add_argument('--auto_tiering_policy_name', help = 'The auto tiering policy name', nargs='*') 
 update.add_argument('--host_io_limit_bandwidth', help = 'The VMAX host IO bandwidth limit in Mb/second')
 update.add_argument('--host_io_limit_iops', help = 'The VMAX host IO IOPs limit')
 update.add_argument('--thin_vol_prealloc_percentage', help='The pre-allocation percentage for thinly provisioned volumes')

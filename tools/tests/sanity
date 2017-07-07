@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio [quick|hlu|quick hlu] | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity | performanceparams'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity | performanceparams [vmaxblock|vplex]'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -115,6 +115,9 @@ elif [ ${SS} = "recoverpoint" ]; then
     RP_QUICK_PARAM=${4:-'quick'}
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
+elif [ ${SS} = "performanceparams" ]; then
+    PP_TEST=${4:-'vmaxblock'}
+    AUTH=${5:-ldap}
 elif [ ${SS} = "sbsdk" ]; then
     SBSDK_QUICK_PARAM='quick'
     AUTH=${5:-ldap}
@@ -14629,38 +14632,117 @@ arrayaffinity_tests()
 #Performance parameter setup and tests
 performanceparams_setup()
 {
-    # Currently no setup
+    if [ ${PP_TEST} == "vmaxblock" ]; then
+       vmaxblock_setup
+    elif [ ${PP_TEST} == "vplex" ]; then
+       vplex_setup
+    else
+       secho "Not supported"
+    fi
     secho "Performance parameter setup complete"
 }
 
 performanceparams_tests()
 {
+    if [ ${PP_TEST} == "vmaxblock" ]; then
+       performanceparams_vmaxblock_tests
+    elif [ ${PP_TEST} == "vplex" ]; then
+       performanceparams_vplex_tests
+    else
+       secho "Not supported"
+    fi
+    secho "Performance parameter tests complete"
+}
+
+performanceparams_vmaxblock_tests()
+{
     # Create a performance parameters instance.
+    atp="SYMMETRIX+000196801612+SLO_POLICY+Gold SLO (5.0ms)"
     pp1=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${pp1}"
-    run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name FAST \
+    secho "Creating performance parameters with name ${pp1}."
+    run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp}" \
          --host_io_limit_bandwidth 10000 --host_io_limit_iops 20000 --thin_vol_prealloc_percentage 25 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
     performanceparams show ${pp1}
 
+    # Create a volume and override vpool settings with those of the created
+    # performance parameters instance.
+    vol1=Vol1-${RANDOM}
+    secho "Creating volume ${vol1} with performance parameters ${pp1}."
+    volPerfParams='PRIMARY:'${pp1}
+    run volume create ${vol1} ${PROJECT} ${NH} ${COS_VMAXBLOCK} ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
+    volume show ${PROJECT}/${vol1}
+
+    # Delete the volume.
+    secho "Deleting volume ${vol1}."
+    run volume delete ${PROJECT}/${vol1} --wait
+
     # Update the performance parameters instance.
     pp1_update_name=${pp1}-Updated
-    run performanceparams update ${pp1} --new_name ${pp1_update_name} --description "${pp1}-NewDescription" --auto_tiering_policy_name REALFAST \
+    pp1_update_atp="SYMMETRIX+000196801612+SLO_POLICY+Diamond SLO (0.8ms)"
+    secho "Updating performance parameters ${pp1} with new name ${pp1_update_name} and auto tiering policy ${pp1_update_atp}."
+    run performanceparams update ${pp1} --new_name ${pp1_update_name} --description "${pp1}-NewDescription" --auto_tiering_policy_name "${pp1_update_atp}"\
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 10 \
          --compression_enabled true --fast_expansion_enabled true --deduplication_enabled true
     performanceparams show ${pp1_update_name}
 
-    # Create a performance parameters instance without passing all params so that defaults are used.
+    # Create a volume and override vpool settings with those of the updated
+    # performance parameters instance.
+    vol2=Vol2-${RANDOM}
+    secho "Creating volume ${vol2} with performance parameters ${pp1_update_name}."
+    volPerfParams='PRIMARY:'${pp1_update_name}
+    run volume create ${vol2} ${PROJECT} ${NH} ${COS_VMAXBLOCK} ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
+    volume show ${PROJECT}/${vol2}
+
+    # Delete the volume.
+    secho "Deleting volume ${vol2}."
+    run volume delete ${PROJECT}/${vol2} --wait
+
+    # Delete the performance parameter instances.
+    secho "Cleaning up performance parameter instances."
+    run performanceparams delete ${pp1_update_name}
+}
+
+performanceparams_vplex_tests()
+{
+    # Create a performance parameters instance for the primary side of a VPLEX
+    # distributed volume.
+    atp1="CLARiiON+APM00140844986+FASTPOLICY+DEFAULT_HIGHEST_AVAILABLE"
+    pp1=PerfParams-${RANDOM}
+    secho "Creating performance parameters with name ${pp1}."
+    run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp1}" \
+         --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 5 \
+         --compression_enabled false --fast_expansion_enabled true --deduplication_enabled true
+    performanceparams show ${pp1}
+
+    # Create a performance parameters instance for the HA side of a VPLEX
+    # distributed volume.
+    atp2="NONE"
     pp2=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${pp2}"
-    run performanceparams create ${pp2} --description "${pp2}-Description"
+    secho "Creating performance parameters with name ${pp2}."
+    run performanceparams create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2}" \
+         --host_io_limit_bandwidth 10000 --host_io_limit_iops 10000 --thin_vol_prealloc_percentage 5 \
+         --compression_enabled true --fast_expansion_enabled true --deduplication_enabled true
     performanceparams show ${pp2}
 
-    # List the performance parameters
+    # List the performance parameters.
     performanceparams list
 
-    # Delete the performance parameter instances
-    run performanceparams delete ${pp1_update_name}
+    # Create a VPLEX distributed volume using the two previously created performance parameter 
+    # instances for the primary and HA side backend volumes of the VPLEX volume.
+    vol1=VPlexDistVol1-${RANDOM}
+    volPerfParams='PRIMARY:'${pp1}',HA:'${pp2}
+    secho "Creating VPLEX distributed volume ${vol1} with PRIMARY performance params ${pp1} and HA performance params ${pp2}."
+    run volume create ${vol1} ${PROJECT} ${NH} cosvplexdist ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
+    volume show ${PROJECT}/${vol1}
+
+    # Delete the volume.
+    secho "Deleting volume ${vol1}."
+    run volume delete ${PROJECT}/${vol1} --wait
+
+    # Delete the performance parameter instances.
+    secho "Cleaning up performance parameter instances."
+    run performanceparams delete ${pp1}
     run performanceparams delete ${pp2}
 }
 

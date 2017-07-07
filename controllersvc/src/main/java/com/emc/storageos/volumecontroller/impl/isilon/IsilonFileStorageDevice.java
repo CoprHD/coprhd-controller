@@ -1136,7 +1136,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             } else {
               //when policy is applied at higher level, we will ignore the target file system 
                 FileShare fileShare = args.getFs();
-                if (fileShare.getPersonality().equals(PersonalityTypes.TARGET.name()) && null == fileShare.getExtensions()){
+                if (fileShare.getPersonality().equals(PersonalityTypes.TARGET.name()) 
+                                                && null == fileShare.getExtensions()){
                     _log.info("Replication policy applied at higher level and we don't have quota id so ignore the expand for ", fileShare.getLabel());
                     return BiosCommandResult.createSuccessfulResult();
                 }
@@ -1191,7 +1192,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             } else {
                //when policy is applied at higher level, we will ignore the target filesystem 
                 FileShare fileShare = args.getFs();
-                if (fileShare.getPersonality().equals(PersonalityTypes.TARGET.name()) && null != fileShare.getExtensions()){
+                if (fileShare.getPersonality().equals(PersonalityTypes.TARGET.name()) 
+                                            && null == fileShare.getExtensions()){
                     _log.info("Replication policy applied at higher level and we don't have quota id so ignore the reduce for ", fileShare.getLabel());
                     return BiosCommandResult.createSuccessfulResult();
                 }

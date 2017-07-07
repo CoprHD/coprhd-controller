@@ -93,6 +93,12 @@ public class HDSVolumeDiscoverer {
                 pools.put(storagePool.getNativeGuid(), storagePool);
             }
             for (LogicalUnit logicalUnit : luList) {
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(logicalUnit.getObjectID())) {
+                    // skipping this volume because the filter doesn't match
+                    continue;
+                }
+
                 log.info("Processing LogicalUnit: {}", logicalUnit.getObjectID());
                 UnManagedVolume unManagedVolume = null;
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(

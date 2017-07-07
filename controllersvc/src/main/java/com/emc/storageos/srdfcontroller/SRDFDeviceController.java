@@ -1117,7 +1117,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
             }
             completer = new SRDFLinkDetachCompleter(combined, opId);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_091);
             getRemoteMirrorDevice().doDetachLink(system, sourceURI, targetURI, onGroup, completer);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_092);
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
@@ -1690,7 +1692,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
             }
             completer = new SRDFLinkSuspendCompleter(combined, opId);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_089);
             getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, false, completer);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_090);
+
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
@@ -1734,7 +1739,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             StorageSystem system = getStorageSystem(systemURI);
             List<URI> combined = Arrays.asList(sourceURI, targetURI);
             completer = new SRDFRemoveDeviceGroupsCompleter(combined, opId);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_093);
             getRemoteMirrorDevice().doRemoveDeviceGroups(system, sourceURI, targetURI, completer);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_094);
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }

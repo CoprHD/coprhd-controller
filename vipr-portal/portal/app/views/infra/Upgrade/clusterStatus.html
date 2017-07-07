@@ -142,9 +142,8 @@
       *{ Safer to only allow operations if we're actually in a STABLE state }*
         #{if isStable}
         #{if !repositoryVersion.equals(clusterInfo.targetState.current)}
-            <button name="remove" type="button" class="btn btn-danger btn-sm" onclick="removeImage('${repositoryVersion}');">#{icon 'trash'/} &{'upgrade.remove'}</button>
-            <button name="install" type="button" class="btn btn-info btn-sm" onclick="installImage('${repositoryVersion}');">#{icon 'off'/} &{'upgrade.install'}</button>
-
+        <button name="install" type="button" class="btn btn-info btn-sm" onclick="installImage('${repositoryVersion}');">#{icon 'off'/} &{'upgrade.install'}</button>
+        <button name="remove" type="button" class="btn btn-danger btn-sm" onclick="removeImage('${repositoryVersion}');">#{icon 'trash'/} &{'upgrade.remove'}</button>
         #{/if}
         #{/if}
         #{else}

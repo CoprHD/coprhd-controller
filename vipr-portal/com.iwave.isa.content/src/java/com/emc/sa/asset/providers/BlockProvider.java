@@ -48,9 +48,12 @@ import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
 import com.emc.sa.util.TextUtils;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -1097,15 +1100,40 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("unassignedBlockVolume")
-    @AssetDependencies({ "host", "project" })
-    public List<AssetOption> getBlockVolumes(AssetOptionsContext ctx, URI hostOrClusterId, final URI projectId) {
+    @AssetDependencies({ "host", "project", "blockStorageType" })
+    public List<AssetOption> getBlockVolumes(AssetOptionsContext ctx, URI hostOrClusterId,
+            final URI projectId, String blockStorageType) {
         ViPRCoreClient client = api(ctx);
-        Set<URI> exportedBlockResources = BlockProvider.getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
-        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
-                exportedBlockResources);
+        Set<URI> exportedBlockResources =
+                BlockProvider.getExportedVolumes(client, projectId, hostOrClusterId, null);
+        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter =
+                new UnexportedBlockResourceFilter<VolumeRestRep>(exportedBlockResources);
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
         BlockVolumeBootVolumeFilter bootVolumeFilter = new BlockVolumeBootVolumeFilter();
-        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
+        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId,
+                unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
+
+        // get varray IDs for host/cluster
+        List<VirtualArrayRestRep> varrays = new ArrayList<>();
+        if(EXCLUSIVE_STORAGE_OPTION.key.equals(blockStorageType) &&
+                URIUtil.isType(hostOrClusterId, Host.class)) {
+            varrays = client.varrays().findByConnectedHost(hostOrClusterId);
+        } else if(SHARED_STORAGE_OPTION.key.equals(blockStorageType) &&
+                URIUtil.isType(hostOrClusterId, Cluster.class)) {
+            varrays = client.varrays().findByConnectedCluster(hostOrClusterId);
+        }
+        List<URI> varrayIds = new ArrayList<>();
+        for (VirtualArrayRestRep varray : varrays){
+            varrayIds.add(varray.getId());
+        }
+
+        // remove volumes not in hosts/cluster's varray
+        Iterator<VolumeRestRep> itr = volumes.iterator();
+        while (itr.hasNext()) {
+            if (!varrayIds.contains(itr.next().getVirtualArray().getId())) {
+                itr.remove();
+            }
+        }
 
         return createVolumeOptions(client, volumes);
     }

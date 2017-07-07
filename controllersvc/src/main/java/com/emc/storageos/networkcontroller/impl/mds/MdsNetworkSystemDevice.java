@@ -1995,14 +1995,16 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 		
 		Map<String, NetworkSystem> switchWWNToNetworkSystemMap = new HashMap<String, NetworkSystem>();
 		for (URI discoveredNetworkSystemUri : NetworkUtil.getDiscoveredNetworkSystems(_dbClient)) {
-			try {
 			NetworkSystem discoveredNetworkSystem =_dbClient.queryObject(NetworkSystem.class, discoveredNetworkSystemUri);
+			try {
 			if (discoveredNetworkSystem.getSystemType().equalsIgnoreCase(NetworkSystem.Type.mds.toString())) {
 				dialog = setUpDialog(discoveredNetworkSystem);			
 				String switchWWN = dialog.showSwitchWwn();
 				switchWWNToNetworkSystemMap.put(switchWWN, discoveredNetworkSystem);
-				_log.info(String.format("NetworkSystem : %s - WWN : %s", switchWWN, switchWWNToNetworkSystemMap.get(switchWWN)));			
+				_log.info(String.format("NetworkSystem : %s - WWN : %s", switchWWNToNetworkSystemMap.get(switchWWN).getLabel(), switchWWN));			
 				}	
+			} catch (Exception e) {
+				_log.info(String.format("Couldnt fetch the switch WWN information for %s, ignoring it", discoveredNetworkSystem.getLabel()));
 			} finally {
 				disconnect(dialog);
 			}

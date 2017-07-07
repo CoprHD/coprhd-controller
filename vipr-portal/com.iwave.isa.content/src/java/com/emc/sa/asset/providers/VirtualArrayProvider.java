@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.sa.util.TextUtils;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -211,6 +212,20 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         }
         filterByContextTenant(varrayIds, client.varrays().getByTenant(context.getTenant()));
         return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
+    }
+
+    @Asset("virtualArrayForMultipleHosts")
+    @AssetDependencies({ "host" })
+    public List<AssetOption> getVirtualArray(AssetOptionsContext context, String hostOrClusterIds) {
+        Set<AssetOption> result = Sets.newConcurrentHashSet();
+        if (hostOrClusterIds != null && !hostOrClusterIds.isEmpty()) {
+            info("Host/Cluster ids selected by user: %s", hostOrClusterIds);
+            List<String> parsedHostClusterIds = TextUtils.parseCSV(hostOrClusterIds);
+            for (String id : parsedHostClusterIds) {
+                result.addAll(getVirtualArray(context, uri(id)));
+            }
+        }
+        return Lists.newArrayList(result);
     }
 
     @Asset("objectVirtualArray")

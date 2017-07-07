@@ -1651,8 +1651,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             if (!oldUnManagedExportRules.isEmpty()) {
-                _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
-                _dbClient.updateObject(newUnManagedExportRules);
+                _log.info("Saving Number of UnManagedFileExportRule(s) {}", oldUnManagedExportRules.size());
+                _dbClient.updateObject(oldUnManagedExportRules);
                 oldUnManagedExportRules.clear();
             }
 
@@ -2255,7 +2255,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             UnManagedFileSystem unManagedFileSystem,
             String unManagedFileSystemNativeGuid, StorageSystem storageSystem,
             StoragePool pool, NASServer nasServer, FileShare fileSystem)
-            throws IOException, IsilonCollectionException {
+                    throws IOException, IsilonCollectionException {
 
         if (null == unManagedFileSystem) {
             unManagedFileSystem = new UnManagedFileSystem();

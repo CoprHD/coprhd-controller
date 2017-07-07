@@ -4254,7 +4254,7 @@ class Bourne:
           result.append(s)
        return result
 
-    def block_mirror_attach(self, volume, label, count):
+    def block_mirror_attach(self, volume, label, count, mirrorPerfParams):
 
        copies_param = dict()
        copy = dict()
@@ -4263,6 +4263,23 @@ class Bourne:
        copy['name'] = label
        copy['count'] = count
        copy['type'] = "native"
+
+       # Initialize the mirror performance parameters. Should be in form: role:uri,role:uri,...
+       if (mirrorPerfParams):
+           pp_roles = []
+           pp_entries = mirrorPerfParams.split(',')
+           for pp_entry in pp_entries:
+               pp_role_details = pp_entry.split(":")
+               pp_role = dict()
+               pp_role['role'] = pp_role_details[0]
+               pp_role['id'] = self.pp_query(pp_role_details[1])
+               pp_roles.append(pp_role)
+           pp_varray = dict()
+           # The varray is not used for mirrors
+           pp_varray['varray'] = "dummyvarray"
+           pp_varray['param'] = pp_roles
+           copy['performance_params'] = pp_varray
+
        copy_entries.append(copy)
        copies_param['copy'] = copy_entries
 

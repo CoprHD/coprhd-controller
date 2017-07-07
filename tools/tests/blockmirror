@@ -42,7 +42,7 @@ def mirror_attach(args):
     bourne.connect(args.ip)
     volume_uri = bourne.volume_query(args.name)
     start = time.time()
-    tr_list = bourne.block_mirror_attach(volume_uri, args.label, args.count)
+    tr_list = bourne.block_mirror_attach(volume_uri, args.label, args.count, args.mirrorPerfParams)
     total = time.time() - start
     print "Mirror attach took", "{0:.2f}".format(total), "seconds to complete"
     for tr in tr_list:
@@ -133,6 +133,7 @@ attach = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 attach.add_argument('name', help = 'name of volume to attach a blockmirror')
 attach.add_argument('label', help = 'label for the attached mirror(s)')
 attach.add_argument('count', help = 'number of mirrors to attach')
+attach.add_argument('--mirrorPerfParams', help = 'The performance parameters for the mirror')
 
 # mirror detach uri [--ip ipaddr]
 detach = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

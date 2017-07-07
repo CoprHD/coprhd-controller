@@ -2876,7 +2876,7 @@ vplex_cos_setup()
                      --neighborhoods $NH $NH2                 \
                      --max_snapshots 1                        \
                      --max_mirrors 1                          \
-                     --expandable false 
+                     --expandable false
 
     run cos allow cosvplexlocal block $TENANT
     if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
@@ -2946,6 +2946,7 @@ vplex_cos_setup()
                      --expandable false
 
         run cos allow cosvplexdist block $TENANT
+
         if [ $VPLEX_USE_XIO -eq 1 ]; then
             run cos update block cosvplexdist --storage $VPLEX_XIO1_NATIVEGUID
         else
@@ -3192,6 +3193,7 @@ vplex_tests()
         run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
         run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
         run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
+
         if [ $VPLEX_USE_XIO -eq 0 ]; then
             run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
         else
@@ -14633,13 +14635,60 @@ arrayaffinity_tests()
 performanceparams_setup()
 {
     if [ ${PP_TEST} == "vmaxblock" ]; then
-       vmaxblock_setup
+       # Note that this calls vmaxblock_setup.
+       blockmirror_setup
     elif [ ${PP_TEST} == "vplex" ]; then
        vplex_setup
+
+       # Do some additional setup fro VPLEX to allow for HA side mirrors.
+       performanceparams_vplex_setup
     else
        secho "Not supported"
     fi
     secho "Performance parameter setup complete"
+}
+
+performanceparams_vplex_setup()
+{
+    smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
+    run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagedevice discover_all
+
+    storageport list $VMAX_NATIVEGUID --v
+    run storageport update $VMAX_NATIVEGUID FC --addvarrays $NH2
+
+    run cos update block cosvplexlocal --storage $VMAX_NATIVEGUID
+
+    run cos create block pp_vplexdisthavpool false \
+        --description 'HA-vpool-for-VPLEX-dist'    \
+        --protocols FC                             \
+        --numpaths 2                               \
+        --provisionType 'Thin'                     \
+        --highavailability vplex_local             \
+        --neighborhoods $NH2                       \
+        --max_mirrors 1                            \
+        --mirror_cos cosvplexlocal                 \
+        --expandable false
+
+    run cos allow pp_vplexdisthavpool block $TENANT
+    run cos update block pp_vplexdisthavpool --storage $VPLEX_VMAX_NATIVEGUID
+
+    run cos create block pp_cosvplexdist false       \
+        --description 'Distributed-Vpool-for-VPLEX'  \
+        --protocols FC                               \
+        --numpaths 2                                 \
+        --provisionType 'Thin'                       \
+        --highavailability vplex_distributed         \
+        --neighborhoods $NH $NH2                     \
+        --haNeighborhood $NH2                        \
+        --haCos pp_vplexdisthavpool                  \
+        --max_snapshots 1                            \
+        --max_mirrors 1                              \
+        --mirror_cos cosvplexlocal                   \
+        --expandable false
+
+    run cos allow pp_cosvplexdist block $TENANT
+    run cos update block pp_cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
 }
 
 performanceparams_tests()
@@ -14670,8 +14719,34 @@ performanceparams_vmaxblock_tests()
     vol1=Vol1-${RANDOM}
     secho "Creating volume ${vol1} with performance parameters ${pp1}."
     volPerfParams='PRIMARY:'${pp1}
-    run volume create ${vol1} ${PROJECT} ${NH} ${COS_VMAXBLOCK} ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
+    run volume create ${vol1} ${PROJECT} ${NH} ${COS_MIRROR} ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
     volume show ${PROJECT}/${vol1}
+
+    # Create another performance parameters instance to be used for a local mirror
+    # that will be attached to the volume.
+    atp2="SYMMETRIX+000196801612+SLO_POLICY+Bronze SLO (14.0ms)"
+    pp2=PerfParams-${RANDOM}
+    secho "Creating performance parameters with name ${pp2}."
+    run performanceparams create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2}" \
+         --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
+         --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
+    performanceparams show ${pp2}
+
+    # Create a mirror and override mirror vpool settings with those of the
+    # mirror performance parameters.
+    vol1Mirror=${vol1}-Mirror
+    mirrorPerfParams='PRIMARY_MIRROR:'${pp2}    
+    secho "Attaching mirror ${vol1Mirror} to volume ${vol1} with performance parameters ${pp2}."
+    run blockmirror attach ${PROJECT}/${vol1} ${vol1Mirror} 1 --mirrorPerfParams ${mirrorPerfParams}
+    blockmirror show ${PROJECT}/${vol1} ${vol1Mirror}
+
+    # Pause the mirror.
+    secho "Pause mirror ${vol1Mirror}."
+    run blockmirror pause $PROJECT/${vol1}
+
+    # Delete the mirror
+    secho "Deleting mirror ${vol1Mirror}." 
+    run blockmirror deactivate ${PROJECT}/${vol1} ${vol1Mirror}
 
     # Delete the volume.
     secho "Deleting volume ${vol1}."
@@ -14707,7 +14782,7 @@ performanceparams_vplex_tests()
 {
     # Create a performance parameters instance for the primary side of a VPLEX
     # distributed volume.
-    atp1="CLARiiON+APM00140844986+FASTPOLICY+DEFAULT_HIGHEST_AVAILABLE"
+    atp1="CLARiiON+APM00140801303+FASTPOLICY+DEFAULT_HIGHEST_AVAILABLE"
     pp1=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp1}."
     run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp1}" \
@@ -14725,6 +14800,26 @@ performanceparams_vplex_tests()
          --compression_enabled true --fast_expansion_enabled true --deduplication_enabled true
     performanceparams show ${pp2}
 
+    # Create a performance parameters instance for the primary side mirror of a VPLEX
+    # distributed volume.
+    atp3="CLARiiON+APM00140844986+FASTPOLICY+DEFAULT_LOWEST_AVAILABLE"
+    pp3=PerfParams-${RANDOM}
+    secho "Creating performance parameters with name ${pp3}."
+    run performanceparams create ${pp3} --description "${pp3}-Description" --auto_tiering_policy_name "${atp3}" \
+         --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
+         --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
+    performanceparams show ${pp3}
+
+    # Create a performance parameters instance for the HA side mirror of a VPLEX
+    # distributed volume.
+    atp4="NONE"
+    pp4=PerfParams-${RANDOM}
+    secho "Creating performance parameters with name ${pp4}."
+    run performanceparams create ${pp4} --description "${pp4}-Description" --auto_tiering_policy_name "${atp4}" \
+         --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
+         --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
+    performanceparams show ${pp4}
+
     # List the performance parameters.
     performanceparams list
 
@@ -14733,8 +14828,22 @@ performanceparams_vplex_tests()
     vol1=VPlexDistVol1-${RANDOM}
     volPerfParams='PRIMARY:'${pp1}',HA:'${pp2}
     secho "Creating VPLEX distributed volume ${vol1} with PRIMARY performance params ${pp1} and HA performance params ${pp2}."
-    run volume create ${vol1} ${PROJECT} ${NH} cosvplexdist ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
+    run volume create ${vol1} ${PROJECT} ${NH} pp_cosvplexdist ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
     volume show ${PROJECT}/${vol1}
+
+    # Create a local mirror on both sides of the VPLEX distributed volume and override
+    # mirror vpool settings with those of the mirror performance parameters.
+    vol1Mirror=${vol1}-Mirror
+    mirrorPerfParams='PRIMARY_MIRROR:'${pp3}',HA_MIRROR:'${pp4}  
+    secho "Attaching mirror ${vol1Mirror} to volume ${vol1} with primary performance parameters ${pp3} and HA parameters ${pp4}."
+    run blockmirror attach ${PROJECT}/${vol1} ${vol1Mirror} 1 --mirrorPerfParams ${mirrorPerfParams}
+    blockmirror show ${PROJECT}/${vol1} ${vol1Mirror}-0
+    blockmirror show ${PROJECT}/${vol1} ${vol1Mirror}-1
+
+    # Delete the mirror
+    secho "Deleting mirror ${vol1Mirror}." 
+    run blockmirror deactivate ${PROJECT}/${vol1} ${vol1Mirror}-0
+    run blockmirror deactivate ${PROJECT}/${vol1} ${vol1Mirror}-1
 
     # Delete the volume.
     secho "Deleting volume ${vol1}."

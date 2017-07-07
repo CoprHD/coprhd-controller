@@ -57,7 +57,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
-            this.timeout = Exec.DEFAULT_CMD_TIMEOUT;
+            this.timeout = CustomServicesConstants.OPERATION_TIMEOUT;
         } else {
             this.timeout = step.getAttributes().getTimeout();
         }
@@ -153,14 +153,17 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             }
             final List<String> listVal = e.getValue();
             final StringBuilder sb = new StringBuilder();
+            sb.append("\"");
             String prefix = "";
             for (final String val : listVal) {
                 sb.append(prefix);
                 prefix = ",";
                 sb.append(val.replace("\"", ""));
             }
+            sb.append("\"");
             str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
         }
+
         logger.info("CS: Shell arguments:{}", str.toString());
 
         return str.toString();

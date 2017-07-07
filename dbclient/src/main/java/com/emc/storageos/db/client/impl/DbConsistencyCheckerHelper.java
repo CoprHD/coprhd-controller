@@ -52,8 +52,10 @@ import com.netflix.astyanax.model.CqlResult;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
+import com.netflix.astyanax.query.PreparedCqlQuery;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
+import com.netflix.astyanax.thrift.model.ThriftCqlResultImpl;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
@@ -246,6 +248,11 @@ public class DbConsistencyCheckerHelper {
     public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult) throws ConnectionException {
         checkIndexingCF(indexAndCf, toConsole, checkResult, false);
     }
+    
+	public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel)
+			throws ConnectionException {
+		checkIndexingCF(indexAndCf, toConsole, checkResult, false, null);
+	}
 
     /**
      * Scan all the indices and related data object records, to find out
@@ -254,7 +261,7 @@ public class DbConsistencyCheckerHelper {
      * @return number of the corrupted rows in this index CF
      * @throws ConnectionException
      */
-    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel) throws ConnectionException {
+    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel, DataObjectType doType) throws ConnectionException {
         initSchemaVersions();
         String indexCFName = indexAndCf.cf.getName();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
@@ -286,6 +293,11 @@ public class DbConsistencyCheckerHelper {
                     if (objEntry == null) {
                         continue;
                     }
+                    
+                    if (doType != null && !doType.getDataObjectClass().getSimpleName().equals(objEntry.getClassName())) {
+                    	continue;
+                    }
+                    
                     ColumnFamily<String, CompositeColumnName> objCf = objCfs
                             .get(objEntry.getClassName());
 
@@ -684,22 +696,31 @@ public class DbConsistencyCheckerHelper {
             throws ConnectionException {
         StringBuilder cql = new StringBuilder("select * from ");
         cql.append("\"").append(indexCf.getName())
-        .append("\" where key='").append(indexKey).append("' ");
+        .append("\" where key=? ");
 
         for (int i = 0; i < indexColumns.length; i++) {
-            cql.append(" and column").append(i + 1).append("=");
-            if (indexColumns[i] instanceof String) {
-                cql.append("\'").append(indexColumns[i]).append("'");
-            } else {
-                cql.append(indexColumns[i]);
-            }
+        	cql.append(" and column").append(i + 1).append("=?");
         }
 
-        CqlStatement statement = ks.prepareCqlStatement();
-        CqlStatementResult result = statement.withCql(cql.toString()).execute().getResult();
-        Rows<String, CompositeIndexColumnName> rows = result.getRows(indexCf);
-        
-        return !rows.isEmpty();
+		PreparedCqlQuery preparedStatement = ks.prepareQuery(indexCf).withCql(cql.toString()).asPreparedStatement();
+
+		preparedStatement.withStringValue(indexKey);
+		for (int i = 0; i < indexColumns.length; i++) {
+			if (indexColumns[i] instanceof String) {
+				preparedStatement.withStringValue((String) indexColumns[i]);
+			} else if (indexColumns[i] instanceof Long) {
+				preparedStatement.withLongValue((Long) indexColumns[i]);
+			} else {
+				//suppose only String or Long, if un-supported type detect, just return true
+				return true;
+			}
+		}
+		
+		ThriftCqlResultImpl cqlResult = (ThriftCqlResultImpl)preparedStatement.execute().getResult();
+		if (cqlResult == null || cqlResult.getRows() == null) {
+			return false;
+		} else
+			return cqlResult.getRows().size() > 0;
     }
     
     public <T extends CompositeIndexColumnName> boolean isIndexExists(Keyspace ks, ColumnFamily<String, T> indexCf, String indexKey, T column) throws ConnectionException {

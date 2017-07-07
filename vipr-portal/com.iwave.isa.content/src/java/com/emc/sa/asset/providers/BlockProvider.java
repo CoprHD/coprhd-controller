@@ -49,9 +49,12 @@ import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
 import com.emc.sa.util.TextUtils;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -544,8 +547,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         List<RelatedResourceRep> volumes = client.blockConsistencyGroups().get(consistencyGroupId).getVolumes();
         Set<String> copyNames = Sets.newHashSet();
+        
+        if (volumes != null && !volumes.isEmpty()) {
+        	RelatedResourceRep volume = volumes.get(0);
 
-        for (RelatedResourceRep volume : volumes) {
             VolumeRestRep volumeRep = client.blockVolumes().get(volume);
             if (volumeRep.getProtection() != null && volumeRep.getProtection().getRpRep() != null) {
                 if (volumeRep.getProtection().getRpRep().getCopyName() != null) {
@@ -554,8 +559,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
                 if (volumeRep.getHaVolumes() != null) {
                     List<RelatedResourceRep> haVolumes = volumeRep.getHaVolumes();
+                    List<URI> haVolumeIds = new ArrayList<URI>();
                     for (RelatedResourceRep haVolume : haVolumes) {
-                        VolumeRestRep haVolumeRep = client.blockVolumes().get(haVolume);
+                    	haVolumeIds.add(haVolume.getId());
+                    }
+                    List<VolumeRestRep> haVolumeReps = client.blockVolumes().getByIds(haVolumeIds, null);
+                    for (VolumeRestRep haVolumeRep : haVolumeReps) {
                         if (haVolumeRep.getProtection() != null && haVolumeRep.getProtection().getRpRep() != null
                                 && haVolumeRep.getProtection().getRpRep().getCopyName() != null) {
                             String copyName = haVolumeRep.getProtection().getRpRep().getCopyName();
@@ -566,15 +575,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
                 if (volumeRep.getProtection().getRpRep().getRpTargets() != null) {
                     List<VirtualArrayRelatedResourceRep> targetVolumes = volumeRep.getProtection().getRpRep().getRpTargets();
-                    for (VirtualArrayRelatedResourceRep target : targetVolumes) {
-                        VolumeRestRep targetVolume = client.blockVolumes().get(target.getId());
-                        String copyName = targetVolume.getProtection().getRpRep().getCopyName();
+                    List<URI> targetVolumeIds = new ArrayList<URI>();
+                    for (VirtualArrayRelatedResourceRep targetVolume : targetVolumes) {
+                    	targetVolumeIds.add(targetVolume.getId());
+                    }
+                    List<VolumeRestRep> targetVolumeReps = client.blockVolumes().getByIds(targetVolumeIds, null);
+                    for (VolumeRestRep targetVolumeRep : targetVolumeReps) {
+                        String copyName = targetVolumeRep.getProtection().getRpRep().getCopyName();
                         copyNames.add(copyName);
                     }
                 }
             }
         }
-
         List<AssetOption> copyNameAssets = Lists.newArrayList();
         for (String copyName : copyNames) {
             copyNameAssets.add(newAssetOption(copyName, copyName));
@@ -1121,15 +1133,40 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("unassignedBlockVolume")
-    @AssetDependencies({ "host", "project" })
-    public List<AssetOption> getBlockVolumes(AssetOptionsContext ctx, URI hostOrClusterId, final URI projectId) {
+    @AssetDependencies({ "host", "project", "blockStorageType" })
+    public List<AssetOption> getBlockVolumes(AssetOptionsContext ctx, URI hostOrClusterId,
+            final URI projectId, String blockStorageType) {
         ViPRCoreClient client = api(ctx);
-        Set<URI> exportedBlockResources = BlockProvider.getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
-        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
-                exportedBlockResources);
+        Set<URI> exportedBlockResources =
+                BlockProvider.getExportedVolumes(client, projectId, hostOrClusterId, null);
+        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter =
+                new UnexportedBlockResourceFilter<VolumeRestRep>(exportedBlockResources);
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
         BlockVolumeBootVolumeFilter bootVolumeFilter = new BlockVolumeBootVolumeFilter();
-        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
+        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId,
+                unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
+
+        // get varray IDs for host/cluster
+        List<VirtualArrayRestRep> varrays = new ArrayList<>();
+        if(EXCLUSIVE_STORAGE_OPTION.key.equals(blockStorageType) &&
+                URIUtil.isType(hostOrClusterId, Host.class)) {
+            varrays = client.varrays().findByConnectedHost(hostOrClusterId);
+        } else if(SHARED_STORAGE_OPTION.key.equals(blockStorageType) &&
+                URIUtil.isType(hostOrClusterId, Cluster.class)) {
+            varrays = client.varrays().findByConnectedCluster(hostOrClusterId);
+        }
+        List<URI> varrayIds = new ArrayList<>();
+        for (VirtualArrayRestRep varray : varrays){
+            varrayIds.add(varray.getId());
+        }
+
+        // remove volumes not in hosts/cluster's varray
+        Iterator<VolumeRestRep> itr = volumes.iterator();
+        while (itr.hasNext()) {
+            if (!varrayIds.contains(itr.next().getVirtualArray().getId())) {
+                itr.remove();
+            }
+        }
 
         return createVolumeOptions(client, volumes);
     }
@@ -2685,19 +2722,23 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         String minimumSize = null;
 
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
-        for (RelatedResourceRep vol : cg.getVolumes()) {
-            VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
-            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
-                    && volume.getProtection().getRpRep().getProtectionSet() != null) {
-                RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
-                ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
-                for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
-                    VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
-                    if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
-                        String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
-                        if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
-                            minimumSize = capacity;
-                        }
+        // Get the first volume in the consistency group.  All volumes will be source volumes  
+        RelatedResourceRep vol = cg.getVolumes().get(0);
+        VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
+        if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
+                && volume.getProtection().getRpRep().getProtectionSet() != null) {
+            RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
+            ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
+            List<URI> protectionSetVolumeIds = new ArrayList<URI>();
+            for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
+            	protectionSetVolumeIds.add(protectionVolume.getId());
+            }
+            List<VolumeRestRep> protectionSetVolumes = api(ctx).blockVolumes().withInternal(true).getByIds(protectionSetVolumeIds, null);
+            for (VolumeRestRep protectionVolume : protectionSetVolumes) {
+                if (protectionVolume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
+                    String capacity = protectionVolume.getCapacity();
+                    if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
+                        minimumSize = capacity;
                     }
                 }
             }

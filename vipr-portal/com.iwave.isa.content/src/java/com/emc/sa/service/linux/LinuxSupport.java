@@ -31,10 +31,8 @@ import com.emc.sa.service.linux.tasks.FindIScsiInitiators;
 import com.emc.sa.service.linux.tasks.FindIScsiSessions;
 import com.emc.sa.service.linux.tasks.FindLunz;
 import com.emc.sa.service.linux.tasks.FindMountPointsForVolumes;
-import com.emc.sa.service.linux.tasks.FindMultiPathEntriesForMountPoint;
 import com.emc.sa.service.linux.tasks.FindMultiPathEntryForDmName;
 import com.emc.sa.service.linux.tasks.FindMultiPathEntryForVolume;
-import com.emc.sa.service.linux.tasks.FindPowerPathEntriesForMountPoint;
 import com.emc.sa.service.linux.tasks.FindPowerPathEntryForVolume;
 import com.emc.sa.service.linux.tasks.FormatVolume;
 import com.emc.sa.service.linux.tasks.GetDirectoryContents;
@@ -73,6 +71,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
+import com.google.common.collect.Lists;
 import com.iwave.ext.linux.LinuxSystemCLI;
 import com.iwave.ext.linux.model.HBAInfo;
 import com.iwave.ext.linux.model.IScsiHost;
@@ -372,11 +371,17 @@ public class LinuxSupport {
     }
 
     public void findMultipathEntries(List<VolumeSpec> volumes) {
-        execute(new FindMultiPathEntriesForMountPoint(volumes));
+        for (VolumeSpec volume : volumes) {
+            MultiPathEntry device = execute(new FindMultiPathEntryForVolume(volume.viprVolume));
+            volume.multipathEntries = Lists.newArrayList(device);
+        }
     }
 
     public void findPowerPathDevices(List<VolumeSpec> volumes) {
-        execute(new FindPowerPathEntriesForMountPoint(volumes));
+        for (VolumeSpec volume : volumes) {
+            PowerPathDevice device = execute(new FindPowerPathEntryForVolume(volume.viprVolume));
+            volume.powerpathDevices = Lists.newArrayList(device);
+        }
     }
 
     public void formatVolume(String device, String fsType, String blockSize) {

@@ -104,7 +104,11 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         NAME("FSName"),
         PATH("FSPath"),
         NAS("NasUri"),
-        MOUNT_PATH("FSMountPath");
+        MOUNT_PATH("FSMountPath"),
+        SOFT_LIMIT("SoftLimit"),
+        NOTIFICATION_LIMIT("NotificationLimit"),
+        SOFT_GRACE("SoftGrace");
+        
         private String _infoKey;
 
         SupportedFileSystemInformation(String infoKey) {

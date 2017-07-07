@@ -33,16 +33,25 @@ source $(dirname $0)/common_subs.sh
 
 Usage()
 {
-    echo 'Usage: wftests.sh <sanity conf file path> [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock | srdf [sync | async]] [-setup(hw) | -setupsim] [-report] [-cleanup] [-resetsim]  [test1 test2 ...]'
-    echo ' (vmax 2 | vmax3 ...: Storage platform to run on.'
+    echo 'Usage: wftests.sh <sanity conf file path> [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock | srdf [sync | async]] [-setup(hw) | -setupsim] [-report] [-cleanup] [-resetsim]  [test_1 test_2 ...]'
+    echo ' (vmax2 | vmax3 ...: Storage platform to run on.'
     echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
     echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
     echo ' [-cleanup]: Clean up the pre-created volumes and exports associated with -setup operation (Optional)'
     echo ' [-resetsim]: Resets the simulator as part of setup (Optional)'
     echo ' test names: Space-delimited list of tests to run.  Use + to start at a specific test.  (Optional, default will run all tests in suite)'
+    print_test_names
     echo ' Example:  ./wftests.sh sanity.conf vmax3 -setupsim -report -cleanup test_7+'
     echo '           Will start from clean DB, report results to reporting server, clean-up when done, and start on test_7 (and run all tests after test_7'
     exit 2
+}
+
+# Print functions in this file that start with test_
+print_test_names() {
+    for test_name in `grep -E "^test_.+\(\)" $0 | sed -E "s/\(.*$//"`
+    do
+      echo "  $test_name"
+    done
 }
 
 cd $(dirname $0)
@@ -494,7 +503,7 @@ vmax3_sim_setup() {
     SMIS_PASSWD=$SMIS_PASSWD
     VMAX_SMIS_SSL=true
     VMAX_NATIVEGUID=$SIMULATOR_VMAX3_NATIVEGUID
-    VMAX_FAST_POLICY=$SIMULATOR_VMAX3_FAST_POLICY
+    VMAX_FAST_POLICY="${VMAX_NATIVEGUID}+${SIMULATOR_VMAX3_FAST_POLICY_SUFFIX}"
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
@@ -1073,6 +1082,9 @@ srdf_sim_setup() {
     SRDF_V3_VMAXA_SMIS_SSL=${VMAX3_SIMULATOR_SMIS_SSL}
     SRDF_V3_VMAXA_NATIVEGUID=${VMAX3_SIMULATOR_NATIVE_GUID}
     SRDF_V3_VMAXB_NATIVEGUID=${VMAX3_SIMULATOR_R2_NATIVE_GUID}
+
+    SRDF_V3_VMAXA_FAST_POLICY="${SRDF_V3_VMAXA_NATIVEGUID}+${SIMULATOR_VMAX3_FAST_POLICY_SUFFIX}"
+    SRDF_V3_VMAXB_FAST_POLICY="${SRDF_V3_VMAXB_NATIVEGUID}+${SIMULATOR_VMAX3_FAST_POLICY_SUFFIX}"
 }
 
 srdf_setup() {
@@ -1132,6 +1144,7 @@ srdf_setup() {
     # Workaround for COP-25718, switch to use matchedPools once it is fixed
     run cos create block ${VPOOL_BASE}_SRDF_TARGET		          \
 	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
+	--auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
@@ -1146,6 +1159,7 @@ srdf_setup() {
     # As above, but without multivolume consistency
     run cos create block ${VPOOL_BASE_NOCG}_SRDF_TARGET		          \
 	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
+	--auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
@@ -1158,9 +1172,10 @@ srdf_setup() {
 
     case "$SRDF_MODE" in 
         async)
-            echo "Setting up the virtual pool for SRDF sync mode"
+            echo "Setting up the virtual pool for SRDF async mode"
     	    run cos create block ${VPOOL_BASE}                 \
 			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
+			 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
@@ -1173,9 +1188,10 @@ srdf_setup() {
     	   run cos update block ${VPOOL_BASE} --storage ${SRDF_V3_VMAXA_NATIVEGUID}
            run cos allow ${VPOOL_BASE} block $TENANT
 
-           echo "Setting up the virtual pool for SRDF sync mode (nocg)"
+           echo "Setting up the virtual pool for SRDF async mode (nocg)"
     	    run cos create block ${VPOOL_BASE_NOCG}                 \
 			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
+			 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
@@ -1191,6 +1207,7 @@ srdf_setup() {
         echo "Setting up the virtual pool for SRDF sync mode"
 	    run cos create block ${VPOOL_BASE}                 \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
+		 	 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
@@ -1206,6 +1223,7 @@ srdf_setup() {
 	    echo "Setting up the virtual pool for SRDF sync mode (nocg)"
 	    run cos create block ${VPOOL_BASE_NOCG}                 \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
+		 	 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
@@ -1226,6 +1244,7 @@ srdf_setup() {
     echo "Setting up the virtual pool for VPool change (Add SRDF)"
     run cos create block ${VPOOL_CHANGE}                 \
          --description 'Source-Virtual-Pool-for-VPoolChange' false \
+         --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
          --protocols FC 		        \
          --numpaths 1				\
          --max_snapshots 10			\
@@ -1544,6 +1563,43 @@ snap_db() {
     done
 }      
 
+# Given a DB snap file, filter out any backend VPLEX masks.
+# A VPLEX backend mask would have label VPLEX_xxxx_xxxx_CLX_*
+# Arguments:
+# 1) snap slot number.
+filter_backend_vplex_masks() {
+  if [ "${SS}" != "vplex" ]
+  then
+    return 1
+  fi
+
+  slot=$1
+  column_families="ExportMask ExportGroup"
+
+  rem_leading_spaces="| sed -e 's/^\s*//' "
+  grep_by_id_and_label="| grep -E '^label = VPLEX_([[:digit:]]{4}_){2}_|id: ' "
+  grep_by_id="| grep -E '^id: ' "
+  print_id="| awk '{ print \$NF }' "
+
+  for cf in ${column_families}
+  do
+    result_file="results/${item}/${cf}-${slot}.txt"
+
+    # Skip if the file does not exist.
+    [ ! -f ${result_file} ] && continue
+
+    execute="cat ${result_file} ${rem_leading_spaces} ${grep_by_id_and_label} ${grep_by_id} ${print_id}"
+    ids=`eval $execute`
+    
+    for id in $ids
+    do
+      tmp=/tmp/result-$RANDOM
+      cat ${result_file} | sed "/^id: $id/,/^\s*$/d" > $tmp
+      mv $tmp ${result_file}
+    done
+  done
+}
+
 validate_db() {
     slot_1=${1}
     shift
@@ -1667,9 +1723,9 @@ test_1() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs=("Volume ExportGroup ExportMask FCZoneReference")
+      cfs=("Volume ExportGroup ExportMask FCZoneReference")
     else
-	cfs=("Volume")
+      cfs=("Volume")
     fi
 
     for failure in ${failure_injections}
@@ -1686,35 +1742,37 @@ test_1() {
 
       # Check the state of the volume that doesn't exist
       snap_db 1 "${cfs[@]}"
+      filter_backend_vplex_masks 1
 
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
       then
-	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	  # Remove the volume
-      	  runcmd volume delete ${PROJECT}/${volname} --wait
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        # Remove the volume
+        runcmd volume delete ${PROJECT}/${volname} --wait
       else
-	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+        # If this is a rollback inject, make sure we get the "additional message"
+        echo ${failure} | grep failure_004 | grep ":" > /dev/null
 
-	  if [ $? -eq 0 ]
-	  then
-	      # Make sure it fails with additional errors accounted for in the error message
-      	      fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	  else
-      	      # Create the volume
-      	      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	  fi
+        if [ $? -eq 0 ]
+        then
+          # Make sure it fails with additional errors accounted for in the error message
+          fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        else
+          # Create the volume
+          fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        fi
 
-	  # Verify injected failures were hit
-	  verify_failures ${failure}
+        # Verify injected failures were hit
+        verify_failures ${failure}
 
-      	  # Let the async jobs calm down
-      	  sleep 5
+        # Let the async jobs calm down
+        sleep 5
       fi
 
       # Perform any DB validation in here
       snap_db 2 "${cfs[@]}" 
+      filter_backend_vplex_masks 2
 
       # Validate nothing was left behind
       validate_db 1 2 "${cfs[@]}"
@@ -1736,6 +1794,7 @@ test_1() {
 
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"
+      filter_backend_vplex_masks 3
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
@@ -1847,9 +1906,9 @@ test_2() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference")
+      cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference")
     else
-	cfs=("Volume BlockConsistencyGroup")
+      cfs=("Volume BlockConsistencyGroup")
     fi
 
     for failure in ${failure_injections}
@@ -1875,6 +1934,7 @@ test_2() {
 
       # Check the state of the volume that doesn't exist
       snap_db 1 "${cfs[@]}"
+      filter_backend_vplex_masks 1
 
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -1910,6 +1970,7 @@ test_2() {
 
       # Perform any DB validation in here
       snap_db 2 "${cfs[@]}"
+      filter_backend_vplex_masks 2
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -1920,11 +1981,20 @@ test_2() {
       # Should be able to delete the CG and recreate it.
       runcmd blockconsistencygroup delete ${CGNAME}
 
+      if [ "${failure}" = "failure_004:failure_015_SmisCommandHelper.invokeMethod_DeleteGroup" ]; then
+        CGNAME=wf-test2-cg-${item}1
+        if [ "${SS}" = "srdf" ]
+        then
+          CGNAME=cg${item}1
+        fi
+      fi 
+
       # Re-create the consistency group
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"
+      filter_backend_vplex_masks 3
 
       # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
       if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -1940,6 +2010,7 @@ test_2() {
 
       # Perform any DB validation in here
       snap_db 4 "${cfs[@]}"
+      filter_backend_vplex_masks 4
 
       # Validate nothing was left behind
       validate_db 3 4 ${cfs}
@@ -1998,9 +2069,9 @@ test_3() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs=("Volume ExportGroup ExportMask FCZoneReference")
+      cfs=("Volume ExportGroup ExportMask FCZoneReference")
     else
-	cfs=("Volume")
+      cfs=("Volume")
     fi
 
     for failure in ${failure_injections}
@@ -2021,17 +2092,18 @@ test_3() {
 
       # Check the state of the volume that doesn't exist
       snap_db 1 "${cfs[@]}"
+      filter_backend_vplex_masks 1
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
 
       if [ $? -eq 0 ]
       then
-	  # Make sure it fails with additional errors accounted for in the error message
-      	  fail -with_error "Additional errors occurred" volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+        # Make sure it fails with additional errors accounted for in the error message
+        fail -with_error "Additional errors occurred" volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
       else
-	  # Create the volume
-	  fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+        # Create the volume
+        fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
       fi
 
       # Verify injected failures were hit
@@ -2042,6 +2114,7 @@ test_3() {
 
       # Perform any DB validation in here
       snap_db 2 "${cfs[@]}"
+      filter_backend_vplex_masks 2
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -2065,6 +2138,7 @@ test_3() {
 
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"
+      filter_backend_vplex_masks 3
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
@@ -2436,6 +2510,8 @@ test_7() {
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_004:failure_016_Export_doRemoveInitiator"
 
+    zone2new="true"
+
     for failure in ${failure_injections}
     do
       item=${RANDOM}
@@ -2479,11 +2555,17 @@ test_7() {
 
       if [ $? -eq 0 ]
       then
-	  # Make sure it fails with additional errors accounted for in the error message
+	      # Make sure it fails with additional errors accounted for in the error message
       	  fail -with_error "Additional errors occurred" export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
       else
-	  # Attempt to add an initiator
-	  fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+	      # Attempt to add an initiator
+	      fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+      fi
+      
+      if [ "${failure}" = "failure_004:failure_024_Export_zone_removeInitiator_before_delete" ]; then
+          # This specific failure does not rollback the zone for host initiator 2.  Therefore from this point on, the zone
+          # will be existing and all verfications to see if zone 2 has been removed can be skipped.
+          zone2new="false"
       fi
 
       # Verify injected failures were hit
@@ -2499,17 +2581,14 @@ test_7() {
       set_artificial_failure none
       runcmd export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
-      # Verify the zone names, as we know them, are on the switch
+      # Verify the zone for host initiator 2
       zone2=`get_zone_name ${HOST1} ${H1PI2}`
       if [[ -z $zone2 ]]; then
         echo -e "\e[91mERROR\e[0m: Could not find a ViPR zone corresponding to host ${HOST1} and initiator ${H1PI2}. COP-30518 has been created to track this issue"
         incr_fail_count
       else
-        # Only verify that the zone exists on the switch if the zone is newly created.  
-        # Newly created zone names will contain the current host name.  
-        if newly_created_zone_for_host $zone2 $HOST1; then      
-            verify_zone ${zone2} ${FC_ZONE_A} exists
-        fi      
+        # Verify the zone exists
+        verify_zone ${zone2} ${FC_ZONE_A} exists
       fi
 
       # Perform any DB validation in here
@@ -2520,21 +2599,25 @@ test_7() {
 
       # Only verify the zone has been removed if it is a newly created zone
       if [ "${zone1}" != "" ]; then
-        # Only verify that the zone is removed from the switch if the zone was newly created.  
-        # Newly created zone names will contain the current host name.    
-        if newly_created_zone_for_host $zone1 $HOST1; then
-            verify_zone ${zone1} ${FC_ZONE_A} gone    
-        fi          
+          # Only verify that the zone is removed from the switch if the zone was newly created.  
+          # Newly created zone names will contain the current host name.    
+          if newly_created_zone_for_host $zone1 $HOST1; then
+              verify_zone ${zone1} ${FC_ZONE_A} gone    
+          fi          
       fi
-
-      # Only verify the zone has been removed if it is a newly created zone
+       
       if [ "${zone2}" != "" ]; then
-        # Only verify that the zone is removed from the switch if the zone was newly created.  
-        # Newly created zone names will contain the current host name.    
-        if newly_created_zone_for_host $zone2 $HOST1; then
-            verify_zone ${zone2} ${FC_ZONE_A} gone    
-        fi          
-      fi   
+          if newly_created_zone_for_host $zone2 $HOST1; then
+              if [ "${zone2new}" = "true" ]; then
+                  # Only verify that the zone is removed from the switch if the zone was newly created.  
+                  verify_zone ${zone2} ${FC_ZONE_A} gone  
+              else
+                  echo "Skipping check to see if zone ${zone2} has been removed because it is an existing zone"       
+              fi
+          else
+              echo "Skipping check to see if zone ${zone2} has been removed because it is an existing zone"            
+          fi    
+      fi          
 
       # Verify the DB is back to the original state
       snap_db 5 "${cfs[@]}"
@@ -2749,9 +2832,9 @@ test_9() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup")
+      cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup")
     else
-	cfs=("Volume BlockConsistencyGroup")
+      cfs=("Volume BlockConsistencyGroup")
     fi
 
     for failure in ${failure_injections}
@@ -2768,6 +2851,7 @@ test_9() {
 
       # Check the state of the volume that doesn't exist
       snap_db 1 "${cfs[@]}"
+      filter_backend_vplex_masks 1
 
       # Create the CG
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
@@ -2782,6 +2866,7 @@ test_9() {
 
       # Perform any DB validation in here
       snap_db 2 "${cfs[@]}"
+      filter_backend_vplex_masks 2
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -2802,6 +2887,7 @@ test_9() {
 
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"
+      filter_backend_vplex_masks 3
 
       # Validate nothing was left behind
       validate_db 1 3 "${cfs[@]}"
@@ -3717,6 +3803,350 @@ _add_to_cg_srdf() {
     done
 }
 
+# Test test_delete_srdf
+#
+# Test deleting SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Delete the SRDF volume pair
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry delete operation
+test_delete_srdf() {
+    echot "Test test_delete_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    common_failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes&1 \
+                        failure_087_BlockDeviceController.before_doDeleteVolumes&2 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&1 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&2 \
+                        failure_089_SRDFDeviceController.before_doSuspendLink \
+                        failure_090_SRDFDeviceController.after_doSuspendLink \
+                        failure_091_SRDFDeviceController.before_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+                        failure_092_SRDFDeviceController.after_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
+
+    async_only="failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
+                failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization"
+    sync_only="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization"
+
+    cfs=("Volume")
+    snap_db_esc=" | grep -Ev \"srdfLinkStatus = |^Volume\:|accessState = READWRITE|accessState = NOT_READY\""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    if [ "${SRDF_MODE}" = "async" ];
+    then
+      failure_injections="${common_failure_injections} ${async_only}"
+    else
+      failure_injections="${common_failure_injections} ${sync_only}"
+    fi
+
+    # Placeholder when a specific failure case is being worked...
+    #failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes"
+
+    for failure in ${failure_injections}
+    do
+        item=${RANDOM}
+        TEST_OUTPUT_FILE=test_output_${item}.log
+        secho "Running Test test_delete_srdf with failure scenario: ${failure}..."
+        reset_counts
+        mkdir -p results/${item}
+        volname=${VOLNAME}-${item}
+
+        # Clear existing volumes
+        cleanup_srdf $PROJECT
+
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+
+        snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+        set_artificial_failure ${failure}
+
+        # Remove the volume
+        if [ "${failure}" = "failure_088_BlockDeviceController.after_doDeleteVolumes&1" -o \
+               "${failure}" = "failure_088_BlockDeviceController.after_doDeleteVolumes&2" -o \
+               "${failure}" = "failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData" -o \
+               "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o \
+               "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ]
+        then
+          # Failure on GetDefaultReplicationSettingData is ignored.
+          # failure_90, failure_092 occurs at the idempotent-friendly SRDF phase, where enough has already happened for volume deletion to succeed.
+          # failure_088 is expected to pass due to the asynchronous job taking control of the completer status.
+          runcmd volume delete ${PROJECT}/${volname} --wait
+
+          # Verify injected failures were hit
+          verify_failures ${failure}
+
+          set_artificial_failure none
+        else
+          fail volume delete ${PROJECT}/${volname} --wait
+
+          runcmd storagedevice discover_all
+          snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+
+          # Verify injected failures were hit
+          verify_failures ${failure}
+
+          set_artificial_failure none
+
+          # No sense in validating db for failure_087, since source or target would have been deleted.
+          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" ]
+          then
+            # failure_087 leaves the source or target behind, so we expect to be able to retry deleting whichever one was left behind.
+            runcmd volume delete --project ${PROJECT} --wait
+          else
+            # Validate volume was left for retry
+            validate_db 1 2 ${cfs}
+
+            # Retry the delete operation on remaining source volumes
+            for vol in `volume list $PROJECT | grep "SOURCE" | awk '{ print $7}'`
+            do
+              runcmd volume delete $vol --wait
+            done
+          fi
+        fi
+
+        if [ "${SIM}" = "0" ]
+        then
+          symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+        fi
+
+        report_results "test_delete_srdf" ${failure}
+    done
+}
+
+# Test test_delete_srdf_cg_last_vol
+#
+# Test deleting SRDF CG volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume in a CG
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Delete the SRDF volume pair
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry delete operation
+test_delete_srdf_cg_last_vol() {
+    echot "Test test_delete_srdf_cg_last_vol Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes&1 \
+                        failure_087_BlockDeviceController.before_doDeleteVolumes&2 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&1 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&2 \
+                        failure_089_SRDFDeviceController.before_doSuspendLink \
+                        failure_090_SRDFDeviceController.after_doSuspendLink \
+                        failure_091_SRDFDeviceController.before_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+                        failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
+                        failure_092_SRDFDeviceController.after_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization \
+                        failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
+
+    async_only="failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData"
+
+    cfs=("Volume BlockConsistencyGroup")
+    snap_db_esc=" | grep -Ev \"srdfLinkStatus = |^Volume\:|accessState = READWRITE|accessState = NOT_READY\""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    if [ "${SRDF_MODE}" = "async" ];
+    then
+      failure_injections="${common_failure_injections} ${async_only}"    
+    fi
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes"
+
+    for failure in ${failure_injections}
+    do
+        item=${RANDOM}
+        TEST_OUTPUT_FILE=test_output_${item}.log
+        secho "Running Test test_delete_srdf_cg_last_vol with failure scenario: ${failure}..."
+        reset_counts
+        mkdir -p results/${item}
+        volname=${VOLNAME}-${item}
+        # Create a new CG
+        CGNAME=cg${item}
+
+        runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+
+        snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+        set_artificial_failure ${failure}
+
+        # Remove the volume
+        if [ "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ];
+        then
+          runcmd volume delete ${PROJECT}/${volname} --wait
+
+          # Verify injected failures were hit
+          verify_failures ${failure}
+        else
+          fail volume delete ${PROJECT}/${volname} --wait
+
+          runcmd storagedevice discover_all
+          snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+
+          # Verify injected failures were hit
+          verify_failures ${failure}
+
+          # Validate volume was left for retry
+          validate_db 1 2 ${cfs}
+
+          set_artificial_failure none
+
+          # Retry the delete operation
+          runcmd volume delete ${PROJECT}/${volname} --wait
+        fi
+
+        if [ "${SIM}" = "0" ]
+        then
+          symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+        fi
+
+        runcmd blockconsistencygroup delete ${CGNAME}
+        report_results "test_delete_srdf_cg_last_vol" ${failure}
+    done
+}
+
+# Test test_delete_srdf_cg_vol
+#
+# Test deleting SRDF CG volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume in a CG
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Delete the SRDF volume pair
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry delete operation
+test_delete_srdf_cg_vol() {
+    echot "Test test_delete_srdf_cg_vol Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes&1 \
+                        failure_087_BlockDeviceController.before_doDeleteVolumes&2 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&1 \
+                        failure_088_BlockDeviceController.after_doDeleteVolumes&2 \
+                        failure_089_SRDFDeviceController.before_doSuspendLink \
+                        failure_090_SRDFDeviceController.after_doSuspendLink \
+                        failure_091_SRDFDeviceController.before_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+                        failure_092_SRDFDeviceController.after_doDetachLink \
+                        failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
+
+    async_only="failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
+                failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization"
+    sync_only="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization"
+
+    cfs=("Volume BlockConsistencyGroup")
+    snap_db_esc=" | grep -Ev \"srdfLinkStatus = |^Volume\:|accessState = READWRITE|accessState = NOT_READY\""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    if [ "${SRDF_MODE}" = "async" ];
+    then
+      failure_injections="${common_failure_injections} ${async_only}"
+    else
+      failure_injections="${common_failure_injections} ${sync_only}"
+    fi
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes"
+    
+    random=${RANDOM}
+    cgvolname=${VOLNAME}-${random}
+    # Create a new CG
+    CGNAME=cg${random}
+
+    runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+    runcmd volume create ${cgvolname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+
+    for failure in ${failure_injections}
+    do
+        item=${RANDOM}
+        TEST_OUTPUT_FILE=test_output_${item}.log
+        secho "Running Test test_delete_srdf_cg_vol with failure scenario: ${failure}..."
+        reset_counts
+        mkdir -p results/${item}
+        volname=${VOLNAME}-${item}
+
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+
+        snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+        set_artificial_failure ${failure}
+
+        # Remove the volume
+        if [ "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ];
+        then
+          runcmd volume delete ${PROJECT}/${volname} --wait
+
+          # Verify injected failures were hit
+          verify_failures ${failure}
+        else
+          fail volume delete ${PROJECT}/${volname} --wait
+
+          runcmd storagedevice discover_all
+          snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+
+          # Verify injected failures were hit
+          verify_failures ${failure}
+
+          # Validate volume was left for retry
+          validate_db 1 2 ${cfs}
+
+          set_artificial_failure none
+
+          # Retry the delete operation
+          runcmd volume delete ${PROJECT}/${volname} --wait
+        fi
+
+        if [ "${SIM}" = "0" ]
+        then
+          symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+        fi
+
+        report_results "test_delete_srdf_cg_vol" ${failure}
+    done
+    #Cleanup the remaining CG vol and CG
+    runcmd volume delete ${PROJECT}/${cgvolname} --wait
+    runcmd blockconsistencygroup delete ${CGNAME}
+
+}
+
 cleanup() {
     if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
@@ -3781,6 +4211,15 @@ cleanup_previous_run_artifacts() {
             runcmd cluster delete ${id} > /dev/null
         done
     fi
+}
+
+cleanup_srdf() {
+  project=$1
+
+  for source in `volume list $project | grep SOURCE | awk '{ print $7}'`
+  do
+    volume delete $source --wait
+  done
 }
 
 # call this to generate a random WWN for exports.
@@ -3898,15 +4337,17 @@ vblock_setup() {
 
     run cos update block $VPOOL_BASE --storage ${VBLOCK_VMAX_NATIVEGUID}
 
-    # Create and prepare compute virtual pool
-    run computevirtualpool create $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME Cisco_UCSM false $NH $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES
-    sleep 2
-    run computevirtualpool assign $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME $VBLOCK_COMPUTE_ELEMENT_NAMES
-
     run cos allow $VPOOL_BASE block $TENANT
     run project create $PROJECT --tenant $TENANT
     secho "Project $PROJECT created."
     run vcenter create $VBLOCK_VCENTER_NAME $TENANT $VBLOCK_VCENTER_IP $VBLOCK_VCENTER_PORT $VBLOCK_VCENTER_USER $VBLOCK_VCENTER_PASSWORD
+
+
+    # Create and prepare compute virtual pool
+    echo $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES
+    run computevirtualpool create $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME Cisco_UCSM false $NH $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES $VBLOCK_SERVICE_PROFILE_TEMPLATE_TYPE
+    sleep 2
+    run computevirtualpool assign $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME $VBLOCK_COMPUTE_ELEMENT_NAMES
 
     echo "======= vBlock base setup done ======="
 }

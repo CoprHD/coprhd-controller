@@ -42,4 +42,8 @@ public class StorageSystemTypeFilter extends DefaultResourceFilter<StorageSystem
 }
 	}
 
+    public void addType(String type) {
+        types.add(type);
+    }
+
 }

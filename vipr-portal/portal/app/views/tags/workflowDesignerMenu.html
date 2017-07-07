@@ -62,7 +62,7 @@
 												<input-text ng-change="setWorkflowModified('true')"></input-text>
 											</control-group>
 											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.inputFieldType' ng-if="input.type=='InputFromUser' && !isInventoryFile(stepData, inputGroupName, input)">
-												<select-one options="InputFieldOption" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
+												<select-one options="InputFieldOption" v-default-value="getDefaultInputFieldType(input.fieldType)" v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 											</control-group>
 											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.tableName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle' || input.type=='FromOtherStepInput' || input.type=='FromOtherStepOutput'">
 												<input-text ng-change="setWorkflowModified('true')"></input-text>

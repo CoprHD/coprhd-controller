@@ -119,6 +119,14 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_084 = "failure_084_VPlexDeviceController_deleteStorageView_before_delete";
     public static final String ARTIFICIAL_FAILURE_085 = "failure_085_VPlexApiDiscoveryManager_find_consistency_group";
     public static final String ARTIFICIAL_FAILURE_086 = "failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete";
+    public static final String ARTIFICIAL_FAILURE_087 = "failure_087_BlockDeviceController.before_doDeleteVolumes";
+    public static final String ARTIFICIAL_FAILURE_088 = "failure_088_BlockDeviceController.after_doDeleteVolumes";
+    public static final String ARTIFICIAL_FAILURE_089 = "failure_089_SRDFDeviceController.before_doSuspendLink";
+    public static final String ARTIFICIAL_FAILURE_090 = "failure_090_SRDFDeviceController.after_doSuspendLink";
+    public static final String ARTIFICIAL_FAILURE_091 = "failure_091_SRDFDeviceController.before_doDetachLink";
+    public static final String ARTIFICIAL_FAILURE_092 = "failure_092_SRDFDeviceController.after_doDetachLink";
+    public static final String ARTIFICIAL_FAILURE_093 = "failure_093_SRDFDeviceController.before_doRemoveDeviceGroups";
+    public static final String ARTIFICIAL_FAILURE_094 = "failure_094_SRDFDeviceController.after_doRemoveDeviceGroups";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

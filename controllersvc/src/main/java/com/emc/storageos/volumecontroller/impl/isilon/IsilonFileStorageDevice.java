@@ -1134,6 +1134,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
                 quotaId = args.getFsExtensions().get(QUOTA);
             } else {
+                //when policy is applied at higher level, we will ignore the target filesystem 
+                FileShare fileShare = args.getFs();
+                if (fileShare.getPersonality().equals(PersonalityTypes.TARGET.name()) && null != fileShare.getExtensions()){
+                    _log.info("filesystem act as a target in replication policy, so we ignore the reduce filesystem for fileshare ", fileShare.getLabel());
+                    return BiosCommandResult.createSuccessfulResult();
+                }
                 final ServiceError serviceError = DeviceControllerErrors.isilon.doExpandFSFailed(args.getFsId());
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);
@@ -1182,6 +1188,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     isiReduceFS(isi, quotaId, args);
                 }
             } else {
+                //when policy is applied at higher level, we will ignore the target filesystem 
+                FileShare fileShare = args.getFs();
+                if (fileShare.getPersonality().equals(PersonalityTypes.TARGET.name()) && null != fileShare.getExtensions()){
+                    _log.info("filesystem act as a target in replication policy, so we ignore the reduce filesystem for fileshare ", fileShare.getLabel());
+                    return BiosCommandResult.createSuccessfulResult();
+                }
+                
                 final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);
@@ -1301,8 +1314,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 final ServiceError serviceError = DeviceControllerErrors.isilon.unableToUpdateFileSystem(args.getFsId());
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);
-            }
-
+            } 
             IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, args.getFsCapacity());
             isi.modifyQuota(quotaId, expandedQuota);
             _log.info("IsilonFileStorageDevice doModifyFS {} - complete", args.getFsId());

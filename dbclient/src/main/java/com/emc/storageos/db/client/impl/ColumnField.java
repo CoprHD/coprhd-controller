@@ -413,6 +413,10 @@ public class ColumnField <T extends CompositeIndexColumnName> {
         return indexChanged;
     }
 
+    public boolean serialize(String tableName, DataObject obj, RowMutator mutator) {
+        return serialize(tableName, obj, mutator, null, null);
+    }
+
     /**
      * Serializes object field into database updates
      *

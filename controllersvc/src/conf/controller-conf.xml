@@ -1822,14 +1822,25 @@
         <property name="vpoolTemplates">
             <set>
                 <ref bean="vpoolTemplateAnyArray1"/>
+                <ref bean="vpoolTemplateVmaxArray1"/>
                 <ref bean="vpoolTemplateXioArray1"/>
-                <ref bean="vpoolTemplateVplexVmaxArray1"/>
                 <ref bean="vpoolTemplateVplexLocal1"/>
                 <ref bean="vpoolTemplateVplexLocal1Xio"/>
                 <ref bean="vpoolTemplateVplexLocal1Vmax"/>
                 <ref bean="vpoolTemplateVplexDistributed1"/>
                 <ref bean="vpoolTemplateVplexDistributed1Xio"/>
                 <ref bean="vpoolTemplateVplexDistributed1Vmax"/>
+            </set>
+        </property>
+    </bean>
+    <bean id="arrayVarrayGenerator" class="com.emc.storageos.varraygenerators.ArrayVarrayGenerator">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vpoolTemplates">
+            <set>
+                <ref bean="vpoolTemplateAnyArray1"/>
+                <ref bean="vpoolTemplateVmaxArray1"/>
+                <ref bean="vpoolTemplateXioArray1"/>
             </set>
         </property>
     </bean>

@@ -22,13 +22,20 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
+import com.emc.storageos.util.CinderQosUtil;
+import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 public class VarrayGenerator implements VarrayGeneratorInterface {
     private static Logger log = LoggerFactory.getLogger(VarrayGenerator.class);
@@ -221,7 +228,83 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
         return newVarray;
     }
     
-    public CoordinatorClient getCoordinator() {
+    /**
+     * Takes a nativeGuid for a StorageSystem and makes it short
+     * @param nativeGuid of Storage System
+     * @return shorter String
+     */
+    protected String makeShortGuid(String nativeGuid) {
+        String[] parts = nativeGuid.split("[+:]");
+        StringBuilder buf = new StringBuilder();
+        buf.append(parts[0]);
+        if (parts.length > 1) {
+            buf.append("+");
+            int begin = parts[1].length() - 4;
+            begin = (begin < 0) ? 0 : begin;
+            int end = parts[1].length();
+            buf.append(parts[1].substring(begin, end));
+        }
+        return buf.toString();
+    }
+    
+    /**
+     * Prints out the networks in a set
+     * @param label - a header label string printed just before
+     * @param networks -- Set<URI> of networks
+     */
+    protected void printNetworks(String label, Set<URI> networks) {
+        StringBuilder buf = new StringBuilder();
+        buf.append(label);
+        for (URI netURI : networks) {
+            NetworkLite net = NetworkUtil.getNetworkLite(netURI,  dbClient);
+            buf.append(net.getLabel() + " ");
+        }
+        log.info(buf.toString());
+    }
+    
+    /**
+     * Make a virtual pool using the generator.
+     * @param vpoolGenerator -- VpoolGenerator
+     * @param template - VpoolTemplate from the xml file
+     * @param vpoolName - name for this Vpool
+     * @param varrayURIs - set of Varrays that can use this Vpool
+     * @param haVarrayURI - the high availability varray
+     * @param haVpoolURI - the high availability vpool
+     * @return VirtualPool object created or updated
+     */
+    protected VirtualPool makeVpool(VpoolGenerator vpoolGenerator, VpoolTemplate template, String vpoolName, Set<String> varrayURIs, 
+            String haVarrayURI, String haVpoolURI) {
+        VirtualPool vpool = vpoolGenerator.getVpoolByName(vpoolName);
+        if (vpool != null) {
+            vpool.setDescription("automatically generated");
+            vpool.addVirtualArrays(varrayURIs);
+            CinderQosUtil.createOrUpdateQos(vpool, dbClient);
+            dbClient.updateObject(vpool);
+        } else {
+            vpool = vpoolGenerator.makeVpoolFromTemplate("", template);
+            vpool.setLabel(vpoolName);
+            vpool.setDescription("automatically generated");
+            vpool.addVirtualArrays(varrayURIs);
+            if (haVarrayURI != null) {
+                if (haVpoolURI == null) {
+                    haVpoolURI = NullColumnValueGetter.getNullStr();
+                }
+                StringMap haVarrayVpoolMap = new StringMap();
+                haVarrayVpoolMap.put(haVarrayURI, haVpoolURI);
+                vpool.setHaVarrayVpoolMap(haVarrayVpoolMap);
+            }
+            CinderQosUtil.createOrUpdateQos(vpool, dbClient);
+            dbClient.createObject(vpool);
+        }
+        StringBuffer errorMessage = new StringBuffer();
+        // update the implicit pools matching with this VirtualPool.
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, dbClient, coordinator, errorMessage);
+        dbClient.updateObject(vpool);
+        if (errorMessage.length() > 0) {
+           log.info("Error matching: " + vpool.getLabel() + " " + errorMessage.toString()); 
+        }
+        return vpool;
+    }public CoordinatorClient getCoordinator() {
         return coordinator;
     }
 

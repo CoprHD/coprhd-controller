@@ -43,6 +43,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Namespace;
 import com.emc.storageos.plugins.common.domainmodel.NamespaceList;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
+import com.emc.storageos.varraygenerators.VarrayGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.LocalReplicaObject;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor;
@@ -364,7 +365,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             executor.setKeyMap(_keyMap);
             executor.execute((Namespace) namespaces.getNsList().get(DISCOVER));
-
+            VarrayGenerator.generateVarrays(storageSystem);
         } catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for Storage System: %s because %s",
                     storageSystemURI.toString(), e.getMessage());
@@ -556,6 +557,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             executor.setKeyMap(_keyMap);
             executor.execute((Namespace) namespaces.getNsList().get(DISCOVER));
+        
         } catch (Exception e) {
             detailedStatusMessage = "Array Affinity Discovery failed for Storage System: %s because " + e.getMessage();
             _logger.error(String.format(detailedStatusMessage, storageSystemURI.toString()), e);

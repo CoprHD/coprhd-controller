@@ -57,7 +57,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                 String cluster = ConnectivityUtil.getVplexClusterOfPort(port);
                 if (ConnectivityUtil.CLUSTER1.equals(cluster)) {
                     cluster1Ports.add(port);
-                    if (port.getNetwork() != null) {
+                    if (!NullColumnValueGetter.isNullURI(port.getNetwork())) {
                         cluster1Nets.add(port.getNetwork());
                         if (port.getPortType().equals(StoragePort.PortType.backend.name())) {
                             cluster1BackendNets.add(port.getNetwork());
@@ -65,7 +65,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                     }
                 } else if (ConnectivityUtil.CLUSTER2.equals(cluster)) {
                     cluster2Ports.add(port);
-                    if (port.getNetwork() != null) {
+                    if (!NullColumnValueGetter.isNullURI(port.getNetwork())) {
                         cluster2Nets.add(port.getNetwork());
                         if (port.getPortType().equals(StoragePort.PortType.backend.name())) {
                             cluster2BackendNets.add(port.getNetwork());
@@ -75,21 +75,8 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                     log.info(String.format("VPLEX port %s %s not in either cluster", port.getPortName(), port.getId()));
                 }
             }
-            StringBuilder buf = new StringBuilder();
-            buf.append("Networks connected to VPlexCluster1: ");
-            for (URI cluster1Net : cluster1Nets) {
-                NetworkLite net1 = NetworkUtil.getNetworkLite(cluster1Net, dbClient);
-                buf.append(net1.getLabel() + " ");
-            }
-            log.info(buf.toString());
-            buf.setLength(0);
-            buf.append("Networks connected to VPlexCluster2: ");
-            for (URI cluster1Net : cluster1Nets) {
-                NetworkLite net2 = NetworkUtil.getNetworkLite(cluster1Net, dbClient);
-                buf.append(net2.getLabel() + " ");
-            }
-            log.info(buf.toString());
-            buf.setLength(0);
+            printNetworks("Networks connected to VPlexCluster1:  ", cluster1Nets);
+            printNetworks("Networks connected to VPlexCluster2:  ", cluster2Nets);
 
             // Look for existing virtual arrays. create new ones if necessary
             String varray1Name = makeShortVplexName(system.getNativeGuid()) + "-Cluster1";
@@ -212,49 +199,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
         }
     }
     
-    /**
-     * Make a virtual pool using the generator.
-     * @param vpoolGenerator -- VpoolGenerator
-     * @param template - VpoolTemplate from the xml file
-     * @param vpoolName - name for this Vpool
-     * @param varrayURIs - set of Varrays that can use this Vpool
-     * @param haVarrayURI - the high availability varray
-     * @param haVpoolURI - the high availability vpool
-     * @return VirtualPool object created or updated
-     */
-    private VirtualPool makeVpool(VpoolGenerator vpoolGenerator, VpoolTemplate template, String vpoolName, Set<String> varrayURIs, 
-            String haVarrayURI, String haVpoolURI) {
-        VirtualPool vpool = vpoolGenerator.getVpoolByName(vpoolName);
-        if (vpool != null) {
-            vpool.setDescription("automatically generated");
-            vpool.addVirtualArrays(varrayURIs);
-            CinderQosUtil.createOrUpdateQos(vpool, dbClient);
-            dbClient.updateObject(vpool);
-        } else {
-            vpool = vpoolGenerator.makeVpoolFromTemplate("", template);
-            vpool.setLabel(vpoolName);
-            vpool.setDescription("automatically generated");
-            vpool.addVirtualArrays(varrayURIs);
-            if (haVarrayURI != null) {
-                if (haVpoolURI == null) {
-                    haVpoolURI = NullColumnValueGetter.getNullStr();
-                }
-                StringMap haVarrayVpoolMap = new StringMap();
-                haVarrayVpoolMap.put(haVarrayURI, haVpoolURI);
-                vpool.setHaVarrayVpoolMap(haVarrayVpoolMap);
-            }
-            CinderQosUtil.createOrUpdateQos(vpool, dbClient);
-            dbClient.createObject(vpool);
-        }
-        StringBuffer errorMessage = new StringBuffer();
-        // update the implicit pools matching with this VirtualPool.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, dbClient, coordinator, errorMessage);
-        dbClient.updateObject(vpool);
-        if (errorMessage.length() > 0) {
-           log.info("Error matching: " + vpool.getLabel() + " " + errorMessage.toString()); 
-        }
-        return vpool;
-    }
+    
     
     /**
      * Returns a VPLEX name with the last 4 digits of the serial number from each cluster

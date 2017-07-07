@@ -37,6 +37,7 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.util.VersionChecker;
+import com.emc.storageos.varraygenerators.VarrayGenerator;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.xtremio.XtremIOMetricsCollector;
@@ -165,6 +166,7 @@ public class XtremIOCommunicationInterface extends
                     true);
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
             discoverXtremIOSystem(xtremIOClient, storageSystem);
+            VarrayGenerator.generateVarrays(storageSystem);
         }
     }
 

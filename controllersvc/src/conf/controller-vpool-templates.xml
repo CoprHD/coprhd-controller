@@ -50,7 +50,7 @@
           </property>
 	</bean>
 
-       <bean id="vpoolTemplateVplexVmaxArray1" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
+       <bean id="vpoolTemplateVmaxArray1" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
           <property name="attrMap">
             <map>
                 <entry key="label" value="VMAX Storage Array"/>

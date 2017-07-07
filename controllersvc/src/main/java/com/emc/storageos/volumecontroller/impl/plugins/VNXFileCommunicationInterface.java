@@ -1565,6 +1565,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             StringSet umfsIds = new StringSet();
             if (discoveredFS != null) {
                 for (VNXFileSystem fs : discoveredFS) {
+
+                    if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getFsName())) {
+                        // skipping this file system because the filter doesn't match
+                        continue;
+                    }
+
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                             storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), fs.getFsId() + "");

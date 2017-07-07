@@ -100,6 +100,20 @@ public class Volume extends BlockObject implements ProjectResource {
     // that this Volume's backing Volumes belong to.
     private String _backingReplicationGroupInstance;
 
+    private int volType = 0;
+
+    static class VOL_TYPE {
+        public static int SRDF_SOURCE = 1;
+    }
+
+    public void setType(int type) {
+        volType += type;
+    }
+
+    public void unsetType(int type) {
+        volType -= type;
+    }
+
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.
     public static enum VolumeAccessState {
         UNKNOWN("0"), READABLE("1"), WRITEABLE("2"), READWRITE("3"), WRITEONCE("4"), NOT_READY("5"); // Not part of SMIS

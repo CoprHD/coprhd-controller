@@ -109,6 +109,28 @@ public class RowMutator {
         atomicBatch.add(insert);
     }
 
+    public void insertViewRow(DbViewRecord view) {
+        String cql = view.getInsertCql();
+        log.info("==== insert view cql is {}", cql);
+
+        PreparedStatement insertPrepared = context.getPreparedStatement(cql);
+        BoundStatement insert = insertPrepared.bind();
+        insert.setString(view.getKeyName(), view.getKeyValue());
+
+        // Clustering keys
+        for (ViewColumn cluster: view.getClusterColumns()) {
+            insert.setString(cluster.getName(), cluster.getValue());
+        }
+
+        // Columns
+        for (ViewColumn col: view.getColumns()) {
+            ByteBuffer blobVal = getByteBufferFromPrimitiveValue(col.getBinValue());
+            insert.setBytes("value", blobVal);
+        }
+
+        atomicBatch.add(insert);
+    }
+
     public void deleteRecordColumn(String tableName, String recordKey, CompositeColumnName column) {
         Delete.Where deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey))
                 .and(eq("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()))

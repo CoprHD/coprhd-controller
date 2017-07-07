@@ -53,7 +53,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Ttl;
 import com.emc.storageos.db.client.model.AggregatedIndex;
 import com.emc.storageos.db.client.model.ClassNameTimeSeries;
-import com.emc.storageos.db.client.model.NoInactiveIndex;
 import com.emc.storageos.db.client.model.TimeSeriesAlternateId;
 import com.emc.storageos.db.exceptions.DatabaseException;
 
@@ -382,6 +381,38 @@ public class ColumnField <T extends CompositeIndexColumnName> {
         return addColumn(tableName, recordKey, column, val, mutator, null);
     }
 
+    private boolean addColumn(String tableName, String recordKey, CompositeColumnName column, Object val,
+                              RowMutator mutator, DataObject obj,
+                              List<DbViewDefinition> viewDefs, Map<DbViewDefinition, DbViewRecord> viewMap) {
+
+        boolean indexChanged = addColumn(tableName, recordKey, getColumnName(null, mutator), val, mutator, obj);
+
+        for (DbViewDefinition viewDef: viewDefs) {
+            if (!viewDef.hasField(_name)) {
+                _log.info("field {} not in view", _name);
+                continue;
+            }
+            DbViewRecord view = viewMap.get(viewDef);
+            if (view == null) {
+                view = new DbViewRecord(viewDef);
+                viewMap.put(viewDef, view);
+            }
+            if (viewDef.isKey(_name)) {
+                view.setKeyValue( ((URI) val).toString() );
+                _log.info("1111 key");
+            } else if (viewDef.isClustering(_name)) {
+                view.addClusteringColumn(_name, (String) val);
+                _log.info("2222 clustering");
+            } else {
+                view.addColumn(_name, val);
+                _log.info("3333 normal col");
+            }
+            _log.info("======= added column {} in view", _name);
+        }
+
+        return indexChanged;
+    }
+
     /**
      * Serializes object field into database updates
      *
@@ -391,7 +422,7 @@ public class ColumnField <T extends CompositeIndexColumnName> {
      * @return boolean
      * @throws DatabaseException
      */
-    public boolean serialize(String tableName, DataObject obj, RowMutator mutator) {
+    public boolean serialize(String tableName, DataObject obj, RowMutator mutator, List<DbViewDefinition> viewDefs, Map<DbViewDefinition, DbViewRecord> viewMap) {
         try {
             String id = obj.getId().toString();
 
@@ -410,7 +441,7 @@ public class ColumnField <T extends CompositeIndexColumnName> {
                     if (!obj.isChanged(_name)) {
                         return false;
                     }
-                    changed = addColumn(tableName, id, getColumnName(null, mutator), val, mutator, obj);
+                    changed = addColumn(tableName, id, getColumnName(null, mutator), val, mutator, obj, viewDefs, viewMap);
                     break;
                 }
                 case TrackingSet: {

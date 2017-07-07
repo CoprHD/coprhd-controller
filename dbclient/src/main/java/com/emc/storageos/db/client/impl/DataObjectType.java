@@ -46,6 +46,7 @@ public class DataObjectType {
     private ColumnFamilyDefinition _cf;
     private Class<? extends DataObject> _clazz;
     private ColumnField _idField;
+    private List<DbViewDefinition> _viewDefs;
     private Map<String, ColumnField> _columnFieldMap = new HashMap<String, ColumnField>();
     private EncryptionProvider _encryptionProvider;
     private List<ColumnField> _preprocessedFields;
@@ -179,6 +180,18 @@ public class DataObjectType {
             }
         }
 
+        // todo just for volume
+        if (cfName.equals("Volume")) {
+            _viewDefs = new ArrayList<>();
+            List<String> clusters = new ArrayList<>();
+            clusters.add("type");
+            clusters.add("id");
+            List<String> cols = new ArrayList<>();
+            cols.add("label");
+            DbViewDefinition viewDef = new DbViewDefinition("vol_view", "project", clusters, cols);
+            _viewDefs.add(viewDef);
+        }
+
         // Need to resolve field cross references here....
         Collection<ColumnField> fields = _columnFieldMap.values();
         for (ColumnField field : fields) {
@@ -217,7 +230,7 @@ public class DataObjectType {
     /**
      * Deserializes row into data object instance
      * @param clazz data object class
-     * @param rowkey row key
+     * @param key row key
      * @param rows raw rows queried from cassandra
      * @param cleanupList old columns that need to be deleted
      * @param <T> data object class
@@ -278,9 +291,18 @@ public class DataObjectType {
             if (id == null) {
                 throw new IllegalArgumentException();
             }
+
+            Map<DbViewDefinition, DbViewRecord> viewMaps = new HashMap<>();
             for (ColumnField field : this._columnFieldMap.values()) {
                 setMappedByField(val, field);
-                indexFieldsModified |= field.serialize(getCF().getName(), val, mutator);
+                indexFieldsModified |= field.serialize(getCF().getName(), val, mutator, _viewDefs, viewMaps);
+            }
+
+            for (DbViewRecord view: viewMaps.values()) {
+                view.addClusteringColumn("id", id.toString()); // id is always the last clustering key
+                _log.info("==== view {}, key {}, clusters = [{}], cols = [{}]",
+                        view.getDef().getViewName(), view.getKeyName(), view.getClusterColumns().size(), view.getColumns().size());
+                mutator.insertViewRow(view);
             }
 
             setLazyLoaders(val, lazyLoader);

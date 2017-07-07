@@ -617,7 +617,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<FileExport> fileExports = new ArrayList<FileExport>();
             if (exports != null) {
                 for (FileShareExport fileShareExport : exports) {
-                    args.setBypassDnsCheck(fileShareExport.getBypassDnsCheck());
+                    if (null != fileShareExport.getBypassDnsCheck()) {
+                        args.setBypassDnsCheck(fileShareExport.getBypassDnsCheck());
+                    } else {
+                        args.setBypassDnsCheck(false);
+                    }
                     FileExport fExport = fileShareExport.getFileExport();
                     fExport.setMountPoint(fileShareExport.getMountPath());
                     _log.info("FileExport:clients:" + fExport.getClients() + ":portName:" + fExport.getStoragePortName()
@@ -2042,7 +2046,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             args.setSubDirectory(param.getSubDir());
             args.setAllExportRules(param);
-            if(null != param.getBypassDnsCheck()) {
+            if (null != param.getBypassDnsCheck()) {
                 args.setBypassDnsCheck(param.getBypassDnsCheck());
             } else {
                 args.setBypassDnsCheck(false);
@@ -3783,7 +3787,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
 
         if (filesystems != null && !filesystems.isEmpty()) {
             // create source filesystems
@@ -3830,7 +3834,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                 FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
                 FileDescriptor.Type.FILE_MIRROR_SOURCE);
@@ -3905,7 +3909,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                 FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
                 FileDescriptor.Type.FILE_MIRROR_TARGET);
@@ -3929,7 +3933,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForReduceFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                 FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
                 FileDescriptor.Type.FILE_MIRROR_TARGET);
@@ -4700,7 +4704,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public void assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String opId)
-            throws ControllerException {
+                    throws ControllerException {
         StorageSystem storageObj = null;
         FilePolicy filePolicy = null;
         VirtualNAS vNAS = null;

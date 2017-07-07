@@ -1362,9 +1362,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     ExportRules deleteExportRules = new ExportRules();
                     deleteExportRules.setExportRules(exportRulesToDelete);
                     params.setExportRulesToDelete(deleteExportRules);
-                    // we do not have information about whether source export used BypassDnsCheck or not .
-                    // For updating export rule on target we use bypass DNS check true for safer side.
-                    params.setBypassDnsCheck(true);
                     updateFSExportRulesOnTarget(workflow, systemTarget, targetFileShare, exportPath, params);
                 }
 
@@ -1459,7 +1456,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             FileShareExport fileNFSExport = new FileShareExport(nfsExport.getClients(), nfsExport.getSecurityType(),
                     nfsExport.getPermissions(), nfsExport.getRootUserMapping(),
                     nfsExport.getProtocol(), nfsPort.getPortName(), nfsPort.getPortNetworkId(), null);
-
+            // We do not have information about whether source export used BypassDnsCheck or not .
+            // For creating export rule on target we use bypass DNS check true for safer side.
+            fileNFSExport.setBypassDnsCheck(true);
             if (!sourceFileShare.getPath().equals(nfsExport.getPath())) {
                 ArrayList<String> subdirName = new ArrayList<String>();
                 subdirName.add(nfsExport.getPath().split(sourceFileShare.getPath())[1]);
@@ -1523,6 +1522,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     private static void updateFSExportRulesOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare, String exportPath,
             FileExportUpdateParams params) {
+        // We do not have information about whether source export used BypassDnsCheck or not .
+        // For updating export rule on target we use bypass DNS check true for safer side.
+        params.setBypassDnsCheck(true);
         String stepDescription = String.format("updating NFS export rules for path : %s, %s", exportPath, params.toString());
         String exportRuleUpdateStep = workflow.createStepId();
         Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };

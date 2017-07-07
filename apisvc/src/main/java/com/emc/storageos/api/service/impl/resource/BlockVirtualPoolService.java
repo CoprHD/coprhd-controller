@@ -601,7 +601,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         String vpoolCopyMode = null;
         if (vpoolId != null) {
             vpool = _dbClient.queryObject(VirtualPool.class, vpoolId);
-            if (vpool != null && !VirtualPool.vPoolSpecifiesSRDF(vpool)) {
+            if (vpool == null || !VirtualPool.vPoolSpecifiesSRDF(vpool)) {
                 // The virtual pool doesn't specify SRDF
                 return rdfGroupList;
             }

@@ -301,10 +301,11 @@ public class SRDFScheduler implements Scheduler {
             _blockScheduler.sortPools(candidatePools);
         }
 
+        RemoteDirectorGroup rdfGroup = null;
         // If an RDF group is specified, filter out candidate pools that don't belong to that storage system
         if (capabilities.getRDFGroup() != null) {
             Iterator<StoragePool> spItr = candidatePools.iterator();
-            RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, URI.create(capabilities.getRDFGroup()));
+            rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, URI.create(capabilities.getRDFGroup()));
             while (spItr.hasNext()) {
                 StoragePool sp = spItr.next();
                 if (!sp.getStorageDevice().equals(rdfGroup.getSourceStorageSystemUri())) {
@@ -361,7 +362,6 @@ public class SRDFScheduler implements Scheduler {
         // If an RDF group is specified, filter out target pools that don't belong to that storage system
         if (capabilities.getRDFGroup() != null) {
             Iterator<SRDFPoolMapping> spmItr = tmpDestPoolsList.iterator();
-            RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, URI.create(capabilities.getRDFGroup()));
             while (spmItr.hasNext()) {
                 SRDFPoolMapping sp = spmItr.next();
                 if (!sp.sourceStoragePool.getStorageDevice().equals(rdfGroup.getSourceStorageSystemUri()) ||
@@ -540,12 +540,12 @@ public class SRDFScheduler implements Scheduler {
                     }
                     _log.info("Chose the first varray for SRDF comparison: " + firstVarray.getLabel());
 
-                    URI rdfGroup = capabilities.getRDFGroup() != null ? URI.create(capabilities.getRDFGroup()) : null;
+                    URI rdfGroupId = capabilities.getRDFGroup() != null ? URI.create(capabilities.getRDFGroup()) : null;
                     
                     // Now go through each storage system in this varray and see if it matches up
                     findInsertRecommendation(rec, firstVarray, recommendations, candidatePools,
                             recommendedPool, varrayTargetDeviceMap, project, consistencyGroupUri, 
-                            rdfGroup);
+                            rdfGroupId);
 
                     // Update the count of resources for which we have created
                     // a recommendation.

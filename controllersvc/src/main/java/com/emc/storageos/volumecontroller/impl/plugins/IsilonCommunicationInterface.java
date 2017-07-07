@@ -1567,6 +1567,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     totalIsilonFSDiscovered += discoveredFS.size();
 
                     for (FileShare fs : discoveredFS) {
+
+                        if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getName())) {
+                            // skipping this file system because the filter doesn't match
+                            continue;
+                        }
+
                         if (!checkStorageFileSystemExistsInDB(fs.getNativeGuid())) {
 
                             // Create UnManaged FS

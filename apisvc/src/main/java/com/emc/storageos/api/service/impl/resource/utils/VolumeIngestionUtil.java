@@ -161,10 +161,7 @@ public class VolumeIngestionUtil {
                             dbClient, unManagedVolumeUri);
                 }
 
-                if (!isVplexBackendVolume(unManagedVolume)) {
-                    checkVPoolValidForGivenUnManagedVolumeUris(unManagedVolumeInformation, unManagedVolume,
-                            vPool.getId(), dbClient);
-                }
+                checkVPoolValidForUnManagedVolume(unManagedVolumeInformation, unManagedVolume, vPool.getId(), dbClient);
             } catch (APIException ex) {
                 _logger.error(ex.getLocalizedMessage());
                 throw IngestionException.exceptions.validationException(ex.getLocalizedMessage());
@@ -883,17 +880,19 @@ public class VolumeIngestionUtil {
      * @param vpoolUri the URI of the VirtualPool to check
      * @param dbClient a reference to the database client
      */
-    private static void checkVPoolValidForGivenUnManagedVolumeUris(
+    private static void checkVPoolValidForUnManagedVolume(
             StringSetMap preExistVolumeInformation, UnManagedVolume unManagedVolume,
             URI vpoolUri, DbClient dbClient) {
         StringSet supportedVPoolUris = unManagedVolume.getSupportedVpoolUris();
         String spoolName = "(not set)";
+        StoragePool spool = null;
         if (unManagedVolume.getStoragePoolUri() != null) {
-            StoragePool spool = dbClient.queryObject(StoragePool.class, unManagedVolume.getStoragePoolUri());
+            spool = dbClient.queryObject(StoragePool.class, unManagedVolume.getStoragePoolUri());
             if (spool != null) {
                 spoolName = spool.getLabel();
             }
         }
+
         if (null == supportedVPoolUris || supportedVPoolUris.isEmpty()) {
             if (isVplexVolume(unManagedVolume)) {
                 throw APIException.internalServerErrors.noMatchingVplexVirtualPool(
@@ -903,7 +902,45 @@ public class VolumeIngestionUtil {
             throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPoolNicer(
                     spoolName, VOLUME_TEXT, unManagedVolume.getLabel());
         }
+
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolUri);
+
+        // check storage pool association to the selected virtual pool.
+        // for non-vplex volumes, this is a simple check that the unmanaged volume's storage pool URI
+        // is contained within the virtual pool.
+        // vplex virtual volumes do not need this check at all because they don't have a storage pool.
+        // vplex backend volumes, however, need to have the first simple check, then if that's not a 
+        // match AND the virtual pool is Distributed High Availability, then the HA vpool's storage
+        // pools should also be checked.  
+        // if no storage pool association can be found, throw an exception.
+        boolean volumeStoragePoolIsOkay = false;
+        if (isVplexVolume(unManagedVolume)) {
+            // vplex virtual vols have no storage pool, so this is okay.
+            volumeStoragePoolIsOkay = true;
+        } else if (spool != null) {
+            // check the matched or assigned pools, based on the vpool settings
+            List<StoragePool> matchedPools = VirtualPool.getValidStoragePools(vpool, dbClient, false);
+            List<URI> matchedPoolUris = URIUtil.toUris(matchedPools);
+            if (matchedPoolUris.contains(spool.getId())) {
+                volumeStoragePoolIsOkay = true;
+            } else if (isVplexBackendVolume(unManagedVolume) && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
+                // vplex backend volumes into a distributed pool should check the HA side's storage pools as well
+                List<URI> haMatchedPoolUris = null;
+                VirtualPool haVpool = VirtualPool.getHAVPool(vpool, dbClient);
+                if (haVpool != null) {
+                    List<StoragePool> haMatchedPools = VirtualPool.getValidStoragePools(haVpool, dbClient, false);
+                    haMatchedPoolUris = URIUtil.toUris(haMatchedPools);
+                }
+                if (haMatchedPoolUris != null && haMatchedPoolUris.contains(spool.getId())) {
+                    volumeStoragePoolIsOkay = true;
+                }
+            }
+        }
+        if (!volumeStoragePoolIsOkay) {
+            throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPoolNicer(
+                    spoolName, VOLUME_TEXT, unManagedVolume.getLabel());
+        }
+
         if (!supportedVPoolUris.contains(vpoolUri.toString())) {
             String vpoolName = vpool != null ? vpool.getLabel() : vpoolUri.toString();
             List<VirtualPool> supportedVpools = dbClient.queryObject(

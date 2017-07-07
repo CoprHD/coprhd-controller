@@ -25,7 +25,6 @@
     
     rdfGroup:{
       type:"assetType.vipr.rdfGroupChangeVpool",
-      lockable: true,
       required: false,
       hideIfEmpty: true
     },

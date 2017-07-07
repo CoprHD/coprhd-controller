@@ -5,6 +5,7 @@
 package com.emc.vipr.client.core;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 
 import com.emc.storageos.model.rdfgroup.RDFGroupList;
@@ -20,13 +21,11 @@ import com.emc.vipr.client.impl.RestClient;
  * Base URL: <tt>/block/virtualpool/{id}/rdf-groups</tt>
  * 
  * Note: RDF Groups can also be returned by the NB API via:
- *       /vdc/storage-systems/{id}/rdf-groups
- *       However it is not implemented by vipr-client at this time.
  */
 public class RDFGroups extends AbstractCoreResources<RDFGroupRestRep> {
 
     public RDFGroups(ViPRCoreClient parent, RestClient client) {
-        super(parent, client, RDFGroupRestRep.class, PathConstants.RDF_GROUPS_URL);
+        super(parent, client, RDFGroupRestRep.class, "");
     }
 
     @Override
@@ -44,10 +43,22 @@ public class RDFGroups extends AbstractCoreResources<RDFGroupRestRep> {
      * <p>
      * API Call: <tt>GET /block/virtual-pool/{id}/rdf-groups</tt>
      * 
+     * @return the list of replication group references.
+     */
+    public List<RDFGroupRestRep> listByVpool(URI virtualPoolId) {
+        RDFGroupList response = client.get(RDFGroupList.class, PathConstants.VPOOL_RDF_GROUPS_URL, virtualPoolId);
+        return ResourceUtils.defaultList(response.getRdfGroups());
+    }
+
+    /**
+     * Lists all RDF Groups for a storage system
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{id}/rdf-groups</tt>
+     * 
      * @return the list of storage system references.
      */
-    public List<RDFGroupRestRep> list(URI virtualPoolId) {
-        RDFGroupList response = client.get(RDFGroupList.class, baseUrl, virtualPoolId);
+    public Collection<? extends RDFGroupRestRep> listByStorageSystem(URI storageSystemId) {
+        RDFGroupList response = client.get(RDFGroupList.class, PathConstants.SS_RDF_GROUPS_URL, storageSystemId);
         return ResourceUtils.defaultList(response.getRdfGroups());
     }
 }

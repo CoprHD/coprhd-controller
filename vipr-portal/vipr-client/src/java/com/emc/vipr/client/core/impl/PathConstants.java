@@ -65,9 +65,8 @@ public class PathConstants {
             + "/{storageSystemId}/storage-ports";
     public static final String AUTO_TIER_BY_STORAGE_SYSTEM_URL = STORAGE_SYSTEM_URL
             + "/{storageSystemId}/auto-tier-policies";
-    public static final String RDF_GROUPS_URL = BLOCK_VPOOL_URL
+    public static final String VPOOL_RDF_GROUPS_URL = BLOCK_VPOOL_URL
             + "/{id}/rdf-groups";
-    // Not currently supported by vipr-client, but putting here because it is a NB API
     public static final String SS_RDF_GROUPS_URL = STORAGE_SYSTEM_URL
             + "/{id}/rdf-groups";
     public static final String STORAGE_POOL_URL = "/vdc/storage-pools";

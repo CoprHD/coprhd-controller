@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.StringTokenizer;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
@@ -348,7 +347,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("blockVirtualPool")
     public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx, URI vpool) {
         debug("getting RDF Groups");
-        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().list(vpool);
+        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().listByVpool(vpool);
+        return createRDFOptions(rdfGroups);
+    }
+
+    @Asset("rdfGroup")
+    public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx) {
+        debug("getting RDF Groups");
+        List<NamedRelatedResourceRep> storageSystems = api(ctx).storageSystems().list();
+        List<RDFGroupRestRep> rdfGroups = new ArrayList<>();
+        if (storageSystems != null) {
+            for (NamedRelatedResourceRep storageSystem : storageSystems) {
+                rdfGroups.addAll(api(ctx).rdfGroups().listByStorageSystem(storageSystem.getId()));
+            }
+        }
         return createRDFOptions(rdfGroups);
     }
 
@@ -364,7 +376,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("targetVirtualPool")
     public List<AssetOption> getRDFGroupsChangeVpool(final AssetOptionsContext ctx, URI vpool) {
         debug("getting RDF Groups");
-        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().list(vpool);
+        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().listByVpool(vpool);
         return createRDFOptions(rdfGroups);
     }
     

@@ -6095,9 +6095,14 @@ recoverpoint_direct_access_test()
             secho 'Remove replication set from consistency group while a copy is in direct access mode (failover) - expected failure'		
             fail volume delete $PROJECT/${new_volume} --wait
         fi
-        
-        secho 'Expand source volume when one of the RP target copies is in direct access mode'
-        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+       
+	    if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then 
+            secho 'Expand source volume when one of the RP target copies is in direct access mode - expected failure'
+            fail volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+        else
+            secho 'Expand source volume when RP target copy is in direct access mode'
+            volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+        fi
 
         secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
         recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}

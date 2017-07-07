@@ -2047,6 +2047,9 @@ public interface BadRequestExceptions {
     public BadRequestException notValidRPSourceVolume(String volname);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidRPCopyStateForExpand(final String volumeName, final String copyState);    
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidRPVolumeSizes(final URI sourceVolumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

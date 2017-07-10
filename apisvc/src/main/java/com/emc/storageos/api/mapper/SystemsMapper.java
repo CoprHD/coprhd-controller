@@ -463,36 +463,14 @@ public class SystemsMapper {
         if (from.getIsNative() != null) {
             to.setNative(from.getIsNative());
         }
+        if (from.getSupportedStorageProfiles() != null) {
+            to.setSupportedStorageProfiles(from.getSupportedStorageProfiles());
+        }
 
 		return to;
 	}
 
 	public static StorageSystemTypeRestRep map(StorageSystemType from) {
-		if (from == null) {
-			return null;
-		}
-		StorageSystemTypeRestRep to = new StorageSystemTypeRestRep();
-		to.setStorageTypeName(from.getStorageTypeName());
-		to.setMetaType(from.getMetaType());
-		to.setIsSmiProvider(from.getIsSmiProvider());
-		to.setStorageTypeId(from.getStorageTypeId());
-		to.setStorageTypeDispName(from.getStorageTypeDispName());
-		to.setIsDefaultSsl(from.getIsDefaultSsl());
-		to.setIsDefaultMDM(from.getIsDefaultMDM());
-		to.setIsOnlyMDM(from.getIsOnlyMDM());
-		to.setIsElementMgr(from.getIsElementMgr());
-		to.setNonSslPort(from.getNonSslPort());
-		to.setSslPort(from.getSslPort());
-		to.setDriverClassName(from.getDriverClassName());
-        to.setIsSecretKey(from.getIsSecretKey());
-        to.setSupportAutoTierPolicy(from.getSupportAutoTierPolicy());
-        if (from.getManagedBy() != null) {
-            to.setManagedBy(from.getManagedBy());
-        }
-        if (from.getIsNative() != null) {
-            to.setNative(from.getIsNative());
-        }
-
-		return to;
+        return map(from, new StorageSystemTypeRestRep());
 	}
 }

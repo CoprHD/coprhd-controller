@@ -1657,8 +1657,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             if (!oldUnManagedExportRules.isEmpty()) {
-                _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
-                _dbClient.updateObject(newUnManagedExportRules);
+                _log.info("Saving Number of UnManagedFileExportRule(s) {}", oldUnManagedExportRules.size());
+                _dbClient.updateObject(oldUnManagedExportRules);
                 oldUnManagedExportRules.clear();
             }
 

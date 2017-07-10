@@ -14,6 +14,7 @@ import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcessedCallback;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
+import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.common.DbSchemaChecker;
 import com.emc.storageos.model.db.DbConsistencyStatusRestRep.Status;
@@ -59,6 +60,7 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
             log.info("db consistency check done, persist final result {} in zk", status.getStatus());
             this.dbChecker.persistStatus(status);
             callback.itemProcessed();
+            DbCheckerFileWriter.close();
         }
     }
 

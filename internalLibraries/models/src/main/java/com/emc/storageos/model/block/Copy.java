@@ -45,7 +45,8 @@ public class Copy implements Serializable {
     }
 
     public enum ImageAccessMode {
-        DIRECT_ACCESS
+        DIRECT_ACCESS,
+        LOGGED_ACCESS
     }
 
     public Copy() {

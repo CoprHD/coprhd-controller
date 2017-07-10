@@ -36,6 +36,9 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 
+import com.emc.storageos.security.geo.exceptions.GeoException;
+import com.emc.storageos.systemservices.impl.upgrade.*;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
@@ -94,6 +97,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
+import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -122,6 +126,14 @@ public class DisasterRecoveryService {
     private static final int SITE_CONNECTION_TEST_PORT = 443;
     private static final String LOCAL_HOST = "localhost";
     private static final String SYSTEM_ENABLE_FIREWALL = "system_enable_firewall";
+
+    private static final String _SYSTOOL_CMD = "/etc/systool";
+    private static final String _SYSTOOL_REMOTE_SYSTOOL = "--remote-systool";
+    private static final String _SYSTOOL_SET_DEFAULT = "--set-default";
+
+    private static final long _SYSTOOL_TIMEOUT = 120000;             // 2 min
+    private static final int _SYSTOOL_SUCCESS = 0;
+    private static final int _SYSTOOL_DEVKIT_ERROR = 66;
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -894,6 +906,69 @@ public class DisasterRecoveryService {
             Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     @Path("/{uuid}/resume")
     public SiteRestRep resumeStandby(@PathParam("uuid") String uuid) {
+
+        List<String> standbyHostIPs = getStandbyHostIPs(uuid);
+
+        String targetViprVersion = getTargetViprVersion();
+
+        for(String nodeIp: standbyHostIPs){
+            setStandbyViprVersion(nodeIp, targetViprVersion);
+        }
+
+        return resumeStandbyInternal(uuid);
+
+   }
+
+    private List<String> getStandbyHostIPs(String standbyUuid) {
+
+        Site standby = drUtil.getSiteFromLocalVdc(standbyUuid);
+
+        Map<String, String> addresses = standby.getHostIPv4AddressMap();
+
+        if (!standby.isUsingIpv4()) {
+            addresses = standby.getHostIPv6AddressMap();
+        }
+
+        return new ArrayList<>(addresses.values());
+    }
+
+    private String getTargetViprVersion() throws RuntimeException {
+
+        try {
+
+            SoftwareVersion localSoftVer = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
+
+            return localSoftVer.toString();
+        } catch (Exception ex) {
+            throw new RuntimeException("cannot get current ViPR version");
+        }
+    }
+
+    public void setStandbyViprVersion(String nodeIp, String version) throws RuntimeException {
+        final String prefix = String.format("DisasterRecoveryService to set ViPR version of standby (%s) to (%s): ", nodeIp, version);
+        log.info(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REMOTE_SYSTOOL, nodeIp, _SYSTOOL_SET_DEFAULT, version};
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+
+    private void checkFailure(Exec.Result result, String prefix) throws RuntimeException {
+        if (!result.exitedNormally() || result.getExitValue() != _SYSTOOL_SUCCESS) {
+
+            log.info(prefix + " failed. Result exit value: " + result.getExitValue());
+
+            if (result.getExitValue() == _SYSTOOL_DEVKIT_ERROR) {
+                throw new RuntimeException("Command failed since executed not on an appliance");
+            } else {
+                throw new RuntimeException(prefix + "Command failed: " + result);
+            }
+        }
+
+        log.info(prefix + "Success!");
+    }
+
+    public SiteRestRep resumeStandbyInternal(String uuid) {
         log.info("Begin to resume data sync to standby site identified by uuid: {}", uuid);
         Site standby = validateSiteConfig(uuid);
         SiteState state = standby.getState();
@@ -972,7 +1047,6 @@ public class DisasterRecoveryService {
             }
         }
     }
-
     /**
      * This is internal API to do precheck for resume
      */

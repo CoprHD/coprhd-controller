@@ -118,8 +118,9 @@ elif [ ${SS} = "recoverpoint" ]; then
 elif [ ${SS} = "performanceparams" ]; then
     PP_TEST=${4:-'vmaxblock'}
     PP_QUICK=${5:-'normal'}
-    if [ $PP_QUICK = 'quick' ]; then
+    if [ ${PP_QUICK} = 'quick' ]; then
         QUICK=1
+        VPLEX_QUICK_PARAM='quick'
     fi
     AUTH=${6:-ldap}
 elif [ ${SS} = "sbsdk" ]; then
@@ -2748,28 +2749,41 @@ vmax_cos_setup()
 
 mirrorblock_cos_setup()
 {
-    run cos create block $COS_MIRROR                       \
-	--description 'VMAX-Mirror-block-FC' true   \
+    if [ $QUICK -eq 0 ]; then
+        run cos create block $COS_MIRROR               \
+           --description 'VMAX-Mirror-block-FC' true   \
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
                             --max_mirrors 10           \
                             --provisionType 'Thin'     \
-	                    --system_type vmax \
-                            --expandable false \
-			    --neighborhoods $NH
+	                     --system_type vmax         \
+                            --expandable false         \
+			       --neighborhoods $NH
+    else
+        run cos create block $COS_MIRROR               \
+           --description 'VMAX-Mirror-block-FC' false  \
+                            --protocols FC             \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --max_mirrors 10           \
+                            --provisionType 'Thin'     \
+	                     --system_type vmax         \
+                            --expandable false         \
+			       --neighborhoods $NH
+    fi
 
     run cos create block $COS_MIRROR_WITH_OPTIONAL         \
-	--description 'VMAX-Mirror-block-FC-with-optional-CoS' true   \
+       --description 'VMAX-Mirror-block-FC-with-optional-CoS' true   \
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
                             --max_mirrors 1            \
                             --provisionType 'Thin'     \
                             --mirror_cos $COS_VMAXBLOCK_FC   \
-	                    --system_type vmax \
+	                     --system_type vmax \
                             --expandable false \
-			    --neighborhoods $NH
+			       --neighborhoods $NH
 
     run cos create block $COS_MIRROR_WITH_2_MIRRORS        \
 	--description 'VMAX-Mirror-block-FC-with-2-mirrors-maximum' true   \
@@ -14667,13 +14681,17 @@ arrayaffinity_tests()
 #Performance parameter setup and tests
 performanceparams_setup()
 {
+    secho "Start performance parameter setup"
     if [ ${PP_TEST} == "vmaxblock" ]; then
        # Note that this calls vmaxblock_setup.
+       if [ ${QUICK} -eq 1 ]; then
+           VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
+       fi
        blockmirror_setup
     elif [ ${PP_TEST} == "vplex" ]; then
        vplex_setup
 
-       # Do some additional setup fro VPLEX to allow for HA side mirrors.
+       # Do some additional setup for VPLEX to allow for HA side mirrors.
        performanceparams_vplex_setup
     else
        secho "Not supported"
@@ -14683,14 +14701,18 @@ performanceparams_setup()
 
 performanceparams_vplex_setup()
 {
-    smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
-    run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
-    run storagedevice discover_all
+    PP_NH2_VMAX2_NATIVEGUID=${VMAX_NATIVEGUID}
+    if [ ${QUICK} -eq 1 ]; then
+        PP_NH2_VMAX2_NATIVEGUID=${VPLEX_SIM_VMAX6_NATIVEGUID}
+    else
+        smisprovider show ${VMAX_SMIS_DEV} &> /dev/null && return $?
+        run smisprovider create ${VMAX_SMIS_DEV} ${VMAX_SMIS_IP} ${VMAX_SMIS_PORT} ${SMIS_USER} "${SMIS_PASSWD}" ${VMAX_SMIS_SSL}
+        run storagedevice discover_all
+    fi
 
-    storageport list $VMAX_NATIVEGUID --v
-    run storageport update $VMAX_NATIVEGUID FC --addvarrays $NH2
-
-    run cos update block cosvplexlocal --storage $VMAX_NATIVEGUID
+    storageport list ${PP_NH2_VMAX2_NATIVEGUID} --v
+    run storageport update ${PP_NH2_VMAX2_NATIVEGUID} FC --addvarrays ${NH2}
+    run cos update block cosvplexlocal --storage ${PP_NH2_VMAX2_NATIVEGUID}
 
     run cos create block pp_vplexdisthavpool false \
         --description 'HA-vpool-for-VPLEX-dist'    \
@@ -14698,13 +14720,13 @@ performanceparams_vplex_setup()
         --numpaths 2                               \
         --provisionType 'Thin'                     \
         --highavailability vplex_local             \
-        --neighborhoods $NH2                       \
+        --neighborhoods ${NH2}                     \
         --max_mirrors 1                            \
         --mirror_cos cosvplexlocal                 \
         --expandable false
 
-    run cos allow pp_vplexdisthavpool block $TENANT
-    run cos update block pp_vplexdisthavpool --storage $VPLEX_VMAX_NATIVEGUID
+    run cos allow pp_vplexdisthavpool block ${TENANT}
+    run cos update block pp_vplexdisthavpool --storage ${VPLEX_VMAX_NATIVEGUID}
 
     run cos create block pp_cosvplexdist false       \
         --description 'Distributed-Vpool-for-VPLEX'  \
@@ -14712,16 +14734,16 @@ performanceparams_vplex_setup()
         --numpaths 2                                 \
         --provisionType 'Thin'                       \
         --highavailability vplex_distributed         \
-        --neighborhoods $NH $NH2                     \
-        --haNeighborhood $NH2                        \
+        --neighborhoods ${NH} ${NH2}                 \
+        --haNeighborhood ${NH2}                      \
         --haCos pp_vplexdisthavpool                  \
         --max_snapshots 1                            \
         --max_mirrors 1                              \
         --mirror_cos cosvplexlocal                   \
         --expandable false
 
-    run cos allow pp_cosvplexdist block $TENANT
-    run cos update block pp_cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
+    run cos allow pp_cosvplexdist block ${TENANT}
+    run cos update block pp_cosvplexdist --storage ${VPLEX_VNX1_NATIVEGUID}
 }
 
 performanceparams_tests()
@@ -14740,6 +14762,9 @@ performanceparams_vmaxblock_tests()
 {
     # Create a performance parameters instance.
     atp="SYMMETRIX+000196801612+SLO_POLICY+Gold SLO (5.0ms)"
+    if [ ${QUICK} -eq 1 ]; then
+        atp="SYMMETRIX+999595867618+FASTPOLICY+Gold-Policy"
+    fi
     pp1=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp1}."
     run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp}" \
@@ -14758,6 +14783,9 @@ performanceparams_vmaxblock_tests()
     # Create another performance parameters instance to be used for a local mirror
     # that will be attached to the volume.
     atp2="SYMMETRIX+000196801612+SLO_POLICY+Bronze SLO (14.0ms)"
+    if [ ${QUICK} -eq 1 ]; then
+        atp2="SYMMETRIX+999595867618+FASTPOLICY+Bronze-Policy"
+    fi
     pp2=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp2}."
     run performanceparams create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2}" \
@@ -14788,6 +14816,9 @@ performanceparams_vmaxblock_tests()
     # Update the performance parameters instance.
     pp1_update_name=${pp1}-Updated
     pp1_update_atp="SYMMETRIX+000196801612+SLO_POLICY+Diamond SLO (0.8ms)"
+    if [ ${QUICK} -eq 1 ]; then
+        pp1_update_atp="SYMMETRIX+999595867618+FASTPOLICY+Silver-Policy"
+    fi
     secho "Updating performance parameters ${pp1} with new name ${pp1_update_name} and auto tiering policy ${pp1_update_atp}."
     run performanceparams update ${pp1} --new_name ${pp1_update_name} --description "${pp1}-NewDescription" --auto_tiering_policy_name "${pp1_update_atp}"\
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 10 \

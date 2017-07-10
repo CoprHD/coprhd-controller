@@ -301,4 +301,18 @@ public interface FileController extends StorageController {
 
     public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId);
 
+    /**
+     * @param storage
+     * @param pool
+     * @param fs
+     * @param nativeId
+     * @param storage2
+     * @param sourceFS
+     * @param policyURI
+     * @param opId
+     * @throws ControllerException
+     */
+    public void checkAndCreateFS(URI storage, URI pool, URI fs, String nativeId, URI sourceFS, URI policyURI, String opId)
+            throws ControllerException;
+
 }

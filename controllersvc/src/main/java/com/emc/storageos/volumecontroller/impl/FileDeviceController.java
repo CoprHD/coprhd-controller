@@ -299,6 +299,56 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 description,
                 descparams);
     }
+    
+    @Override
+    public void checkAndCreateFS(URI storage, URI pool, URI fs, String nativeId, URI sourceFS, URI policyURI, String opId) throws ControllerException {
+        FileObject fileObject = null;
+        FileShare fsObj = null;
+        StorageSystem storageObj = null;
+       try{
+           storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+           FileDeviceInputOutput args = new FileDeviceInputOutput();       
+           StoragePool poolObj = _dbClient.queryObject(StoragePool.class, pool);
+           fsObj = _dbClient.queryObject(FileShare.class, fs);
+           VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, fsObj.getVirtualPool());
+           FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policyURI);
+           fileObject = fsObj;
+           args.addFileShare(fsObj);
+           args.addStoragePool(poolObj);
+           args.setVPool(vPool);
+           args.setNativeDeviceFsId(nativeId);
+           args.setOpId(opId);
+
+           Project proj = _dbClient.queryObject(Project.class, fsObj.getProject());
+           TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fsObj.getTenant());
+           setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+           args.setTenantOrg(tenant);
+           args.setProject(proj);
+           args.setFileProtectionPolicy(filePolicy);
+           
+           WorkflowStepCompleter.stepExecuting(opId);
+           acquireStepLock(storageObj, opId);
+           BiosCommandResult result = getDevice(storageObj.getSystemType()).doCheckAndCreateFS(storageObj, args);
+           if (result.isCommandSuccess()){
+               
+           }
+           
+       }catch(Exception e) {
+           String[] params = { storage.toString(), pool.toString(), fs.toString(), e.getMessage() };
+           _log.error("Unable to create file system: storage {}, pool {}, FS {}: {}", params);
+
+           // work flow fail
+           ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+           WorkflowStepCompleter.stepFailed(opId, serviceError);
+
+//           if ((fsObj != null) && (storageObj != null)) {
+//               fsObj.setInactive(true);
+//               _dbClient.updateObject(fsObj);
+//               recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, false, e.getMessage(), "", fsObj, storageObj);
+//           }
+//           updateTaskStatus(opId, fileObject, e);
+       }
+    }
 
     @Override
     public void createFS(URI storage, URI pool, URI fs, String nativeId, String opId) throws ControllerException {
@@ -3827,6 +3877,40 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         // find out which value we should return
         return waitFor = CREATE_FILESYSTEMS_STEP;
     }
+    
+    public String addStepsForCheckAndCreateFileSystems(Workflow workflow,
+            String waitFor, List<FileDescriptor> filesystems, URI storage, URI sourceFS, URI policyURI, String taskId)
+            throws InternalException{
+        
+        if (filesystems != null && !filesystems.isEmpty()) {
+            List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
+                    FileDescriptor.Type.FILE_DATA,
+                    FileDescriptor.Type.FILE_MIRROR_SOURCE);
+            List<FileDescriptor> targetDescriptors = FileDescriptor.filterByType(filesystems,
+                    FileDescriptor.Type.FILE_MIRROR_TARGET);
+            if (targetDescriptors != null && !targetDescriptors.isEmpty()) {
+                for (FileDescriptor descriptor : targetDescriptors) {
+                    FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
+                    FileShare fileShareSource = _dbClient.queryObject(FileShare.class, fileShare.getParentFileShare().getURI());
+                    if (fileShare.getParentFileShare() != null) {
+                        waitFor = workflow.createStep(
+                                CREATE_FILESYSTEMS_STEP,
+                                String.format("Creating Target File systems:%n%s", taskId),
+                                waitFor,
+                                descriptor.getDeviceURI(),
+                                getDeviceType(descriptor.getDeviceURI()),
+                                this.getClass(),
+                                checkAndCreateFileSharesMethod(descriptor, sourceFS, policyURI),
+                                rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
+                                        .getURI()), sourceDescriptors),
+                                null);
+                    }
+                }
+            }
+        }
+        
+        return waitFor = CREATE_FILESYSTEMS_STEP;
+    }
 
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
@@ -3951,6 +4035,20 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return new Workflow.Method("createFS", fileDescriptor.getDeviceURI(), fileDescriptor.getPoolURI(),
                 fileDescriptor.getFsURI(), fileDescriptor.getSuggestedNativeFsId());
     }
+    
+    /**
+     * Return a Workflow.Method for checkAndCreateFileShares.
+     * 
+     * @param fileDescriptor
+     * @return
+     */
+    private Workflow.Method checkAndCreateFileSharesMethod(FileDescriptor fileDescriptor, URI sourceFS, URI policyURI) {
+        return new Workflow.Method("checkAndCreateFS", fileDescriptor.getDeviceURI(), fileDescriptor.getPoolURI(),
+                fileDescriptor.getFsURI(), fileDescriptor.getSuggestedNativeFsId(), sourceFS, policyURI);
+    }
+
+    
+    
 
     /**
      * Return a Workflow.Method for rollbackCreateFileSystems

@@ -378,4 +378,13 @@ public interface FileStorageDevice {
      * @return
      */
     BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer);
+
+    /**
+     * checks the file policy target path to be existing and creates target fs if not exists
+     * 
+     * @param storageObj
+     * @param args
+     * @return
+     */
+    BiosCommandResult doCheckAndCreateFS(StorageSystem storageObj, FileDeviceInputOutput args);
 }

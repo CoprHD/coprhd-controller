@@ -1611,5 +1611,11 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.datadomain.operationNotSupported());
     }
+    
+    @Override
+    public BiosCommandResult doCheckAndCreateFS(StorageSystem storageObj, FileDeviceInputOutput args){
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.datadomain.operationNotSupported());
+    }
 
 }

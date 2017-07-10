@@ -21,14 +21,9 @@ public class DbViewRecord {
     private String keyValue;
     private List<ViewColumn> clusters = new ArrayList<>();
     private List<ViewColumn> columns = new ArrayList<>();
-    private DbViewDefinition def;
 
     public DbViewRecord(DbViewDefinition viewDef) {
         this.viewDef = viewDef;
-    }
-
-    public DbViewRecord(DbViewDefinition viewDef, String recordKey) {
-        this.keyValue = recordKey;
     }
 
     public String getKeyName() {
@@ -90,6 +85,6 @@ public class DbViewRecord {
     }
 
     public DbViewDefinition getDef() {
-        return def;
+        return viewDef;
     }
 }

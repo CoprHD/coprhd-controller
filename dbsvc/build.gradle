@@ -106,7 +106,8 @@ fi
 dependencies {
     compile library(cglib),
             project(":dbclient"),
-            project(":security")
+            project(":security"),
+            project(":storagedriver")
     provided rootProject.toolsJar
     
     testCompile library(javassist),

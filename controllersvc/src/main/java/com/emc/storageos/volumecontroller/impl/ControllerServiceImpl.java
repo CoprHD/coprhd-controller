@@ -664,6 +664,7 @@ public class ControllerServiceImpl implements ControllerService {
             } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
                 driverManager.getBlockSystems().add(typeName);
             }
+            driverManager.getSupportedStorageProfiles().put(typeName, type.getSupportedStorageProfiles());
             _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
         }
     }

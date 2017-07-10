@@ -49,6 +49,7 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
     private Set<String> fileSystems = new HashSet<>();
     private Set<String> providerManaged = new HashSet<>();
     private Set<String> directlyManaged = new HashSet<>();
+    private Map<String, Set<String>> supportedStorageProfiles = new HashMap<>();
 
     private void clearInfo() {
         storageSystemsMap.clear();
@@ -57,6 +58,7 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
         fileSystems.clear();
         providerManaged.clear();
         directlyManaged.clear();
+        supportedStorageProfiles.clear();
     }
     private void refreshInfo() {
         clearInfo();
@@ -79,6 +81,9 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
                 fileSystems.add(typeName);
             } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
                 blockSystems.add(typeName);
+            }
+            if (type.getSupportedStorageProfiles() != null) {
+                supportedStorageProfiles.put(typeName, type.getSupportedStorageProfiles());
             }
             log.info("Driver info for storage system type {} has been set into storageDriverManagerProxy instance", typeName);
         }
@@ -184,6 +189,18 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
     public Map<String, String> getStorageProvidersMap() {
         refreshInfo();
         return mergeMap(manager.getStorageProvidersMap(), storageProvidersMap);
+    }
+
+    @Override
+    public Map<String, Set<String>> getSupportedStorageProfiles() {
+        refreshInfo();
+        return mergeMap(manager.getSupportedStorageProfiles(), supportedStorageProfiles);
+    }
+
+    @Override
+    public Set<String> getSupportedStorageProfilesForType(String type) {
+        Set<String> profiles = getSupportedStorageProfiles().get(type);
+        return profiles != null ? profiles : new HashSet<String>();
     }
 
 }

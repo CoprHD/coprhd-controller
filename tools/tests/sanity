@@ -117,7 +117,11 @@ elif [ ${SS} = "recoverpoint" ]; then
     EXTRA_PARAM=${6}
 elif [ ${SS} = "performanceparams" ]; then
     PP_TEST=${4:-'vmaxblock'}
-    AUTH=${5:-ldap}
+    PP_QUICK=${5:-'normal'}
+    if [ $PP_QUICK = 'quick' ]; then
+        QUICK=1
+    fi
+    AUTH=${6:-ldap}
 elif [ ${SS} = "sbsdk" ]; then
     SBSDK_QUICK_PARAM='quick'
     AUTH=${5:-ldap}

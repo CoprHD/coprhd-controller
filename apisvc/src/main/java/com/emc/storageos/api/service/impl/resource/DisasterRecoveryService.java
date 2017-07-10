@@ -925,7 +925,7 @@ public class DisasterRecoveryService {
 
 
         String readFilePath = "/etc/ssh/ssh_known_hosts";
-        String writeFilePath = "/opt/storageos/known_hosts";
+        String writeFilePath = "/opt/storageos/.ssh/known_hosts";
 
         try {
             byte[] originalContent = FileUtils.readDataFromFile(readFilePath);

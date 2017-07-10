@@ -17,6 +17,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.apache.commons.collections.CollectionUtils;
+
 import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
@@ -463,8 +466,9 @@ public class SystemsMapper {
         if (from.getIsNative() != null) {
             to.setNative(from.getIsNative());
         }
-        if (from.getSupportedStorageProfiles() != null) {
-            to.setSupportedStorageProfiles(from.getSupportedStorageProfiles());
+        Set<String> supportedStorageProfiles = from.getSupportedStorageProfiles();
+        if (CollectionUtils.isNotEmpty(supportedStorageProfiles)) {
+            to.setSupportedStorageProfiles(supportedStorageProfiles);
         }
 
 		return to;

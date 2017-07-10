@@ -52,11 +52,6 @@ public class StorageDriverManager implements ApplicationContextAware {
         return supportedStorageProfiles;
     }
 
-    public Set<String> getSupportedStorageProfilesForType(String type) {
-        Set<String> profiles = supportedStorageProfiles.get(type);
-        return profiles != null ? profiles : new HashSet<String>();
-    }
-
     public void setSupportedStorageProfiles(Map<String, Set<String>> supportedStorageProfiles) {
         this.supportedStorageProfiles = supportedStorageProfiles;
     }

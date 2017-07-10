@@ -50,8 +50,6 @@ public class StorageSystemType extends DataObject {
     private String managedBy;
     private Boolean supportAutoTierPolicy = false;
 
-    // This field could contain these elements:
-    // defined in sbsdk
     private StringSet supportedStorageProfiles;
 
     // Type of Storage System Types

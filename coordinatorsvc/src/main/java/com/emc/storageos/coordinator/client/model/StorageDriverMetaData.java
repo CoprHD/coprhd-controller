@@ -11,6 +11,7 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -21,8 +22,6 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
  *   - Hold meta data of new driver in ZK during upgrade
  */
 public class StorageDriverMetaData {
-
-    private static final String ENCODING_SEPERATOR = "\0";
 
     // key string definitions
     private static final String KEY_DRIVER_NAME = "driverName";
@@ -220,12 +219,8 @@ public class StorageDriverMetaData {
         if (driverFileName != null) {
             config.setConfig(KEY_DRIVER_FILE_NAME, driverFileName);
         }
-        if (supportedStorageProfiles != null && !supportedStorageProfiles.isEmpty()) {
-            StringBuilder builder = new StringBuilder();
-            for (String profile : supportedStorageProfiles) {
-                builder.append(profile).append(ENCODING_SEPERATOR);
-            }
-            config.setConfig(KEY_SUPPORTED_STORAGE_PROFILES, builder.toString());
+        if (!CollectionUtils.isEmpty(supportedStorageProfiles)) {
+            config.setConfig(KEY_SUPPORTED_STORAGE_PROFILES, StringUtils.join(supportedStorageProfiles, ","));
         }
         return config;
     }
@@ -263,7 +258,7 @@ public class StorageDriverMetaData {
             driverFileName = config.getConfig(KEY_DRIVER_FILE_NAME);
             String supportedStorageProfilesStr = config.getConfig(KEY_SUPPORTED_STORAGE_PROFILES);
             if (supportedStorageProfilesStr != null) {
-                for (String profile : supportedStorageProfilesStr.split(ENCODING_SEPERATOR)) {
+                for (String profile : supportedStorageProfilesStr.split(",")) {
                     supportedStorageProfiles.add(profile);
                 }
             }

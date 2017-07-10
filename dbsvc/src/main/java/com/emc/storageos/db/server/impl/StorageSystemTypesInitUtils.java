@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +68,7 @@ public class StorageSystemTypesInitUtils {
     private static final Map<String, String> DISPLAY_NAME_MAP;
     private static final Map<String, String> SSL_PORT_MAP;
     private static final Map<String, String> NON_SSL_PORT_MAP;
-    private static final Map<String, StringSet> SUPPORTED_PROFILES_MAP;
+    private static final Map<String, Set<String>> SUPPORTED_PROFILES_MAP;
 
     /*
      * Some storage systems should only be discovered by provider, not be added directly.
@@ -181,7 +182,7 @@ public class StorageSystemTypesInitUtils {
         SUPPORTED_PROFILES_MAP = new HashMap<>();
         Set<String> supportedProfiles = new HashSet<>();
         supportedProfiles.add(StorageProfile.REMOTE_REPLICATION_FOR_BLOCK.toString());
-        SUPPORTED_PROFILES_MAP.put(VMAX, new StringSet(supportedProfiles));
+        SUPPORTED_PROFILES_MAP.put(VMAX, supportedProfiles);
     }
 
     public StorageSystemTypesInitUtils(DbClient dbClient) {
@@ -268,8 +269,9 @@ public class StorageSystemTypesInitUtils {
                 type.setSslPort(SSL_PORT_MAP.get(system));
                 type.setNonSslPort(NON_SSL_PORT_MAP.get(system));
                 type.setIsNative(true);
-                if (type.getSupportedStorageProfiles() == null) {
-                    type.setSupportedStorageProfiles(SUPPORTED_PROFILES_MAP.get(system));
+                Set<String> supportedStorageProfiles = SUPPORTED_PROFILES_MAP.get(system);
+                if (CollectionUtils.isNotEmpty(supportedStorageProfiles)) {
+                    type.setSupportedStorageProfiles(new StringSet(supportedStorageProfiles));
                 }
                 if (alreadyExists(type)) {
                     log.info("Meta data for {} already exist", type.getStorageTypeName());

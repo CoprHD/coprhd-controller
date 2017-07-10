@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,8 +83,9 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
             } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
                 blockSystems.add(typeName);
             }
-            if (type.getSupportedStorageProfiles() != null) {
-                supportedStorageProfiles.put(typeName, type.getSupportedStorageProfiles());
+            Set<String> supportedProfiles = type.getSupportedStorageProfiles();
+            if (CollectionUtils.isNotEmpty(supportedProfiles)) {
+                supportedStorageProfiles.put(typeName, supportedProfiles);
             }
             log.info("Driver info for storage system type {} has been set into storageDriverManagerProxy instance", typeName);
         }
@@ -196,11 +198,4 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
         refreshInfo();
         return mergeMap(manager.getSupportedStorageProfiles(), supportedStorageProfiles);
     }
-
-    @Override
-    public Set<String> getSupportedStorageProfilesForType(String type) {
-        Set<String> profiles = getSupportedStorageProfiles().get(type);
-        return profiles != null ? profiles : new HashSet<String>();
-    }
-
 }

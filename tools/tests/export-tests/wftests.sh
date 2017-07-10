@@ -2562,7 +2562,8 @@ test_7() {
 	      fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
       fi
       
-      if [ "${failure}" = "failure_004:failure_024_Export_zone_removeInitiator_before_delete" ]; then
+      if [ "${failure}" = "failure_004:failure_024_Export_zone_removeInitiator_before_delete" -o \
+           "${failure}" = "failure_004:failure_016_Export_doRemoveInitiator" ]; then
           # This specific failure does not rollback the zone for host initiator 2.  Therefore from this point on, the zone
           # will be existing and all verfications to see if zone 2 has been removed can be skipped.
           zone2new="false"

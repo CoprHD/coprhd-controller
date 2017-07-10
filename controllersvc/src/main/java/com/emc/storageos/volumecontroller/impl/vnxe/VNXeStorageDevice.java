@@ -2855,4 +2855,10 @@ implements FileStorageDevice, BlockStorageDevice {
                 DeviceControllerErrors.vnxe.operationNotSupported("Reduce filesystem quota", "VNXe"));
 	}
 
+    @Override
+    public BiosCommandResult doCheckAndCreateFS(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
+    }
+
 }

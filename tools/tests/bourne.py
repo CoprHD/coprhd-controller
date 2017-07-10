@@ -9628,7 +9628,7 @@ class Bourne:
     #compute virtual pool APIs
     #
     # Create a compute virtual pool
-    def computevirtualpool_create(self, name, computesysname, systemtype, usematchedpools, varray, template):
+    def computevirtualpool_create(self, name, computesysname, systemtype, usematchedpools, varray, template, templatetype):
         #get varray details
         varray_list = []
         varrayURI = self.neighborhood_query(varray)
@@ -9636,7 +9636,12 @@ class Bourne:
         varraydictlist = { 'varray' : varray_list }
         # get service profile template from for the given compute system
         sptIDs = []
-        templateURI = self.computesystem_getSPTid(computesysname, template)
+        templatename=template
+        if (templatetype == 'Initial'):
+            templatename=templatename+" (Initial Template)"
+        else:
+            templatename=templatename+" (Updating Template)"
+        templateURI = self.computesystem_getSPTid(computesysname, templatename)
         sptIDs.append(templateURI)
         sptdictList = { 'service_profile_template': sptIDs }
         params = {

@@ -2400,7 +2400,7 @@ test_vblock_provision_bare_metal_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportGroup ExportMask Cluster"
+        column_family="Host Volume ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2452,7 +2452,7 @@ test_vblock_add_bare_metal_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportGroup ExportMask Cluster"
+        column_family="Host Volume ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2502,7 +2502,7 @@ test_vblock_add_host_withOS_to_cluster() {
         secho "Running test_vblock_add_host_withOS_to_cluster with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportGroup ExportMask Cluster"
+        column_family="Host Volume ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2551,7 +2551,7 @@ test_vblock_provision_cluster_with_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportGroup ExportMask Cluster"
+        column_family="Host Volume ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME

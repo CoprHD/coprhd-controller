@@ -940,7 +940,7 @@ public class DisasterRecoveryService {
 
             FileUtils.writePlainFile(writeFilePath, contentToWrite);
         } catch (IOException e) {
-            throw new RuntimeException("error writing standby host IPs to /opt/storageos/known_hosts", e);
+            throw new RuntimeException("error writing standby host IPs to /opt/storageos/.ssh/known_hosts", e);
         }
 
 

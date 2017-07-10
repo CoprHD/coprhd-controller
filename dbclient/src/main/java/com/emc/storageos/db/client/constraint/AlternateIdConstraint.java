@@ -97,6 +97,11 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
+        
+        public static AlternateIdConstraint getFileSharenativeIDConstraint(String nativeId) {
+            DataObjectType doType = TypeMap.getDoType(FileShare.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("nativeId"), nativeId);
+        }
 
         public static AlternateIdConstraint getFileSystemMountPathConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);

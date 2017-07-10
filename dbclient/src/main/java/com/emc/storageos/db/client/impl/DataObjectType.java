@@ -300,8 +300,8 @@ public class DataObjectType {
 
             for (DbViewRecord view: viewMaps.values()) {
                 view.addClusteringColumn("id", id.toString()); // id is always the last clustering key
-                _log.info("==== view {}, key {}, clusters = [{}], cols = [{}]",
-                        view.getDef().getViewName(), view.getKeyName(), view.getClusterColumns().size(), view.getColumns().size());
+                _log.info("==== view = {}, key = [{}:{}], clusters = [{}], cols = [{}]",
+                        view.getDef().getViewName(), view.getKeyName(), view.getKeyValue(), view.getClusterColumns(), view.getColumns());
                 mutator.insertViewRow(view);
             }
 

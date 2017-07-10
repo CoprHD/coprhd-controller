@@ -924,10 +924,11 @@ public class DisasterRecoveryService {
     private void addStandbyHostsToSSH(List<String> standbyHostIPs) {
 
 
-        String filePath = "/etc/ssh/ssh_known_hosts";
+        String readFilePath = "/etc/ssh/ssh_known_hosts";
+        String writeFilePath = "/opt/storageos/known_hosts";
 
         try {
-            byte[] originalContent = FileUtils.readDataFromFile(filePath);
+            byte[] originalContent = FileUtils.readDataFromFile(readFilePath);
 
             String contentToPrepend = String.join(",", standbyHostIPs);
             contentToPrepend += ",";
@@ -937,9 +938,9 @@ public class DisasterRecoveryService {
             System.arraycopy(bytesToPrepend, 0, contentToWrite, 0, bytesToPrepend.length);
             System.arraycopy(originalContent, 0, contentToWrite, bytesToPrepend.length, originalContent.length);
 
-            FileUtils.writePlainFile(filePath, contentToWrite);
+            FileUtils.writePlainFile(writeFilePath, contentToWrite);
         } catch (IOException e) {
-            throw new RuntimeException("error writing standby host IPs to /etc/ssh/ssh_known_hosts", e);
+            throw new RuntimeException("error writing standby host IPs to /opt/storageos/known_hosts", e);
         }
 
 

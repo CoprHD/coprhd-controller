@@ -124,7 +124,7 @@ _gen_ssh_known_hosts() {
         known_hosts+=",${all_nodes}"
         known_hosts+=" $(<${publkey_filename})"
 
-        _genconfig_write 644 root:root "${1}" "${known_hosts}"
+        _genconfig_write 666 root:root "${1}" "${known_hosts}"
     fi
 
     _genconfig_done

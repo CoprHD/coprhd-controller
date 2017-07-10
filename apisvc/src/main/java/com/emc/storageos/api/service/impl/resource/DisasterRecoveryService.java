@@ -925,7 +925,7 @@ public class DisasterRecoveryService {
 
 
         String readFilePath = "/etc/ssh/ssh_known_hosts";
-        String writeFilePath = "/opt/storageos/.ssh/known_hosts";
+        String writeFilePath = readFilePath;
 
         try {
             byte[] originalContent = FileUtils.readDataFromFile(readFilePath);
@@ -940,7 +940,7 @@ public class DisasterRecoveryService {
 
             FileUtils.writePlainFile(writeFilePath, contentToWrite);
         } catch (IOException e) {
-            throw new RuntimeException("error writing standby host IPs to /opt/storageos/.ssh/known_hosts", e);
+            throw new RuntimeException("error writing standby host IPs to known_hosts", e);
         }
 
 

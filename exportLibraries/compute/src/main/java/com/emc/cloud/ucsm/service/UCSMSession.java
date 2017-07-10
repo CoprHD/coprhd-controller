@@ -4,6 +4,22 @@
  */
 package com.emc.cloud.ucsm.service;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.NumberFormat;
+import java.util.concurrent.TimeUnit;
+
+import javax.xml.bind.JAXBElement;
+
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.util.Assert;
+
 import com.emc.cloud.platform.clientlib.ClientGeneralException;
 import com.emc.cloud.platform.clientlib.ClientMessageKeys;
 import com.emc.cloud.platform.ucs.in.model.AaaLogin;
@@ -15,19 +31,6 @@ import com.emc.cloud.platform.ucs.out.model.ConfigResolveDn;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.db.client.model.EncryptionProvider;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.text.NumberFormat;
-import java.util.concurrent.TimeUnit;
-import javax.xml.bind.JAXBElement;
-import org.apache.commons.beanutils.BeanUtils;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.util.Assert;
 
 public class UCSMSession implements ComputeSession {
 
@@ -49,6 +52,7 @@ public class UCSMSession implements ComputeSession {
     CoordinatorClientImpl coordinator;
 
     DistributedDataManager distributedDataManager = null;
+    private UCSMDistributedDataUtil ucsmDistributedDataUtil;
 
     InterProcessReadWriteLock lock = null;
 
@@ -356,8 +360,7 @@ public class UCSMSession implements ComputeSession {
     }
 
     private void initializeSession() {
-        distributedDataManager = coordinator
-                .createDistributedDataManager(ComputeSessionUtil.Constants.COMPUTE_SESSION_BASE_PATH.toString());
+        distributedDataManager = ucsmDistributedDataUtil.getDistributedDataManager();
     }
 
     private void initializeRequest() {
@@ -410,6 +413,13 @@ public class UCSMSession implements ComputeSession {
             LOGGER.error("Encountered an parse error for string {} caused by {}", number, e.getMessage());
         }
         return new Integer(0);
+    }
+
+    /**
+     * @param ucsmDistributedDataUtil the ucsmDistributedDataUtil to set
+     */
+    public void setUcsmDistributedDataUtil(UCSMDistributedDataUtil ucsmDistributedDataUtil) {
+        this.ucsmDistributedDataUtil = ucsmDistributedDataUtil;
     }
 
 }

@@ -25,6 +25,7 @@
                 <entry key="vnxfile-prov-force-del-file" value-ref="vnxfileforcedelnamespace" />
                 <entry key="vnxfile-prov-cr-snap" value-ref="vnxsnapcrnamespace" />
                 <entry key="vnxfile-prov-file-export" value-ref="vnxexportnamespace" />
+                <entry key="vnxfile-prov-file-mover-info-query" value-ref="vnxfsmoverinfonamespace" />
                 <entry key="vnxfile-prov-file-export-mount" value-ref="vnxexportmountnamespace" />
                 <entry key="vnxfile-prov-delete-snap" value-ref="vnxsnapshotdeletenamespace" />
                 <entry key="vnxfile-prov-snap-restore" value-ref="vnxsnaprestorenamespace" />
@@ -149,6 +150,17 @@
         </property>
     </bean>
     
+    <bean id="vnxfsmoverinfonamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="filesystemmoverinfooperation"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
     <bean id="vnxexportmountnamespace"
           class="com.emc.storageos.plugins.common.domainmodel.Namespace">
         <property name="operations">
@@ -191,6 +203,21 @@
             </list>
         </property>
     </bean>
+    
+    <bean id="filesystemmoverinfooperation"
+		class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="processor" ref="filesystemmoverinfoprocessor" />
+		<property name="instance" ref="retriever" />
+		<property name="method" value="execute" />
+		<property name="arguments">
+			<list>
+				<ref bean="uri" />
+				<ref bean="cookie" />
+				<ref bean="session" />
+				<ref bean="vnxselectedfilesysquerywithoutsize" />
+			</list>
+		</property>
+	</bean>
 
     <bean id="sessioncleanoperation"
           class="com.emc.storageos.plugins.common.domainmodel.Operation">
@@ -837,6 +864,13 @@
         <property name="method" value="fetchFileSystemInfo" />
         <property name="value" value="" />
     </bean> 
+    
+    <bean id="vnxselectedfilesysquerywithoutsize"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchSelectedFileSystemInfoWithoutSize" />
+        <property name="value" value="" />
+    </bean>
 
     <bean id="vnxuseraccquery"
         class="com.emc.storageos.plugins.common.domainmodel.Argument">
@@ -978,6 +1012,11 @@
           class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFSSnapshotsProcessor">
         <property name="unmarshaller" ref="unmarshaller"/>
     </bean>	
+    
+    <bean id="filesystemmoverinfoprocessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemMoverInfoProcessor">
+		<property name="unmarshaller" ref="unmarshaller"/>
+	</bean>
 
     <bean id="vnxdatamoverprocessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXDataMoverIdProcessor">

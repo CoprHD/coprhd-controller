@@ -36,9 +36,6 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 
-import com.emc.storageos.security.geo.exceptions.GeoException;
-import com.emc.storageos.systemservices.impl.upgrade.*;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;

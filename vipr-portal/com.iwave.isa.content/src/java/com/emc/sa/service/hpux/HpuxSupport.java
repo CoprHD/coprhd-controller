@@ -14,6 +14,7 @@ import com.emc.hpux.model.MountPoint;
 import com.emc.hpux.model.RDisk;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.hpux.tasks.CheckForPowerPath;
 import com.emc.sa.service.hpux.tasks.CreateDirectory;
 import com.emc.sa.service.hpux.tasks.DeleteDirectory;
@@ -87,7 +88,9 @@ public class HpuxSupport {
     }
 
     public void removeVolumeMountPointTag(BlockObjectRestRep volume) {
+        String tagValue = MachineTagUtils.getBlockVolumeTag(volume, getMountPointTagName());
         ExecutionUtils.execute(new RemoveBlockVolumeMachineTag(volume.getId(), getMountPointTagName()));
+        ExecutionUtils.addRollback(new SetBlockVolumeMachineTag(volume.getId(), getMountPointTagName(), tagValue));
         addAffectedResource(volume.getId());
     }
 
@@ -152,7 +155,14 @@ public class HpuxSupport {
     }
 
     public void unmount(String mountPoint) {
+        unmount(mountPoint, null);
+    }
+
+    public void unmount(String mountPoint, String source) {
         execute(new UnmountPath(mountPoint));
+        if (source != null) {
+            addRollback(new MountPath(source, mountPoint));
+        }
     }
 
     public void checkFilesystem(String rDisk) {

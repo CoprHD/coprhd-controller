@@ -3168,7 +3168,7 @@ test_12() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_016_Export_doRemoveInitiator"
+    # failure_injections="failure_024_Export_zone_removeInitiator_before_delete"
 
     for failure in ${failure_injections}
     do
@@ -3200,7 +3200,7 @@ test_12() {
       snap_db 1 "${cfs[@]}"
 
       # prime the export
-      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --inits "${HOST1}/${H1PI1},${HOST1}/${H1PI2}"
 
       # Remove an initiator
       runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}

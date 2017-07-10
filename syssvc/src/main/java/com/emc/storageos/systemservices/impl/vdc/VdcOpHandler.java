@@ -561,7 +561,7 @@ public abstract class VdcOpHandler {
                 // manually paused site should never reconfigure to observer until resumed
                 coordinator.stopCoordinatorSvcMonitor();
             } else {
-                reconfigVdc(false, true);
+                reconfigVdc(false);
                 checkAndPauseOnActive();
             }
         }
@@ -1249,22 +1249,14 @@ public abstract class VdcOpHandler {
     }
 
     protected void reconfigVdc(boolean allNodeSyncRequired) throws Exception {
-        reconfigVdc(allNodeSyncRequired, false);
-    }
-
-    protected void reconfigVdc(boolean allNodeSyncRequired, boolean skipSshRefresh) throws Exception {
-        if (allNodeSyncRequired) {
+       if (allNodeSyncRequired) {
             syncFlushVdcConfigToLocal();
         } else {
             flushVdcConfigToLocal();
         }
         refreshIPsec();
         refreshFirewall();
-
-        if(!skipSshRefresh){
-            refreshSsh();
-        }
-
+        refreshSsh();
         refreshCoordinator();
     }
     

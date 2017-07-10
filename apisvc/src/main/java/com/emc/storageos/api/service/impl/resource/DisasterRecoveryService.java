@@ -6,6 +6,8 @@ package com.emc.storageos.api.service.impl.resource;
 
 import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
+
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -36,6 +38,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 
+import com.emc.storageos.services.util.FileUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
@@ -906,6 +909,8 @@ public class DisasterRecoveryService {
 
         List<String> standbyHostIPs = getStandbyHostIPs(uuid);
 
+        addStandbyHostsToSSH(standbyHostIPs);
+
         String targetViprVersion = getTargetViprVersion();
 
         for(String nodeIp: standbyHostIPs){
@@ -915,6 +920,30 @@ public class DisasterRecoveryService {
         return resumeStandbyInternal(uuid);
 
    }
+
+    private void addStandbyHostsToSSH(List<String> standbyHostIPs) {
+
+
+        String filePath = "/etc/ssh/ssh_known_hosts";
+
+        try {
+            byte[] originalContent = FileUtils.readDataFromFile(filePath);
+
+            String contentToPrepend = String.join(",", standbyHostIPs);
+            contentToPrepend += ",";
+            byte[] bytesToPrepend = contentToPrepend.getBytes();
+
+            byte[] contentToWrite = new byte[bytesToPrepend.length + originalContent.length];
+            System.arraycopy(bytesToPrepend, 0, contentToWrite, 0, bytesToPrepend.length);
+            System.arraycopy(originalContent, 0, contentToWrite, bytesToPrepend.length, originalContent.length);
+
+            FileUtils.writePlainFile(filePath, contentToWrite);
+        } catch (IOException e) {
+            throw new RuntimeException("error writing standby host IPs to /etc/ssh/ssh_known_hosts", e);
+        }
+
+
+    }
 
     private List<String> getStandbyHostIPs(String standbyUuid) {
 

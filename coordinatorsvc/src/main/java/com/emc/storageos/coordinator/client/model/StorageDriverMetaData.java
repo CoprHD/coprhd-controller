@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.coordinator.client.model;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +21,8 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
  *   - Hold meta data of new driver in ZK during upgrade
  */
 public class StorageDriverMetaData {
+
+    private static final String ENCODING_SEPERATOR = "\0";
 
     // key string definitions
     private static final String KEY_DRIVER_NAME = "driverName";
@@ -32,6 +38,7 @@ public class StorageDriverMetaData {
     private static final String KEY_DRIVER_CLASS_NAME = "driverClassName";
     private static final String KEY_DRIVER_FILE_NAME = "driverFileName";
     private static final String KEY_SUPPORT_AUTOTIER_POLICY = "supportAutoTierPolicy";
+    private static final String KEY_SUPPORTED_STORAGE_PROFILES = "supportedStorageProfiles";
 
     private static final Logger log = LoggerFactory.getLogger(StorageDriverMetaData.class);
 
@@ -62,6 +69,15 @@ public class StorageDriverMetaData {
     private String driverClassName;
     private String driverFileName;
     private boolean supportAutoTierPolicy;
+    private Set<String> supportedStorageProfiles = new HashSet<>();
+
+    public Set<String> getSupportedStorageProfiles() {
+        return supportedStorageProfiles;
+    }
+
+    public void setSupportedStorageProfiles(Set<String> supportedStorageProfiles) {
+        this.supportedStorageProfiles = supportedStorageProfiles;
+    }
 
     public String getDriverName() {
         return driverName;
@@ -204,6 +220,13 @@ public class StorageDriverMetaData {
         if (driverFileName != null) {
             config.setConfig(KEY_DRIVER_FILE_NAME, driverFileName);
         }
+        if (supportedStorageProfiles != null && !supportedStorageProfiles.isEmpty()) {
+            StringBuilder builder = new StringBuilder();
+            for (String profile : supportedStorageProfiles) {
+                builder.append(profile).append(ENCODING_SEPERATOR);
+            }
+            config.setConfig(KEY_SUPPORTED_STORAGE_PROFILES, builder.toString());
+        }
         return config;
     }
 
@@ -238,6 +261,12 @@ public class StorageDriverMetaData {
             }
             driverClassName = config.getConfig(KEY_DRIVER_CLASS_NAME);
             driverFileName = config.getConfig(KEY_DRIVER_FILE_NAME);
+            String supportedStorageProfilesStr = config.getConfig(KEY_SUPPORTED_STORAGE_PROFILES);
+            if (supportedStorageProfilesStr != null) {
+                for (String profile : supportedStorageProfilesStr.split(ENCODING_SEPERATOR)) {
+                    supportedStorageProfiles.add(profile);
+                }
+            }
         } catch (Exception e) {
             log.error("Unrecognized configuration data for StorageDriverMetaData", e);
             throw new IllegalArgumentException("Unrecognized configuration data for StorageDriverMetaData", e);
@@ -258,6 +287,7 @@ public class StorageDriverMetaData {
                .append(", sslPort=").append(sslPort)
                .append(", nonSslPort=").append(nonSslPort)
                .append(", supportAutoTierPolicy").append(supportAutoTierPolicy)
+               .append(", supportedStorageProfiles").append(supportedStorageProfiles)
                .append(", driverClassName=").append(driverClassName)
                .append(", driverFileName=").append(driverFileName);
         return builder.toString();

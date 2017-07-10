@@ -1134,6 +1134,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
                 quotaId = args.getFsExtensions().get(QUOTA);
             } else {
+              //when policy is applied at higher level, we will ignore the target filesystem 
+                FileShare fileShare = args.getFs();
+                if (null != fileShare.getPersonality() && 
+                        PersonalityTypes.TARGET.name().equals(fileShare.getPersonality()) && 
+                        null == fileShare.getExtensions()) {
+                    _log.info("Quota id is not found so ignore the expand filesystem ", fileShare.getLabel());
+                    return BiosCommandResult.createSuccessfulResult();
+                }
                 final ServiceError serviceError = DeviceControllerErrors.isilon.doExpandFSFailed(args.getFsId());
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);
@@ -1182,6 +1190,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     isiReduceFS(isi, quotaId, args);
                 }
             } else {
+              //when policy is applied at higher level, we will ignore the target filesystem 
+                FileShare fileShare = args.getFs();
+                if (null != fileShare.getPersonality() && 
+                        PersonalityTypes.TARGET.name().equals(fileShare.getPersonality())
+                        && null == fileShare.getExtensions()) {
+                    _log.info("Quota id is not found, so ignore the reduce filesystem ", fileShare.getLabel());
+                    return BiosCommandResult.createSuccessfulResult();
+                }
                 final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);

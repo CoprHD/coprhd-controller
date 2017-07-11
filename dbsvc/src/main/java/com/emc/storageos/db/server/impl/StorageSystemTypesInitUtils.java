@@ -35,7 +35,7 @@ public class StorageSystemTypesInitUtils {
     private static final String VNX_BLOCK = "vnxblock";
     private static final String VNXe = "vnxe";
     private static final String VNX_FILE = "vnxfile";
-    private static final String VMAX = "vmax";
+    public static final String VMAX = "vmax";
     private static final String SMIS = "smis";
     private static final String NETAPP = "netapp";
     private static final String NETAPPC = "netappc";

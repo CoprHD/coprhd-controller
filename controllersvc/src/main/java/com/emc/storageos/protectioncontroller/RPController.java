@@ -92,4 +92,13 @@ public interface RPController extends ProtectionController {
      * @return a mapping of volumes to access states
      */
     public Map<URI, String> getCopyAccessStates(URI protectionSystem, List<URI> volumeURIs);
+    
+    /**
+	 * Checks to see if the replication set corresponding to the volumeUri exists in RecoverPoint.
+	 *
+	 * @param protectionSystem the protection system to use
+     * @param volumeUri the volume URI corresponding to the replication set.
+     * @return true if the replication set is found, false otherwise
+     */
+    public Boolean doesReplicationSetExist(URI protectionDevice, URI volumeUri);
 }

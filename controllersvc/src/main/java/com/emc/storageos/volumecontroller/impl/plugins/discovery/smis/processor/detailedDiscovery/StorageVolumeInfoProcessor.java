@@ -607,8 +607,11 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             // in db
             // so that the tiering info is updated correctly later
             if (!created) {
-                unManagedVolume.getVolumeInformation().put(
-                        SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString(), "");
+                if (unManagedVolume.getVolumeInformation().get(
+                        SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()) != null) {
+                    unManagedVolume.getVolumeInformation().get(
+                            SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()).clear();
+                }
                 unManagedVolume.putVolumeCharacterstics(
                         SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), "false");
 

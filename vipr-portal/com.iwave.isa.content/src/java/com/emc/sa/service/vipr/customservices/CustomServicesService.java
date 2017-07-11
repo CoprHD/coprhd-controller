@@ -147,7 +147,7 @@ public class CustomServicesService extends ViPRService {
                     try {
                         updateOutputPerStep(step, res);
                     } catch (final Exception e) {
-                        logger.warn("Failed to parse output" + e + "step Id:{}", step.getId());
+                        logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
                     }
                 }
                 next = getNext(isSuccess, res, step);
@@ -158,11 +158,11 @@ public class CustomServicesService extends ViPRService {
                 next = getNext(false, null, step);
             }
             if (next == null) {
-                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id" + step.getId() + "\t Step Name:" + step.getFriendlyName()
+                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
                 + "Failed. Failing the Workflow");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Workflow Execution failed");
             }
-            if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.TIMEOUT) {
+            if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.WORKFLOW_TIMEOUT) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
             }
         }
@@ -180,7 +180,7 @@ public class CustomServicesService extends ViPRService {
         }
         final CustomServicesWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
 
-        final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByName(obj.getName());
+        final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByNameOrId(obj.getName());
         if (wfs == null  || wfs.isEmpty() || wfs.size() > 1) {
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Workflow list is null or empty or more than one workflow per Workflow name:" + obj.getName());
@@ -232,8 +232,8 @@ public class CustomServicesService extends ViPRService {
                     if (!StringUtils.isEmpty(e.getValue())) {
                         if (e.getValue().equals(Task.Status.error.toString())) {
                             ExecutionUtils.currentContext().logError("customServicesService.logStatus",
-                                    "Step Id" + step.getId() + "\t Step Name:" + step.getFriendlyName()
-                                            + "Task Failed TaskId:" + e.getKey() + "State:" + e.getValue());
+                                    "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
+                                            + " Task Failed TaskId: " + e.getKey() + " State:" + e.getValue());
                             return false;
                         }
                     }
@@ -339,7 +339,7 @@ public class CustomServicesService extends ViPRService {
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
                            final String param;
                             if (!StringUtils.isEmpty(value.getInputFieldType()) && 
-				                value.getInputFieldType().toUpperCase().equals(CustomServicesConstants.InputFieldType.PASSWORD)) {
+				                value.getInputFieldType().toUpperCase().equals(CustomServicesConstants.InputFieldType.PASSWORD.toString())) {
                                 param = decrypt(params.get(friendlyName).toString());
                             } else {
                                 param = params.get(friendlyName).toString();
@@ -472,39 +472,43 @@ public class CustomServicesService extends ViPRService {
      * @param res
      */
     private void updateOutputPerStep(final Step step, final CustomServicesTaskResult res) throws Exception {
-        final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
-        if (output == null)
-            return;
-        final String result = res.getOut();
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE)) {
-            try {
-                out.putAll(updateViproutput(step, res.getOut()));
-            } catch (Exception e) {
-                logger.warn("Could not parse ViPR REST Output properly:{}", e);
-            }
-        } else {
-            for (final CustomServicesWorkflowDocument.Output o : output) {
-                if (isScript(step)) {
-                    final String outToParse = ((CustomServicesScriptTaskResult)res).getScriptOut();
-                    logger.info("Parse non vipr output:{}", outToParse);
-                    out.put(o.getName(), evaluateAnsibleOut(outToParse, o.getName()));
-                } else if (step.getType().equals(StepType.REST.toString())) {
-                    final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
-                    final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
-                    for (final Map.Entry<String, List<String>> entry : headers) {
-                        if (entry.getKey().equals(o.getName())) {
-                            out.put(o.getName(), entry.getValue());
-                        }
-                    }
-                }
-            }
-        }
         //set the default result.
         out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
         out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
         out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
+        
+        switch(step.getType()) {
+            case CustomServicesConstants.VIPR_PRIMITIVE_TYPE:
+                try {
+                    out.putAll(updateViproutput(step, res.getOut()));
+                } catch (Exception e) {
+                    logger.warn("Could not parse ViPR REST Output properly:{}", e);
+                }
+            break;
+            default:
+                final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
+                if( null != output ) {
+                    for (final CustomServicesWorkflowDocument.Output o : output) {
+                        if (isScript(step)) {
+                            final String outToParse = ((CustomServicesScriptTaskResult)res).getScriptOut();
+                            logger.info("Parse non vipr output:{}", outToParse);
+                            out.put(o.getName(), evaluateAnsibleOut(outToParse, o.getName()));
+                        } else if (step.getType().equals(StepType.REST.toString())) {
+                            final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
+                            final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
+                            for (final Map.Entry<String, List<String>> entry : headers) {
+                                if (entry.getKey().equals(o.getName())) {
+                                    out.put(o.getName(), entry.getValue());
+                                }
+                            }
+                        }
+                    }
+                }
+           break;
+        }
+        
         outputPerStep.put(step.getId(), out);
     }
 
@@ -530,7 +534,7 @@ public class CustomServicesService extends ViPRService {
         final Object responseEntity = mapper.readValue(res, clazz.newInstance().getClass());
 
         final Map<String, List<String>> output = parseViprOutput(responseEntity, step);
-        logger.info("ViPR output for step ID " + step.getId() + " is " + output);
+        logger.info("ViPR output for step ID: " + step.getId() + " is " + output);
         return output;
     }
 

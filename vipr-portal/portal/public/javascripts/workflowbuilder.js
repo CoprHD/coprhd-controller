@@ -1050,7 +1050,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowData.state = 'PUBLISHING';
         $http.post(routes.Workflow_publish({workflowId : $scope.workflowData.id})).then(function (resp) {
             //redirect automatically on success
-            var url = routes.ServiceCatalog_createServiceFromBase({baseService: resp.data.name});
+            var url = routes.ServiceCatalog_createServiceFromBase({baseService: resp.data.id});
             window.location.href = url;
         });
     }

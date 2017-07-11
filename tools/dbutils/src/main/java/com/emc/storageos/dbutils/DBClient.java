@@ -1272,7 +1272,9 @@ public class DBClient {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "
                     + "Please see the log for more information.");
-        }
+        } finally {
+	        DbCheckerFileWriter.close();
+	    }
     }
 
     /**

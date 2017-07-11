@@ -26,6 +26,7 @@ public class VolumeCommand extends CliCommand {
     private String groupId;
     private Integer num_vol;
     private long capacity;
+    private String sym;
     private String poolId;
     private String capacityUnit = String.valueOf(CapacityUnitType.MB);
 
@@ -34,8 +35,9 @@ public class VolumeCommand extends CliCommand {
         System.out.println("Description:\n\tStorage Provider Command.");
         System.out.println("Usage:");
         System.out.println("\trestcli volume [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
-                " --ip IP_ADDR [--port PORT] --poolid POOLID --groupid GROUPID --num_vol NUM --capacity NUM [--capacityunit MB[|GB|TB]]");
+                " --ip IP_ADDR [--port PORT] --sym SYMMETRIXID --poolid POOLID --groupid GROUPID --num_vol NUM --capacity NUM [--capacityunit MB[|GB|TB]]");
     }
+
     public void run(String[] args) {
         this.parseRestArgs(args);
         RestVMAXStorageDriver driver = new RestVMAXStorageDriver();
@@ -55,16 +57,26 @@ public class VolumeCommand extends CliCommand {
         volume.setStorageGroupId(groupId);
         volume.setStoragePoolId(poolId);
         volume.setRequestedCapacity(capacity);
+        volume.setStorageSystemId(sym);
         volumes.add(volume);
         // check correction
-        System.out.println("port:" + provider.getPortNumber() + ", host:" + provider.getProviderHost() +
-                ", user:" + provider.getUsername() + ", pass:" + provider.getPassword() + ", storageGroupId:" +  volume.getStorageGroupId()
-                + ", poolId:" + volume.getStoragePoolId() + ", capacity:" + volume.getRequestedCapacity());
+        System.out.println("Input parameter:");
+        System.out.println("\tport:" + provider.getPortNumber() + ", host:" + provider.getProviderHost() +
+                ", user:" + provider.getUsername() + ", pass:" + provider.getPassword() +
+                ", storageGroupId:" + volume.getStorageGroupId() + ", poolId:" + volume.getStoragePoolId() +
+                ", Synmmtrix: " + volume.getStorageSystemId() + ", capacity:" + volume.getRequestedCapacity());
         List<StorageSystem> storageSystems = new ArrayList<>();
-        DriverTask task = driver.discoverStorageProvider(provider, storageSystems);
-        System.out.println(task.getMessage());
-        task = driver.createVolumes(volumes, null);
-        System.out.println(task.getMessage());
+        System.out.println("\ndiscoverStorageProvider: start ....");
+        driver.discoverStorageProvider(provider, storageSystems);
+        System.out.println("\tprovider version: " + provider.getProviderVersion());
+        System.out.println("\tversion is supported: " + provider.isSupportedVersion());
+
+        System.out.println("\ncreateVolumes: start ....");
+        driver.createVolumes(volumes, null);
+        System.out.println("\tvolume native id: " + volume.getNativeId() +
+                "\n\tAllocated capacity: " + volume.getAllocatedCapacity() +
+                "\n\tprovisioned capacity: " + volume.getProvisionedCapacity() +
+                "\n\twwn: " + volume.getWwn());
     }
 
     private void parseRestArgs(String[] args) {
@@ -88,6 +100,9 @@ public class VolumeCommand extends CliCommand {
                     break;
                 case "--port":
                     this.port = Integer.valueOf(args[++i]);
+                    break;
+                case "--sym":
+                    this.sym = String.valueOf(args[++i]);
                     break;
                 case "--groupid":
                     this.groupId = String.valueOf(args[++i]);

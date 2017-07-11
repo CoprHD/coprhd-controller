@@ -12,6 +12,7 @@ public class Main {
     private enum Cmd {
         HELP, REST, PROVIDER, VOLUME;
     }
+
     private static void usage() {
         System.out.println("Available commands:");
         System.out.println("\t" + Cmd.HELP.name().toLowerCase());

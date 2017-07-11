@@ -12,14 +12,14 @@ import com.emc.storageos.driver.restvmax.vmax.type.*;
 import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.sun.jersey.api.client.ClientResponse;
-import org.apache.http.protocol.HttpService;
-import com.google.json.JsonSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,39 +35,74 @@ public class RestVMAXStorageDriver extends DefaultStorageDriver {
     @Override
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
         // "num_of_vols": current value set to 1. TODO
-
         String restParam = "";
+        // initialize task
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "discover-storage-provider", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
 
         for (StorageVolume volume : volumes) {
             VolumeAttributeType aType = new VolumeAttributeType(CapacityUnitType.MB,
                     String.valueOf(volume.getRequestedCapacity() / (1024 * 1024)));
             SloBasedStorageGroupParamType[] sloType = new SloBasedStorageGroupParamType[1];
-            for(int i = 0; i < sloType.length; i++) {
+            for (int i = 0; i < sloType.length; i++) {
                 sloType[i] = new SloBasedStorageGroupParamType(new Long(1), aType);
             }
             CreateStorageGroupParamType groupParamType = new CreateStorageGroupParamType(volume.getStorageGroupId());
             groupParamType.setSrpId(volume.getStoragePoolId()).setSloBasedStorageGroupParam(sloType);
-
             restParam = groupParamType.toJsonString();
-            /*
+            // do post http://10.247.97.150:8443/univmax/restapi/sloprovisoning/symmetrix/{symmetrixid}/storagegroup
+            // create a volume with storageGroup
             String path = String.format(RestAPI.URI_HTTPS + RestVmaxEndpoint.SLOPROVISIONING_SYMMETRIX__STORAGEGROUP,
                     restAPI.getHost(), restAPI.getPort(), restAPI.getPathVendorPrefix(), volume.getStorageSystemId());
+            ClientResponse postResponse = RestAPI.post(path, restParam, false, BackendType.VMAX,
+                    restAPI.getUser(), restAPI.getPassword());
+            String respnseString = postResponse.getEntity(String.class);
+            GenericResultType type = (new Gson().fromJson(sanitize(respnseString), GenericResultType.class));
+            // set the post response into task
+            task.setMessage("post response: " + type.getSuccess() + "post message: " + type.getMessage());
+            _log.info("post response: " + type.getSuccess() + "post message: " + type.getMessage());
+            // do get http://10.247.97.150:8443/univmax/restapi/sloprovisoning/symmetrix/{symmetrixid}/volume ? StorageGroupId = user input
+            // through this function, get Volume id
             String getPath = String.format(RestAPI.URI_HTTPS + RestVmaxEndpoint.SLOPROVISIONING_SYMMETRIX__VOLUME_QUERY,
                     restAPI.getHost(), restAPI.getPort(), restAPI.getPathVendorPrefix(), volume.getStorageSystemId(),
                     volume.getStorageGroupId());
-            RestAPI.post(path, restParam, false, BackendType.VMAX,
+            ClientResponse getResponse = RestAPI.get(getPath, false, BackendType.VMAX,
                     restAPI.getUser(), restAPI.getPassword());
-            ClientResponse response = RestAPI.get(path, false, BackendType.VMAX,
+            String getResponseString = getResponse.getEntity(String.class);
+            /*
+             * IteratorType<VolumesListType> iType = (new Gson().fromJson(sanitize(getResponseString),
+             * (new IteratorType<VolumesListType>()).getClass()));
+             */
+            IteratorType<VolumesListType> iType = new Gson().fromJson(sanitize(getResponseString),
+                    new TypeToken<IteratorType<VolumesListType>>() {
+                    }.getType());
+
+            ResultListType<VolumesListType> resultList = iType.getResultList();
+            String volumeId = resultList.getResult()[0].getVolumeId();
+            task.setMessage("\ngetResult: [0] " + volumeId);
+
+            // get volume details Attributes of the volume in array
+            // do get http://10.247.97.150:8443/univmax/restapi/sloprovisoning/symmetrix/{symmetrixid}/volume/volumeId(user input)
+            String getVolumePath = String.format(RestAPI.URI_HTTPS + RestVmaxEndpoint.SLOPROVISIONING_SYMMETRIX__VOLUME_ID,
+                    restAPI.getHost(), restAPI.getPort(), restAPI.getPathVendorPrefix(), volume.getStorageSystemId(),
+                    volumeId);
+            ClientResponse getVolumeResponse = RestAPI.get(getVolumePath, false, BackendType.VMAX,
                     restAPI.getUser(), restAPI.getPassword());
-                    */
+            String getVolumeResponseString = getVolumeResponse.getEntity(String.class);
+            GetVolumeResultType getVolumeType = (new Gson().fromJson(sanitize(getVolumeResponseString), GetVolumeResultType.class));
+            VolumeType typeArray = getVolumeType.getVolume()[0];
+            volume.setAllocatedCapacity(new Long(0));
+            volume.setProvisionedCapacity((new Double(typeArray.getCap_mb() * 1024 * 1024)).longValue());
+            volume.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
+            volume.setNativeId(typeArray.getVolumeId());
+            volume.setWwn(typeArray.getWwn());
         }
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "discover-storage-provider", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-        task.setMessage("restParam: " + restParam);
+        task.setStatus(DriverTask.TaskStatus.READY);
         return task;
     }
+
 
     @Override
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
@@ -76,17 +111,19 @@ public class RestVMAXStorageDriver extends DefaultStorageDriver {
         String path = String.format(RestAPI.URI_HTTPS + RestVmaxEndpoint.SYSTEM__VERSION,
                 restAPI.getHost(), restAPI.getPort(), restAPI.getPathVendorPrefix());
         _log.info("path {}", path);
+        // get request and covert Json object into
         ClientResponse response = RestAPI.get(path, false, BackendType.VMAX,
                 restAPI.getUser(), restAPI.getPassword());
         String respnseString = response.getEntity(String.class);
-
         GetVersionResultType type = (new Gson().fromJson(sanitize(respnseString), GetVersionResultType.class));
+        storageProvider.setProviderVersion(type.getVersion());
+        storageProvider.setIsSupportedVersion(true);
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s------version:%s", driverName, "discover-storage-provider",
                 UUID.randomUUID().toString(), "type.getVersion()");
         DriverTask task = new DefaultDriverTask(taskId);
         task.setStatus(DriverTask.TaskStatus.FAILED);
-        String msg = String.format("%s: %s\nversion:%s", driverName, "discover-storage-provider", type.getVersion());
+        String msg = String.format("%s: %s\nversion: %s", driverName, "discover-storage-provider", type.getVersion());
         task.setMessage(msg);
         return task;
     }

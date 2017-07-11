@@ -457,7 +457,7 @@ public class CustomServicesService extends ViPRService {
                 try {
                     out.putAll(updateViproutput(step, res.getOut()));
                 } catch (Exception e) {
-                    logger.warn("Could not parse ViPR REST Output properly:{}", e);
+                    logger.warn("StepId:{} Could not parse ViPR REST Output properly:{}", step.getId(), e);
                 }
             break;
             default:

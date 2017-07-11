@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.MigrationStatus;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -53,7 +54,8 @@ public class StorageGroupsMigrationBookkeepingProcessor extends MaskingViewCompo
                 URI storageGroupURI = storageGroupItr.next();
                 BlockConsistencyGroup storageGroupInDB = dbClient.queryObject(BlockConsistencyGroup.class, storageGroupURI);
                 String sgLabel = storageGroupInDB.getLabel();
-                if (!discoveredStorageGroups.contains(sgLabel)) {
+                if (storageGroupInDB.getTypes().contains(Types.MIGRATION.name())
+                        && !discoveredStorageGroups.contains(sgLabel)) {
                     logger.info("Storage group {} not found on array. Migration status {}",
                             sgLabel, storageGroupInDB.getMigrationStatus());
                     // Only remove if the MigrationStatus is NONE

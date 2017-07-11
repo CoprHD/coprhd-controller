@@ -31,7 +31,7 @@ public class DataDomainMetaTypeMigration extends BaseCustomMigrationCallback {
         try {
             List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
             Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
-            String metatype = StorageSystemType.META_TYPE.BLOCK_AND_FILE.toString().toLowerCase();
+            String metatype = StorageSystemType.META_TYPE.FILE.toString().toLowerCase();
             while (it.hasNext()) {
                 StorageSystemType type = it.next();
                 if (type.getStorageTypeName() == null && type.getStorageTypeName().equalsIgnoreCase(DATA_DOMAIN)) {

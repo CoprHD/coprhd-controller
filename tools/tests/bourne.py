@@ -9609,8 +9609,8 @@ class Bourne:
             'nonSslPort'   : port,
             'driverClassName'       : driver_name,
             'supportedStorageProfiles': [
-                BLOCK,
-                REMOTE_REPLICATION_FOR_BLOCK
+                'BLOCK',
+                'REMOTE_REPLICATION_FOR_BLOCK'
             ]
         }
 

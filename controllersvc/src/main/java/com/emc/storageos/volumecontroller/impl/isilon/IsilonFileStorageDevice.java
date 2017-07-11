@@ -964,13 +964,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     
     @Override
     public BiosCommandResult doCheckAndCreateFS(StorageSystem storageObj, FileDeviceInputOutput args){
-       FileShare fs = args.getFs();
+       URI fs = args.getFs().getParentFileShare().getURI();
+       FileShare srcFs = _dbClient.queryObject(FileShare.class, fs);
+       FileShare tempFs = args.getFs();
        BiosCommandResult result = null;
        try {
            IsilonApi isi = getIsilonDevice(storageObj);
+           _log.info("IsilonFileStorageDevice doCheckAndCreateFS {} with name {} - start", args.getFsId(), args.getFsName());
            FilePolicy filePolicy = args.getFileProtectionPolicy();
            if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
-               String sourcePath = generatePathForPolicy(filePolicy, fs, args);
+               String sourcePath = generatePathForPolicy(filePolicy, srcFs, args);
                IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
                if (isiSynIQPolicy != null) {
                    String targetPath = isiSynIQPolicy.getTargetPath();
@@ -985,11 +988,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                    }
                    //TargetFs exists so we shall not create the FS but set the replication configuration.
                    if(targetFs != null){
+                       _log.info("TargetFileSystem already exists in database with {}", targetFs.getId(), targetFs.getName());
                        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, targetFs.getVirtualPool());
                        StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
                        boolean validPolicy = validateIsilonReplicationPolicy(isiSynIQPolicy, filePolicy, targetFs.getNativeId(), targetSystem, storageObj);
                        if(vpool.getFileReplicationSupported() && validPolicy){
-                           setReplicationAttributes(fs, targetFs);
+                           _log.info("Setting replication attributes for source FS {} and target FS {}", srcFs.getName(), targetFs.getName());
+                           setReplicationAttributes(srcFs, targetFs);
+                           _log.info("Returning success without creating FS as target FS {} already exists in database for source FS {} ", targetFs.getName(), srcFs.getName());
+//                           Check if needed set the temp obj as inactive
+//                           tempFs.setInactive(true);
+//                           _dbClient.updateObject(tempFs);
                            result = BiosCommandResult.createSuccessfulResult();
                        } else {
                            throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),

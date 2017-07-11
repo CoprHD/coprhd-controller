@@ -308,9 +308,9 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void checkAndCreateFS(URI storage, URI pool, URI fs, String nativeId, URI sourceFS, URI policyURI, String opId)
+    public void checkAndCreateFS(URI storage, URI pool, URI fs, String nativeId, URI policyURI, String opId)
             throws ControllerException {
-        execFS("checkAndCreateFS",storage, pool, fs, nativeId, sourceFS, policyURI, opId);
+        execFS("checkAndCreateFS",storage, pool, fs, nativeId, policyURI, opId);
         
     }
 

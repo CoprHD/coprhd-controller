@@ -301,7 +301,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
     
     @Override
-    public void checkAndCreateFS(URI storage, URI pool, URI fs, String nativeId, URI sourceFS, URI policyURI, String opId) throws ControllerException {
+    public void checkAndCreateFS(URI storage, URI pool, URI fs, String nativeId, URI policyURI, String opId) throws ControllerException {
         FileObject fileObject = null;
         FileShare fsObj = null;
         StorageSystem storageObj = null;
@@ -330,7 +330,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
            acquireStepLock(storageObj, opId);
            BiosCommandResult result = getDevice(storageObj.getSystemType()).doCheckAndCreateFS(storageObj, args);
            if (result.isCommandSuccess()){
-               
+               WorkflowStepCompleter.stepSucceded(opId);
+           } else {
+               fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+               fsObj.setInactive(true);
+               WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+               _dbClient.updateObject(fsObj);
            }
            
        }catch(Exception e) {
@@ -341,12 +346,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
            WorkflowStepCompleter.stepFailed(opId, serviceError);
 
-//           if ((fsObj != null) && (storageObj != null)) {
-//               fsObj.setInactive(true);
-//               _dbClient.updateObject(fsObj);
-//               recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, false, e.getMessage(), "", fsObj, storageObj);
-//           }
-//           updateTaskStatus(opId, fileObject, e);
+           if ((fsObj != null) && (storageObj != null)) {
+               fsObj.setInactive(true);
+               _dbClient.updateObject(fsObj);
+               recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, false, e.getMessage(), "", fsObj, storageObj);
+           }
+           updateTaskStatus(opId, fileObject, e);
        }
     }
 
@@ -3895,7 +3900,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     if (fileShare.getParentFileShare() != null) {
                         waitFor = workflow.createStep(
                                 CREATE_FILESYSTEMS_STEP,
-                                String.format("Creating Target File systems:%n%s", taskId),
+                                String.format("Check if target file system exists and create Target File systems if not :%n%s", taskId),
                                 waitFor,
                                 descriptor.getDeviceURI(),
                                 getDeviceType(descriptor.getDeviceURI()),

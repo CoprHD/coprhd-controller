@@ -306,13 +306,11 @@ public interface FileController extends StorageController {
      * @param pool
      * @param fs
      * @param nativeId
-     * @param storage2
-     * @param sourceFS
      * @param policyURI
      * @param opId
      * @throws ControllerException
      */
-    public void checkAndCreateFS(URI storage, URI pool, URI fs, String nativeId, URI sourceFS, URI policyURI, String opId)
+    public void checkAndCreateFS(URI storage, URI pool, URI fs, String nativeId, URI policyURI, String opId)
             throws ControllerException;
 
 }

@@ -178,6 +178,7 @@ public enum ServiceCode {
     DBSVC_ANNOTATION_ERROR(8007),
     DBSVC_GEO_UPDATE_ERROR(8008),
     DBSVC_FIELD_LENGTH_ERROR(8009),
+    DATABASE_SERVICE_NOT_ALL_UP(8010),
 
     // Retryable Database Client Errors (8500 - 8999):
     DBSVC_CONNECTION_ERROR(8500),
@@ -673,6 +674,10 @@ public enum ServiceCode {
     XIV_REST_CREATE_FAILURE(68003),
     XIV_REST_DELETE_FAILURE(68004),
     XIV_REST_HOST_PARTOF_CLUSTER(68010),
+
+    //Custom Service Exception code
+    CUSTOM_SERVICE_EXCEPTION(69000),
+    CUSTOM_SERVICE_NOTASK(69001),
 
     // ****************************
     // Old style of Service codes

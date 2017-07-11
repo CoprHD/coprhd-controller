@@ -237,13 +237,21 @@ public class VMwareSupport {
                 List<HostSystem> clusterHosts = Lists.newArrayList(cluster.getHosts());
                 for (HostSystem clusterHost : clusterHosts) {
                     if (isHostConnected(clusterHost)) {
-                        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
-                        hostDisks.put(clusterHost, disk);
+                        try {
+                            HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
+                            hostDisks.put(clusterHost, disk);
+                        } catch (Exception ex) {
+                            logWarn("vmware.support.multipath.policy.volumenotfound", volume.getWwn(), clusterHost.getName());
+                        }
                     }
                 }
             } else if (host != null) {
-                HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
-                hostDisks.put(host, disk);
+                try {
+                    HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
+                    hostDisks.put(host, disk);
+                } catch (Exception e) {
+                    logWarn("vmware.support.multipath.policy.volumenotfound", volume.getWwn(), host.getName());
+                }
             }
 
             if (hostDisks.size() > 0) {
@@ -310,7 +318,7 @@ public class VMwareSupport {
     public void setStorageIOControl(Datastore datastore, Boolean enabled, Boolean failIfErrorDuringEnable) {
         if (enabled != null && datastore != null) {
             if (datastore.getCapability() != null && datastore.getCapability().storageIORMSupported) {
-                execute(new SetStorageIOControl(datastore, enabled));
+                execute(new SetStorageIOControl(datastore, enabled, failIfErrorDuringEnable));
             } else if (enabled && failIfErrorDuringEnable) {
                 ExecutionUtils.fail("failTask.SetStorageIOControl", new Object[] {}, datastore.getName());
             } else {
@@ -718,9 +726,13 @@ public class VMwareSupport {
                 if (StringUtils.equals(host.getName(), otherHost.getName())) {
                     continue;
                 }
-                if (VMwareSupport.isHostConnected(otherHost)) {
-                    HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly, throwIfNotFound));
-                    disks.put(otherHost, otherDisk);
+                try {
+                    if (VMwareSupport.isHostConnected(otherHost)) {
+                        HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly, throwIfNotFound));
+                        disks.put(otherHost, otherDisk);
+                    }
+                } catch (Exception e) {
+                    logWarn("vmware.support.find.scsi.disk.volumenotfound", volume.getWwn(), otherHost.getName());
                 }
             }
         }

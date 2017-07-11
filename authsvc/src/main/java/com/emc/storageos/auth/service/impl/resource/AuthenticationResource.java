@@ -847,7 +847,7 @@ public class AuthenticationResource {
         }
 
         auditOp(null, null,
-                OperationTypeEnum.AUTHENTICATION, false, null, formData.getFirst("username"));
+                OperationTypeEnum.AUTHENTICATION, false, null, getFormCredentials(formData).getUserName());
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
@@ -923,7 +923,7 @@ public class AuthenticationResource {
 
     private UsernamePasswordCredentials getFormCredentials(
             MultivaluedMap<String, String> formData) {
-        String userName = formData.getFirst("username");
+        String userName = SecurityUtils.stripXSS(formData.getFirst("username"));
         String userPassw = formData.getFirst("password");
         if (StringUtils.isNotBlank(userName) && StringUtils.isNotBlank(userPassw)) {
             return new UsernamePasswordCredentials(userName, userPassw);
@@ -1031,8 +1031,10 @@ public class AuthenticationResource {
                 return null;
             }
             int i = credentials.indexOf(':');
+
             UsernamePasswordCredentials creds =
-                    new UsernamePasswordCredentials(credentials.substring(0, i), credentials.substring(i + 1));
+                    new UsernamePasswordCredentials(SecurityUtils.stripXSS(credentials.substring(0, i)),
+                                                    credentials.substring(i + 1));
             return creds;
         }
         return null;

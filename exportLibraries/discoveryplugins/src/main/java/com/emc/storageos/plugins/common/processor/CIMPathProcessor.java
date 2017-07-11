@@ -7,10 +7,13 @@ package com.emc.storageos.plugins.common.processor;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
@@ -43,7 +46,7 @@ public class CIMPathProcessor extends Processor {
                         CIMProperty<?> prop = path.getKey(Constants._Name);
                         serialID = (String) prop.getValue();
                         _logger.info("serial ID Found:" + serialID);
-                        if (serialID.toLowerCase().contains(((String) keyMap
+                        if (serialID != null && serialID.toLowerCase().contains(((String) keyMap
                                 .get(Constants._serialID)).toLowerCase()))
                         {
                             addPath(keyMap, operation.getResult(), path);

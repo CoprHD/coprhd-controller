@@ -563,7 +563,7 @@ def delete_parser(subcommand_parsers, common_parser):
 
 
 def quotadirectory_delete(args):
-    if not args.sync and args.synctimeout !=0:
+    if not args.synchronous and args.synctimeout !=0:
         raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = QuotaDirectory(args.ip, args.port)
     try:

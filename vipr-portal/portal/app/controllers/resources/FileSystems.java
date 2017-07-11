@@ -773,7 +773,8 @@ public class FileSystems extends ResourceController {
     public static void deleteFileSystemQuotaDirectory(String fileSystemId, String quotaDirectoryId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam(true);
+        // Avoid force delete for quota directory!!
+        QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam(false);
         Task<QuotaDirectoryRestRep> task = client.quotaDirectories().deleteQuotaDirectory(uri(quotaDirectoryId), param);
         flash.put("info", MessagesUtils.get("resources.filesystem.quota.deactivate"));
 

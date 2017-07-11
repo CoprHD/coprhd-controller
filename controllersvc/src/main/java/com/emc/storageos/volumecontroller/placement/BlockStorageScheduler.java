@@ -2272,9 +2272,10 @@ public class BlockStorageScheduler {
             String switchName = PlacementUtils.getSwitchName(initiator.getInitiatorPort(), _dbClient);
             if (switchName != null && !switchName.isEmpty()) {
                 Integer count = result.get(switchName);
-                int numberOfPath = pathParams.getMaxInitiatorsPerPort();
+                int numberOfPath = pathParams.getPathsPerInitiator();
                 if (count != null) {
                     count += numberOfPath;
+                    result.put(switchName, count);
                 } else {
                     result.put(switchName, numberOfPath);
                 }

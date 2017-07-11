@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
@@ -294,16 +295,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
-     * Deleting a file share: - deletes existing exports and smb shares for the
+     * Deletes existing exports and smb shares for the
      * file share (only created by storage os)
      * 
      * @param isi
-     *            IsilonApi object
      * @param args
-     *            FileDeviceInputOutput
      * @throws IsilonException
      */
-    private void isiDeleteFS(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
+    private void isiDeleteFileSystemRefObjects(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
 
         /*
          * Delete the exports for this file system
@@ -337,12 +336,58 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         /**
          * Delete the directory associated with the file share.
          */
-        isi.deleteDir(args.getFsMountPath(), true);
+        isi.deleteDir(args.getFsMountPath());
 
         /**
          * Delete the Schedule Policy for the file system
          */
         isiDeleteSnapshotSchedules(isi, args);
+    }
+
+    /**
+     * Deleting a file share: - Delete the file share only
+     * if the file system directory has no files or directories
+     * 
+     * 
+     * @param isi
+     *            IsilonApi object
+     * @param args
+     *            FileDeviceInputOutput
+     * @throws IsilonException
+     */
+    private void isiDeleteFS(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
+
+        // Fail the request with force delete
+        if (args.getForceDelete()) {
+            _log.error("File System delete operation is not supported with force delete {} ", args.getForceDelete());
+            throw IsilonException.exceptions.deleteFileSystemNotSupported();
+
+        }
+        /*
+         * Do not delete file system if it has some data in it.
+         * In Api service we have check (ViPR db check) for existing shares and exports and
+         * it fails operation if filesystem has any share or export.
+         */
+        if (isi.fsDirHasData(args.getFsMountPath())) {
+            // Fail to delete file system directory which has data in it!!!
+            _log.error("File system deletion failed as it's directory {} has content in it", args.getFsMountPath());
+            throw IsilonException.exceptions.failToDeleteFileSystem(args.getFsMountPath());
+        }
+
+        /**
+         * Delete quota on this path, if one exists
+         */
+        if (args.getFsExtensions() != null && args.getFsExtensions().containsKey(QUOTA)) {
+            isi.deleteQuota(args.getFsExtensions().get(QUOTA));
+            // delete from extensions
+            args.getFsExtensions().remove(QUOTA);
+        }
+
+        /**
+         * Delete the directory associated with the file share.
+         * with recursive flag false
+         */
+        isi.deleteDir(args.getFsMountPath());
     }
 
     /**
@@ -434,6 +479,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             QuotaDirectory quotaDir = _dbClient.queryObject(QuotaDirectory.class, quotaDirURI);
             if (quotaDir != null && (!quotaDir.getInactive())) {
                 if (quotaDir.getExtensions() != null && quotaDir.getExtensions().containsKey(QUOTA)) {
+
+                    String quotaDirPath = args.getFsMountPath() + "/" + quotaDir.getName();
+                    // Do not delete quota directory
+                    // if the quota directory has some data in it.
+                    if (isi.fsDirHasData(quotaDirPath)) {
+                        // Fail to delete file system quota directory which has data in it!!!
+                        _log.error("Quota directory deletion failed as it's directory path {} has content in it", quotaDirPath);
+                        throw DeviceControllerException.exceptions.failToDeleteQuotaDirectory(quotaDirPath);
+                    }
+
                     String quotaId = quotaDir.getExtensions().get(QUOTA);
                     _log.info("IsilonFileStorageDevice isiDeleteQuotaDirs , Delete Quota {}", quotaId);
                     isi.deleteQuota(quotaId);
@@ -441,8 +496,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     quotaDir.getExtensions().remove(QUOTA);
 
                     // delete directory for the Quota Directory
-                    String quotaDirPath = args.getFsMountPath() + "/" + quotaDir.getName();
-                    isi.deleteDir(quotaDirPath, true);
+                    isi.deleteDir(quotaDirPath);
                 }
             }
         }
@@ -865,9 +919,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, expandedQuota);
     }
-    
+
     /**
      * restapi request for reduction of fileshare size.
+     * 
      * @param isi
      * @param quotaId
      * @param args
@@ -877,22 +932,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private void isiReduceFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
         Long capacity = args.getNewFSCapacity();
         IsilonSmartQuota quota = isi.getQuota(quotaId);
-        //new capacity should be less than usage capacity of a filehare
-        if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
-            String msg = String
-                    .format(
-                            "In Reduction Isilon FS requested capacity is less than currently used physical space. Path: %s, current capacity: %d",
-                            quota.getPath(), quota.getThresholds().getHard());
-            _log.error(msg);
-            throw IsilonException.exceptions.reduceFsFailedinvalidParameters(quota.getPath(),
-                    quota.getThresholds().getHard());
-        } else {
-        	 // Modify quoties for fileshare
-        	quota = getExpandedQuota(isi, args, capacity);
-            isi.modifyQuota(quotaId, quota);
-        }
+        // Modify quoties for fileshare
+        quota = getExpandedQuota(isi, args, capacity);
+        isi.modifyQuota(quotaId, quota);
     }
-
 
     private IsilonSmartQuota getExpandedQuota(IsilonApi isi, FileDeviceInputOutput args, Long capacity) {
         Long notificationLimit = 0L;
@@ -917,6 +960,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doCreateFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
+        Boolean fsDirExists = true;
+        Boolean fsDirCreatedByMe = false;
         try {
             _log.info("IsilonFileStorageDevice doCreateFS {} with name {} - start", args.getFsId(), args.getFsName());
             IsilonApi isi = getIsilonDevice(storage);
@@ -982,8 +1027,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (FileOrchestrationUtils.isPrimaryFileSystemOrNormalFileSystem(args.getFs())
                     || !FileOrchestrationUtils.isReplicationPolicyExistsOnTarget(_dbClient, storage, args.getVPool(),
                             args.getProject(), args.getFs())) {
-                // create directory for the file share
-                isi.createDir(args.getFsMountPath(), true);
+
+                // Verify the file system directory exists or not!!
+                fsDirExists = isi.existsDir(args.getFsMountPath());
+                if (!fsDirExists) {
+                    // create directory for the file share
+                    isi.createDir(args.getFsMountPath(), true);
+                    fsDirCreatedByMe = true;
+                } else {
+                    // Fail to create file system, as the directory already exists!!
+                    _log.error("File system creation failed due to directory path {} already exists.", args.getFsMountPath());
+                    throw DeviceControllerException.exceptions.failToCreateFileSystem(args.getFsMountPath());
+                }
 
                 Long softGrace = null;
                 if (args.getFsSoftGracePeriod() != null) {
@@ -1008,14 +1063,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("doCreateFS failed.", e);
-            // rollback this operation to prevent partial result of file share
-            // create
-            BiosCommandResult rollbackResult = doDeleteFS(storage, args);
-            if (rollbackResult.isCommandSuccess()) {
-                _log.info("IsilonFileStorageDevice doCreateFS {} - rollback completed.", args.getFsId());
-            } else {
-                _log.error("IsilonFileStorageDevice doCreateFS {} - rollback failed,  message: {} .", args.getFsId(),
-                        rollbackResult.getMessage());
+            // Delete the file system directory only if it was created from this workflow
+            // instead of delete entire fs system tree and deleting its objects
+            // delete the fs directory alone!!!
+            if (fsDirCreatedByMe) {
+                // delete isilon directory
+                _log.info("doCreateFS failed, deleting the isilon directory {} which has been created in this workflow",
+                        args.getFsMountPath());
+                IsilonApi isi = getIsilonDevice(storage);
+                isi.deleteDir(args.getFsMountPath());
             }
 
             return BiosCommandResult.createErrorResult(e);
@@ -1078,6 +1134,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
                 quotaId = args.getFsExtensions().get(QUOTA);
             } else {
+              //when policy is applied at higher level, we will ignore the target filesystem 
+                FileShare fileShare = args.getFs();
+                if (null != fileShare.getPersonality() && 
+                        PersonalityTypes.TARGET.name().equals(fileShare.getPersonality()) && 
+                        null == fileShare.getExtensions()) {
+                    _log.info("Quota id is not found so ignore the expand filesystem ", fileShare.getLabel());
+                    return BiosCommandResult.createSuccessfulResult();
+                }
                 final ServiceError serviceError = DeviceControllerErrors.isilon.doExpandFSFailed(args.getFsId());
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);
@@ -1097,29 +1161,53 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createErrorResult(serviceError);
         }
     }
-    
-    
+
     @Override
     public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-    	try {
-    		 _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
-             IsilonApi isi = getIsilonDevice(storage);
-             String quotaId = null;
-             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
-                 quotaId = args.getFsExtensions().get(QUOTA);
-             } else {
-                 final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
-                 _log.error(serviceError.getMessage());
-                 return BiosCommandResult.createErrorResult(serviceError);
-             }
+        try {
+            _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
+            IsilonApi isi = getIsilonDevice(storage);
+            String quotaId = null;
+            if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
+                quotaId = args.getFsExtensions().get(QUOTA);
 
-             isiReduceFS(isi, quotaId, args);
-             _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
-             return BiosCommandResult.createSuccessfulResult();
+                Long capacity = args.getNewFSCapacity();
+                IsilonSmartQuota quota = isi.getQuota(quotaId);
+                // new capacity should be less than usage capacity of a filehare
+                if (capacity.compareTo(quota.getUsagePhysical()) < 0) {
+
+                    Double dUsageSize = SizeUtil.translateSize(quota.getUsagePhysical(), SizeUtil.SIZE_GB);
+                    Double dNewCapacity = SizeUtil.translateSize(capacity, SizeUtil.SIZE_GB);
+
+                    String msg = String.format(
+                            "as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s",
+                            dNewCapacity, dUsageSize, args.getFs().getName());
+
+                    _log.error(msg);
+                    final ServiceError serviceError = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
+                    return BiosCommandResult.createErrorResult(serviceError);
+                } else {
+                    isiReduceFS(isi, quotaId, args);
+                }
+            } else {
+              //when policy is applied at higher level, we will ignore the target filesystem 
+                FileShare fileShare = args.getFs();
+                if (null != fileShare.getPersonality() && 
+                        PersonalityTypes.TARGET.name().equals(fileShare.getPersonality())
+                        && null == fileShare.getExtensions()) {
+                    _log.info("Quota id is not found, so ignore the reduce filesystem ", fileShare.getLabel());
+                    return BiosCommandResult.createSuccessfulResult();
+                }
+                final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
+                _log.error(serviceError.getMessage());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
+            _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
+            return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("doReduceFS failed.", e);
             return BiosCommandResult.createErrorResult(e);
-        } 
+        }
     }
 
     @Override
@@ -1349,10 +1437,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         Long qDirSize = quotaDir.getSize();
         String qDirPath = fsMountPath + "/" + quotaDir.getName();
         _log.info("IsilonFileStorageDevice doCreateQuotaDirectory {} with size {} - start", qDirPath, qDirSize);
+        Boolean fsDirCreatedByMe = false;
         try {
             IsilonApi isi = getIsilonDevice(storage);
-            // create directory for the file share
-            isi.createDir(qDirPath, true);
+            // Verify the quota directory path exists or not!!
+            if (!isi.existsDir(qDirPath)) {
+                // create directory for the quota directory
+                isi.createDir(qDirPath, true);
+                fsDirCreatedByMe = true;
+            } else {
+                // Fail to create quota directory, as the directory already exists!!
+                _log.error("Quota directory creation failed due to directory path {} already exists.", qDirPath);
+                throw DeviceControllerException.exceptions.failToCreateQuotaDirectory(qDirPath);
+            }
 
             String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, args.getFsCapacity(), isi);
 
@@ -1364,6 +1461,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("IsilonFileStorageDevice doCreateQuotaDirectory {} with size {} - complete", qDirPath, qDirSize);
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
+            // Delete the quota directory only if it was created from this workflow
+            // instead of delete entire quota tree
+            // delete the directory alone with recursive false!!!
+            if (fsDirCreatedByMe) {
+                // delete isilon directory
+                _log.info("doCreateQuotaDirectory failed, deleting the isilon directory {} which has been created in this workflow",
+                        qDirPath);
+                IsilonApi isi = getIsilonDevice(storage);
+                isi.deleteDir(qDirPath);
+            }
             _log.error("doCreateQuotaDirectory failed.", e);
             return BiosCommandResult.createErrorResult(e);
         }
@@ -1387,6 +1494,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         try {
             IsilonApi isi = getIsilonDevice(storage);
 
+            // Do not delete quota directory
+            // if the quota directory has some data in it.
+            if (isi.fsDirHasData(qDirPath)) {
+                // Fail to delete quota directory which has data in it!!!
+                _log.error("Quota directory deletion failed as it's directory path {} has content in it", qDirPath);
+                throw DeviceControllerException.exceptions.failToDeleteQuotaDirectory(qDirPath);
+            }
+
             String quotaId = null;
             if (quotaDir.getExtensions() != null) {
                 quotaId = quotaDir.getExtensions().get(QUOTA);
@@ -1397,7 +1512,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             // delete directory for the Quota Directory
-            isi.deleteDir(qDirPath, true);
+            isi.deleteDir(qDirPath);
             _log.info("IsilonFileStorageDevice doDeleteQuotaDirectory {} with size {} - complete", qDirPath, qDirSize);
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
@@ -1413,35 +1528,39 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // Get Quota Directory Name
         // Get Quota Size
         // Call Update Quota (Aways use that quota for updating the size)
-
+        QuotaDirectory quotaDirObj = null;
         String fsMountPath = args.getFsMountPath();
         Long qDirSize = quotaDir.getSize();
         String qDirPath = fsMountPath + "/" + quotaDir.getName();
         _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory {} with size {} - start", qDirPath, qDirSize);
         try {
             IsilonApi isi = getIsilonDevice(storage);
+            URI qtreeURI = quotaDir.getId();
+            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
 
             String quotaId = null;
-            if (quotaDir.getExtensions() != null) {
-                quotaId = quotaDir.getExtensions().get(QUOTA);
+            if (quotaDirObj.getExtensions() != null) {
+                quotaId = quotaDirObj.getExtensions().get(QUOTA);
             }
 
             if (quotaId != null) {
-            	// Isilon does not allow to update quota directory to zero.
-            	IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
+                // Isilon does not allow to update quota directory to zero.
+                IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
                 long quotaUsageSpace = isiCurrentSmartQuota.getUsagePhysical();
-                
+
                 if (qDirSize > 0 && qDirSize.compareTo(quotaUsageSpace) > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 } else {
-                	String msg = String.format(
-                            "Shriking the Isilon FS failed, because the filesystem capacity is less than current usage capacity of file system. Path: %s, current usage capacity: %d",
-                            quotaDir.getPath(), quotaUsageSpace);
-                	_log.error("doUpdateQuotaDirectory : " + msg);
-                	ServiceError error = DeviceControllerErrors.isilon.jobFailed(msg);
-                	return BiosCommandResult.createErrorResult(error);
+                    Double dUsage = SizeUtil.translateSize(quotaUsageSpace, SizeUtil.SIZE_GB);
+                    Double dQuotaSize = SizeUtil.translateSize(qDirSize, SizeUtil.SIZE_GB);
+                    String msg = String.format(
+                            "as requested reduced size [%.1fGB] is smaller than used capacity [%.1fGB] for filesystem %s",
+                            dQuotaSize, dUsage, args.getFs().getName());
+                    _log.error("doUpdateQuotaDirectory : " + msg);
+                    ServiceError error = DeviceControllerErrors.isilon.unableUpdateQuotaDirectory(msg);
+                    return BiosCommandResult.createErrorResult(error);
                 }
 
             } else {
@@ -1478,7 +1597,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (quotaDir.getSoftGrace() != null) {
             softGrace = Long.valueOf(quotaDir.getSoftGrace());
         }
-
         return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, fsSize, false, null, qDirSize,
                 notificationLimit, softlimit, softGrace);
     }
@@ -2687,26 +2805,118 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return BiosCommandResult.createErrorResult(serviceError);
     }
 
+    /**
+     * perform failover operation
+     * systemTarget - failover to target system
+     * fs - target filesystem
+     * completer - task completer
+     * 
+     * return BiosCommandResult
+     */
     @Override
     public BiosCommandResult doFailoverLink(StorageSystem systemTarget, FileShare fs, TaskCompleter completer) {
+        _log.info("IsilonFileStorageDevice -  doFailoverLink started ");
         FileShare sourceFS = null;
+        FileShare targetFS = null;
+        StorageSystem sourceSystem = null;
+        StorageSystem targetSystem = null;
+
+        boolean failback = false;
         if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
             sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
+            targetFS = fs;
         } else if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
             sourceFS = fs;
+            List<String> targetfileUris = new ArrayList<String>();
+            targetfileUris.addAll(fs.getMirrorfsTargets());
+            if (!targetfileUris.isEmpty()) {
+                targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            } else {
+                ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverFileSystem(
+                        systemTarget.getIpAddress(), "Unable to get target filesystem for source filesystem " + fs.getName());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
+            failback = true;
         }
+
+        sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
+        targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
+
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
+            BiosCommandResult cmdResult = null;
             // In case of failback we do failover on the source file system, so we need to append _mirror
-            if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            if (failback) {
                 policyName = policyName.concat(MIRROR_POLICY);
+
+                // prepared policy for failback
+                cmdResult = prepareFailbackOp(targetSystem, policyName);
+                if (!cmdResult.isCommandSuccess()) {
+                    return cmdResult;
+                }
+                // Call Isilon Api failback job
+                return mirrorOperations.doFailover(sourceSystem, policyName, completer);
+            } else {
+                // prepared policy for failover
+                cmdResult = prepareFailoverOp(sourceSystem, policyName);
+                if (!cmdResult.isCommandSuccess()) {
+                    _log.info("Unable to stop replication policy on source");
+                    _log.info("Proceeding with failover anyway");
+                }
+                // Call Isilon Api failover job
+                return mirrorOperations.doFailover(targetSystem, policyName, completer);
             }
-            return mirrorOperations.doFailover(systemTarget, policyName, completer);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon
-                .unableToCreateFileShare();
+                .unableToFailoverFileSystem(
+                        systemTarget.getIpAddress(), "Unable to get the policy details for filesystem :" + fs.getName());
         return BiosCommandResult.createErrorResult(serviceError);
+    }
+
+    /**
+     * prepare policy to failover.
+     * 
+     * @param sourceSystem - source storagesystem
+     * @param policyName - failover policy
+     * @return
+     */
+    private BiosCommandResult prepareFailoverOp(final StorageSystem sourceSystem, String policyName) {
+        BiosCommandResult cmdResult = null;
+        // check for device is up and able query the data.
+        cmdResult = mirrorOperations.doTestReplicationPolicy(sourceSystem, policyName);
+        if (cmdResult.isCommandSuccess()) {
+            // if policy enables on failed storage then We should disable it before failover job
+            cmdResult = mirrorOperations.doStopReplicationPolicy(sourceSystem, policyName);
+        } else {
+            _log.error("Unabled get the replcation policy details.", cmdResult.getMessage());
+            ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverReplicationPolicy(
+                    sourceSystem.getIpAddress(), policyName, cmdResult.getMessage());
+            return BiosCommandResult.createErrorResult(serviceError);
+        }
+        return cmdResult;
+    }
+
+    /**
+     * prepare policy to failback.
+     * 
+     * @param systemTarget - target storagesystem
+     * @param policyName -failback mirror policy
+     * @return
+     */
+    private BiosCommandResult prepareFailbackOp(final StorageSystem targetSystem, String policyName) {
+        BiosCommandResult cmdResult = null;
+        // check for target device up and then disable the policy
+        cmdResult = mirrorOperations.doTestReplicationPolicy(targetSystem, policyName);
+        if (cmdResult.isCommandSuccess()) {
+            // if policy enables on target storage then We should disable it before failback job
+            cmdResult = mirrorOperations.doStopReplicationPolicy(targetSystem, policyName);
+        } else {
+            ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailbackReplicationPolicy(
+                    targetSystem.getIpAddress(), policyName, cmdResult.getMessage());
+            return BiosCommandResult.createErrorResult(serviceError);
+        }
+        return cmdResult;
     }
 
     @Override
@@ -2744,7 +2954,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
                 URI uriParent = fileShare.getParentFileShare().getURI();
                 if (sources.contains(uriParent) == true) {
-                    biosCommandResult = rollbackCreatedFilesystem(storageSystem, target, opId, true);
+                    // Do not delete the file target file system with force flag
+                    biosCommandResult = rollbackCreatedFilesystem(storageSystem, target, opId, false);
                     if (biosCommandResult.getCommandSuccess()) {
                         fileShare.getOpStatus().updateTaskStatus(opId, biosCommandResult.toOperation());
                         fileShare.setInactive(true);
@@ -3208,9 +3419,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     // if the replication happens from user defined access zone to system access zone!!
                     if (sourceFS.getVirtualNAS() != null) {
                         VirtualNAS sourcevNAS = _dbClient.queryObject(VirtualNAS.class, sourceFS.getVirtualNAS());
-                        String vNASName = sourcevNAS.getNasName();
-                        vNASName = getNameWithNoSpecialCharacters(vNASName, args);
-                        clusterName = clusterName + vNASName;
+                        if (sourcevNAS != null) {
+                            String vNASName = sourcevNAS.getNasName();
+                            vNASName = getNameWithNoSpecialCharacters(vNASName, args);
+                            clusterName = clusterName + vNASName;
+                            _log.info("Source file system is on virtual NAS {}", vNASName);
+                        }
                     }
                     _log.debug("Generating path for target and the source cluster is is  {}", clusterName);
                 }
@@ -3285,7 +3499,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     String targetFs = fs.getMirrorfsTargets().iterator().next();
                     targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetFs));
                     targetPath = generatePathForPolicy(filePolicy, targetFS, args);
-                    if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())) {
+                    // _localTarget suffix is not needed for policy at file system level
+                    // as the suffix already present in target file system native id
+                    // Add the suffix only for local replication policy at higher level
+                    if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())
+                            && !FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(filePolicy.getApplyAt())) {
                         targetPath = targetPath + "_localTarget";
                     }
                     // Get the target smart connect zone!!
@@ -3816,6 +4034,23 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
     }
 
+    /**
+     * This method verify the target file system has some data or not
+     * 
+     * @param targetStorage
+     * @param targetPath
+     * @return True, if it has some data in it; false, otherwise
+     */
+    private boolean isTargetDirectoryEmpty(StorageSystem targetStorage, String targetPath) {
+        IsilonApi isi = getIsilonDevice(targetStorage);
+        // verify the target directory has some data in it or not!!
+        if (!isi.fsDirHasData(targetPath)) {
+            return true;
+        }
+        return false;
+
+    }
+
     private String createIsilonSyncPolicy(StorageSystem storageObj, StorageSystem targetStorage,
             FilePolicy filePolicy, String sourcePath, String targetPath, String syncPolicyName,
             FileDeviceInputOutput sourceSystemArgs, FileDeviceInputOutput targetSystemArgs) {
@@ -3939,6 +4174,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String sourceRootPath, String targetPath) {
         IsilonSyncPolicy isiMatchedPolicy = null;
 
+        // Get the replication policies applied at directory path @source cluster
         for (IsilonSyncPolicy isiPolicy : isiPolicies) {
             if (isiPolicy.getSourceRootPath().equals(sourceRootPath) && isiPolicy.getTargetPath().equals(targetPath)) {
                 isiMatchedPolicy = isiPolicy;

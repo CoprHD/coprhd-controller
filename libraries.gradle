@@ -173,6 +173,9 @@ ext {
         "com.google.guava:guava:18.0",
 
     ]
+    reflections = [
+        "org.reflections:reflections:0.9.10",
+    ]
     jersey = [
         "asm:asm:3.1",
         "org.codehaus.jackson:jackson-core-asl:1.9.2",
@@ -471,5 +474,9 @@ ext {
 
     ceph = [
         "com.ceph:rados:0.3.0"
+    ]
+
+    javapoet = [
+        "com.squareup:javapoet:1.8.0"
     ]
 }

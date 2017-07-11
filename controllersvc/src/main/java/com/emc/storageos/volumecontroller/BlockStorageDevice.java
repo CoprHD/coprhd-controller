@@ -1204,4 +1204,14 @@ public interface BlockStorageDevice {
      * @param completer - Task completer
      */
     public void doExportChangePortGroupRemovePaths(StorageSystem storage, URI oldMaskURI, TaskCompleter completer);
+    
+    /**
+     * Rollback change port group remove paths failure
+     * 
+     * @param storage - Storage system
+     * @param exportGroupURI - export group URI
+     * @param oldMaskURI - The export mask to be removed
+     * @param completer - The task completer
+     */
+    public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer);
 }

@@ -31,6 +31,7 @@ import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -65,6 +66,8 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskChangePortGroupAddMaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
@@ -2320,7 +2323,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 return;
             }
             Workflow workflow = _workflowService.getNewWorkflow(
-                    MaskingWorkflowEntryPoints.getInstance(), workflowKey, true, token);
+                    MaskingWorkflowEntryPoints.getInstance(), workflowKey, false, token);
             
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);
             String previousStep = null;
@@ -2343,6 +2346,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         hostURIs.add(init.getHost());
                     }
                 }
+                
+                // Get impacted export groups
+                List<ExportGroup> impactedExportGroups = ExportMaskUtils.getExportGroups(_dbClient, oldMask);
+                List<URI> exportGroupURIs = URIUtil.toUris(impactedExportGroups);
                 Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                         null, pathParams, volumes, _networkDeviceController, exportGroup.getVirtualArray(), token);
                 ExportMask newMask = device.findExportMasksForPortGroupChange(storage, initiatorNames, portGroupURI);
@@ -2354,6 +2361,26 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             Joiner.on(",").join(volumesToAdd.keySet()), newMask.getMaskName()));
                     previousStep = generateZoningAddVolumesWorkflow(workflow, previousStep,
                             exportGroup, Arrays.asList(newMask), new ArrayList<URI>(volumesToAdd.keySet()));
+                    
+                    String addVolumeStep = workflow.createStepId();
+                    ExportTaskCompleter exportTaskCompleter = new ExportMaskAddVolumeCompleter(
+                            exportGroupURI, newMask.getId(), volumesToAdd, addVolumeStep);
+                    exportTaskCompleter.setExportGroups(exportGroupURIs);
+
+                    Workflow.Method maskingExecuteMethod = new Workflow.Method(
+                            "doExportGroupAddVolumes", storageURI, exportGroupURI, newMask.getId(),
+                            volumesToAdd, null, exportTaskCompleter);
+
+                    Workflow.Method maskingRollbackMethod = new Workflow.Method(
+                            "rollbackExportGroupAddVolumes", storageURI, exportGroupURI, exportGroupURIs,
+                            newMask.getId(), volumesToAdd, initiators, addVolumeStep);
+
+                    previousStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
+                            String.format("Adding volumes to mask %s (%s)",
+                                    newMask.getMaskName(), newMask.getId().toString()),
+                            previousStep, storageURI, storage.getSystemType(),
+                            MaskingWorkflowEntryPoints.class, maskingExecuteMethod,
+                            maskingRollbackMethod, addVolumeStep);
                     previousStep = generateExportMaskAddVolumesWorkflow
                             (workflow, previousStep, storage, exportGroup, newMask, volumesToAdd, null);
                 } else {
@@ -2394,10 +2421,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // This is due to existing requirements in the doExportGroupCreate completion
                     // logic.
                     String maskingStep = workflow.createStepId();
-                    ExportTaskCompleter exportTaskCompleter = new ExportMaskCreateCompleter(
-                            exportGroupURI, newMask.getId(), StringSetUtil.stringSetToUriList(oldMask.getInitiators()), 
-                            volumesToAdd, maskingStep);
-        
+                    ExportTaskCompleter exportTaskCompleter = new ExportMaskChangePortGroupAddMaskCompleter(
+                            newMask.getId(), exportGroupURI, maskingStep);
+                    exportTaskCompleter.setExportGroups(exportGroupURIs);
+                    
                     Workflow.Method maskingExecuteMethod = new Workflow.Method(
                             "doExportChangePortGroupAddPaths", storageURI, exportGroupURI, newMask.getId(),
                             oldMask.getId(), portGroupURI, exportTaskCompleter);
@@ -2496,7 +2523,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         _log.info(String.format("ExportMask %s is to be deleted:", oldMask.getMaskName()));
 
         Workflow.Method maskinkRollbackMethod = new Workflow.Method(
-                "rollbackMethodNull");
+                "rollbackChangePortGroupDeleteMask", storageURI, exportGroup.getId(), oldMask.getId());
         maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
                 String.format("Deleting mask %s (%s)", oldMask.getMaskName(),
                         oldMask.getId().toString()),

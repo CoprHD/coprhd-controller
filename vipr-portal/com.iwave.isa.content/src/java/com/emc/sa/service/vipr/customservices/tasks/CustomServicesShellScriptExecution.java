@@ -124,6 +124,12 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         logger.info("CustomScript Execution result:output{} error{} exitValue:{} ", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
+        if (result.getExitValue()!=0) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Shell Script execution Failed. ReturnCode:" + result.getExitValue());
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Shell Script execution Failed");
+        }
+
         return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 

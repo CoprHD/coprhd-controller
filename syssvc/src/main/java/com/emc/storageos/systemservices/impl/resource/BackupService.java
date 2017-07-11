@@ -278,11 +278,11 @@ public class BackupService {
     @Path("backup/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response createBackup(@QueryParam("tag") String backupTag,
-            @QueryParam("force") @DefaultValue("false") boolean forceCreate) {
+            @QueryParam("force") @DefaultValue("false") boolean forceCreate, @QueryParam("ignore") @DefaultValue("false") boolean ignore) {
         log.info("Received create backup request, backup tag={}", backupTag);
         List<String> descParams = getDescParams(backupTag);
         try {
-            backupOps.createBackup(backupTag, forceCreate);
+            backupOps.createBackup(backupTag, forceCreate, ignore);
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to create backup(tag={}), e=", backupTag, e);

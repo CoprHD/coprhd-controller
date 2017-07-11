@@ -2115,7 +2115,7 @@ public class VPlexApiVirtualVolumeManager {
                 discoveryMgr.updateDistributedDeviceComponent(ddComponent);
                 List<VPlexLocalDeviceComponentInfo> localComponents = discoveryMgr.getLocalDeviceComponents(ddComponent);
                 for (VPlexLocalDeviceComponentInfo localComponent : localComponents) {
-                    if (localComponent.getName().equals(mirrorDeviceName)) {
+                    if ((localComponent != null) && (mirrorDeviceName.equals(localComponent.getName()))) {
                         sourceDevicePath = ddComponent.getPath();
                         mirrorDevicePath = localComponent.getPath();
                         break;

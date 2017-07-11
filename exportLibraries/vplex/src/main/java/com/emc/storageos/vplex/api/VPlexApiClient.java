@@ -1286,7 +1286,7 @@ public class VPlexApiClient {
      */
     public void detachLocalMirrorFromDistributedVirtualVolume(String virtualVolumeName,
             String mirrorDeviceName, boolean discard) throws VPlexApiException {
-        s_logger.info("Request to detach a mirror from a local virtual volume at {}",
+        s_logger.info("Request to detach a mirror from a distributed virtual volume at {}",
                 _baseURI);
         _virtualVolumeMgr.detachLocalMirrorFromDistributedVirtualVolume(virtualVolumeName, mirrorDeviceName, discard);
     }

@@ -253,6 +253,7 @@ public class Constants {
     public static final String UNMANAGED_EXPORT_MASKS_MAP = "unManagedExportMasksMap";
     public static final String UNMANAGED_EXPORT_MASKS_SET = "unManagedExportMasksSet";
     public static final String UN_VOLUME_EXPORT_MASK_HLUS_MAP = "unManagedVolumeToExportMaskHLUsMap";
+    public static final String MIGRATION_STORAGE_GROUPS = "migrationStorageGroups";
     public static final String HOST = "host";
     public static final String HOST_IDS = "hostIds";
     public static final String SYSTEM_SERIAL_IDS = "systemSerialIds";

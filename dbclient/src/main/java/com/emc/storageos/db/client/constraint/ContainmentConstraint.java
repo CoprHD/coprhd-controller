@@ -496,6 +496,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(project, BlockConsistencyGroup.class, field);
         }
 
+        public static ContainmentConstraint getStorageDeviceBlockConsistencyGroupConstraint(URI storageSystem) {
+            DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(storageSystem, BlockConsistencyGroup.class, field);
+        }
+
         public static ContainmentConstraint getVolumesByConsistencyGroup(final URI cgId) {
             return getConstraint(Volume.class, "consistencyGroup", cgId);
         }

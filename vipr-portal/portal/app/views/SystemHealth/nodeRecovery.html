@@ -4,6 +4,7 @@
 #{get 'moreScripts'/}
 
 
+#{/set}
 <script>
 
     $(document).ready(function() {
@@ -64,14 +65,18 @@
 	            $('#startNodeRecoveryBtn').prop("disabled", true);
 	            
 	            $('#recStatus').css('display','none');
-	            $('#recStatusAnim').click(function(){
-	                window.location.href="/systemhealth/dbhealth";
-	            });
-
 	            $('#recStatusAnim').css({
-	                'display':'block',
-                    'cursor' : 'pointer'
-                });
+	                'display': 'block',
+	                'cursor' : 'auto'
+	             });
+
+	            if(status == 'REPAIRING') {
+                    $('#recStatusAnim').click(function(){
+                        window.location.href="/systemhealth/dbhealth";
+                    });
+                    $('#recStatusAnim').css('cursor', 'pointer');
+	            }
+
 	    	 } else {
 	           // Recovery is not running, enable Start Node Recovery if cluster is not stable.
 	           if(clusterState != 'STABLE' && clusterState != 'UPDATING'){
@@ -154,7 +159,6 @@
     
     
 </script>
-#{/set}
 <div class="container">
 
     #{Form.header titleKey:'system.noderecovery.title' /}

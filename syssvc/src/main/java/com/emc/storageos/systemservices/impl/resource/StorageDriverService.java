@@ -705,14 +705,13 @@ public class StorageDriverService {
         // check supported storage profiles
         try {
             String supportedStorageProfilesStr = props.getProperty(SUPPORTED_STORAGE_PROFILES);
-            if (StringUtils.isNotEmpty(supportedStorageProfilesStr)) {
-                for (String profileStr : supportedStorageProfilesStr.split(",")) {
-                    StorageProfile profile = Enum.valueOf(StorageProfile.class, profileStr);
-                    metaData.getSupportedStorageProfiles().add(profile.toString());
-                }
+            precheckForNotEmptyField("supported_storage_profiles", supportedStorageProfilesStr);
+            for (String profileStr : supportedStorageProfilesStr.split(",")) {
+                StorageProfile profile = Enum.valueOf(StorageProfile.class, profileStr);
+                metaData.getSupportedStorageProfiles().add(profile.toString());
             }
-        } catch (IllegalArgumentException e) {
-            throw APIException.internalServerErrors.installDriverPrecheckFailed("Supported storage profiles are not valid");
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw APIException.internalServerErrors.installDriverPrecheckFailed("Supported storage profiles value are not valid");
         }
         // check driver class name
         String driverClassName = props.getProperty(DRIVER_CLASS_NAME);

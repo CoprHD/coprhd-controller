@@ -31,7 +31,7 @@ public class ServicesMetadata implements InitializingBean {
     private static volatile Map<String, RoleMetadata> _roleMetadataMap = null;
     private static volatile Map<String, List<String>> _roleServiceIndex = null;
     public static final List<String> CONTROLLSVC_LOG_NAMES =
-            Arrays.asList("controllersvc-discovery", "controllersvc-metering", "controllersvc-vplex-api");
+            Arrays.asList("controllersvc-discovery", "controllersvc-metering", "controllersvc-vplex-api", "controllersvc-xio-api");
 
     public void setServiceMetadataMap(LinkedHashMap<String,
             ServiceMetadata> serviceMetadataMap) {

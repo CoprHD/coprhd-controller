@@ -150,6 +150,12 @@ public class VNXUnityUnManagedObjectDiscoverer {
             Map<String, StoragePool> pools = getStoragePoolMap(storageSystem, dbClient);
             Map<String, List<UnManagedVolume>> hostVolumesMap = new HashMap<String, List<UnManagedVolume>>();
             for (VNXeLun lun : luns) {
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(lun.getName())) {
+                    // skipping this volume because the filter doesn't match
+                    continue;
+                }
+
                 UnManagedVolume unManagedVolume = null;
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), lun.getId());
@@ -281,6 +287,12 @@ public class VNXUnityUnManagedObjectDiscoverer {
             Map<String, StoragePool> pools = getStoragePoolMap(storageSystem, dbClient);
 
             for (VNXeFileSystem fs : filesystems) {
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getName())) {
+                    // skipping this file system because the filter doesn't match
+                    continue;
+                }
+
                 StoragePort storagePort = getStoragePortPool(storageSystem, dbClient, apiClient, fs);
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem.getSystemType(), storageSystem.getSerialNumber(), fs.getId());

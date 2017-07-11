@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
@@ -110,6 +111,9 @@ public class StorageSystemTypeService extends TaskResourceService {
     }
 
     /**
+     * NOTE: This API is only used by sanity script,
+     * and it's not allowed to directly add storage system type
+     * 
      * Internal api to create a new storage system type.
      *
      * @param addparam
@@ -119,6 +123,7 @@ public class StorageSystemTypeService extends TaskResourceService {
      *
      * @return StorageSystemTypeRestRep object.
      */
+    @Deprecated
     @POST
     @Path("/internal")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -168,6 +173,8 @@ public class StorageSystemTypeService extends TaskResourceService {
         ssType.setIsElementMgr(addparam.getIsElementMgr());
         ssType.setIsSecretKey(addparam.getIsSecretKey());
         ssType.setIsNative(addparam.getIsNative());
+
+        ssType.setSupportedStorageProfiles(new StringSet(addparam.getSupportedStorageProfiles()));
 
         _dbClient.createObject(ssType);
 

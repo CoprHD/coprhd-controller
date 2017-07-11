@@ -9607,7 +9607,11 @@ class Bourne:
             'isDefaultSsl'	   : support_ssl,
             'sslPort'      : ssl_port,
             'nonSslPort'   : port,
-            'driverClassName'       : driver_name
+            'driverClassName'       : driver_name,
+            'supportedStorageProfiles': [
+                BLOCK,
+                REMOTE_REPLICATION_FOR_BLOCK
+            ]
         }
 
         o = self.api('POST', URI_STORAGE_SYSTEM_TYPE_CREATE, parms)

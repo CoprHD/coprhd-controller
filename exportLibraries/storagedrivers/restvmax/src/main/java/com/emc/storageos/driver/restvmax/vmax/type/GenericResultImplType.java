@@ -6,10 +6,19 @@
 package com.emc.storageos.driver.restvmax.vmax.type;
 
 public class GenericResultImplType extends ResultType {
-    private boolean success;
+    public Boolean getSuccess() {
+        return success;
+    }
+
+    private Boolean success;
+
+    public String getMessage() {
+        return message;
+    }
+
     private String message;
 
-    GenericResultImplType(boolean success) {
+    public GenericResultImplType(Boolean success) {
         this.success = success;
     }
 

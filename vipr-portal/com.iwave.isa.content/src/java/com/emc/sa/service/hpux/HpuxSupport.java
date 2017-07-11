@@ -207,7 +207,7 @@ public class HpuxSupport {
     public void verifyMountedDevice(MountPoint mountPoint, RDisk rdisk) {
         if (rdisk == null) {
             ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.noMountFound", mountPoint.getPath(), mountPoint.getPath());
-        } else if (rdisk.getDevicePath().equalsIgnoreCase(mountPoint.getDevice())) {
+        } else if (!rdisk.getDevicePath().equalsIgnoreCase(mountPoint.getDevice())) {
             ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.devicesDoNotMatch", new Object[] {}, rdisk.getDevicePath(),
                     mountPoint.getPath(),
                     mountPoint.getDevice());

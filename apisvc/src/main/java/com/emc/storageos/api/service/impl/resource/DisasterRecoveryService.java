@@ -38,6 +38,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 
+import com.emc.storageos.db.client.upgrade.callbacks.Cassandra3UpgradeHandler;
 import com.emc.storageos.services.util.FileUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -907,19 +908,36 @@ public class DisasterRecoveryService {
     @Path("/{uuid}/resume")
     public SiteRestRep resumeStandby(@PathParam("uuid") String uuid) {
 
-        List<String> standbyHostIPs = getStandbyHostIPs(uuid);
+        if (upgradeCassandraFrom2To3()) {
 
-        addStandbyHostsToSSH(standbyHostIPs);
+            List<String> standbyHostIPs = getStandbyHostIPs(uuid);
 
-        String targetViprVersion = getTargetViprVersion();
+            addStandbyHostsToSSH(standbyHostIPs);
 
-        for(String nodeIp: standbyHostIPs){
-            setStandbyViprVersion(nodeIp, targetViprVersion);
+            String targetViprVersion = getTargetViprVersion();
+
+            for (String nodeIp : standbyHostIPs) {
+                setStandbyViprVersion(nodeIp, targetViprVersion);
+            }
+
         }
 
         return resumeStandbyInternal(uuid);
 
-   }
+    }
+
+    private boolean upgradeCassandraFrom2To3() {
+
+        Configuration cassandraUpgradeConfig = coordinator.queryConfiguration(Cassandra3UpgradeHandler.CASSANDRA_UPGRADE_KIND,
+                Cassandra3UpgradeHandler.CASSANDRA_UPGRADE_ID);
+
+        String cassandra2To3UpgradeMark = cassandraUpgradeConfig.getConfig(Cassandra3UpgradeHandler.CASSANDRA3_UPGRADE_MARK);
+
+        log.info(String.format("cassandra upgrade from 2 to 3? %s", cassandra2To3UpgradeMark));
+
+        return "true".equals(cassandra2To3UpgradeMark);
+
+    }
 
     private void addStandbyHostsToSSH(List<String> standbyHostIPs) {
 

@@ -233,7 +233,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     public void createBackup(String tag) {
-        this.backupService.createBackup(tag, true);
+        this.backupService.createBackup(tag, true, false);
     }
 
     public void deleteBackup(String tag) {

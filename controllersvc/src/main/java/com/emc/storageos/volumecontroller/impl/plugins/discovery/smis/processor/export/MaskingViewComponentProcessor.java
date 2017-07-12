@@ -71,8 +71,12 @@ public class MaskingViewComponentProcessor extends Processor {
                 CIMObjectPath deviceMaskingGroup = it.next();
                 String instanceID = deviceMaskingGroup.getKey(Constants.INSTANCEID).getValue().toString();
                 instanceID = instanceID.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
+                // InstandID format: SYMMETRIX+<SERIAL_NUMBER>+<SG_NAME>
+                // All SGs from different arrays will be put under one project. It is
+                // better to have the label format like this.
                 BlockConsistencyGroup storageGroup = checkStorageGroupExistsInDB(instanceID, dbClient);
                 if (storageGroup == null) {
+                    // This CG cannot be used for provisioning operations currently.
                     storageGroup = new BlockConsistencyGroup();
                     storageGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));
                     storageGroup.setLabel(instanceID);
@@ -80,12 +84,13 @@ public class MaskingViewComponentProcessor extends Processor {
                     storageGroup.addConsistencyGroupTypes(Types.MIGRATION.name());
                     storageGroup.setStorageController(systemId);
                     storageGroup.setMigrationStatus(MigrationStatus.NONE.toString());
-                    // storageGroup.addSystemConsistencyGroup(systemId.toString(), instanceID);
+                    storageGroup.addSystemConsistencyGroup(systemId.toString(), instanceID);
                     storageGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
                     storageGroup.setTenant(project.getTenantOrg());
                     dbClient.createObject(storageGroup);
                 } else {
-                    // storageGroup.setMigrationStatus(MigrationStatus.NONE.toString()); // TODO see how to get latest migration status
+                    // TODO see how to get latest migration status
+                    // storageGroup.setMigrationStatus(MigrationStatus.NONE.toString());
                     dbClient.updateObject(storageGroup);
                 }
                 storageGroupNames.add(instanceID);

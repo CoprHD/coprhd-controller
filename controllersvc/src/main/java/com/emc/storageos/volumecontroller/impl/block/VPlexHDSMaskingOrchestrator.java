@@ -335,12 +335,6 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 for (String targetId : exportMask.getStoragePorts()) {
                     targets.add(URI.create(targetId));
                 }
-                // Set the volumes to added to the exportMask.
-                if (volumeMap != null) {
-                    for (URI volume : volumeMap.keySet()) {
-                        exportMask.addVolume(volume, volumeMap.get(volume));
-                    }
-                }
                 device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
@@ -416,6 +410,8 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 }
             }
             
+            _log.info("passedVolumesInMask : {}", passedVolumesInMask);
+            _log.info("remainingVolumes : {}", remainingVolumes);
             // None of the volumes is in the export mask, so we are done.
             if (passedVolumesInMask.isEmpty()) {
                 _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());

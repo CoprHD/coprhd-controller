@@ -3208,7 +3208,7 @@ vplex_tests()
         if [ "$VPLEX_INGEST_PARAM" != "exported" ] ; then
             run blockmirror deactivate $PROJECT/$localVolume2 $localMirror2$sourceSideSuffix
         fi
-    
+        
         echo "**** Deleting local mirror for the VPLEX Distributed volume $distVolume2"
         run blockmirror deactivate $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
 
@@ -3227,7 +3227,7 @@ vplex_tests()
 
         run volume delete $PROJECT/$distVolume1 --wait
         run volume delete $PROJECT/$distVolume2 --wait
-
+        
         if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
             echo "**** Checking no remaining zones"
             fabricid=`echo ${CLUSTER1NET_NAME} | sed 's/VSAN_//'`
@@ -3359,7 +3359,7 @@ vplex_ingest_exported() {
     run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2
     run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume3
     run export_group delete $PROJECT/$host
-
+    
     echo "**** Completed VPLEX Exported Volume Ingestion Tests......."
 }
 
@@ -3828,7 +3828,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY3':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
         --rp_rpo_value 5 \
@@ -3846,7 +3846,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY3':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3871,7 +3871,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY3':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
         --rp_rpo_value 5 \
@@ -3899,7 +3899,7 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY3':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3918,7 +3918,7 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY3':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3944,7 +3944,7 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min',$RECOVERPOINT_VARRAY3':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -4131,7 +4131,7 @@ rpmp_crr()
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
             run cos update block rpmp_crr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
         fi
-    fi
+    fi 
 }
 
 # MetroPoint CLR
@@ -5107,7 +5107,7 @@ recoverpoint_export_bookmark_tests()
     
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
         secho 'Verifying the access state of the target volume is set to READWRITE'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE        
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state READWRITE        
 
         export_group show ${rpexport}
         secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
@@ -5119,7 +5119,7 @@ recoverpoint_export_bookmark_tests()
 
         run export_group delete ${rpexport}
         secho 'Verifying the access state of the target volume is set to NOT_READY'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY   
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state NOT_READY   
 
         secho 'Finished running export RP bookmark failure tests'
 
@@ -5128,19 +5128,19 @@ recoverpoint_export_bookmark_tests()
         run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}2"        
 
         secho 'Verifying the access state of the target volume is set to READWRITE'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state READWRITE
 
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}2
         run export_group delete ${rpexport}2
 
         secho 'Verifying the access state of the target volume is set to READWRITE'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state READWRITE
 
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}1
         run export_group delete ${rpexport}
 
         secho 'Verifying the access state of the target volume is set to NOT_READY'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state NOT_READY
 
         secho 'Finished with export RP bookmark tests, cleaning up'
 
@@ -6100,9 +6100,14 @@ recoverpoint_direct_access_test()
             secho 'Remove replication set from consistency group while a copy is in direct access mode (failover) - expected failure'		
             fail volume delete $PROJECT/${new_volume} --wait
         fi
-        
-        secho 'Expand source volume when one of the RP target copies is in direct access mode'
-        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+       
+	    if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then 
+            secho 'Expand source volume when one of the RP target copies is in direct access mode - expected failure'
+            fail volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+        else
+            secho 'Expand source volume when RP target copy is in direct access mode'
+            volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+        fi
 
         secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
         recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}
@@ -6406,31 +6411,40 @@ recoverpoint_tests()
             rpxio_tgt_vpool='rpxio_targets'
         fi
 
+        # Have to account for "-1" being added to volume name if
+        # volume count is greater than 1.
+        volume_name_modifier=''
+        if [ "$RP_VOLUME_COUNT" = "1" ]; then
+            volume_name_modifier=''
+        else
+            volume_name_modifier='-1'
+        fi
+
         # RP
         rp_src_vpool='rp_'$rp_type
         rp_src_vpool_sync=${rp_src_vpool}'-sync'
         rpvolume=${RP_VOLUME}
-        rpvolumetarget=${rpvolume}'-target-'${rp_tgt_varray}
+        rpvolumetarget=${rpvolume}${volume_name_modifier}'-target-'${rp_tgt_varray}
 
         # RP+VPLEX
         rpvplex_src_vpool='rpvplex_'$rp_type
         rpvplex_src_vpool_sync=${rpvplex_src_vpool}'-sync'
         rpvplex_migrate_vpool=${rpvplex_src_vpool}'-migrate'
         rpvplexvolume=${RP_VPLEX_VOLUME}
-        rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
+        rpvplexvolumetarget=${rpvplexvolume}${volume_name_modifier}'-target-'${rpvplex_tgt_varray}
 
         # MP
         rpmp_src_vpool='rpmp_'$rp_type
         rpmp_src_vpool_sync=${rpmp_src_vpool}'-sync'
         rpmp_migrate_vpool=${rpmp_src_vpool}'-migrate'
         rpmpvolume=${RP_METROPOINT_VOLUME}
-        rpmpvolumetarget=${mpvolume}'-target-'${rpmp_active_tgt_varray}
+        rpmpvolumetarget=${mpvolume}${volume_name_modifier}'-target-'${rpmp_active_tgt_varray}
 
         # XIO
         rpxio_src_vpool='rpxio_'$rp_type
         rpxio_src_vpool_sync=${rpxio_src_vpool}'-sync'
         rpxiovolume=${RP_XIO_VOLUME}
-        rpxiovolumetarget=${xiovolume}'-target-'${rpxio_active_tgt_varray}
+        rpxiovolumetarget=${xiovolume}${volume_name_modifier}'-target-'${rpxio_active_tgt_varray}
 
         # Ingestion Tests
         if [ "$RP_INGESTTESTS" = "1" ]; then
@@ -6475,15 +6489,6 @@ recoverpoint_tests()
             run volume create ${rpxiovolume} $PROJECT ${rpxio_src_varray} ${rpxio_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_XIO_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
         fi
 
-        # Have to account for "-1" being added to volume name if
-        # volume count is greater than 1.
-        volume_name_modifier=''
-        if [ "$RP_VOLUME_COUNT" = "1" ]; then
-            volume_name_modifier=''
-        else
-            volume_name_modifier='-1'
-        fi
-
         # Compile a list of target volume names that have been created for RP
         rp_tgt_volumes=()
         for tgt in ${rp_tgt_varrays}
@@ -6525,7 +6530,7 @@ recoverpoint_tests()
                 fi
 
                 # Failover Test
-                recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
+                recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]}
 
                 # Direct Access Failover Test
                 recoverpoint_direct_access_test ${rpvolume}${volume_name_modifier} ${rp_tgt_varrays} ${rp_src_varray} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP} "" 
@@ -6560,7 +6565,7 @@ recoverpoint_tests()
                 recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]} ${rpvplex_tgt_varrays[0]} ${RP_VPLEX_CONSISTENCY_GROUP}
 
                 # Failover Test
-                recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
+                recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]}
 
                 # Direct Access Failover Test
                 recoverpoint_direct_access_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_tgt_varrays} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} "vplex"
@@ -6591,7 +6596,7 @@ recoverpoint_tests()
                 recoverpoint_auto_snapshot_cleanup_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]} ${rpmp_tgt_varrays[0]} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
                 # Failover Test
-                recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}${volume_name_modifier}
+                recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]}
 
                 # Direct Access Failover Test
                 recoverpoint_direct_access_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_varrays} ${rpmp_src_varray} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP} "mp"
@@ -6626,7 +6631,7 @@ recoverpoint_tests()
                 fi
 
                 # Failover Test
-                recoverpoint_failover_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier}
+                recoverpoint_failover_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}
 
                 # CG Failover/Swap Test
                 recoverpoint_cg_failover_test ${RP_XIO_CONSISTENCY_GROUP} ${rpxiovolume}${volume_name_modifier} ${rpxio_src_varray} ${rpxio_tgt_volumes} ${rpxio_tgt_varrays}
@@ -6942,12 +6947,15 @@ sbsdk_setup()
     echo "***** Creating virtual pool $SBSDK_DRIVER_SYS_VPOOL_NAME *****"
     run cos create block $SBSDK_DRIVER_SYS_VPOOL_NAME true     \
                      --description 'SBSDK-sanity-virtual-pool' \
+                     --systemtype $SBSDK_DRIVER_SYS_TYPE       \
                      --protocols FC                            \
                      --numpaths 2                              \
                      --provisionType 'Thin'                    \
                      --neighborhoods $NH                       \
                      --max_snapshots 1                         \
                      --max_mirrors 1                           \
+                     --host_io_limit_bandwidth 100             \
+                     --host_io_limit_iops 200                  \
                      --expandable false 
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
@@ -8401,17 +8409,24 @@ file_tests()
 	    run fileshare delete $PROJECT/${fs2}
     fi
 
-    run fileshare delete $PROJECT/$fsname --forceDelete true
+    run fileshare delete $PROJECT/$fsname
 
     if [ $cos = $COS_VNXFILE ] ; then
-        fsForceDelete="forceDeleteTestVNX"
-        echo "--Force Delete tests for VNXFile--"
+        fsForceDelete="deleteTestVNX"
+        echo "--Delete tests for VNXFile--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run fileshare export $PROJECT/$fsForceDelete $exp_args
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
         run snapshot export $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete $SNAPEXP_DEFAULT_EPS
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot unexport $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare unexport $PROJECT/$fsForceDelete
+        run fileshare delete $PROJECT/$fsForceDelete
+        
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8420,12 +8435,16 @@ file_tests()
 
 
     if [ $cos = $COS_NETAPP ] ; then
-        fsForceDelete="forceDeleteTestNETAPP"
-        echo "--Force Delete tests for NETAPP--"
+        fsForceDelete="deleteTestNETAPP"
+        echo "--Delete tests for NETAPP--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8433,12 +8452,16 @@ file_tests()
     fi
 
     if [ $cos = $COS_NETAPPC ] ; then
-        fsForceDelete="forceDeleteTestNETAPPC"
-        echo "--Force Delete tests for NETAPPC--"
+        fsForceDelete="deleteTestNETAPPC"
+        echo "--Delete tests for NETAPPC--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8446,12 +8469,16 @@ file_tests()
     fi
 
     if [ $cos = $COS_ISIFILE ] ; then
-        fsForceDelete="forceDeleteTestISILON"
-        echo "--Force Delete tests for ISILON--"
+        fsForceDelete="deleteTestISILON"
+        echo "--delete tests for ISILON--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
 	# duplicate label Test - Should fail
 	# run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
 	# run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8459,14 +8486,14 @@ file_tests()
 
     # Force Delete test for Data Domain
     if [ $cos = $COS_DDFILE ] ; then
-        fsForceDelete="forceDeleteTestDATADOMAIN"
+        fsForceDelete="deleteTestDATADOMAIN"
         #File systems (mtrees) are not deleted from DDMC, just marked inactive
         #until the GC runs.  To avoid conflict with the previous run, we attach
         #a timestamp to FS name.
         fsForceDeleteTimed=$fsForceDelete-$datetime
-        echo "--Force Delete tests for DATADOMAIN--"
+        echo "--Delete tests for DATADOMAIN--"
         run fileshare create $fsForceDeleteTimed $PROJECT $NH $cos $FS_SIZE
-        run fileshare delete $PROJECT/$fsForceDeleteTimed --forceDelete true
+        run fileshare delete $PROJECT/$fsForceDeleteTimed
     fi
 
     # File System Quota directory ops.
@@ -8480,8 +8507,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8495,7 +8522,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8509,8 +8537,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8526,8 +8554,9 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs"
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare unexport $PROJECT/$fsQuotaDir
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
 
 }

@@ -52,22 +52,26 @@ public class VolumeToSynchronizedRefProcessor extends StorageProcessor {
             }
             String copyMode = null;
             int numberOfTargets = 0;
-            while (it.hasNext()) {
-                CIMInstance storageSynchronized = it.next();
-                CIMObjectPath storageSynchronizedPath = storageSynchronized.getObjectPath();
-                CIMObjectPath sourcePath = (CIMObjectPath) storageSynchronizedPath.getKey(
-                        Constants._SystemElement).getValue();
-                CIMObjectPath destPath = (CIMObjectPath) storageSynchronizedPath.getKey(
-                        Constants._SyncedElement).getValue();
-                String sourceNativeGuid = createKeyfromPath(sourcePath);
-                String targetNativeGuid = createKeyfromPath(destPath);
-                _log.info("Source : {} , target : {}", sourceNativeGuid, targetNativeGuid);
-                if (!findVolumesArefromSameArray(sourceNativeGuid, targetNativeGuid)) {
-                    numberOfTargets++;
-                    copyMode = storageSynchronized.getPropertyValue(MODE).toString();
-                    _log.info("RDF Group {} detected Copy Mode {}", remoteGroup.getNativeGuid(), copyMode);
+
+            if (it != null) {
+                while (it.hasNext()) {
+                    CIMInstance storageSynchronized = it.next();
+                    CIMObjectPath storageSynchronizedPath = storageSynchronized.getObjectPath();
+                    CIMObjectPath sourcePath = (CIMObjectPath) storageSynchronizedPath.getKey(
+                            Constants._SystemElement).getValue();
+                    CIMObjectPath destPath = (CIMObjectPath) storageSynchronizedPath.getKey(
+                            Constants._SyncedElement).getValue();
+                    String sourceNativeGuid = createKeyfromPath(sourcePath);
+                    String targetNativeGuid = createKeyfromPath(destPath);
+                    _log.info("Source : {} , target : {}", sourceNativeGuid, targetNativeGuid);
+                    if (!findVolumesArefromSameArray(sourceNativeGuid, targetNativeGuid)) {
+                        numberOfTargets++;
+                        copyMode = storageSynchronized.getPropertyValue(MODE).toString();
+                        _log.info("RDF Group {} detected Copy Mode {}", remoteGroup.getNativeGuid(), copyMode);
+                    }
                 }
             }
+
             if (numberOfTargets > 1) {
                 _log.info("RA Group {} is associated with Cascaded SRDF configuration, hence copyMode will not be updated.",
                         remoteGroup.getNativeGuid());

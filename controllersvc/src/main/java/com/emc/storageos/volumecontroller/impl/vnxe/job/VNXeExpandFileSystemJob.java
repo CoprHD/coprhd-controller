@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
 
 import java.net.URI;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +84,7 @@ public class VNXeExpandFileSystemJob extends VNXeJob {
             StringBuilder logMsgBuilder, VNXeApiClient vnxeApiClient) {
 
         VNXeFileSystem vnxeFS = null;
-        vnxeFS = vnxeApiClient.getFileSystemByFSName(fsObj.getName());
+        vnxeFS = vnxeApiClient.getFileSystemByFSId(fsObj.getNativeId());
         if (vnxeFS != null) {
             fsObj.setCapacity(vnxeFS.getSizeTotal());
             logMsgBuilder.append(String.format(
@@ -91,7 +92,9 @@ public class VNXeExpandFileSystemJob extends VNXeJob {
                     getTaskCompleter().getId()));
             dbClient.persistObject(fsObj);
         } else {
-            logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs name: ");
+            logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs ID: ");
+            logMsgBuilder.append(fsObj.getNativeId());
+            logMsgBuilder.append(" having name: ");
             logMsgBuilder.append(fsObj.getName());
         }
     }

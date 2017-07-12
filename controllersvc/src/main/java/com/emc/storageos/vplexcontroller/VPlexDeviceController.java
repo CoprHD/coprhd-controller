@@ -78,6 +78,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -1537,18 +1538,16 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             // find member volumes in the group
             volURIs = new ArrayList<URI>(cgVolsWithBackingVolsMap.get(cgURI));
-            List<Volume> volumeList = new ArrayList<Volume>();
-            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volURIs, true);
-            while (volumeIterator.hasNext()) {
-                volumeList.add(volumeIterator.next());
-            }
-            Volume firstVol = volumeList.get(0);
+            Volume firstVol = _dbClient.queryObject(Volume.class, volURIs.get(0));
             URI storage = firstVol.getStorageController();
             // delete CG from array
-            if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
+            if (VPlexUtil.cgHasNoOtherVPlexVolumes(_dbClient, cgURI, volURIs)) {
                 _log.info(String.format("Adding step to delete the consistency group %s", cgURI));
                 returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor,
                         storage, cgURI, false);
+            } else {
+            	_log.info(String.format("Skipping add step to delete the consistency group %s. Consistency group "
+            			+ "contains other VPLEX volumes that have not been accounted for.", cgURI));
             }
         }
 
@@ -6135,7 +6134,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         RB_MIGRATE_VIRTUAL_VOLUME_METHOD_NAME, vplexURI, migrationURI, stepId);
                 _log.info("Creating workflow migration step");
                 workflow.createStep(MIGRATION_CREATE_STEP, String.format(
-                        "VPlex %s migrating volume", vplexSystem.getId().toString()),
+                        "VPlex %s migrating to target volume %s.", vplexSystem.getId().toString(), 
+                        targetVolumeURI.toString()),
                         EXPORT_STEP, vplexSystem.getId(), vplexSystem.getSystemType(),
                         getClass(), vplexExecuteMethod, vplexRollbackMethod, stepId);
                 _log.info("Created workflow migration step");
@@ -6301,7 +6301,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         RB_MIGRATE_VIRTUAL_VOLUME_METHOD_NAME, vplexURI, migrationURI, stepId);
                 _log.info("Creating workflow migration step");
                 workflow.createStep(MIGRATION_CREATE_STEP, String.format(
-                        "VPlex %s migrating volume", vplexSystem.getId().toString()),
+                        "VPlex %s migrating to target volume %s.", vplexSystem.getId().toString(), 
+                        targetVolumeURI.toString()),
                         waitFor, vplexSystem.getId(), vplexSystem.getSystemType(),
                         getClass(), vplexExecuteMethod, vplexRollbackMethod, stepId);
                 _log.info("Created workflow migration step");
@@ -9881,11 +9882,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
-     * Returns the Varray that are hosting a set of Volumes.
+     * Returns the VirtualArray that is hosting a set of Volumes.
      *
+     * @param array
+     *            The backend StorageSystem whose volumes are being checked.
      * @param volumes
      *            Collection of volume URIs
-     * @return Varray of these volumes
+     * @return VirtualArray URI of these volumes
+     * @throws ControllerException if multiple varrays found
      */
     private URI getVolumesVarray(StorageSystem array, Collection<Volume> volumes)
             throws ControllerException {
@@ -9895,8 +9899,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 if (varray == null) {
                     varray = volume.getVirtualArray();
                 } else if (!varray.equals(volume.getVirtualArray())) {
+                    VirtualArray varray1 = _dbClient.queryObject(VirtualArray.class, varray);
+                    VirtualArray varray2 = _dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
                     DeviceControllerException ex = DeviceControllerException.exceptions.multipleVarraysInVPLEXExportGroup(
-                            array.getId().toString(), varray.toString(), volume.getVirtualArray().toString());
+                            array.forDisplay(), 
+                            varray1 != null ? varray1.forDisplay() : varray.toString(), 
+                            varray2 != null ? varray2.forDisplay() : volume.getVirtualArray().toString());
                     _log.error("Multiple varrays connecting VPLEX to array", ex);
                     throw ex;
                 }

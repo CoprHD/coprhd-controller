@@ -93,7 +93,7 @@ public class VPlexBackendManager {
     private static final String ZONING_STEP = "zoning";
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String REVALIDATE_MASK = "update-zoning-and-revalidate-mask";
-
+    
     // Initiator id key to Initiator object
     private Map<String, Initiator> _idToInitiatorMap = new HashMap<String, Initiator>();
     // Port wwn (no colons) of Initiator to Initiator object
@@ -690,7 +690,7 @@ public class VPlexBackendManager {
             workflow.createStep(EXPORT_STEP,
                     String.format("Removing volume from ExportMask %s", mask.getMaskName()),
                     previousStepId, storage.getId(), storage.getSystemType(), orca.getClass(),
-                    removeVolumesMethod, removeVolumesMethod, stepId);
+                    removeVolumesMethod, null, stepId);
             _log.info(String.format("Generated remove volume from ExportMask %s for volumes %s",
                     mask.getMaskName(), volumes));
             stepsAdded = true;
@@ -1038,6 +1038,18 @@ public class VPlexBackendManager {
         // get the existing zones in zonesByNetwork
         Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
         Map<URI, List<StoragePort>> allocatablePorts = getAllocatablePorts(array, _networkMap.keySet(), varrayURI, zonesByNetwork, stepId);
+
+        Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
+        if (allocatablePorts.isEmpty()) {
+            String message = "No allocatable ports found for export to VPLEX backend. ";
+            _log.warn(message);
+            if (errorMessages != null) {
+                errorMessages.append(message);
+            }
+            _log.warn("Returning empty export mask map because no allocatable ports could be found.");
+            return exportMasksMap;
+        }
+
         Map<URI, Map<String, Integer>> switchToPortNumber = getSwitchToMaxPortNumberMap(array);
         Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(allocatablePorts, _networkMap, varrayURI,
                 initiatorGroups.size(), switchToPortNumber, null, errorMessages);
@@ -1049,7 +1061,6 @@ public class VPlexBackendManager {
         Map<URI, String> portSwitchMap = new HashMap<URI, String>();
         PlacementUtils.getSwitchNameForInititaorsStoragePorts(_initiators, storageports, _dbClient, array, 
                 initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
-        Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
         // get the assigner needed - it is with a pre-zoned ports assigner or the default
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones(array.getSystemType(), zonesByNetwork);

@@ -86,6 +86,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -2197,13 +2198,52 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         // validate the targets
         if (volume.getRpTargets() != null) {
+        	List<URI> targetVolumeURIs = new ArrayList<URI>();
             for (String volumeId : volume.getRpTargets()) {
-                Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeId));
+            	URI targetVolumeURI = URI.create(volumeId);
+            	targetVolumeURIs.add(targetVolumeURI);
+                Volume targetVolume = _dbClient.queryObject(Volume.class, targetVolumeURI);
                 if (RPHelper.isVPlexVolume(targetVolume, _dbClient)) {
                     vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(targetVolume, newSize);
                 } else {
                     super.verifyVolumeExpansionRequest(targetVolume, newSize);
                 }
+            }	
+            
+            // Verify the target copy access state only if there is more than 1 target copy.  
+            if (targetVolumeURIs.size() > 1) {
+	            // Get a handle on the RPController so we can query the access states associated with the
+	            // target volumes.
+	            RPController rpController = getController(RPController.class, ProtectionSystem._RP);
+	            
+	            boolean doesRsetExist = 
+	            		rpController.doesReplicationSetExist(volume.getProtectionController(), volume.getId());
+	            
+	            // Only check the target copy access states if the replication set exists in the RP 
+	            // consistency group.  The replication set might have already been removed from a 
+	            // previously failed expand order for this volume.  Allow the expand to proceed.  The
+	            // replication set will get reconstructed downstream.  
+	            if (doesRsetExist) {
+		            // Get a mapping of target volume URIs to their corresponding copy access states
+		            Map<URI, String> copyAccessStates = rpController
+		            			.getCopyAccessStates(volume.getProtectionController(), targetVolumeURIs);	            
+		            
+		            for (Entry<URI, String> accessState : copyAccessStates.entrySet()) {
+		            	// If any of the target copies are in direct access, we cannot perform the expand operation.
+		            	// This is because volumes on the arrays will be in an active copy session, which fails
+		            	// if an expand is attempted.
+		            	String copyAccessState = accessState.getValue();
+		            	// If the copyAccessState is null for whatever reason, we won't block the expand request and 
+		            	// allow it proceed to RP and the arrays
+		            	if (!RPHelper.isValidRecoverPointExpandState(copyAccessState)) {
+		            		throw APIException.badRequests.invalidRPCopyStateForExpand(volume.getLabel(), copyAccessState);   
+		            	}
+		            }
+	            } else {
+	            	_log.info(String.format("The replication set corresponding to volume %s does not exist.  Allowing the expand "
+	            			+ "operation to proceed.  The replication set will be re-constructed by the expand operation.", 
+	            			volume.getLabel()));
+	            }
             }
         } else {
             throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
@@ -4074,7 +4114,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // A new task will be generated to track each Journal migration.
             Set<URI> cgURIs = BlockConsistencyGroupUtils.getAllCGsFromVolumes(volumes);
             rpVPlexJournalMigrations(journalMigrationsExist, journalVpoolMigrations, singleMigrations,
-                    cgURIs, logMigrations, taskList, taskId);
+                    cgURIs, logMigrations);
 
             logMigrations.append("\n");
             _log.info(logMigrations.toString());
@@ -4308,12 +4348,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param singleMigrations Container to store all single migrations
      * @param cgURIs Set of URIs of all the CGs from the request
      * @param logMigrations String buffer for logging
-     * @param taskList Task list
-     * @param taskId Task id
      */
     private void rpVPlexJournalMigrations(boolean journalMigrationsExist, List<RPVPlexMigration> journalVpoolMigrations,
             Map<Volume, VirtualPool> singleMigrations,
-            Set<URI> cgURIs, StringBuffer logMigrations, TaskList taskList, String taskId) {
+            Set<URI> cgURIs, StringBuffer logMigrations) {
         if (journalMigrationsExist) {
             for (URI cgURI : cgURIs) {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
@@ -4324,8 +4362,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // Check to see if this Journal volume qualifies for migration
                     RPVPlexMigration journalMigration = null;
                     for (RPVPlexMigration migration : journalVpoolMigrations) {
-                        if (journalVolume.getVirtualArray().equals(migration.getVarray())
-                                && journalVolume.getVirtualPool().equals(migration.getMigrateFromVpool().getId())) {
+                        if (journalVolume.getVirtualArray().equals(migration.getVarray())) {
                             // Need to make sure we're migrating the right Journal, so check to make sure the copy names match
                             boolean isSourceJournal = migration.getSubType().equals(Volume.PersonalityTypes.SOURCE) ? true : false;
                             String copyName = RPHelper.getCgCopyName(_dbClient, cg, migration.getVarray(), isSourceJournal);
@@ -4342,12 +4379,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // be thrown.
                         BlockServiceUtils.checkForPendingTasks(journalVolume.getTenant().getURI(),
                                 Arrays.asList(journalVolume), _dbClient);
-
-                        Operation op = new Operation();
-                        op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
-                        op.setDescription("Change vpool operation - Migrate RP+VPLEX Journal");
-                        op = _dbClient.createTaskOpStatus(Volume.class, journalVolume.getId(), taskId, op);
-                        taskList.addTask(toTask(journalVolume, taskId, op));
 
                         VirtualPool migrateToVpool = journalMigration.getMigrateToVpool();
 

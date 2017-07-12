@@ -1703,9 +1703,10 @@ public class VPlexApiDiscoveryManager {
                 if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
                     _vplexApiClient.waitForCompletion(response);
                 } else {
+                    String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw new VPlexApiException(String.format(
-                            "Request initiator discovery failed with Status: %s",
-                            response.getStatus()));
+                            "Request initiator discovery failed with Status %s: %s",
+                            response.getStatus(), cause));
                 }
             }
         } catch (VPlexApiException vae) {
@@ -3332,8 +3333,12 @@ public class VPlexApiDiscoveryManager {
             storageVolumeInfo.setClusterId(extentInfo.getClusterId());
             extentInfo.setStorageVolumeInfo(storageVolumeInfo);
         } else {
-            throw VPlexApiException.exceptions.moreThanOneComponentForExtent(extentInfo
-                    .getPath());
+            if (componentInfoList.isEmpty()) {
+                throw VPlexApiException.exceptions.noComponentForExtent(extentInfo.getPath());
+            } else {
+                throw VPlexApiException.exceptions.moreThanOneComponentForExtent(extentInfo
+                        .getPath());
+            }
         }
     }
 

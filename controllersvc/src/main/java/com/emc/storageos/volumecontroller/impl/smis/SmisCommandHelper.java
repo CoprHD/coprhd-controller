@@ -86,6 +86,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -120,6 +121,7 @@ public class SmisCommandHelper implements SmisConstants {
     private static final int SYNC_WRAPPER_TIME_OUT = 12000000; // set to 200 minutes to handle striped meta volumes with
                                                                // BCV helper
                                                                // expansion (it may take long time)
+    private static final String PROVIDER_VERSION_SUPPORTS_STORAGE_GROUP_CONVERSION = "8.4";
     private static final String EMC_IS_BOUND = "EMCIsBound";
     private static final int MAX_REFRESH_LOCK_WAIT_TIME = 300;
     private static final long REFRESH_THRESHOLD = 120000;
@@ -2355,6 +2357,34 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Converts a stand alone storage group in the masking view to cascaded.
+     * This method is supported from SMI-S v8.4
+     *
+     * @param storage the storage system
+     * @param storageGroupPath the storage group path
+     * @param storageGroupName the storage group name
+     * @throws WBEMException the WBEM exception
+     */
+    public void convertStandAloneStorageGroupToCascaded(StorageSystem storage,
+            CIMObjectPath storageGroupPath, String storageGroupName) throws WBEMException {
+        // This method is supported from SMI-S v8.4
+        StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class,
+                storage.getActiveProviderURI());
+        String providerVersion = storageProvider.getVersionString();
+        if (VersionChecker.verifyVersionDetails(PROVIDER_VERSION_SUPPORTS_STORAGE_GROUP_CONVERSION, providerVersion) >= 0) {
+            String ChildStorageGroupName = String.format("%s_ChildSG", storageGroupName);
+            CIMArgument[] inArgs = getConvertStandAloneStorageGroupToCascadedInputArguments(
+                    storage, storageGroupPath, ChildStorageGroupName);
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "EMCConvertMaskingGroup", inArgs, outArgs);
+        } else {
+            _log.info("SMI-S Provider version {} does not support converting"
+                    + " Stand alone storage group to Cascaded.", providerVersion);
+        }
+    }
+
+    /**
      * Get the Volume CIM path, given a Volume object
      *
      * @param storage
@@ -2556,6 +2586,18 @@ public class SmisCommandHelper implements SmisConstants {
         argsList.add(_cimArgument.referenceArray(CP_MEMBERS, members));
         argsList.add(_cimArgument.reference(CP_SOURCE_MASKING_GROUP, sourceGroupPath));
         argsList.add(_cimArgument.reference(CP_TARGET_MASKING_GROUP, targetGroupPath));
+        CIMArgument[] args = {};
+        return argsList.toArray(args);
+    }
+
+    public CIMArgument[] getConvertStandAloneStorageGroupToCascadedInputArguments(
+            StorageSystem storageDevice, CIMObjectPath storageGroupPath, String ChildStorageGroupName) {
+        List<CIMArgument> argsList = new ArrayList<CIMArgument>();
+        argsList.add(_cimArgument.reference(CP_DEVICE_MASKING_GROUP, storageGroupPath));
+        argsList.add(_cimArgument.uint16(CP_OPERATION, CONVERT_STANDALONE_SG_TO_CASCADED));
+        argsList.add(_cimArgument.bool(CP_HOST_IOLIMIT_PARENT, Boolean.TRUE));
+        argsList.add(_cimArgument.string(CP_CHILD_STORAGE_GROUP_NAME, ChildStorageGroupName));
+        argsList.add(_cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, Boolean.TRUE));
         CIMArgument[] args = {};
         return argsList.toArray(args);
     }
@@ -3409,7 +3451,6 @@ public class SmisCommandHelper implements SmisConstants {
      * @throws WBEMException
      */
     public boolean isCascadedSG(StorageSystem storage, CIMObjectPath path) throws WBEMException {
-        String policyName = Constants.NONE;
         CloseableIterator<CIMObjectPath> pathItr = null;
         try {
             if (checkExists(storage, path, false, false) != null) {
@@ -3447,6 +3488,36 @@ public class SmisCommandHelper implements SmisConstants {
             closeCIMIterator(pathItr);
         }
         return true;
+    }
+
+    /**
+     * Returns whether this object is a stand alone or not.
+     *
+     * @param storage
+     *            storage device
+     * @param path
+     *            path of SG
+     * @return true if the object has no storage group references
+     * @throws WBEMException
+     */
+    public boolean isStandAloneSG(StorageSystem storage, CIMObjectPath path) throws WBEMException {
+        CloseableIterator<CIMObjectPath> pathItr = null;
+        try {
+            if (checkExists(storage, path, false, false) != null) {
+                pathItr = getReference(storage, path, SE_MEMBER_OF_COLLECTION_DMG_DMG, null);
+                if (!pathItr.hasNext()) {
+                    // There are no references in this SG, it is a standalone.
+                    return true;
+                }
+            } else {
+                _log.info("Instance not found for path {}. Assuming cascaded.", path);
+            }
+        } catch (Exception e) {
+            _log.info("Got exception trying to retrieve stand alone status of SG. Assuming cascaded: ", e);
+        } finally {
+            closeCIMIterator(pathItr);
+        }
+        return false;
     }
 
     /**
@@ -5553,64 +5624,63 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
-     * Removes volume from storage group
+     * Removes the volumes from the associated parking SLO storage group.
      *
-     * @param storage
-     *            The reference to storage system
-     * @param nativeId
-     *            The volume nativeId
-     * @param forceFlag
-     * @throws Exception
+     * @param storage the storage system
+     * @param nativeIds the volume native ids
+     * @param forceFlag the force flag
+     * @return the parking SLO storage group instances
+     * @throws Exception the exception
      */
-    public CIMInstance removeVolumeFromParkingSLOStorageGroup(StorageSystem storage, String nativeId, boolean forceFlag) throws Exception {
-        CIMInstance parkingSLOStorageGroup = null;
-        CIMObjectPath volumePath = _cimPath.getVolumePath(storage, nativeId);
-
+    public Set<CIMInstance> removeVolumeFromParkingSLOStorageGroup(StorageSystem storage, String[] nativeIds, boolean forceFlag)
+            throws Exception {
+        Map<String, List<CIMObjectPath>> parkingSGToVolumes = new HashMap<>();
+        Set<CIMInstance> parkingSLOStorageGroups = new HashSet<>();
         CloseableIterator<CIMInstance> cimInstanceItr = null;
-        String returnedgroupName = null;
-        try {
-            cimInstanceItr = getAssociatorInstances(storage, volumePath, null,
-                    SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null,
-                    PS_ELEMENT_NAME);
-            while (cimInstanceItr.hasNext()) {
-                CIMInstance groupInstance = cimInstanceItr.next();
-                String elementName = CIMPropertyFactory.getPropertyValue(groupInstance,
-                        CP_ELEMENT_NAME);
-                _log.debug("Found associated masking group {}", groupInstance.getObjectPath().toString());
-                if (elementName.startsWith(Constants.STORAGE_GROUP_PREFIX)) {
-                    returnedgroupName = elementName;
-                    parkingSLOStorageGroup = groupInstance;
+        for (String nativeId : nativeIds) {
+            try {
+                CIMObjectPath volumePath = _cimPath.getVolumePath(storage, nativeId);
+                cimInstanceItr = getAssociatorInstances(storage, volumePath, null,
+                        MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null,
+                        PS_ELEMENT_NAME);
+                while (cimInstanceItr.hasNext()) {
+                    CIMInstance groupInstance = cimInstanceItr.next();
+                    String groupName = CIMPropertyFactory.getPropertyValue(groupInstance, CP_ELEMENT_NAME);
+                    _log.debug("Found masking group {} associated for volume {}", groupName, nativeId);
+                    if (groupName.startsWith(Constants.STORAGE_GROUP_PREFIX)) {
+                        List<CIMObjectPath> volumes = parkingSGToVolumes.get(groupName);
+                        if (volumes == null) {
+                            volumes = new ArrayList<CIMObjectPath>();
+                            parkingSGToVolumes.put(groupName, volumes);
+                            // add this SG to the SG instances collection
+                            parkingSLOStorageGroups.add(groupInstance);
+                        }
+                        volumes.add(volumePath);
+                    }
                 }
-            }
-        } catch (WBEMException ex) {
-            _log.debug("Failed to find storage group for a volume from SMI-S Provider : " + ex.getMessage());
-            throw new DeviceControllerException(ex);
-        } finally {
-            if (cimInstanceItr != null) {
-                cimInstanceItr.close();
+            } catch (WBEMException ex) {
+                _log.error("Failed to find associated storage group for volume {}.", nativeId, ex);
+                throw new DeviceControllerException(ex);
+            } finally {
+                if (cimInstanceItr != null) {
+                    cimInstanceItr.close();
+                }
             }
         }
 
-        if (returnedgroupName != null) {
-            CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, returnedgroupName,
-                    SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
-            CIMObjectPath[] memberPaths = {};
-            ArrayList<CIMObjectPath> volumePaths = new ArrayList<CIMObjectPath>();
-            volumePaths.add(volumePath);
-            memberPaths = volumePaths.toArray(memberPaths);
+        for (String parkingSGName : parkingSGToVolumes.keySet()) {
+            List<CIMObjectPath> volumePaths = parkingSGToVolumes.get(parkingSGName);
+            CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, parkingSGName,
+                    MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+            CIMObjectPath[] memberPaths = volumePaths.toArray(new CIMObjectPath[] {});
 
             CIMArgument[] inArgs = getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, forceFlag);
             CIMArgument[] outArgs = new CIMArgument[5];
-
-            _log.info("Invoking remove volume {} from parking storage group {}", nativeId, returnedgroupName);
+            _log.info("Invoking remove volume(s) from parking SLO storage group {}", parkingSGName);
             invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
                     SmisConstants.REMOVE_MEMBERS, inArgs, outArgs, null);
-        } else {
-            _log.info("Looks like volume is already removed from the parking storage group,"
-                    + " could not find storage group for the volume {} on the storage system {}",
-                    nativeId, storage.getNativeGuid());
         }
-        return parkingSLOStorageGroup;
+        return parkingSLOStorageGroups;
     }
 
     /**
@@ -6010,7 +6080,8 @@ public class SmisCommandHelper implements SmisConstants {
     public void updateHostIOLimitBandwidth(WBEMClient client, CIMObjectPath storageGroupPath, Integer hostIOLimitBandwidth)
             throws WBEMException {
         if (hostIOLimitBandwidth == null) {
-            return;
+            // If there is no value provided, consider it as 0 which resets the limit.
+            hostIOLimitBandwidth = 0;
         }
 
         _log.info("Attempting to update Host IO Limit Bandwidth for Storage Group : {} to {}", storageGroupPath.toString(),
@@ -6033,7 +6104,8 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public void updateHostIOLimitIOPs(WBEMClient client, CIMObjectPath storageGroupPath, Integer hostIOLimitIOPs) throws WBEMException {
         if (hostIOLimitIOPs == null) {
-            return;
+            // If there is no value provided, consider it as 0 which resets the limit.
+            hostIOLimitIOPs = 0;
         }
         _log.info("Attempting to update Host IO Limit IOPs for Storage Group : {} to {}", storageGroupPath.toString(), hostIOLimitIOPs);
         CIMPropertyFactory factoryRef = (CIMPropertyFactory) ControllerServiceImpl.getBean("CIMPropertyFactory");

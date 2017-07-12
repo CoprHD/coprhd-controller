@@ -4,17 +4,17 @@
  */
 package com.emc.sa.model.dao;
 
+import java.net.URI;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObjectWithACLs;
 import com.emc.storageos.security.authorization.PermissionsKey;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
-import java.net.URI;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * @author Chris Dail
@@ -60,4 +60,6 @@ public interface DBClientWrapper {
     public <T extends DataObject> void delete(T model) throws DataAccessException;
 
     public <T extends DataObject> void delete(List<T> models) throws DataAccessException;
+
+    public <T extends DataObject> Iterator<T> findAllFields(final Class<T> clazz, final List<URI> ids, final List<String> columnFields);
 }

@@ -5,6 +5,8 @@
 package com.emc.storageos.volumecontroller.impl.plugins.metering.file;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -39,11 +41,18 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
     @Override
     public List<URI> injectResourceURI(final DbClient dbClient, final String nativeGuid) {
         URIQueryResultList results = new URIQueryResultList();
+        ArrayList<URI> resultsList = new ArrayList<>();
         try {
             // Get File systems with given native id!!
             dbClient.queryByConstraint(
                     AlternateIdConstraint.Factory.getFileShareNativeIdConstraint(nativeGuid),
                     results);
+            // Converting URIQueryResultList result list to ArrayList<URI> since, URIQueryResultList doesn't support
+            // methods that caller of this method is expecting from returned List object..
+            Iterator<URI> it = results.iterator();
+            while (it.hasNext()) {
+                resultsList.add(it.next());
+            }
 
         } catch (Exception e) {
             // Even if one volume fails, no need to throw exception instead
@@ -52,7 +61,7 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
                     "Cassandra Database Error while querying FileshareUUId: {}--> ",
                     nativeGuid, e);
         }
-        return results;
+        return resultsList;
     }
 
     @Override

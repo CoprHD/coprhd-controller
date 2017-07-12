@@ -281,6 +281,15 @@ public class HostService extends TaskResourceService {
      * Updates one or more of the host attributes. Discovery is initiated
      * after the host is updated.
      *
+     * <p>
+     * Updating the host's cluster:
+     * <ul>
+     *     <li> Adding a host to a cluster: The host will gain access to all volumes in the cluster.
+     *     <li> Removing a host from a cluster: The host will lose access to all volumes in the cluster.
+     *     <li> Updating a host's cluster: The host will lose access to all volumes in the old cluster. The 
+     *          host will gain access to all volumes in the new cluster.
+     * </ul>
+     *
      * @param id
      *            the URN of a ViPR Host
      * @param updateParam

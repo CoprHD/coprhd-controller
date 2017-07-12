@@ -284,6 +284,9 @@ public interface VPlexApiExceptions {
             final String componentPath, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException noComponentForExtent(final String extentPath);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException moreThanOneComponentForExtent(final String extentPath);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -294,7 +297,7 @@ public interface VPlexApiExceptions {
     public VPlexApiException failedGettingCGsOnCluster(final String clusterId,
             final Throwable cause);
 
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    @DeclareServiceCode(ServiceCode.VPLEX_CG_NOT_FOUND)
     public VPlexApiException didNotFindCGWithName(final String cgName);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)

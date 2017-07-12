@@ -368,7 +368,7 @@ public class NetworkScheduler {
                 networkFabricInfo.getEndPoints().addAll(endPoints);
                 networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
                 networkFabricInfo.setExportGroup(exportGroupUri);
-                networkFabricInfo.setCanBeRolledBack(true);
+                networkFabricInfo.setCanBeRolledBack(false);
                 nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
             }
             return networkFabricInfo;
@@ -840,7 +840,7 @@ public class NetworkScheduler {
             zoneInfo.setEndPoints(Arrays.asList(new String[] { initiatorWwn, portWwn }));
             zoneInfo.setZoneName(zone.getName());
             zoneInfo.setExistingZone(zone.getExistingZone());
-            zoneInfo.setCanBeRolledBack(true);
+            zoneInfo.setCanBeRolledBack(false);
         }
         return zoneInfo;
     }

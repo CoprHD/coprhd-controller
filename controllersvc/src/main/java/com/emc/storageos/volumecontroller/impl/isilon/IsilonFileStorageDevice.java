@@ -999,9 +999,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             setReplicationAttributes(srcFs, targetFs);
                             _log.info("Returning success without creating FS as target FS {} already exists in database for source FS {} ",
                                     targetFs.getName(), srcFs.getName());
-                            // Check if needed set the temp obj as inactive
-                            // tempFs.setInactive(true);
-                            // _dbClient.updateObject(tempFs);
+                            // Making the temporary FileSystem created to be inactive.
+                             tempFs.setInactive(true);
+                             _dbClient.updateObject(tempFs);
                             result = BiosCommandResult.createSuccessfulResult();
                         } else {
                             throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
@@ -4213,7 +4213,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private boolean isValidTargetHostOnExistingPolicy(String existingPolicyTargetHost, StorageSystem system) {
         if (existingPolicyTargetHost != null && !existingPolicyTargetHost.isEmpty()) {
             // target cluster IP address is matching????
-            if (existingPolicyTargetHost.equalsIgnoreCase(system.getIpAddress())) {
+            if (existingPolicyTargetHost.equalsIgnoreCase(system.getIpAddress()) || existingPolicyTargetHost.equalsIgnoreCase("localhost")) {
                 return true;
             }
             IsilonApi isi = getIsilonDevice(system);

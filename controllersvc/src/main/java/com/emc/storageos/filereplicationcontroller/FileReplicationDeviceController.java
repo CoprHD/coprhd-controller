@@ -378,4 +378,12 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 		return null;
 	}
 
+    @Override
+    public String addStepsForCheckAndCreateFileSystems(Workflow workflow, String waitFor, List<FileDescriptor> filesystems, URI sourceFS,
+            URI policyURI, String taskId) {
+        log.info("FileReplication Device controller addStepsForCheckAndCreateFileSystems method is called.");
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }

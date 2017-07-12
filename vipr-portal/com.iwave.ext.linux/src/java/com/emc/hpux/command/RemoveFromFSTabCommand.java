@@ -13,7 +13,8 @@ public class RemoveFromFSTabCommand extends HpuxCommand {
     }
 
     public RemoveFromFSTabCommand() {
-        setCommand("sed \"/${mountPoint}/d\" /etc/fstab > /etc/fstab");
+        // HP-UX sed does not support "sed -i", so we need to use temporary files
+        setCommand("sed \"/${mountPoint}/d\" /etc/fstab > /tmp/fstab.tmp && cat /tmp/fstab.tmp > /etc/fstab");
         setRunAsRoot(true);
     }
 

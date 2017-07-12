@@ -7,6 +7,7 @@ package com.emc.hpux.command;
 public class AddToFSTabCommand extends com.iwave.ext.linux.command.AddToFSTabCommand {
     public AddToFSTabCommand() {
         setCommand("echo");
+        removeArgument("-e");
         setRunAsRoot(true);
     }
 }

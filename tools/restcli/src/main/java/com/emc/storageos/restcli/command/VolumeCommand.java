@@ -60,23 +60,23 @@ public class VolumeCommand extends CliCommand {
         volume.setStorageSystemId(sym);
         volumes.add(volume);
         // check correction
-        System.out.println("Input p");
-        System.out.println("port:" + provider.getPortNumber() + ", host:" + provider.getProviderHost() +
+        System.out.println("Input parameter:");
+        System.out.println("\tport:" + provider.getPortNumber() + ", host:" + provider.getProviderHost() +
                 ", user:" + provider.getUsername() + ", pass:" + provider.getPassword() +
                 ", storageGroupId:" + volume.getStorageGroupId() + ", poolId:" + volume.getStoragePoolId() +
                 ", Synmmtrix: " + volume.getStorageSystemId() + ", capacity:" + volume.getRequestedCapacity());
         List<StorageSystem> storageSystems = new ArrayList<>();
         System.out.println("\ndiscoverStorageProvider: start ....");
         driver.discoverStorageProvider(provider, storageSystems);
-        System.out.println("provider version: " + provider.getProviderVersion());
-        System.out.println("version is supported: " + provider.isSupportedVersion());
+        System.out.println("\tprovider version: " + provider.getProviderVersion());
+        System.out.println("\tversion is supported: " + provider.isSupportedVersion());
 
         System.out.println("\ncreateVolumes: start ....");
         driver.createVolumes(volumes, null);
-        System.out.println("volume native id: " + volume.getNativeId() +
-                "\nAllocated capacity: " + volume.getAllocatedCapacity() +
-                "\nprovisioned capacity: " + volume.getProvisionedCapacity() +
-                "\nwwn: " + volume.getWwn());
+        System.out.println("\tvolume native id: " + volume.getNativeId() +
+                "\n\tAllocated capacity: " + volume.getAllocatedCapacity() +
+                "\n\tprovisioned capacity: " + volume.getProvisionedCapacity() +
+                "\n\twwn: " + volume.getWwn());
     }
 
     private void parseRestArgs(String[] args) {

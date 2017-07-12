@@ -41,13 +41,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.api.mapper.functions.MapStoragePort;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
+import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -74,7 +73,6 @@ import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
-import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
 import com.emc.storageos.db.client.model.VirtualNAS;
@@ -84,6 +82,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -121,8 +120,9 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -400,35 +400,6 @@ public class StorageSystemService extends TaskResourceService {
     }
 
     /**
-     * update meta type info for datadomain StorageSystemType to file.
-     */
-    private void updateDataDomainMetaType() {
-        _log.info("Update datadomain metatype");
-
-        try {
-            String metatype = StorageSystemType.META_TYPE.FILE.toString().toLowerCase();
-            List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
-            Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
-            while (it.hasNext()) {
-                StorageSystemType type = it.next();
-                if (type.getStorageTypeName() != null
-                        && type.getStorageTypeName().equalsIgnoreCase(StorageSystem.Type.datadomain.name())) {
-                    type.setMetaType(metatype);
-                    type.setDriverClassName(metatype);
-                    _log.info("Updating StorageSystemType MetaType for id : {}", type.getId());
-                    _dbClient.updateObject(type);
-                    break;
-                }
-            }
-            _log.info("update datadomain metatype completed successfully");
-        } catch (Exception e) {
-            _log.error("Exception occured while updating datadomain metatype ");
-            _log.error(e.getMessage(), e);
-        }
-
-    }
-
-    /**
      * Validates a storage system if it already exists for same ipaddress & portNumber
      * 
      * @param ipAddress
@@ -636,14 +607,6 @@ public class StorageSystemService extends TaskResourceService {
         }
 
         updateStorageObj(system, param);
-
-        if (systemType.equals(StorageSystem.Type.datadomain)) {
-            /*
-             * need to correct meta to file as it wrong till Vipr-3.6.1
-             * It can not be done by upgrade path as we are not changing field name.
-             */
-            updateDataDomainMetaType();
-        }
 
         auditOp(OperationTypeEnum.UPDATE_STORAGE_SYSTEM, true, null,
                 id.toString(), param.getIpAddress(), param.getPortNumber());

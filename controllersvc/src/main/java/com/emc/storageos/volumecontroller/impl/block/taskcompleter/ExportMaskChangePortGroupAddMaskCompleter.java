@@ -35,7 +35,9 @@ public class ExportMaskChangePortGroupAddMaskCompleter extends ExportTaskComplet
             if (exportMask != null && status == Operation.Status.ready) {
                 for (ExportGroup eg : egs) {
                     eg.addExportMask(exportMask.getId());
+                    _log.info(String.format("Updated the export group %s", eg.getLabel()));
                 }
+                dbClient.updateObject(egs);
                 updatePortGroupVolumeCount(exportMask.getPortGroup(), dbClient);
             }
             

@@ -2350,6 +2350,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Get impacted export groups
                 List<ExportGroup> impactedExportGroups = ExportMaskUtils.getExportGroups(_dbClient, oldMask);
                 List<URI> exportGroupURIs = URIUtil.toUris(impactedExportGroups);
+                _log.info("changePortGroup: impacted export groups: {}", Joiner.on(',').join(exportGroupURIs));
                 Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                         null, pathParams, volumes, _networkDeviceController, exportGroup.getVirtualArray(), token);
                 ExportMask newMask = device.findExportMasksForPortGroupChange(storage, initiatorNames, portGroupURI);

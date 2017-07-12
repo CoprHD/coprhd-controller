@@ -285,6 +285,12 @@ class CatalogServiceHelper {
         return catalog.categories().update(categoryId, categoryUpdate);
     }
 
+
+    static void catalogRemoteReplicationServiceTest() {
+        println "CatalogServiceHelper.catalogCategoryServiceTest() :: TODO: Implement Remote Replication Tests"
+    }
+
+
     static void catalogCategoryServiceTest() {
         println "  ## Catalog Category Test ## "
         createdCategories = new ArrayList<URI>();

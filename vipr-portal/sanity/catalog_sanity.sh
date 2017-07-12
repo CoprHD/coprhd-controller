@@ -31,4 +31,6 @@ source ${sanity_conf}
 rm setvars.log setvars2.log
 
 export CatalogTest=${test_type}
+export CatalogWorkspace=${workspace}
+export CatalogSanityConf=${sanity_conf}
 ${workspace}/gradlew catalogSanity

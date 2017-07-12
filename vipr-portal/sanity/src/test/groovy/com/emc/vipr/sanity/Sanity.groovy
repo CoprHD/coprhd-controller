@@ -23,7 +23,7 @@ import com.emc.vipr.sanity.setup.SystemSetup
 import com.emc.vipr.sanity.setup.VCenterSetup
 import com.emc.vipr.sanity.setup.VMAXSetup
 import com.emc.vipr.sanity.setup.VirtualArraySetup
-
+import com.emc.vipr.sanity.setup.RemoteReplicationSetup
 
 class Sanity {
     static final Integer API_TASK_TIMEOUT = 120000
@@ -43,16 +43,17 @@ class Sanity {
     static Class blockTests = com.emc.vipr.sanity.tests.CatalogBlockServicesSanity.class
     static Class protectionTests = com.emc.vipr.sanity.tests.CatalogBlockProtectionServicesSanity.class
     static Class vmwareTests = com.emc.vipr.sanity.tests.CatalogVmwareBlockServicesSanity.class
+    static Class remoteReplicationTests = com.emc.vipr.sanity.tests.CatalogRemoteReplicationServicesSanity.class
 
     static allTests = [
         catalogTests,
         blockTests,
         protectionTests,
-        vmwareTests
+        vmwareTests,
+        remoteReplicationTests
     ] as Class[]
 
     public static void main(String[] args) {
-        setup()
         JUnitCore junit = new JUnitCore()
         junit.addListener(new RunListener() {
                     @Override
@@ -73,21 +74,31 @@ class Sanity {
         Result result = null
         switch (catalogTest) {
             case "all":
+                setup()
                 result = junit.run(allTests)
                 break
             case "catalog":
+                setup()
                 result = junit.run(catalogTests)
                 break
             case "block":
+                setup()
                 result = junit.run(blockTests)
                 break
             case "protection":
+                setup()
                 result = junit.run(protectionTests)
                 break
             case "vmware":
+                setup()
                 result = junit.run(vmwareTests)
                 break
-            default:
+           case "remotereplication":
+                initClients()
+                RemoteReplicationSetup.setup()
+                result = junit.run(remoteReplicationTests)
+                break
+           default:
                 println "Not running any tests. Parameter = " + catalogTest
                 break
         }

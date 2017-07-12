@@ -133,7 +133,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     /**
      * Get the workflow details
      * 
-     * @brief Get workflow
+     * @brief Show workflow
      * @param id the ID of the workflow to be retrieved
      * @return
      */

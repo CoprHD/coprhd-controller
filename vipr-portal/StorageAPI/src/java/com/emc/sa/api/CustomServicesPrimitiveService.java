@@ -209,12 +209,12 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     /**
-     * Get a list of resources of a given type
+     * Get a list of primitive resources of a given type
      *
-     * @brief List all instances of resource type
-     * @param type The type of the custom services resource to list
-     * @param parentId The parentId of the resource to filter by
-     * @return a list of resources of the given type
+     * @brief List all instances of primitive resource type
+     * @param type the type of the primitive resource to list
+     * @param parentId the parentId of the primitive resource to filter by
+     * @return a list of primitive resources of the given type
      */
     @GET
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })

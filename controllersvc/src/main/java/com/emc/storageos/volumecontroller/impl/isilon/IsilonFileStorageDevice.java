@@ -980,7 +980,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     FileShare targetFs = null;
                     // Check if the target FS in the islon syncIQ policy exitst in ViPR DB
                     URIQueryResultList queryResult = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharenativeIDConstraint(targetPath), queryResult);
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharePathConstraint(targetPath), queryResult);
                     Iterator<URI> iter = queryResult.iterator();
                     while (iter.hasNext()) {
                         URI fsURI = iter.next();

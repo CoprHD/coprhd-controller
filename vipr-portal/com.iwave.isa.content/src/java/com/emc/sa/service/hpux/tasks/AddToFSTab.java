@@ -9,6 +9,7 @@ import com.iwave.ext.linux.command.AddToFSTabCommand;
 public class AddToFSTab extends HpuxExecutionTask<Void> {
 
     public static final String DEFAULT_OPTIONS = "defaults";
+    public static final String DEFAULT_FS_TYPE = "vxfs";
 
     private String device;
     private String path;

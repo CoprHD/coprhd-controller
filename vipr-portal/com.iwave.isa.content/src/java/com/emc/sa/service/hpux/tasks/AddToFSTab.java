@@ -4,7 +4,7 @@
  */
 package com.emc.sa.service.hpux.tasks;
 
-import com.iwave.ext.linux.command.AddToFSTabCommand;
+import com.emc.hpux.command.AddToFSTabCommand;
 
 public class AddToFSTab extends HpuxExecutionTask<Void> {
 

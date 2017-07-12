@@ -32,29 +32,29 @@ public class RestVMAXStorageDriver extends DefaultStorageDriver {
     static RestAPI restAPI;
     private static final Logger _log = LoggerFactory.getLogger(RestVMAXStorageDriver.class);
 
-
     @Override
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
         // "num_of_vols": current value set to 1. TODO
         // initialize task
         String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "discover-storage-provider", UUID.randomUUID().toString());
+        String taskId = String.format("%s+%s+%s", driverName, "create-storage-volumes", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
         task.setStatus(DriverTask.TaskStatus.FAILED);
 
         for (StorageVolume volume : volumes) {
-            // post
+            // RESTful API POST
             postCreateVolume(volume);
-            // send getRequest to get volume id
+            // RESTful API GET: get volume ID
             ClientResponse getResponse = doGetVolumeId(volume);
-            // use volume id get from last function ,and then call get request again
+            // RESTful API GET: use volume ID to retrieve volume details.
             ClientResponse getVolumeResponse = doGetVolumeDetails(volume, getResponse);
-            // set value into volume
+
+            // Fill value into volume.
             String getVolumeResponseString = getVolumeResponse.getEntity(String.class);
             GetVolumeResultType getVolumeType = (new Gson().fromJson(sanitize(getVolumeResponseString), GetVolumeResultType.class));
             VolumeType typeArray = getVolumeType.getVolume()[0];
-            volume.setAllocatedCapacity(new Long(0));
             volume.setProvisionedCapacity((new Double(typeArray.getCap_mb() * 1024 * 1024)).longValue());
+            volume.setAllocatedCapacity(volume.getProvisionedCapacity() * typeArray.getAllocated_percent());
             volume.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
             volume.setNativeId(typeArray.getVolumeId());
             volume.setWwn(typeArray.getWwn());

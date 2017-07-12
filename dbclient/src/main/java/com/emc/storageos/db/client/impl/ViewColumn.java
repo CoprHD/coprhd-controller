@@ -23,7 +23,7 @@ public class ViewColumn {
     public ViewColumn(String name, Object val) {
         this.name = name;
         if (val instanceof String) {
-            this.value = val;
+            this.value = (String) val;
         } else {
             this.value = val.getClass().getName();
         }

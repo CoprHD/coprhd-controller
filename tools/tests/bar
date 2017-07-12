@@ -1,0 +1,9 @@
+B1-FC00          director-2-1-B FC               50:00:14:42:90:71:23:10                    OK        FABRIC_losam017_FID_20-10:00:00:27:f8:58:f6:c0 VPLEX+0855:0084-Cluster2 
+A1-FC00          director-1-1-A FC               50:00:14:42:60:1E:80:10                    OK        FABRIC_losam017_FID_20-10:00:00:27:f8:58:f6:c0 VPLEX+0855:0084-Cluster1 
+B1-FC01          director-1-1-B FC               50:00:14:42:70:1E:80:11                    OK        FABRIC_losam017_FID_20-10:00:00:27:f8:58:f6:c0 VPLEX+0855:0084-Cluster1 
+A1-FC02          director-1-1-A FC               50:00:14:42:60:1E:80:12                    OK        FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1 VPLEX+0855:0084-Cluster1 
+A1-FC01          director-1-1-A FC               50:00:14:42:60:1E:80:11                    OK        FABRIC_losam017_FID_20-10:00:00:27:f8:58:f6:c0 VPLEX+0855:0084-Cluster1 
+A1-FC00          director-2-1-A FC               50:00:14:42:80:71:23:10                    OK        FABRIC_losam017_FID_20-10:00:00:27:f8:58:f6:c0 VPLEX+0855:0084-Cluster2 
+A1-FC01          director-2-1-A FC               50:00:14:42:80:71:23:11                    OK        FABRIC_losam017_FID_20-10:00:00:27:f8:58:f6:c0 VPLEX+0855:0084-Cluster2 
+B1-FC00          director-1-1-B FC               50:00:14:42:70:1E:80:10                    OK        FABRIC_losam017_FID_20-10:00:00:27:f8:58:f6:c0 VPLEX+0855:0084-Cluster1 
+B1-FC01          director-2-1-B FC               50:00:14:42:90:71:23:11                    OK        FABRIC_losam017_FID_20-10:00:00:27:f8:58:f6:c0 VPLEX+0855:0084-Cluster2 

@@ -1,0 +1,8 @@
+EG:  h1025a  EM:  all
+Hostname ... Initiator WWN ... Port Name ... Zone Name ... Count
+eg h1025a em V2_aclus025A_h1025aorg_301 ssys urn:storageos:StorageSystem:91921229-b289-46a1-8584-fdbfa04e08e1:vdc1
+h1025a.org 10:00:50:56:A2:02:5A:12 8eb2-4ee0  4f25-4c48 B0-FC01 SDS_h1025aorg_5056A2025A12_0301_21B0FC01 1
+eg h1025a em V1_aclus025A_h1025aorg_300 ssys urn:storageos:StorageSystem:91921229-b289-46a1-8584-fdbfa04e08e1:vdc1
+Existing volumes:  StringMap {60000000000000099931603130200002=4, 60000000000000099900041419700003=3}            <<<<<<<<<<<<<<<<<<<<< WRONG
+h1025a.org 10:00:50:56:A2:02:5A:11 137f-4645  bb8f-44ef B0-FC02 SDS_h1025aorg_5056A2025A11_0300_11B0FC02 2
+h1025a.org 10:00:50:56:A2:02:5A:10 85c5-455d  2174-4cdc A0-FC03 SDS_h1025aorg_5056A2025A10_0300_11A0FC03 2

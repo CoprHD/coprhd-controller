@@ -1,0 +1,60 @@
+Path parameters {'min_paths': None, 'paths_per_initiator': '2', 'max_paths': '8'}
+Added or Retained Paths: 
++ j1025a.org 10:00:50:56:A2:02:5A:54 A0-FC00
++ j1025a.org 10:00:50:56:A2:02:5A:54 B0-FC00
++ j1025a.org 10:00:50:56:A2:02:5A:55 A0-FC03
++ j1025a.org 10:00:50:56:A2:02:5A:55 B0-FC03
++ j1025a.org 10:00:50:56:A2:02:5A:56 A0-FC02
++ j1025a.org 10:00:50:56:A2:02:5A:56 B0-FC02
++ j1025a.org 10:00:50:56:A2:02:5A:57 A0-FC01
++ j1025a.org 10:00:50:56:A2:02:5A:57 B0-FC01
++ j2025a.org 10:00:50:56:A2:02:5A:64 A0-FC03
++ j2025a.org 10:00:50:56:A2:02:5A:64 B0-FC03
++ j2025a.org 10:00:50:56:A2:02:5A:65 A0-FC02
++ j2025a.org 10:00:50:56:A2:02:5A:65 B0-FC02
++ j2025a.org 10:00:50:56:A2:02:5A:66 A0-FC00
++ j2025a.org 10:00:50:56:A2:02:5A:66 B0-FC00
++ j2025a.org 10:00:50:56:A2:02:5A:67 A0-FC01
++ j2025a.org 10:00:50:56:A2:02:5A:67 B0-FC01
++ j3025a.org 10:00:50:56:A2:02:5A:74 A0-FC03
++ j3025a.org 10:00:50:56:A2:02:5A:74 B0-FC03
++ j3025a.org 10:00:50:56:A2:02:5A:75 A0-FC02
++ j3025a.org 10:00:50:56:A2:02:5A:75 B0-FC02
++ j3025a.org 10:00:50:56:A2:02:5A:76 A0-FC01
++ j3025a.org 10:00:50:56:A2:02:5A:76 B0-FC01
++ j3025a.org 10:00:50:56:A2:02:5A:77 A0-FC00
++ j3025a.org 10:00:50:56:A2:02:5A:77 B0-FC00
++ j4025a.org 10:00:50:56:A2:02:5A:84 A0-FC03
++ j4025a.org 10:00:50:56:A2:02:5A:84 B0-FC03
++ j4025a.org 10:00:50:56:A2:02:5A:85 A0-FC00
++ j4025a.org 10:00:50:56:A2:02:5A:85 B0-FC00
++ j4025a.org 10:00:50:56:A2:02:5A:86 A0-FC01
++ j4025a.org 10:00:50:56:A2:02:5A:86 B0-FC01
++ j4025a.org 10:00:50:56:A2:02:5A:87 A0-FC02
++ j4025a.org 10:00:50:56:A2:02:5A:87 B0-FC02
+Removed Paths: 
+- j1025a.org 10:00:50:56:A2:02:5A:54 B0-FC01
+- j1025a.org 10:00:50:56:A2:02:5A:55 A0-FC01
+- j1025a.org 10:00:50:56:A2:02:5A:55 B0-FC00
+- j1025a.org 10:00:50:56:A2:02:5A:57 A0-FC02
+- j1025a.org 10:00:50:56:A2:02:5A:57 B0-FC02
+- j2025a.org 10:00:50:56:A2:02:5A:64 A0-FC01
+- j2025a.org 10:00:50:56:A2:02:5A:64 B0-FC00
+- j2025a.org 10:00:50:56:A2:02:5A:66 B0-FC01
+- j2025a.org 10:00:50:56:A2:02:5A:67 A0-FC02
+- j2025a.org 10:00:50:56:A2:02:5A:67 B0-FC02
+- j3025a.org 10:00:50:56:A2:02:5A:74 A0-FC01
+- j3025a.org 10:00:50:56:A2:02:5A:74 B0-FC00
+- j3025a.org 10:00:50:56:A2:02:5A:76 A0-FC02
+- j3025a.org 10:00:50:56:A2:02:5A:76 B0-FC02
+- j3025a.org 10:00:50:56:A2:02:5A:77 B0-FC01
+- j4025a.org 10:00:50:56:A2:02:5A:84 A0-FC01
+- j4025a.org 10:00:50:56:A2:02:5A:84 B0-FC00
+- j4025a.org 10:00:50:56:A2:02:5A:85 B0-FC01
+- j4025a.org 10:00:50:56:A2:02:5A:86 A0-FC02
+- j4025a.org 10:00:50:56:A2:02:5A:86 B0-FC02
+Other affected Export Groups:
+ap / eg6
+Executing...
+{'virtual_array': 'urn:storageos:VirtualArray:9c2779ab-6458-4573-a5c7-5689aca480c9:vdc1', 'adjusted_paths': [{'initiator': 'urn:storageos:Initiator:3ef8919c-b5fe-4718-9f4e-6a8025ce47a9:vdc1', 'storage_ports': ['urn:storageos:StoragePort:d7a04ad7-704e-49ca-91ad-42fba6f05c16:vdc1', 'urn:storageos:StoragePort:95f4a194-6953-4ad2-a29e-11a9dc69ab47:vdc1']}, {'initiator': 'urn:storageos:Initiator:ca6e564b-503d-4deb-a01d-9e4677beb4fe:vdc1', 'storage_ports': ['urn:storageos:StoragePort:e7e77620-c6c9-41c6-ad77-0ef6877db947:vdc1', 'urn:storageos:StoragePort:b6b3dff7-11df-4118-b6f6-95d09f7dd72c:vdc1']}, {'initiator': 'urn:storageos:Initiator:9442f571-a52f-48ca-bbff-a4b3676545ef:vdc1', 'storage_ports': ['urn:storageos:StoragePort:61f21af3-63bc-40d9-932f-acf493b4084a:vdc1', 'urn:storageos:StoragePort:010e05a2-8879-4ade-9fc0-a2b58d210395:vdc1']}, {'initiator': 'urn:storageos:Initiator:67f350de-a57d-4072-b98f-4e8c2ae08a85:vdc1', 'storage_ports': ['urn:storageos:StoragePort:39a4d471-ca56-48d0-a7da-199dc78685a2:vdc1', 'urn:storageos:StoragePort:23456810-bc4e-4f3e-ab03-05080084cde6:vdc1']}, {'initiator': 'urn:storageos:Initiator:b195a6f7-dc51-413d-ab38-c75375e25241:vdc1', 'storage_ports': ['urn:storageos:StoragePort:e7e77620-c6c9-41c6-ad77-0ef6877db947:vdc1', 'urn:storageos:StoragePort:b6b3dff7-11df-4118-b6f6-95d09f7dd72c:vdc1']}, {'initiator': 'urn:storageos:Initiator:b20d2fac-7899-418d-8b71-2e05e0ad0784:vdc1', 'storage_ports': ['urn:storageos:StoragePort:61f21af3-63bc-40d9-932f-acf493b4084a:vdc1', 'urn:storageos:StoragePort:010e05a2-8879-4ade-9fc0-a2b58d210395:vdc1']}, {'initiator': 'urn:storageos:Initiator:6f3f553f-bcd4-449d-a141-375fb45e1d43:vdc1', 'storage_ports': ['urn:storageos:StoragePort:d7a04ad7-704e-49ca-91ad-42fba6f05c16:vdc1', 'urn:storageos:StoragePort:95f4a194-6953-4ad2-a29e-11a9dc69ab47:vdc1']}, {'initiator': 'urn:storageos:Initiator:d0094cd1-897a-4264-81bd-a10979a38b9c:vdc1', 'storage_ports': ['urn:storageos:StoragePort:39a4d471-ca56-48d0-a7da-199dc78685a2:vdc1', 'urn:storageos:StoragePort:23456810-bc4e-4f3e-ab03-05080084cde6:vdc1']}, {'initiator': 'urn:storageos:Initiator:15acd93d-0064-4b0f-a6c4-20f042cf2b5c:vdc1', 'storage_ports': ['urn:storageos:StoragePort:e7e77620-c6c9-41c6-ad77-0ef6877db947:vdc1', 'urn:storageos:StoragePort:b6b3dff7-11df-4118-b6f6-95d09f7dd72c:vdc1']}, {'initiator': 'urn:storageos:Initiator:50ddda60-5d6e-41a3-afd8-2cd4c5e1eb2b:vdc1', 'storage_ports': ['urn:storageos:StoragePort:61f21af3-63bc-40d9-932f-acf493b4084a:vdc1', 'urn:storageos:StoragePort:010e05a2-8879-4ade-9fc0-a2b58d210395:vdc1']}, {'initiator': 'urn:storageos:Initiator:9406e7d2-f896-44e7-94be-7e4438b5c14d:vdc1', 'storage_ports': ['urn:storageos:StoragePort:39a4d471-ca56-48d0-a7da-199dc78685a2:vdc1', 'urn:storageos:StoragePort:23456810-bc4e-4f3e-ab03-05080084cde6:vdc1']}, {'initiator': 'urn:storageos:Initiator:30ee3d5f-68be-4c10-9c5d-42bd7827903f:vdc1', 'storage_ports': ['urn:storageos:StoragePort:d7a04ad7-704e-49ca-91ad-42fba6f05c16:vdc1', 'urn:storageos:StoragePort:95f4a194-6953-4ad2-a29e-11a9dc69ab47:vdc1']}, {'initiator': 'urn:storageos:Initiator:7f21cc50-91bb-4c9b-a5f3-623f9f324f3c:vdc1', 'storage_ports': ['urn:storageos:StoragePort:e7e77620-c6c9-41c6-ad77-0ef6877db947:vdc1', 'urn:storageos:StoragePort:b6b3dff7-11df-4118-b6f6-95d09f7dd72c:vdc1']}, {'initiator': 'urn:storageos:Initiator:5bce254f-4a05-4e55-bd04-12779a796ee2:vdc1', 'storage_ports': ['urn:storageos:StoragePort:d7a04ad7-704e-49ca-91ad-42fba6f05c16:vdc1', 'urn:storageos:StoragePort:95f4a194-6953-4ad2-a29e-11a9dc69ab47:vdc1']}, {'initiator': 'urn:storageos:Initiator:2c11cf94-728a-4136-ad0b-f9876d1368e5:vdc1', 'storage_ports': ['urn:storageos:StoragePort:39a4d471-ca56-48d0-a7da-199dc78685a2:vdc1', 'urn:storageos:StoragePort:23456810-bc4e-4f3e-ab03-05080084cde6:vdc1']}, {'initiator': 'urn:storageos:Initiator:7725ed1f-4303-41e6-b6ad-c425b95ae642:vdc1', 'storage_ports': ['urn:storageos:StoragePort:61f21af3-63bc-40d9-932f-acf493b4084a:vdc1', 'urn:storageos:StoragePort:010e05a2-8879-4ade-9fc0-a2b58d210395:vdc1']}], 'path_parameters': {'min_paths': None, 'paths_per_initiator': '2', 'max_paths': '8'}, 'storage_system': 'urn:storageos:StorageSystem:e5886e0e-8cb8-4ee3-befd-64f5944663ad:vdc1', 'wait_before_remove_paths': 'false', 'removed_paths': [{'initiator': 'urn:storageos:Initiator:3ef8919c-b5fe-4718-9f4e-6a8025ce47a9:vdc1', 'storage_ports': ['urn:storageos:StoragePort:23456810-bc4e-4f3e-ab03-05080084cde6:vdc1']}, {'initiator': 'urn:storageos:Initiator:ca6e564b-503d-4deb-a01d-9e4677beb4fe:vdc1', 'storage_ports': ['urn:storageos:StoragePort:39a4d471-ca56-48d0-a7da-199dc78685a2:vdc1', 'urn:storageos:StoragePort:95f4a194-6953-4ad2-a29e-11a9dc69ab47:vdc1']}, {'initiator': 'urn:storageos:Initiator:67f350de-a57d-4072-b98f-4e8c2ae08a85:vdc1', 'storage_ports': ['urn:storageos:StoragePort:61f21af3-63bc-40d9-932f-acf493b4084a:vdc1', 'urn:storageos:StoragePort:010e05a2-8879-4ade-9fc0-a2b58d210395:vdc1']}, {'initiator': 'urn:storageos:Initiator:b195a6f7-dc51-413d-ab38-c75375e25241:vdc1', 'storage_ports': ['urn:storageos:StoragePort:39a4d471-ca56-48d0-a7da-199dc78685a2:vdc1', 'urn:storageos:StoragePort:95f4a194-6953-4ad2-a29e-11a9dc69ab47:vdc1']}, {'initiator': 'urn:storageos:Initiator:6f3f553f-bcd4-449d-a141-375fb45e1d43:vdc1', 'storage_ports': ['urn:storageos:StoragePort:23456810-bc4e-4f3e-ab03-05080084cde6:vdc1']}, {'initiator': 'urn:storageos:Initiator:d0094cd1-897a-4264-81bd-a10979a38b9c:vdc1', 'storage_ports': ['urn:storageos:StoragePort:61f21af3-63bc-40d9-932f-acf493b4084a:vdc1', 'urn:storageos:StoragePort:010e05a2-8879-4ade-9fc0-a2b58d210395:vdc1']}, {'initiator': 'urn:storageos:Initiator:15acd93d-0064-4b0f-a6c4-20f042cf2b5c:vdc1', 'storage_ports': ['urn:storageos:StoragePort:39a4d471-ca56-48d0-a7da-199dc78685a2:vdc1', 'urn:storageos:StoragePort:95f4a194-6953-4ad2-a29e-11a9dc69ab47:vdc1']}, {'initiator': 'urn:storageos:Initiator:9406e7d2-f896-44e7-94be-7e4438b5c14d:vdc1', 'storage_ports': ['urn:storageos:StoragePort:61f21af3-63bc-40d9-932f-acf493b4084a:vdc1', 'urn:storageos:StoragePort:010e05a2-8879-4ade-9fc0-a2b58d210395:vdc1']}, {'initiator': 'urn:storageos:Initiator:30ee3d5f-68be-4c10-9c5d-42bd7827903f:vdc1', 'storage_ports': ['urn:storageos:StoragePort:23456810-bc4e-4f3e-ab03-05080084cde6:vdc1']}, {'initiator': 'urn:storageos:Initiator:7f21cc50-91bb-4c9b-a5f3-623f9f324f3c:vdc1', 'storage_ports': ['urn:storageos:StoragePort:39a4d471-ca56-48d0-a7da-199dc78685a2:vdc1', 'urn:storageos:StoragePort:95f4a194-6953-4ad2-a29e-11a9dc69ab47:vdc1']}, {'initiator': 'urn:storageos:Initiator:5bce254f-4a05-4e55-bd04-12779a796ee2:vdc1', 'storage_ports': ['urn:storageos:StoragePort:23456810-bc4e-4f3e-ab03-05080084cde6:vdc1']}, {'initiator': 'urn:storageos:Initiator:2c11cf94-728a-4136-ad0b-f9876d1368e5:vdc1', 'storage_ports': ['urn:storageos:StoragePort:61f21af3-63bc-40d9-932f-acf493b4084a:vdc1', 'urn:storageos:StoragePort:010e05a2-8879-4ade-9fc0-a2b58d210395:vdc1']}]}
+Export group updated with id urn:storageos:ExportGroup:76c6f4dd-7878-48c5-906e-effbde5c72dd:vdc1

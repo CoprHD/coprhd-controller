@@ -1,0 +1,12 @@
+urn:storageos:Workflow:87218abf-684c-4590-b57d-8ef9a7e15ba1:vdc1 creation_time: 2017-05-31 19:23:03,998
+    completed: True
+    state: SUCCESS
+    message: Create volumes successful for: [urn:storageos:Volume:1abe4000-48df-4d45-8747-3d3199dd718f:vdc1]
+    controller: BlockOrchestrationDeviceController
+    method: CREATE_VOLUMES_WORKFLOW
+ 
+urn:storageos:Workflow:e41984c6-529e-46d8-bc7a-bdd9aaaae20e:vdc1 creation_time: 2017-05-31 19:23:25,294
+    completed: False
+    controller: ExportWorkflowEntryPoints
+    method: exportGroupCreate
+ 

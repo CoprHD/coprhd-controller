@@ -18,7 +18,10 @@ import com.emc.storageos.coordinator.service.Coordinator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -29,6 +32,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.model.search.Tags;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.util.CinderQosUtil;
 import com.emc.storageos.util.NetworkLite;
@@ -42,6 +46,7 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
     protected CoordinatorClient coordinator;
     protected DbClient dbClient;
     private static Map<String, VarrayGeneratorInterface> registrationMap = new HashMap<String, VarrayGeneratorInterface>();
+    protected static String SITE = "Site";
     private Set<VpoolTemplate> vpoolTemplates = new HashSet<VpoolTemplate>();;
     
     protected VarrayGenerator(String type) {
@@ -64,6 +69,47 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
      * Tnis method is not used but is there for the interface.
      */
     public void generateVarraysForStorageSystem(StorageSystem system) {
+    }
+    
+    /**
+     * Build a standard varray or update it to include the storage system that is passed.
+     * @param system - Storage System
+     * @param varrayName -- String name of virtual array
+     * @param ports -- List of StoragePorts to be provisioned in Virtual Array
+     * @param networks -- Set Network URIs that should be included
+     */
+    protected VirtualArray buildVarray(StorageSystem system, String varrayName, List<StoragePort> ports, Set<URI> networks) {
+        
+            // Get the existing, or a new varray.
+            VirtualArray existingVA = getVirtualArray(varrayName);
+            VirtualArray varray = (existingVA != null ? existingVA : newVirtualArray(varrayName));
+            
+            // Explicitly assign the networks
+            Map<URI, StoragePort> portsToUpdate = new HashMap<URI, StoragePort>();
+            Map<URI, Network> networksToUpdate = new HashMap<URI, Network>();
+            for (URI netURI : networks) {
+                addVarrayToNetwork(varray.getId(), netURI, networksToUpdate);
+            }
+            // Explicitly assign the storage ports.
+            for (StoragePort port : ports) {
+                connectVarrayToPort(varray.getId(), port, portsToUpdate);
+            }
+            for (StoragePort port : ports) {
+                assignVarrayToPort(varray.getId(), port, portsToUpdate);
+            }
+            
+            // Persist things.
+            if (existingVA == varray) {
+                dbClient.updateObject(varray);
+                log.info("Updated virtual array: " + varray.getLabel());
+            } else {
+                dbClient.createObject(varray);
+                log.info("Created virtual array: " + varray.getLabel());;
+            }
+            updatePorts(portsToUpdate);
+            updateNetworks(networksToUpdate);
+            
+            return varray;
     }
 
     protected VirtualArray getVirtualArray(String label) {
@@ -304,7 +350,30 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
            log.info("Error matching: " + vpool.getLabel() + " " + errorMessage.toString()); 
         }
         return vpool;
-    }public CoordinatorClient getCoordinator() {
+    }
+    
+    /**
+     * Returns the site that a Storage System should be a part of. 
+     * This is currently stored as a tag of form Site-siteName
+     * @param system -- StorageSystem
+     * @return - Site name
+     */
+    protected String getSiteName(StorageSystem system) {
+        ScopedLabelSet tags= system.getTag();
+        if (tags != null) {
+            for (ScopedLabel tag : tags) {
+                String labelPrefix = SITE + "=";
+                String label = tag.getLabel();
+                if (NullColumnValueGetter.isNotNullValue(label) && label.startsWith(labelPrefix)) {
+                   String site = label.replaceAll(labelPrefix, "");
+                   return site;
+                }
+            }
+        }
+        return null;
+    }
+    
+    public CoordinatorClient getCoordinator() {
         return coordinator;
     }
 

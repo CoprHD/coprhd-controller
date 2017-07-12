@@ -1,0 +1,120 @@
+h1025a
+*************************************************************
+urn:storageos:ExportGroup:6db7a2da-b7b8-4731-a1dc-5eeff0efe286:vdc1
+     pathParam  =  StringMap {urn:storageos:Volume:7713d1b9-6a4b-4063-9546-2d278490d9ef:vdc1=urn:storageos:ExportPathParams:55777b14-7853-4230-98bb-1150f42d7d74:vdc1, urn:storageos:Volume:c1c718c4-a546-478f-b3ba-e3eeaf32ead6:vdc1=urn:storageos:ExportPathParams:55777b14-7853-4230-98bb-1150f42d7d74:vdc1}
+     internalFlags  =  0
+     generatedName  =  h1025a
+     exportMasks  =  StringSet [urn:storageos:ExportMask:3e2f2da1-ac2e-4ded-b2f3-9e43c0fc0dd2:vdc1, urn:storageos:ExportMask:331ce1fa-512d-4652-900a-c54ad46db1b6:vdc1]
+     zoneAllInitiators  =  false
+     id  =  urn:storageos:ExportGroup:6db7a2da-b7b8-4731-a1dc-5eeff0efe286:vdc1
+     numPaths  =  0
+     volumes  =  StringMap {urn:storageos:Volume:7713d1b9-6a4b-4063-9546-2d278490d9ef:vdc1=2, urn:storageos:Volume:c1c718c4-a546-478f-b3ba-e3eeaf32ead6:vdc1=1}
+     inactive  =  false
+     tenant  =  urn:storageos:TenantOrg:3bcc166b-5617-4b71-81a0-cca58a57bf40:global:h1025a
+     label  =  h1025a
+     type  =  Host
+     hosts  =  StringSet [urn:storageos:Host:2c12bd51-79cf-4586-ad09-d4d9a4fb3fd5:vdc1]
+     varray  =  URI: urn:storageos:VirtualArray:ac11d753-eb82-4f03-b4c0-49b88873c054:vdc1
+     initiators  =  StringSet [urn:storageos:Initiator:f22c3470-b8f2-46f2-b048-ab72934e3710:vdc1, urn:storageos:Initiator:4e8ec235-137f-4645-8834-5311f2183a8e:vdc1, urn:storageos:Initiator:a5ec4b6d-8eb2-4ee0-a36d-8b115f6faf10:vdc1, urn:storageos:Initiator:f94f9ce3-85c5-455d-adec-2a2e63ad4366:vdc1]
+     project  =  urn:storageos:Project:410974b8-801e-4b9a-aad9-f28f12d8690e:global:h1025a
+     altVirtualArrays  =  StringMap {urn:storageos:StorageSystem:91921229-b289-46a1-8584-fdbfa04e08e1:vdc1=urn:storageos:VirtualArray:f19fb610-23c3-4ca2-a8dc-2d70267a25ec:vdc1}
+ 
+*************************************************************
+urn:storageos:ExportMask:3e2f2da1-ac2e-4ded-b2f3-9e43c0fc0dd2:vdc1
+     nativeId  =  /clusters/cluster-2/exports/storage-views/V2_aclus025A_h1025aorg_301
+     storageDevice  =  URI: urn:storageos:StorageSystem:91921229-b289-46a1-8584-fdbfa04e08e1:vdc1
+     id  =  urn:storageos:ExportMask:3e2f2da1-ac2e-4ded-b2f3-9e43c0fc0dd2:vdc1
+     userAddedVolumes  =  StringMap {60000970013090030000000000000001=urn:storageos:Volume:c1c718c4-a546-478f-b3ba-e3eeaf32ead6:vdc1}
+     userAddedInitiators  =  StringMap {10005056A2025A12=urn:storageos:Initiator:a5ec4b6d-8eb2-4ee0-a36d-8b115f6faf10:vdc1, 10005056A2025A13=urn:storageos:Initiator:f22c3470-b8f2-46f2-b048-ab72934e3710:vdc1}
+     initiators  =  StringSet [urn:storageos:Initiator:f22c3470-b8f2-46f2-b048-ab72934e3710:vdc1, urn:storageos:Initiator:a5ec4b6d-8eb2-4ee0-a36d-8b115f6faf10:vdc1]
+     internalFlags  =  0
+     inactive  =  false
+     volumes  =  StringMap {urn:storageos:Volume:c1c718c4-a546-478f-b3ba-e3eeaf32ead6:vdc1=1}
+     storagePorts  =  StringSet [urn:storageos:StoragePort:6ce2a966-4f25-4c48-9cbe-524e377bc41d:vdc1]
+     zoningMap  =  {urn:storageos:Initiator:a5ec4b6d-8eb2-4ee0-a36d-8b115f6faf10:vdc1=[urn:storageos:StoragePort:6ce2a966-4f25-4c48-9cbe-524e377bc41d:vdc1]}
+     maskName  =  V2_aclus025A_h1025aorg_301
+     resource  =  urn:storageos:Host:2c12bd51-79cf-4586-ad09-d4d9a4fb3fd5:vdc1
+     createdBySystem  =  true
+ 
+*************************************************************
+urn:storageos:Initiator:f22c3470-b8f2-46f2-b048-ab72934e3710:vdc1
+     ininode  =  11:00:50:56:A2:02:5A:13
+     host  =  URI: urn:storageos:Host:2c12bd51-79cf-4586-ad09-d4d9a4fb3fd5:vdc1
+     isManualCreation  =  true
+     label  =  10:00:50:56:A2:02:5A:13
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     initiatorNames  =  StringMap {}
+     internalFlags  =  0
+     iniport  =  10:00:50:56:A2:02:5A:13
+     clustername  =  aclus025A
+     inactive  =  false
+     id  =  urn:storageos:Initiator:f22c3470-b8f2-46f2-b048-ab72934e3710:vdc1
+     hostname  =  h1025a.org
+ 
+*************************************************************
+urn:storageos:Initiator:a5ec4b6d-8eb2-4ee0-a36d-8b115f6faf10:vdc1
+     isManualCreation  =  true
+     ininode  =  11:00:50:56:A2:02:5A:12
+     label  =  10:00:50:56:A2:02:5A:12
+     id  =  urn:storageos:Initiator:a5ec4b6d-8eb2-4ee0-a36d-8b115f6faf10:vdc1
+     protocol  =  FC
+     clustername  =  aclus025A
+     inactive  =  false
+     internalFlags  =  0
+     iniport  =  10:00:50:56:A2:02:5A:12
+     registrationStatus  =  REGISTERED
+     host  =  URI: urn:storageos:Host:2c12bd51-79cf-4586-ad09-d4d9a4fb3fd5:vdc1
+     initiatorNames  =  StringMap {}
+     hostname  =  h1025a.org
+ 
+*************************************************************
+urn:storageos:ExportMask:331ce1fa-512d-4652-900a-c54ad46db1b6:vdc1
+     initiators  =  StringSet [urn:storageos:Initiator:4e8ec235-137f-4645-8834-5311f2183a8e:vdc1, urn:storageos:Initiator:f94f9ce3-85c5-455d-adec-2a2e63ad4366:vdc1]
+     createdBySystem  =  true
+     nativeId  =  /clusters/cluster-1/exports/storage-views/V1_aclus025A_h1025aorg_300
+     userAddedVolumes  =  StringMap {60000000000000099933438882100001=urn:storageos:Volume:7713d1b9-6a4b-4063-9546-2d278490d9ef:vdc1, 60000970013090030000000000000001=urn:storageos:Volume:c1c718c4-a546-478f-b3ba-e3eeaf32ead6:vdc1}
+     inactive  =  false
+     existingVolumes  =  StringMap {60000000000000099931603130200002=4, 60000000000000099900041419700003=3} <<<<<<<<<<<<<<<<< WRONG
+     volumes  =  StringMap {urn:storageos:Volume:7713d1b9-6a4b-4063-9546-2d278490d9ef:vdc1=2, urn:storageos:Volume:c1c718c4-a546-478f-b3ba-e3eeaf32ead6:vdc1=1}
+     storageDevice  =  URI: urn:storageos:StorageSystem:91921229-b289-46a1-8584-fdbfa04e08e1:vdc1
+     zoningMap  =  {urn:storageos:Initiator:4e8ec235-137f-4645-8834-5311f2183a8e:vdc1=[urn:storageos:StoragePort:05f9d016-bb8f-44ef-ad63-c81695361983:vdc1], urn:storageos:Initiator:f94f9ce3-85c5-455d-adec-2a2e63ad4366:vdc1=[urn:storageos:StoragePort:87ffb050-2174-4cdc-a071-b1f08bfbd523:vdc1]}
+     userAddedInitiators  =  StringMap {10005056A2025A10=urn:storageos:Initiator:f94f9ce3-85c5-455d-adec-2a2e63ad4366:vdc1, 10005056A2025A11=urn:storageos:Initiator:4e8ec235-137f-4645-8834-5311f2183a8e:vdc1}
+     resource  =  urn:storageos:Host:2c12bd51-79cf-4586-ad09-d4d9a4fb3fd5:vdc1
+     internalFlags  =  0
+     id  =  urn:storageos:ExportMask:331ce1fa-512d-4652-900a-c54ad46db1b6:vdc1
+     maskName  =  V1_aclus025A_h1025aorg_300
+     storagePorts  =  StringSet [urn:storageos:StoragePort:87ffb050-2174-4cdc-a071-b1f08bfbd523:vdc1, urn:storageos:StoragePort:05f9d016-bb8f-44ef-ad63-c81695361983:vdc1]
+ 
+*************************************************************
+urn:storageos:Initiator:4e8ec235-137f-4645-8834-5311f2183a8e:vdc1
+     id  =  urn:storageos:Initiator:4e8ec235-137f-4645-8834-5311f2183a8e:vdc1
+     label  =  10:00:50:56:A2:02:5A:11
+     protocol  =  FC
+     iniport  =  10:00:50:56:A2:02:5A:11
+     clustername  =  aclus025A
+     host  =  URI: urn:storageos:Host:2c12bd51-79cf-4586-ad09-d4d9a4fb3fd5:vdc1
+     inactive  =  false
+     initiatorNames  =  StringMap {}
+     ininode  =  11:00:50:56:A2:02:5A:11
+     hostname  =  h1025a.org
+     internalFlags  =  0
+     isManualCreation  =  true
+     registrationStatus  =  REGISTERED
+ 
+*************************************************************
+urn:storageos:Initiator:f94f9ce3-85c5-455d-adec-2a2e63ad4366:vdc1
+     inactive  =  false
+     registrationStatus  =  REGISTERED
+     isManualCreation  =  true
+     hostname  =  h1025a.org
+     ininode  =  11:00:50:56:A2:02:5A:10
+     label  =  10:00:50:56:A2:02:5A:10
+     clustername  =  aclus025A
+     internalFlags  =  0
+     id  =  urn:storageos:Initiator:f94f9ce3-85c5-455d-adec-2a2e63ad4366:vdc1
+     initiatorNames  =  StringMap {}
+     protocol  =  FC
+     host  =  URI: urn:storageos:Host:2c12bd51-79cf-4586-ad09-d4d9a4fb3fd5:vdc1
+     iniport  =  10:00:50:56:A2:02:5A:10
+ 

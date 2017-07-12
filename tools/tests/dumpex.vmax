@@ -1,0 +1,1064 @@
+16hosts
+*************************************************************
+urn:storageos:ExportGroup:4b7c7d87-f640-4dbb-b72f-242069e8c828:vdc1
+     varray  =  URI: urn:storageos:VirtualArray:04e070f8-ac8b-4738-81ae-298100ef16e9:vdc1
+     type  =  Cluster
+     volumes  =  StringMap {urn:storageos:Volume:c588ec91-5b39-4167-87c4-5c8b119c7376:vdc1=2}
+     label  =  16hosts
+     zoneAllInitiators  =  false
+     clusters  =  StringSet [urn:storageos:Cluster:d86d18e9-b028-46bd-b188-dc007a7838c7:vdc1]
+     pathParam  =  StringMap {}
+     numPaths  =  0
+     tenant  =  urn:storageos:TenantOrg:603436c9-0c0d-4bc8-a9b3-cd816a474cda:global:16hosts
+     id  =  urn:storageos:ExportGroup:4b7c7d87-f640-4dbb-b72f-242069e8c828:vdc1
+     hosts  =  StringSet [urn:storageos:Host:ca404112-1f90-4af5-a14e-04d9ea431c01:vdc1, urn:storageos:Host:867b4390-3989-426d-9061-2428922e51aa:vdc1, urn:storageos:Host:0f90383f-510f-440d-9e6a-f719762b9889:vdc1, urn:storageos:Host:cd813cfb-de66-46fb-9856-de07cd5b2b4a:vdc1, urn:storageos:Host:36084202-b22f-4368-8b2a-92088d014e56:vdc1, urn:storageos:Host:fae4d916-35eb-40fb-9d6a-abdddb450af3:vdc1, urn:storageos:Host:efdf5ac4-5ef2-48ac-bd35-44e3c23674fa:vdc1, urn:storageos:Host:59f77b9c-b53f-4f30-b683-68eb8ba5edd9:vdc1, urn:storageos:Host:f1ec6c13-f533-4dbd-b56c-0634b78e0860:vdc1, urn:storageos:Host:1a2946cd-e9a9-436c-8931-dfbd72b1a5eb:vdc1, urn:storageos:Host:fffd9c68-75fe-4bbe-8540-6c880e3d2b61:vdc1, urn:storageos:Host:8f5130c8-7c7b-483f-8787-e12aecd95ea1:vdc1, urn:storageos:Host:09ebf582-2108-4fe2-947d-21d92be6a6fc:vdc1, urn:storageos:Host:a833f101-b59f-4da2-9321-799c9e8912a4:vdc1, urn:storageos:Host:9a5c8633-cbc6-4913-b3a8-2a394d08690f:vdc1, urn:storageos:Host:3ec63627-ef56-4226-9c8a-9bb5e76063b4:vdc1]
+     initiators  =  StringSet [urn:storageos:Initiator:988fe2bf-2a24-411a-9b1a-d482615c15a8:vdc1, urn:storageos:Initiator:eeb27417-b9d5-464f-8ca8-763c9cc9eea0:vdc1, urn:storageos:Initiator:14eb89dd-bf05-4819-b7b6-1761784430de:vdc1, urn:storageos:Initiator:3495847c-9e52-466a-9768-f3768abb83d4:vdc1, urn:storageos:Initiator:428c2304-4437-4b7f-a5b0-e8093f845af3:vdc1, urn:storageos:Initiator:fe62ef08-0160-42a9-818d-bfe303fb83c4:vdc1, urn:storageos:Initiator:774d992a-18ee-4db1-9107-37a26c87ce11:vdc1, urn:storageos:Initiator:5504cc14-f077-48fc-b58d-7688a18cf68e:vdc1, urn:storageos:Initiator:eec3f450-359b-4a9e-8071-11d4fb461fb6:vdc1, urn:storageos:Initiator:4534b695-acd6-49cc-876b-3b0f62c1d802:vdc1, urn:storageos:Initiator:ca55b695-36c4-4798-9828-cf8adf939f69:vdc1, urn:storageos:Initiator:35144cc0-3531-4bb8-88dd-daac98943506:vdc1, urn:storageos:Initiator:1f9e3975-881b-4901-8c47-ffa2e736e851:vdc1, urn:storageos:Initiator:1cba55bd-8730-400f-9eb6-fb31beafe5d9:vdc1, urn:storageos:Initiator:d9a0b5fe-0443-4334-8f73-eb29afb6802f:vdc1, urn:storageos:Initiator:c8dc7fd8-0e44-4aae-a6dd-4ed445866ed2:vdc1, urn:storageos:Initiator:e0618040-80c7-4ba1-ae26-d1ff76cbce4e:vdc1, urn:storageos:Initiator:ab80e220-6c00-499a-b504-c820c0b3685e:vdc1, urn:storageos:Initiator:fb7dc719-4236-41fd-a2ff-699a3aeb4a62:vdc1, urn:storageos:Initiator:5cf869f7-019e-466e-a6b7-6acc3d6548fb:vdc1, urn:storageos:Initiator:0f52a1ec-e6be-4e5b-ad7f-d29a191ef991:vdc1, urn:storageos:Initiator:dfd79600-bee1-401b-9761-ceefb74050ca:vdc1, urn:storageos:Initiator:f99d20f2-5324-481f-a123-9b188face18f:vdc1, urn:storageos:Initiator:9e806edd-d909-41a3-b5db-bf0d6a87b5b5:vdc1, urn:storageos:Initiator:3b5b3e19-a86a-436e-9c42-62b1f0bf817c:vdc1, urn:storageos:Initiator:71795f8f-24e6-4fd2-b136-7951564ed1b0:vdc1, urn:storageos:Initiator:d9ec74a1-e8b0-43af-9fde-002a415f46b3:vdc1, urn:storageos:Initiator:4dc5a994-3f21-43d8-a72a-e4aa4450ade0:vdc1, urn:storageos:Initiator:3f4973de-a973-4154-b78e-ef7d409a9d7e:vdc1, urn:storageos:Initiator:bf5e911b-1d70-4404-bfb9-6b82cc935ef6:vdc1, urn:storageos:Initiator:d181d149-2ce0-49bf-9fba-835f6040ec4d:vdc1, urn:storageos:Initiator:3627ebf3-5298-4761-b684-601f3c964946:vdc1, urn:storageos:Initiator:967883b3-737a-4a08-ae4b-49ad447735ed:vdc1, urn:storageos:Initiator:ac4b92e5-1248-4f21-99e3-4d4cbfc9435d:vdc1, urn:storageos:Initiator:e12873c0-cc1b-44a4-a49a-4d24f5e25040:vdc1, urn:storageos:Initiator:fef41b78-7cdd-438d-ab05-9e86aa91fd5c:vdc1, urn:storageos:Initiator:2e7728b3-8c79-421c-83cb-87e4108bff68:vdc1, urn:storageos:Initiator:3200a87c-f4b2-4997-a0e8-bc334525d952:vdc1, urn:storageos:Initiator:b65350e5-9c22-4e2b-ad01-18dbc3a29032:vdc1, urn:storageos:Initiator:e616d589-f0ec-4e24-a630-552435c4f2e3:vdc1, urn:storageos:Initiator:90b1736e-a211-43bf-bf9b-9e4901dd2b7b:vdc1, urn:storageos:Initiator:cde0be4a-f4d7-4194-bd6c-8b65ece4c9af:vdc1, urn:storageos:Initiator:8af7d72b-a460-4937-8993-a60ca197ce5e:vdc1, urn:storageos:Initiator:a6360137-8a2f-46b9-a89e-d06fe2d91629:vdc1, urn:storageos:Initiator:6ec1b449-7c45-49aa-a495-7406d836e41e:vdc1, urn:storageos:Initiator:bdfafa7a-f4c6-4e7b-8af6-d33f155fa0f9:vdc1, urn:storageos:Initiator:9db81077-8068-48bd-9266-bfd10c005801:vdc1, urn:storageos:Initiator:7ce9418f-cb6c-4c82-a493-56d68d604732:vdc1, urn:storageos:Initiator:12eb4f48-3f65-491b-ae35-6fa8ca334217:vdc1, urn:storageos:Initiator:6cdc2523-fc45-4c5c-964d-52e376f55e0e:vdc1, urn:storageos:Initiator:7a6458cb-7280-4724-8e51-4b4b973429ca:vdc1, urn:storageos:Initiator:418e559b-7a7c-46ef-bd02-524cca5561cb:vdc1, urn:storageos:Initiator:f697a152-4a28-4e60-8f02-a28c24966d0a:vdc1, urn:storageos:Initiator:ce60e2b4-2b33-46a7-b02f-6da5fbc0b9fc:vdc1, urn:storageos:Initiator:7aca235b-3947-4b1c-af12-4301aded8635:vdc1, urn:storageos:Initiator:7ba83608-d81f-4516-a1ee-fb01a7471b79:vdc1, urn:storageos:Initiator:0241c520-a599-43e2-9763-93acbd494adf:vdc1, urn:storageos:Initiator:b06a3752-535b-4955-ac50-4d8057e1bbe0:vdc1, urn:storageos:Initiator:237cdcb3-03e1-41fa-a681-3ea0915bb8d6:vdc1, urn:storageos:Initiator:d3225a4b-7ff0-45da-ad0b-4dcb17973d1e:vdc1, urn:storageos:Initiator:280574f3-85ec-4df9-8c96-278c4429486d:vdc1, urn:storageos:Initiator:7b4bca6f-6dad-45e0-9a36-b34cdb15f00d:vdc1, urn:storageos:Initiator:2a23c880-974f-48ea-8cbb-d292d39d4c16:vdc1, urn:storageos:Initiator:c79fdaa2-6bed-4415-bdae-cb78a2828615:vdc1]
+     internalFlags  =  0
+     generatedName  =  V16hosts
+     exportMasks  =  StringSet [urn:storageos:ExportMask:f07fb339-5f55-4a15-8881-c29301c9d83e:vdc1]
+     inactive  =  false
+     project  =  urn:storageos:Project:2fec1e19-0c48-4953-9a07-cf7f0dd36684:global:16hosts
+ 
+*************************************************************
+urn:storageos:ExportMask:f07fb339-5f55-4a15-8881-c29301c9d83e:vdc1
+     initiators  =  StringSet [urn:storageos:Initiator:988fe2bf-2a24-411a-9b1a-d482615c15a8:vdc1, urn:storageos:Initiator:eeb27417-b9d5-464f-8ca8-763c9cc9eea0:vdc1, urn:storageos:Initiator:14eb89dd-bf05-4819-b7b6-1761784430de:vdc1, urn:storageos:Initiator:3495847c-9e52-466a-9768-f3768abb83d4:vdc1, urn:storageos:Initiator:428c2304-4437-4b7f-a5b0-e8093f845af3:vdc1, urn:storageos:Initiator:fe62ef08-0160-42a9-818d-bfe303fb83c4:vdc1, urn:storageos:Initiator:774d992a-18ee-4db1-9107-37a26c87ce11:vdc1, urn:storageos:Initiator:5504cc14-f077-48fc-b58d-7688a18cf68e:vdc1, urn:storageos:Initiator:eec3f450-359b-4a9e-8071-11d4fb461fb6:vdc1, urn:storageos:Initiator:4534b695-acd6-49cc-876b-3b0f62c1d802:vdc1, urn:storageos:Initiator:ca55b695-36c4-4798-9828-cf8adf939f69:vdc1, urn:storageos:Initiator:35144cc0-3531-4bb8-88dd-daac98943506:vdc1, urn:storageos:Initiator:1f9e3975-881b-4901-8c47-ffa2e736e851:vdc1, urn:storageos:Initiator:1cba55bd-8730-400f-9eb6-fb31beafe5d9:vdc1, urn:storageos:Initiator:d9a0b5fe-0443-4334-8f73-eb29afb6802f:vdc1, urn:storageos:Initiator:c8dc7fd8-0e44-4aae-a6dd-4ed445866ed2:vdc1, urn:storageos:Initiator:e0618040-80c7-4ba1-ae26-d1ff76cbce4e:vdc1, urn:storageos:Initiator:ab80e220-6c00-499a-b504-c820c0b3685e:vdc1, urn:storageos:Initiator:fb7dc719-4236-41fd-a2ff-699a3aeb4a62:vdc1, urn:storageos:Initiator:5cf869f7-019e-466e-a6b7-6acc3d6548fb:vdc1, urn:storageos:Initiator:0f52a1ec-e6be-4e5b-ad7f-d29a191ef991:vdc1, urn:storageos:Initiator:dfd79600-bee1-401b-9761-ceefb74050ca:vdc1, urn:storageos:Initiator:f99d20f2-5324-481f-a123-9b188face18f:vdc1, urn:storageos:Initiator:9e806edd-d909-41a3-b5db-bf0d6a87b5b5:vdc1, urn:storageos:Initiator:3b5b3e19-a86a-436e-9c42-62b1f0bf817c:vdc1, urn:storageos:Initiator:71795f8f-24e6-4fd2-b136-7951564ed1b0:vdc1, urn:storageos:Initiator:d9ec74a1-e8b0-43af-9fde-002a415f46b3:vdc1, urn:storageos:Initiator:4dc5a994-3f21-43d8-a72a-e4aa4450ade0:vdc1, urn:storageos:Initiator:3f4973de-a973-4154-b78e-ef7d409a9d7e:vdc1, urn:storageos:Initiator:bf5e911b-1d70-4404-bfb9-6b82cc935ef6:vdc1, urn:storageos:Initiator:d181d149-2ce0-49bf-9fba-835f6040ec4d:vdc1, urn:storageos:Initiator:3627ebf3-5298-4761-b684-601f3c964946:vdc1, urn:storageos:Initiator:967883b3-737a-4a08-ae4b-49ad447735ed:vdc1, urn:storageos:Initiator:ac4b92e5-1248-4f21-99e3-4d4cbfc9435d:vdc1, urn:storageos:Initiator:e12873c0-cc1b-44a4-a49a-4d24f5e25040:vdc1, urn:storageos:Initiator:fef41b78-7cdd-438d-ab05-9e86aa91fd5c:vdc1, urn:storageos:Initiator:2e7728b3-8c79-421c-83cb-87e4108bff68:vdc1, urn:storageos:Initiator:3200a87c-f4b2-4997-a0e8-bc334525d952:vdc1, urn:storageos:Initiator:b65350e5-9c22-4e2b-ad01-18dbc3a29032:vdc1, urn:storageos:Initiator:e616d589-f0ec-4e24-a630-552435c4f2e3:vdc1, urn:storageos:Initiator:90b1736e-a211-43bf-bf9b-9e4901dd2b7b:vdc1, urn:storageos:Initiator:cde0be4a-f4d7-4194-bd6c-8b65ece4c9af:vdc1, urn:storageos:Initiator:8af7d72b-a460-4937-8993-a60ca197ce5e:vdc1, urn:storageos:Initiator:a6360137-8a2f-46b9-a89e-d06fe2d91629:vdc1, urn:storageos:Initiator:6ec1b449-7c45-49aa-a495-7406d836e41e:vdc1, urn:storageos:Initiator:bdfafa7a-f4c6-4e7b-8af6-d33f155fa0f9:vdc1, urn:storageos:Initiator:9db81077-8068-48bd-9266-bfd10c005801:vdc1, urn:storageos:Initiator:7ce9418f-cb6c-4c82-a493-56d68d604732:vdc1, urn:storageos:Initiator:12eb4f48-3f65-491b-ae35-6fa8ca334217:vdc1, urn:storageos:Initiator:6cdc2523-fc45-4c5c-964d-52e376f55e0e:vdc1, urn:storageos:Initiator:7a6458cb-7280-4724-8e51-4b4b973429ca:vdc1, urn:storageos:Initiator:418e559b-7a7c-46ef-bd02-524cca5561cb:vdc1, urn:storageos:Initiator:f697a152-4a28-4e60-8f02-a28c24966d0a:vdc1, urn:storageos:Initiator:ce60e2b4-2b33-46a7-b02f-6da5fbc0b9fc:vdc1, urn:storageos:Initiator:7aca235b-3947-4b1c-af12-4301aded8635:vdc1, urn:storageos:Initiator:7ba83608-d81f-4516-a1ee-fb01a7471b79:vdc1, urn:storageos:Initiator:0241c520-a599-43e2-9763-93acbd494adf:vdc1, urn:storageos:Initiator:b06a3752-535b-4955-ac50-4d8057e1bbe0:vdc1, urn:storageos:Initiator:237cdcb3-03e1-41fa-a681-3ea0915bb8d6:vdc1, urn:storageos:Initiator:d3225a4b-7ff0-45da-ad0b-4dcb17973d1e:vdc1, urn:storageos:Initiator:280574f3-85ec-4df9-8c96-278c4429486d:vdc1, urn:storageos:Initiator:7b4bca6f-6dad-45e0-9a36-b34cdb15f00d:vdc1, urn:storageos:Initiator:2a23c880-974f-48ea-8cbb-d292d39d4c16:vdc1, urn:storageos:Initiator:c79fdaa2-6bed-4415-bdae-cb78a2828615:vdc1]
+     inactive  =  false
+     createdBySystem  =  true
+     userAddedInitiators  =  StringMap {1050575757575732=urn:storageos:Initiator:14eb89dd-bf05-4819-b7b6-1761784430de:vdc1, 1050575757575731=urn:storageos:Initiator:c8dc7fd8-0e44-4aae-a6dd-4ed445866ed2:vdc1, 1050575757575730=urn:storageos:Initiator:cde0be4a-f4d7-4194-bd6c-8b65ece4c9af:vdc1, 1050575757575736=urn:storageos:Initiator:dfd79600-bee1-401b-9761-ceefb74050ca:vdc1, 1050575757575735=urn:storageos:Initiator:967883b3-737a-4a08-ae4b-49ad447735ed:vdc1, 1050575757575734=urn:storageos:Initiator:3200a87c-f4b2-4997-a0e8-bc334525d952:vdc1, 1050575757575733=urn:storageos:Initiator:d9ec74a1-e8b0-43af-9fde-002a415f46b3:vdc1, 1050575757575739=urn:storageos:Initiator:bdfafa7a-f4c6-4e7b-8af6-d33f155fa0f9:vdc1, 1050575757575738=urn:storageos:Initiator:2e7728b3-8c79-421c-83cb-87e4108bff68:vdc1, 1050575757575737=urn:storageos:Initiator:ce60e2b4-2b33-46a7-b02f-6da5fbc0b9fc:vdc1, 105057575757573B=urn:storageos:Initiator:6ec1b449-7c45-49aa-a495-7406d836e41e:vdc1, 105057575757573A=urn:storageos:Initiator:fef41b78-7cdd-438d-ab05-9e86aa91fd5c:vdc1, 105057575757573F=urn:storageos:Initiator:bf5e911b-1d70-4404-bfb9-6b82cc935ef6:vdc1, 105057575757573E=urn:storageos:Initiator:5504cc14-f077-48fc-b58d-7688a18cf68e:vdc1, 105057575757573D=urn:storageos:Initiator:b65350e5-9c22-4e2b-ad01-18dbc3a29032:vdc1, 105057575757573C=urn:storageos:Initiator:fe62ef08-0160-42a9-818d-bfe303fb83c4:vdc1, 1050575757575703=urn:storageos:Initiator:b06a3752-535b-4955-ac50-4d8057e1bbe0:vdc1, 1050575757575702=urn:storageos:Initiator:3f4973de-a973-4154-b78e-ef7d409a9d7e:vdc1, 1050575757575701=urn:storageos:Initiator:35144cc0-3531-4bb8-88dd-daac98943506:vdc1, 1050575757575700=urn:storageos:Initiator:ca55b695-36c4-4798-9828-cf8adf939f69:vdc1, 1050575757575707=urn:storageos:Initiator:774d992a-18ee-4db1-9107-37a26c87ce11:vdc1, 1050575757575706=urn:storageos:Initiator:7ba83608-d81f-4516-a1ee-fb01a7471b79:vdc1, 1050575757575705=urn:storageos:Initiator:c79fdaa2-6bed-4415-bdae-cb78a2828615:vdc1, 1050575757575704=urn:storageos:Initiator:8af7d72b-a460-4937-8993-a60ca197ce5e:vdc1, 1050575757575709=urn:storageos:Initiator:7aca235b-3947-4b1c-af12-4301aded8635:vdc1, 1050575757575708=urn:storageos:Initiator:d9a0b5fe-0443-4334-8f73-eb29afb6802f:vdc1, 105057575757570C=urn:storageos:Initiator:d181d149-2ce0-49bf-9fba-835f6040ec4d:vdc1, 105057575757570B=urn:storageos:Initiator:90b1736e-a211-43bf-bf9b-9e4901dd2b7b:vdc1, 105057575757570A=urn:storageos:Initiator:9db81077-8068-48bd-9266-bfd10c005801:vdc1, 105057575757570F=urn:storageos:Initiator:f99d20f2-5324-481f-a123-9b188face18f:vdc1, 105057575757570E=urn:storageos:Initiator:6cdc2523-fc45-4c5c-964d-52e376f55e0e:vdc1, 105057575757570D=urn:storageos:Initiator:e0618040-80c7-4ba1-ae26-d1ff76cbce4e:vdc1, 1050575757575710=urn:storageos:Initiator:fb7dc719-4236-41fd-a2ff-699a3aeb4a62:vdc1, 1050575757575714=urn:storageos:Initiator:e616d589-f0ec-4e24-a630-552435c4f2e3:vdc1, 1050575757575713=urn:storageos:Initiator:1cba55bd-8730-400f-9eb6-fb31beafe5d9:vdc1, 1050575757575712=urn:storageos:Initiator:0241c520-a599-43e2-9763-93acbd494adf:vdc1, 1050575757575711=urn:storageos:Initiator:a6360137-8a2f-46b9-a89e-d06fe2d91629:vdc1, 1050575757575718=urn:storageos:Initiator:71795f8f-24e6-4fd2-b136-7951564ed1b0:vdc1, 1050575757575717=urn:storageos:Initiator:eec3f450-359b-4a9e-8071-11d4fb461fb6:vdc1, 1050575757575716=urn:storageos:Initiator:7ce9418f-cb6c-4c82-a493-56d68d604732:vdc1, 1050575757575715=urn:storageos:Initiator:418e559b-7a7c-46ef-bd02-524cca5561cb:vdc1, 1050575757575719=urn:storageos:Initiator:4534b695-acd6-49cc-876b-3b0f62c1d802:vdc1, 105057575757571D=urn:storageos:Initiator:5cf869f7-019e-466e-a6b7-6acc3d6548fb:vdc1, 105057575757571C=urn:storageos:Initiator:0f52a1ec-e6be-4e5b-ad7f-d29a191ef991:vdc1, 105057575757571B=urn:storageos:Initiator:1f9e3975-881b-4901-8c47-ffa2e736e851:vdc1, 105057575757571A=urn:storageos:Initiator:f697a152-4a28-4e60-8f02-a28c24966d0a:vdc1, 105057575757571F=urn:storageos:Initiator:988fe2bf-2a24-411a-9b1a-d482615c15a8:vdc1, 105057575757571E=urn:storageos:Initiator:ab80e220-6c00-499a-b504-c820c0b3685e:vdc1, 1050575757575721=urn:storageos:Initiator:280574f3-85ec-4df9-8c96-278c4429486d:vdc1, 1050575757575720=urn:storageos:Initiator:12eb4f48-3f65-491b-ae35-6fa8ca334217:vdc1, 1050575757575725=urn:storageos:Initiator:2a23c880-974f-48ea-8cbb-d292d39d4c16:vdc1, 1050575757575724=urn:storageos:Initiator:9e806edd-d909-41a3-b5db-bf0d6a87b5b5:vdc1, 1050575757575723=urn:storageos:Initiator:4dc5a994-3f21-43d8-a72a-e4aa4450ade0:vdc1, 1050575757575722=urn:storageos:Initiator:237cdcb3-03e1-41fa-a681-3ea0915bb8d6:vdc1, 1050575757575729=urn:storageos:Initiator:eeb27417-b9d5-464f-8ca8-763c9cc9eea0:vdc1, 1050575757575728=urn:storageos:Initiator:7a6458cb-7280-4724-8e51-4b4b973429ca:vdc1, 1050575757575727=urn:storageos:Initiator:3b5b3e19-a86a-436e-9c42-62b1f0bf817c:vdc1, 1050575757575726=urn:storageos:Initiator:7b4bca6f-6dad-45e0-9a36-b34cdb15f00d:vdc1, 105057575757572A=urn:storageos:Initiator:ac4b92e5-1248-4f21-99e3-4d4cbfc9435d:vdc1, 105057575757572E=urn:storageos:Initiator:3627ebf3-5298-4761-b684-601f3c964946:vdc1, 105057575757572D=urn:storageos:Initiator:3495847c-9e52-466a-9768-f3768abb83d4:vdc1, 105057575757572C=urn:storageos:Initiator:d3225a4b-7ff0-45da-ad0b-4dcb17973d1e:vdc1, 105057575757572B=urn:storageos:Initiator:e12873c0-cc1b-44a4-a49a-4d24f5e25040:vdc1, 105057575757572F=urn:storageos:Initiator:428c2304-4437-4b7f-a5b0-e8093f845af3:vdc1}
+     storageDevice  =  URI: urn:storageos:StorageSystem:c9c20590-55b5-4fd1-8e43-3929b8aa2bac:vdc1
+     storagePorts  =  StringSet [urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1, urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1]
+     existingInitiators  =  StringSet []
+     internalFlags  =  0
+     resource  =  16hosts
+     userAddedVolumes  =  StringMap {60000970000197000143533031333331=urn:storageos:Volume:c588ec91-5b39-4167-87c4-5c8b119c7376:vdc1}
+     maskName  =  16hosts_143
+     existingVolumes  =  StringMap {60000970000197000143533031333246=1}
+     volumes  =  StringMap {urn:storageos:Volume:c588ec91-5b39-4167-87c4-5c8b119c7376:vdc1=2}
+     id  =  urn:storageos:ExportMask:f07fb339-5f55-4a15-8881-c29301c9d83e:vdc1
+     nativeId  =  16hosts_143
+     zoningMap  =  {urn:storageos:Initiator:e12873c0-cc1b-44a4-a49a-4d24f5e25040:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:fef41b78-7cdd-438d-ab05-9e86aa91fd5c:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:2e7728b3-8c79-421c-83cb-87e4108bff68:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:3200a87c-f4b2-4997-a0e8-bc334525d952:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:428c2304-4437-4b7f-a5b0-e8093f845af3:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:e616d589-f0ec-4e24-a630-552435c4f2e3:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:cde0be4a-f4d7-4194-bd6c-8b65ece4c9af:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:8af7d72b-a460-4937-8993-a60ca197ce5e:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:a6360137-8a2f-46b9-a89e-d06fe2d91629:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:5504cc14-f077-48fc-b58d-7688a18cf68e:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:4534b695-acd6-49cc-876b-3b0f62c1d802:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:1cba55bd-8730-400f-9eb6-fb31beafe5d9:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:9db81077-8068-48bd-9266-bfd10c005801:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:ab80e220-6c00-499a-b504-c820c0b3685e:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:5cf869f7-019e-466e-a6b7-6acc3d6548fb:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:7a6458cb-7280-4724-8e51-4b4b973429ca:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:f99d20f2-5324-481f-a123-9b188face18f:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:3b5b3e19-a86a-436e-9c42-62b1f0bf817c:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:418e559b-7a7c-46ef-bd02-524cca5561cb:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:ce60e2b4-2b33-46a7-b02f-6da5fbc0b9fc:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:71795f8f-24e6-4fd2-b136-7951564ed1b0:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:7aca235b-3947-4b1c-af12-4301aded8635:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:7ba83608-d81f-4516-a1ee-fb01a7471b79:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:d9ec74a1-e8b0-43af-9fde-002a415f46b3:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:4dc5a994-3f21-43d8-a72a-e4aa4450ade0:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:b06a3752-535b-4955-ac50-4d8057e1bbe0:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:237cdcb3-03e1-41fa-a681-3ea0915bb8d6:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:3f4973de-a973-4154-b78e-ef7d409a9d7e:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1], urn:storageos:Initiator:bf5e911b-1d70-4404-bfb9-6b82cc935ef6:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:d181d149-2ce0-49bf-9fba-835f6040ec4d:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:3627ebf3-5298-4761-b684-601f3c964946:vdc1=[urn:storageos:StoragePort:b34a9055-601e-4648-b8d0-bee8c5f44a52:vdc1], urn:storageos:Initiator:2a23c880-974f-48ea-8cbb-d292d39d4c16:vdc1=[urn:storageos:StoragePort:420dd108-f06b-4035-9539-8d226537b162:vdc1]}
+ 
+*************************************************************
+urn:storageos:Initiator:988fe2bf-2a24-411a-9b1a-d482615c15a8:vdc1
+     isManualCreation  =  true
+     protocol  =  FC
+     iniport  =  10:50:57:57:57:57:57:1F
+     inactive  =  false
+     initiatorNames  =  StringMap {}
+     label  =  10:50:57:57:57:57:57:1F
+     ininode  =  11:50:57:57:57:57:57:1F
+     hostname  =  host16h.org
+     internalFlags  =  0
+     clustername  =  16hosts
+     registrationStatus  =  REGISTERED
+     host  =  URI: urn:storageos:Host:36084202-b22f-4368-8b2a-92088d014e56:vdc1
+     id  =  urn:storageos:Initiator:988fe2bf-2a24-411a-9b1a-d482615c15a8:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:eeb27417-b9d5-464f-8ca8-763c9cc9eea0:vdc1
+     host  =  URI: urn:storageos:Host:efdf5ac4-5ef2-48ac-bd35-44e3c23674fa:vdc1
+     registrationStatus  =  REGISTERED
+     label  =  10:50:57:57:57:57:57:29
+     internalFlags  =  0
+     iniport  =  10:50:57:57:57:57:57:29
+     clustername  =  16hosts
+     protocol  =  FC
+     isManualCreation  =  true
+     initiatorNames  =  StringMap {}
+     inactive  =  false
+     id  =  urn:storageos:Initiator:eeb27417-b9d5-464f-8ca8-763c9cc9eea0:vdc1
+     ininode  =  11:50:57:57:57:57:57:29
+     hostname  =  host16k.org
+ 
+*************************************************************
+urn:storageos:Initiator:14eb89dd-bf05-4819-b7b6-1761784430de:vdc1
+     internalFlags  =  0
+     inactive  =  false
+     registrationStatus  =  REGISTERED
+     label  =  10:50:57:57:57:57:57:32
+     hostname  =  host16m.org
+     iniport  =  10:50:57:57:57:57:57:32
+     isManualCreation  =  true
+     id  =  urn:storageos:Initiator:14eb89dd-bf05-4819-b7b6-1761784430de:vdc1
+     clustername  =  16hosts
+     protocol  =  FC
+     initiatorNames  =  StringMap {}
+     ininode  =  11:50:57:57:57:57:57:32
+     host  =  URI: urn:storageos:Host:cd813cfb-de66-46fb-9856-de07cd5b2b4a:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:3495847c-9e52-466a-9768-f3768abb83d4:vdc1
+     ininode  =  11:50:57:57:57:57:57:2D
+     host  =  URI: urn:storageos:Host:3ec63627-ef56-4226-9c8a-9bb5e76063b4:vdc1
+     clustername  =  16hosts
+     protocol  =  FC
+     label  =  10:50:57:57:57:57:57:2D
+     internalFlags  =  0
+     inactive  =  false
+     initiatorNames  =  StringMap {}
+     id  =  urn:storageos:Initiator:3495847c-9e52-466a-9768-f3768abb83d4:vdc1
+     iniport  =  10:50:57:57:57:57:57:2D
+     registrationStatus  =  REGISTERED
+     hostname  =  host16l.org
+     isManualCreation  =  true
+ 
+*************************************************************
+urn:storageos:Initiator:428c2304-4437-4b7f-a5b0-e8093f845af3:vdc1
+     iniport  =  10:50:57:57:57:57:57:2F
+     isManualCreation  =  true
+     label  =  10:50:57:57:57:57:57:2F
+     internalFlags  =  0
+     protocol  =  FC
+     clustername  =  16hosts
+     initiatorNames  =  StringMap {}
+     id  =  urn:storageos:Initiator:428c2304-4437-4b7f-a5b0-e8093f845af3:vdc1
+     ininode  =  11:50:57:57:57:57:57:2F
+     registrationStatus  =  REGISTERED
+     inactive  =  false
+     host  =  URI: urn:storageos:Host:3ec63627-ef56-4226-9c8a-9bb5e76063b4:vdc1
+     hostname  =  host16l.org
+ 
+*************************************************************
+urn:storageos:Initiator:fe62ef08-0160-42a9-818d-bfe303fb83c4:vdc1
+     id  =  urn:storageos:Initiator:fe62ef08-0160-42a9-818d-bfe303fb83c4:vdc1
+     label  =  10:50:57:57:57:57:57:3C
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     iniport  =  10:50:57:57:57:57:57:3C
+     inactive  =  false
+     hostname  =  host16p.org
+     internalFlags  =  0
+     initiatorNames  =  StringMap {}
+     host  =  URI: urn:storageos:Host:59f77b9c-b53f-4f30-b683-68eb8ba5edd9:vdc1
+     ininode  =  11:50:57:57:57:57:57:3C
+     clustername  =  16hosts
+     isManualCreation  =  true
+ 
+*************************************************************
+urn:storageos:Initiator:774d992a-18ee-4db1-9107-37a26c87ce11:vdc1
+     initiatorNames  =  StringMap {}
+     inactive  =  false
+     ininode  =  11:50:57:57:57:57:57:07
+     hostname  =  host16b.org
+     clustername  =  16hosts
+     id  =  urn:storageos:Initiator:774d992a-18ee-4db1-9107-37a26c87ce11:vdc1
+     host  =  URI: urn:storageos:Host:9a5c8633-cbc6-4913-b3a8-2a394d08690f:vdc1
+     iniport  =  10:50:57:57:57:57:57:07
+     registrationStatus  =  REGISTERED
+     label  =  10:50:57:57:57:57:57:07
+     isManualCreation  =  true
+     internalFlags  =  0
+     protocol  =  FC
+ 
+*************************************************************
+urn:storageos:Initiator:5504cc14-f077-48fc-b58d-7688a18cf68e:vdc1
+     protocol  =  FC
+     isManualCreation  =  true
+     initiatorNames  =  StringMap {}
+     clustername  =  16hosts
+     label  =  10:50:57:57:57:57:57:3E
+     inactive  =  false
+     host  =  URI: urn:storageos:Host:59f77b9c-b53f-4f30-b683-68eb8ba5edd9:vdc1
+     iniport  =  10:50:57:57:57:57:57:3E
+     hostname  =  host16p.org
+     id  =  urn:storageos:Initiator:5504cc14-f077-48fc-b58d-7688a18cf68e:vdc1
+     ininode  =  11:50:57:57:57:57:57:3E
+     registrationStatus  =  REGISTERED
+     internalFlags  =  0
+ 
+*************************************************************
+urn:storageos:Initiator:eec3f450-359b-4a9e-8071-11d4fb461fb6:vdc1
+     isManualCreation  =  true
+     clustername  =  16hosts
+     hostname  =  host16f.org
+     host  =  URI: urn:storageos:Host:a833f101-b59f-4da2-9321-799c9e8912a4:vdc1
+     internalFlags  =  0
+     initiatorNames  =  StringMap {}
+     ininode  =  11:50:57:57:57:57:57:17
+     registrationStatus  =  REGISTERED
+     id  =  urn:storageos:Initiator:eec3f450-359b-4a9e-8071-11d4fb461fb6:vdc1
+     protocol  =  FC
+     inactive  =  false
+     iniport  =  10:50:57:57:57:57:57:17
+     label  =  10:50:57:57:57:57:57:17
+ 
+*************************************************************
+urn:storageos:Initiator:4534b695-acd6-49cc-876b-3b0f62c1d802:vdc1
+     hostname  =  host16g.org
+     id  =  urn:storageos:Initiator:4534b695-acd6-49cc-876b-3b0f62c1d802:vdc1
+     ininode  =  11:50:57:57:57:57:57:19
+     label  =  10:50:57:57:57:57:57:19
+     clustername  =  16hosts
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     inactive  =  false
+     internalFlags  =  0
+     initiatorNames  =  StringMap {}
+     iniport  =  10:50:57:57:57:57:57:19
+     isManualCreation  =  true
+     host  =  URI: urn:storageos:Host:8f5130c8-7c7b-483f-8787-e12aecd95ea1:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:ca55b695-36c4-4798-9828-cf8adf939f69:vdc1
+     iniport  =  10:50:57:57:57:57:57:00
+     internalFlags  =  0
+     inactive  =  false
+     id  =  urn:storageos:Initiator:ca55b695-36c4-4798-9828-cf8adf939f69:vdc1
+     hostname  =  host16a.org
+     ininode  =  11:50:57:57:57:57:57:00
+     initiatorNames  =  StringMap {}
+     registrationStatus  =  REGISTERED
+     isManualCreation  =  true
+     host  =  URI: urn:storageos:Host:09ebf582-2108-4fe2-947d-21d92be6a6fc:vdc1
+     clustername  =  16hosts
+     protocol  =  FC
+     label  =  10:50:57:57:57:57:57:00
+ 
+*************************************************************
+urn:storageos:Initiator:35144cc0-3531-4bb8-88dd-daac98943506:vdc1
+     protocol  =  FC
+     id  =  urn:storageos:Initiator:35144cc0-3531-4bb8-88dd-daac98943506:vdc1
+     isManualCreation  =  true
+     registrationStatus  =  REGISTERED
+     inactive  =  false
+     ininode  =  11:50:57:57:57:57:57:01
+     host  =  URI: urn:storageos:Host:09ebf582-2108-4fe2-947d-21d92be6a6fc:vdc1
+     clustername  =  16hosts
+     initiatorNames  =  StringMap {}
+     internalFlags  =  0
+     label  =  10:50:57:57:57:57:57:01
+     hostname  =  host16a.org
+     iniport  =  10:50:57:57:57:57:57:01
+ 
+*************************************************************
+urn:storageos:Initiator:1f9e3975-881b-4901-8c47-ffa2e736e851:vdc1
+     id  =  urn:storageos:Initiator:1f9e3975-881b-4901-8c47-ffa2e736e851:vdc1
+     label  =  10:50:57:57:57:57:57:1B
+     isManualCreation  =  true
+     host  =  URI: urn:storageos:Host:8f5130c8-7c7b-483f-8787-e12aecd95ea1:vdc1
+     registrationStatus  =  REGISTERED
+     protocol  =  FC
+     initiatorNames  =  StringMap {}
+     internalFlags  =  0
+     iniport  =  10:50:57:57:57:57:57:1B
+     inactive  =  false
+     hostname  =  host16g.org
+     clustername  =  16hosts
+     ininode  =  11:50:57:57:57:57:57:1B
+ 
+*************************************************************
+urn:storageos:Initiator:1cba55bd-8730-400f-9eb6-fb31beafe5d9:vdc1
+     host  =  URI: urn:storageos:Host:fae4d916-35eb-40fb-9d6a-abdddb450af3:vdc1
+     protocol  =  FC
+     iniport  =  10:50:57:57:57:57:57:13
+     inactive  =  false
+     registrationStatus  =  REGISTERED
+     isManualCreation  =  true
+     id  =  urn:storageos:Initiator:1cba55bd-8730-400f-9eb6-fb31beafe5d9:vdc1
+     hostname  =  host16e.org
+     label  =  10:50:57:57:57:57:57:13
+     clustername  =  16hosts
+     ininode  =  11:50:57:57:57:57:57:13
+     internalFlags  =  0
+     initiatorNames  =  StringMap {}
+ 
+*************************************************************
+urn:storageos:Initiator:d9a0b5fe-0443-4334-8f73-eb29afb6802f:vdc1
+     hostname  =  host16c.org
+     initiatorNames  =  StringMap {}
+     host  =  URI: urn:storageos:Host:0f90383f-510f-440d-9e6a-f719762b9889:vdc1
+     id  =  urn:storageos:Initiator:d9a0b5fe-0443-4334-8f73-eb29afb6802f:vdc1
+     internalFlags  =  0
+     clustername  =  16hosts
+     registrationStatus  =  REGISTERED
+     iniport  =  10:50:57:57:57:57:57:08
+     label  =  10:50:57:57:57:57:57:08
+     protocol  =  FC
+     isManualCreation  =  true
+     inactive  =  false
+     ininode  =  11:50:57:57:57:57:57:08
+ 
+*************************************************************
+urn:storageos:Initiator:c8dc7fd8-0e44-4aae-a6dd-4ed445866ed2:vdc1
+     id  =  urn:storageos:Initiator:c8dc7fd8-0e44-4aae-a6dd-4ed445866ed2:vdc1
+     initiatorNames  =  StringMap {}
+     host  =  URI: urn:storageos:Host:cd813cfb-de66-46fb-9856-de07cd5b2b4a:vdc1
+     protocol  =  FC
+     clustername  =  16hosts
+     registrationStatus  =  REGISTERED
+     isManualCreation  =  true
+     iniport  =  10:50:57:57:57:57:57:31
+     inactive  =  false
+     label  =  10:50:57:57:57:57:57:31
+     hostname  =  host16m.org
+     internalFlags  =  0
+     ininode  =  11:50:57:57:57:57:57:31
+ 
+*************************************************************
+urn:storageos:Initiator:e0618040-80c7-4ba1-ae26-d1ff76cbce4e:vdc1
+     ininode  =  11:50:57:57:57:57:57:0D
+     protocol  =  FC
+     id  =  urn:storageos:Initiator:e0618040-80c7-4ba1-ae26-d1ff76cbce4e:vdc1
+     isManualCreation  =  true
+     clustername  =  16hosts
+     inactive  =  false
+     internalFlags  =  0
+     host  =  URI: urn:storageos:Host:fffd9c68-75fe-4bbe-8540-6c880e3d2b61:vdc1
+     initiatorNames  =  StringMap {}
+     hostname  =  host16d.org
+     iniport  =  10:50:57:57:57:57:57:0D
+     registrationStatus  =  REGISTERED
+     label  =  10:50:57:57:57:57:57:0D
+ 
+*************************************************************
+urn:storageos:Initiator:ab80e220-6c00-499a-b504-c820c0b3685e:vdc1
+     protocol  =  FC
+     host  =  URI: urn:storageos:Host:36084202-b22f-4368-8b2a-92088d014e56:vdc1
+     ininode  =  11:50:57:57:57:57:57:1E
+     inactive  =  false
+     hostname  =  host16h.org
+     iniport  =  10:50:57:57:57:57:57:1E
+     initiatorNames  =  StringMap {}
+     id  =  urn:storageos:Initiator:ab80e220-6c00-499a-b504-c820c0b3685e:vdc1
+     label  =  10:50:57:57:57:57:57:1E
+     internalFlags  =  0
+     registrationStatus  =  REGISTERED
+     isManualCreation  =  true
+     clustername  =  16hosts
+ 
+*************************************************************
+urn:storageos:Initiator:fb7dc719-4236-41fd-a2ff-699a3aeb4a62:vdc1
+     initiatorNames  =  StringMap {}
+     registrationStatus  =  REGISTERED
+     host  =  URI: urn:storageos:Host:fae4d916-35eb-40fb-9d6a-abdddb450af3:vdc1
+     iniport  =  10:50:57:57:57:57:57:10
+     clustername  =  16hosts
+     id  =  urn:storageos:Initiator:fb7dc719-4236-41fd-a2ff-699a3aeb4a62:vdc1
+     protocol  =  FC
+     internalFlags  =  0
+     inactive  =  false
+     hostname  =  host16e.org
+     ininode  =  11:50:57:57:57:57:57:10
+     isManualCreation  =  true
+     label  =  10:50:57:57:57:57:57:10
+ 
+*************************************************************
+urn:storageos:Initiator:5cf869f7-019e-466e-a6b7-6acc3d6548fb:vdc1
+     protocol  =  FC
+     ininode  =  11:50:57:57:57:57:57:1D
+     id  =  urn:storageos:Initiator:5cf869f7-019e-466e-a6b7-6acc3d6548fb:vdc1
+     label  =  10:50:57:57:57:57:57:1D
+     inactive  =  false
+     internalFlags  =  0
+     registrationStatus  =  REGISTERED
+     isManualCreation  =  true
+     initiatorNames  =  StringMap {}
+     hostname  =  host16h.org
+     clustername  =  16hosts
+     host  =  URI: urn:storageos:Host:36084202-b22f-4368-8b2a-92088d014e56:vdc1
+     iniport  =  10:50:57:57:57:57:57:1D
+ 
+*************************************************************
+urn:storageos:Initiator:0f52a1ec-e6be-4e5b-ad7f-d29a191ef991:vdc1
+     inactive  =  false
+     hostname  =  host16h.org
+     iniport  =  10:50:57:57:57:57:57:1C
+     isManualCreation  =  true
+     protocol  =  FC
+     label  =  10:50:57:57:57:57:57:1C
+     registrationStatus  =  REGISTERED
+     id  =  urn:storageos:Initiator:0f52a1ec-e6be-4e5b-ad7f-d29a191ef991:vdc1
+     clustername  =  16hosts
+     ininode  =  11:50:57:57:57:57:57:1C
+     internalFlags  =  0
+     host  =  URI: urn:storageos:Host:36084202-b22f-4368-8b2a-92088d014e56:vdc1
+     initiatorNames  =  StringMap {}
+ 
+*************************************************************
+urn:storageos:Initiator:dfd79600-bee1-401b-9761-ceefb74050ca:vdc1
+     id  =  urn:storageos:Initiator:dfd79600-bee1-401b-9761-ceefb74050ca:vdc1
+     ininode  =  11:50:57:57:57:57:57:36
+     clustername  =  16hosts
+     isManualCreation  =  true
+     protocol  =  FC
+     host  =  URI: urn:storageos:Host:f1ec6c13-f533-4dbd-b56c-0634b78e0860:vdc1
+     label  =  10:50:57:57:57:57:57:36
+     inactive  =  false
+     iniport  =  10:50:57:57:57:57:57:36
+     initiatorNames  =  StringMap {}
+     registrationStatus  =  REGISTERED
+     hostname  =  host16n.org
+     internalFlags  =  0
+ 
+*************************************************************
+urn:storageos:Initiator:f99d20f2-5324-481f-a123-9b188face18f:vdc1
+     registrationStatus  =  REGISTERED
+     host  =  URI: urn:storageos:Host:fffd9c68-75fe-4bbe-8540-6c880e3d2b61:vdc1
+     label  =  10:50:57:57:57:57:57:0F
+     internalFlags  =  0
+     hostname  =  host16d.org
+     clustername  =  16hosts
+     initiatorNames  =  StringMap {}
+     iniport  =  10:50:57:57:57:57:57:0F
+     protocol  =  FC
+     isManualCreation  =  true
+     inactive  =  false
+     ininode  =  11:50:57:57:57:57:57:0F
+     id  =  urn:storageos:Initiator:f99d20f2-5324-481f-a123-9b188face18f:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:9e806edd-d909-41a3-b5db-bf0d6a87b5b5:vdc1
+     ininode  =  11:50:57:57:57:57:57:24
+     inactive  =  false
+     host  =  URI: urn:storageos:Host:867b4390-3989-426d-9061-2428922e51aa:vdc1
+     isManualCreation  =  true
+     hostname  =  host16j.org
+     id  =  urn:storageos:Initiator:9e806edd-d909-41a3-b5db-bf0d6a87b5b5:vdc1
+     clustername  =  16hosts
+     initiatorNames  =  StringMap {}
+     iniport  =  10:50:57:57:57:57:57:24
+     registrationStatus  =  REGISTERED
+     internalFlags  =  0
+     label  =  10:50:57:57:57:57:57:24
+     protocol  =  FC
+ 
+*************************************************************
+urn:storageos:Initiator:3b5b3e19-a86a-436e-9c42-62b1f0bf817c:vdc1
+     hostname  =  host16j.org
+     id  =  urn:storageos:Initiator:3b5b3e19-a86a-436e-9c42-62b1f0bf817c:vdc1
+     ininode  =  11:50:57:57:57:57:57:27
+     host  =  URI: urn:storageos:Host:867b4390-3989-426d-9061-2428922e51aa:vdc1
+     initiatorNames  =  StringMap {}
+     internalFlags  =  0
+     registrationStatus  =  REGISTERED
+     protocol  =  FC
+     isManualCreation  =  true
+     clustername  =  16hosts
+     label  =  10:50:57:57:57:57:57:27
+     inactive  =  false
+     iniport  =  10:50:57:57:57:57:57:27
+ 
+*************************************************************
+urn:storageos:Initiator:71795f8f-24e6-4fd2-b136-7951564ed1b0:vdc1
+     clustername  =  16hosts
+     internalFlags  =  0
+     host  =  URI: urn:storageos:Host:8f5130c8-7c7b-483f-8787-e12aecd95ea1:vdc1
+     protocol  =  FC
+     ininode  =  11:50:57:57:57:57:57:18
+     inactive  =  false
+     registrationStatus  =  REGISTERED
+     hostname  =  host16g.org
+     id  =  urn:storageos:Initiator:71795f8f-24e6-4fd2-b136-7951564ed1b0:vdc1
+     label  =  10:50:57:57:57:57:57:18
+     iniport  =  10:50:57:57:57:57:57:18
+     initiatorNames  =  StringMap {}
+     isManualCreation  =  true
+ 
+*************************************************************
+urn:storageos:Initiator:d9ec74a1-e8b0-43af-9fde-002a415f46b3:vdc1
+     label  =  10:50:57:57:57:57:57:33
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     iniport  =  10:50:57:57:57:57:57:33
+     host  =  URI: urn:storageos:Host:cd813cfb-de66-46fb-9856-de07cd5b2b4a:vdc1
+     inactive  =  false
+     clustername  =  16hosts
+     initiatorNames  =  StringMap {}
+     hostname  =  host16m.org
+     id  =  urn:storageos:Initiator:d9ec74a1-e8b0-43af-9fde-002a415f46b3:vdc1
+     isManualCreation  =  true
+     ininode  =  11:50:57:57:57:57:57:33
+     internalFlags  =  0
+ 
+*************************************************************
+urn:storageos:Initiator:4dc5a994-3f21-43d8-a72a-e4aa4450ade0:vdc1
+     hostname  =  host16i.org
+     initiatorNames  =  StringMap {}
+     ininode  =  11:50:57:57:57:57:57:23
+     host  =  URI: urn:storageos:Host:ca404112-1f90-4af5-a14e-04d9ea431c01:vdc1
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     id  =  urn:storageos:Initiator:4dc5a994-3f21-43d8-a72a-e4aa4450ade0:vdc1
+     isManualCreation  =  true
+     inactive  =  false
+     label  =  10:50:57:57:57:57:57:23
+     internalFlags  =  0
+     clustername  =  16hosts
+     iniport  =  10:50:57:57:57:57:57:23
+ 
+*************************************************************
+urn:storageos:Initiator:3f4973de-a973-4154-b78e-ef7d409a9d7e:vdc1
+     registrationStatus  =  REGISTERED
+     ininode  =  11:50:57:57:57:57:57:02
+     initiatorNames  =  StringMap {}
+     internalFlags  =  0
+     hostname  =  host16a.org
+     host  =  URI: urn:storageos:Host:09ebf582-2108-4fe2-947d-21d92be6a6fc:vdc1
+     isManualCreation  =  true
+     clustername  =  16hosts
+     iniport  =  10:50:57:57:57:57:57:02
+     label  =  10:50:57:57:57:57:57:02
+     protocol  =  FC
+     id  =  urn:storageos:Initiator:3f4973de-a973-4154-b78e-ef7d409a9d7e:vdc1
+     inactive  =  false
+ 
+*************************************************************
+urn:storageos:Initiator:bf5e911b-1d70-4404-bfb9-6b82cc935ef6:vdc1
+     inactive  =  false
+     initiatorNames  =  StringMap {}
+     label  =  10:50:57:57:57:57:57:3F
+     hostname  =  host16p.org
+     iniport  =  10:50:57:57:57:57:57:3F
+     isManualCreation  =  true
+     internalFlags  =  0
+     host  =  URI: urn:storageos:Host:59f77b9c-b53f-4f30-b683-68eb8ba5edd9:vdc1
+     id  =  urn:storageos:Initiator:bf5e911b-1d70-4404-bfb9-6b82cc935ef6:vdc1
+     registrationStatus  =  REGISTERED
+     protocol  =  FC
+     clustername  =  16hosts
+     ininode  =  11:50:57:57:57:57:57:3F
+ 
+*************************************************************
+urn:storageos:Initiator:d181d149-2ce0-49bf-9fba-835f6040ec4d:vdc1
+     hostname  =  host16d.org
+     label  =  10:50:57:57:57:57:57:0C
+     initiatorNames  =  StringMap {}
+     registrationStatus  =  REGISTERED
+     iniport  =  10:50:57:57:57:57:57:0C
+     id  =  urn:storageos:Initiator:d181d149-2ce0-49bf-9fba-835f6040ec4d:vdc1
+     clustername  =  16hosts
+     internalFlags  =  0
+     protocol  =  FC
+     ininode  =  11:50:57:57:57:57:57:0C
+     isManualCreation  =  true
+     inactive  =  false
+     host  =  URI: urn:storageos:Host:fffd9c68-75fe-4bbe-8540-6c880e3d2b61:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:3627ebf3-5298-4761-b684-601f3c964946:vdc1
+     registrationStatus  =  REGISTERED
+     initiatorNames  =  StringMap {}
+     iniport  =  10:50:57:57:57:57:57:2E
+     clustername  =  16hosts
+     protocol  =  FC
+     id  =  urn:storageos:Initiator:3627ebf3-5298-4761-b684-601f3c964946:vdc1
+     isManualCreation  =  true
+     host  =  URI: urn:storageos:Host:3ec63627-ef56-4226-9c8a-9bb5e76063b4:vdc1
+     label  =  10:50:57:57:57:57:57:2E
+     inactive  =  false
+     ininode  =  11:50:57:57:57:57:57:2E
+     internalFlags  =  0
+     hostname  =  host16l.org
+ 
+*************************************************************
+urn:storageos:Initiator:967883b3-737a-4a08-ae4b-49ad447735ed:vdc1
+     registrationStatus  =  REGISTERED
+     protocol  =  FC
+     ininode  =  11:50:57:57:57:57:57:35
+     host  =  URI: urn:storageos:Host:f1ec6c13-f533-4dbd-b56c-0634b78e0860:vdc1
+     label  =  10:50:57:57:57:57:57:35
+     inactive  =  false
+     clustername  =  16hosts
+     hostname  =  host16n.org
+     iniport  =  10:50:57:57:57:57:57:35
+     internalFlags  =  0
+     initiatorNames  =  StringMap {}
+     id  =  urn:storageos:Initiator:967883b3-737a-4a08-ae4b-49ad447735ed:vdc1
+     isManualCreation  =  true
+ 
+*************************************************************
+urn:storageos:Initiator:ac4b92e5-1248-4f21-99e3-4d4cbfc9435d:vdc1
+     inactive  =  false
+     id  =  urn:storageos:Initiator:ac4b92e5-1248-4f21-99e3-4d4cbfc9435d:vdc1
+     ininode  =  11:50:57:57:57:57:57:2A
+     initiatorNames  =  StringMap {}
+     host  =  URI: urn:storageos:Host:efdf5ac4-5ef2-48ac-bd35-44e3c23674fa:vdc1
+     hostname  =  host16k.org
+     internalFlags  =  0
+     iniport  =  10:50:57:57:57:57:57:2A
+     protocol  =  FC
+     isManualCreation  =  true
+     registrationStatus  =  REGISTERED
+     label  =  10:50:57:57:57:57:57:2A
+     clustername  =  16hosts
+ 
+*************************************************************
+urn:storageos:Initiator:e12873c0-cc1b-44a4-a49a-4d24f5e25040:vdc1
+     iniport  =  10:50:57:57:57:57:57:2B
+     registrationStatus  =  REGISTERED
+     label  =  10:50:57:57:57:57:57:2B
+     initiatorNames  =  StringMap {}
+     hostname  =  host16k.org
+     isManualCreation  =  true
+     clustername  =  16hosts
+     ininode  =  11:50:57:57:57:57:57:2B
+     protocol  =  FC
+     internalFlags  =  0
+     inactive  =  false
+     host  =  URI: urn:storageos:Host:efdf5ac4-5ef2-48ac-bd35-44e3c23674fa:vdc1
+     id  =  urn:storageos:Initiator:e12873c0-cc1b-44a4-a49a-4d24f5e25040:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:fef41b78-7cdd-438d-ab05-9e86aa91fd5c:vdc1
+     iniport  =  10:50:57:57:57:57:57:3A
+     protocol  =  FC
+     initiatorNames  =  StringMap {}
+     label  =  10:50:57:57:57:57:57:3A
+     registrationStatus  =  REGISTERED
+     inactive  =  false
+     id  =  urn:storageos:Initiator:fef41b78-7cdd-438d-ab05-9e86aa91fd5c:vdc1
+     clustername  =  16hosts
+     host  =  URI: urn:storageos:Host:1a2946cd-e9a9-436c-8931-dfbd72b1a5eb:vdc1
+     hostname  =  host16o.org
+     ininode  =  11:50:57:57:57:57:57:3A
+     isManualCreation  =  true
+     internalFlags  =  0
+ 
+*************************************************************
+urn:storageos:Initiator:2e7728b3-8c79-421c-83cb-87e4108bff68:vdc1
+     initiatorNames  =  StringMap {}
+     host  =  URI: urn:storageos:Host:1a2946cd-e9a9-436c-8931-dfbd72b1a5eb:vdc1
+     ininode  =  11:50:57:57:57:57:57:38
+     protocol  =  FC
+     clustername  =  16hosts
+     internalFlags  =  0
+     inactive  =  false
+     id  =  urn:storageos:Initiator:2e7728b3-8c79-421c-83cb-87e4108bff68:vdc1
+     isManualCreation  =  true
+     label  =  10:50:57:57:57:57:57:38
+     iniport  =  10:50:57:57:57:57:57:38
+     hostname  =  host16o.org
+     registrationStatus  =  REGISTERED
+ 
+*************************************************************
+urn:storageos:Initiator:3200a87c-f4b2-4997-a0e8-bc334525d952:vdc1
+     iniport  =  10:50:57:57:57:57:57:34
+     clustername  =  16hosts
+     initiatorNames  =  StringMap {}
+     protocol  =  FC
+     host  =  URI: urn:storageos:Host:f1ec6c13-f533-4dbd-b56c-0634b78e0860:vdc1
+     internalFlags  =  0
+     label  =  10:50:57:57:57:57:57:34
+     isManualCreation  =  true
+     ininode  =  11:50:57:57:57:57:57:34
+     inactive  =  false
+     registrationStatus  =  REGISTERED
+     id  =  urn:storageos:Initiator:3200a87c-f4b2-4997-a0e8-bc334525d952:vdc1
+     hostname  =  host16n.org
+ 
+*************************************************************
+urn:storageos:Initiator:b65350e5-9c22-4e2b-ad01-18dbc3a29032:vdc1
+     internalFlags  =  0
+     isManualCreation  =  true
+     iniport  =  10:50:57:57:57:57:57:3D
+     protocol  =  FC
+     id  =  urn:storageos:Initiator:b65350e5-9c22-4e2b-ad01-18dbc3a29032:vdc1
+     clustername  =  16hosts
+     label  =  10:50:57:57:57:57:57:3D
+     inactive  =  false
+     host  =  URI: urn:storageos:Host:59f77b9c-b53f-4f30-b683-68eb8ba5edd9:vdc1
+     ininode  =  11:50:57:57:57:57:57:3D
+     hostname  =  host16p.org
+     initiatorNames  =  StringMap {}
+     registrationStatus  =  REGISTERED
+ 
+*************************************************************
+urn:storageos:Initiator:e616d589-f0ec-4e24-a630-552435c4f2e3:vdc1
+     internalFlags  =  0
+     hostname  =  host16f.org
+     ininode  =  11:50:57:57:57:57:57:14
+     initiatorNames  =  StringMap {}
+     id  =  urn:storageos:Initiator:e616d589-f0ec-4e24-a630-552435c4f2e3:vdc1
+     isManualCreation  =  true
+     protocol  =  FC
+     iniport  =  10:50:57:57:57:57:57:14
+     label  =  10:50:57:57:57:57:57:14
+     registrationStatus  =  REGISTERED
+     inactive  =  false
+     host  =  URI: urn:storageos:Host:a833f101-b59f-4da2-9321-799c9e8912a4:vdc1
+     clustername  =  16hosts
+ 
+*************************************************************
+urn:storageos:Initiator:90b1736e-a211-43bf-bf9b-9e4901dd2b7b:vdc1
+     registrationStatus  =  REGISTERED
+     clustername  =  16hosts
+     protocol  =  FC
+     initiatorNames  =  StringMap {}
+     internalFlags  =  0
+     inactive  =  false
+     ininode  =  11:50:57:57:57:57:57:0B
+     isManualCreation  =  true
+     hostname  =  host16c.org
+     id  =  urn:storageos:Initiator:90b1736e-a211-43bf-bf9b-9e4901dd2b7b:vdc1
+     host  =  URI: urn:storageos:Host:0f90383f-510f-440d-9e6a-f719762b9889:vdc1
+     iniport  =  10:50:57:57:57:57:57:0B
+     label  =  10:50:57:57:57:57:57:0B
+ 
+*************************************************************
+urn:storageos:Initiator:cde0be4a-f4d7-4194-bd6c-8b65ece4c9af:vdc1
+     host  =  URI: urn:storageos:Host:cd813cfb-de66-46fb-9856-de07cd5b2b4a:vdc1
+     id  =  urn:storageos:Initiator:cde0be4a-f4d7-4194-bd6c-8b65ece4c9af:vdc1
+     ininode  =  11:50:57:57:57:57:57:30
+     initiatorNames  =  StringMap {}
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     isManualCreation  =  true
+     label  =  10:50:57:57:57:57:57:30
+     internalFlags  =  0
+     inactive  =  false
+     clustername  =  16hosts
+     iniport  =  10:50:57:57:57:57:57:30
+     hostname  =  host16m.org
+ 
+*************************************************************
+urn:storageos:Initiator:8af7d72b-a460-4937-8993-a60ca197ce5e:vdc1
+     isManualCreation  =  true
+     host  =  URI: urn:storageos:Host:9a5c8633-cbc6-4913-b3a8-2a394d08690f:vdc1
+     label  =  10:50:57:57:57:57:57:04
+     protocol  =  FC
+     inactive  =  false
+     iniport  =  10:50:57:57:57:57:57:04
+     initiatorNames  =  StringMap {}
+     hostname  =  host16b.org
+     registrationStatus  =  REGISTERED
+     id  =  urn:storageos:Initiator:8af7d72b-a460-4937-8993-a60ca197ce5e:vdc1
+     clustername  =  16hosts
+     ininode  =  11:50:57:57:57:57:57:04
+     internalFlags  =  0
+ 
+*************************************************************
+urn:storageos:Initiator:a6360137-8a2f-46b9-a89e-d06fe2d91629:vdc1
+     hostname  =  host16e.org
+     host  =  URI: urn:storageos:Host:fae4d916-35eb-40fb-9d6a-abdddb450af3:vdc1
+     label  =  10:50:57:57:57:57:57:11
+     id  =  urn:storageos:Initiator:a6360137-8a2f-46b9-a89e-d06fe2d91629:vdc1
+     initiatorNames  =  StringMap {}
+     clustername  =  16hosts
+     ininode  =  11:50:57:57:57:57:57:11
+     protocol  =  FC
+     isManualCreation  =  true
+     registrationStatus  =  REGISTERED
+     internalFlags  =  0
+     inactive  =  false
+     iniport  =  10:50:57:57:57:57:57:11
+ 
+*************************************************************
+urn:storageos:Initiator:6ec1b449-7c45-49aa-a495-7406d836e41e:vdc1
+     host  =  URI: urn:storageos:Host:1a2946cd-e9a9-436c-8931-dfbd72b1a5eb:vdc1
+     ininode  =  11:50:57:57:57:57:57:3B
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     inactive  =  false
+     internalFlags  =  0
+     label  =  10:50:57:57:57:57:57:3B
+     clustername  =  16hosts
+     hostname  =  host16o.org
+     iniport  =  10:50:57:57:57:57:57:3B
+     initiatorNames  =  StringMap {}
+     id  =  urn:storageos:Initiator:6ec1b449-7c45-49aa-a495-7406d836e41e:vdc1
+     isManualCreation  =  true
+ 
+*************************************************************
+urn:storageos:Initiator:bdfafa7a-f4c6-4e7b-8af6-d33f155fa0f9:vdc1
+     hostname  =  host16o.org
+     host  =  URI: urn:storageos:Host:1a2946cd-e9a9-436c-8931-dfbd72b1a5eb:vdc1
+     clustername  =  16hosts
+     isManualCreation  =  true
+     iniport  =  10:50:57:57:57:57:57:39
+     initiatorNames  =  StringMap {}
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     internalFlags  =  0
+     inactive  =  false
+     label  =  10:50:57:57:57:57:57:39
+     ininode  =  11:50:57:57:57:57:57:39
+     id  =  urn:storageos:Initiator:bdfafa7a-f4c6-4e7b-8af6-d33f155fa0f9:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:9db81077-8068-48bd-9266-bfd10c005801:vdc1
+     isManualCreation  =  true
+     label  =  10:50:57:57:57:57:57:0A
+     protocol  =  FC
+     id  =  urn:storageos:Initiator:9db81077-8068-48bd-9266-bfd10c005801:vdc1
+     ininode  =  11:50:57:57:57:57:57:0A
+     internalFlags  =  0
+     host  =  URI: urn:storageos:Host:0f90383f-510f-440d-9e6a-f719762b9889:vdc1
+     inactive  =  false
+     registrationStatus  =  REGISTERED
+     hostname  =  host16c.org
+     iniport  =  10:50:57:57:57:57:57:0A
+     initiatorNames  =  StringMap {}
+     clustername  =  16hosts
+ 
+*************************************************************
+urn:storageos:Initiator:7ce9418f-cb6c-4c82-a493-56d68d604732:vdc1
+     host  =  URI: urn:storageos:Host:a833f101-b59f-4da2-9321-799c9e8912a4:vdc1
+     clustername  =  16hosts
+     isManualCreation  =  true
+     internalFlags  =  0
+     label  =  10:50:57:57:57:57:57:16
+     ininode  =  11:50:57:57:57:57:57:16
+     protocol  =  FC
+     id  =  urn:storageos:Initiator:7ce9418f-cb6c-4c82-a493-56d68d604732:vdc1
+     inactive  =  false
+     registrationStatus  =  REGISTERED
+     initiatorNames  =  StringMap {}
+     iniport  =  10:50:57:57:57:57:57:16
+     hostname  =  host16f.org
+ 
+*************************************************************
+urn:storageos:Initiator:12eb4f48-3f65-491b-ae35-6fa8ca334217:vdc1
+     id  =  urn:storageos:Initiator:12eb4f48-3f65-491b-ae35-6fa8ca334217:vdc1
+     initiatorNames  =  StringMap {}
+     inactive  =  false
+     ininode  =  11:50:57:57:57:57:57:20
+     hostname  =  host16i.org
+     host  =  URI: urn:storageos:Host:ca404112-1f90-4af5-a14e-04d9ea431c01:vdc1
+     clustername  =  16hosts
+     label  =  10:50:57:57:57:57:57:20
+     isManualCreation  =  true
+     iniport  =  10:50:57:57:57:57:57:20
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     internalFlags  =  0
+ 
+*************************************************************
+urn:storageos:Initiator:6cdc2523-fc45-4c5c-964d-52e376f55e0e:vdc1
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     internalFlags  =  0
+     initiatorNames  =  StringMap {}
+     isManualCreation  =  true
+     clustername  =  16hosts
+     inactive  =  false
+     iniport  =  10:50:57:57:57:57:57:0E
+     hostname  =  host16d.org
+     id  =  urn:storageos:Initiator:6cdc2523-fc45-4c5c-964d-52e376f55e0e:vdc1
+     ininode  =  11:50:57:57:57:57:57:0E
+     label  =  10:50:57:57:57:57:57:0E
+     host  =  URI: urn:storageos:Host:fffd9c68-75fe-4bbe-8540-6c880e3d2b61:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:7a6458cb-7280-4724-8e51-4b4b973429ca:vdc1
+     clustername  =  16hosts
+     label  =  10:50:57:57:57:57:57:28
+     ininode  =  11:50:57:57:57:57:57:28
+     initiatorNames  =  StringMap {}
+     hostname  =  host16k.org
+     id  =  urn:storageos:Initiator:7a6458cb-7280-4724-8e51-4b4b973429ca:vdc1
+     internalFlags  =  0
+     isManualCreation  =  true
+     iniport  =  10:50:57:57:57:57:57:28
+     registrationStatus  =  REGISTERED
+     protocol  =  FC
+     host  =  URI: urn:storageos:Host:efdf5ac4-5ef2-48ac-bd35-44e3c23674fa:vdc1
+     inactive  =  false
+ 
+*************************************************************
+urn:storageos:Initiator:418e559b-7a7c-46ef-bd02-524cca5561cb:vdc1
+     label  =  10:50:57:57:57:57:57:15
+     initiatorNames  =  StringMap {}
+     id  =  urn:storageos:Initiator:418e559b-7a7c-46ef-bd02-524cca5561cb:vdc1
+     protocol  =  FC
+     host  =  URI: urn:storageos:Host:a833f101-b59f-4da2-9321-799c9e8912a4:vdc1
+     ininode  =  11:50:57:57:57:57:57:15
+     isManualCreation  =  true
+     inactive  =  false
+     internalFlags  =  0
+     clustername  =  16hosts
+     registrationStatus  =  REGISTERED
+     hostname  =  host16f.org
+     iniport  =  10:50:57:57:57:57:57:15
+ 
+*************************************************************
+urn:storageos:Initiator:f697a152-4a28-4e60-8f02-a28c24966d0a:vdc1
+     internalFlags  =  0
+     registrationStatus  =  REGISTERED
+     label  =  10:50:57:57:57:57:57:1A
+     clustername  =  16hosts
+     ininode  =  11:50:57:57:57:57:57:1A
+     inactive  =  false
+     initiatorNames  =  StringMap {}
+     hostname  =  host16g.org
+     id  =  urn:storageos:Initiator:f697a152-4a28-4e60-8f02-a28c24966d0a:vdc1
+     iniport  =  10:50:57:57:57:57:57:1A
+     host  =  URI: urn:storageos:Host:8f5130c8-7c7b-483f-8787-e12aecd95ea1:vdc1
+     isManualCreation  =  true
+     protocol  =  FC
+ 
+*************************************************************
+urn:storageos:Initiator:ce60e2b4-2b33-46a7-b02f-6da5fbc0b9fc:vdc1
+     inactive  =  false
+     initiatorNames  =  StringMap {}
+     iniport  =  10:50:57:57:57:57:57:37
+     registrationStatus  =  REGISTERED
+     hostname  =  host16n.org
+     internalFlags  =  0
+     clustername  =  16hosts
+     id  =  urn:storageos:Initiator:ce60e2b4-2b33-46a7-b02f-6da5fbc0b9fc:vdc1
+     ininode  =  11:50:57:57:57:57:57:37
+     isManualCreation  =  true
+     host  =  URI: urn:storageos:Host:f1ec6c13-f533-4dbd-b56c-0634b78e0860:vdc1
+     protocol  =  FC
+     label  =  10:50:57:57:57:57:57:37
+ 
+*************************************************************
+urn:storageos:Initiator:7aca235b-3947-4b1c-af12-4301aded8635:vdc1
+     clustername  =  16hosts
+     internalFlags  =  0
+     hostname  =  host16c.org
+     label  =  10:50:57:57:57:57:57:09
+     iniport  =  10:50:57:57:57:57:57:09
+     host  =  URI: urn:storageos:Host:0f90383f-510f-440d-9e6a-f719762b9889:vdc1
+     protocol  =  FC
+     isManualCreation  =  true
+     id  =  urn:storageos:Initiator:7aca235b-3947-4b1c-af12-4301aded8635:vdc1
+     initiatorNames  =  StringMap {}
+     ininode  =  11:50:57:57:57:57:57:09
+     registrationStatus  =  REGISTERED
+     inactive  =  false
+ 
+*************************************************************
+urn:storageos:Initiator:7ba83608-d81f-4516-a1ee-fb01a7471b79:vdc1
+     iniport  =  10:50:57:57:57:57:57:06
+     hostname  =  host16b.org
+     clustername  =  16hosts
+     internalFlags  =  0
+     id  =  urn:storageos:Initiator:7ba83608-d81f-4516-a1ee-fb01a7471b79:vdc1
+     host  =  URI: urn:storageos:Host:9a5c8633-cbc6-4913-b3a8-2a394d08690f:vdc1
+     ininode  =  11:50:57:57:57:57:57:06
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     initiatorNames  =  StringMap {}
+     inactive  =  false
+     label  =  10:50:57:57:57:57:57:06
+     isManualCreation  =  true
+ 
+*************************************************************
+urn:storageos:Initiator:0241c520-a599-43e2-9763-93acbd494adf:vdc1
+     id  =  urn:storageos:Initiator:0241c520-a599-43e2-9763-93acbd494adf:vdc1
+     hostname  =  host16e.org
+     clustername  =  16hosts
+     host  =  URI: urn:storageos:Host:fae4d916-35eb-40fb-9d6a-abdddb450af3:vdc1
+     iniport  =  10:50:57:57:57:57:57:12
+     initiatorNames  =  StringMap {}
+     internalFlags  =  0
+     registrationStatus  =  REGISTERED
+     protocol  =  FC
+     isManualCreation  =  true
+     label  =  10:50:57:57:57:57:57:12
+     inactive  =  false
+     ininode  =  11:50:57:57:57:57:57:12
+ 
+*************************************************************
+urn:storageos:Initiator:b06a3752-535b-4955-ac50-4d8057e1bbe0:vdc1
+     host  =  URI: urn:storageos:Host:09ebf582-2108-4fe2-947d-21d92be6a6fc:vdc1
+     hostname  =  host16a.org
+     internalFlags  =  0
+     ininode  =  11:50:57:57:57:57:57:03
+     isManualCreation  =  true
+     iniport  =  10:50:57:57:57:57:57:03
+     id  =  urn:storageos:Initiator:b06a3752-535b-4955-ac50-4d8057e1bbe0:vdc1
+     protocol  =  FC
+     registrationStatus  =  REGISTERED
+     inactive  =  false
+     initiatorNames  =  StringMap {}
+     label  =  10:50:57:57:57:57:57:03
+     clustername  =  16hosts
+ 
+*************************************************************
+urn:storageos:Initiator:237cdcb3-03e1-41fa-a681-3ea0915bb8d6:vdc1
+     iniport  =  10:50:57:57:57:57:57:22
+     id  =  urn:storageos:Initiator:237cdcb3-03e1-41fa-a681-3ea0915bb8d6:vdc1
+     protocol  =  FC
+     ininode  =  11:50:57:57:57:57:57:22
+     internalFlags  =  0
+     registrationStatus  =  REGISTERED
+     inactive  =  false
+     label  =  10:50:57:57:57:57:57:22
+     host  =  URI: urn:storageos:Host:ca404112-1f90-4af5-a14e-04d9ea431c01:vdc1
+     initiatorNames  =  StringMap {}
+     clustername  =  16hosts
+     hostname  =  host16i.org
+     isManualCreation  =  true
+ 
+*************************************************************
+urn:storageos:Initiator:d3225a4b-7ff0-45da-ad0b-4dcb17973d1e:vdc1
+     id  =  urn:storageos:Initiator:d3225a4b-7ff0-45da-ad0b-4dcb17973d1e:vdc1
+     inactive  =  false
+     hostname  =  host16l.org
+     iniport  =  10:50:57:57:57:57:57:2C
+     internalFlags  =  0
+     label  =  10:50:57:57:57:57:57:2C
+     registrationStatus  =  REGISTERED
+     initiatorNames  =  StringMap {}
+     ininode  =  11:50:57:57:57:57:57:2C
+     isManualCreation  =  true
+     clustername  =  16hosts
+     protocol  =  FC
+     host  =  URI: urn:storageos:Host:3ec63627-ef56-4226-9c8a-9bb5e76063b4:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:280574f3-85ec-4df9-8c96-278c4429486d:vdc1
+     host  =  URI: urn:storageos:Host:ca404112-1f90-4af5-a14e-04d9ea431c01:vdc1
+     isManualCreation  =  true
+     iniport  =  10:50:57:57:57:57:57:21
+     inactive  =  false
+     initiatorNames  =  StringMap {}
+     clustername  =  16hosts
+     registrationStatus  =  REGISTERED
+     internalFlags  =  0
+     hostname  =  host16i.org
+     ininode  =  11:50:57:57:57:57:57:21
+     label  =  10:50:57:57:57:57:57:21
+     protocol  =  FC
+     id  =  urn:storageos:Initiator:280574f3-85ec-4df9-8c96-278c4429486d:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:7b4bca6f-6dad-45e0-9a36-b34cdb15f00d:vdc1
+     iniport  =  10:50:57:57:57:57:57:26
+     label  =  10:50:57:57:57:57:57:26
+     protocol  =  FC
+     inactive  =  false
+     hostname  =  host16j.org
+     host  =  URI: urn:storageos:Host:867b4390-3989-426d-9061-2428922e51aa:vdc1
+     isManualCreation  =  true
+     ininode  =  11:50:57:57:57:57:57:26
+     id  =  urn:storageos:Initiator:7b4bca6f-6dad-45e0-9a36-b34cdb15f00d:vdc1
+     registrationStatus  =  REGISTERED
+     initiatorNames  =  StringMap {}
+     clustername  =  16hosts
+     internalFlags  =  0
+ 
+*************************************************************
+urn:storageos:Initiator:2a23c880-974f-48ea-8cbb-d292d39d4c16:vdc1
+     label  =  10:50:57:57:57:57:57:25
+     initiatorNames  =  StringMap {}
+     protocol  =  FC
+     iniport  =  10:50:57:57:57:57:57:25
+     isManualCreation  =  true
+     inactive  =  false
+     internalFlags  =  0
+     host  =  URI: urn:storageos:Host:867b4390-3989-426d-9061-2428922e51aa:vdc1
+     ininode  =  11:50:57:57:57:57:57:25
+     hostname  =  host16j.org
+     registrationStatus  =  REGISTERED
+     clustername  =  16hosts
+     id  =  urn:storageos:Initiator:2a23c880-974f-48ea-8cbb-d292d39d4c16:vdc1
+ 
+*************************************************************
+urn:storageos:Initiator:c79fdaa2-6bed-4415-bdae-cb78a2828615:vdc1
+     internalFlags  =  0
+     isManualCreation  =  true
+     initiatorNames  =  StringMap {}
+     iniport  =  10:50:57:57:57:57:57:05
+     protocol  =  FC
+     host  =  URI: urn:storageos:Host:9a5c8633-cbc6-4913-b3a8-2a394d08690f:vdc1
+     id  =  urn:storageos:Initiator:c79fdaa2-6bed-4415-bdae-cb78a2828615:vdc1
+     inactive  =  false
+     ininode  =  11:50:57:57:57:57:57:05
+     label  =  10:50:57:57:57:57:57:05
+     registrationStatus  =  REGISTERED
+     hostname  =  host16b.org
+     clustername  =  16hosts
+ 

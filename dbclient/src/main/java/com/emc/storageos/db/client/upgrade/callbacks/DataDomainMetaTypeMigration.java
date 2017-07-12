@@ -44,7 +44,7 @@ public class DataDomainMetaTypeMigration extends BaseCustomMigrationCallback {
             }
             logger.info("Migration completed successfully");
         } catch (Exception e) {
-            logger.error("Exception occured while migrating cifs share access control settings");
+            logger.error("Exception occured while migrating datadomain StorageSystemType MetaType");
             logger.error(e.getMessage(), e);
         }
 

@@ -38,7 +38,7 @@ public class DbViewDefinition {
     }
 
     public boolean hasField(String name) {
-        return clusters.contains(name) || columns.contains(name);
+        return keyName.equals(name) || clusters.contains(name) || columns.contains(name);
     }
 
     public String getViewName() {

@@ -52,7 +52,7 @@ public class DbViewRecord {
 
     public String getInsertCql() {
         StringBuilder cql = new StringBuilder();
-        cql.append( "INSERT INTO \"" + viewDef.getViewName() + "\" (" + cql.append(getKeyName()) );
+        cql.append("INSERT INTO " + viewDef.getViewName() + " (" + getKeyName() + "," );
 
         for (ViewColumn cluster: clusters) {
             cql.append(cluster.getName());
@@ -64,14 +64,10 @@ public class DbViewRecord {
         }
         cql.deleteCharAt(cql.length()-1);
 
-        cql.append(") VALUES(" + getKeyValue() + ",");
-        for (ViewColumn cluster: clusters) {
-            cql.append(cluster.getValue());
-            cql.append(",");
-        }
-        for (ViewColumn col: columns) {
-            cql.append(col.getValue());
-            cql.append(",");
+        cql.append(") VALUES(");
+        int valCount = 1 + clusters.size() + columns.size();
+        for (int i = 0; i < valCount; i++) {
+            cql.append("?,");
         }
         cql.deleteCharAt(cql.length()-1);
         cql.append(")");
@@ -79,12 +75,11 @@ public class DbViewRecord {
         return cql.toString();
     }
 
-
     public void setKeyValue(String keyValue) {
         this.keyValue = keyValue;
     }
 
     public DbViewDefinition getDef() {
-        return viewDef;
+        return this.viewDef;
     }
 }

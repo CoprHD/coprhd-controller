@@ -393,20 +393,22 @@ public class ColumnField <T extends CompositeIndexColumnName> {
                     _log.info("field {} not in view", _name);
                     continue;
                 }
+                _log.info("=== column name: {}, {}, {}, {}", column.getOne(), column.getTwo(), column.getThree(), val);
+
                 DbViewRecord view = viewMap.get(viewDef);
                 if (view == null) {
                     view = new DbViewRecord(viewDef);
                     viewMap.put(viewDef, view);
                 }
                 if (viewDef.isKey(_name)) {
-                    view.setKeyValue(((URI) val).toString());
-                    _log.info("1111 key");
+                    view.setKeyValue(((NamedURI) val).toString());
+                    _log.info("1111 key: {}", ((NamedURI) val).toString());
                 } else if (viewDef.isClustering(_name)) {
                     view.addClusteringColumn(_name, (String) val);
                     _log.info("2222 clustering");
                 } else {
                     view.addColumn(_name, val);
-                    _log.info("3333 normal col");
+                    _log.info("3333 normal col {}", (String) val);
                 }
                 _log.info("======= added column {} in view", _name);
             }

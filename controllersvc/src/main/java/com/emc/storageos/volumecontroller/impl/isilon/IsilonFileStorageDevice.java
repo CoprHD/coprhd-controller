@@ -963,71 +963,81 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
     
     @Override
-    public BiosCommandResult doCheckAndCreateFS(StorageSystem storageObj, FileDeviceInputOutput args){
-       URI fs = args.getFs().getParentFileShare().getURI();
-       FileShare srcFs = _dbClient.queryObject(FileShare.class, fs);
-       FileShare tempFs = args.getFs();
-       BiosCommandResult result = null;
-       try {
-           IsilonApi isi = getIsilonDevice(storageObj);
-           _log.info("IsilonFileStorageDevice doCheckAndCreateFS {} with name {} - start", args.getFsId(), args.getFsName());
-           FilePolicy filePolicy = args.getFileProtectionPolicy();
-           if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
-               String sourcePath = generatePathForPolicy(filePolicy, srcFs, args);
-               IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
-               if (isiSynIQPolicy != null) {
-                   String targetPath = isiSynIQPolicy.getTargetPath();
-                   FileShare targetFs = null;
-                   // Check if the target FS in the islon syncIQ policy exitst in ViPR DB
-                   URIQueryResultList queryResult = new URIQueryResultList();
-                   _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharenativeIDConstraint(targetPath), queryResult);
-                   Iterator<URI> iter = queryResult.iterator();
-                   while (iter.hasNext()) {
-                       URI fsURI = iter.next();
-                       targetFs = _dbClient.queryObject(FileShare.class, fsURI);
-                   }
-                   //TargetFs exists so we shall not create the FS but set the replication configuration.
-                   if(targetFs != null){
-                       _log.info("TargetFileSystem already exists in database with {}", targetFs.getId(), targetFs.getName());
-                       VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, targetFs.getVirtualPool());
-                       StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
-                       boolean validPolicy = validateIsilonReplicationPolicy(isiSynIQPolicy, filePolicy, targetFs.getNativeId(), targetSystem, storageObj);
-                       if(vpool.getFileReplicationSupported() && validPolicy){
-                           _log.info("Setting replication attributes for source FS {} and target FS {}", srcFs.getName(), targetFs.getName());
-                           setReplicationAttributes(srcFs, targetFs);
-                           _log.info("Returning success without creating FS as target FS {} already exists in database for source FS {} ", targetFs.getName(), srcFs.getName());
-//                           Check if needed set the temp obj as inactive
-//                           tempFs.setInactive(true);
-//                           _dbClient.updateObject(tempFs);
-                           result = BiosCommandResult.createSuccessfulResult();
-                       } else {
-                           throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
-                                   filePolicy.getApplyAt(), "File policy and Isilon syncIQ policy differs for path: "
-                                           + sourcePath);
-                       }
-                   } else{
-                       /*
-                        * TODO add code to bring the target fs in vipr purview
-                        */
-                       throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
-                               filePolicy.getApplyAt(), "File Policy is already applied on isilon and the target FS with path "+targetPath.toString()+" is not ingested");
-                   }
-               } else {
-                   result = doCreateFS(storageObj, args);
-               }
-           } 
-       } catch (IsilonException e) {
-           result = BiosCommandResult.createErrorResult(e);
-           }
-       return result;
-       
-   }
+    public BiosCommandResult doCheckAndCreateFS(StorageSystem storageObj, FileDeviceInputOutput args) {
+        URI fs = args.getFs().getParentFileShare().getURI();
+        FileShare srcFs = _dbClient.queryObject(FileShare.class, fs);
+        FileShare tempFs = args.getFs();
+        BiosCommandResult result = null;
+        try {
+            IsilonApi isi = getIsilonDevice(storageObj);
+            _log.info("IsilonFileStorageDevice doCheckAndCreateFS {} with name {} - start", args.getFsId(), args.getFsName());
+            FilePolicy filePolicy = args.getFileProtectionPolicy();
+            if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
+                String sourcePath = generatePathForPolicy(filePolicy, srcFs, args);
+                IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
+                if (isiSynIQPolicy != null) {
+                    String targetPath = isiSynIQPolicy.getTargetPath();
+                    FileShare targetFs = null;
+                    // Check if the target FS in the islon syncIQ policy exitst in ViPR DB
+                    URIQueryResultList queryResult = new URIQueryResultList();
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharenativeIDConstraint(targetPath), queryResult);
+                    Iterator<URI> iter = queryResult.iterator();
+                    while (iter.hasNext()) {
+                        URI fsURI = iter.next();
+                        targetFs = _dbClient.queryObject(FileShare.class, fsURI);
+                    }
+                    // TargetFs exists so we shall not create the FS but set the replication configuration.
+                    if (targetFs != null) {
+                        _log.info("TargetFileSystem already exists in database with {}", targetFs.getId(), targetFs.getName());
+                        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, targetFs.getVirtualPool());
+                        StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+                        boolean validPolicy = validateIsilonReplicationPolicy(isiSynIQPolicy, filePolicy, targetFs.getNativeId(),
+                                targetSystem, storageObj);
+                        if (vpool.getFileReplicationSupported() && validPolicy) {
+                            _log.info("Setting replication attributes for source FS {} and target FS {}", srcFs.getName(),
+                                    targetFs.getName());
+                            setReplicationAttributes(srcFs, targetFs);
+                            _log.info("Returning success without creating FS as target FS {} already exists in database for source FS {} ",
+                                    targetFs.getName(), srcFs.getName());
+                            // Check if needed set the temp obj as inactive
+                            // tempFs.setInactive(true);
+                            // _dbClient.updateObject(tempFs);
+                            result = BiosCommandResult.createSuccessfulResult();
+                        } else {
+                            throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                                    filePolicy.getApplyAt(), "File policy and Isilon syncIQ policy differs for path: "
+                                            + sourcePath);
+                        }
+                    } else {
+                        /*
+                         * TODO add code to bring the target fs in vipr purview
+                         */
+                        throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                                filePolicy.getApplyAt(), "File Policy is already applied on isilon and the target FS with path "
+                                        + targetPath.toString() + " is not ingested");
+                    }
+                } else {
+                    result = doCreateFS(storageObj, args);
+                }
+            }
+        } catch (IsilonException e) {
+            result = BiosCommandResult.createErrorResult(e);
+        }
+        return result;
+
+    }
 
     private void setReplicationAttributes(FileShare sourceFileShare, FileShare targetFileShare) {
         if (sourceFileShare != null && targetFileShare != null) {
             if (sourceFileShare.getMirrorfsTargets() == null) {
                 sourceFileShare.setMirrorfsTargets(new StringSet());
             }
+            /*
+            removing the entries added as part of recommendations and adding the existing values alone. This needs to
+            be enhanced while adding multiple target replication feature to retain the other target and only delete
+            the temp file object entry.
+            */
+            sourceFileShare.getMirrorfsTargets().clear();
             sourceFileShare.getMirrorfsTargets().add(targetFileShare.getId().toString());
             targetFileShare.setParentFileShare(new NamedURI(sourceFileShare.getId(), sourceFileShare.getLabel()));
 
@@ -1223,6 +1233,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
                 quotaId = args.getFsExtensions().get(QUOTA);
             } else {
+              //when policy is applied at higher level, we will ignore the target filesystem 
+                FileShare fileShare = args.getFs();
+                if (null != fileShare.getPersonality() && 
+                        PersonalityTypes.TARGET.name().equals(fileShare.getPersonality()) && 
+                        null == fileShare.getExtensions()) {
+                    _log.info("Quota id is not found so ignore the expand filesystem ", fileShare.getLabel());
+                    return BiosCommandResult.createSuccessfulResult();
+                }
                 final ServiceError serviceError = DeviceControllerErrors.isilon.doExpandFSFailed(args.getFsId());
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);
@@ -1271,6 +1289,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     isiReduceFS(isi, quotaId, args);
                 }
             } else {
+              //when policy is applied at higher level, we will ignore the target filesystem 
+                FileShare fileShare = args.getFs();
+                if (null != fileShare.getPersonality() && 
+                        PersonalityTypes.TARGET.name().equals(fileShare.getPersonality())
+                        && null == fileShare.getExtensions()) {
+                    _log.info("Quota id is not found, so ignore the reduce filesystem ", fileShare.getLabel());
+                    return BiosCommandResult.createSuccessfulResult();
+                }
                 final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);
@@ -2902,7 +2928,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             sourceFS = fs;
             List<String> targetfileUris = new ArrayList<String>();
             targetfileUris.addAll(fs.getMirrorfsTargets());
-            if(!targetfileUris.isEmpty()) {
+            if (!targetfileUris.isEmpty()) {
                 targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
             } else {
                 ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverFileSystem(
@@ -2911,10 +2937,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             failback = true;
         }
-        
+
         sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
-        targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());    
-        
+        targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
+
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
@@ -2922,70 +2948,71 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // In case of failback we do failover on the source file system, so we need to append _mirror
             if (failback) {
                 policyName = policyName.concat(MIRROR_POLICY);
-                
-                //prepared policy for failback
+
+                // prepared policy for failback
                 cmdResult = prepareFailbackOp(targetSystem, policyName);
-                if(!cmdResult.isCommandSuccess()) {
+                if (!cmdResult.isCommandSuccess()) {
                     return cmdResult;
                 }
-              //Call Isilon Api failback job
+                // Call Isilon Api failback job
                 return mirrorOperations.doFailover(sourceSystem, policyName, completer);
             } else {
-                //prepared policy for failover
+                // prepared policy for failover
                 cmdResult = prepareFailoverOp(sourceSystem, policyName);
-                if(!cmdResult.isCommandSuccess()) {
+                if (!cmdResult.isCommandSuccess()) {
                     _log.info("Unable to stop replication policy on source");
                     _log.info("Proceeding with failover anyway");
                 }
-              //Call Isilon Api failover job
+                // Call Isilon Api failover job
                 return mirrorOperations.doFailover(targetSystem, policyName, completer);
             }
         }
         ServiceError serviceError = DeviceControllerErrors.isilon
                 .unableToFailoverFileSystem(
-                        systemTarget.getIpAddress(),"Unable to get the policy details for filesystem :" + fs.getName());
+                        systemTarget.getIpAddress(), "Unable to get the policy details for filesystem :" + fs.getName());
         return BiosCommandResult.createErrorResult(serviceError);
     }
-    
+
     /**
      * prepare policy to failover.
+     * 
      * @param sourceSystem - source storagesystem
      * @param policyName - failover policy
      * @return
      */
     private BiosCommandResult prepareFailoverOp(final StorageSystem sourceSystem, String policyName) {
         BiosCommandResult cmdResult = null;
-        //check for device is up and able query the data.
+        // check for device is up and able query the data.
         cmdResult = mirrorOperations.doTestReplicationPolicy(sourceSystem, policyName);
-        if(cmdResult.isCommandSuccess()) {
-          //if policy enables on failed storage then We should disable it before failover job
-            cmdResult =  mirrorOperations.doStopReplicationPolicy(sourceSystem, policyName);
+        if (cmdResult.isCommandSuccess()) {
+            // if policy enables on failed storage then We should disable it before failover job
+            cmdResult = mirrorOperations.doStopReplicationPolicy(sourceSystem, policyName);
         } else {
             _log.error("Unabled get the replcation policy details.", cmdResult.getMessage());
             ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverReplicationPolicy(
-                                                                sourceSystem.getIpAddress(), policyName, cmdResult.getMessage());
-                return BiosCommandResult.createErrorResult(serviceError);
+                    sourceSystem.getIpAddress(), policyName, cmdResult.getMessage());
+            return BiosCommandResult.createErrorResult(serviceError);
         }
         return cmdResult;
     }
-    
-    
+
     /**
      * prepare policy to failback.
-     * @param systemTarget - target storagesystem 
+     * 
+     * @param systemTarget - target storagesystem
      * @param policyName -failback mirror policy
      * @return
      */
     private BiosCommandResult prepareFailbackOp(final StorageSystem targetSystem, String policyName) {
         BiosCommandResult cmdResult = null;
-        //check for target device up and then disable the policy
+        // check for target device up and then disable the policy
         cmdResult = mirrorOperations.doTestReplicationPolicy(targetSystem, policyName);
-        if(cmdResult.isCommandSuccess()) {
-          //if policy enables on target storage then We should disable it before failback job
-            cmdResult =  mirrorOperations.doStopReplicationPolicy(targetSystem, policyName);
+        if (cmdResult.isCommandSuccess()) {
+            // if policy enables on target storage then We should disable it before failback job
+            cmdResult = mirrorOperations.doStopReplicationPolicy(targetSystem, policyName);
         } else {
             ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailbackReplicationPolicy(
-                                                            targetSystem.getIpAddress(), policyName, cmdResult.getMessage());
+                    targetSystem.getIpAddress(), policyName, cmdResult.getMessage());
             return BiosCommandResult.createErrorResult(serviceError);
         }
         return cmdResult;
@@ -3571,7 +3598,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetFs));
                     
                     targetPath = generatePathForPolicy(filePolicy, targetFS, args);
-                    if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name()) && !targetPath.isEmpty()) {
+                    // _localTarget suffix is not needed for policy at file system level
+                    // as the suffix already present in target file system native id
+                    // Add the suffix only for local replication policy at higher level
+                    if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())
+                            && !FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(filePolicy.getApplyAt())) {
                         targetPath = targetPath + "_localTarget";
                     }
                     // Get the target smart connect zone!!

@@ -3884,9 +3884,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
     
     public String addStepsForCheckAndCreateFileSystems(Workflow workflow,
-            String waitFor, List<FileDescriptor> filesystems, URI storage, URI sourceFS, URI policyURI, String taskId)
-            throws InternalException{
-        
+            String waitFor, List<FileDescriptor> filesystems, URI sourceFS, URI policyURI, String taskId) {
+
         if (filesystems != null && !filesystems.isEmpty()) {
             List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                     FileDescriptor.Type.FILE_DATA,
@@ -3913,7 +3912,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 }
             }
         }
-        
+
         return waitFor = CREATE_FILESYSTEMS_STEP;
     }
 

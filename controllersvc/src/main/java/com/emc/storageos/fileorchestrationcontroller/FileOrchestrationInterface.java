@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.fileorchestrationcontroller;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -25,6 +26,21 @@ public interface FileOrchestrationInterface {
     public String addStepsForCreateFileSystems(
             Workflow workflow, String waitFor, List<FileDescriptor> filesystems, String taskId)
             throws InternalException;
+    
+    /**
+     * Adds steps necessary to check for an existing target filesystem in database or else create one.
+     * @param workflow-- a Workflow
+     * @param waitFor -- The String key that should be used in the Workflow.createStep
+     *            waitFor parameter in order to wait on the previous controller's actions to complete.
+     * @param filesystems -- The entire list of filesystem uri's for this request (all technologies).
+     * @param sourceFS
+     * @param policyURI -- uri of the policy template to be applied
+     * @param taskId -- the top level operations taskid
+     * @return -- A waitFor key that can be used by subsequent controllers to wait on
+     *         the Steps created by this controller.
+     */
+    public String addStepsForCheckAndCreateFileSystems(Workflow workflow,
+            String waitFor, List<FileDescriptor> filesystems, URI sourceFS, URI policyURI, String taskId);
 
     /**
      * Add the necessary steps for expanding filesystems

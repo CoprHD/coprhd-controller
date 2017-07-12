@@ -81,6 +81,8 @@ import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.Action;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy8Above;
+import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
+import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.NfsACE;
@@ -1134,10 +1136,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
                 quotaId = args.getFsExtensions().get(QUOTA);
             } else {
-              //when policy is applied at higher level, we will ignore the target filesystem 
+                // when policy is applied at higher level, we will ignore the target filesystem
                 FileShare fileShare = args.getFs();
-                if (null != fileShare.getPersonality() && 
-                        PersonalityTypes.TARGET.name().equals(fileShare.getPersonality()) && 
+                if (null != fileShare.getPersonality() &&
+                        PersonalityTypes.TARGET.name().equals(fileShare.getPersonality()) &&
                         null == fileShare.getExtensions()) {
                     _log.info("Quota id is not found so ignore the expand filesystem ", fileShare.getLabel());
                     return BiosCommandResult.createSuccessfulResult();
@@ -1190,9 +1192,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     isiReduceFS(isi, quotaId, args);
                 }
             } else {
-              //when policy is applied at higher level, we will ignore the target filesystem 
+                // when policy is applied at higher level, we will ignore the target filesystem
                 FileShare fileShare = args.getFs();
-                if (null != fileShare.getPersonality() && 
+                if (null != fileShare.getPersonality() &&
                         PersonalityTypes.TARGET.name().equals(fileShare.getPersonality())
                         && null == fileShare.getExtensions()) {
                     _log.info("Quota id is not found, so ignore the reduce filesystem ", fileShare.getLabel());
@@ -2934,11 +2936,45 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // In case of failback step 4 we do resysc on the target file system, so we need to append _mirror
             if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
                 policyName = policyName.concat(MIRROR_POLICY);
+                // call to isilon api
+                return mirrorOperations.doResyncPrep(system, policyName, completer);
+
+            } else {
+                return doResyncPrepSourcePolicy(system, policyName, completer);
             }
-            return mirrorOperations.doResyncPrep(system, policyName, completer);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
+    }
+
+    private BiosCommandResult doResyncPrepSourcePolicy(StorageSystem sourceSystem, String sourcePolicyName, TaskCompleter completer) {
+        BiosCommandResult cmdResult = null;
+        IsilonSyncTargetPolicy syncTargetPolicy = null;
+        // able to talk to source device
+        cmdResult = mirrorOperations.doTestReplicationPolicy(sourceSystem, sourcePolicyName);
+        if (cmdResult.isCommandSuccess()) {
+            // check for policy is enabled
+            cmdResult = mirrorOperations.doEnablePolicy(sourceSystem, sourcePolicyName);
+            // get the target policy
+            syncTargetPolicy = mirrorOperations.getIsilonSyncTargetPolicy(sourceSystem, sourcePolicyName);
+            if (cmdResult.isCommandSuccess() && null != syncTargetPolicy) {
+                FOFB_STATES fofbState = syncTargetPolicy.getFoFbState();
+                JobState lastJobStatus = syncTargetPolicy.getLastJobState();
+                // check whether resync-prep already called
+                if (!FOFB_STATES.resync_policy_created.equals(fofbState) ||
+                        JobState.failed.equals(lastJobStatus) && FOFB_STATES.writes_enabled.equals(fofbState)) {
+                    // call to isilon api
+                    return mirrorOperations.doResyncPrep(sourceSystem, sourcePolicyName, completer);
+                } else {
+                    _log.info("Already resync-prop is completed");
+                    return BiosCommandResult.createSuccessfulResult();
+                }
+            } else {
+                return cmdResult;
+            }
+        } else {
+            return cmdResult;
+        }
     }
 
     /**

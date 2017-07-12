@@ -40,7 +40,7 @@ public interface FileOrchestrationInterface {
      *         the Steps created by this controller.
      */
     public String addStepsForCheckAndCreateFileSystems(Workflow workflow,
-            String waitFor, List<FileDescriptor> filesystems, URI sourceFS, URI policyURI, String taskId);
+            String waitFor, List<FileDescriptor> filesystems, URI policyURI, String taskId);
 
     /**
      * Add the necessary steps for expanding filesystems

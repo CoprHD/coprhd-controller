@@ -3884,7 +3884,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
     
     public String addStepsForCheckAndCreateFileSystems(Workflow workflow,
-            String waitFor, List<FileDescriptor> filesystems, URI sourceFS, URI policyURI, String taskId) {
+            String waitFor, List<FileDescriptor> filesystems, URI policyURI, String taskId) {
 
         if (filesystems != null && !filesystems.isEmpty()) {
             List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
@@ -3904,7 +3904,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 descriptor.getDeviceURI(),
                                 getDeviceType(descriptor.getDeviceURI()),
                                 this.getClass(),
-                                checkAndCreateFileSharesMethod(descriptor, sourceFS, policyURI),
+                                checkAndCreateFileSharesMethod(descriptor, fileShareSource.getId(), policyURI),
                                 rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
                                         .getURI()), sourceDescriptors),
                                 null);

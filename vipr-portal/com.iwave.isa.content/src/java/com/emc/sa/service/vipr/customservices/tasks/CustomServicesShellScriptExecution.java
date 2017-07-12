@@ -19,11 +19,13 @@ package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.io.File;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +57,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
-            this.timeout = Exec.DEFAULT_CMD_TIMEOUT;
+            this.timeout = CustomServicesConstants.OPERATION_TIMEOUT;
         } else {
             this.timeout = step.getAttributes().getTimeout();
         }
@@ -127,21 +129,22 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     // Execute Shell Script resource
 
+    // chroot / bash -c 'arg1=5 arg2=3 sh +x /root/t.sh'
     private Exec.Result executeCmd(final String shellScript) throws Exception {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, shellScript);
         cmd.setChrootCmd(CustomServicesConstants.CHROOT_CMD);
+        cmd.setShellArgs(makeParam(input));
         final String[] cmds = cmd.build();
 
-        //default to no host key checking
-        final Map<String,String> environment = makeParam(input);
-
-        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
+        logger.info("cmd to exec:{}", Arrays.toString(cmds));
+        return Exec.sudo(new File(orderDir), timeout, null, new HashMap<String,String>(), cmds);
     }
 
-    private Map<String,String> makeParam(final Map<String, List<String>> input) throws Exception {
-        final Map<String,String> environment = new HashMap<String,String>();
+    //Format: arg1=5 arg2=3
+    private String makeParam(final Map<String, List<String>> input) throws Exception {
+        final StringBuilder str = new StringBuilder();
         if (input == null) {
-            return environment;
+            return null;
         }
 
         for(Map.Entry<String, List<String>> e : input.entrySet()) {
@@ -150,15 +153,19 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             }
             final List<String> listVal = e.getValue();
             final StringBuilder sb = new StringBuilder();
+            sb.append("\"");
             String prefix = "";
             for (final String val : listVal) {
                 sb.append(prefix);
                 prefix = ",";
                 sb.append(val.replace("\"", ""));
             }
-            environment.put(e.getKey(), sb.toString().trim());
+            sb.append("\"");
+            str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
         }
 
-        return environment;
+        logger.info("CS: Shell arguments:{}", str.toString());
+
+        return str.toString();
     }
 }

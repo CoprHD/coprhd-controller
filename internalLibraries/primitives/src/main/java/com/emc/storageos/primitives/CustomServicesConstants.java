@@ -48,6 +48,7 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_INPUT_NAME_IS_EMPTY = "Input Name is empty";
     public static final String ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP = "Input Name is not unique in the step";
     public static final String ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE = "No default value for Input Type";
+    public static final String ERROR_MSG_INVENTORY_FILE_NOT_MAPPED = "No inventory files exist for Ansible operation. Please edit the operation and upload at least one inventory file.";
     public static final String ERROR_MSG_NO_INPUTVALUE_FOR_INPUT_TYPE = "No input value for Input Type";
     public static final String ERROR_MSG_DEFAULTVALUE_PASSED_FOR_INPUT_TYPE = "Default value passed for Input Type";
     public static final String ERROR_MSG_INPUT_FROM_OTHER_STEP_NOT_DEFINED = "Input from other step value is not defined";
@@ -77,7 +78,8 @@ public final class CustomServicesConstants {
     // SuccessCriteria Constants
     public static final String RETURN_CODE = "code";
     public static final String TASK = "task";
-    public static final long TIMEOUT = 3600 * 1000;
+    public static final long WORKFLOW_TIMEOUT = 8 * 3600 * 1000;
+    public static final long OPERATION_TIMEOUT = 4 * 3600 * 1000;
 
     public static final List<String> BODY_REST_METHOD = Arrays.asList("POST", "PUT", "DELETE");
     // Script Execution Constants
@@ -99,6 +101,9 @@ public final class CustomServicesConstants {
     public static final String UNTAR_OPTION = "-zxvf";
     public static final String REMOVE = "/bin/rm";
     public static final String REMOVE_OPTION = "-rf";
+    public static final String BIN_BASH = "/bin/bash";
+    public static final String BIN_BASH_OPTION = "-c";
+
     // Ansible Options
     public static final String ANSIBLE_BIN = "remote_ansible_bin";
     public static final String ANSIBLE_PLAYBOOK = "playbook";
@@ -138,6 +143,7 @@ public final class CustomServicesConstants {
     public static final String TARGET = "target";
     public static final String PATH = "path";
     public static final String PORT = "port";
+    public static final String DEFAULT_HTTPS_PORT = "443";
 
     // Execution Result
     public static final String OPERATION_OUTPUT = "operation_output";

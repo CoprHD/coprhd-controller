@@ -57,6 +57,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.NullTaskCompl
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFAddPairToGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFChangeCopyModeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFExpandCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkDetachCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCancelCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkPauseCompleter;
@@ -308,7 +309,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            completer = new SRDFTaskCompleter(sourceURIs, opId);
+            List<URI> combinedVolumeList = new ArrayList<URI>();
+            combinedVolumeList.addAll(sourceURIs);
+            combinedVolumeList.addAll(targetURIs);
+            completer = new SRDFLinkSyncCompleter(combinedVolumeList, opId);
             getRemoteMirrorDevice().doUpdateSourceAndTargetPairings(sourceURIs, targetURIs);
             return completeAsReady(completer, opId);
         } catch (Exception e) {
@@ -892,7 +896,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, group.getRemoteStorageSystemUri());
         // Suspend all members in the group
-        Method method = suspendSRDFLinkMethod(targetSystem.getId(), sourceVolume.getId(), targetVolume.getId(), false);
+        Method method = suspendSRDFGroupLinkMethod(targetSystem.getId(), sourceVolume.getId(), targetVolume.getId(), false);
         String splitStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                 SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, targetSystem.getId(), targetSystem.getSystemType(), getClass(),
                 method, null, null);
@@ -1034,9 +1038,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     // For ACTIVE pairs, we need to a) Suspend all the pairs in the CG, b) Remove the pairs from the Group
                     // c) Detach the pairs and d)Resume the remaining pairs of the Group.
                     // Keep the methods handy
-                    Workflow.Method suspendPairMethod = suspendSRDFLinkMethod(system.getId(),
+                    Workflow.Method suspendPairMethod = suspendSRDFGroupLinkMethod(system.getId(),
                             source.getId(), targetURI, consExempt);
-                    Workflow.Method resumePairMethod = resumeSyncPairMethod(system.getId(),
+                    Workflow.Method resumePairMethod = resumeGroupPairsMethod(system.getId(),
                             source.getId(), targetURI);
                     if (activeMode) {
                         // suspend the Active pair
@@ -1051,9 +1055,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             removePairFromGroupWorkflowDesc, waitFor, system.getId(),
                             system.getSystemType(), getClass(), removePairFromGroupMethod, rollbackMethodNullMethod(), null);
                     if (!activeMode) {
+                        Workflow.Method suspendMethod = suspendSRDFLinkMethod(system.getId(),
+                                source.getId(), targetURI, consExempt);
                         waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                 SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
-                                system.getSystemType(), getClass(), suspendPairMethod, null, null);
+                                system.getSystemType(), getClass(), suspendMethod, null, null);
                     }
                     // We now detach the active p...
                     // don't proceed if detach fails, earlier we were allowing the delete operation
@@ -1116,7 +1122,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
-            completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
+            List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
+            if (onGroup) {
+                SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
+            }
+            completer = new SRDFLinkDetachCompleter(combined, opId);
             getRemoteMirrorDevice().doDetachLink(system, sourceURI, targetURI, onGroup, completer);
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
@@ -1183,7 +1193,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 List<URI> combinedVolumeList = new ArrayList<URI>();
                 combinedVolumeList.addAll(sourceVolumes);
                 combinedVolumeList.addAll(targetVolumes);
-                completer = new SRDFTaskCompleter(combinedVolumeList, opId);
+                completer = new SRDFLinkResumeCompleter(combinedVolumeList, opId);
                 getRemoteMirrorDevice().doResumeLink(system, tgtVolumes.iterator().next(), false, completer);
             } else {
                 log.info("There are no more volumes in the SRDF group {} {}, so no need to call resume.", group.getLabel(), group.getId());
@@ -1234,7 +1244,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 List<URI> combinedVolumeList = new ArrayList<URI>();
                 combinedVolumeList.addAll(sourceVolumes);
                 combinedVolumeList.addAll(targetVolumes);
-                completer = new SRDFTaskCompleter(combinedVolumeList, opId);
+                completer = new SRDFLinkSuspendCompleter(combinedVolumeList, opId);
                 getRemoteMirrorDevice().doSuspendLink(system, tgtVolumes.iterator().next(), false, false, completer);
             } else {
                 log.info("There are no more volumes in the SRDF group {} {}, so no need to call suspend.", group.getLabel(), group.getId());
@@ -1248,14 +1258,18 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     public boolean resumeSyncPairStep(final URI systemURI, final URI sourceURI,
-            final URI targetURI, final String opId) {
-        log.info("START Resume Sync Pair");
+            final URI targetURI, final boolean onGroup, final String opId) {
+        log.info("START Resume Sync Pair onGroup={}", onGroup);
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
-            completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
+            List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
+            if (onGroup) {
+                SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
+            }
+            completer = new SRDFLinkResumeCompleter(combined, opId);
             getRemoteMirrorDevice().doResumeLink(system, targetVolume, false, completer);
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
@@ -1265,7 +1279,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
     public Method resumeSyncPairMethod(final URI systemURI, final URI sourceURI,
             final URI targetURI) {
-        return new Workflow.Method(CREATE_SRDF_RESUME_PAIR_METHOD, systemURI, sourceURI, targetURI);
+        return new Workflow.Method(CREATE_SRDF_RESUME_PAIR_METHOD, systemURI, sourceURI, targetURI, false);
+    }
+
+    public Method resumeGroupPairsMethod(final URI systemURI, final URI sourceURI,
+            final URI targetURI) {
+        return new Workflow.Method(CREATE_SRDF_RESUME_PAIR_METHOD, systemURI, sourceURI, targetURI, true);
     }
 
     public boolean restoreStep(final URI systemURI, final URI sourceURI,
@@ -1276,7 +1295,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
-            completer = new SRDFLinkSyncCompleter(Arrays.asList(sourceURI, targetURI), opId);
+            List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
+            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
+            completer = new SRDFLinkSyncCompleter(combined, opId);
             getRemoteMirrorDevice().doSyncLink(system, targetVolume, completer);
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
@@ -1660,21 +1681,25 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     public Workflow.Method suspendSRDFLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt) {
-        return new Workflow.Method(SUSPEND_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, consExempt);
+        return new Workflow.Method(SUSPEND_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, consExempt, false);
     }
 
-    public boolean suspendSRDFLinkStep(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt, String opId) {
-        log.info("START Suspend SRDF link");
-        TaskCompleter completer = null;
+    public Workflow.Method suspendSRDFGroupLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt) {
+        return new Workflow.Method(SUSPEND_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, consExempt, true);
+    }
 
+    public boolean suspendSRDFLinkStep(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt, boolean onGroup, String opId) {
+        log.info("START Suspend SRDF link OnGroup={}", onGroup);
+        TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             Volume target = dbClient.queryObject(Volume.class, targetURI);
             List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
-            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
-            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
-            completer = new SRDFLinkPauseCompleter(combined, opId);
+            if (onGroup) {
+                SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
+            }
+            completer = new SRDFLinkSuspendCompleter(combined, opId);
             getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, false, completer);
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
@@ -1683,7 +1708,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
-    public Workflow.Method splitSRDFLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean rollback) {
+    public Workflow.Method splitSRDFGroupLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean rollback) {
         return new Workflow.Method(SPLIT_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, rollback);
     }
 
@@ -1696,8 +1721,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             StorageSystem system = getStorageSystem(systemURI);
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
             List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
-            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
-            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
+            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
             completer = new SRDFLinkPauseCompleter(combined, opId);
             getRemoteMirrorDevice().doSplitLink(system, targetVolume, rollback, completer);
         } catch (Exception e) {
@@ -1855,7 +1879,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 }
             }
 
-            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVol, dbClient, combined);
+            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVolumeUri, dbClient, combined);
             log.info("Combined ids : {}", Joiner.on("\t").join(combined));
             if (op.equalsIgnoreCase("failover")) {
                 completer = new SRDFLinkFailOverCompleter(combined, task);
@@ -2034,7 +2058,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                         if (volumes.size() == 1) {
 
                             // split all members the group
-                            Workflow.Method splitMethod = splitSRDFLinkMethod(system.getId(),
+                            Workflow.Method splitMethod = splitSRDFGroupLinkMethod(system.getId(),
                                     source.getId(), target.getId(), false);
                             String splitStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
@@ -2043,11 +2067,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             // Second we detach the group...
                             Workflow.Method detachMethod = detachGroupPairsMethod(system.getId(),
                                     source.getId(), target.getId());
-                            Workflow.Method resumeSyncPairMethod = resumeSyncPairMethod(system.getId(),
+                            Workflow.Method resumeMethod = resumeGroupPairsMethod(system.getId(),
                                     source.getId(), target.getId());
                             String detachMirrorStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     DETACH_SRDF_MIRRORS_STEP_DESC, splitStep, system.getId(),
-                                    system.getSystemType(), getClass(), detachMethod, resumeSyncPairMethod, null);
+                                    system.getSystemType(), getClass(), detachMethod, resumeMethod, null);
 
                             // Expand the source and target Volumes
                             String expandStep = addExpandBlockVolumeSteps(workflow, detachMirrorStep, source.getPool(), volumeId, size, task);
@@ -2173,7 +2197,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                         if (volumes.size() == 1) {
 
                             // split all members the group
-                            Workflow.Method splitMethod = splitSRDFLinkMethod(system.getId(),
+                            Workflow.Method splitMethod = splitSRDFGroupLinkMethod(system.getId(),
                                     source.getId(), target.getId(), false);
                             String splitStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
@@ -2182,11 +2206,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             // Second we detach the group...
                             Workflow.Method detachMethod = detachGroupPairsMethod(system.getId(),
                                     source.getId(), target.getId());
-                            Workflow.Method resumeSyncPairMethod = resumeSyncPairMethod(system.getId(),
+                            Workflow.Method resumeMethod = resumeGroupPairsMethod(system.getId(),
                                     source.getId(), target.getId());
                             String detachMirrorStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     DETACH_SRDF_MIRRORS_STEP_DESC, splitStep, system.getId(),
-                                    system.getSystemType(), getClass(), detachMethod, resumeSyncPairMethod, null);
+                                    system.getSystemType(), getClass(), detachMethod, resumeMethod, null);
 
                             // Expand the source and target Volumes
                             String expandStep = addExpandBlockVolumeSteps(workflow, detachMirrorStep, pool, volumeId, size, task);

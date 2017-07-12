@@ -1146,17 +1146,21 @@ public class FileStorageScheduler implements Scheduler {
 
         // Now check whether the label used in the storage system or not
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
-        // for isilon, duplicate name is handled at driver level..
-        if (!system.getSystemType().equals(StorageSystem.Type.isilon.name())) {
+        /*
+         * We have same project same filesystem name check present at API service
+         * Isilon file systems are path based. So Same fs name can exist at different path
+         * Unity allow same filesystem name in different NAS servers.
+         * For Isilon, duplicate name based on path is handled at driver level.
+         */
+        if (!allowDuplicateFilesystemNameOnStorage(system.getSystemType())) {
             List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                     PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
             if (fileShareList != null && !fileShareList.isEmpty()) {
                 for (FileShare fs : fileShareList) {
-                    if (fs.getStorageDevice() != null) {
-                        if (fs.getStorageDevice().equals(system.getId())) {
-                            _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
-                            throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
-                        }
+                    if (fs.getStorageDevice() != null && fs.getStorageDevice().equals(system.getId())) {
+                        _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
+                        throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
+
                     }
                 }
             }
@@ -1184,6 +1188,23 @@ public class FileStorageScheduler implements Scheduler {
         _dbClient.updateObject(fileShare);
         // finally set file share id in recommendation
         placement.setId(fileShare.getId());
+    }
+
+    /**
+     * To check fileSystem with same name is allowed or not
+     * currently we allowed it for Isilon and Unity as Array do not have these restriction.
+     * 
+     * @param systemType
+     * @return true if allowed , false otherwise
+     */
+    private static boolean allowDuplicateFilesystemNameOnStorage(String systemType) {
+        boolean allow = false;
+        if (StorageSystem.Type.isilon.name().equals(systemType)) {
+            allow = true;
+        } else if (StorageSystem.Type.unity.name().equals(systemType)) {
+            allow = true;
+        }
+        return allow;
     }
 
     /**

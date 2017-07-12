@@ -68,6 +68,7 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -79,7 +80,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimaps;
 
 @Path("/customservices/primitives")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
         Role.SYSTEM_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 public class CustomServicesPrimitiveService extends CatalogTaggedResourceService {
     private static final Logger _log = LoggerFactory
@@ -104,6 +105,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      *
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesPrimitiveList getPrimitives(@QueryParam("type") final String type) {
 
@@ -133,6 +135,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * @return PrimitiveRestRep
      */
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesPrimitiveRestRep makePrimitive(CustomServicesPrimitiveCreateParam param) {
         final CustomServicesPrimitiveDAO<?> dao = getDAO(param.getType(), false);
@@ -151,6 +154,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * @return PrimitiveRestRep
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public CustomServicesPrimitiveRestRep getPrimitive(@PathParam("id") final URI id) {
@@ -165,6 +169,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * @return
      */
     @PUT
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
@@ -178,6 +183,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/bulk")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesPrimitiveBulkRestRep bulkGetPrimitives(final BulkIdParam ids) {
@@ -185,6 +191,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivatePrimitive(@PathParam("id") final URI id) {
@@ -207,6 +214,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * @return a list of resources of the given type
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/resource")
     public CustomServicesPrimitiveResourceList getResources(@QueryParam("type") final String type,
@@ -227,6 +235,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * @return A rest response containing details of the resource that was created
      */
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/resource")
@@ -243,6 +252,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("resource/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivateResource(@PathParam("id") final URI id) {
@@ -262,6 +272,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * @return
      */
     @PUT
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("resource/{id}")
     public CustomServicesPrimitiveResourceRestRep updateResource(@Context final HttpServletRequest request, @PathParam("id") final URI id,
@@ -283,6 +294,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * @return A rest response containing details of the requested resource
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("resource/{id}")
     public CustomServicesPrimitiveResourceRestRep getResource(@PathParam("id") final URI id) {
         final CustomServicesResourceDAO<?> dao = getResourceDAOFromID(id);
@@ -300,6 +312,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * @return Response containing the octet stream of the primitive resource
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("resource/{id}/download")
     public Response download(@PathParam("id") final URI id,
             @Context final HttpServletResponse response) {

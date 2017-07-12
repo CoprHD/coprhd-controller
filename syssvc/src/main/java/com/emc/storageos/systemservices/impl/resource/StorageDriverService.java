@@ -67,7 +67,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.storagedriver.storagecapabilities.StorageProfile;
+import com.emc.storageos.storagedriver.StorageProfile;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;

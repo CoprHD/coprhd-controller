@@ -34,7 +34,7 @@ import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
-import com.emc.storageos.storagedriver.storagecapabilities.StorageProfile;
+import com.emc.storageos.storagedriver.StorageProfile;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.base.Strings;

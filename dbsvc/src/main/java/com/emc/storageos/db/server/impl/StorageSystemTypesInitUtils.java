@@ -25,7 +25,7 @@ import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.storageos.storagedriver.storagecapabilities.StorageProfile;
+import com.emc.storageos.storagedriver.StorageProfile;
 
 public class StorageSystemTypesInitUtils {
 

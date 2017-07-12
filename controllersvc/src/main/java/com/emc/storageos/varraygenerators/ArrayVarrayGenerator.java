@@ -48,17 +48,35 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
             }
             printNetworks("Networks connected to this storage system: ", networks);
             
-            // Build the virtual array with standard configuration
+            // Get the existing, or a new varray.
             String varrayName = makeShortGuid(system.getNativeGuid());
-            VirtualArray varray = buildVarray(system, varrayName, ports, networks);
+            VirtualArray existingVA = getVirtualArray(varrayName);
+            VirtualArray varray = (existingVA != null ? existingVA : newVirtualArray(varrayName));
             
-            // If the array is part of a Site, add it to the Site array.
-            VirtualArray siteVarray = null;
-            String siteName = getSiteName(system);
-            if (siteName != null) {
-                siteName = String.format("%s %s", SITE, siteName);
-                siteVarray = buildVarray(system, siteName, ports, networks);
+            // Explicitly assign the networks
+            Map<URI, StoragePort> portsToUpdate = new HashMap<URI, StoragePort>();
+            Map<URI, Network> networksToUpdate = new HashMap<URI, Network>();
+            for (URI netURI : networks) {
+                addVarrayToNetwork(varray.getId(), netURI, networksToUpdate);
             }
+            // Explicitly assign the storage ports.
+            for (StoragePort port : ports) {
+                connectVarrayToPort(varray.getId(), port, portsToUpdate);
+            }
+            for (StoragePort port : ports) {
+                assignVarrayToPort(varray.getId(), port, portsToUpdate);
+            }
+            
+            // Persist things.
+            if (existingVA == varray) {
+                dbClient.updateObject(varray);
+                log.info("Updated virtual array: " + varray.getLabel());
+            } else {
+                dbClient.createObject(varray);
+                log.info("Created virtual array: " + varray.getLabel());;
+            }
+            updatePorts(portsToUpdate);
+            updateNetworks(networksToUpdate);
             
             // Create array virtual pools.
             VpoolGenerator vpoolGenerator = new VpoolGenerator(dbClient, coordinator);

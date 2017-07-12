@@ -2964,12 +2964,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // writenable and policy in error state or creating_resync_policy - failure
                 if (!JobState.failed.equals(lastJobStatus) &&
                         !FOFB_STATES.resync_policy_created.equals(fofbState) ||
-                        !FOFB_STATES.creating_resync_policy.equals(fofbState))
+                        !FOFB_STATES.creating_resync_policy.equals(fofbState)) {
                     // call to isilon api
                     return mirrorOperations.doResyncPrep(sourceSystem, sourcePolicyName, completer);
+
+                } else {
+                    _log.info("Already resync-prop is completed");
+                    return BiosCommandResult.createSuccessfulResult();
+                }
+
             } else {
-                _log.info("Already resync-prop is completed");
-                return BiosCommandResult.createSuccessfulResult();
+                return cmdResult;
             }
         } else {
             return cmdResult;

@@ -3904,7 +3904,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 descriptor.getDeviceURI(),
                                 getDeviceType(descriptor.getDeviceURI()),
                                 this.getClass(),
-                                checkAndCreateFileSharesMethod(descriptor, fileShareSource.getId(), policyURI),
+                                checkAndCreateFileSharesMethod(descriptor, policyURI),
                                 rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
                                         .getURI()), sourceDescriptors),
                                 null);
@@ -4046,9 +4046,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param fileDescriptor
      * @return
      */
-    private Workflow.Method checkAndCreateFileSharesMethod(FileDescriptor fileDescriptor, URI sourceFS, URI policyURI) {
+    private Workflow.Method checkAndCreateFileSharesMethod(FileDescriptor fileDescriptor, URI policyURI) {
         return new Workflow.Method("checkAndCreateFS", fileDescriptor.getDeviceURI(), fileDescriptor.getPoolURI(),
-                fileDescriptor.getFsURI(), fileDescriptor.getSuggestedNativeFsId(), sourceFS, policyURI);
+                fileDescriptor.getFsURI(), fileDescriptor.getSuggestedNativeFsId(), policyURI);
     }
 
     

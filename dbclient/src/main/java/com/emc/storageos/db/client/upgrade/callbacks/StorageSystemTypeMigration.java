@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
@@ -15,6 +19,16 @@ import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageProfile;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
+/**
+ * A new field called supportedStorageProfiles is added for StorageSystemType model after 3.6,
+ * so when upgrading to a version that is after 3.6, this field of existing storage system types
+ * should be filled accordingly.
+ *
+ * Filling Rules:
+ * - For block and block provider's types, add BLOCK to supportedStorageProfiles field.
+ * - For file and file provider's types, add FILE to supportedStorageProfiles field;
+ * - Especially for VMAX type, add REMOTE_REPLICATION_FOR_BLOCK to supportedStorageProfiles field.
+ */
 public class StorageSystemTypeMigration extends BaseCustomMigrationCallback {
 
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeMigration.class);
@@ -31,11 +45,9 @@ public class StorageSystemTypeMigration extends BaseCustomMigrationCallback {
             StringSet profiles = new StringSet();
             if (StringUtils.equals(metaType, META_TYPE.BLOCK.toString())
                     || StringUtils.equals(metaType, META_TYPE.BLOCK_PROVIDER.toString())) {
-                // For block and block provider's types, add BLOCK to supportedStorageProfiles field
                 profiles.add(StorageProfile.BLOCK.toString());
             } else if (StringUtils.equals(metaType, META_TYPE.FILE.toString())
                     || StringUtils.equals(metaType, META_TYPE.FILE_PROVIDER.toString())) {
-                // For file and file provider's types, add FILE to supportedStorageProfiles field
                 profiles.add(StorageProfile.FILE.toString());
             }
             String typeName = type.getStorageTypeName();

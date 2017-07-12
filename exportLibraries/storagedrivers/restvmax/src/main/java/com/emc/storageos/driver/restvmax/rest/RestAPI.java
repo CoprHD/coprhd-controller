@@ -5,6 +5,8 @@
 
 package com.emc.storageos.driver.restvmax.rest;
 
+import com.emc.storageos.driver.restvmax.vmax.type.GenericResultType;
+import com.google.gson.Gson;
 import com.sun.jersey.api.client.*;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
@@ -23,6 +25,8 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+
+import static com.google.json.JsonSanitizer.sanitize;
 
 public class RestAPI implements AutoCloseable {
 

@@ -10,7 +10,7 @@ import java.util.Base64;
 public enum BackendType {
     VMAX {
         public Integer getPort() {
-            return 8443;
+            return Integer.valueOf(8443);
         }
         public String getAuthField() {
             return "Authorization";

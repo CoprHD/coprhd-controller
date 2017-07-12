@@ -34,7 +34,7 @@ public class DataDomainMetaTypeMigration extends BaseCustomMigrationCallback {
             String metatype = StorageSystemType.META_TYPE.FILE.toString().toLowerCase();
             while (it.hasNext()) {
                 StorageSystemType type = it.next();
-                if (type.getStorageTypeName() == null && type.getStorageTypeName().equalsIgnoreCase(DATA_DOMAIN)) {
+                if (type.getStorageTypeName() != null && type.getStorageTypeName().equalsIgnoreCase(DATA_DOMAIN)) {
                     type.setMetaType(metatype);
                     type.setDriverClassName(metatype);
                     logger.info("Updating StorageSystemType MetaType for id : {}", type.getId());

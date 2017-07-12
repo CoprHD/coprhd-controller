@@ -7,7 +7,8 @@ dependencies {
             project(":jmx"),
             project(":models"),
             project(":serviceutils"),
-            project(":coordinatorsvc")
+            project(":coordinatorsvc"),
+            project(":storagedriver")
     testCompile project(":errorhandling")
     testCompile project(":com.emc.sa.model")
 }

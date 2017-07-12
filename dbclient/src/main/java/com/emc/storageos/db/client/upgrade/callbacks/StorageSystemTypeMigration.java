@@ -15,7 +15,6 @@ import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
-import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageProfile;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
@@ -32,6 +31,8 @@ import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException
 public class StorageSystemTypeMigration extends BaseCustomMigrationCallback {
 
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeMigration.class);
+
+    private static final String VMAX = "vmax";
 
     @Override
     public void process() throws MigrationCallbackException {
@@ -51,7 +52,7 @@ public class StorageSystemTypeMigration extends BaseCustomMigrationCallback {
                 profiles.add(StorageProfile.FILE.toString());
             }
             String typeName = type.getStorageTypeName();
-            if (StringUtils.equals(typeName, StorageSystemTypesInitUtils.VMAX)) {
+            if (StringUtils.equals(typeName, VMAX)) {
                 profiles.add(StorageProfile.REMOTE_REPLICATION_FOR_BLOCK.toString());
             }
             type.setSupportedStorageProfiles(profiles);

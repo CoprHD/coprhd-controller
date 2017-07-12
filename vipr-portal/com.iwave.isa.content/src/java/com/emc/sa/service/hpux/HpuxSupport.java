@@ -9,12 +9,15 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.hpux.HpuxSystem;
 import com.emc.hpux.model.MountPoint;
 import com.emc.hpux.model.RDisk;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.MachineTagUtils;
+import com.emc.sa.service.hpux.tasks.AddToFSTab;
 import com.emc.sa.service.hpux.tasks.CheckForPowerPath;
 import com.emc.sa.service.hpux.tasks.CreateDirectory;
 import com.emc.sa.service.hpux.tasks.DeleteDirectory;
@@ -28,6 +31,7 @@ import com.emc.sa.service.hpux.tasks.HpuxExecutionTask;
 import com.emc.sa.service.hpux.tasks.ListMountPoints;
 import com.emc.sa.service.hpux.tasks.MakeFilesystem;
 import com.emc.sa.service.hpux.tasks.MountPath;
+import com.emc.sa.service.hpux.tasks.RemoveFromFSTab;
 import com.emc.sa.service.hpux.tasks.Rescan;
 import com.emc.sa.service.hpux.tasks.UnmountPath;
 import com.emc.sa.service.hpux.tasks.UpdatePowerPathEntries;
@@ -171,6 +175,16 @@ public class HpuxSupport {
 
     public void rescan() {
         execute(new Rescan());
+    }
+
+    public void addToFSTab(String device, String path, String options) {
+        execute(new AddToFSTab(device, path, AddToFSTab.DEFAULT_FS_TYPE, StringUtils.defaultIfEmpty(options, AddToFSTab.DEFAULT_OPTIONS)));
+        addRollback(new RemoveFromFSTab(path));
+    }
+
+    public void removeFromFSTab(MountPoint mountPoint) {
+        execute(new RemoveFromFSTab(mountPoint.getPath()));
+        addRollback(new AddToFSTab(mountPoint.getDevice(), mountPoint.getPath(), AddToFSTab.DEFAULT_FS_TYPE, mountPoint.getOptions()));
     }
 
     public RDisk findRDisk(BlockObjectRestRep volume, boolean usePowerPath) {

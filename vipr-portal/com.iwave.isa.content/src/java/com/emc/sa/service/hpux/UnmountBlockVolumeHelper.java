@@ -59,6 +59,8 @@ public class UnmountBlockVolumeHelper {
 
             hpuxSupport.unmount(volume.mountPoint.getPath());
 
+            hpuxSupport.removeFromFSTab(volume.mountPoint);
+
             hpuxSupport.removeVolumeMountPointTag(volume.viprVolume);
 
             // delete the directory entry if it's empty

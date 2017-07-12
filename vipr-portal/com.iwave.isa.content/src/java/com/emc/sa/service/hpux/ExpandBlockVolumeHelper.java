@@ -51,6 +51,7 @@ public class ExpandBlockVolumeHelper {
         logInfo("expand.block.volume.unmounting", hpuxSupport.getHostName(), mountPoint.getPath());
         hpuxSupport.unmount(mountPoint.getPath(), rdisk.getDevicePath());
         ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_HPUX_EXPAND_VOLUME_AFTER_UNMOUNT);
+        hpuxSupport.removeFromFSTab(mountPoint);
         hpuxSupport.removeVolumeMountPointTag(volume);
         ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_HPUX_EXPAND_VOLUME_AFTER_REMOVE_TAG);
 
@@ -67,6 +68,9 @@ public class ExpandBlockVolumeHelper {
 
         logInfo("expand.block.volume.remounting", hpuxSupport.getHostName(), mountPoint.getPath());
         hpuxSupport.mount(rdisk.getDevicePath(), mountPoint.getPath());
+        ExecutionUtils.clearRollback();
+
+        hpuxSupport.addToFSTab(mountPoint.getDevice(), mountPoint.getPath(), null);
         ExecutionUtils.clearRollback();
 
         ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_HPUX_EXPAND_VOLUME_AFTER_MOUNT);

@@ -39,7 +39,7 @@ public class HP3PARProvisioningHelper {
         boolean IsDeDupEnabled = false;
         
         // get deduplicationCapability
-        CommonStorageCapabilities commonCapabilities= capabilities.getCommonCapabilitis();
+        CommonStorageCapabilities commonCapabilities= capabilities.getCommonCapabilities();
 		if (commonCapabilities != null) {
 			List<DataStorageServiceOption> dataService = commonCapabilities.getDataStorage();
 			if (dataService != null) {

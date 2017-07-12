@@ -14,6 +14,7 @@
 #        ./vnxehelper.sh delete_volume <DEVICE_ID>
 #        ./vnxehelper.sh delete_mask <NAME_PAATTERN>
 #        ./vnxehelper.sh add_initiator_to_mask <NWWN:PWWN ...> <NAME_PATTERN>
+#        ./vnxehelper.sh remove_initiator_from_mask <NWWN:PWWN ...>
 #        ./vnxehelper.sh create_volume <NAME> <POOL_ID> <SIZE>
 #        ./vnxehelper.sh create_mask <NAME> <NAME_PAATTERN> <DEVICE_ID> <HLU>
 #        ./vnxehelper.sh get_hlus <NAME_PAATTERN>
@@ -244,5 +245,6 @@ elif [ "$1" = "get_hlus" ]; then
     shift
     get_hlus "$1"
 else
+    echo "Unsupported operation $1"
     echo "Usage: $0 [create_volume | create_mask | delete_mask | add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export | get_hlus] {params}"
 fi

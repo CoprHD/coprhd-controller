@@ -248,7 +248,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     _logger.info("block object {} is fully ingested, "
                             + "breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
                             blockObject.forDisplay(), unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
-                    unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
+                    unManagedVolume.removeUnManagedExportMask(unManagedExportMask);
                     unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
                     uemsToPersist.add(unManagedExportMask);
                 }

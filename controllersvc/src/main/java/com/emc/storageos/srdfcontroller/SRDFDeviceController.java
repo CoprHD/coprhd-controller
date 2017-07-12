@@ -1705,6 +1705,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_089);
             getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, false, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_090);
+
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }

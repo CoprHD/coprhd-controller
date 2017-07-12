@@ -36,4 +36,12 @@ public class ViewColumn {
     public Object getBinValue() {
         return binVal;
     }
+
+    @Override
+    public String toString() {
+        return "ViewColumn{" +
+                "name='" + name + '\'' +
+                ", value='" + value + '\'' +
+                '}';
+    }
 }

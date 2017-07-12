@@ -21,7 +21,6 @@ public class DbViewRecord {
     private String keyValue;
     private List<ViewColumn> clusters = new ArrayList<>();
     private List<ViewColumn> columns = new ArrayList<>();
-    private DbViewDefinition def;
 
     public DbViewRecord(DbViewDefinition viewDef) {
         this.viewDef = viewDef;
@@ -57,9 +56,8 @@ public class DbViewRecord {
 
     public String getInsertCql() {
         StringBuilder cql = new StringBuilder();
-        cql.append("INSERT INTO \"");
-        cql.append(viewDef.getViewName());
-        cql.append("\" (");
+        cql.append("INSERT INTO " + viewDef.getViewName() + " (" + getKeyName() + "," );
+
         for (ViewColumn cluster: clusters) {
             cql.append(cluster.getName());
             cql.append(",");
@@ -71,25 +69,21 @@ public class DbViewRecord {
         cql.deleteCharAt(cql.length()-1);
 
         cql.append(") VALUES(");
-        for (ViewColumn cluster: clusters) {
-            cql.append(cluster.getValue());
-            cql.append(",");
+        int valCount = 1 + clusters.size() + columns.size();
+        for (int i = 0; i < valCount; i++) {
+            cql.append("?,");
         }
-        for (ViewColumn col: columns) {
-            cql.append(col.getValue());
-            cql.append(",");
-        }
+        cql.deleteCharAt(cql.length()-1);
         cql.append(")");
 
         return cql.toString();
     }
-
 
     public void setKeyValue(String keyValue) {
         this.keyValue = keyValue;
     }
 
     public DbViewDefinition getDef() {
-        return def;
+        return this.viewDef;
     }
 }

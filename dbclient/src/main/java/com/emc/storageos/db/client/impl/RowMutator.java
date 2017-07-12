@@ -125,7 +125,7 @@ public class RowMutator {
         // Columns
         for (ViewColumn col: view.getColumns()) {
             ByteBuffer blobVal = getByteBufferFromPrimitiveValue(col.getBinValue());
-            insert.setBytes("value", blobVal);
+            insert.setBytes(col.getName(), blobVal);
         }
 
         atomicBatch.add(insert);

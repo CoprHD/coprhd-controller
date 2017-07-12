@@ -84,6 +84,7 @@ import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -137,6 +138,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String UMFSQD_DETAILS = "UMFSQD_DETAILS";
     private static final String UMFS_QD_MAP = "UMFS_QD_MAP";
     private static final String INITIAL_PATH = "/ifs/accesszone/";
+    private static final String SLASH = "/";
 
     private static final Long MAX_NFS_EXPORTS_V7_2 = 1500L;
     private static final Long MAX_CIFS_SHARES = 40000L;
@@ -1403,6 +1405,51 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return nasServer;
     }
 
+    private boolean setReplicationPolicyAttributes(UnManagedFileSystem unManagedFs, String fsPath,
+            ArrayList<IsilonSyncPolicy> isiSyncIQPolicies) {
+        StringSet targetPaths = new StringSet();
+        StringSet targetHosts = new StringSet();
+        StringSet policySourcePath = new StringSet();
+
+        if (fsPath != null && !fsPath.isEmpty()) {
+            for (IsilonSyncPolicy isiSyncIQPolicy : isiSyncIQPolicies) {
+                if (isiSyncIQPolicy.getSourceRootPath() != null && !isiSyncIQPolicy.getSourceRootPath().isEmpty()) {
+                    String policyPath = isiSyncIQPolicy.getSourceRootPath();
+                    // Add SLASH to end of the path, if not
+                    // it would easy the prefix directory checking in case of policy at higher level
+                    policyPath = policyPath + (policyPath.endsWith(SLASH) ? "" : SLASH);
+                    fsPath = fsPath + (fsPath.endsWith(SLASH) ? "" : SLASH);
+                    // If policy at file system level both policy path and fs path should be same
+                    // if policy at higher directory level of this file system,
+                    // the policy path should be part of file system path.
+                    if (policyPath.equals(fsPath) || fsPath.startsWith(policyPath)) {
+                        unManagedFs.putFileSystemCharacterstics(
+                                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_MIRRORED.toString(), TRUE);
+                        // Add the policy attributes to UMFS object
+                        targetPaths.add(isiSyncIQPolicy.getTargetPath());
+                        targetHosts.add(isiSyncIQPolicy.getTargetHost());
+                        policySourcePath.add(isiSyncIQPolicy.getSourceRootPath());
+
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.TARGET_HOST.toString(),
+                                targetHosts);
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.TARGET_PATH.toString(),
+                                targetPaths);
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_SOURCE_PATH.toString(),
+                                policySourcePath);
+
+                        // What about if there are policies at higher level as well fs level
+                        // TODO
+                        return true;
+                    }
+                } else {
+                    _log.debug("Policy {} source directory path is empty ", isiSyncIQPolicy.getName());
+                }
+
+            }
+        }
+        return false;
+    }
+
     private void discoverUmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
 
         List<UnManagedFileSystem> newUnManagedFileSystems = new ArrayList<>();
@@ -1471,6 +1518,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             // NFSv4 enabled on storage system!!!
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
+
+            // Get the list of SyncIQ policies present in the system!!
+            ArrayList<IsilonSyncPolicy> isiSyncIQPolicies = isilonApi.getReplicationPolicies().getList();
 
             List<FileShare> discoveredFS = new ArrayList<>();
             String resumeToken = null;
@@ -1593,6 +1643,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                         UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString(), TRUE);
                             } else {
                                 _log.info("FS {} does not have export or share", fs.getPath());
+                            }
+
+                            // Set the policy attributes!!
+                            if (!setReplicationPolicyAttributes(unManagedFs, fs.getPath(), isiSyncIQPolicies)) {
+                                _log.info("No SyncIQ policy found for fs ", fs.getPath());
                             }
 
                             /**
@@ -2291,7 +2346,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
                         .toString(),
-                TRUE);
+                FALSE);
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
@@ -2303,10 +2358,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             pools.add(pool.getId().toString());
             unManagedFileSystemInformation.put(
                     UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_POOL.toString(), pools);
-            StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool.getId(),
-                    unManagedFileSystemCharacteristics
-                            .get(UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                                    .toString()));
+            StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool.getId());
             _log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
             if (null == matchedVPools || matchedVPools.isEmpty()) {
                 // clear all existing supported vpools.
@@ -3601,8 +3653,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             isilonFSList.setToken(quotas.getToken());
 
             for (IsilonSmartQuota quota : quotas.getList()) {
-                if(quota.getType().compareTo("directory") != 0) {
-                    _log.debug("ignore quota path {} with quota id {}:", 
+                if (quota.getType().compareTo("directory") != 0) {
+                    _log.debug("ignore quota path {} with quota id {}:",
                             quota.getPath(), quota.getId() + " and quota type" + quota.getType());
                     continue;
                 }

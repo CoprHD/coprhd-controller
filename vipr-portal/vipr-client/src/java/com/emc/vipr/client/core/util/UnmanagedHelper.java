@@ -12,6 +12,7 @@ import java.util.Set;
 import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.adapters.StringSetMapAdapter.Entry;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
+import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 
 /**
  * Unmanaged volumes API is pretty poor. Need utilities to process key/value pairs as there is no concrete
@@ -28,6 +29,7 @@ public class UnmanagedHelper {
     public static final String IS_LOCAL_MIRROR = "IS_LOCAL_MIRROR";
     public static final String IS_VOLUME_EXPORTED = "IS_VOLUME_EXPORTED";
     public static final String IS_NONRP_EXPORTED = "IS_NONRP_EXPORTED";
+    public static final String IS_MIRRORED = "IS_MIRRORED";
 
     private static final String IS_FILESYSTEM_EXPORTED = "IS_FILESYSTEM_EXPORTED";
 
@@ -67,6 +69,10 @@ public class UnmanagedHelper {
             }
         }
         return results;
+    }
+
+    public static boolean isReplicationEnabled(List<StringHashMapEntry> characteristicsEntries) {
+        return getValue(characteristicsEntries, IS_MIRRORED, true);
     }
 
     public static boolean isSupportedForIngest(List<StringHashMapEntry> entries) {
@@ -154,4 +160,22 @@ public class UnmanagedHelper {
         }
         return defaultValue;
     }
+
+    /*
+     * getInfoField return field value present in unmanaged file system information
+     * 
+     */
+    public static String getInfoField(UnManagedFileSystemRestRep umfs, String key) {
+        if (key == null || key.equals("")) {
+            return "";
+        }
+
+        for (Entry entry : umfs.getFileSystemInformation()) {
+            if (key.equals(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return "";
+    }
+
 }

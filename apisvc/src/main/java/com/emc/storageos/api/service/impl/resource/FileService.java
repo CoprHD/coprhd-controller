@@ -208,18 +208,18 @@ public class FileService extends TaskResourceService {
     @Override
     public FileShareBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<FileShare> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        return new FileShareBulkRep(BulkList.wrapping(_dbIterator, MapFileShare.getInstance()));
+        Iterator<FileShare> dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        return new FileShareBulkRep(BulkList.wrapping(dbIterator, MapFileShare.getInstance()));
     }
 
     @Override
     protected BulkRestRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        Iterator<FileShare> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<FileShare> dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter<FileShare> filter = new BulkList.ProjectResourceFilter<FileShare>(
                 getUserFromContext(), _permissionsHelper);
-        return new FileShareBulkRep(BulkList.wrapping(_dbIterator, MapFileShare.getInstance(), filter));
+        return new FileShareBulkRep(BulkList.wrapping(dbIterator, MapFileShare.getInstance(), filter));
     }
 
     private FileStorageScheduler _fileScheduler;
@@ -368,11 +368,11 @@ public class FileService extends TaskResourceService {
      * the internal object case
      * NOTE - below method should always work with project being null
      */
-    public TaskResourceRep createFSInternal(FileSystemParam param, Project project,
+    private TaskResourceRep createFSInternal(FileSystemParam param, Project project,
             TenantOrg tenant, DataObject.Flag[] flags) throws InternalException {
         ArgValidator.checkFieldUriType(param.getVpool(), VirtualPool.class, "vpool");
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
-
+        ArgValidator.checkFieldNotNull(param.getSize(), "size");
         Long fsSize = SizeUtil.translateSize(param.getSize());
         // Convert to MB and check for 20MB min size.
         Long fsSizeMB = fsSize / (1024 * 1024);

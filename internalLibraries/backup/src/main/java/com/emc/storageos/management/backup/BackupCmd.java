@@ -46,7 +46,7 @@ public class BackupCmd {
                 "If \"osi\" is used, only site id will be retored\n"),
         quota("Get backup quota info, unit:GB\n"),
         force("Execute operation on quorum nodes"),
-        ignore("Ignore limitation on \"max_manual_copies\""),
+        ignore("Ignore limitation on max manual copies count"),
         purge("Purge the existing ViPR data with arg\n" +
                 "[ismultivdc], yes or no(default)");
 

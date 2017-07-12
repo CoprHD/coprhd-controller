@@ -100,18 +100,20 @@ public class Volume extends BlockObject implements ProjectResource {
     // that this Volume's backing Volumes belong to.
     private String _backingReplicationGroupInstance;
 
-    private int volType = 0;
+    private int type = VOL_TYPE.NORMAL;
 
-    static class VOL_TYPE {
+    public static class VOL_TYPE {
+        public static int NORMAL = 0;
         public static int SRDF_SOURCE = 1;
+        public static int SRDF_TARGET = 2;
+    }
+
+    public int getType() {
+        return this.type;
     }
 
     public void setType(int type) {
-        volType += type;
-    }
-
-    public void unsetType(int type) {
-        volType -= type;
+        this.type += type;
     }
 
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.

@@ -226,6 +226,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         srcVolume = prepareVolume(srcVolume, project, varray, vpool,
                                 size, recommendation, newVolumeLabel, consistencyGroup,
                                 task, false, Volume.PersonalityTypes.SOURCE, null, null, null);
+                        srcVolume.setType(Volume.VOL_TYPE.SRDF_SOURCE);
                         volumeURIs.add(srcVolume.getId());
                         if (!volumePrecreated) {
                             taskList.getTaskList().add(toTask(srcVolume, task));
@@ -554,6 +555,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         .getVirtualArrayTargetMap().get(targetVirtualArray.getId())
                         .getSourceRAGroup(),
                 settings.getCopyMode());
+        volume.setType(Volume.VOL_TYPE.SRDF_TARGET);
         volumeURIs.add(volume.getId());
         // add target only during vpool change.
         if (recommendation.getVpoolChangeVolume() != null) {

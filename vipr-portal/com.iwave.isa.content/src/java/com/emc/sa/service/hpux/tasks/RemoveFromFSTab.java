@@ -4,7 +4,7 @@
  */
 package com.emc.sa.service.hpux.tasks;
 
-import com.iwave.ext.linux.command.RemoveFromFSTabCommand;
+import com.emc.hpux.command.RemoveFromFSTabCommand;
 
 public class RemoveFromFSTab extends HpuxExecutionTask<Void> {
     private String path;

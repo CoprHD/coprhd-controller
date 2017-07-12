@@ -31,6 +31,7 @@ except:
 parser = argparse.ArgumentParser(description = 'Bourne tag cli usage.')
 parser.add_argument('--ip', metavar = 'ipaddr',help = 'IP address of bourne', default=bourne_ip)
 parser.add_argument('--remove', help='remove tags', action="store_true") 
+parser.add_argument('--list', help='list tags', action="store_true")
 parser.add_argument('--resource_type',	metavar = 'resource_type', help = 'resource type', required = True, default=None)
 parser.add_argument('--id', metavar = 'id', help='resource id', required = True, default=None)
 parser.add_argument('tags', metavar = 'tags', help='tags', nargs='+', default=None)
@@ -47,9 +48,13 @@ try:
 
     if args.remove:
         bourne.untag(args.resource_type, args.id, args.tags)
+    elif args.list:
+        tags = bourne.listtag(args.resource_type, args.id)
+        tagset = tags['tag']
+        print 'Tags:'
+        print tagset
     else:
         bourne.tag(args.resource_type, args.id, args.tags)
-
 
 except:
     raise

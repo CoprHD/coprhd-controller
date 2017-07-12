@@ -5684,6 +5684,14 @@ class Bourne:
             'remove': tags
         }
         self.api('PUT', target, params)
+    
+    def listtag(self, resource_type, id):
+        target = self.getTagURI(resource_type, id)
+        #print 'hello'
+        #print 'target: ' + target
+	tags = self.api('GET', target)
+        #print tags
+	return tags
 
     def datastore_create(self, type, label, cos, filecos, size, mountpoint):
 

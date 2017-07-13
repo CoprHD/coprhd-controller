@@ -492,6 +492,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             srcVolume.getSrdfTargets().add(volume.getId().toString());
             srcVolume.setType(Volume.VOL_TYPE.SRDF_SOURCE);
             srcVolume.setProject(new NamedURI(project.getId(), volume.getLabel()));
+            srcVolume.setLabel(srcVolume.getLabel()); // todo: has to do this for now
             _dbClient.updateObject(srcVolume);
 
             volume.setSrdfParent(new NamedURI(srcVolume.getId(), srcVolume.getLabel()));

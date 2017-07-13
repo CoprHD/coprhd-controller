@@ -4,16 +4,12 @@
  */
 package com.emc.vipr.sanity.catalog
 
-//import static com.emc.vipr.sanity.Sanity.client
-//import static com.emc.vipr.sanity.Sanity.catalog
 import static com.emc.vipr.sanity.Sanity.*
-
-import com.emc.vipr.model.catalog.AssetOption
-//import static org.junit.Assert.assertNotNull
-//import static org.junit.Assert.assertTrue
-//import static org.junit.Assert.assertEqual
 import static org.junit.Assert.*
 
+import com.emc.vipr.model.catalog.AssetOption
+import com.emc.vipr.model.catalog.AssetOptionsRequest
+import java.net.URI
 
 class RemoteReplicationHelper {
 
@@ -25,6 +21,9 @@ class RemoteReplicationHelper {
     private static final String AO_RR_GROUPS_FOR_SET = "vipr.remoteReplicationGroupForSet"  // depends on 'remoteReplicationSetsForArrayType'
     private static final String AO_RR_CG_OR_PAIR = "vipr.remoteReplicationCgOrPair"
     private static final String AO_RR_PAIRS_OR_CGS = "vipr.remoteReplicationPairsOrCGs" // depends on "remoteReplicationSetsForArrayType","remoteReplicationGroupForSet","remoteReplicationCgOrPair"
+    private static final String AO_VARRAY = "vipr.blockVirtualArray"
+    private static final String AO_VPOOL = "vipr.blockVirtualPool"
+    private static final String AO_PROJECT = "vipr.project"
 
     private static final String RR_DRIVER_TYPE = "DRIVERSYSTEM"
     private static String RR_DRIVER_TYPE_ID
@@ -32,8 +31,10 @@ class RemoteReplicationHelper {
     private static final String RR_SET = "replicationSet1 [ACTIVE]"
     private static String RR_SET_ID
 
-    private static final String RR_GROUP = "replicationGroup1_set1 [ACTIVE] (asynchronous)"
+    private static final String RR_GROUP = "replicationGroup1_set1 [ACTIVE] (synchronous)"
     private static String RR_GROUP_ID
+    
+    private static URI tenantId // ID of tenant to use for AssetOption operations
 
     static boolean topologyLoadedTest() {
         vpoolId = client.blockVpools().search().byExactName(VPOOL).first()?.id
@@ -44,6 +45,7 @@ class RemoteReplicationHelper {
         println "Required topology exists"
         return true;       
     }
+
 
     static void storageTypeAssetOptionTest() { 
         println "Testing Asset Option Provider for Storage System Type"
@@ -87,6 +89,34 @@ class RemoteReplicationHelper {
         assertTrue("RR Groups contains " + RR_GROUP + " in " + assetOptions, optionsContainValue(assetOptions,RR_GROUP))
     }
 
+    static createRrVolumes() {
+
+        println "Creating block volume for RR"
+
+//TODO: set tenant before getting Varrays.......
+
+
+        def overrideParameters = [:]
+        overrideParameters.name = "create_rr_block_volume_test_"+Calendar.instance.time.time
+        overrideParameters.size = "1"
+        overrideParameters.virtualArray = getOption(AO_VARRAY,"nh")
+        println "---> overrideParameters : " + overrideParameters
+        
+        def vpoolParams = [(AO_VARRAY):overrideParameters.virtualArray]
+        println "vpoolParams : " + vpoolParams
+        overrideParameters.virtualPool = getOption(AO_VPOOL,"SBSDK_VPOOL_RR",vpoolParams)
+        println "---> overrideParameters2 : " + overrideParameters
+
+        overrideParameters.project = getOption(AO_PROJECT,"sanity")
+        overrideParameters.volumes = [name:"rr_vol_name", size:1, number:1]
+        
+        println "overrideParameters.virtualArray :" + overrideParameters.virtualArray
+        println "overrideParameters.virtualPool :" + overrideParameters.virtualPool
+        println "overrideParameters.project :" + overrideParameters.project
+
+        return CatalogServiceHelper.placeOrder(BlockServicesHelper.CREATE_BLOCK_VOLUME_SERVICE, overrideParameters)
+    }
+
     static boolean optionsContainValue(List<AssetOption> assetOptions, String value) { 
         for(AssetOption assetOption : assetOptions) { 
             if(assetOption.value.equals(value)) { 
@@ -95,6 +125,22 @@ class RemoteReplicationHelper {
         }
         return false    
     }
+    
+    static String getOption(String assetTag, String optionName) { 
+        def params = [:]
+        return getOption(assetTag, optionName, params)
+    }
+    
+    static String getOption(String assetTag, String optionName, Map params) { 
+        println "getOption finding " + optionName + " in " + assetTag
+
+        AssetOptionsRequest request = new AssetOptionsRequest();
+        request.setTenantId(tenantId);
+        request.setAvailableAssets(params);
+        List<AssetOption> assetOptions = catalog.assetOptions().getAssetOptions(assetTag,request)
+        println "getOption found assetOptions " + assetOptions
+        return optionKeyForValue(assetOptions,optionName)
+    }    
     
     static String optionKeyForValue(List<AssetOption> assetOptions, String value) { 
         for(AssetOption assetOption : assetOptions) { 
@@ -105,6 +151,14 @@ class RemoteReplicationHelper {
         return null
     }
     
+    static setTenant(URI tenantId) {
+      this.tenantId = tenantId
+    }
+    
+    static URI getTenant() {
+      return this.tenantId
+    }
+
 
 //    static void nextTest() {
 //        Set availableAssetTypes = [

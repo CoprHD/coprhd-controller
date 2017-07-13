@@ -4,9 +4,14 @@
  */
 package com.emc.vipr.sanity.setup
 
+import com.emc.storageos.model.NamedRelatedResourceRep
+import java.net.URI
+
+import static com.emc.vipr.sanity.Sanity.*
+
 class RemoteReplicationSetup {
 
-    static void setup() {
+    static void loadTopology() {
 
         println "Setting up remote replication"
 
@@ -25,5 +30,32 @@ class RemoteReplicationSetup {
             p.waitFor()
             println "Finished ViPR sanity for SB SDK Remote Replication.  Topology loaded"
         }
+
+        URI currentTenant = client.tenants().currentId()
+        List<NamedRelatedResourceRep> tenants = client.tenants().listSubtenants(currentTenant)
+        for (NamedRelatedResourceRep tenant : tenants) { 
+            if(tenant.getName().equals("linux")) { 
+                helper.setTenant(tenant.getId());
+            }
+        }
+        if (helper.getTenant() == null) { 
+            println "FAILED TO LOCATE TENANT 'linux'"
+        }
+        
+        // create pair in set
+        
+        // create pair in group
+        
+        // create cg
+        
+        // create pair in cg
+        
+        // create pair in cg that's in group
+        
+        
+        
+        
+        
+        
     }
 }

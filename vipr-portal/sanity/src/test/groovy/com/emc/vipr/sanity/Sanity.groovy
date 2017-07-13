@@ -94,8 +94,8 @@ class Sanity {
                 result = junit.run(vmwareTests)
                 break
            case "remotereplication":
-                initClients()
-                RemoteReplicationSetup.setup()
+                initClients("ldapvipruser1@viprsanity.com","secret")
+                RemoteReplicationSetup.loadTopology()
                 result = junit.run(remoteReplicationTests)
                 break
            default:
@@ -121,6 +121,10 @@ class Sanity {
     }
 
     static void initClients() {
+        initClients(System.getenv("SYSADMIN"), System.getenv("SYSADMIN_PASSWORD"))
+    }
+
+    static void initClients(String username, String password) {
         clientConfig = new ClientConfig(
                 host: "localhost",
                 mediaType: "application/xml",
@@ -128,7 +132,7 @@ class Sanity {
                 ignoreCertificates: true
                 )
 
-        login(System.getenv("SYSADMIN"), System.getenv("SYSADMIN_PASSWORD"))
+        login(username,password)
     }
 
     static void login(String username, String password) {

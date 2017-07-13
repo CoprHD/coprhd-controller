@@ -16,6 +16,7 @@ public class CatalogRemoteReplicationServicesSanity {
         RemoteReplicationHelper.storageTypeAssetOptionTest()
         RemoteReplicationHelper.rrSetsAssetOptionTest()
         RemoteReplicationHelper.rrGroupsForSetAssetOptionTest()
+        RemoteReplicationHelper.createRrVolumes()
     }
 
     @AfterClass static void cleanup() {

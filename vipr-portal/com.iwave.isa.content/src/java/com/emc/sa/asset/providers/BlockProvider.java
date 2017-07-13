@@ -478,6 +478,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportDatastorePortGroups(AssetOptionsContext ctx, String selectedDatastore, URI hostOrClusterId, URI projectId) {
         return getExportVolumePortGroups(ctx, selectedDatastore, hostOrClusterId, projectId);
     }
+    
+    @Asset("exportDatastorePortGroups")
+    @AssetDependencies( {"unmountedBlockVolume", "esxHost", "project"} )
+    public List<AssetOption> getExportMountDatastorePortGroups(AssetOptionsContext ctx, String selectedDatastore, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedDatastore, hostOrClusterId, projectId);
+    }
 
     @Asset("exportVolumeForHostPortGroups")
     @AssetDependencies( {"virtualArray", "blockVirtualPool", "host", "project"} )

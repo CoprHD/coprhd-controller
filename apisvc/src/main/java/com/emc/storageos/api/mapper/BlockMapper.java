@@ -679,13 +679,12 @@ public class BlockMapper {
     }
 
     public static void addAutoTierPolicy(AutoTieringPolicy policy, AutoTierPolicyList list, boolean uniquePolicyNames) {
-        if (DiscoveredDataObject.Type.vnxblock.toString().equalsIgnoreCase(policy.getSystemType())
-                || uniquePolicyNames) {
+        if (uniquePolicyNames) {
             if (!list.containsPolicy(policy.getPolicyName())) {
                 list.getAutoTierPolicies().add(
                         toNamedRelatedResource(policy, policy.getPolicyName()));
             }
-        } else if (!uniquePolicyNames) {
+        } else {
             list.getAutoTierPolicies().add(
                     toNamedRelatedResource(policy, policy.getNativeGuid()));
         }

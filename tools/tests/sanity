@@ -121,6 +121,11 @@ elif [ ${SS} = "performanceparams" ]; then
     if [ ${PP_QUICK} = 'quick' ]; then
         QUICK=1
         VPLEX_QUICK_PARAM='quick'
+        RP_QUICK_PARAM='quick'
+    fi
+    if [ ${PP_TEST} = 'rp' ]; then
+        RP_CDP=0
+        RP_CLR=1
     fi
     AUTH=${6:-ldap}
 elif [ ${SS} = "sbsdk" ]; then
@@ -7830,7 +7835,7 @@ common_setup()
         fi
 
         # RecoverPoint doesn't need zone setup, it uses its own zone setup
-        if [ "${SS}" != "recoverpoint" -a "${SS}" != "srdf" ]; then
+        if [ "${SS}" != "recoverpoint" -a "${SS}" != "srdf" -a "${PP_TEST}" != "rp" ]; then
           secho "Run zone setup"
           zone_setup
           run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
@@ -7842,7 +7847,7 @@ common_setup()
         projectid=$(project query $PROJECT)
         secho "Project id of $PROJECT is $projectid."
 
-        if [ "${SS}" != "recoverpoint" ]; then
+        if [ "${SS}" != "recoverpoint" -a "${PP_TEST}" != "rp" ]; then
             ROOT_TENANT=`tenant root|tail -1`
             if [ "${RP_INGESTTESTS}" = "0" ]; then
                 secho "Setup ACLs on neighborhood for $TENANT"
@@ -14693,6 +14698,10 @@ performanceparams_setup()
 
        # Do some additional setup for VPLEX to allow for HA side mirrors.
        performanceparams_vplex_setup
+    elif [ ${PP_TEST} == "rp" ]; then
+       RP_RUN_SETUP=1
+       recoverpoint_setup
+       rp_cg_setup
     else
        secho "Not supported"
     fi
@@ -14752,6 +14761,8 @@ performanceparams_tests()
        performanceparams_vmaxblock_tests
     elif [ ${PP_TEST} == "vplex" ]; then
        performanceparams_vplex_tests
+    elif [ ${PP_TEST} == "rp" ]; then
+       performanceparams_rp_tests
     else
        secho "Not supported"
     fi
@@ -14779,6 +14790,8 @@ performanceparams_vmaxblock_tests()
     volPerfParams='PRIMARY:'${pp1}
     run volume create ${vol1} ${PROJECT} ${NH} ${COS_MIRROR} ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
     volume show ${PROJECT}/${vol1}
+    run performanceparams verify_volume ${PROJECT}/${vol1} auto_tier_policy ${atp}
+    run performanceparams verify_volume ${PROJECT}/${vol1} performance_params ${pp1}
 
     # Create another performance parameters instance to be used for a local mirror
     # that will be attached to the volume.
@@ -14800,6 +14813,8 @@ performanceparams_vmaxblock_tests()
     secho "Attaching mirror ${vol1Mirror} to volume ${vol1} with performance parameters ${pp2}."
     run blockmirror attach ${PROJECT}/${vol1} ${vol1Mirror} 1 --mirrorPerfParams ${mirrorPerfParams}
     blockmirror show ${PROJECT}/${vol1} ${vol1Mirror}
+    run performanceparams verify_mirror ${PROJECT}/${vol1} ${vol1Mirror} auto_tier_policy ${atp2}
+    run performanceparams verify_mirror ${PROJECT}/${vol1} ${vol1Mirror} performance_params ${pp2}
 
     # Pause the mirror.
     secho "Pause mirror ${vol1Mirror}."
@@ -14832,6 +14847,8 @@ performanceparams_vmaxblock_tests()
     volPerfParams='PRIMARY:'${pp1_update_name}
     run volume create ${vol2} ${PROJECT} ${NH} ${COS_VMAXBLOCK} ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
     volume show ${PROJECT}/${vol2}
+    run performanceparams verify_volume ${PROJECT}/${vol2} auto_tier_policy ${pp1_update_atp}
+    run performanceparams verify_volume ${PROJECT}/${vol2} performance_params ${pp1_update_name}
 
     # Delete the volume.
     secho "Deleting volume ${vol2}."
@@ -14917,6 +14934,67 @@ performanceparams_vplex_tests()
     secho "Cleaning up performance parameter instances."
     run performanceparams delete ${pp1}
     run performanceparams delete ${pp2}
+}
+
+performanceparams_rp_tests()
+{
+    secho "Running RP performance parameter tests for RP CLR."
+
+    # Create a performance parameters instance for the RP source volume
+    src_atp="SYMMETRIX+000196801612+SLO_POLICY+Platinum SLO (3.0ms)"
+    src_pp=PerfParams-${RANDOM}
+    secho "Creating performance parameters with name ${src_pp} for the RP source."
+    run performanceparams create ${src_pp} --description "${src_pp}-Description" --auto_tiering_policy_name "${src_atp}" \
+         --host_io_limit_bandwidth 10000 --host_io_limit_iops 10000 --thin_vol_prealloc_percentage 0 \
+         --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
+    performanceparams show ${src_pp}
+
+    # Create a performance parameters instance for the local RP copy.
+    lcpy_atp="SYMMETRIX+000196801612+SLO_POLICY+Silver SLO (8.0ms)"
+    lcpy_pp=PerfParams-${RANDOM}
+    secho "Creating performance parameters with name ${lcpy_pp} for the RP local copy."
+    run performanceparams create ${lcpy_pp} --description "${lcpy_pp}-Description" --auto_tiering_policy_name "${lcpy_atp}" \
+         --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
+         --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
+    performanceparams show ${lcpy_pp}
+
+    # Create a performance parameters instance for the remote RP copy.
+    rcpy_atp="SYMMETRIX+000197800376+SLO_POLICY+Diamond SLO (0.8ms)"
+    rcpy_pp=PerfParams-${RANDOM}
+    secho "Creating performance parameters with name ${rcpy_pp} for the RP remote copy."
+    run performanceparams create ${rcpy_pp} --description "${rcpy_pp}-Description" --auto_tiering_policy_name "${rcpy_atp}" \
+         --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
+         --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
+    performanceparams show ${rcpy_pp}
+
+    # List the performance parameters.
+    performanceparams list
+
+    # Create an RP CLR volume using the 3 previously created performance parameter 
+    # instances for the RP source and copies.
+    vol1=RPCLR_Vol1-${RANDOM}
+    srcPerfParams='PRIMARY:'${src_pp}
+    cpyPerfParams=${RECOVERPOINT_VARRAY1}'|PRIMARY:'${lcpy_pp}','${RECOVERPOINT_VARRAY3}'|PRIMARY:'${rcpy_pp}
+    secho "Creating RP CLR volume ${vol1}." 
+    run volume create ${vol1} ${PROJECT} ${RECOVERPOINT_VARRAY1} rp_clr ${RP_VOLUME_SIZE} --consistencyGroup ${RP_CONSISTENCY_GROUP} \
+        --sourcePerfParams ${srcPerfParams} --copyPerfParams ${cpyPerfParams}
+    volume show ${PROJECT}/${vol1}
+
+    sleep 60
+
+    # Delete the volume.
+    secho "Deleting volume ${vol1}."
+    run volume delete ${PROJECT}/${vol1} --wait
+
+    # Delete the RP consistency groups.
+    secho "Deleting RP CGs."
+    recoverpoint_cleanup_cgs
+
+    # Delete the performance parameter instances.
+    secho "Cleaning up performance parameter instances."
+    run performanceparams delete ${src_pp}
+    run performanceparams delete ${lcpy_pp}
+    run performanceparams delete ${rcpy_pp}
 }
 
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run

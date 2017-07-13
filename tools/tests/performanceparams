@@ -85,6 +85,29 @@ def pp_search(args):
     else:
         print 'Result: ', array
 
+def pp_verify_volume(args):
+    bourne.connect(args.ip)
+    voluri = bourne.volume_query(args.name)
+    value = ' '.join(args.value)
+    if (args.attribute == "auto_tier_policy"):
+        atp_uri = bourne.pp_atp_query(value)
+        bourne.volume_verify(voluri, args.attribute, atp_uri)
+    elif (args.attribute == "performance_params"):
+        pp_uri = bourne.pp_query(value)
+        bourne.volume_verify(voluri, args.attribute, pp_uri)
+
+def pp_verify_mirror(args):
+    bourne.connect(args.ip)
+    volumeuri = bourne.volume_query(args.volumename)
+    mirroruri = bourne.block_mirror_get_id_by_name(args.volumename, args.mirrorname)
+    value = ' '.join(args.value)
+    if (args.attribute == "auto_tier_policy"):
+        atp_uri = bourne.pp_atp_query(value)
+        bourne.block_mirror_verify(volumeuri, mirroruri, args.attribute, atp_uri)
+    elif (args.attribute == "performance_params"):
+        pp_uri = bourne.pp_query(value)
+        bourne.block_mirror_verify(volumeuri, mirroruri, args.attribute, pp_uri)
+
 pp_display_fmt = '{0:16s} {1:8s} {2:75s} {3:s}'
 
 def pp_display_hdr():
@@ -174,6 +197,19 @@ search.add_argument('--scope', metavar = 'scope', help = 'The scope for searchin
 search.add_argument('--tag', metavar = 'tag', help = 'boolean for search tag or not (search from name)', default=None)
 search.add_argument('--project', metavar = 'project', help = 'The project to search', default=None)
 
+# pp verify_volume name attribute value
+verify_volume = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+verify_volume.add_argument('name', help = 'The name of the volume to be verified')
+verify_volume.add_argument('attribute', help = 'The name of the volume attribute to be verified')
+verify_volume.add_argument('value', help = 'The attribute value to be verified', nargs='*')
+
+# pp verify_mirror volumename mirrorname attribute value
+verify_mirror = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+verify_mirror.add_argument('volumename', help = 'The name of the source volume for the block mirror')
+verify_mirror.add_argument('mirrorname', help = 'The name of the block mirror to be verified')
+verify_mirror.add_argument('attribute', help = 'The name of the block mirror attribute to be verified')
+verify_mirror.add_argument('value', help = 'The attribute value to be verified', nargs='*')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -214,6 +250,12 @@ try:
     elif(cmd == "search"):
         args = search.parse_args()
         pp_search(args)
+    elif(cmd == "verify_volume"):
+        args = verify_volume.parse_args()
+        pp_verify_volume(args)
+    elif(cmd == "verify_mirror"):
+        args = verify_mirror.parse_args()
+        pp_verify_mirror(args)
     else:
         parser.print_help()
 except:

@@ -445,7 +445,8 @@ URI_VDC_ROLES               = URI_SERVICES_BASE + '/vdc/role-assignments'
 URI_VDC_AUTHN_PROFILE = URI_SERVICES_BASE + '/vdc/admin/authnproviders'
 URI_VDC_AUTHN_PROFILES = URI_SERVICES_BASE + '/vdc/admin/authnproviders/{0}'
 
-URI_AUTO_TIER_POLICY = URI_SERVICES_BASE + '/vdc/auto-tier-policies/{0}'
+URI_AUTO_TIER_POLICIES = URI_SERVICES_BASE + '/vdc/auto-tier-policies'
+URI_AUTO_TIER_POLICY = URI_AUTO_TIER_POLICIES + '/{0}'
 
 URI_WORKFLOW_LIST               = URI_SERVICES_BASE + '/vdc/workflows'
 URI_WORKFLOW_RECENT             = URI_WORKFLOW_LIST + '/recent'
@@ -3802,7 +3803,7 @@ class Bourne:
                 cpp_varray_details = cpp_entry.split('|')
                 for cpp_varray_details_entry in cpp_varray_details:
                     if (index == 0):
-                        cpp_varray['varray'] = self.pp_query(cpp_varray_details_entry)
+                        cpp_varray['varray'] = self.neighborhood_query(cpp_varray_details_entry)
                         index = index + 1
                     else:
                         cpp_role_details = cpp_varray_details_entry.split(":")
@@ -4007,7 +4008,14 @@ class Bourne:
 
         if field in o.keys():
            foundValue = o[field];
-           if o[field] == value:
+           if (type(foundValue) is dict):
+              # Assume it's a RelatedResourceRep and the value being verified is an id.
+              if foundValue['id'] == value:
+                  return;
+              else:
+                  print 'ERROR: Volume field FAILED Verfication: ' + field + ' IS: ' + foundValue['id'] + ', SHOULD BE: ' + value;
+                  return -1;
+           elif o[field] == value:
               return;
         elif value == "none":
            return;
@@ -4313,6 +4321,27 @@ class Bourne:
           s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
           result.append(s)
        return result
+
+    def block_mirror_verify(self, volumeuri, mirroruri, field, value):
+        o = self.block_mirror_show(volumeuri, mirroruri)
+        self.assert_is_dict(o)
+        foundValue = 'N/A';
+        if field in o.keys():
+           foundValue = o[field];
+           if (type(foundValue) is dict):
+              # Assume it's a RelatedResourceRep and the value being verified is an id.
+              if foundValue['id'] == value:
+                  return;
+              else:
+                  print 'ERROR: Volume field FAILED Verfication: ' + field + ' IS: ' + foundValue['id'] + ', SHOULD BE: ' + value;
+                  return -1;
+           elif o[field] == value:
+              return;
+        elif value == "none":
+           return;
+
+        print 'ERROR: Volume field FAILED Verfication: ' + field + ' IS: ' + foundValue + ', SHOULD BE: ' + value;
+        return -1;
 
     #
     # Block Consistency Groups
@@ -9891,6 +9920,19 @@ class Bourne:
                 continue
         raise Exception('Could not find performance params with name ' + name)
 
+    def pp_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+        pplist = self.pp_list()
+        for pp_res_rep in pplist :
+            try:
+                pp = self.pp_show(pp_res_rep['id'])
+                if (pp['name'] == name):
+                    return pp['id']
+            except:
+                continue
+        raise Exception('Could not find performance params with name ' + name)
+
     def pp_list(self):
             pplist = self.api('GET', URI_PERF_PARAMS)
             if (not pplist):
@@ -9913,6 +9955,27 @@ class Bourne:
             print "pp_add_acl failed with code: ", response.status_code
             raise Exception('pp_add_acl: failed')
 
+    def pp_atp_query(self, nativeGuid):
+        if (self.__is_uri(nativeGuid)):
+            return nativeGuid
+        atplist = self.atp_list()
+        for atp_res_rep in atplist :
+            try:
+                atp = self.atp_show(atp_res_rep['id'])
+                if (atp['native_guid'] == nativeGuid):
+                    return atp['id']
+            except:
+                continue
+        raise Exception('Could not find auto tiering policy with nativeGuid ' + nativeGuid)
+
+    def atp_list(self):
+            atplist = self.api('GET', URI_AUTO_TIER_POLICIES)
+            if (not atplist):
+                return {};
+            return atplist['auto_tier_policy']
+
+    def atp_show(self, uri):
+        return self.api('GET', URI_AUTO_TIER_POLICY.format(uri))
 
 
 

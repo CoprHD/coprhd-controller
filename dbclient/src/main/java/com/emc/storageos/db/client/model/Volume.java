@@ -108,6 +108,7 @@ public class Volume extends BlockObject implements ProjectResource {
         public static int SRDF_TARGET = 2;
     }
 
+    @Name("type")
     public int getType() {
         return this.type;
     }

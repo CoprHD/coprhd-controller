@@ -22,12 +22,16 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * Block volume data object
  */
 @Cf("Volume")
 public class Volume extends BlockObject implements ProjectResource {
+    private static Logger log = LoggerFactory.getLogger(Volume.class.getName());
     // project this volume is associated with
     private NamedURI _project;
     // total capacity in bytes
@@ -114,7 +118,9 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     public void setType(Integer type) {
+        log.info("====== setType gets called with type {}", type);
         this.type += type;
+        setChanged("type");
     }
 
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.

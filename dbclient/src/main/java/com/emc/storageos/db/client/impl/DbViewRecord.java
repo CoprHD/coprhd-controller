@@ -75,6 +75,28 @@ public class DbViewRecord {
         return cql.toString();
     }
 
+    public String getUpsertCql() {
+        StringBuilder cql = new StringBuilder();
+        cql.append("UPDATE " + viewDef.getViewName() + " SET ");
+
+        for (ViewColumn col: columns) {
+            cql.append(col.getName() + " = ?,");
+        }
+        cql.deleteCharAt(cql.length()-1);
+
+        cql.append(" WHERE ");
+
+        for (int i = 0; i < clusters.size(); i++) {
+            ViewColumn cluster = clusters.get(i);
+            cql.append(cluster.getName() + " = ? ");
+            if (i < clusters.size()-1) {
+                cql.append(" and ");
+            }
+        }
+
+        return cql.toString();
+    }
+
     public void setKeyValue(String keyValue) {
         this.keyValue = keyValue;
     }

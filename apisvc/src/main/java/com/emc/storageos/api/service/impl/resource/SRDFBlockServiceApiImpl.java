@@ -412,6 +412,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             volume = new Volume();
             volume.setId(URIUtil.createId(Volume.class));
             volume.setOpStatus(new OpStatusMap());
+            volume.setType(Volume.VOL_TYPE.NORMAL);
         } else {
             volume = _dbClient.queryObject(Volume.class, volume.getId());
         }
@@ -488,9 +489,12 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             // go through that process.
             srcVolume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
             srcVolume.getSrdfTargets().add(volume.getId().toString());
+            srcVolume.setType(Volume.VOL_TYPE.SRDF_SOURCE);
+            srcVolume.setProject(new NamedURI(project.getId(), volume.getLabel()));
             _dbClient.updateObject(srcVolume);
 
             volume.setSrdfParent(new NamedURI(srcVolume.getId(), srcVolume.getLabel()));
+            volume.setType(Volume.VOL_TYPE.SRDF_TARGET);
             computeCapacityforSRDFV3ToV2(volume, vpool);
         }
 

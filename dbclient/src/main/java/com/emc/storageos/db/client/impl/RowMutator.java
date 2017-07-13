@@ -109,24 +109,26 @@ public class RowMutator {
         atomicBatch.add(insert);
     }
 
-    public void insertViewRow(DbViewRecord view) {
-        String cql = view.getInsertCql();
-        log.info("==== insert view cql is {}", cql);
+    public void upsertViewRow(DbViewRecord view) {
+        String cql = view.getUpsertCql();
+        log.info("==== upsert view cql is {}", cql);
 
         PreparedStatement insertPrepared = context.getPreparedStatement(cql);
         BoundStatement insert = insertPrepared.bind();
-        insert.setString(view.getKeyName(), view.getKeyValue());
-
-        // Clustering keys
-        for (ViewColumn cluster: view.getClusterColumns()) {
-            insert.setString(cluster.getName(), cluster.getValue());
-        }
 
         // Columns
         for (ViewColumn col: view.getColumns()) {
             insert.setString(col.getName(), col.getValue());
         }
 
+        // partition key
+        insert.setString(view.getKeyName(), view.getKeyValue());
+
+        // Clustering keys
+        for (ViewColumn cluster: view.getClusterColumns()) {
+            insert.setString(cluster.getName(), cluster.getValue());
+        }
+        
         atomicBatch.add(insert);
     }
 

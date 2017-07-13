@@ -303,7 +303,7 @@ public class DataObjectType {
                 view.addClusteringColumn("id", id.toString()); // id is always the last clustering key
                 _log.info("==== view = {}, key = [{}:{}], clusters = [{}], cols = [{}]",
                         view.getDef().getViewName(), view.getKeyName(), view.getKeyValue(), view.getClusterColumns(), view.getColumns());
-                mutator.insertViewRow(view);
+                mutator.upsertViewRow(view);
             }
 
             setLazyLoaders(val, lazyLoader);

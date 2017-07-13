@@ -226,7 +226,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         srcVolume = prepareVolume(srcVolume, project, varray, vpool,
                                 size, recommendation, newVolumeLabel, consistencyGroup,
                                 task, false, Volume.PersonalityTypes.SOURCE, null, null, null);
-                        srcVolume.setType(Volume.VOL_TYPE.SRDF_SOURCE);
                         volumeURIs.add(srcVolume.getId());
                         if (!volumePrecreated) {
                             taskList.getTaskList().add(toTask(srcVolume, task));
@@ -412,11 +411,12 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             volume = new Volume();
             volume.setId(URIUtil.createId(Volume.class));
             volume.setOpStatus(new OpStatusMap());
-            volume.setType(Volume.VOL_TYPE.NORMAL);
         } else {
             volume = _dbClient.queryObject(Volume.class, volume.getId());
         }
 
+        volume.setType(Volume.VOL_TYPE.NORMAL);
+        _log.info("===== set type to normal in SRDF prepare volume ...");
         volume.setLabel(label);
         volume.setCapacity(SizeUtil.translateSize(size));
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
@@ -437,6 +437,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             }
         }
         volume.setPersonality(personality.toString());
+        _log.info("==== volume's personality is {}", personality.toString());
 
         if (personality.equals(Volume.PersonalityTypes.SOURCE)) {
             volume.setAccessState(VolumeAccessState.READWRITE.name());

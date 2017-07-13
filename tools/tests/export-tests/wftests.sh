@@ -1143,29 +1143,31 @@ srdf_setup() {
     # Create the target first so it exists when we create the source vpool
     # Workaround for COP-25718, switch to use matchedPools once it is fixed
     run cos create block ${VPOOL_BASE}_SRDF_TARGET		          \
-	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
+      --description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 	--auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
 			 --provisionType 'Thin'	          \
 			 --neighborhoods $NH                      \
-                         --multiVolumeConsistency                  \
-                         --system_type vmax			
+                         --multiVolumeConsistency
     
     run cos update block ${VPOOL_BASE}_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${VPOOL_BASE}_SRDF_TARGET block $TENANT
 
     # As above, but without multivolume consistency
     run cos create block ${VPOOL_BASE_NOCG}_SRDF_TARGET		          \
-	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
+      --description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 	--auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
 			 --provisionType 'Thin'	          \
-			 --neighborhoods $NH                      \
-                         --system_type vmax
+			 --neighborhoods $NH                     
 
     run cos update block ${VPOOL_BASE_NOCG}_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${VPOOL_BASE_NOCG}_SRDF_TARGET block $TENANT
@@ -1174,13 +1176,14 @@ srdf_setup() {
         async)
             echo "Setting up the virtual pool for SRDF async mode"
     	    run cos create block ${VPOOL_BASE}                 \
+        --system_type vmax                     \
+        --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
 			 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
                          --multiVolumeConsistency		\
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE}_SRDF_TARGET:ASYNCHRONOUS"
@@ -1190,13 +1193,14 @@ srdf_setup() {
 
            echo "Setting up the virtual pool for SRDF async mode (nocg)"
     	    run cos create block ${VPOOL_BASE_NOCG}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
 			 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE_NOCG}_SRDF_TARGET:ASYNCHRONOUS"
 
@@ -1206,13 +1210,14 @@ srdf_setup() {
 	sync)
         echo "Setting up the virtual pool for SRDF sync mode"
 	    run cos create block ${VPOOL_BASE}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
 		 	 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
                          --multiVolumeConsistency		\
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE}_SRDF_TARGET:SYNCHRONOUS"
@@ -1222,13 +1227,14 @@ srdf_setup() {
 
 	    echo "Setting up the virtual pool for SRDF sync mode (nocg)"
 	    run cos create block ${VPOOL_BASE_NOCG}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
 		 	 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE_NOCG}_SRDF_TARGET:SYNCHRONOUS"
 
@@ -1243,13 +1249,14 @@ srdf_setup() {
 
     echo "Setting up the virtual pool for VPool change (Add SRDF)"
     run cos create block ${VPOOL_CHANGE}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
          --description 'Source-Virtual-Pool-for-VPoolChange' false \
          --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
          --protocols FC 		        \
          --numpaths 1				\
          --max_snapshots 10			\
          --provisionType 'Thin'	        \
-         --system_type vmax                     \
          --multiVolumeConsistency		\
          --neighborhoods $NH
 
@@ -1719,7 +1726,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation"
+    failure_injections="failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete "
 
     if [ "${SS}" = "vplex" ]
     then

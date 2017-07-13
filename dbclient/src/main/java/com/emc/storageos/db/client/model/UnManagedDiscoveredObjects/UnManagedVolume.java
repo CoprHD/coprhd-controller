@@ -5,7 +5,6 @@
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
 import java.net.URI;
-import java.util.Map;
 
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -269,6 +268,20 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
 
     public void setUnmanagedExportMasks(StringSet unmanagedExportMasks) {
         this._unmanagedExportMasks = unmanagedExportMasks;
+    }
+
+    /**
+     * Removes an UnManagedExportMask from this UnManagedVolume along
+     * with all its initiator IDs and URIs.
+     * 
+     * @param uem the UnManagedExportMask to remove
+     */
+    public void removeUnManagedExportMask(UnManagedExportMask uem) {
+        if (uem != null) {
+            getUnmanagedExportMasks().remove(uem.getId().toString());
+            getInitiatorNetworkIds().removeAll(uem.getKnownInitiatorNetworkIds());
+            getInitiatorUris().removeAll(uem.getKnownInitiatorUris());
+        }
     }
 
     @Name("initiatorUris")

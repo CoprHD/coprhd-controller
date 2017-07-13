@@ -100,20 +100,20 @@ public class Volume extends BlockObject implements ProjectResource {
     // that this Volume's backing Volumes belong to.
     private String _backingReplicationGroupInstance;
 
-    private int type = VOL_TYPE.NORMAL;
+    private Integer type = VOL_TYPE.NORMAL;
 
     public static class VOL_TYPE {
-        public static int NORMAL = 0;
-        public static int SRDF_SOURCE = 1;
-        public static int SRDF_TARGET = 2;
+        public static Integer NORMAL = 0;
+        public static Integer SRDF_SOURCE = 1;
+        public static Integer SRDF_TARGET = 2;
     }
 
     @Name("type")
-    public int getType() {
+    public Integer getType() {
         return this.type;
     }
 
-    public void setType(int type) {
+    public void setType(Integer type) {
         this.type += type;
     }
 

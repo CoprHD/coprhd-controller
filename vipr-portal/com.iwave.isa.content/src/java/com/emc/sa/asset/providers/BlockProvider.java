@@ -419,6 +419,54 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"unmountedBlockResource", "aixhost", "project"} )
+    public List<AssetOption> getExportVolumeForAixPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"aixhost", "project"} )
+    public List<AssetOption> getExportVolumeForAixPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"unmountedBlockResource", "windowsHost", "project"} )
+    public List<AssetOption> getExportVolumeForWindowsPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"windowsHost", "project"} )
+    public List<AssetOption> getExportVolumeForWindowsPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"unmountedBlockResource", "hpuxHost", "project"} )
+    public List<AssetOption> getExportVolumeForHPPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"hpuxHost", "project"} )
+    public List<AssetOption> getExportVolumeForHPPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"unmountedBlockResource", "linuxHost", "project"} )
+    public List<AssetOption> getExportVolumeForLinuxPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"linuxHost", "project"} )
+    public List<AssetOption> getExportVolumeForLinuxPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    }
+    
     @Asset("exportDatastorePortGroups")
     @AssetDependencies( {"esxHost", "project"} )
     public List<AssetOption> getExportDatastorePortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {

@@ -120,12 +120,13 @@ public class IsilonMirrorOperations {
      */
     BiosCommandResult doEnablePolicy(StorageSystem system, String policyName) {
         IsilonApi isi = getIsilonDevice(system);
-        IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-        modifiedPolicy.setName(policyName);
-        modifiedPolicy.setEnabled(true);
-
         IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
+
         if (null != policy && !policy.getEnabled()) {
+            IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+            modifiedPolicy.setName(policyName);
+            modifiedPolicy.setEnabled(true);
+
             try {
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
                 TimeUnit.SECONDS.sleep(33);

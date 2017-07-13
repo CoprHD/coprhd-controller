@@ -17,12 +17,11 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
     private Dispatcher _dispatcher;
     private BlockOrchestrationController _controller;
     private DbClient _dbClient;
-    private String createVolumes;
 
     @Override
     public void createVolumes(List<VolumeDescriptor> volumes, String taskId)
             throws ControllerException {
-        execOrchestration(createVolumes, volumes, taskId);
+        execOrchestration("createVolumes", volumes, taskId);
     }
 
     @Override

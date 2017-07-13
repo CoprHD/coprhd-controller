@@ -41,6 +41,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.constraint.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,12 +68,6 @@ import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.Constraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
-import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -1952,6 +1947,44 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, type, "id");
         Volume volume = queryVolumeResource(id);
         return map(_dbClient, volume);
+    }
+
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/view")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public VolumeBulkRep getVolume2() {
+        VolumeRestRep resp = new VolumeRestRep();
+        URI projectId = URI.create("urn:storageos:Project:ebe47ab4-702c-4a03-8c40-3c77fdb52684:global");
+        QueryResultList resultList = new QueryResultList() {
+            @Override
+            public Object createQueryHit(URI uri) {
+                _log.info("createQueryHit get called 1111");
+                return null;
+            }
+
+            @Override
+            public Object createQueryHit(URI uri, String name, UUID timestamp) {
+                _log.info("createQueryHit get called 22222");
+                return null;
+            }
+        };
+        _dbClient.listVolumesByProject(projectId, Volume.VOL_TYPE.SRDF_SOURCE, resultList);
+        Iterator<Volume> volItr = resultList.iterator();
+
+        return new VolumeBulkRep(getVolumeList(volItr));
+    }
+
+    private List<VolumeRestRep> getVolumeList(Iterator<Volume> volItr) {
+        List<VolumeRestRep> volRep = new ArrayList<>();
+        while (volItr.hasNext()) {
+            Volume vol = volItr.next();
+            VolumeRestRep rep = new VolumeRestRep();
+            rep.setId(vol.getId());
+            rep.setName(vol.getLabel());
+            volRep.add(rep);
+        }
+        return volRep;
     }
 
     /**

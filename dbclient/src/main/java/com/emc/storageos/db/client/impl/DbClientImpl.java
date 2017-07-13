@@ -34,6 +34,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.datastax.driver.core.*;
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Token;
 import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.cassandra.utils.UUIDGen;
 import org.apache.commons.lang.StringUtils;
@@ -42,11 +46,6 @@ import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -63,31 +62,6 @@ import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ConstraintImpl;
-import com.emc.storageos.db.client.model.AllowedGeoVersion;
-import com.emc.storageos.db.client.model.CustomConfig;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.EncryptionProvider;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.HostInterface;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.NoInactiveIndex;
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.PasswordHistory;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.ProjectResource;
-import com.emc.storageos.db.client.model.ProjectResourceSnapshot;
-import com.emc.storageos.db.client.model.PropertyListDataObject;
-import com.emc.storageos.db.client.model.StorageOSUserDAO;
-import com.emc.storageos.db.client.model.StorageSystemType;
-import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.TenantResource;
-import com.emc.storageos.db.client.model.TimeSeries;
-import com.emc.storageos.db.client.model.TimeSeriesSerializer;
-import com.emc.storageos.db.client.model.Token;
-import com.emc.storageos.db.client.model.VdcVersion;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
@@ -709,7 +683,34 @@ public class DbClientImpl implements DbClient {
         }
     }
 
-    /**
+    private static class MyIterator implements Iterator<Volume> {
+
+        private ResultSet rs;
+        public MyIterator(ResultSet rs) {
+            this.rs = rs;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return rs.iterator().hasNext();
+        }
+
+        @Override
+        public Volume next() {
+            Row row = rs.iterator().next();
+            for (ColumnDefinitions.Definition colDef: row.getColumnDefinitions().asList()) {
+                _log.info("====== Columns returned by vol view: {}", colDef.getName());
+            }
+
+            Volume vol = new Volume();
+            vol.setType(row.getInt("type"));
+            vol.setLabel(row.getString("label"));
+            vol.setId(URI.create(row.getString("id")));
+            return vol;
+        }
+    }
+
+        /**
      * This class is used to filter unwanted rows while streaming from Cassandra.
      *
      * Sub classes should override shouldFilter() method to apply additional filtering logic.
@@ -984,6 +985,19 @@ public class DbClientImpl implements DbClient {
 
         constraint.setDbClientContext(this.getDbClientContext(constraint.getDataObjectType()));
         constraint.execute(result);
+    }
+
+    @Override
+    public void listVolumesByProject(URI project, int type, QueryResultList<Volume> volumes) {
+        DbClientContext dbCtx = getDbClientContext(Volume.class);
+        String cql = "select * from vol_view where project = ? and type = ?";
+        PreparedStatement queryStatement = dbCtx.getPreparedStatement(cql);
+
+        BoundStatement bindStmt = queryStatement.bind(project.toString(), type);
+        bindStmt.setFetchSize(DEFAULT_TS_PAGE_SIZE);
+
+        ResultSet rs = getDbClientContext(Volume.class).getSession().execute(bindStmt);
+        volumes.setResult(new MyIterator(rs));
     }
 
     // This is used to count the number of volumes or fileshares in a storagepool,

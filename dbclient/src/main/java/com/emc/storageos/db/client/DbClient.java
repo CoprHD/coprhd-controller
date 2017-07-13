@@ -11,16 +11,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import com.emc.storageos.db.client.model.*;
 import org.joda.time.DateTime;
 
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.NoInactiveIndex;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.TimeSeries;
-import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -220,6 +215,8 @@ public interface DbClient {
      * 
      */
     <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount);
+
+    void listVolumesByProject(URI project, int type, QueryResultList<Volume> volumes);
 
     /**
      * Returns the count of objects with the given type which have the given URI in the specified

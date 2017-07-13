@@ -36,6 +36,7 @@
             <map>
                 <entry key="autoTieringPolicy" value-ref="autoTieringPolicyCapabilityDefinition"/>
                 <entry key="deduplication" value-ref="deduplicationCapabilityDefinition"/>
+                <entry key="volumeCompression" value-ref="volumeCompressionCapabilityDefinition"/>
             </map>
         </property>
     </bean>

@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
+import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -583,6 +585,8 @@ public class ExternalDeviceCommunicationInterface extends
                     
                     // Discover deduplication capability for storage pool.
                     discoverDeduplicationCapabilityForStoragePool(driverStorageSystem, storagePool, pool);
+                    // Discover volume compression capability for storage pool
+                    discoverCompressionCapabilityForStoragePool(driverStorageSystem, storagePool, pool);
                 }
 
                 // Now that all storage pools have been process we can create or update
@@ -698,34 +702,19 @@ public class ExternalDeviceCommunicationInterface extends
      * @param dbPool A reference to the system storage pool representing the driver storage pool.
      */
     private void discoverDeduplicationCapabilityForStoragePool(StorageSystem driverStorageSystem,
-			StoragePool driverPool, com.emc.storageos.db.client.model.StoragePool dbPool) {
+                                                               StoragePool driverPool, com.emc.storageos.db.client.model.StoragePool dbPool) {
 
-		// Get the capabilities specified for the storage pool and
-		// process and process deduplication capability if reported by driver
-		List<CapabilityInstance> capabilities = driverPool.getCapabilities();
+        // Get the capabilities specified for the storage pool and process deduplication capability if reported by driver
+        List<CapabilityInstance> capabilities = driverPool.getCapabilities();
         if (capabilities == null) {
             return;
         }
-		for (CapabilityInstance capability : capabilities) {
-			// Get the capability definition for the capability.
-			String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
-			if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
-				_log.error(String.format(
-						"Skipping capability %s with no capability definition UID for storage pool %s on system %s",
-						capability.getName(), driverPool.getNativeId(), driverStorageSystem.getNativeId()));
-				continue;
-			}
-
-			// Get the capability definition from the map of supported
-			// capability definitions.
-			CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
-			if (capabilityDefinition == null) {
-				_log.info(String.format("Skipping unsupported capability of type %s for storage pool %s on system %s",
-						capabilityDefinitionUid, driverPool.getNativeId(), driverStorageSystem.getNativeId()));
-				continue;
-			}
-
-			if (DeduplicationCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
+        for (CapabilityInstance capability : capabilities) {
+            String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
+            _log.info(String.format("Processing storage capability %s of type %s for storage pool %s on system %s",
+                    capability.getName(), capabilityDefinitionUid, driverPool.getNativeId(),
+                    driverStorageSystem.getNativeId()));
+            if (isValidCapabilityInstance(capability) && DeduplicationCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
                 // Handle dedup capability.
                 // Check if dedup is enabled; we assume that if driver reports deduplication in pool capabilities,
                 // it is enabled by default, unless it is explicitly disabled.
@@ -739,9 +728,49 @@ public class ExternalDeviceCommunicationInterface extends
                             driverPool.getNativeId(), driverStorageSystem.getNativeId()));
                     dbPool.setDedupCapable(true);
                 }
-			}
-		}
-	}
+            }
+        }
+    }
+
+    /**
+     * Discover volume compression capability for storage pool.
+     * If driver does not report "volume compression" for storage pool, we assume that volume compression is disabled.
+     * If driver reports "volume compression" for storage pool, we assume that it is enabled, unless its ENABLED property is set to false.
+     *
+     * @param driverStorageSystem A reference to the driver storage system.
+     * @param driverPool A reference to the driver storage pool.
+     * @param dbPool A reference to the system storage pool representing the driver storage pool.
+     */
+    private void discoverCompressionCapabilityForStoragePool(StorageSystem driverStorageSystem,
+                                                               StoragePool driverPool, com.emc.storageos.db.client.model.StoragePool dbPool) {
+
+        // Get the capabilities specified for the storage pool and process deduplication capability if reported by driver
+        List<CapabilityInstance> capabilities = driverPool.getCapabilities();
+        if (capabilities == null) {
+            return;
+        }
+        for (CapabilityInstance capability : capabilities) {
+            String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
+            _log.info(String.format("Processing storage capability %s of type %s for storage pool %s on system %s",
+                    capability.getName(), capabilityDefinitionUid, driverPool.getNativeId(),
+                    driverStorageSystem.getNativeId()));
+            if (isValidCapabilityInstance(capability) && VolumeCompressionCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
+                // Handle volume compression capability.
+                // Check if volume compression is enabled; we assume that if driver reports compression in pool capabilities,
+                // it is enabled by default, unless it is explicitly disabled.
+                String isEnabled = capability.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
+                if (isEnabled != null && isEnabled.equalsIgnoreCase("false") ) {
+                    _log.info(String.format("StoragePool %s of storage system %s has volume compression disabled",
+                            driverPool.getNativeId(), driverStorageSystem.getNativeId()));
+                    dbPool.setCompressionEnabled(false);
+                } else {
+                    _log.info(String.format("Enable volume compression for StoragePool %s of storage system %s ",
+                            driverPool.getNativeId(), driverStorageSystem.getNativeId()));
+                    dbPool.setCompressionEnabled(true);
+                }
+            }
+        }
+    }
     
     /**
      * Creates and/or updates the auto tiering policies in the controller database after
@@ -1077,5 +1106,26 @@ public class ExternalDeviceCommunicationInterface extends
                 }
             }
         }
+    }
+
+    private boolean isValidCapabilityInstance(CapabilityInstance capability) {
+        // Get the capability definition for the capability.
+        String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
+        if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
+            _log.error(String.format(
+                    "Capability %s with no capability definition UID.",
+                    capability.getName()));
+            return false;
+        }
+
+        // Get the capability definition from the map of supported
+        // capability definitions.
+        CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
+        if (capabilityDefinition == null) {
+            _log.info(String.format("Skipping unsupported capability %s of type %s ",
+                    capability.getName(), capabilityDefinitionUid));
+            return false;
+        }
+        return true;
     }
 }

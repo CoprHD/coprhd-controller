@@ -110,7 +110,7 @@ public class WFDirectoryService extends TaggedResource {
      * Retrieve resource representations based on input ids.
      *
      * @prereq none
-     * @brief List of workflow directories
+     * @brief List data of workflow directories
      * @return list of representations
      */
     @POST
@@ -207,6 +207,7 @@ public class WFDirectoryService extends TaggedResource {
      * Update the workflow directory 
      * 
      * @prereq none
+     * @brief Update workflow directory
      * @param id the ID of the workflow directory to be updated
      * @param param the workflow directory parameter (name, parent, workflows)
      * @return

@@ -84,7 +84,7 @@ com.emc.sa.api.OrderService
 com.emc.sa.api.ScheduledEventService
 com.emc.sa.api.ServiceDescriptorService
 com.emc.sa.api.UserPreferenceService
-com.emc.sa.api.WFDirectoryService
+
 
 =UI Services (Deprecated)
 api.AssetOptionsApi.AssetOptionsService
@@ -125,7 +125,7 @@ com.emc.storageos.api.service.impl.resource.KeystoneService
 =Custom Services
 CustomServicesPrimitiveService
 CustomServicesWorkflowService
-WFDirectoryService
+com.emc.sa.api.WFDirectoryService
 
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService

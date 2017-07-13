@@ -4156,11 +4156,24 @@ test_delete_srdf_cg_vol() {
 
           # Verify injected failures were hit
           verify_failures ${failure}
-
           set_artificial_failure none
 
-          # Retry the delete operation
-          runcmd volume delete ${PROJECT}/${volname} --wait
+          # No sense in validating db for failure_087, since source or target would have been deleted.
+          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" ]
+          then
+            # One volume from the pair would have been deleted, but we cannot determine which one because the workflow steps run in parallel.
+            # Ensure 1 volume from the pair remains, then delete it.
+            REMAINING_COUNT=`volume list $PROJECT | grep $item | wc -l`
+            secho "Ensure only 1 volume of SRDF pair remains..."
+            runcmd [ "$REMAINING_COUNT" -eq "1" ]
+            # Retry deleting the one remaining volume
+            runcmd volume delete `volume list $PROJECT | grep $item | awk '{ print $7 }'`
+          else
+            # Validate volume was left for retry
+            validate_db 1 2 ${cfs}
+            # Retry the delete operation
+            runcmd volume delete ${PROJECT}/${volname} --wait
+          fi
         fi
 
         if [ "${SIM}" = "0" ]

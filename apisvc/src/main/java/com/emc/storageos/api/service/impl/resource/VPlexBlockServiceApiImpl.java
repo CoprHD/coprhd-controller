@@ -553,9 +553,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
             
             s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
+            // Should be at most 2 varrays in the VPLEX volume is distributed.
+            // Make the primary side index 0.
+            int backendVarrayIndex = 0;
+            if (varrayId.equals(vArray.getId().toString())) {
+                backendVarrayIndex = 1;
+            }
             List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(
                     vplexRecommendations, project, vplexProject, vPool, performanceParamsURI,
-                    volumeTopology.getCopyPerformanceParams(), volumeLabel, varrayCount,
+                    volumeTopology.getCopyPerformanceParams(), volumeLabel, backendVarrayIndex,
                     size, backendCG, backendCapabilities, createTask, task);
             descriptors.addAll(varrayDescriptors);
             List<URI> varrayURIs = VolumeDescriptor.getVolumeURIs(varrayDescriptors);

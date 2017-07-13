@@ -84,10 +84,10 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Get workflow directories
+     * List the workflow directories
      *
      * @prereq none
-     * @brief Get workflow directories
+     * @brief List workflow directories
      * @return List of workflow directories
      */
     @GET
@@ -123,11 +123,12 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Get workflow directory by ID
-     *
+     * Get the workflow directory
+     * 
      * @prereq none
-     * @brief Get workflow directory by ID
-     * @return Workflow directory
+     * @brief Show workflow directory
+     * @param id the ID of the workflow directory to be retrieved
+     * @return
      */
     @GET
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
@@ -139,11 +140,12 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Create workflow directory
-     *
+     * Create the workflow directory
+     * 
      * @prereq none
      * @brief Create workflow directory
-     * @return Created workflow directory
+     * @param wfDirectoryParam the workflow directory parameter (name, parent, workflows)
+     * @return
      */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
@@ -184,11 +186,12 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Deactivate workflow directory
-     *
+     * Deactivate the workflow directory
+     * 
      * @prereq none
      * @brief Deactivate workflow directory
-     * @return No data returned in response body
+     * @param id the ID of the workflow directory to be deactivated
+     * @return
      */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
@@ -201,11 +204,12 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Update workflow directory (name, parent, workflows)
-     *
+     * Update the workflow directory 
+     * 
      * @prereq none
-     * @brief Update workflow directory
-     * @return Updated workflow directory
+     * @param id the ID of the workflow directory to be updated
+     * @param param the workflow directory parameter (name, parent, workflows)
+     * @return
      */
     @PUT
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })

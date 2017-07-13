@@ -285,9 +285,9 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     /**
-     * UnPublish the workflow
+     * Unpublish the workflow
      * 
-     * @brief UnPublish workflow
+     * @brief Unpublish workflow
      * @param id the ID of the workflow to be unpublished
      */
     @POST

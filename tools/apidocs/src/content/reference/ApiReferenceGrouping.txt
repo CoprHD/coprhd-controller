@@ -125,6 +125,7 @@ com.emc.storageos.api.service.impl.resource.KeystoneService
 =Custom Services
 CustomServicesPrimitiveService
 CustomServicesWorkflowService
+WFDirectoryService
 
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService

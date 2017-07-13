@@ -20,6 +20,7 @@ VCentersService=VCenter Discovery
 CatalogServiceService=Catalog Service
 CustomServicesPrimitiveService=Operations
 CustomServicesWorkflowService=Workflows
+WFDirectoryService=Workflow Directory
 com.emc.storageos.objcontrol.service.impl.resource.zone.ZoneInfoService=Virtual Data Center
 com.emc.storageos.objcontrol.service.impl.resource.ConfigurationService=Object Configuration
 com.emc.storageos.systemservices.impl.resource.ConfigService=Configuration

@@ -2925,10 +2925,23 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult doResyncLink(StorageSystem system, FileShare fs,
             TaskCompleter completer) {
         FileShare sourceFS = null;
+        FileShare targetFS = null;
+        StorageSystem targetSystem = null;
         if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
             sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
+            targetFS = fs;
         } else if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
             sourceFS = fs;
+            List<String> targetfileUris = new ArrayList<String>();
+            targetfileUris.addAll(fs.getMirrorfsTargets());
+            if (!targetfileUris.isEmpty()) {
+                targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+                targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
+            } else {
+                ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverFileSystem(
+                        targetFS.getLabel(), "Unable to get target filesystem for source filesystem " + fs.getName());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
         }
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
@@ -2940,14 +2953,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 return mirrorOperations.doResyncPrep(system, policyName, completer);
 
             } else {
-                return doResyncPrepSourcePolicy(system, policyName, completer);
+
+                return doResyncPrepSourcePolicy(system, targetSystem, policyName, completer);
             }
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
     }
 
-    private BiosCommandResult doResyncPrepSourcePolicy(StorageSystem sourceSystem, String sourcePolicyName, TaskCompleter completer) {
+    private BiosCommandResult doResyncPrepSourcePolicy(StorageSystem sourceSystem, StorageSystem targetSystem, String sourcePolicyName,
+            TaskCompleter completer) {
         BiosCommandResult cmdResult = null;
         IsilonSyncTargetPolicy syncTargetPolicy = null;
         // able to talk to source device
@@ -2956,7 +2971,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // check for policy is enabled
             cmdResult = mirrorOperations.doEnablePolicy(sourceSystem, sourcePolicyName);
             // get the target policy
-            syncTargetPolicy = mirrorOperations.getIsilonSyncTargetPolicy(sourceSystem, sourcePolicyName);
+            syncTargetPolicy = mirrorOperations.getIsilonSyncTargetPolicy(targetSystem, sourcePolicyName);
             if (cmdResult.isCommandSuccess() && null != syncTargetPolicy) {
                 FOFB_STATES fofbState = syncTargetPolicy.getFoFbState();
                 JobState lastJobStatus = syncTargetPolicy.getLastJobState();

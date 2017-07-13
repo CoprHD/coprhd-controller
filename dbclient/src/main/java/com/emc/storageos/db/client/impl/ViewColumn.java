@@ -12,33 +12,19 @@ package com.emc.storageos.db.client.impl;
  */
 public class ViewColumn {
     private String name;
-    private String value;
-    private Object binVal;
-
-    public ViewColumn(String name, String value) {
-        this.name = name;
-        this.value = value;
-    }
+    private Object value;
 
     public ViewColumn(String name, Object val) {
         this.name = name;
-        if (val instanceof String) {
-            this.value = (String) val;
-        } else {
-            this.value = val.getClass().getName();
-        }
+        this.value = val;
     }
 
     public String getName() {
         return name;
     }
 
-    public String getValue() {
+    public Object getValue() {
         return value;
-    }
-
-    public Object getBinValue() {
-        return binVal;
     }
 
     @Override

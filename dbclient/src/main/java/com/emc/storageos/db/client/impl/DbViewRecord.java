@@ -42,7 +42,7 @@ public class DbViewRecord {
         return columns;
     }
 
-    public void addClusteringColumn(String name, String val) { // todo: suppose value must be string for now. could be num or maybe else.
+    public void addClusteringColumn(String name, Object val) { // todo: suppose value must be string for now. could be num or maybe else.
         clusters.add(new ViewColumn(name, val));
     }
 

@@ -118,7 +118,7 @@ public class RowMutator {
 
         // Columns
         for (ViewColumn col: view.getColumns()) {
-            insert.setString(col.getName(), col.getValue());
+            insert.set(col.getName(), col.getValue(), col.getClassType());
         }
 
         // partition key
@@ -126,7 +126,7 @@ public class RowMutator {
 
         // Clustering keys
         for (ViewColumn cluster: view.getClusterColumns()) {
-            insert.setString(cluster.getName(), cluster.getValue());
+            insert.set(cluster.getName(), cluster.getValue(), cluster.getClassType());
         }
 
         atomicBatch.add(insert);

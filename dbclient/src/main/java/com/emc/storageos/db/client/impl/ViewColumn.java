@@ -10,13 +10,15 @@ package com.emc.storageos.db.client.impl;
 /**
  * Created by wangs12 on 7/6/2017.
  */
-public class ViewColumn {
+public class ViewColumn<T> {
     private String name;
     private Object value;
+    private Class<T> classType;
 
-    public ViewColumn(String name, Object val) {
+    public ViewColumn(String name, Object val, Class<T> clazz) {
         this.name = name;
         this.value = val;
+        this.classType = clazz;
     }
 
     public String getName() {
@@ -33,5 +35,9 @@ public class ViewColumn {
                 "name='" + name + '\'' +
                 ", value='" + value + '\'' +
                 '}';
+    }
+
+    public Class<T> getClassType() {
+        return classType;
     }
 }

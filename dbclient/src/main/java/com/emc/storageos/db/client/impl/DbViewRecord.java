@@ -42,12 +42,12 @@ public class DbViewRecord {
         return columns;
     }
 
-    public void addClusteringColumn(String name, Object val) { // todo: suppose value must be string for now. could be num or maybe else.
-        clusters.add(new ViewColumn(name, val));
+    public <T> void addClusteringColumn(String name, Object val) { // todo: suppose value must be string for now. could be num or maybe else.
+        clusters.add(new ViewColumn(name, val, val.getClass()));
     }
 
     public void addColumn(String name, Object val) {
-        columns.add(new ViewColumn(name, val));
+        columns.add(new ViewColumn(name, val, val.getClass()));
     }
 
     public String getInsertCql() {

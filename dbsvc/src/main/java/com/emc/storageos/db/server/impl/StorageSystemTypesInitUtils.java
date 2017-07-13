@@ -204,7 +204,7 @@ public class StorageSystemTypesInitUtils {
     }
 
     /**
-     * Return true only when all fields stored in DB are same with given type parameter
+     * Return true if given storage system type has existed in database.
      */
     private boolean alreadyExists(StorageSystemType type) {
         if (existingTypes.containsKey(type.getStorageTypeName())) {
@@ -269,10 +269,7 @@ public class StorageSystemTypesInitUtils {
                 type.setSslPort(SSL_PORT_MAP.get(system));
                 type.setNonSslPort(NON_SSL_PORT_MAP.get(system));
                 type.setIsNative(true);
-                Set<String> supportedStorageProfiles = SUPPORTED_PROFILES_MAP.get(system);
-                if (CollectionUtils.isNotEmpty(supportedStorageProfiles)) {
-                    type.setSupportedStorageProfiles(new StringSet(supportedStorageProfiles));
-                }
+                type.setSupportedStorageProfiles(getSupportedStorageProfiles(system, metaType));
                 if (alreadyExists(type)) {
                     log.info("Meta data for {} already exist", type.getStorageTypeName());
                     continue;
@@ -283,8 +280,34 @@ public class StorageSystemTypesInitUtils {
         }
     }
 
+    /**
+     * Filling Rules:
+     * - For block and block provider's types, add BLOCK to supportedStorageProfiles field.
+     * - For file and file provider's types, add FILE to supportedStorageProfiles field;
+     * - Especially for VMAX type, add REMOTE_REPLICATION_FOR_BLOCK to supportedStorageProfiles field.
+     */
+    private StringSet getSupportedStorageProfiles(String typeName, META_TYPE metaType) {
+        Set<String> profiles = new StringSet();
+        switch (metaType) {
+            case BLOCK:
+            case BLOCK_PROVIDER:
+                profiles.add(StorageProfile.BLOCK.toString());
+                break;
+            case FILE:
+            case FILE_PROVIDER:
+                profiles.add(StorageProfile.FILE.toString());
+                break;
+            default:
+                log.error("Unrecognized meta type: {}", metaType);
+        }
+        if (VMAX.equals(typeName)) {
+            profiles.add(StorageProfile.REMOTE_REPLICATION_FOR_BLOCK.toString());
+        }
+        return new StringSet(profiles);
+    }
+
     public void initializeStorageSystemTypes() {
-        log.info("Intializing storage system type Column Family for default storage drivers");
+        log.info("Initializing storage system type Column Family for default storage drivers");
         loadTypeMapFromDb();
         insertStorageSystemTypes();
         log.info("Default drivers initialization done.");

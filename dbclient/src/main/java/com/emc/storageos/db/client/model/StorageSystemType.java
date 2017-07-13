@@ -98,6 +98,7 @@ public class StorageSystemType extends DataObject {
 
     public void setSupportedStorageProfiles(StringSet supportedProfiles) {
         this.supportedStorageProfiles = supportedProfiles;
+        setChanged("supportedStorageProfiles");
     }
 
     @Name("managedBy")

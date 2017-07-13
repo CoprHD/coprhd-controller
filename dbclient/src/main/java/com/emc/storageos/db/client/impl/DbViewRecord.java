@@ -84,7 +84,7 @@ public class DbViewRecord {
         }
         cql.deleteCharAt(cql.length()-1);
 
-        cql.append(" WHERE ");
+        cql.append(" WHERE " + viewDef.getKeyName() + " = ? and ");
 
         for (int i = 0; i < clusters.size(); i++) {
             ViewColumn cluster = clusters.get(i);

@@ -1624,6 +1624,7 @@ public class StorageScheduler implements Scheduler {
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(varray.getId());
         volume.setOpStatus(new OpStatusMap());
+        volume.setType(Volume.VOL_TYPE.NORMAL);
         if (vpool.getDedupCapable() != null) {
             volume.setIsDeduplicated(vpool.getDedupCapable());
         }

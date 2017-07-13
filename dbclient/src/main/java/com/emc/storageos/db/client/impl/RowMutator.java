@@ -128,7 +128,7 @@ public class RowMutator {
         for (ViewColumn cluster: view.getClusterColumns()) {
             insert.setString(cluster.getName(), cluster.getValue());
         }
-        
+
         atomicBatch.add(insert);
     }
 

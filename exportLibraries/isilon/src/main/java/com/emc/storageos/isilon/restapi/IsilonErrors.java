@@ -73,4 +73,7 @@ public interface IsilonErrors {
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToFailoverFileSystem(final String storageSystem, String msg);
     
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToResyncPrepPolicy(final String storageSystem, String policyName, String msg);
+
 }

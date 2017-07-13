@@ -22,13 +22,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.Cf;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.EncryptionProvider;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 
 import javassist.CannotCompileException;
@@ -284,6 +281,10 @@ public class DataObjectType {
     public boolean serialize(RowMutator mutator, DataObject val, LazyLoader lazyLoader) {
         if (!_clazz.isInstance(val)) {
             throw new IllegalArgumentException();
+        }
+
+        if (val instanceof Volume) {
+            _log.info("===== vol type is {}", ((Volume) val).getType());
         }
         try {
             boolean indexFieldsModified = false;

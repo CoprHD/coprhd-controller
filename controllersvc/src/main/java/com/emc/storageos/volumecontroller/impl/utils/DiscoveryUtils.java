@@ -101,11 +101,11 @@ public class DiscoveryUtils {
      * @param rpProtectedVPoolUris RP protected vpools
      * @param volumeType type of volume
      * @param unManagedVolume the unManagedVolume being matched, if provided and the volume
-     * is a VPLEX backend volume, the parent matched vpools will be added
+     *            is a VPLEX backend volume, the parent matched vpools will be added
      * @return a StringSet of matched VirtualPool URIs
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
-            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, Set<URI> rpProtectedVPoolUris, 
+            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, Set<URI> rpProtectedVPoolUris,
             String volumeType, UnManagedVolume unManagedVolume) {
         StringSet vpoolUriSet = new StringSet();
         // We should match all virtual pools as below:
@@ -204,7 +204,7 @@ public class DiscoveryUtils {
      * @param poolUri
      * @param isThinlyProvisionedUnManagedObject
      * @param unManagedVolume the unManagedVolume being matched, if provided and the volume
-     * is a VPLEX backend volume, the parent matched vpools will be added
+     *            is a VPLEX backend volume, the parent matched vpools will be added
      * @return a StringSet of matched VirtualPool URIs
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
@@ -501,12 +501,12 @@ public class DiscoveryUtils {
             portsToRunNetworkConnectivity.addAll(notVisiblePorts);
         }
     }
-    
+
     /**
-     * checkVirtualNasNotVisible - verifies that all existing virtual nas servers on 
+     * checkVirtualNasNotVisible - verifies that all existing virtual nas servers on
      * given storage system are discovered or not.
      * If any of the existing virtual nas server is not discovered,
-     * Change the discovered status as not visible. 
+     * Change the discovered status as not visible.
      * 
      * @param discoveredVNasServers
      * @param dbClient
@@ -514,11 +514,11 @@ public class DiscoveryUtils {
      * @return
      * @throws IOException
      */
-    
+
     public static List<VirtualNAS> checkVirtualNasNotVisible(List<VirtualNAS> discoveredVNasServers,
             DbClient dbClient, URI storageSystemId) {
         List<VirtualNAS> modifiedVNas = new ArrayList<VirtualNAS>();
-        
+
         // Get the vnas servers previousy discovered
         URIQueryResultList vNasURIs = new URIQueryResultList();
         dbClient.queryByConstraint(
@@ -528,12 +528,12 @@ public class DiscoveryUtils {
 
         List<URI> existingVNasURI = new ArrayList<URI>();
         while (vNasIter.hasNext()) {
-        	existingVNasURI.add(vNasIter.next());
+            existingVNasURI.add(vNasIter.next());
         }
 
         List<URI> discoveredVNasURI = new ArrayList<URI>();
         for (VirtualNAS vNas : discoveredVNasServers) {
-        	discoveredVNasURI.add(vNas.getId());
+            discoveredVNasURI.add(vNas.getId());
         }
 
         Set<URI> vNasDiff = Sets.difference(new HashSet<URI>(existingVNasURI), new HashSet<URI>(discoveredVNasURI));
@@ -541,19 +541,19 @@ public class DiscoveryUtils {
         if (!vNasDiff.isEmpty()) {
             Iterator<VirtualNAS> vNasIt = dbClient.queryIterativeObjects(VirtualNAS.class, vNasDiff, true);
             while (vNasIt.hasNext()) {
-            	VirtualNAS vnas = vNasIt.next();
-            	modifiedVNas.add(vnas);
+                VirtualNAS vnas = vNasIt.next();
+                modifiedVNas.add(vnas);
                 _log.info("Setting discovery status of vnas {} as NOTVISIBLE", vnas.getNasName());
                 vnas.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
                 // Set the nas state to UNKNOWN!!!
                 vnas.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
-                
+
             }
         }
 
-        //Persist the change!!!
-        if(!modifiedVNas.isEmpty()) {
-        	dbClient.persistObject(modifiedVNas);
+        // Persist the change!!!
+        if (!modifiedVNas.isEmpty()) {
+            dbClient.persistObject(modifiedVNas);
         }
         return modifiedVNas;
     }
@@ -708,7 +708,7 @@ public class DiscoveryUtils {
         while (cgsItr.hasNext()) {
             cgSet.add(cgsItr.next().getId());
         }
-        
+
         return cgSet;
     }
 
@@ -779,7 +779,7 @@ public class DiscoveryUtils {
     /**
      * Compares the set of unmanaged consistency groups for the current discovery operation
      * to the set of unmanaged consistency groups already in the database from a previous
-     * discovery operation.  Removes existing database entries if the object was not present
+     * discovery operation. Removes existing database entries if the object was not present
      * in the current discovery operation.
      * 
      * @param storageSystem - storage system containing the CGs
@@ -788,26 +788,26 @@ public class DiscoveryUtils {
      * @param partitionManager - partition manager
      */
     public static void performUnManagedConsistencyGroupsBookKeeping(StorageSystem storageSystem, Set<URI> currentUnManagedCGs,
-            	DbClient dbClient, PartitionManager partitionManager) {
+            DbClient dbClient, PartitionManager partitionManager) {
 
         _log.info(" -- Processing {} discovered UnManaged Consistency Group Objects from -- {}",
-        		currentUnManagedCGs.size(), storageSystem.getLabel());        
-        // no consistency groups discovered 
+                currentUnManagedCGs.size(), storageSystem.getLabel());
+        // no consistency groups discovered
         if (currentUnManagedCGs.isEmpty()) {
             return;
         }
-        
+
         // Get all available existing unmanaged CG URIs for this array from DB
         URIQueryResultList allAvailableUnManagedCGsInDB = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedCGConstraint(storageSystem.getId()),              
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedCGConstraint(storageSystem.getId()),
                 allAvailableUnManagedCGsInDB);
-                
+
         Set<URI> unManagedCGsInDBSet = new HashSet<URI>();
         Iterator<URI> allAvailableUnManagedCGsItr = allAvailableUnManagedCGsInDB.iterator();
         while (allAvailableUnManagedCGsItr.hasNext()) {
-        	unManagedCGsInDBSet.add(allAvailableUnManagedCGsItr.next());
+            unManagedCGsInDBSet.add(allAvailableUnManagedCGsItr.next());
         }
-                
+
         SetView<URI> onlyAvailableinDB = Sets.difference(unManagedCGsInDBSet, currentUnManagedCGs);
 
         _log.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
@@ -817,7 +817,7 @@ public class DiscoveryUtils {
                     new ArrayList<URI>(onlyAvailableinDB));
 
             while (unManagedCGs.hasNext()) {
-            	UnManagedConsistencyGroup cg = unManagedCGs.next();
+                UnManagedConsistencyGroup cg = unManagedCGs.next();
                 if (null == cg || cg.getInactive()) {
                     continue;
                 }
@@ -833,7 +833,7 @@ public class DiscoveryUtils {
             }
         }
     }
-    
+
     public static void markInActiveUnManagedExportMask(URI storageSystemUri,
             Set<URI> discoveredUnManagedExportMasks, DbClient dbClient, PartitionManager partitionManager) {
 
@@ -889,26 +889,26 @@ public class DiscoveryUtils {
                 .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
         return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
     }
-    
+
     /**
      * Determines if the UnManagedConsistencyGroup object exists in the database
      * 
      * @param nativeGuid - native Guid for the unmanaged consistency group
      * @param dbClient - database client
-     * @return unmanagedCG - null if it does not exist in the database, otherwise it returns the 
+     * @return unmanagedCG - null if it does not exist in the database, otherwise it returns the
      *         UnManagedConsistencyGroup object from the database
      * @throws IOException
      */
     public static UnManagedConsistencyGroup checkUnManagedCGExistsInDB(DbClient dbClient, String nativeGuid) {
-    	UnManagedConsistencyGroup unmanagedCG = null;
-    	URIQueryResultList unManagedCGList = new URIQueryResultList();
-    	dbClient.queryByConstraint(AlternateIdConstraint.Factory
-    			.getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
-    	if (unManagedCGList.iterator().hasNext()) {
-    		URI unManagedCGURI = unManagedCGList.iterator().next();
-    		unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);            
-    	}
-    	return unmanagedCG;
+        UnManagedConsistencyGroup unmanagedCG = null;
+        URIQueryResultList unManagedCGList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
+        if (unManagedCGList.iterator().hasNext()) {
+            URI unManagedCGURI = unManagedCGList.iterator().next();
+            unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);
+        }
+        return unmanagedCG;
     }
 
     /**
@@ -982,7 +982,7 @@ public class DiscoveryUtils {
             _log.error(
                     "Caught an error while attempting to execute query and process query result. Query: "
                             + query,
-                    we);
+                            we);
         } finally {
             if (iterator != null) {
                 iterator.close();
@@ -1026,23 +1026,23 @@ public class DiscoveryUtils {
 
     /**
      * Returns true if the given unmanaged object property String matches the Regex pattern defined in
-     * controller_unmanaged_object_discovery_filter. Only those objects matching the filter should 
-     * be processed for discovery. Most likely this will be filtering based on the value that 
-     * would end up as the object label (name) after ingestion, but this filter is not 
+     * controller_unmanaged_object_discovery_filter. Only those objects matching the filter should
+     * be processed for discovery. Most likely this will be filtering based on the value that
+     * would end up as the object label (name) after ingestion, but this filter is not
      * guaranteed to be used the same (or at all) on all storage array platforms.
      * 
      * @param propertyToFilter the object property String to check against the system unmanaged discovery filter Regex pattern
      * @return true if the property String is a match and the object should be processed for unmanaged discovery
      */
     public static boolean isUnmanagedVolumeFilterMatching(String propertyToFilter) {
-        if (_coordinator != null ) {
+        if (_coordinator != null) {
             if (!Strings.isNullOrEmpty(propertyToFilter)) {
                 String systemFilterString = ControllerUtils
                         .getPropertyValueFromCoordinator(
                                 _coordinator, DiscoveryUtils.UNMANAGED_VOLUME_DISCOVERY_FILTER);
                 if (!Strings.isNullOrEmpty(systemFilterString)
                         && !(propertyToFilter.matches(systemFilterString))) {
-                    _log.warn("unmanaged object property {} doesn't match system unmanaged object discovery filter: {}", 
+                    _log.warn("unmanaged object property {} doesn't match system unmanaged object discovery filter: {}",
                             propertyToFilter, systemFilterString);
                     return false;
                 }
@@ -1052,5 +1052,36 @@ public class DiscoveryUtils {
         }
 
         return true;
+    }
+
+    /**
+     * Find the Virtual NAS by Native ID for the specified VNX unity storage
+     * array
+     * 
+     * @param system
+     *            storage system information including credentials.
+     * @param Native
+     *            id of the specified Virtual NAS
+     * @return Virtual NAS Server
+     */
+    public static VirtualNAS findvNasByNativeId(DbClient dbClient, StorageSystem system, String nativeId) {
+        URIQueryResultList results = new URIQueryResultList();
+        VirtualNAS vNas = null;
+
+        // Set storage port details to vNas
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, nativeId, NativeGUIDGenerator.VIRTUAL_NAS);
+
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualNASByNativeGuidConstraint(nasNativeGuid), results);
+        Iterator<URI> iter = results.iterator();
+        while (iter.hasNext()) {
+            VirtualNAS tmpVnas = dbClient.queryObject(VirtualNAS.class, iter.next());
+
+            if (tmpVnas != null && !tmpVnas.getInactive()) {
+                vNas = tmpVnas;
+                _log.info("Found virtual NAS {}", tmpVnas.getNativeGuid() + ":" + tmpVnas.getNasName());
+                break;
+            }
+        }
+        return vNas;
     }
 }

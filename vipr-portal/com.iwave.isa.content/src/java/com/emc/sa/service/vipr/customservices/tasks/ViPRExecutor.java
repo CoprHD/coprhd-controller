@@ -18,7 +18,7 @@ public class ViPRExecutor implements MakeCustomServicesExecutor {
     @Autowired
     private CustomServicesPrimitiveDAOs daos;
     private RestClient client;
-    @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
+    @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step, final int iterCount) {
         try {
             return new CustomServicesViprExecution(input, step, daos, client);
         } catch (Exception e) {

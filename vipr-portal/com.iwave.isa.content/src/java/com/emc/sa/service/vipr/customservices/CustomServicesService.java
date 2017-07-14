@@ -70,6 +70,7 @@ public class CustomServicesService extends ViPRService {
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
     private Map<String, Object> params;
+    private boolean isIter = false;
 
     @Autowired
     private DbClient dbClient;
@@ -135,13 +136,19 @@ public class CustomServicesService extends ViPRService {
 
             updateInputPerStep(step);
 
-            final CustomServicesTaskResult res;
+            CustomServicesTaskResult res = null;
             try {
                 final MakeCustomServicesExecutor task = executor.get(step.getType());
                 task.setParam(getClient().getRestClient());
 
-                res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
-
+                if (isIter) {
+                    for (int i=0; i<2; i++) {
+                        logger.info("call executor");
+                        res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step, i));
+                    }
+                } else {
+                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step, 0));
+                }
                 try {
                     updateOutputPerStep(step, res);
                 } catch (final Exception e) {
@@ -336,16 +343,19 @@ public class CustomServicesService extends ViPRService {
                     case FROM_USER_MULTI:
                     case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
-                           final String param;
+                            final String param;
+
                             if (!StringUtils.isEmpty(value.getInputFieldType()) && 
 				                value.getInputFieldType().toUpperCase().equals(CustomServicesConstants.InputFieldType.PASSWORD.toString())) {
                                 param = decrypt(params.get(friendlyName).toString());
+
                             } else {
                                 param = params.get(friendlyName).toString();
                             }
                             if (StringUtils.isEmpty(value.getTableName())) {
                                 inputs.put(name, Arrays.asList(param.replace("\"", "")));
                             } else {
+                                isIter = true;
                                 inputs.put(name, Arrays.asList(param.replace("\"", "").split(",")));
                             }
                         } else {
@@ -363,6 +373,7 @@ public class CustomServicesService extends ViPRService {
 
                             if (!StringUtils.isEmpty(value.getTableName())) {
                                 arrayInput = Arrays.asList(params.get(friendlyName).toString().split("\",\""));
+                                isIter = true;
                             } else {
                                 arrayInput = Arrays.asList(params.get(friendlyName).toString());
                             }
@@ -402,6 +413,7 @@ public class CustomServicesService extends ViPRService {
                                 inputs.put(name, Arrays.asList(String.join(", ", stepInput.get(attribute)).replace("\"", "")));
                                 break;
                             } else {
+                                isIter = true;
                                 inputs.put(name, stepInput.get(attribute));
                                 break;
                             }

@@ -44,7 +44,8 @@ public interface MakeCustomServicesExecutor {
                     .customServiceExecutionFailed("Failed to create Order directory " + orderDir);
         }
     }
-    public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step);
+    public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step,
+            final int iterCount);
     public String getType();
     public void setParam(Object object);
 }

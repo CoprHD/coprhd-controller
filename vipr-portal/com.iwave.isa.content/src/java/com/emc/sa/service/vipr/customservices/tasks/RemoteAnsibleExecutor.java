@@ -30,7 +30,7 @@ public class RemoteAnsibleExecutor implements MakeCustomServicesExecutor {
     private final static String TYPE = CustomServicesConstants.REMOTE_ANSIBLE_PRIMTIVE_TYPE;
     @Autowired
     private DbClient dbClient;
-    @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
+    @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step, final int iterCount) {
         return new CustomServicesRemoteAnsibleExecution(input, step, dbClient);
     }
 

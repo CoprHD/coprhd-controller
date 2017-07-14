@@ -34,13 +34,13 @@ public class ShellScriptExecutor implements MakeCustomServicesExecutor {
     @Autowired
     private DbClient dbClient;
     @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input,
-            final CustomServicesWorkflowDocument.Step step) {
+            final CustomServicesWorkflowDocument.Step step, final int iterCount) {
         final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
                 ExecutionUtils.currentContext().getOrder().getOrderNumber());
 
         MakeCustomServicesExecutor.createOrderDir(orderDir);
 
-        return new CustomServicesShellScriptExecution(input, step, dbClient);
+        return new CustomServicesShellScriptExecution(input, step, dbClient, iterCount);
     }
 
     @Override public String getType() {

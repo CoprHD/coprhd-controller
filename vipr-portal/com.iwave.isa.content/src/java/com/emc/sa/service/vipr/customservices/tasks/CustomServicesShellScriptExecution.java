@@ -53,7 +53,9 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     private final DbClient dbClient;
 
-    public CustomServicesShellScriptExecution(final Map<String, List<String>> input,final CustomServicesWorkflowDocument.Step step,final DbClient dbClient) {
+    private int iterCount;
+
+    public CustomServicesShellScriptExecution(final Map<String, List<String>> input,final CustomServicesWorkflowDocument.Step step,final DbClient dbClient, final int iterCount) {
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -62,7 +64,9 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
+        this.iterCount = iterCount;
         provideDetailArgs(step.getId(), step.getFriendlyName());
+
     }
 
 
@@ -154,19 +158,25 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         }
 
         for(Map.Entry<String, List<String>> e : input.entrySet()) {
+
             if (StringUtils.isEmpty(e.getKey()) || e.getValue().isEmpty()) {
                 continue;
             }
+
+            logger.info("make the arguments");
             final List<String> listVal = e.getValue();
             final StringBuilder sb = new StringBuilder();
             sb.append("\"");
-            String prefix = "";
+            logger.info("val is listVal.get(iterCount)");
+            sb.append(listVal.get(iterCount).replace("\"", ""));
+            sb.append("\"");
+            /*String prefix = "";
             for (final String val : listVal) {
                 sb.append(prefix);
                 prefix = ",";
                 sb.append(val.replace("\"", ""));
             }
-            sb.append("\"");
+            sb.append("\"");*/
             str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
         }
 

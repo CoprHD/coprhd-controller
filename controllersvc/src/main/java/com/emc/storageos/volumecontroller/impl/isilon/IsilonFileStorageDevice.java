@@ -4372,6 +4372,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
                 }
             }
+            Task task = TaskUtils.findTaskForRequestId(_dbClient, srcFs.getId(), args.getOpId());
+            // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
+            task.ready();
+            task.setProgress(100);
+            _dbClient.updateObject(task);
             result = BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             result = BiosCommandResult.createErrorResult(e);

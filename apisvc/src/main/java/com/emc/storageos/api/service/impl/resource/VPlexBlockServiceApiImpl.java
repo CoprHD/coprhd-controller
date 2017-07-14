@@ -556,7 +556,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // Should be at most 2 varrays in the VPLEX volume is distributed.
             // Make the primary side index 0.
             int backendVarrayIndex = 0;
-            if (varrayId.equals(vArray.getId().toString())) {
+            if (!varrayId.equals(vArray.getId().toString())) {
                 backendVarrayIndex = 1;
             }
             List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(

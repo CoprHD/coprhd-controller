@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.upgrade.callbacks;
@@ -25,7 +25,7 @@ public class DataDomainMetaTypeMigration extends BaseCustomMigrationCallback {
 
     @Override
     public void process() throws MigrationCallbackException {
-        logger.info("Migration started");
+        logger.info("StorageSystemType MetaType for datadomain migration started");
 
         DbClient dbClient = getDbClient();
         try {
@@ -42,7 +42,7 @@ public class DataDomainMetaTypeMigration extends BaseCustomMigrationCallback {
                     break;
                 }
             }
-            logger.info("Migration completed successfully");
+            logger.info("StorageSystemType MetaType for datadomain migration completed successfully");
         } catch (Exception e) {
             logger.error("Exception occured while migrating datadomain StorageSystemType MetaType");
             logger.error(e.getMessage(), e);

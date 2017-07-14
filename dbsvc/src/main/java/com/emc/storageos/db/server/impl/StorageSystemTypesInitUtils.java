@@ -23,7 +23,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
 import com.emc.storageos.db.client.model.StorageSystemType.StorageProfile;
-import com.emc.storageos.db.client.model.StringSet;
+import static com.emc.storageos.db.client.model.util.StorageSystemTypeUtils.*;
 import com.emc.storageos.services.util.PlatformUtils;
 
 public class StorageSystemTypesInitUtils {
@@ -277,32 +277,6 @@ public class StorageSystemTypesInitUtils {
                 dbClient.createObject(type);
             }
         }
-    }
-
-    /**
-     * Filling Rules:
-     * - For block and block provider's types, add BLOCK to supportedStorageProfiles field.
-     * - For file and file provider's types, add FILE to supportedStorageProfiles field;
-     * - Especially for VMAX type, add REMOTE_REPLICATION_FOR_BLOCK to supportedStorageProfiles field.
-     */
-    private StringSet getSupportedStorageProfiles(String typeName, META_TYPE metaType) {
-        Set<String> profiles = new StringSet();
-        switch (metaType) {
-            case BLOCK:
-            case BLOCK_PROVIDER:
-                profiles.add(StorageProfile.BLOCK.toString());
-                break;
-            case FILE:
-            case FILE_PROVIDER:
-                profiles.add(StorageProfile.FILE.toString());
-                break;
-            default:
-                log.error("Unrecognized meta type: {}", metaType);
-        }
-        if (VMAX.equals(typeName)) {
-            profiles.add(StorageProfile.REMOTE_REPLICATION_FOR_BLOCK.toString());
-        }
-        return new StringSet(profiles);
     }
 
     public void initializeStorageSystemTypes() {

@@ -14771,14 +14771,26 @@ performanceparams_tests()
 
 performanceparams_vmaxblock_tests()
 {
-    # Create a performance parameters instance.
-    atp="SYMMETRIX+000196801612+SLO_POLICY+Gold SLO (5.0ms)"
+    # Define auto tiering policies.
+    atp_name="Gold SLO (5.0ms)"
+    atp_guid=${VMAX_NATIVEGUID}+SLO_POLICY+${atp_name}
+    atp2_name="Bronze SLO (14.0ms)"
+    atp2_guid=${VMAX_NATIVEGUID}+SLO_POLICY+${atp2_name}
+    pp1_update_atp_name="Diamond SLO (0.8ms)"
+    pp1_update_atp_guid=${VMAX_NATIVEGUID}+SLO_POLICY+${pp1_update_atp_name}
     if [ ${QUICK} -eq 1 ]; then
-        atp="SYMMETRIX+999595867618+FASTPOLICY+Gold-Policy"
+        atp_name="Gold-Policy"
+        atp_guid=${VMAX_NATIVEGUID}+FASTPOLICY+${atp_name}
+        atp2_name="Bronze-Policy"
+        atp2_guid=${VMAX_NATIVEGUID}+FASTPOLICY+${atp2_name}
+        pp1_update_atp_name="Silver-Policy"
+        pp1_update_atp_guid=${VMAX_NATIVEGUID}+FASTPOLICY+${pp1_update_atp_name}
     fi
+
+    # Create a performance parameters instance.
     pp1=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp1}."
-    run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp}" \
+    run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp_name}" \
          --host_io_limit_bandwidth 10000 --host_io_limit_iops 20000 --thin_vol_prealloc_percentage 25 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
     performanceparams show ${pp1}
@@ -14790,18 +14802,14 @@ performanceparams_vmaxblock_tests()
     volPerfParams='PRIMARY:'${pp1}
     run volume create ${vol1} ${PROJECT} ${NH} ${COS_MIRROR} ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
     volume show ${PROJECT}/${vol1}
-    run performanceparams verify_volume ${PROJECT}/${vol1} auto_tier_policy ${atp}
+    run performanceparams verify_volume ${PROJECT}/${vol1} auto_tier_policy ${atp_guid}
     run performanceparams verify_volume ${PROJECT}/${vol1} performance_params ${pp1}
 
     # Create another performance parameters instance to be used for a local mirror
     # that will be attached to the volume.
-    atp2="SYMMETRIX+000196801612+SLO_POLICY+Bronze SLO (14.0ms)"
-    if [ ${QUICK} -eq 1 ]; then
-        atp2="SYMMETRIX+999595867618+FASTPOLICY+Bronze-Policy"
-    fi
     pp2=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp2}."
-    run performanceparams create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2}" \
+    run performanceparams create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
     performanceparams show ${pp2}
@@ -14813,7 +14821,7 @@ performanceparams_vmaxblock_tests()
     secho "Attaching mirror ${vol1Mirror} to volume ${vol1} with performance parameters ${pp2}."
     run blockmirror attach ${PROJECT}/${vol1} ${vol1Mirror} 1 --mirrorPerfParams ${mirrorPerfParams}
     blockmirror show ${PROJECT}/${vol1} ${vol1Mirror}
-    run performanceparams verify_mirror ${PROJECT}/${vol1} ${vol1Mirror} auto_tier_policy ${atp2}
+    run performanceparams verify_mirror ${PROJECT}/${vol1} ${vol1Mirror} auto_tier_policy ${atp2_guid}
     run performanceparams verify_mirror ${PROJECT}/${vol1} ${vol1Mirror} performance_params ${pp2}
 
     # Pause the mirror.
@@ -14830,12 +14838,8 @@ performanceparams_vmaxblock_tests()
 
     # Update the performance parameters instance.
     pp1_update_name=${pp1}-Updated
-    pp1_update_atp="SYMMETRIX+000196801612+SLO_POLICY+Diamond SLO (0.8ms)"
-    if [ ${QUICK} -eq 1 ]; then
-        pp1_update_atp="SYMMETRIX+999595867618+FASTPOLICY+Silver-Policy"
-    fi
     secho "Updating performance parameters ${pp1} with new name ${pp1_update_name} and auto tiering policy ${pp1_update_atp}."
-    run performanceparams update ${pp1} --new_name ${pp1_update_name} --description "${pp1}-NewDescription" --auto_tiering_policy_name "${pp1_update_atp}"\
+    run performanceparams update ${pp1} --new_name ${pp1_update_name} --description "${pp1}-NewDescription" --auto_tiering_policy_name "${pp1_update_atp_name}"\
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 10 \
          --compression_enabled true --fast_expansion_enabled true --deduplication_enabled true
     performanceparams show ${pp1_update_name}
@@ -14847,7 +14851,7 @@ performanceparams_vmaxblock_tests()
     volPerfParams='PRIMARY:'${pp1_update_name}
     run volume create ${vol2} ${PROJECT} ${NH} ${COS_VMAXBLOCK} ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
     volume show ${PROJECT}/${vol2}
-    run performanceparams verify_volume ${PROJECT}/${vol2} auto_tier_policy ${pp1_update_atp}
+    run performanceparams verify_volume ${PROJECT}/${vol2} auto_tier_policy ${pp1_update_atp_guid}
     run performanceparams verify_volume ${PROJECT}/${vol2} performance_params ${pp1_update_name}
 
     # Delete the volume.
@@ -14861,42 +14865,65 @@ performanceparams_vmaxblock_tests()
 
 performanceparams_vplex_tests()
 {
+    # The project for backend volume is the VPLEX guid. This value is set
+    # to the correct value based on whether the test on real hardware or
+    # it it run quick using simulators.
+    BE_PROJECT=${VPLEX_GUID}
+
+    # Define auto tiering policies.
+    atp1_name="DEFAULT_HIGHEST_AVAILABLE"
+    atp1_guid=CLARiiON+APM00140801303+FASTPOLICY+${atp1_name}
+    # There are no auto tiering policies on the 518 VMAX, which 
+    # is the array used for the HA side of the distributed volume.
+    atp2_name="NONE"
+    atp2_guid="NONE"
+    atp3_name="DEFAULT_LOWEST_AVAILABLE"
+    atp3_guid=CLARiiON+APM00140844986+FASTPOLICY+${atp3_name}
+    atp4_name="Gold SLO (5.0ms)"
+    atp4_guid=${PP_NH2_VMAX2_NATIVEGUID}+SLO_POLICY+${atp4_name}
+    if [ ${QUICK} -eq 1 ]; then
+        atp1_name="Gold-Policy"
+        atp1_guid=${VPLEX_VNX1_NATIVEGUID}+FASTPOLICY+${atp1_name}
+        atp2_name="Bronze-Policy"
+        atp2_guid=${VPLEX_VMAX_NATIVEGUID}+FASTPOLICY+${atp2_name}
+        atp3_name="Silver-Policy"
+        atp3_guid=${VPLEX_VNX2_NATIVEGUID}+FASTPOLICY+${atp3_name}
+        atp4_name="Silver-Policy"
+        atp4_guid=${PP_NH2_VMAX2_NATIVEGUID}+FASTPOLICY+${atp4_name}
+    fi
+
     # Create a performance parameters instance for the primary side of a VPLEX
     # distributed volume.
-    atp1="CLARiiON+APM00140801303+FASTPOLICY+DEFAULT_HIGHEST_AVAILABLE"
     pp1=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp1}."
-    run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp1}" \
+    run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp1_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 5 \
          --compression_enabled false --fast_expansion_enabled true --deduplication_enabled true
     performanceparams show ${pp1}
 
     # Create a performance parameters instance for the HA side of a VPLEX
     # distributed volume.
-    atp2="NONE"
     pp2=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp2}."
-    run performanceparams create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2}" \
+    run performanceparams create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2_name}" \
          --host_io_limit_bandwidth 10000 --host_io_limit_iops 10000 --thin_vol_prealloc_percentage 5 \
          --compression_enabled true --fast_expansion_enabled true --deduplication_enabled true
     performanceparams show ${pp2}
 
     # Create a performance parameters instance for the primary side mirror of a VPLEX
     # distributed volume.
-    atp3="CLARiiON+APM00140844986+FASTPOLICY+DEFAULT_LOWEST_AVAILABLE"
     pp3=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp3}."
-    run performanceparams create ${pp3} --description "${pp3}-Description" --auto_tiering_policy_name "${atp3}" \
+    run performanceparams create ${pp3} --description "${pp3}-Description" --auto_tiering_policy_name "${atp3_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
     performanceparams show ${pp3}
 
     # Create a performance parameters instance for the HA side mirror of a VPLEX
     # distributed volume.
-    atp4="NONE"
     pp4=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${pp4}."
-    run performanceparams create ${pp4} --description "${pp4}-Description" --auto_tiering_policy_name "${atp4}" \
+    run performanceparams create ${pp4} --description "${pp4}-Description" --auto_tiering_policy_name "${atp4_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
     performanceparams show ${pp4}
@@ -14911,6 +14938,11 @@ performanceparams_vplex_tests()
     secho "Creating VPLEX distributed volume ${vol1} with PRIMARY performance params ${pp1} and HA performance params ${pp2}."
     run volume create ${vol1} ${PROJECT} ${NH} pp_cosvplexdist ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
     volume show ${PROJECT}/${vol1}
+    run performanceparams verify_volume ${PROJECT}/${vol1} performance_params ${pp1}
+    run performanceparams verify_volume ${BE_PROJECT}/${vol1}-0 auto_tier_policy ${atp1_guid}
+    run performanceparams verify_volume ${BE_PROJECT}/${vol1}-0 performance_params ${pp1}
+    run performanceparams verify_volume ${BE_PROJECT}/${vol1}-1 auto_tier_policy ${atp2_guid}
+    run performanceparams verify_volume ${BE_PROJECT}/${vol1}-1 performance_params ${pp2}
 
     # Create a local mirror on both sides of the VPLEX distributed volume and override
     # mirror vpool settings with those of the mirror performance parameters.
@@ -14920,6 +14952,14 @@ performanceparams_vplex_tests()
     run blockmirror attach ${PROJECT}/${vol1} ${vol1Mirror} 1 --mirrorPerfParams ${mirrorPerfParams}
     blockmirror show ${PROJECT}/${vol1} ${vol1Mirror}-0
     blockmirror show ${PROJECT}/${vol1} ${vol1Mirror}-1
+
+    # Since a VplexMirror is not a BlockMirror, and is therefore not a Volume, we cannot
+    # verify the performance parameters on the mirror, but instead verify on the associated
+    # volume for the vplex mirror.
+    run performanceparams verify_volume ${BE_PROJECT}/${vol1Mirror}-0 auto_tier_policy ${atp3_guid}
+    run performanceparams verify_volume ${BE_PROJECT}/${vol1Mirror}-0 performance_params ${pp3}
+    run performanceparams verify_volume ${BE_PROJECT}/${vol1Mirror}-1 auto_tier_policy ${atp4_guid}
+    run performanceparams verify_volume ${BE_PROJECT}/${vol1Mirror}-1 performance_params ${pp4}
 
     # Delete the mirror
     secho "Deleting mirror ${vol1Mirror}." 
@@ -14934,14 +14974,20 @@ performanceparams_vplex_tests()
     secho "Cleaning up performance parameter instances."
     run performanceparams delete ${pp1}
     run performanceparams delete ${pp2}
+    run performanceparams delete ${pp3}
+    run performanceparams delete ${pp4}
 }
 
 performanceparams_rp_tests()
 {
     secho "Running RP performance parameter tests for RP CLR."
 
-    # Create a performance parameters instance for the RP source volume
+    # Define auto tiering policies
     src_atp="SYMMETRIX+000196801612+SLO_POLICY+Platinum SLO (3.0ms)"
+    lcpy_atp="SYMMETRIX+000196801612+SLO_POLICY+Silver SLO (8.0ms)"
+    rcpy_atp="SYMMETRIX+000197800376+SLO_POLICY+Diamond SLO (0.8ms)"
+
+    # Create a performance parameters instance for the RP source volume
     src_pp=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${src_pp} for the RP source."
     run performanceparams create ${src_pp} --description "${src_pp}-Description" --auto_tiering_policy_name "${src_atp}" \
@@ -14950,7 +14996,6 @@ performanceparams_rp_tests()
     performanceparams show ${src_pp}
 
     # Create a performance parameters instance for the local RP copy.
-    lcpy_atp="SYMMETRIX+000196801612+SLO_POLICY+Silver SLO (8.0ms)"
     lcpy_pp=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${lcpy_pp} for the RP local copy."
     run performanceparams create ${lcpy_pp} --description "${lcpy_pp}-Description" --auto_tiering_policy_name "${lcpy_atp}" \
@@ -14959,7 +15004,6 @@ performanceparams_rp_tests()
     performanceparams show ${lcpy_pp}
 
     # Create a performance parameters instance for the remote RP copy.
-    rcpy_atp="SYMMETRIX+000197800376+SLO_POLICY+Diamond SLO (0.8ms)"
     rcpy_pp=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${rcpy_pp} for the RP remote copy."
     run performanceparams create ${rcpy_pp} --description "${rcpy_pp}-Description" --auto_tiering_policy_name "${rcpy_atp}" \
@@ -14979,8 +15023,6 @@ performanceparams_rp_tests()
     run volume create ${vol1} ${PROJECT} ${RECOVERPOINT_VARRAY1} rp_clr ${RP_VOLUME_SIZE} --consistencyGroup ${RP_CONSISTENCY_GROUP} \
         --sourcePerfParams ${srcPerfParams} --copyPerfParams ${cpyPerfParams}
     volume show ${PROJECT}/${vol1}
-
-    sleep 60
 
     # Delete the volume.
     secho "Deleting volume ${vol1}."

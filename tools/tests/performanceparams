@@ -90,8 +90,11 @@ def pp_verify_volume(args):
     voluri = bourne.volume_query(args.name)
     value = ' '.join(args.value)
     if (args.attribute == "auto_tier_policy"):
-        atp_uri = bourne.pp_atp_query(value)
-        bourne.volume_verify(voluri, args.attribute, atp_uri)
+        if (value == "NONE"):
+            bourne.volume_verify_no_value(voluri, args.attribute)
+        else:
+            atp_uri = bourne.pp_atp_query(value)
+            bourne.volume_verify(voluri, args.attribute, atp_uri)
     elif (args.attribute == "performance_params"):
         pp_uri = bourne.pp_query(value)
         bourne.volume_verify(voluri, args.attribute, pp_uri)

@@ -4023,6 +4023,21 @@ class Bourne:
         print 'ERROR: Volume field FAILED Verfication: ' + field + ' IS: ' + foundValue + ', SHOULD BE: ' + value;
         return -1;
 
+    def volume_verify_no_value(self, uri, field):
+        o = self.api('GET', URI_VOLUME.format(uri))
+        self.assert_is_dict(o)
+        if field in o.keys():
+           foundValue = o[field]
+           if (foundValue == None or foundValue == ''):
+               print 'SUCCESS: Field ' + field + ' has no value.';
+               return;
+           else:
+               print 'FAILED: Field ' + field + ' has value ' + foundValue;
+               return -1;
+        else:
+           print 'SUCCESS: Field ' + field + ' has no value.';
+           return;
+
     def volume_delete(self, uri, wait, vipronly, force):
         s = ""
         m = ""
@@ -9963,6 +9978,7 @@ class Bourne:
             try:
                 atp = self.atp_show(atp_res_rep['id'])
                 if (atp['native_guid'] == nativeGuid):
+                    print "Auto tiering policy " + nativeGuid + " found."
                     return atp['id']
             except:
                 continue

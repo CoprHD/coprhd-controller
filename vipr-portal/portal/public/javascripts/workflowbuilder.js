@@ -765,11 +765,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     /*
     Functions for managing step data on jsplumb instance
     */
-    function dragEndFunc(e,ui) {
+    function dragEndFunc(e) {
         var stepData = $rootScope.primitiveData;
         if (stepData.type === "Workflow"){
             $http.get(routes.Workflow_get({workflowId: stepData.id})).then(function (resp) {
-                if (resp.status == 200) {
+                if (resp.status === 200) {
                     copyWorkflow(e,resp.data.document);
                 }
             });

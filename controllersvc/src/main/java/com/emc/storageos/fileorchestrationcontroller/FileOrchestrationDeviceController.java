@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
@@ -2340,23 +2341,32 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileShare sourceFS = null;
         Workflow workflow = null;
         List<URI> fsURIs = FileDescriptor.getFileSystemURIs(fileDescriptors);
+        if(CollectionUtils.isEmpty(fsURIs)){
+            s_logger.error("Source and target filesystem descriptors is empty.");
+            throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                    filePolicy.getApplyAt(),
+                    "Source and target filesystem descriptors is empty.");
+        }
 
         FileSystemAssignPolicyWorkflowCompleter completer = new FileSystemAssignPolicyWorkflowCompleter(filePolicy.getId(), fsURIs, taskId);
         try {
             workflow = _workflowService.getNewWorkflow(this, ASSIGN_FILE_POLICY_TO_FS_WF_NAME, false, taskId);
             String waitFor = null;
             s_logger.info("Generating steps for creating mirror filesystems...");
+            // setting if the create fs step is needed.
+            boolean isTargetExisting = false;
             for (FileDescriptor fileDescriptor : fileDescriptors) {
                 if (fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE.name())
                         || fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_EXISTING_SOURCE.name())) {
                     sourceFS = s_dbClient.queryObject(FileShare.class, fileDescriptor.getFsURI());
-                    break;
+                } else if (fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_LOCAL_MIRROR_TARGET.name()) || fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_MIRROR_TARGET.name())){
+                    isTargetExisting = true;
                 }
             }
 
             // 1. If policy to be applied is of type replication and source file system doesn't have any target,
             // then we have to create mirror file system first..
-            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
+            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && !isTargetExisting) {
                 waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, fileDescriptors, taskId);
             }
 

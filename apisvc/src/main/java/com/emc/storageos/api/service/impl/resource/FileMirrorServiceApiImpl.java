@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation;
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
@@ -647,6 +648,10 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
                 varray, vpool, recommendations, vpoolCapabilities, false);
         fileShares.addAll(fileList);
+        
+        if(CollectionUtils.isEmpty(fileShares)){
+            fileShares.add(fs);
+        }
 
         // prepare the file descriptors
         final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);

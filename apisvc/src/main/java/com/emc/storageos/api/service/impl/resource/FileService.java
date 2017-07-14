@@ -37,6 +37,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.mapper.functions.MapFileShare;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -4566,6 +4567,40 @@ public class FileService extends TaskResourceService {
             _log.error(notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
         }
+        
+        //Create task to check if any replication policy is existing in backend if yes, then is the target fs already in database.
+        
+        String checkingTask = UUID.randomUUID().toString();
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileController controller = getController(FileController.class, device.getSystemType());
+        Operation checkExistingPolOp = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), checkingTask, ResourceOperationTypeEnum.GET_EXISTING_FILE_SYSTEM_POLICY);
+        checkExistingPolOp.setDescription("Check if the policy is existing");
+        try{
+            controller.getExistingPolicyAndTargetInfo(device.getId(), fs.getId(), filePolicy.getId(), checkingTask);
+            Task taskObject = null;
+         // wait till result from controller service ,whichever is earlier add timeout if needed.
+            do {
+                TimeUnit.SECONDS.sleep(1);
+                taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
+                // exit the loop if task is completed with error/success
+            } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()));
+            
+            if (taskObject == null || taskObject.isError()) {
+                throw APIException.badRequests
+                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to" + taskObject.getMessage());
+            } else if (taskObject.isReady()) {
+                if (fs.getMirrorfsTargets() != null) {
+                    // then skip recommendation, dont create the fs and follow the assign policy
+                }
+            }
+        }catch (BadRequestException e) {
+            checkExistingPolOp = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error while getting existing  policy {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        } catch (Exception e) {
+            _log.error("Error while getting existing  policy {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
 
         ArgValidator.checkFieldNotNull(param.getTargetVArrays(), "target_varrays");
         Set<URI> targertVarrayURIs = param.getTargetVArrays();
@@ -4596,7 +4631,6 @@ public class FileService extends TaskResourceService {
 
         TaskResourceRep fileShareTask = toTask(fs, task, op);
         taskList.getTaskList().add(fileShareTask);
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 
         // prepare vpool capability values
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
@@ -4664,9 +4698,14 @@ public class FileService extends TaskResourceService {
 
         try {
             // Call out placementManager to get the recommendation for placement.
-            List recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
-                    vpool, capabilities);
-
+            List recommendations = new ArrayList<>();
+            if(CollectionUtils.isEmpty(fs.getMirrorfsTargets())){
+                recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
+                        vpool, capabilities);
+            } else{
+                //skipping the recommendation as we have a targetFs in database
+                _log.info("Skipping the recommendation as we have a targetFs");
+            }
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,
                     recommendations, capabilities);
         } catch (BadRequestException e) {

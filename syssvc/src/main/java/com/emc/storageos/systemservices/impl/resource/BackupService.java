@@ -658,10 +658,16 @@ public class BackupService {
                 new Object[] {restoreCommand[0], restoreCommand[1], restoreCommand[3], restoreCommand[4]});
 
         Exec.Result result = Exec.exec(120 * 1000, restoreCommand);
-        switch (result.getExitValue()) {
-            case 1:
-                setRestoreFailed(backupName, isLocal, "Invalid password", null);
-                break;
+        int exitCode = result.getExitValue();
+        if(exitCode != 0) {
+            String errMsg = "Restore failed. %s";
+            String detail = "";
+            switch (exitCode) {
+                case 1:
+                    detail = "Invalid password";
+                    break;
+            }
+            setRestoreFailed(backupName, isLocal, String.format(errMsg, detail), null);
         }
 
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_END, null, backupName);

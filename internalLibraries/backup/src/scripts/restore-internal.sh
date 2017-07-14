@@ -20,7 +20,6 @@ start_service() {
     local command="/etc/storageos/storageos start"
     loop_execute "${command}" "true"
     echo "done"
-    finish_message
 }
 
 stop_service() {
@@ -165,7 +164,12 @@ sleep 5s
 
 stop_service
 restore_data
+
+exit_code=0
+
 if [[ "${RESTORE_RESULT}" == "failed" ]]; then
    finish_message
+   exit_code=1
 fi
 start_service
+exit ${exit_code}

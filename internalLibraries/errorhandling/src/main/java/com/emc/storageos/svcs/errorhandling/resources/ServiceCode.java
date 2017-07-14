@@ -279,9 +279,13 @@ public enum ServiceCode {
     // Dispatcher errors (15000 - 15999):
     DISPATCHER_UNABLE_FIND_CONTROLLER(15000),
 
-    // Smis errors (16000 - 16999):
+    // Smis errors (16000 - 16499):
     SMIS_COMMAND_ERROR(16000),
     STORAGE_PROVIDER_UNAVAILABLE(16001),
+    
+    //UNISPHERE Rest API errors (16500-16999):
+    UNISPHERE_PROVIDER_UNAVAILABLE(16500),
+    VMAX_NDM_FAILURE(16501),
 
     // NetApp errors (17000 - 17999):
     NETAPP_ERROR(17000),

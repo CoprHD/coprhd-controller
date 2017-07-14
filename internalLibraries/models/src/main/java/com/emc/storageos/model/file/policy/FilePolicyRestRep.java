@@ -16,7 +16,7 @@ import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "file_policy")
-@XmlType(namespace = "file_schedule_policy", name = "file_policy")
+@XmlType(name = "file_policy")
 public class FilePolicyRestRep extends DataObjectRestRep {
 
     private String type;

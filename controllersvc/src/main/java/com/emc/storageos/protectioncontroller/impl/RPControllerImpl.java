@@ -138,4 +138,18 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
         // Problem calling the controller so just return an empty map
         return new HashMap<URI, String>();
     }
+        
+    @Override
+    public Boolean doesReplicationSetExist(URI protectionDevice, URI volumeUri) {
+    	final DiscoveredSystemObject device = _dbClient.queryObject(ProtectionSystem.class, protectionDevice);
+        final Controller controller = lookupDeviceController(device);
+
+        // Try to grab a handle on the RPDeviceController so we can call directly into it.
+        if (controller instanceof RPDeviceController) {
+            return ((RPDeviceController) controller).doesReplicationSetExist(protectionDevice, volumeUri);
+        }
+
+        // Problem calling the controller so just return an empty map
+        return Boolean.FALSE;
+    }
 }

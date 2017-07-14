@@ -16,10 +16,10 @@
  */
 package com.emc.sa.catalog;
 
+import java.util.Locale;
+
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
-
-import java.util.Locale;
 
 /**
  * Util class for pre-defined(json) service descriptors and workflow service descriptors
@@ -30,12 +30,12 @@ public class ServiceDescriptorUtil {
 
     }
 
-    public static ServiceDescriptor getServiceDescriptorByName(final ServiceDescriptors serviceDescriptors, final WorkflowServiceDescriptor workflowServiceDescriptor, final String serviceName) {
+    public static ServiceDescriptor getServiceDescriptorByName(final ServiceDescriptors serviceDescriptors,
+            final WorkflowServiceDescriptor workflowServiceDescriptor, final String serviceName) {
         ServiceDescriptor descriptor;
         try {
             descriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), serviceName);
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
             // If service descriptor is not found, check if this service is Workflow Service
             descriptor = workflowServiceDescriptor.getDescriptor(serviceName);
         }

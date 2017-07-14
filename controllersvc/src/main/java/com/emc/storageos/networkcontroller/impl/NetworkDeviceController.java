@@ -1641,6 +1641,8 @@ public class NetworkDeviceController implements NetworkController {
                 	deleteFCZoneReference(info);
                 }
             }
+            // Update the zone infos with the correct lastRef setting for those zones that can be rolled back
+            _networkScheduler.determineIfLastZoneReferences(rollbackList);
             
             taskCompleter = new ZoneReferencesRemoveCompleter(NetworkUtil.getFCZoneReferences(rollbackList), context.isAddingZones(), taskId);
 

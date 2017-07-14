@@ -18,6 +18,10 @@ public class StorageSystemTypeUtils {
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeUtils.class);
     private static final String VMAX = "vmax";
 
+    private StorageSystemTypeUtils() {
+        
+    }
+
     /**
      * Filling Rules:
      * - For block and block provider's types, add BLOCK to supportedStorageProfiles field.

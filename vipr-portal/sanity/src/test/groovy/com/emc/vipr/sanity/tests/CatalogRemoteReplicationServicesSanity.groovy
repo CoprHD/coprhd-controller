@@ -8,18 +8,23 @@ import org.junit.AfterClass
 import org.junit.Test
 
 import com.emc.vipr.sanity.catalog.RemoteReplicationHelper
+import com.emc.vipr.sanity.setup.RemoteReplicationSetup
 
 public class CatalogRemoteReplicationServicesSanity {
-
 
     @Test void assetOptionOrderedTests() {
         RemoteReplicationHelper.storageTypeAssetOptionTest()
         RemoteReplicationHelper.rrSetsAssetOptionTest()
         RemoteReplicationHelper.rrGroupsForSetAssetOptionTest()
-        RemoteReplicationHelper.createRrVolumes()
     }
 
     @AfterClass static void cleanup() {
-        println "CatalogRemoteReplicationServicesSanity.cleanup complete (nothing to do)"
+        println "cleaning up..."
+        RemoteReplicationSetup.deleteRrVolume(RemoteReplicationSetup.VOL_IN_SET_NAME)
+        RemoteReplicationSetup.deleteRrVolume(RemoteReplicationSetup.VOL_IN_GRP_NAME)
+        RemoteReplicationSetup.deleteRrVolume(RemoteReplicationSetup.VOL_IN_CG_NAME)
+        RemoteReplicationSetup.deleteRrVolume(RemoteReplicationSetup.VOL_IN_CG_IN_GRP_NAME)
+        RemoteReplicationSetup.deleteCg(RemoteReplicationSetup.CG_NAME)
+        println "cleanup complete"
     }
 }

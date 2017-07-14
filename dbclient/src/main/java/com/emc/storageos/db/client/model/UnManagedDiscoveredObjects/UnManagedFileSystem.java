@@ -69,7 +69,8 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         IS_THINLY_PROVISIONED("isThinlyProvisioned"),
         IS_INGESTABLE("IsIngestable"),
         IS_FILESYSTEM_EXPORTED("isFileSystemExported"),
-        IS_MIRRORED("isMirrored");
+        IS_MIRROR_SOURCE("isMirrorSource"),
+        IS_MIRROR_TARGET("isMirrorTarget");
 
         private String _charactersticsKey;
 
@@ -110,9 +111,10 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         SOFT_LIMIT("SoftLimit"),
         NOTIFICATION_LIMIT("NotificationLimit"),
         SOFT_GRACE("SoftGrace"),
+        SOURCE_HOST("sourcetHost"),
         TARGET_HOST("targetHost"),
         TARGET_PATH("targetPath"),
-        POLICY_SOURCE_PATH("policySourcePath");
+        POLICY_PATH("policySourcePath");
 
         private String _infoKey;
 

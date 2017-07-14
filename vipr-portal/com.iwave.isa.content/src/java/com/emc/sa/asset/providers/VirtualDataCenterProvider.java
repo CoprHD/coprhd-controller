@@ -50,7 +50,6 @@ import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.StorageSystemTypeFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
-import com.emc.vipr.client.core.util.UnmanagedHelper;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -395,20 +394,14 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("unmanagedFileSystemsByStorageSystemVirtualPool")
-    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "blockVirtualPool" })
+    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool" })
     public List<AssetOption> getUnmanagedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI storageSystemId,
             URI virtualArray, String ingestExportType, URI unmanagedFileVirtualPool, int volumePage) {
         List<AssetOption> options = Lists.newArrayList();
         FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
             for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, storageSystemId, vpool.getId(), ingestExportType)) {
-                boolean isReplicatedFs = UnmanagedHelper.isReplicationEnabled(umfs.getFileSystemCharacteristics());
-                // This case needs to be elaborated to policies at higher level as well.
-                if (isReplicatedFs && vpool.getProtection() != null && vpool.getProtection().getReplicationSupported()) {
-                    options.add(toAssetOption(umfs));
-                } else if (!isReplicatedFs && (vpool.getProtection() == null || !vpool.getProtection().getReplicationSupported())) {
-                    options.add(toAssetOption(umfs));
-                }
+                options.add(toAssetOption(umfs));
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);

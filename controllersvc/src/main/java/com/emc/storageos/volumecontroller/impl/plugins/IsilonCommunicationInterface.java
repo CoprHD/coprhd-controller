@@ -85,6 +85,7 @@ import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
+import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -1405,7 +1406,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return nasServer;
     }
 
-    private boolean setReplicationPolicyAttributes(UnManagedFileSystem unManagedFs, String fsPath,
+    /*
+     * The method find the replication policy found for file system directory
+     * The policy might be at either file system level or at higher directory level
+     * policies name with _mirror suffix should not be considered for source as they represent for target
+     */
+    private boolean setSourceReplicationPolicyAttributes(UnManagedFileSystem unManagedFs, String fsPath,
             ArrayList<IsilonSyncPolicy> isiSyncIQPolicies) {
         StringSet targetPaths = new StringSet();
         StringSet targetHosts = new StringSet();
@@ -1413,6 +1419,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         if (fsPath != null && !fsPath.isEmpty()) {
             for (IsilonSyncPolicy isiSyncIQPolicy : isiSyncIQPolicies) {
+                // Leave the mirror policies as they represent as targets!!
+                // Local target policies are processed for target file systems.
+                if (isiSyncIQPolicy.getName() != null && isiSyncIQPolicy.getName().endsWith("_mirror")) {
+                    _log.debug("Policy {} is a target policy, not for source file system", isiSyncIQPolicy.getName());
+                    continue;
+                }
                 if (isiSyncIQPolicy.getSourceRootPath() != null && !isiSyncIQPolicy.getSourceRootPath().isEmpty()) {
                     String policyPath = isiSyncIQPolicy.getSourceRootPath();
                     // Add SLASH to end of the path, if not
@@ -1424,7 +1436,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     // the policy path should be part of file system path.
                     if (policyPath.equals(fsPath) || fsPath.startsWith(policyPath)) {
                         unManagedFs.putFileSystemCharacterstics(
-                                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_MIRRORED.toString(), TRUE);
+                                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_MIRROR_SOURCE.toString(), TRUE);
                         // Add the policy attributes to UMFS object
                         targetPaths.add(isiSyncIQPolicy.getTargetPath());
                         targetHosts.add(isiSyncIQPolicy.getTargetHost());
@@ -1434,7 +1446,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 targetHosts);
                         unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.TARGET_PATH.toString(),
                                 targetPaths);
-                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_SOURCE_PATH.toString(),
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_PATH.toString(),
                                 policySourcePath);
 
                         // What about if there are policies at higher level as well fs level
@@ -1443,6 +1455,58 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 } else {
                     _log.debug("Policy {} source directory path is empty ", isiSyncIQPolicy.getName());
+                }
+
+            }
+        }
+        return false;
+    }
+
+    /*
+     * The method find the replication local target policy found for file system directory
+     * The policy might be at either file system level or at higher directory level
+     * policies name with _mirror suffix should not be considered for target as they represent for source
+     */
+    private boolean setTargetReplicationPolicyAttributes(UnManagedFileSystem unManagedFs, String fsPath,
+            ArrayList<IsilonSyncTargetPolicy> isiSyncIQPolicies) {
+        StringSet sourceHosts = new StringSet();
+        StringSet policyDirPath = new StringSet();
+
+        if (fsPath != null && !fsPath.isEmpty()) {
+            for (IsilonSyncTargetPolicy localTargetPolicy : isiSyncIQPolicies) {
+                // Leave the mirror policies as they represent as targets!!
+                // Local target policies are processed for target file systems.
+                if (localTargetPolicy.getName() != null && localTargetPolicy.getName().endsWith("_mirror")) {
+                    _log.debug("Local target policy {} is a source policy, not for target file system", localTargetPolicy.getName());
+                    continue;
+                }
+                if (localTargetPolicy.getTargetPath() != null && !localTargetPolicy.getTargetPath().isEmpty()) {
+                    String policyPath = localTargetPolicy.getTargetPath();
+                    // Add SLASH to end of the path, if not
+                    // it would easy the prefix directory checking in case of policy at higher level
+                    policyPath = policyPath + (policyPath.endsWith(SLASH) ? "" : SLASH);
+                    fsPath = fsPath + (fsPath.endsWith(SLASH) ? "" : SLASH);
+                    // If policy at file system level both policy path and fs path should be same
+                    // if policy at higher directory level of this file system,
+                    // the policy path should be part of file system path.
+                    if (policyPath.equals(fsPath) || fsPath.startsWith(policyPath)) {
+                        unManagedFs.putFileSystemCharacterstics(
+                                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_MIRROR_TARGET.toString(), TRUE);
+                        // Add the policy attributes to UMFS object
+                        sourceHosts.add(localTargetPolicy.getSourceHost());
+                        policyDirPath.add(localTargetPolicy.getTargetPath());
+
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.SOURCE_HOST.toString(),
+                                sourceHosts);
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_PATH.toString(),
+                                policyDirPath);
+
+                        // What about if there are policies at higher level as well fs level
+                        // TODO
+                        return true;
+                    }
+                } else {
+                    _log.debug("Policy {} source directory path is empty ", localTargetPolicy.getName());
                 }
 
             }
@@ -1522,6 +1586,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // Get the list of SyncIQ policies present in the system!!
             ArrayList<IsilonSyncPolicy> isiSyncIQPolicies = isilonApi.getReplicationPolicies().getList();
 
+            // Get the list of SyncIQ local target policies present in the system!!
+            ArrayList<IsilonSyncTargetPolicy> isiSyncIQLocalTargetPolicies = isilonApi.getTargetReplicationPolicies().getList();
+
             List<FileShare> discoveredFS = new ArrayList<>();
             String resumeToken = null;
 
@@ -1595,6 +1662,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             unManagedFs = createUnManagedFileSystem(unManagedFs,
                                     fs.getNativeGuid(), storageSystem, storagePool, nasServer, fs);
 
+                            // Set the policy attributes!!
+                            if (setSourceReplicationPolicyAttributes(unManagedFs, fs.getPath(), isiSyncIQPolicies)) {
+                                _log.info("File system {} is a source fs ", fs.getPath());
+                                DiscoveryUtils.filterSupportedVpoolsBasedOnFileReplication(unManagedFs, _dbClient);
+                            } else if (setTargetReplicationPolicyAttributes(unManagedFs, fs.getPath(), isiSyncIQLocalTargetPolicies)) {
+                                _log.info("File system {} is a target fs ", fs.getPath());
+                                DiscoveryUtils.filterSupportedVpoolsBasedOnFileReplication(unManagedFs, _dbClient);
+                            } else {
+                                _log.debug("File system {} is a not enabled with replication ", fs.getPath());
+                            }
+
                             unManagedFs.setHasNFSAcl(false);
                             newUnManagedFileSystems.add(unManagedFs);
 
@@ -1643,11 +1721,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                         UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString(), TRUE);
                             } else {
                                 _log.info("FS {} does not have export or share", fs.getPath());
-                            }
-
-                            // Set the policy attributes!!
-                            if (!setReplicationPolicyAttributes(unManagedFs, fs.getPath(), isiSyncIQPolicies)) {
-                                _log.info("No SyncIQ policy found for fs ", fs.getPath());
                             }
 
                             /**

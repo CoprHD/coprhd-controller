@@ -18,6 +18,11 @@ class RemoteReplicationSetup {
 
     private static final tenantName = "linux"
 
+    // constants for ViPR Sanity SB-SDK (used to load topology)
+    private final static String VIPR_SANITY_SCRIPT = "/tools/tests/sanity"
+    private final static String VIPR_SANITY_TEST_CATEGORY = "sbsdk_remote_replication"
+    private final static String VIPR_SANITY_HOST = "localhost"
+
     // constants for volume creation
     private final static String VOL_IN_SET_NAME = "rr_vol_in_rr_set"
     private final static String VOL_IN_GRP_NAME = "rr_vol_in_rr_grp"
@@ -41,13 +46,11 @@ class RemoteReplicationSetup {
         def helper = new com.emc.vipr.sanity.catalog.RemoteReplicationHelper()
         if (!helper.topologyLoadedTest()) { 
             println "Running ViPR sanity script for SB SDK to load topology for tests..."
-            String workspace = System.getenv("CatalogWorkspace")
-            String sanityConf = System.getenv("CatalogSanityConf")
-            def viprSanityScript = workspace + "/tools/tests/sanity" 
-            def viprSanityTestCategory = "sbsdk_remote_replication" 
-            def host = "localhost" 
+            String sanityConf = System.getenv("CatalogSanityConf") //set in startup shell script (catalog_sanity.sh)
+            String workspace = System.getenv("CatalogWorkspace")   //set in startup shell script (catalog_sanity.sh)
+            String fullWorkspacePath =  workspace + VIPR_SANITY_SCRIPT
             ProcessBuilder pb = new ProcessBuilder().inheritIO() 
-            pb.command(viprSanityScript,sanityConf,host,viprSanityTestCategory) 
+            pb.command(fullWorkspacePath,sanityConf,VIPR_SANITY_HOST,VIPR_SANITY_TEST_CATEGORY)
             println "Running ViPR sanity for SB SDK Remote Replication: " + pb.command().join(" ") 
             Process p = pb.start()
             p.waitFor()
@@ -129,7 +132,7 @@ class RemoteReplicationSetup {
     }
 
     static deleteCg(String name) {
-           def cgId = client.blockConsistencyGroups().search().byExactName(name).first()?.id
+        def cgId = client.blockConsistencyGroups().search().byExactName(name).first()?.id
         if (cgId == null) {
         println "CG '" + name + "' not present.  Skipping deletion"
             return

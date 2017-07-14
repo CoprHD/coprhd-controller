@@ -52,6 +52,15 @@ public class StorageSystemType extends DataObject {
 
     private StringSet supportedStorageProfiles;
 
+    // Duplicated from com.emc.storageos.storagedriver.StorageProfile to avoid
+    // introducing dependency on storagedriver project
+    public static enum StorageProfile {
+        BLOCK,
+        REMOTE_REPLICATION_FOR_BLOCK,
+        FILE,
+        REMOTE_REPLICATION_FOR_FILE
+    }
+
     // Type of Storage System Types
     public static enum META_TYPE {
         BLOCK, FILE, OBJECT, BLOCK_AND_FILE, ALL,

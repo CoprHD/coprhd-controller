@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
+import com.emc.storageos.db.client.model.StorageSystemType.StorageProfile;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
-import com.emc.storageos.storagedriver.StorageProfile;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**

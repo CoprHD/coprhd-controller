@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,9 +22,9 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
+import com.emc.storageos.db.client.model.StorageSystemType.StorageProfile;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.storageos.storagedriver.StorageProfile;
 
 public class StorageSystemTypesInitUtils {
 

@@ -6,6 +6,7 @@ package com.emc.storageos.storagedriver;
 
 /**
  * A storage system type could support one or multiple storage profiles.
+ * NOTE: any changes to this class should be applied to StorageSystemType.StorageProfile too
  */
 public enum StorageProfile {
     BLOCK,

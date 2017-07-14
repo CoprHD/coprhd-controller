@@ -602,23 +602,37 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 
         try {
             dialog.config();
-            zonesetClone(dialog, vsanId, activeZoneset);       
-            dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
-            for (Zone zone : zonesToBeDeleted) {            	
-                String zoneName = zone.getName();
-                _log.info("Removing zone: " + zoneName + " from zoneset: " + activeZoneset.getName() +  " in vsan: " + vsanId);
-                try {
-                	dialog.zonesetMember(zone.getName(), true);
-                    removedZoneNames.put(zoneName, SUCCESS);
-                } catch (Exception ex) {
-                    removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
-                    handleZonesStrategyException(ex, activateZones);
-                }
+            boolean doZonesetClone = zonesetClone(dialog, vsanId, activeZoneset);     
+            if (doZonesetClone) {
+            	dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
+            }
+            
+            for (Zone zone : zonesToBeDeleted) {  
+            	 String zoneName = zone.getName();
+            	if (doZonesetClone) {	               
+	                _log.info("Removing zone: " + zoneName + " from zoneset: " + activeZoneset.getName() +  " in vsan: " + vsanId);
+	                try {
+	                	dialog.zonesetMember(zone.getName(), true);
+	                    removedZoneNames.put(zoneName, SUCCESS);
+	                } catch (Exception ex) {
+	                    removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
+	                    handleZonesStrategyException(ex, activateZones);
+	                }
+	                _log.info("Going back to config prompt");	                
+	                dialog.exitToConfig();
+            	} else {
+            		  _log.info("Deleting zone: " + zoneName + " in vsan: " + vsanId);
+  	                try {
+  	                	dialog.zoneNameVsan(zoneName, vsanId, true);
+  	                    removedZoneNames.put(zoneName, SUCCESS);
+  	                } catch (Exception ex) {
+  	                    removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
+  	                    handleZonesStrategyException(ex, activateZones);
+  	                }            		
+            	}
             }
  
-            _log.info("Going back to config prompt");
-            
-            dialog.exitToConfig();
+          
             if (activateZones) {
                 dialog.zonesetActivate(activeZoneset.getName(), vsanId, ((remainingZones[0] == 0) ? true : false));
             }
@@ -867,7 +881,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	 * @param vsanId
 	 * @param activeZoneset
 	 */
-	private void zonesetClone(MDSDialog dialog, Integer vsanId, Zoneset activeZoneset) {
+	private boolean zonesetClone(MDSDialog dialog, Integer vsanId, Zoneset activeZoneset) {
 		boolean doZonesetClone = true;
 		boolean allowZonesIfZonesetCloneFails = true;
 		try {
@@ -892,6 +906,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         } else {
         	_log.info(String.format("controller_mds_clone_zoneset is false, NOT Cloning zoneset %s", activeZoneset.getName()));
         }
+        return doZonesetClone;
 	}
 
     /**

@@ -406,6 +406,20 @@ $(document).on("click", ".multi-file-upload .remove:not(.disabled)", function() 
     processMultiFileUploadControls(this);
 });
 
+//handler to disable check boxes in nfsacl select-many fullControl - add and edit
+$(document).on("click", ".selectManyContent input[value='fullControl']", function() {
+	var parentElement = $(this).parents('.selectManyContent').find('input');
+	if($(this).prop('checked')) {
+		$(parentElement).each(function() {
+			if($(this).attr('value') != 'fullControl') {
+				$(this).attr({'disabled':'disabled','checked':false});
+			}
+		});
+	} else {
+		$(parentElement).removeAttr('disabled');			
+	}
+});
+
 //on submit handlers
 $(document).on("submit", "form", function(e) {
     //gather selected datatable elements to this element

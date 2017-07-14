@@ -3004,13 +3004,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     // get policy reports from device.
                     IsilonApi isi = getIsilonDevice(targetSystem);
                     listPolicyReports = isi.getTargetReplicationPolicyReports(sourcePolicyName).getList();
+                    List<IsilonSyncPolicyReport> listPolicyReports1 = isi.getReplicationPolicyReports(sourcePolicyName).getList();
                     String errorMsg = isiGetReportErrMsg(listPolicyReports);
 
                     errorMsgBuff.append(String.format("Policy Report details: %s", errorMsg));
 
                     ServiceError serviceError = DeviceControllerErrors.isilon.unableToResyncPrepPolicy(sourceSystem.getIpAddress(),
                             sourcePolicyName,
-                            errorMsg);
+                            errorMsgBuff.toString());
                     _log.error(errorMsgBuff.toString());
                     return BiosCommandResult.createErrorResult(serviceError);
                 }

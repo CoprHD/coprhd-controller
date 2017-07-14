@@ -538,48 +538,6 @@ public class IsilonMirrorOperations {
         }
     }
 
-    public BiosCommandResult doRefreshMirrorFileShareLink1(StorageSystem system, FileShare source, String policyName)
-            throws DeviceControllerException {
-
-        IsilonSyncPolicy policy;
-        IsilonSyncTargetPolicy localTarget = null;
-        StringSet targets = source.getMirrorfsTargets();
-        List<URI> targetFSURI = new ArrayList<>();
-        for (String target : targets) {
-            targetFSURI.add(URI.create(target));
-        }
-        FileShare target = _dbClient.queryObject(FileShare.class, targetFSURI.get(0));
-        StorageSystem systemTarget = _dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
-        try {
-
-            IsilonApi isiPrimary = getIsilonDevice(system);
-            IsilonApi isiSecondary = getIsilonDevice(systemTarget);
-            policy = isiPrimary.getReplicationPolicy(policyName);
-            if (policy.getLastStarted() != null) {
-                localTarget = isiSecondary.getTargetReplicationPolicy(policyName);
-            }
-            if (policy.getLastStarted() == null) {
-                source.setMirrorStatus(MirrorStatus.UNKNOWN.toString());
-            } else if (!policy.getEnabled() || policy.getLastJobState().equals(JobState.paused)) {
-                source.setMirrorStatus(MirrorStatus.PAUSED.toString());
-            } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
-                source.setMirrorStatus(MirrorStatus.FAILED_OVER.toString());
-            } else if (policy.getEnabled() && policy.getLastJobState().equals(JobState.finished) &&
-                    localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled)) {
-                source.setMirrorStatus(MirrorStatus.SYNCHRONIZED.toString());
-            } else if (policy.getLastJobState().equals(JobState.running)) {
-                source.setMirrorStatus(MirrorStatus.IN_SYNC.toString());
-            } else if (policy.getLastJobState().equals(JobState.failed) || policy.getLastJobState().equals(JobState.needs_attention)) {
-                source.setMirrorStatus(MirrorStatus.ERROR.toString());
-            }
-            _dbClient.updateObject(source);
-            return BiosCommandResult.createSuccessfulResult();
-        } catch (IsilonException e) {
-            _log.error("refresh mirror satus failed.", e);
-            return BiosCommandResult.createErrorResult(e);
-        }
-    }
-
     /**
      * Call to isilon to resume replication session
      * 

@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -21,12 +22,14 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.StorageSystemType.StorageProfile;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -111,6 +114,32 @@ public class StorageSystemTypeService extends TaskResourceService {
     }
 
     /**
+     * Returns a list of all Storage System Types that support remote replication for block and file
+     */ 
+    @GET
+    @Path("/remotereplicationtypes")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public StorageSystemTypeList getStorageSystemTypes() {
+        log.info("Getting storage system types that support remote replication");
+        List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
+        StorageSystemTypeList types = new StorageSystemTypeList();
+        Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        while (it.hasNext()) {
+            StorageSystemType type = it.next();
+            Set<String> profiles = type.getSupportedStorageProfiles();
+            if (CollectionUtils.isEmpty(profiles)) {
+                continue;
+            }
+            if (profiles.contains(StorageProfile.REMOTE_REPLICATION_FOR_BLOCK.toString()) ||
+                    profiles.contains(StorageProfile.REMOTE_REPLICATION_FOR_FILE)) {
+                types.getStorageSystemTypes().add(map(type));
+            }
+        }
+        return types;
+    }
+
+    /**
      * NOTE: This API is only used by sanity script,
      * and it's not allowed to directly add storage system type
      * 
@@ -184,6 +213,8 @@ public class StorageSystemTypeService extends TaskResourceService {
     }
 
     /**
+     * NOTE: This API is deprecated for it's not allowed to directly delete storage system type
+     *
      * Internal api to delete existing Storage System Type.
      *
      * @param id storage system type id
@@ -191,6 +222,7 @@ public class StorageSystemTypeService extends TaskResourceService {
      * @brief Delete Storage System Type.
      * @return No data returned in response body
      */
+    @Deprecated
     @POST
     @Path("/internal/{id}/deactivate")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

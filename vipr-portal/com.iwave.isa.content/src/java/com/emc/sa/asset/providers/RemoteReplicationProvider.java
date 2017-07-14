@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 
 import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.AssetOptionsUtils;
@@ -34,7 +33,6 @@ import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
-import com.emc.storageos.storagedriver.StorageProfile;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.base.Strings;
@@ -553,35 +551,9 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * Get supported Storage System types for RR operations
      */
     private List<StorageSystemTypeRestRep> getSupportedStorageSystemTypes(ViPRCoreClient coreClient) {
-        List<StorageSystemTypeRestRep> storageSystemTypes =
-                coreClient.storageSystemType().listStorageSystemTypes("block").getStorageSystemTypes();
-        List<StorageSystemTypeRestRep> storageSystemFileTypes =
-                coreClient.storageSystemType().listStorageSystemTypes("file").getStorageSystemTypes();
-        storageSystemTypes.addAll(storageSystemFileTypes);
-
-        List<StorageSystemTypeRestRep> result = new ArrayList<>();
-        for (StorageSystemTypeRestRep type : storageSystemTypes) {
-            if (supportRemoteReplication(type)) {
-                result.add(type);
-            }
-        }
-        return result;
+        return coreClient.storageSystemType().listRemoteReplicationTypes().getStorageSystemTypes();
     }
 
-    private boolean supportRemoteReplication(StorageSystemTypeRestRep type) {
-        Set<String> supportedStorageProfiles = type.getSupportedStorageProfiles();
-        if (CollectionUtils.isEmpty(supportedStorageProfiles)) {
-            return false;
-        }
-        for (String profileStr : supportedStorageProfiles) {
-            StorageProfile profile = Enum.valueOf(StorageProfile.class, profileStr);
-            if (profile == StorageProfile.REMOTE_REPLICATION_FOR_BLOCK
-                    || profile == StorageProfile.REMOTE_REPLICATION_FOR_FILE) {
-                return true;
-            }
-        }
-        return false;
-    }
     /*
      * Get a pretty name for a storage port
      */

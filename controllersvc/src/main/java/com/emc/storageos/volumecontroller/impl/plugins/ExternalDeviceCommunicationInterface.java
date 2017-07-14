@@ -631,46 +631,34 @@ public class ExternalDeviceCommunicationInterface extends
      * and updates the passed auto tiering policy maps.
      * 
      * @param driverStorageSystem A reference to the driver storage system.
-     * @param storagePool A reference to the driver storage pool.
+     * @param driverPool A reference to the driver storage pool.
      * @param pool A reference to the controller storage pool representing the driver storage pool.
      * @param autoTieringPolicyPoolMap A map of unique policy ids and controller storage pools that support the policy.
      * @param autoTieringPolicyPropertiesMap A map of unique policy ids and the policy properties.
      */
-    private void discoverAutoTieringPoliciesForStoragePool(StorageSystem driverStorageSystem, StoragePool storagePool,
+    private void discoverAutoTieringPoliciesForStoragePool(StorageSystem driverStorageSystem, StoragePool driverPool,
             com.emc.storageos.db.client.model.StoragePool pool,
             Map<String, List<com.emc.storageos.db.client.model.StoragePool>> autoTieringPolicyPoolMap,
             Map<String, Map<String, List<String>>> autoTieringPolicyPropertiesMap) {
         
         // Get the capabilities specified for the storage pool and
         // process any auto tiering policy capabilities.
-        List<CapabilityInstance> capabilities = storagePool.getCapabilities();
+        List<CapabilityInstance> capabilities = driverPool.getCapabilities();
         if (capabilities == null) {
             return;
         }
         for (CapabilityInstance capability : capabilities) {
-            // Get the capability definition for the capability.
             String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
-            if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
-                _log.error(String.format("Skipping capability %s with no capability definition UID for storage pool %s on system %s",
-                        capability.getName(), storagePool.getNativeId(), driverStorageSystem.getNativeId()));
-                continue;
-            }
-
-            // Get the capability definition from the map of supported capability definitions.
-            CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
-            if (capabilityDefinition == null) {
-                _log.info(String.format("Skipping unsupported capability of type %s for storage pool %s on system %s",
-                        capabilityDefinitionUid, storagePool.getNativeId(), driverStorageSystem.getNativeId()));
-                continue;
-            }
-            
+            _log.info(String.format("Processing storage capability %s of type %s for storage pool %s on system %s",
+                    capability.getName(), capabilityDefinitionUid, driverPool.getNativeId(),
+                    driverStorageSystem.getNativeId()));
             // Handle auto tiering policy capability.
-            if (AutoTieringPolicyCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {                           
+            if (isValidCapabilityInstance(capability) && AutoTieringPolicyCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
                 // Get the policy id.
                 String policyId = capability.getPropertyValue(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name());
                 if (policyId == null) {
                     _log.error(String.format("Skipping auto tiering policy capability %s with no policy id for storage pool %s on system %s",
-                            capability.getName(), storagePool.getNativeId(), driverStorageSystem.getNativeId()));
+                            capability.getName(), driverPool.getNativeId(), driverStorageSystem.getNativeId()));
                     continue;
                 }
                 

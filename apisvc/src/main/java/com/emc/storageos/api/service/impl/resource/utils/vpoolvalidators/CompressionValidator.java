@@ -44,7 +44,8 @@ public class CompressionValidator extends VirtualPoolValidator<BlockVirtualPoolP
             }
 
             if (null != updateParam.getSystemType()) {
-                if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType())) {
+                if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType()) &&
+                        !getStorageDriverManager().isDriverManaged(updateParam.getSystemType())) {
                     throw APIException.badRequests.invalidParameterSystemTypeforCompression();
                 }
             } else if (null != arrayInfo
@@ -71,7 +72,8 @@ public class CompressionValidator extends VirtualPoolValidator<BlockVirtualPoolP
             throw APIException.badRequests.missingParameterSystemTypeforCompression();
         }
 
-        if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType())) {
+        if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType()) &&
+                !getStorageDriverManager().isDriverManaged(createParam.getSystemType())) {
             throw APIException.badRequests.invalidParameterSystemTypeforCompression();
         }
 

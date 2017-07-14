@@ -32,6 +32,16 @@ public class StorageDriverSimulatorUtils {
         return hostIOLimits;
     }
 
+    public static CapabilityInstance getVolumeCompressionCapabilities(StorageCapabilities storageCapabilities) {
+        // get volume compression capability
+        CapabilityInstance volumeCompression = null;
+        CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilities();
+        if (commonCapabilities != null) {
+            volumeCompression =StorageCapabilitiesUtils.getDataStorageServiceCapability(commonCapabilities, CapabilityDefinition.CapabilityUid.volumeCompression);
+        }
+        return volumeCompression;
+    }
+
     public static void addHostIOLimitsCapabilities(CommonStorageCapabilities commonCapabilities) {
 
         HostIOLimitsCapabilityDefinition capabilityDefinition = new HostIOLimitsCapabilityDefinition();

@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,6 +176,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     addAutoTieringPolicyCapability(commonCapabilities, volume.getAutoTieringPolicyUri());
                     addDeduplicationCapability(commonCapabilities, volume.getIsDeduplicated());
                     addHostIOLimitsCapability(commonCapabilities, volume.getVirtualPool());
+                    addVolumeCompressionCapability(commonCapabilities, volume.getVirtualPool());
                 }
                 StorageVolume driverVolume = new StorageVolume();
                 driverVolume.setStorageSystemId(storageSystem.getNativeId());
@@ -304,6 +306,30 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     capabilityDefinition.getId(), capabilityProperties);
 
             StorageCapabilitiesUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(dedupCapability));
+        }
+    }
+
+    /**
+     * Create volume compression capability and pass it to the passed common storage capabilities
+     *
+     * @param storageCapabilities
+     * @param vpoolUri
+     */
+    private void addVolumeCompressionCapability(CommonStorageCapabilities storageCapabilities, URI vpoolUri) {
+        VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, vpoolUri);
+        String msg = String.format("Processing volume compression capability for vpool %s / %s : compression enabled: %s",
+                virtualPool.getLabel(), virtualPool.getId(), virtualPool.getCompressionEnabled());
+        _log.info(msg);
+        if (virtualPool.getCompressionEnabled()) {
+            Map<String, List<String>> capabilityProperties = new HashMap<>();
+            // Create volume compression capability
+            VolumeCompressionCapabilityDefinition capabilityDefinition = new VolumeCompressionCapabilityDefinition();
+            capabilityProperties.put(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name(),
+                    Collections.singletonList(Boolean.TRUE.toString()));
+            CapabilityInstance volumeCompressionCapability = new CapabilityInstance(capabilityDefinition.getId(),
+                    capabilityDefinition.getId(), capabilityProperties);
+
+            StorageCapabilitiesUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(volumeCompressionCapability));
         }
     }
 

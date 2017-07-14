@@ -418,6 +418,11 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             _log.info("HostIOLimits for volumes: " +hostIOLimits.toString());
         }
 
+        CapabilityInstance volumeCompression = StorageDriverSimulatorUtils.getVolumeCompressionCapabilities(capabilities);
+        if (volumeCompression != null) {
+            _log.info("Volume Compression for volumes: " +volumeCompression.toString());
+        }
+
         for (StorageVolume volume : volumes) {
             volume.setNativeId("driverSimulatorVolume" + UUID.randomUUID().toString());
             volume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);

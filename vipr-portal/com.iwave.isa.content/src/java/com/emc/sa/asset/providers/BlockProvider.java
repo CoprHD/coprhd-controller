@@ -423,13 +423,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"unmountedBlockResource", "aixhost", "project"} )
+    @AssetDependencies( {"unmountedBlockResource", "aixHost", "project"} )
     public List<AssetOption> getExportVolumeForAixPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
         return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
     }
     
     @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"aixhost", "project"} )
+    @AssetDependencies( {"aixHost", "project"} )
     public List<AssetOption> getExportVolumeForAixPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
         return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
     }

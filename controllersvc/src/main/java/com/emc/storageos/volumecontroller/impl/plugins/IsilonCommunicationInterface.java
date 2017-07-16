@@ -1607,7 +1607,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     Constants.DEFAULT_PARTITION_SIZE * 2);
 
                             // save bunch of NFS ACLs in db
-                            validateSizeLimitAndPersist(newUnManagedNfsShareACLList, newUnManagedNfsShareACLList,
+                            validateSizeLimitAndPersist(newUnManagedNfsShareACLList, oldUnManagedNfsShareACLList,
                                     Constants.DEFAULT_PARTITION_SIZE * 2);
 
                             allDiscoveredUnManagedFileSystems.add(unManagedFs.getId());

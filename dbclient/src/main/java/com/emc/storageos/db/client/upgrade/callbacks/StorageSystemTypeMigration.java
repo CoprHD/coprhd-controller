@@ -38,7 +38,7 @@ public class StorageSystemTypeMigration extends BaseCustomMigrationCallback {
                 continue;
             }
             String typeName = type.getStorageTypeName();
-            META_TYPE metaType = Enum.valueOf(META_TYPE.class, type.getMetaType());
+            META_TYPE metaType = Enum.valueOf(META_TYPE.class, type.getMetaType().toUpperCase());
             StringSet profiles = getSupportedStorageProfiles(typeName, metaType);
             type.setSupportedStorageProfiles(profiles);
             dbClient.updateObject(type);

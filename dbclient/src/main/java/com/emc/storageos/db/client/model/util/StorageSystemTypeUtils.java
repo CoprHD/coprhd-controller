@@ -13,7 +13,7 @@ import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
 import com.emc.storageos.db.client.model.StorageSystemType.StorageProfile;
 import com.emc.storageos.db.client.model.StringSet;
 
-public class StorageSystemTypeUtils {
+public final class StorageSystemTypeUtils {
 
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeUtils.class);
     private static final String VMAX = "vmax";

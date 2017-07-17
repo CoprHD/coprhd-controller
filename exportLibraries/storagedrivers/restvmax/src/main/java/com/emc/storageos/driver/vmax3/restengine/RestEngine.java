@@ -18,7 +18,7 @@ public class RestEngine {
     private static final Logger LOG = LoggerFactory.getLogger(RestClient.class);
 
     private AuthenticationInfo authenticationInfo;
-    private boolean isVerifyCertificate = false;
+    private boolean isVerifyCertificate = true;
     private RestClient restClient;
 
     /**

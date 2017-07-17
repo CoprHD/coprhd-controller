@@ -27,7 +27,7 @@ public class StorageGroupManagerTest {
 
     @BeforeClass
     public static void setup() {
-        String host = "10.247.97.150";
+        String host = "lglw7150.lss.emc.com";
         int port = 8443;
         String user = "smc";
         String password = "smc";
@@ -42,14 +42,14 @@ public class StorageGroupManagerTest {
     @Test
     public void testCreateEmptySg() {
 
-        String sgName = "stone_test_sg_auto_001";
+        String sgName = "stone_test_sg_auto_003";
         CreateStorageGroupParameter param = new CreateStorageGroupParameter(sgName);
         param.setCreateEmptyStorageGroup(true);
         param.setEmulation("FBA");
         param.setSrpId("SRP_1");
         List<String> urlFillers = new ArrayList<String>();
         urlFillers.add(sgManager.getAuthenticationInfo().getSn());
-        Assert.assertFalse(sgManager.createEmptySg(param, urlFillers).isSuccessfulStatus());
+        Assert.assertTrue(sgManager.createEmptySg(param, urlFillers).isSuccessfulStatus());
     }
 
 }

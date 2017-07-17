@@ -4030,21 +4030,12 @@ test_delete_srdf_cg_last_vol() {
 
           set_artificial_failure none
 
-          # No sense in validating db for failure_087, since source or target would have been deleted.
-          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" ]
-          then
-            # failure_087 leaves the source or target behind, so we expect to be able to retry deleting whichever one was left behind.
-            runcmd volume delete --project ${PROJECT} --wait
-          else
-            # Validate volume was left for retry
-            validate_db 1 2 ${cfs}
-
-            # Retry the delete operation on remaining source volumes
-            for vol in `volume list $PROJECT | grep "SOURCE" | awk '{ print $7}'`
-            do
-              runcmd volume delete $vol --wait
-            done
-          fi
+          
+          # Retry the delete operation on remaining source volumes
+          for vol in `volume list $PROJECT | grep "SOURCE" | awk '{ print $7}'`
+          do
+            runcmd volume delete $vol --wait
+          done
         fi
 
         if [ "${SIM}" = "0" ]

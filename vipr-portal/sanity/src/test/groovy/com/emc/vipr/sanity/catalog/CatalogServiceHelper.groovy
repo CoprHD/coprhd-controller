@@ -5,9 +5,13 @@
 package com.emc.vipr.sanity.catalog
 
 import static com.emc.vipr.sanity.Sanity.*
-import static com.emc.vipr.sanity.Sanity.printMsg
 import static com.emc.vipr.sanity.catalog.OrderStatus.*
 import static org.junit.Assert.*
+import static com.emc.vipr.sanity.Sanity.printDebug
+import static com.emc.vipr.sanity.Sanity.printVerbose
+import static com.emc.vipr.sanity.Sanity.printInfo
+import static com.emc.vipr.sanity.Sanity.printWarn
+import static com.emc.vipr.sanity.Sanity.printError
 
 import com.emc.storageos.model.BulkIdParam
 import com.emc.vipr.client.core.util.ResourceUtils
@@ -32,25 +36,25 @@ class CatalogServiceHelper {
 
     /** place the order given by 'servicePath' using the provided parameters */
     static placeOrder(servicePath, overrideParameters) {
-        printMsg sprintf("Get '%s' service", servicePath)
+        printVerbose sprintf("Get '%s' service", servicePath)
         def service = findServiceByPath(servicePath)
-        printMsg sprintf("%s Service:", servicePath)
-        printMsg service
-        printMsg ""
+        printVerbose sprintf("%s Service:", servicePath)
+        printVerbose service
+        printVerbose ""
 
-        printMsg sprintf("Get '%s' service descriptor", servicePath)
+        printVerbose sprintf("Get '%s' service descriptor", servicePath)
         def serviceDescriptor = getServiceDescriptor(service.id)
-        printMsg ""
+        printVerbose ""
 
-        printMsg "Get parameters for API call"
+        printVerbose "Get parameters for API call"
         def parameters = getParameters(service.id, serviceDescriptor, overrideParameters)
-        printMsg "API call parameters: " + parameters
-        printMsg ""
+        printVerbose "API call parameters: " + parameters
+        printVerbose ""
 
-        printMsg "Place Order"
+        printVerbose "Place Order"
         services_run++
         def order = executeService(service, parameters)
-        printMsg ""
+        printVerbose ""
 
         return order
     }
@@ -68,19 +72,22 @@ class CatalogServiceHelper {
     /** execute a service with the given parameters */
     static executeService(service, parameters) {
         assertNotNull(service)
-        printMsg sprintf("Executing service %s with parameters: %s", service, parameters)
+        printVerbose sprintf("Executing service %s with parameters: %s", service, parameters)
 
         def orderInfo = catalog.orders().submit(catalog.getUserTenantId(), service.id, parameters)
         assertNotNull(orderInfo)
 
         def status = OrderStatus.valueOf(orderInfo.orderStatus)
         while ( status.equals(PENDING) || status.equals(EXECUTING) ) {
-            printMsg orderInfo
+            printVerbose orderInfo
             sleep 3000
             orderInfo = catalog.orders().get(orderInfo.id)
             status = OrderStatus.valueOf(orderInfo.orderStatus)
         }
-        printMsg orderInfo
+        printVerbose orderInfo
+        if (status.equals(ERROR)) {
+            printError sprintf("Error while executing service %s with parameters: %s.  %s", service, parameters, orderInfo)
+        }
 
         assertEquals(SUCCESS, status)
 
@@ -89,12 +96,12 @@ class CatalogServiceHelper {
 
     /** get the parameters to use in an API call for the given service */
     static getParameters(serviceId, ServiceDescriptorRestRep descriptor, overrideParameters) {
-        printMsg "Service Descriptor: $descriptor.title"
-        printMsg ""
+        printVerbose "Service Descriptor: $descriptor.title"
+        printVerbose ""
 
         // the total number of fields in this service descriptor
-        printMsg "This descriptor has ${descriptor.items.size()} fields"
-        printMsg ""
+        printVerbose "This descriptor has ${descriptor.items.size()} fields"
+        printVerbose ""
 
         // a map of the asset name to the asset type
         def parameterTypeMap = [:]
@@ -112,40 +119,40 @@ class CatalogServiceHelper {
                 if (field.isTable() || field.isGroup()) {
                     ServiceItemContainerRestRep table = (ServiceItemContainerRestRep)field;
                     for ( item in table.getItems()) {
-                        printMsg sprintf("Field: %s [%s]", item.label, field.type)
+                        printVerbose sprintf("Field: %s [%s]", item.label, field.type)
                         def option = getAssetOptionValue(serviceId, item, overrideParameters, parameterTypeMap, parameters)
                         // if we found an option for this asset type, add it to the parameters list
                         if (option) {
                             parameters[item.name] = option
-                            printMsg sprintf("Added parameter: %s:%s", item.name, option);
+                            printVerbose sprintf("Added parameter: %s:%s", item.name, option);
                         }
 
                         // make sure we record the entry in the type map
                         parameterTypeMap[fieldName] = field.type
-                        printMsg ""
+                        printVerbose ""
                     }
                 } else {
-                    printMsg sprintf("Field: %s [%s]", field.label, field.type)
+                    printVerbose sprintf("Field: %s [%s]", field.label, field.type)
                     def option = getAssetOptionValue(serviceId, field, overrideParameters, parameterTypeMap, parameters)
                     // if we found an option for this asset type, add it to the parameters list
                     if (option) {
                         parameters[fieldName] = option
-                        printMsg sprintf("Added parameter: %s:%s", fieldName, option)
+                        printVerbose sprintf("Added parameter: %s:%s", fieldName, option)
                     }
 
                     // make sure we record the entry in the type map
                     parameterTypeMap[fieldName] = field.type
-                    printMsg ""
+                    printVerbose ""
                 }
 
             }
         }
 
-        printMsg ""
-        printMsg sprintf("Parameters map has %s entries.", parameters.size())
-        printMsg sprintf("Parameter Type Map: %s", parameterTypeMap)
-        printMsg sprintf("Parameters Map: %s", parameters)
-        printMsg "\n\n"
+        printVerbose ""
+        printVerbose sprintf("Parameters map has %s entries.", parameters.size())
+        printVerbose sprintf("Parameter Type Map: %s", parameterTypeMap)
+        printVerbose sprintf("Parameters Map: %s", parameters)
+        printVerbose "\n\n"
 
         return parameters
     }
@@ -173,14 +180,14 @@ class CatalogServiceHelper {
     static getAssetOptionsForAssetField(serviceId, field, parameters, parameterTypeMap) {
         // try to get the asset options from the API for the given field
         def options = getAssetOptions(serviceId, field, parameters, parameterTypeMap)
-        printMsg sprintf("Options: %s", options ?: "none")
+        printVerbose sprintf("Options: %s", options ?: "none")
 
         if ( options == null || options.size() == 0) {
             if (field.required) {
                 throw new RuntimeException("No options for field $field, Field is required.")
             }
             else {
-                printMsg "No options, but field is not required"
+                printVerbose "No options, but field is not required"
             }
         }
         else {
@@ -201,17 +208,17 @@ class CatalogServiceHelper {
         else {
             def assetParameters = buildAssetParameters(dependencies, parameters, parameterTypeMap)
             if (assetParameters?.size() == dependencies?.size()) {
-                printMsg sprintf("Asset Options Parameters: %s", assetParameters)
+                printVerbose sprintf("Asset Options Parameters: %s", assetParameters)
                 return catalog.assetOptions().getAssetOptions(field.type, assetParameters)
             }
-            printMsg "Unable to find required asset dependencies"
+            printVerbose "Unable to find required asset dependencies"
         }
     }
 
     /** get the asset dependency list for the given field in the given service */
     static getAssetDependencies(serviceId, field) {
         def dependencies = catalog.assetOptions().getAssetDependencies(field.type, serviceId)
-        printMsg sprintf("Asset Dependencies : %s", dependencies ?: "none")
+        printVerbose sprintf("Asset Dependencies : %s", dependencies ?: "none")
         return dependencies
     }
 
@@ -288,47 +295,47 @@ class CatalogServiceHelper {
 
 
     static void catalogRemoteReplicationServiceTest() {
-        printMsg "CatalogServiceHelper.catalogCategoryServiceTest() :: TODO: Implement Remote Replication Tests"
+        printVerbose "CatalogServiceHelper.catalogCategoryServiceTest() :: TODO: Implement Remote Replication Tests"
     }
 
 
     static void catalogCategoryServiceTest() {
-        printMsg "  ## Catalog Category Test ## "
+        printVerbose "  ## Catalog Category Test ## "
         createdCategories = new ArrayList<URI>();
 
-        printMsg "Getting tenantId to create category"
+        printVerbose "Getting tenantId to create category"
         URI tenantId = catalog.getUserTenantId();
-        printMsg ""
+        printVerbose ""
 
-        printMsg "tenantId: " + tenantId
-        printMsg ""
+        printVerbose "tenantId: " + tenantId
+        printVerbose ""
 
-        printMsg "Getting root catalog category"
+        printVerbose "Getting root catalog category"
         CatalogCategoryRestRep rootCategory =
                 catalog.categories().getRootCatalogCategory(tenantId.toString());
-        printMsg ""
+        printVerbose ""
 
         URI rootCategoryId = rootCategory.getId();
-        printMsg "rootCategoryId: " + rootCategoryId;
-        printMsg ""
+        printVerbose "rootCategoryId: " + rootCategoryId;
+        printVerbose ""
 
-        printMsg "Creating category"
+        printVerbose "Creating category"
         CatalogCategoryRestRep createdCategory =
                 createCategory(tenantId, rootCategoryId);
         createdCategories.add(createdCategory.getId());
-        printMsg ""
+        printVerbose ""
 
-        printMsg "createdCategoryId: " + createdCategory.getId();
-        printMsg ""
+        printVerbose "createdCategoryId: " + createdCategory.getId();
+        printVerbose ""
 
-        printMsg "Creating another category"
+        printVerbose "Creating another category"
         CatalogCategoryRestRep anotherCategory =
                 createAnotherCategory(tenantId, rootCategoryId);
         createdCategories.add(anotherCategory.getId());
-        printMsg ""
+        printVerbose ""
 
-        printMsg "createdCategoryId: " + anotherCategory.getId();
-        printMsg ""
+        printVerbose "createdCategoryId: " + anotherCategory.getId();
+        printVerbose ""
 
         assertNotNull(createdCategory);
         assertNotNull(createdCategory.id);
@@ -343,8 +350,8 @@ class CatalogServiceHelper {
         categoryIds.add(createdCategory.getId());
         categoryIds.add(anotherCategory.getId());
 
-        printMsg "Listing bulk resources - categories"
-        printMsg ""
+        printVerbose "Listing bulk resources - categories"
+        printVerbose ""
 
         BulkIdParam bulkIds = new BulkIdParam();
         bulkIds.setIds(categoryIds);
@@ -357,8 +364,8 @@ class CatalogServiceHelper {
         assertEquals(Boolean.TRUE, categoryIds.contains(categories.get(0).getId()));
         assertEquals(Boolean.TRUE, categoryIds.contains(categories.get(1).getId()));
 
-        printMsg "Listing categories by tenant"
-        printMsg ""
+        printVerbose "Listing categories by tenant"
+        printVerbose ""
 
         categories =
                 catalog.categories().getByTenant(tenantId);
@@ -370,14 +377,14 @@ class CatalogServiceHelper {
         assertEquals(Boolean.TRUE, retrievedCategories.contains(categoryIds.get(0)));
         assertEquals(Boolean.TRUE, retrievedCategories.contains(categoryIds.get(1)));
 
-        printMsg "Getting category " + createdCategory.id;
+        printVerbose "Getting category " + createdCategory.id;
         CatalogCategoryRestRep retrievedCategory = catalog.categories().get(createdCategory.getId());
-        printMsg ""
+        printVerbose ""
 
         assertEquals(createdCategory.getId(), retrievedCategory.getId());
 
-        printMsg "Updating category " + retrievedCategory.getId();
-        printMsg ""
+        printVerbose "Updating category " + retrievedCategory.getId();
+        printVerbose ""
 
         CatalogCategoryRestRep updatedCategory =
                 updateCategory(retrievedCategory.getId(), anotherCategory.getId());
@@ -389,37 +396,37 @@ class CatalogServiceHelper {
         assertEquals("TestUpdateOne.png", updatedCategory.getImage());
         assertEquals(anotherCategory.getId(), updatedCategory.catalogCategory.getId());
 
-        printMsg "Deleting categories";
-        printMsg ""
+        printVerbose "Deleting categories";
+        printVerbose ""
 
         catalog.categories().deactivate(updatedCategory.getId());
         catalog.categories().deactivate(anotherCategory.getId());
 
-        printMsg "Getting deactivated category " + updatedCategory.getId();
+        printVerbose "Getting deactivated category " + updatedCategory.getId();
         updatedCategory = catalog.categories().get(updatedCategory.getId());
-        printMsg ""
+        printVerbose ""
 
         if (updatedCategory != null) {
             assertEquals(true, updatedCategory.getInactive());
         }
 
-        printMsg "Retrieving categories from root";
-        printMsg ""
+        printVerbose "Retrieving categories from root";
+        printVerbose ""
 
         categories =
                 catalog.categories().getByTenant(tenantId);
 
         retrievedCategories = ResourceUtils.ids(categories);
 
-        printMsg "Ensuring custom categories are no longer there";
-        printMsg ""
+        printVerbose "Ensuring custom categories are no longer there";
+        printVerbose ""
 
         assertNotNull(categories);
         assertEquals(Boolean.FALSE, retrievedCategories.contains(categoryIds.get(0)));
         assertEquals(Boolean.FALSE, retrievedCategories.contains(categoryIds.get(1)));
 
-        printMsg "Checking for catalog upgrade";
-        printMsg ""
+        printVerbose "Checking for catalog upgrade";
+        printVerbose ""
 
         Boolean isUpgradeAvailable =
                 catalog.categories().upgradeAvailable(tenantId);
@@ -428,28 +435,28 @@ class CatalogServiceHelper {
     }
 
     static void catalogCategoryServiceTearDown() {
-        printMsg "  ## Catalog Category Test Clean up ## "
+        printVerbose "  ## Catalog Category Test Clean up ## "
 
-        printMsg "Getting created categories"
-        printMsg ""
+        printVerbose "Getting created categories"
+        printVerbose ""
         if (createdCategories != null) {
 
             createdCategories.each {
-                printMsg "Getting test category: " + it;
-                printMsg ""
+                printVerbose "Getting test category: " + it;
+                printVerbose ""
                 CatalogCategoryRestRep categoryToDelete =
                         catalog.categories().get(it);
                 if (categoryToDelete != null
                 && !categoryToDelete.getInactive()) {
-                    printMsg "Deleting test category: " + it;
-                    printMsg ""
+                    printVerbose "Deleting test category: " + it;
+                    printVerbose ""
                     catalog.categories().deactivate(it);
                 }
             }
         }
 
-        printMsg "Cleanup Complete.";
-        printMsg ""
+        printVerbose "Cleanup Complete.";
+        printVerbose ""
     }
 
     static createService(List<CatalogServiceFieldParam> params,
@@ -540,36 +547,36 @@ class CatalogServiceHelper {
 
     static void catalogServiceServiceTest() {
 
-        printMsg "  ## Catalog Service Test ## "
+        printVerbose "  ## Catalog Service Test ## "
         createdServices = new ArrayList<URI>();
         createdExecutionWindows = new ArrayList<URI>();
 
-        printMsg "Getting tenantId"
+        printVerbose "Getting tenantId"
         URI tenantId = catalog.getUserTenantId();
-        printMsg ""
+        printVerbose ""
 
-        printMsg "tenantId: " + tenantId
-        printMsg ""
+        printVerbose "tenantId: " + tenantId
+        printVerbose ""
 
-        printMsg "Getting root catalog category"
+        printVerbose "Getting root catalog category"
         CatalogCategoryRestRep rootCategory =
                 catalog.categories().getRootCatalogCategory(tenantId.toString());
-        printMsg ""
+        printVerbose ""
 
         URI rootCategoryId = rootCategory.getId();
-        printMsg "rootCategoryId: " + rootCategoryId;
-        printMsg ""
+        printVerbose "rootCategoryId: " + rootCategoryId;
+        printVerbose ""
 
-        printMsg "Getting all service descriptors"
+        printVerbose "Getting all service descriptors"
         List<ServiceDescriptorRestRep> sds =
                 catalog.serviceDescriptors().getServiceDescriptors();
-        printMsg ""
+        printVerbose ""
 
         assertNotNull(sds);
         assertEquals(Boolean.TRUE, sds.size() > 0);
 
-        printMsg "Getting serviceId of first service descriptor"
-        printMsg ""
+        printVerbose "Getting serviceId of first service descriptor"
+        printVerbose ""
 
         ServiceDescriptorRestRep sd = sds.get(0);
 
@@ -578,26 +585,26 @@ class CatalogServiceHelper {
 
         String serviceId = sd.getServiceId();
 
-        printMsg "Using " + serviceId + " as base service to create new service."
-        printMsg ""
+        printVerbose "Using " + serviceId + " as base service to create new service."
+        printVerbose ""
 
-        printMsg "Creating an execution window"
+        printVerbose "Creating an execution window"
         ExecutionWindowRestRep createdWindow =
                 createExecutionWindow(tenantId);
         createdExecutionWindows.add(createdWindow.getId());
-        printMsg ""
+        printVerbose ""
 
-        printMsg "createdWindowId: " + createdWindow.getId();
-        printMsg ""
+        printVerbose "createdWindowId: " + createdWindow.getId();
+        printVerbose ""
 
-        printMsg "Creating an execution window"
+        printVerbose "Creating an execution window"
         ExecutionWindowRestRep anotherWindow =
                 createAnotherExecutionWindow(tenantId);
         createdExecutionWindows.add(anotherWindow.getId());
-        printMsg ""
+        printVerbose ""
 
-        printMsg "createdWindowId: " + anotherWindow.getId();
-        printMsg ""
+        printVerbose "createdWindowId: " + anotherWindow.getId();
+        printVerbose ""
 
         assertNotNull(createdWindow);
         assertNotNull(createdWindow.id);
@@ -626,14 +633,14 @@ class CatalogServiceHelper {
         params.add(param1);
         params.add(param2);
 
-        printMsg "Creating service"
+        printVerbose "Creating service"
         CatalogServiceRestRep createdService =
                 createService(params, serviceId, rootCategoryId, createdWindow.getId());
         createdServices.add(createdService.getId());
-        printMsg ""
+        printVerbose ""
 
-        printMsg "createdServiceId: " + createdService.getId();
-        printMsg ""
+        printVerbose "createdServiceId: " + createdService.getId();
+        printVerbose ""
 
         assertNotNull(createdService);
         assertNotNull(createdService.getId());
@@ -672,8 +679,8 @@ class CatalogServiceHelper {
         moreParams.add(param3);
         moreParams.add(param4);
 
-        printMsg "Listing categories by tenant"
-        printMsg ""
+        printVerbose "Listing categories by tenant"
+        printVerbose ""
 
         List<CatalogCategoryRestRep> categories =
                 catalog.categories().getByTenant(tenantId);
@@ -683,11 +690,11 @@ class CatalogServiceHelper {
         assertNotNull(categories.get(0));
         assertNotNull(categories.get(0).getId());
 
-        printMsg "Using category " + categories.get(0).getId();
-        printMsg ""
+        printVerbose "Using category " + categories.get(0).getId();
+        printVerbose ""
 
-        printMsg "Getting serviceId of second service descriptor"
-        printMsg ""
+        printVerbose "Getting serviceId of second service descriptor"
+        printVerbose ""
 
         ServiceDescriptorRestRep sd1 = sds.get(1);
 
@@ -696,20 +703,20 @@ class CatalogServiceHelper {
 
         String anotherServiceId = sd1.getServiceId();
 
-        printMsg "Using " + anotherServiceId + " as base service to create another service."
-        printMsg ""
+        printVerbose "Using " + anotherServiceId + " as base service to create another service."
+        printVerbose ""
 
-        printMsg "Creating another service"
+        printVerbose "Creating another service"
         CatalogServiceRestRep anotherService =
                 createService(moreParams, anotherServiceId, categories.get(0).getId(), null);
         createdServices.add(anotherService.getId());
-        printMsg ""
+        printVerbose ""
 
-        printMsg "created service id: " + anotherService.getId();
-        printMsg ""
+        printVerbose "created service id: " + anotherService.getId();
+        printVerbose ""
 
-        printMsg "Listing bulk resources - services"
-        printMsg ""
+        printVerbose "Listing bulk resources - services"
+        printVerbose ""
 
         List<URI> serviceIds = new ArrayList<URI>();
         serviceIds.add(createdService.getId());
@@ -725,8 +732,8 @@ class CatalogServiceHelper {
         assertEquals(2, services.size());
         assertEquals(Boolean.TRUE, serviceIds.contains(services.get(0).getId()));
 
-        printMsg "Listing services for category: " + categories.get(0).getId();
-        printMsg ""
+        printVerbose "Listing services for category: " + categories.get(0).getId();
+        printVerbose ""
 
         services =
                 catalog.services().findByCatalogCategory(categories.get(0).getId());
@@ -738,14 +745,14 @@ class CatalogServiceHelper {
         assertEquals(Boolean.TRUE, retrievedServices.contains(serviceIds.get(1)));
 
 
-        printMsg "Getting service " + createdService.getId();
+        printVerbose "Getting service " + createdService.getId();
         CatalogServiceRestRep retrievedService = catalog.services().get(createdService.getId());
-        printMsg ""
+        printVerbose ""
 
         assertEquals(createdService.getId(), retrievedService.getId());
 
-        printMsg "Updating category " + retrievedService.getId();
-        printMsg ""
+        printVerbose "Updating category " + retrievedService.getId();
+        printVerbose ""
 
         CatalogServiceRestRep updatedService =
                 updateService(retrievedService.getId(), moreParams, anotherServiceId, categories.get(0).getId(), anotherWindow.getId());
@@ -771,15 +778,15 @@ class CatalogServiceHelper {
         assertTrue(updatedService.getCatalogServiceFields().get(1).getValue().equals("value3")
                 || updatedService.getCatalogServiceFields().get(1).getValue().equals("value4"));
 
-        printMsg "Deleting services";
-        printMsg ""
+        printVerbose "Deleting services";
+        printVerbose ""
 
         catalog.services().deactivate(updatedService.getId());
         catalog.services().deactivate(anotherService.getId());
 
-        printMsg "Getting deactivated service " + updatedService.getId();
+        printVerbose "Getting deactivated service " + updatedService.getId();
         updatedService = catalog.services().get(updatedService.getId());
-        printMsg ""
+        printVerbose ""
 
         if (updatedService != null) {
             assertEquals(true, updatedService.getInactive());
@@ -788,46 +795,46 @@ class CatalogServiceHelper {
     }
 
     static void catalogServiceServiceTearDown() {
-        printMsg "  ## Catalog Service Test Clean up ## "
+        printVerbose "  ## Catalog Service Test Clean up ## "
 
-        printMsg "Getting created services"
-        printMsg ""
+        printVerbose "Getting created services"
+        printVerbose ""
         if (createdServices != null) {
 
             createdServices.each {
-                printMsg "Getting test service: " + it;
-                printMsg ""
+                printVerbose "Getting test service: " + it;
+                printVerbose ""
                 CatalogServiceRestRep serviceToDelete =
                         catalog.services().get(it);
                 if (serviceToDelete != null
                 && !serviceToDelete.getInactive()) {
-                    printMsg "Deleting test service: " + it;
-                    printMsg ""
+                    printVerbose "Deleting test service: " + it;
+                    printVerbose ""
                     catalog.services().deactivate(it);
                 }
             }
         }
 
-        printMsg "Getting created execution windows"
-        printMsg ""
+        printVerbose "Getting created execution windows"
+        printVerbose ""
         if (createdExecutionWindows != null) {
 
             createdExecutionWindows.each {
-                printMsg "Getting test executionWindows: " + it;
-                printMsg ""
+                printVerbose "Getting test executionWindows: " + it;
+                printVerbose ""
                 ExecutionWindowRestRep windowToDelete =
                         catalog.executionWindows().get(it);
                 if (windowToDelete != null
                 && !windowToDelete.getInactive()) {
-                    printMsg "Deleting test window: " + it;
-                    printMsg ""
+                    printVerbose "Deleting test window: " + it;
+                    printVerbose ""
                     catalog.executionWindows().deactivate(it);
                 }
             }
         }
 
-        printMsg "Cleanup Complete.";
-        printMsg ""
+        printVerbose "Cleanup Complete.";
+        printVerbose ""
     }
 
 }

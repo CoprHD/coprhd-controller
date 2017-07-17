@@ -11,8 +11,15 @@ import com.emc.vipr.sanity.catalog.RemoteReplicationHelper
 import com.emc.vipr.sanity.catalog.CatalogServiceHelper
 import com.emc.vipr.sanity.catalog.BlockServicesHelper
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate
+import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam
 
 import static com.emc.vipr.sanity.Sanity.*
+import static com.emc.vipr.sanity.Sanity.printDebug
+import static com.emc.vipr.sanity.Sanity.printVerbose
+import static com.emc.vipr.sanity.Sanity.printInfo
+import static com.emc.vipr.sanity.Sanity.printWarn
+import static com.emc.vipr.sanity.Sanity.printError
+
 
 class RemoteReplicationSetup {
 
@@ -26,7 +33,8 @@ class RemoteReplicationSetup {
     // constants for volume creation
     private final static String VOL_IN_SET_NAME = "rr_vol_in_rr_set"
     private final static String VOL_IN_GRP_NAME = "rr_vol_in_rr_grp"
-    private final static String CG_NAME = "cg_for_rr"
+    private final static String CG_NAME_FOR_GRP = "cg_for_rr_grp"
+    private final static String CG_NAME_FOR_SET = "cg_for_rr_set"
     private final static String VOL_IN_CG_NAME = "rr_vol_in_cg"
     private final static String VOL_IN_CG_IN_GRP_NAME = "rr_vol_in_cg_rr_grp"
 
@@ -69,14 +77,22 @@ class RemoteReplicationSetup {
             println "FAILED TO LOCATE TENANT 'linux'"
         }
 
-        createRrVolume(VOL_IN_SET_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,NONE)
-        createRrVolume(VOL_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP)
-        createCg(CG_NAME,VOL_PROJECT_NAME)
-        createRrVolume(VOL_IN_CG_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP)
-        createRrVolume(VOL_IN_CG_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP)
+        enableVpoolForCg(RemoteReplicationHelper.RR_VPOOL)
+        createCg(CG_NAME_FOR_GRP,VOL_PROJECT_NAME)
+        createCg(CG_NAME_FOR_SET,VOL_PROJECT_NAME)
+
+        createRrVolume(VOL_IN_SET_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,NONE,NONE)
+        createRrVolume(VOL_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP,NONE)
+        createRrVolume(VOL_IN_CG_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,NONE,CG_NAME_FOR_SET)
+        createRrVolume(VOL_IN_CG_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP,CG_NAME_FOR_GRP)
     }
 
-    static createRrVolume(String name, String size, String varray, String vpool, String project, String rrMode, String rrGroup) {
+    static enableVpoolForCg(String vpoolName) {
+        def vpoolId = client.blockVpools().search().byExactName(vpoolName).first()?.id
+        client.blockVpools().update(vpoolId,new BlockVirtualPoolUpdateParam(multiVolumeConsistency: true))
+    }
+
+    static createRrVolume(String name, String size, String varray, String vpool, String project, String rrMode, String rrGroup, String cgName) {
 
         // see if vol exists
         def volId = client.blockVolumes().search().byExactName(name).first()?.id
@@ -85,7 +101,6 @@ class RemoteReplicationSetup {
             return
         }
 
-        println "Creating Volume '" + name + "'"
         def overrideParameters = [:]
         overrideParameters.name = name
         overrideParameters.size = size
@@ -104,7 +119,15 @@ class RemoteReplicationSetup {
             def RR_GROUP_ID = RemoteReplicationHelper.getOption(RemoteReplicationHelper.AO_RR_GROUPS_FOR_SET,rrGroup,params)
             overrideParameters.remoteReplicationGroup = RR_GROUP_ID
         }
+        if(cgName == NONE) {
+            overrideParameters.consistencyGroup = NONE
+        } else {
+            overrideParameters.consistencyGroup = client.blockConsistencyGroups().search().byExactName(cgName).first()?.id.toString()
+        }
+        printInfo "Creating Volume '" + name + "'"
+        printVerbose formatMap(overrideParameters)
         return CatalogServiceHelper.placeOrder(BlockServicesHelper.CREATE_BLOCK_VOLUME_SERVICE, overrideParameters)
+        printVerbose "Volume created successfully"
     }
 
     static deleteRrVolume(String name) {
@@ -139,5 +162,13 @@ class RemoteReplicationSetup {
         }
         println "Deleting CG '" + name + "'"
         client.blockConsistencyGroups().deactivate(cgId)
+    }
+
+    static String formatMap(Map map){
+        StringBuffer sb = new StringBuffer()
+        for (i in map) {
+            sb.append(" ").append(i.key).append(":").append(i.value).append(System.getProperty("line.separator"))
+        }
+        return sb.toString()
     }
 }

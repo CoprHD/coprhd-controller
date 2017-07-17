@@ -27,8 +27,9 @@ import com.emc.vipr.sanity.setup.RemoteReplicationSetup
 
 class Sanity {
 
-    static int verbosity = 4;  // 1=silent, 2=minimal, 3=runtime messages, 4=chatty, 5=verbose
-    static int verbosityDefault = 4; // default if not specified for a line
+    static enum LogLevel {ERROR,WARN,INFO,VERBOSE,DEBUG}
+    static currentLogLevel = LogLevel.VERBOSE  // adjust to change amount of output
+    static final defaultLogLevel = LogLevel.VERBOSE
 
     static final Integer API_TASK_TIMEOUT = 120000
 
@@ -99,7 +100,7 @@ class Sanity {
                 break
            case "remotereplication":
                 initClients("ldapvipruser1@viprsanity.com","secret")
-                verbosity = 3 // less output for these tests
+                currentLogLevel = LogLevel.INFO
                 RemoteReplicationSetup.loadTopology()
                 result = junit.run(remoteReplicationTests)
                 break
@@ -153,31 +154,31 @@ class Sanity {
      * logging methods
      */
     static void printMsg(Object msg) {
-        printMsg(msg,verbosityDefault)
+        printMsg(msg,defaultLogLevel)
     }
 
-    static void printMsg1(Object msg) {
-        printMsg(msg,1)
+    static void printError(Object msg) {
+        printMsg(msg,LogLevel.ERROR)
     }
 
-    static void printMsg2(Object msg) {
-        printMsg(msg,2)
+    static void printWarn(Object msg) {
+        printMsg(msg,LogLevel.WARN)
     }
 
-    static void printMsg3(Object msg) {
-        printMsg(msg,3)
+    static void printInfo(Object msg) {
+        printMsg(msg,LogLevel.INFO)
     }
 
-    static void printMsg4(Object msg) {
-        printMsg(msg,4)
+    static void printVerbose(Object msg) {
+        printMsg(msg,LogLevel.VERBOSE)
     }
 
-    static void printMsg5(Object msg) {
-        printMsg(msg,5)
+   static void printDebug(Object msg) {
+        printMsg(msg,LogLevel.DEBUG)
     }
 
-    static void printMsg(Object msg, int level) {
-        if ( level <= verbosity) {
+    static void printMsg(Object msg, LogLevel level) {
+        if ( level <= currentLogLevel) {
             println msg.toString();
         }
     }

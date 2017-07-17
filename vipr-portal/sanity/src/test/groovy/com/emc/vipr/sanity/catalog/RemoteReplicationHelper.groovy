@@ -13,7 +13,7 @@ import java.net.URI
 
 class RemoteReplicationHelper {
 
-    static final String VPOOL = "SBSDK_VPOOL"
+    static final String RR_VPOOL = "SBSDK_VPOOL_RR"
 
     // constants for asset option types
     private static final String AO_RR_STORAGE_TYPE = "vipr.storageSystemType"
@@ -37,7 +37,7 @@ class RemoteReplicationHelper {
     private static URI tenantId
 
     static boolean topologyLoadedTest() {
-        def vpoolId = client.blockVpools().search().byExactName(VPOOL).first()?.id
+        def vpoolId = client.blockVpools().search().byExactName(RR_VPOOL).first()?.id
         if (vpoolId == null) {
             println "Required topology does not exist"
             return false;

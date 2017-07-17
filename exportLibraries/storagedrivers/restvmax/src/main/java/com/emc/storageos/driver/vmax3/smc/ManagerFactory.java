@@ -2,7 +2,7 @@
  * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.driver.vmax3.smc.manager;
+package com.emc.storageos.driver.vmax3.smc;
 
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.vmax3.smc.provider.version.VersionManager;
@@ -11,6 +11,9 @@ import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.VolumeManage
 
 final public class ManagerFactory {
     private AuthenticationInfo authenticationInfo;
+    private VolumeManager volumeManager;
+    private StorageGroupManager storageGroupManager;
+    private VersionManager versionManager;
 
     public ManagerFactory(AuthenticationInfo authenticationInfo) {
         this.authenticationInfo = authenticationInfo;
@@ -22,14 +25,23 @@ final public class ManagerFactory {
     }
 
     public VolumeManager genVolumeManager() {
-        return new VolumeManager(authenticationInfo);
+        if (volumeManager == null) {
+            volumeManager = new VolumeManager(authenticationInfo);
+        }
+        return volumeManager;
     }
 
     public StorageGroupManager genStorageGroupManager() {
-        return new StorageGroupManager(authenticationInfo);
+        if (storageGroupManager == null) {
+            storageGroupManager = new StorageGroupManager(authenticationInfo);
+        }
+        return storageGroupManager;
     }
 
     public VersionManager genVersionManager() {
-        return new VersionManager(authenticationInfo);
+        if (versionManager == null) {
+            versionManager = new VersionManager(authenticationInfo);
+        }
+        return versionManager;
     }
 }

@@ -41,6 +41,7 @@ public class RestClient {
     private static final String BASIC = "Basic ";
     private static final String APPLICATION_JSON = "application/json";
     private static final String CONTENT_TYPE = "Content-Type";
+    private static final String ACCEPT = "Accept";
     private static final String TLS = "TLS";
 
     private AuthenticationInfo authenticationInfo;
@@ -90,7 +91,9 @@ public class RestClient {
 
     private ClientResponse getJson(Client client, URI url, String authToken) {
         WebResource r = client.resource(url);
-        return r.header(CONTENT_TYPE, APPLICATION_JSON).header("X-HP3PAR-WSAPI-SessionKey", authToken)
+        return r.header(CONTENT_TYPE, APPLICATION_JSON)
+                .header(ACCEPT, APPLICATION_JSON)
+                .header("X-HP3PAR-WSAPI-SessionKey", authToken)
                 .get(ClientResponse.class);
     }
 
@@ -105,6 +108,7 @@ public class RestClient {
         Client client = new Client(handler, configureClient());
         WebResource webResource = client.resource(url);
         return webResource.header(CONTENT_TYPE, APPLICATION_JSON)
+                .header(ACCEPT, APPLICATION_JSON)
                 .header(AUTHORIZATION, getAuthFieldValue());
     }
 

@@ -189,7 +189,7 @@ public class StorageGroupResponse extends AbstractResponse {
                 + num_of_snapshots + ", cap_gb=" + cap_gb + ", device_emulation=" + device_emulation + ", type=" + type + ", unprotected="
                 + unprotected + ", child_storage_group=" + Arrays.toString(child_storage_group) + ", parent_storage_group="
                 + Arrays.toString(parent_storage_group) + ", maskingview=" + Arrays.toString(maskingview) + ", hostIOLimit=" + hostIOLimit
-                + "]";
+                + ", getMessage()=" + getMessage() + ", getStatus()=" + getStatus() + "]";
     }
 
 }

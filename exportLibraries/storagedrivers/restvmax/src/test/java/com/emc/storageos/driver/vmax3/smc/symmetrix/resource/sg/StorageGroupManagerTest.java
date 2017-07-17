@@ -10,8 +10,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.driver.vmax3.smc.ManagerFactory;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
-import com.emc.storageos.driver.vmax3.smc.manager.ManagerFactory;
 
 /**
  * @author fengs5
@@ -39,7 +39,7 @@ public class StorageGroupManagerTest {
     @Test
     public void testCreateEmptySg() {
 
-        String sgName = "stone_test_sg_auto_002";
+        String sgName = "stone_test_sg_auto_001";
         CreateStorageGroupParameter param = new CreateStorageGroupParameter(sgName);
         param.setCreateEmptyStorageGroup(true);
         param.setEmulation("FBA");

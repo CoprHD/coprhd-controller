@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.vmax3.smc.basetype.IParameter;
+import com.emc.storageos.driver.vmax3.smc.basetype.IResponse;
 import com.emc.storageos.driver.vmax3.smc.basetype.ResponseWrapper;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
@@ -36,7 +37,7 @@ public class RestEngine {
      * @param Class<T> clazz, response bean
      * @return ResponseWrapper<T>
      */
-    public <T> ResponseWrapper<T> get(String url, Class<T> clazz) {
+    public <T extends IResponse> ResponseWrapper<T> get(String url, Class<T> clazz) {
         ClientResponse response = null;
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
         try {
@@ -65,7 +66,7 @@ public class RestEngine {
      * @param Class<T> clazz, response bean
      * @return ResponseWrapper<T>
      */
-    public <T> ResponseWrapper<T> post(String url, IParameter params, Class<T> clazz) {
+    public <T extends IResponse> ResponseWrapper<T> post(String url, IParameter params, Class<T> clazz) {
         ClientResponse response = null;
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
         try {
@@ -94,7 +95,7 @@ public class RestEngine {
      * @param Class<T> clazz, response bean
      * @return ResponseWrapper<T>
      */
-    public <T> ResponseWrapper<T> put(String url, IParameter params, Class<T> clazz) {
+    public <T extends IResponse> ResponseWrapper<T> put(String url, IParameter params, Class<T> clazz) {
         ClientResponse response = null;
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
         try {
@@ -122,7 +123,7 @@ public class RestEngine {
      * @param Class<T> clazz, response bean
      * @return ResponseWrapper<T>
      */
-    public <T> ResponseWrapper<T> delete(String url, Class<T> clazz) {
+    public <T extends IResponse> ResponseWrapper<T> delete(String url, Class<T> clazz) {
         ClientResponse response = null;
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
         try {
@@ -143,7 +144,7 @@ public class RestEngine {
 
     }
 
-    private <T> void processResponse(ClientResponse response, Class<T> clazz, ResponseWrapper<T> responseWrapper) {
+    private <T extends IResponse> void processResponse(ClientResponse response, Class<T> clazz, ResponseWrapper<T> responseWrapper) {
         if (response == null) {
             // TODO: define cust Exception and use it here
             responseWrapper.setException(new NullPointerException(""));
@@ -153,12 +154,13 @@ public class RestEngine {
         String respnseString = response.getEntity(String.class);
         int status = response.getStatus();
         responseWrapper.setStatus(status);
-        if (responseWrapper.isSuccessfulStatus()) {
-            T bean = (new Gson().fromJson((respnseString), clazz));
-            responseWrapper.setResponseBean(bean);
-        } else {
-            responseWrapper.setMessage(respnseString);
-        }
+        // if (responseWrapper.isSuccessfulStatus()) {
+        T bean = (new Gson().fromJson((respnseString), clazz));
+        bean.setStatus(status);
+        responseWrapper.setResponseBean(bean);
+        // } else {
+        // responseWrapper.setMessage(respnseString);
+        // }
     }
 
 }

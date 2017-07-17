@@ -631,7 +631,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     function activateTab(tab , needLoad){
         $('.nav-tabs a[href="#' + tab + '"]').tab('show');
         if (needLoad) {
-        	loadJSON() ;
+        	loadJSON($scope.workflowData.document) ;
         	$scope.modified = false ;
         }
     };

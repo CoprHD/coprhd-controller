@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.storagedriver.storagecapabilities;
 
+import com.emc.storageos.storagedriver.model.StorageVolume;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +16,7 @@ import java.util.List;
  */
 public class StorageCapabilitiesUtils {
 
+    private static Logger _log = LoggerFactory.getLogger(StorageCapabilitiesUtils.class);
     /**
      * Add new DataStorageServiceOption for  the passed common capability instances
      *
@@ -67,5 +72,22 @@ public class StorageCapabilitiesUtils {
             }
         }
         return dataStorageCapabilityInstance;
+    }
+
+    /**
+     * Get compression ratio
+     * @param driverVolume
+     * @return compression ratio
+     */
+    public static String getVolumeCompressionRatio(StorageVolume driverVolume) {
+        // process volume compression from driver volume common capabilities
+        String compressionRatio = null;
+        CapabilityInstance volumeCompression =
+                StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(), CapabilityDefinition.CapabilityUid.volumeCompression);
+        if (volumeCompression != null) {
+            _log.info("Compression capability for volume {}: {} ", driverVolume.getNativeId(), volumeCompression.toString());
+            compressionRatio = volumeCompression.getPropertyValue(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.COMPRESSION_RATIO.toString());
+        }
+        return compressionRatio;
     }
 }

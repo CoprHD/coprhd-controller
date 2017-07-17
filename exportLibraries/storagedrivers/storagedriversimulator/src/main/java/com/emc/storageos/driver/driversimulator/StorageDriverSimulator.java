@@ -431,6 +431,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             volume.setDeviceLabel(volume.getNativeId());
             volume.setWwn(String.format("%s%s", volume.getStorageSystemId(), volume.getNativeId()));
 
+            // add capabilities
+            generateStorageCapabilitiesDataForVolume(volume);
             // newVolumes = newVolumes + volume.getNativeId() + " ";
             newVolumes.add(volume.getNativeId());
         }
@@ -1086,5 +1088,6 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             driverVolume.setCommonCapabilities(commonStorageCapabilities);
         }
         StorageDriverSimulatorUtils.addHostIOLimitsCapabilities(commonStorageCapabilities);
+        StorageDriverSimulatorUtils.addVolumeCompressionCapability(commonStorageCapabilities);
     }
 }

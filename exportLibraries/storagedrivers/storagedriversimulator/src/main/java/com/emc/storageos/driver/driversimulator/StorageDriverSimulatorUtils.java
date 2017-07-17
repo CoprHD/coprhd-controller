@@ -11,6 +11,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabili
 import com.emc.storageos.storagedriver.storagecapabilities.HostIOLimitsCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
+import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +28,7 @@ public class StorageDriverSimulatorUtils {
         CapabilityInstance hostIOLimits = null;
         CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilities();
         if (commonCapabilities != null) {
-            hostIOLimits =StorageCapabilitiesUtils.getDataStorageServiceCapability(commonCapabilities, CapabilityDefinition.CapabilityUid.hostIOLimits);
+            hostIOLimits = StorageCapabilitiesUtils.getDataStorageServiceCapability(commonCapabilities, CapabilityDefinition.CapabilityUid.hostIOLimits);
         }
         return hostIOLimits;
     }
@@ -37,7 +38,7 @@ public class StorageDriverSimulatorUtils {
         CapabilityInstance volumeCompression = null;
         CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilities();
         if (commonCapabilities != null) {
-            volumeCompression =StorageCapabilitiesUtils.getDataStorageServiceCapability(commonCapabilities, CapabilityDefinition.CapabilityUid.volumeCompression);
+            volumeCompression = StorageCapabilitiesUtils.getDataStorageServiceCapability(commonCapabilities, CapabilityDefinition.CapabilityUid.volumeCompression);
         }
         return volumeCompression;
     }
@@ -55,5 +56,20 @@ public class StorageDriverSimulatorUtils {
                 capabilityDefinition.getId(), capabilityProperties);
 
         StorageCapabilitiesUtils.addDataStorageServiceOption(commonCapabilities, Collections.singletonList(hostIOLimitsCapability));
+    }
+
+    public static void addVolumeCompressionCapability(CommonStorageCapabilities commonCapabilities) {
+
+        VolumeCompressionCapabilityDefinition capabilityDefinition = new VolumeCompressionCapabilityDefinition();
+        Map<String, List<String>> capabilityProperties = new HashMap<>();
+        capabilityProperties.put(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.COMPRESSION_RATIO.name(),
+                Collections.singletonList("10"));
+        capabilityProperties.put(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.ENABLED.name(),
+                Collections.singletonList("true"));
+
+        CapabilityInstance volumeCompressionCapability = new CapabilityInstance(capabilityDefinition.getId(),
+                capabilityDefinition.getId(), capabilityProperties);
+
+        StorageCapabilitiesUtils.addDataStorageServiceOption(commonCapabilities, Collections.singletonList(volumeCompressionCapability));
     }
 }

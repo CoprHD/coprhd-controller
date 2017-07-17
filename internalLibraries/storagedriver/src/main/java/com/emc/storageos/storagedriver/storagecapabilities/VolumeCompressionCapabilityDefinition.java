@@ -10,7 +10,8 @@ public class VolumeCompressionCapabilityDefinition extends CapabilityDefinition 
 
     // The names of the supported properties.
     public static enum PROPERTY_NAME {
-        ENABLED   // true/false
+        ENABLED,   // true/false
+        COMPRESSION_RATIO // value of compression ratio
     };
 
     /**

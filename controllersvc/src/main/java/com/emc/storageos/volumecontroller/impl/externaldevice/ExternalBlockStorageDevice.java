@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -324,7 +326,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             Map<String, List<String>> capabilityProperties = new HashMap<>();
             // Create volume compression capability
             VolumeCompressionCapabilityDefinition capabilityDefinition = new VolumeCompressionCapabilityDefinition();
-            capabilityProperties.put(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name(),
+            capabilityProperties.put(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.ENABLED.name(),
                     Collections.singletonList(Boolean.TRUE.toString()));
             CapabilityInstance volumeCompressionCapability = new CapabilityInstance(capabilityDefinition.getId(),
                     capabilityDefinition.getId(), capabilityProperties);
@@ -1468,6 +1470,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                     consistencyGroups.add(volume.getConsistencyGroup());
                 }
+
+                String compressionRatio = StorageCapabilitiesUtils.getVolumeCompressionRatio(driverVolume);
+                if (compressionRatio != null) {
+                    volume.setCompressionRatio(compressionRatio);
+                }
             } else {
                 volume.setInactive(true);
             }
@@ -1880,5 +1887,4 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
         return !(blocObjectToHostExportInfo == null || blocObjectToHostExportInfo.isEmpty());
     }
-
 }

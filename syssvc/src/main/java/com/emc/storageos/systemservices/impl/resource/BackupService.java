@@ -282,7 +282,7 @@ public class BackupService {
         log.info("Received create backup request, backup tag={}", backupTag);
         List<String> descParams = getDescParams(backupTag);
         try {
-            backupOps.createBackup(backupTag, forceCreate);
+            backupOps.createBackup(backupTag, forceCreate, false);
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to create backup(tag={}), e=", backupTag, e);

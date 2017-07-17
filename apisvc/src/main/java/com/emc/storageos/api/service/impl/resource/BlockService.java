@@ -1955,7 +1955,7 @@ public class BlockService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public VolumeBulkRep getVolume2() {
         VolumeRestRep resp = new VolumeRestRep();
-        URI projectId = URI.create("urn:storageos:Project:ebe47ab4-702c-4a03-8c40-3c77fdb52684:global");
+        URI projectId = URI.create("urn:storageos:Project:ebe47ab4-702c-4a03-8c40-3c77fdb52684:global:srdf1");
         QueryResultList resultList = new QueryResultList() {
             @Override
             public Object createQueryHit(URI uri) {

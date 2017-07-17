@@ -401,7 +401,7 @@ public class ColumnField <T extends CompositeIndexColumnName> {
                     viewMap.put(viewDef, view);
                 }
                 if (viewDef.isKey(_name)) {
-                    view.setKeyValue(((NamedURI) val).toString());
+                    view.setKeyValue(((NamedURI) val).getURI().toString());
                     _log.info("1111 key: {}", ((NamedURI) val).toString());
                 } else if (viewDef.isClustering(_name)) {
                     view.addClusteringColumn(_name, val);

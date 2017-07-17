@@ -35,6 +35,7 @@ import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
@@ -127,7 +128,15 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                 uris.add(res.getId());
             }
 
+        } else if(classname.contains(RESTHelper.TASK)) {
+            final ObjectMapper mapper = new ObjectMapper();
+            mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
+            final Class<?> clazz = Class.forName(classname);
+
+            final Object task = mapper.readValue(result, clazz.newInstance().getClass());
+            uris.add(((TaskResourceRep)task).getId());
         }
+        
         if (!uris.isEmpty()) {
             return CustomServicesUtils.waitForTasks(uris, getClient());
         }
@@ -179,6 +188,12 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             if (classname.contains(RESTHelper.TASKLIST)) {
                 responseString = updateState(responseString, taskState);
             }
+            final boolean isSuccess = isSuccess(taskState, response.getStatus());
+            if (!isSuccess) {
+                throw InternalServerErrorException.internalServerErrors.
+                        customServiceExecutionFailed("Failed to Execute ViPR request");
+            }
+
             return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), taskState);
 
         } catch (final InternalServerErrorException e) {
@@ -197,6 +212,32 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }
+    }
+
+    private boolean isSuccess(final Map<URI, String> states, final int returnCode) {
+
+        if (states != null) {
+            for (Map.Entry<URI, String> e : states.entrySet()) {
+                if (!StringUtils.isEmpty(e.getValue())) {
+                    if (e.getValue().equals(Task.Status.error.toString())) {
+                        ExecutionUtils.currentContext().logError("customServicesService.logStatus",
+                                "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
+                                        + " Task Failed TaskId: " + e.getKey() + " State:" + e.getValue());
+                        return false;
+                    }
+                }
+            }
+        }
+        if (!(returnCode >= 200 && returnCode < 300)) {
+            ExecutionUtils.currentContext().logError("customServicesService.logStatus",
+                    "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
+                            + " Operation Failed ReturnCode: " + returnCode);
+
+            return false;
+        }
+
+        return true;
+
     }
 
     private String updateState(final String response, final Map<URI, String> uristates) {

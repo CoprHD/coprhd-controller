@@ -954,7 +954,7 @@ public class FileDeviceInputOutput {
 
     // strip off all special character including space..
     public String stripSpecialCharactersIncludingSpace(String label) {
-        return label.replaceAll("[^\\dA-Za-z ]", "");
+        return label.replaceAll("[^\\dA-Za-z]", "");
     }
 
     public Project getProject() {

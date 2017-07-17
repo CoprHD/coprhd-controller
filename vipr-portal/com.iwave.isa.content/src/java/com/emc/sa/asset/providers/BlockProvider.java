@@ -539,6 +539,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportSnapshotForHostPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
         return getExportSnapshotForHostPortGroups(ctx, new String(""), hostOrClusterId, projectId);
     }
+    
+    @Asset("exportVolumeForComputePortGroups")
+    @AssetDependencies( {"blockVirtualArray", "blockVirtualPool", "project"} )
+    public List<AssetOption> getExportVolumeForComputePortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI projectId) {
+        final ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
+        if (value.getValue().equalsIgnoreCase("true")) {
+            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId, null, null, vpoolId);
+            return createPortGroupOptions(portGroups.getStoragePortGroups());
+        }
+
+        return options;
+    }
+    
 
     @Asset("exportSnapshotForHostPortGroups")
     @AssetDependencies( {"unassignedBlockSnapshot", "host", "project"} )

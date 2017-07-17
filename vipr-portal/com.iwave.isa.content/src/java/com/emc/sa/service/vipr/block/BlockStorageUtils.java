@@ -507,9 +507,9 @@ public class BlockStorageUtils {
     }
 
     public static Task<ExportGroupRestRep> createHostExportNoWait(String exportName, URI projectId,
-            URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host) {
+            URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host, URI portGroup) {
         return execute(new CreateExportNoWait(exportName == null ? host.getHostName() : exportName,
-                virtualArrayId, projectId, volumeIds, hlu, host.getHostName(), host.getId(), null));
+                virtualArrayId, projectId, volumeIds, hlu, host.getHostName(), host.getId(), null, portGroup));
     }
 
     public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster,
@@ -539,8 +539,8 @@ public class BlockStorageUtils {
         addAffectedResource(task);
     }
 
-    public static Task<ExportGroupRestRep> addHostAndVolumeToExportNoWait(URI exportId, URI host, URI volumeId, Integer hlu) {
-        return execute(new AddHostAndVolumeToExportNoWait(exportId, host, volumeId, hlu));
+    public static Task<ExportGroupRestRep> addHostAndVolumeToExportNoWait(URI exportId, URI host, URI volumeId, Integer hlu, URI portGroup) {
+        return execute(new AddHostAndVolumeToExportNoWait(exportId, host, volumeId, hlu, portGroup));
     }
 
     public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths,

@@ -4,12 +4,16 @@
  */
 package com.emc.storageos.driver.vmax3.smc.basetype;
 
-public class EmptyResponse {
+public class EmptyResponse extends AbstractResponse {
 
-    /**
+    /*
+     * (non-Javadoc)
      * 
+     * @see java.lang.Object#toString()
      */
-    public EmptyResponse() {
+    @Override
+    public String toString() {
+        return "EmptyResponse [getMessage()=" + getMessage() + ", getStatus()=" + getStatus() + "]";
     }
 
 }

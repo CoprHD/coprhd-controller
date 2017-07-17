@@ -11,6 +11,8 @@ import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.vmax3.smc.basetype.IParameter;
 import com.emc.storageos.driver.vmax3.smc.basetype.IResponse;
 import com.emc.storageos.driver.vmax3.smc.basetype.ResponseWrapper;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.IteratorType;
+import com.emc.storageos.driver.vmax3.utils.JsonParser;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
 
@@ -43,6 +45,27 @@ public class RestEngine {
         try {
             response = restClient.get(url);
             processResponse(response, clazz, responseWrapper);
+
+        } catch (Exception e) {
+            // TODO: translate this exception to cust exception
+            LOG.error("");
+            responseWrapper.setException(e);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+
+        return responseWrapper;
+
+    }
+
+    public <T extends IResponse> ResponseWrapper<T> list(String url, Class<T> clazz) {
+        ClientResponse response = null;
+        ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
+        try {
+            response = restClient.get(url);
+            processIteratorResponse(response, clazz, responseWrapper);
 
         } catch (Exception e) {
             // TODO: translate this exception to cust exception
@@ -156,6 +179,23 @@ public class RestEngine {
         T bean = (new Gson().fromJson((respnseString), clazz));
         bean.setStatus(status);
         responseWrapper.setResponseBean(bean);
+        // } else {
+        // responseWrapper.setMessage(respnseString);
+        // }
+    }
+
+    private <T extends IResponse> void processIteratorResponse(ClientResponse response, Class<T> clazz, ResponseWrapper<T> responseWrapper) {
+        if (response == null) {
+            // TODO: define cust Exception and use it here
+            responseWrapper.setException(new NullPointerException(""));
+            return;
+        }
+        String respnseString = response.getEntity(String.class);
+        int status = response.getStatus();
+        // if (responseWrapper.isSuccessfulStatus()) {
+        IteratorType<T> beanIterator = JsonParser.parseJson2Bean((respnseString), IteratorType.class);
+        beanIterator.setStatus(status);
+        responseWrapper.setResponseBeanIterator(beanIterator);
         // } else {
         // responseWrapper.setMessage(respnseString);
         // }

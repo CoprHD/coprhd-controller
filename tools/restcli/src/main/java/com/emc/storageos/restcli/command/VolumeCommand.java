@@ -5,16 +5,15 @@
 
 package com.emc.storageos.restcli.command;
 
-import com.emc.storageos.driver.restvmax.RestVMAXStorageDriver;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.emc.storageos.driver.restvmax.rest.BackendType;
 import com.emc.storageos.driver.restvmax.vmax.type.CapacityUnitType;
-import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.driver.vmax3.Vmax3StorageDriver;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class VolumeCommand extends CliCommand {
     private String user;
@@ -34,13 +33,15 @@ public class VolumeCommand extends CliCommand {
     public void usage() {
         System.out.println("Description:\n\tStorage Provider Command.");
         System.out.println("Usage:");
-        System.out.println("\trestcli volume [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
-                " --ip IP_ADDR [--port PORT] --sym SYMMETRIXID --poolid POOLID --groupid GROUPID --num_vol NUM --capacity NUM [--capacityunit MB[|GB|TB]]");
+        System.out
+                .println("\trestcli volume [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]"
+                        +
+                        " --ip IP_ADDR [--port PORT] --sym SYMMETRIXID --poolid POOLID --groupid GROUPID --num_vol NUM --capacity NUM [--capacityunit MB[|GB|TB]]");
     }
 
     public void run(String[] args) {
         this.parseRestArgs(args);
-        RestVMAXStorageDriver driver = new RestVMAXStorageDriver();
+        Vmax3StorageDriver driver = new Vmax3StorageDriver();
         // connection
         StorageProvider provider = new StorageProvider();
         provider.setProviderHost(providerHost);

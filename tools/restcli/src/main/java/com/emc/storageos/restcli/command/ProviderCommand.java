@@ -4,14 +4,14 @@
  */
 package com.emc.storageos.restcli.command;
 
-import com.emc.storageos.driver.restvmax.RestVMAXStorageDriver;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.emc.storageos.driver.restvmax.rest.BackendType;
+import com.emc.storageos.driver.vmax3.Vmax3StorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class ProviderCommand extends CliCommand {
     private String user;
@@ -31,7 +31,7 @@ public class ProviderCommand extends CliCommand {
 
     public void run(String[] args) {
         this.parseRestArgs(args);
-        RestVMAXStorageDriver driver = new RestVMAXStorageDriver();
+        Vmax3StorageDriver driver = new Vmax3StorageDriver();
         StorageProvider provider = new StorageProvider();
         provider.setProviderHost(providerHost);
         if (port > 0) {

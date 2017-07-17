@@ -5,9 +5,13 @@
 
 package com.emc.storageos.restcli.command;
 
-import com.emc.storageos.driver.restvmax.rest.BackendType;
-import com.emc.storageos.driver.restvmax.rest.RestAPI;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.InputStreamReader;
+
 import com.emc.storageos.driver.restvmax.rest.RestMethod;
+import com.emc.storageos.driver.vmax3.restengine.RestClient;
+import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.restcli.Util;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -15,12 +19,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.sun.jersey.api.client.ClientResponse;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-
 public class CliCommandRest extends CliCommand {
 
+    private RestClient restClient;
+    private AuthenticationInfo authenticationInfo;
     private String user;
     private String pass;
     private String url;
@@ -30,12 +32,26 @@ public class CliCommandRest extends CliCommand {
     private boolean jsonFinePrint = true;
     private static final String INVALID_PARAM = "Invalid parameter: ";
 
+    /**
+     * 
+     */
+    public CliCommandRest() {
+        super();
+
+    }
+
+    private void init() {
+        authenticationInfo = new AuthenticationInfo(null, null, user, pass);
+        restClient = new RestClient(authenticationInfo, true);
+    }
+
     @Override
     public void usage() {
         System.out.println("Description:\n\tSend raw RESTful API requests.");
         System.out.println("Usage:");
         System.out.println("\trestcli rest [--get] [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD] --url URL");
-        System.out.println("\trestcli rest --post [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD] --url URL --param <TEXT_FILE|->");
+        System.out
+                .println("\trestcli rest --post [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD] --url URL --param <TEXT_FILE|->");
         System.out.println("\trestcli rest --put [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD] --url URL");
         System.out.println("\trestcli rest --delete [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD] --url URL");
     }
@@ -49,18 +65,19 @@ public class CliCommandRest extends CliCommand {
         String jestr;
         try {
             parseRestArgs(args);
+            init();
             switch (this.method) {
                 case GET:
-                    cr = RestAPI.get(this.url, false, BackendType.VMAX, this.user, this.pass);
+                    cr = restClient.get(this.url);
                     break;
                 case DELETE:
-                    cr = RestAPI.delete(this.url, false, BackendType.VMAX, this.user, this.pass);
+                    cr = restClient.delete(this.url);
                     break;
                 case POST:
-                    cr = RestAPI.post(this.url, this.restParam, false, BackendType.VMAX, this.user, this.pass);
+                    cr = restClient.post(this.url, this.restParam);
                     break;
                 case PUT:
-                    cr = RestAPI.put(this.url, this.restParam, false, BackendType.VMAX, this.user, this.pass);
+                    cr = restClient.put(this.url, this.restParam);
                     break;
                 default:
                     throw new IllegalArgumentException("unsupported REST action: " + this.method.name());

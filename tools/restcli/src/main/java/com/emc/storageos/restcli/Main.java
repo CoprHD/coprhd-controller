@@ -5,9 +5,15 @@
 
 package com.emc.storageos.restcli;
 
-import com.emc.storageos.restcli.command.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.emc.storageos.restcli.command.CliCommandRest;
+import com.emc.storageos.restcli.command.ProviderCommand;
+import com.emc.storageos.restcli.command.VolumeCommand;
 
 public class Main {
+    private static boolean isDebug = false;
 
     private enum Cmd {
         HELP, REST, PROVIDER, VOLUME;
@@ -23,6 +29,20 @@ public class Main {
     }
 
     public static void main(String[] args) {
+
+        if (isDebug) {
+            List<String> params = new ArrayList<String>();
+            params.add("rest");
+            params.add("--get");
+            params.add("--user");
+            params.add("smc");
+            params.add("--pass");
+            params.add("smc");
+            params.add("--url");
+            params.add("https://lglw7150.lss.emc.com:8443/univmax/restapi/84/sloprovisioning/symmetrix/000196801468/storagegroup/stone_test_sg_auto_003");
+
+            args = params.toArray(new String[] {});
+        }
         if (args.length == 0) {
             usage();
             return;

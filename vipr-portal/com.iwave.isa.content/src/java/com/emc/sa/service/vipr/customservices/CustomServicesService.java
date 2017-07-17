@@ -142,15 +142,13 @@ public class CustomServicesService extends ViPRService {
 
                 res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
 
-                boolean isSuccess = isSuccess(step, res);
-                if (isSuccess) {
-                    try {
-                        updateOutputPerStep(step, res);
-                    } catch (final Exception e) {
-                        logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
-                    }
+                try {
+                    updateOutputPerStep(step, res);
+                } catch (final Exception e) {
+                    logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
                 }
-                next = getNext(isSuccess, res, step);
+
+                next = getNext(true, res, step);
             } catch (final Exception e) {
                 logger.warn(
                         "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:", e);
@@ -218,31 +216,6 @@ public class CustomServicesService extends ViPRService {
         } catch (final Exception e) {
             logger.error("Failed to cleanup OrderDir directory", e);
         }
-    }
-
-    private boolean isSuccess(final Step step, final CustomServicesTaskResult result) {
-        if (result == null)
-            return false;
-
-        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) || step.getType().equals(
-                CustomServicesConstants.REST_API_PRIMITIVE_TYPE)) {
-            final Map<URI, String> states = result.getTaskState();
-            if (states != null) {
-                for (Map.Entry<URI, String> e : states.entrySet()) {
-                    if (!StringUtils.isEmpty(e.getValue())) {
-                        if (e.getValue().equals(Task.Status.error.toString())) {
-                            ExecutionUtils.currentContext().logError("customServicesService.logStatus",
-                                    "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
-                                            + " Task Failed TaskId: " + e.getKey() + " State:" + e.getValue());
-                            return false;
-                        }
-                    }
-                }
-            }
-            return (result.getReturnCode() >= 200 && result.getReturnCode() < 300);
-        }
-
-        return (result.getReturnCode() == 0);
     }
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
@@ -484,7 +457,7 @@ public class CustomServicesService extends ViPRService {
                 try {
                     out.putAll(updateViproutput(step, res.getOut()));
                 } catch (Exception e) {
-                    logger.warn("Could not parse ViPR REST Output properly:{}", e);
+                    logger.warn("StepId:{} Could not parse ViPR REST Output properly:{}", step.getId(), e);
                 }
             break;
             default:

@@ -12,6 +12,23 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $rootScope.$on("addWorkflowTab", function(event, id, name){
        addTab(id,name);
     });
+    
+    $rootScope.$on("renameWorkflow" , function(event , id , newName) {
+    	var tabInfo = $scope.workflowTabs[id] ;
+    	if (tabInfo === undefined) {
+    		return ;
+    	}
+    	
+    	tabInfo.name = newName ;
+    }) ;
+    
+    $rootScope.$on("deleteWorkflow" , function(event , id) {
+    	var tabInfo = $scope.workflowTabs[id] ;
+    	if (tabInfo === undefined) {
+    		return ;
+    	}
+    	$scope.closeTab(tabInfo , true) ;
+    }) ;
 
     $scope.workflowTabs = {};
     $scope.isWorkflowTabsEmpty = function () {
@@ -20,15 +37,33 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     function addTab(id,name) {
         var elementid = id.replace(/:/g,'');
-        $scope.workflowTabs[elementid] = { id:id, elementid:elementid, name:name, href:'#'+elementid };
-    }
-    $scope.closeTab = function(tabID){
-      var r = confirm("Are you sure you want to close the tab?");
-      if (r == true) {
-        delete $scope.workflowTabs[tabID];
-        $(".workflow-nav-tabs li").children('a').first().click();
+        if ($scope.workflowTabs[elementid] === undefined) {
+        	$scope.workflowTabs[elementid] = { id:id, elementid:elementid, name:name, href:'#'+elementid};
         }
-    };
+        $rootScope.$emit('activateWorkflowTab', elementid) ;
+    }
+    
+    $scope.isTabModified = function (tabInfo) {
+    	if (tabInfo.relatedPanel === undefined) {
+    		return false ;
+    	}else {
+    		return tabInfo.relatedPanel.modified ;
+    	}
+    } ;
+    
+    $scope.closeTab = function(tabInfo , force){
+    	if ($scope.isTabModified(tabInfo) && !force) {
+    		var r = confirm("Do you want to close it without saving the change?")
+    		if (r !== true) {
+    			return ;
+    		}
+    	}
+        delete $scope.workflowTabs[tabInfo.elementid];
+        var nextElemId = Object.keys($scope.workflowTabs)[0] ;
+        if (nextElemId) {
+        	$rootScope.$emit('activateWorkflowTab' , nextElemId) ;
+        } 
+    }
 
     $http.get(routes.Workflow_getAssetOptions()).then(function (resp) {
         if (resp.status == 200) {
@@ -229,6 +264,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $http.get(routes.Workflow_create({"workflowName": data.node.text,"dirID": data.node.parent})).success(function(resp) {
                 data.instance.set_id(data.node, resp.id);
                 displaySuccessMessage(translate("node.create.success"));
+                $scope.openWorkflow(data.node) ;
             })
             .error(function (error){
                 deleteNodeFromJSTreeAndDisplayErrorMsg(data.node, error.details);
@@ -275,6 +311,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         else {
             $http.get(routes.Workflow_delete({"workflowID": nodeId, "dirID": nodeParent})).success(function() {
                 deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
+                $rootScope.$emit("deleteWorkflow" ,nodeId.replace(/:/g , '')) ;
             })
             .error(function (error){
                 displayErrorMessage(error.details);
@@ -317,6 +354,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 else if (workflowNodeType === data.node.type){
                     $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text})).success(function() {
                         displaySuccessMessage(translate("node.rename.success"));
+                        $rootScope.$emit("renameWorkflow" , data.node.id.replace(/:/g , '') , data.text) ;
                     })
                     .error(function (error){
                         revertRename(data.node, data.old, error.details)
@@ -542,8 +580,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     };
 
-    $scope.openWorkflow = function() {
-        var selectedNode = jstreeContainer.jstree(true).get_selected(true)[0];
+    $scope.openWorkflow = function(selectedNode) {
+        selectedNode = selectedNode || jstreeContainer.jstree(true).get_selected(true)[0];
         $rootScope.$emit("addWorkflowTab", selectedNode.id ,selectedNode.text);
     }
 
@@ -584,11 +622,18 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     initializeJsPlumb();
     initializePanZoom();
+    
+    $rootScope.$on('activateWorkflowTab', function(event , elemId) {
+    	activateTab(elemId) ;
+    })
+    
 
-    function activateTab(tab){
+    function activateTab(tab , needLoad){
         $('.nav-tabs a[href="#' + tab + '"]').tab('show');
-        loadJSON($scope.workflowData.document);
-        $scope.modified = false;
+        if (needLoad) {
+        	loadJSON() ;
+        	$scope.modified = false ;
+        }
     };
 
     $scope.initializeWorkflowData = function(workflowInfo) {
@@ -597,7 +642,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
             if (resp.status == 200) {
                 $scope.workflowData = resp.data;
-                activateTab(elementid);
+                workflowInfo.relatedPanel = $scope ;
+                activateTab(elementid , true);
             }
         });
     }

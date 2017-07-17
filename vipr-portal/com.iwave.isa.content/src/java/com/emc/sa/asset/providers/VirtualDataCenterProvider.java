@@ -395,12 +395,12 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
     @Asset("unmanagedFileSystemsByStorageSystemVirtualPool")
     @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool" })
-    public List<AssetOption> getUnmanagedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI storageSystemId,
-            URI virtualArray, String ingestExportType, URI unmanagedFileVirtualPool, int volumePage) {
+    public List<AssetOption> getUnmanagedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
+            URI virtualArray, String fileIngestExportType, URI unmanagedFileVirtualPool) {
         List<AssetOption> options = Lists.newArrayList();
         FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
-            for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, storageSystemId, vpool.getId(), ingestExportType)) {
+            for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
                 options.add(toAssetOption(umfs));
             }
         }

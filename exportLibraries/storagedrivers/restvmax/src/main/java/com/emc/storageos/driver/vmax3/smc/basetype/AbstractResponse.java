@@ -11,7 +11,7 @@ import com.emc.storageos.driver.vmax3.smc.SymConstants;
  *
  */
 public abstract class AbstractResponse implements IResponse {
-    private String message;
+    private StringBuilder message = new StringBuilder();
     private int status;
 
     /**
@@ -19,7 +19,7 @@ public abstract class AbstractResponse implements IResponse {
      */
     @Override
     public String getMessage() {
-        return message;
+        return message.toString();
     }
 
     /**
@@ -27,7 +27,13 @@ public abstract class AbstractResponse implements IResponse {
      */
     @Override
     public void setMessage(String message) {
-        this.message = message;
+        this.message = new StringBuilder(message);
+    }
+
+    @Override
+    public void appendMessage(String message) {
+        this.message.append(message);
+
     }
 
     /**

@@ -27,7 +27,7 @@ public class RestEngine {
     public RestEngine(AuthenticationInfo authenticationInfo) {
         super();
         this.authenticationInfo = authenticationInfo;
-        this.restClient = new RestClient(authenticationInfo, isVerifyCertificate);
+        this.restClient = new RestClient(this.authenticationInfo, isVerifyCertificate);
     }
 
     /**
@@ -148,12 +148,10 @@ public class RestEngine {
         if (response == null) {
             // TODO: define cust Exception and use it here
             responseWrapper.setException(new NullPointerException(""));
-            LOG.error("");
             return;
         }
         String respnseString = response.getEntity(String.class);
         int status = response.getStatus();
-        responseWrapper.setStatus(status);
         // if (responseWrapper.isSuccessfulStatus()) {
         T bean = (new Gson().fromJson((respnseString), clazz));
         bean.setStatus(status);

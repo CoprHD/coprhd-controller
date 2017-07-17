@@ -5,6 +5,7 @@
 package com.emc.storageos.driver.vmax3.smc.basetype;
 
 import com.emc.storageos.driver.vmax3.restengine.RestEngine;
+import com.emc.storageos.driver.vmax3.smc.SymConstants;
 import com.emc.storageos.driver.vmax3.utils.UrlGenerator;
 
 public class AbstractManager {
@@ -37,6 +38,11 @@ public class AbstractManager {
      */
     public AuthenticationInfo getAuthenticationInfo() {
         return authenticationInfo;
+    }
+
+    public void appendExceptionMessage(IResponse responseBean, String template, Object... params) {
+        responseBean.setStatus(SymConstants.StatusCode.EXCEPTION);
+        responseBean.appendMessage(String.format(template, params));
     }
 
 }

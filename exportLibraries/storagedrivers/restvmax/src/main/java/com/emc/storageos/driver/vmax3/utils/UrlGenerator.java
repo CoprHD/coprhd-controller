@@ -4,7 +4,9 @@
  */
 package com.emc.storageos.driver.vmax3.utils;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.driver.vmax3.smc.SymConstants;
@@ -29,7 +31,7 @@ final public class UrlGenerator {
      * @param urlParams
      * @return formated URL
      */
-    public String genUrl(String url, String[] urlFillers, Map<String, String> urlParams) {
+    public String genUrl(String url, List<String> urlFillers, Map<String, String> urlParams) {
         return new StringBuilder(formatHostUrl())
                 .append(SymConstants.BASE_URL)
                 .append(formatCustUrl(url, urlFillers))
@@ -42,8 +44,8 @@ final public class UrlGenerator {
         return String.format(SymConstants.HOST_FORMAT, authenticationInfo.getHost(), authenticationInfo.getPort());
     }
 
-    private String formatCustUrl(String url, String[] urlFillers) {
-        return String.format(url, urlFillers);
+    private String formatCustUrl(String url, List<String> urlFillers) {
+        return String.format(url, urlFillers.toArray());
     }
 
     private String formatUrlParams(Map<String, String> urlParams) {
@@ -64,11 +66,12 @@ final public class UrlGenerator {
     public static void main(String[] args) {
         String LIST_VOLUME_URL = "/sloprovisioning/symmetrix/%s/volume";
         String[] arr = { "11", "33", "44", "55" };
+        List<String> list = Arrays.asList(arr);
         Map<String, String> params = new HashMap<String, String>();
         params.put("aaa", "vaaa");
         params.put("bbb", "vbbb");
         AuthenticationInfo authenticationInfo = new AuthenticationInfo("1.2.3.4", 1234, "user", "ppp");
         UrlGenerator gen = new UrlGenerator(authenticationInfo);
-        System.out.println(gen.genUrl(LIST_VOLUME_URL, arr, params));
+        System.out.println(gen.genUrl(LIST_VOLUME_URL, list, params));
     }
 }

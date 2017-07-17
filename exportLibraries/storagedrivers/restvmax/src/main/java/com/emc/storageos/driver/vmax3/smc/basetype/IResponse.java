@@ -17,6 +17,13 @@ public interface IResponse {
     void setMessage(String message);
 
     /**
+     * Append new message to original message.
+     * 
+     * @param message
+     */
+    void appendMessage(String message);
+
+    /**
      * @return the status
      */
     int getStatus();

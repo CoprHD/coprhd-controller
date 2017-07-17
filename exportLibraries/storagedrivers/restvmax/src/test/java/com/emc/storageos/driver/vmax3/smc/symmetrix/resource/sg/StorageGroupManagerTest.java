@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -44,8 +47,9 @@ public class StorageGroupManagerTest {
         param.setCreateEmptyStorageGroup(true);
         param.setEmulation("FBA");
         param.setSrpId("SRP_1");
-        String[] urlFillers = { sgManager.getAuthenticationInfo().getSn() };
-        Assert.assertNotNull(sgManager.createEmptySg(param, urlFillers));
+        List<String> urlFillers = new ArrayList<String>();
+        urlFillers.add(sgManager.getAuthenticationInfo().getSn());
+        Assert.assertFalse(sgManager.createEmptySg(param, urlFillers).isSuccessfulStatus());
     }
 
 }

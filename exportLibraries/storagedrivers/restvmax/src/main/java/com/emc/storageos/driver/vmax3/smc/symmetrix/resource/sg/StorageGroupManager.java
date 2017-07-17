@@ -4,10 +4,11 @@
  */
 package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.driver.vmax3.smc.SymConstants;
 import com.emc.storageos.driver.vmax3.smc.basetype.AbstractManager;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.vmax3.smc.basetype.ResponseWrapper;
@@ -30,24 +31,21 @@ public class StorageGroupManager extends AbstractManager {
         super(authenticationInfo);
     }
 
-    public StorageGroupResponse createEmptySg(CreateStorageGroupParameter param, String[] urlFillers) {
+    public StorageGroupResponse createEmptySg(CreateStorageGroupParameter param, List<String> urlFillers) {
         String url = this.urlGenerator.genUrl(EndPointHolder.CREATE_SG_URL, urlFillers, null);
         ResponseWrapper<StorageGroupResponse> responseWrapper = engine.post(url, param, StorageGroupResponse.class);
         StorageGroupResponse responseBean = responseWrapper.getResponseBean();
         if (responseWrapper.getException() != null) {
             LOG.error("Exception happened during creating empty storageGroup:{}", responseWrapper.getException());
             responseBean = new StorageGroupResponse();
-            responseBean.setMessage(String.format("Exception happened during creating empty storageGroup:%s",
-                    responseWrapper.getException()));
-            responseBean.setStatus(SymConstants.StatusCode.EXCEPTION);
+            appendExceptionMessage(responseBean, "Exception happened during creating empty storageGroup:%s", responseWrapper.getException());
             return responseBean;
         }
 
-        if (!responseWrapper.isSuccessfulStatus()) {
+        if (!responseBean.isSuccessfulStatus()) {
             LOG.error("{}: Failed to create empty storageGroup {} with error: {}", responseBean.getStatus(),
                     param.getStorageGroupId(),
                     responseBean.getMessage());
-            return null;
         }
         LOG.debug("Output response bean as : {}", responseBean);
         return responseBean;

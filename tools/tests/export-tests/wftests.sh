@@ -2391,7 +2391,7 @@ test_6() {
     if [ "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume \
-                                    failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
+                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers"
     fi
 
     if [ "${SS}" = "xio" ]

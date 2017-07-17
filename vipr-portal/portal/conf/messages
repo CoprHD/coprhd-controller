@@ -1115,9 +1115,9 @@ system.healthdashboard.nodeReboot=Reboot %s
 #Database Consistency Dashboard
 health.start=Start time
 health.end=End time
-dbstatus.lastCompletionTime=Last Completed Database Check: 
-dbstatus.progress=Percentage completed: 
-dbstatus.startTime=Start Time of Database Repair: 
+dbstatus.lastCompletionTime=Last Completed Database Check: %s
+dbstatus.progress=Percentage completed: %s
+dbstatus.startTime=Start Time of Database Repair: %s
 dbstatus.status=Status
 dbstatus.inprogress.info=Normal Provisioning is not affected when Database Housekeeping status is "In Progress"
 
@@ -4740,9 +4740,9 @@ renderFunctions.storageDriver.status.upgrading=Upgrading
 renderFunctions.storageDriver.status.inUse=In Use
 renderFunctions.storageDriver.status.unknown=Unknown
 
-renderFunctions.recovery.result.done=Last node recovery was successfully completed at 
-renderFunctions.recovery.result.failed=Latest recover status have error at 
-renderFunctions.recovery.result.reason=The reason was: 
+renderFunctions.recovery.result.done=Last node recovery was successfully completed at %s.
+renderFunctions.recovery.result.failed=Latest recover status have error at %s.
+renderFunctions.recovery.result.reason=The reason was: %s.
 renderFunctions.recovery.error.repair=Database repair failed
 renderFunctions.recovery.error.sync=Database rebuild failed
 renderFunctions.recovery.error.internal=Internal error

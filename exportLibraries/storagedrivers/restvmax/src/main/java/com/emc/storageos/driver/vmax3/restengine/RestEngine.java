@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.driver.vmax3.restengine;
 
+import static com.google.json.JsonSanitizer.sanitize;
+
+import java.lang.reflect.Type;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,12 +64,12 @@ public class RestEngine {
 
     }
 
-    public <T extends IResponse> ResponseWrapper<T> list(String url, Class<T> clazz) {
+    public <T extends IResponse> ResponseWrapper<T> list(String url, Class<T> clazz, Type responseClazzType) {
         ClientResponse response = null;
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
         try {
             response = restClient.get(url);
-            processIteratorResponse(response, clazz, responseWrapper);
+            processIteratorResponse(response, clazz, responseClazzType, responseWrapper);
 
         } catch (Exception e) {
             // TODO: translate this exception to cust exception
@@ -176,7 +180,7 @@ public class RestEngine {
         String respnseString = response.getEntity(String.class);
         int status = response.getStatus();
         // if (responseWrapper.isSuccessfulStatus()) {
-        T bean = (new Gson().fromJson((respnseString), clazz));
+        T bean = JsonParser.parseJson2Bean((respnseString), clazz);
         bean.setStatus(status);
         responseWrapper.setResponseBean(bean);
         // } else {
@@ -184,7 +188,8 @@ public class RestEngine {
         // }
     }
 
-    private <T extends IResponse> void processIteratorResponse(ClientResponse response, Class<T> clazz, ResponseWrapper<T> responseWrapper) {
+    private <T extends IResponse> void processIteratorResponse(ClientResponse response, Class<T> clazz, Type responseClazzType,
+            ResponseWrapper<T> responseWrapper) {
         if (response == null) {
             // TODO: define cust Exception and use it here
             responseWrapper.setException(new NullPointerException(""));
@@ -193,7 +198,10 @@ public class RestEngine {
         String respnseString = response.getEntity(String.class);
         int status = response.getStatus();
         // if (responseWrapper.isSuccessfulStatus()) {
-        IteratorType<T> beanIterator = JsonParser.parseJson2Bean((respnseString), IteratorType.class);
+
+        // add the polymorphic specialization
+
+        IteratorType<T> beanIterator = new Gson().fromJson(sanitize(respnseString), responseClazzType);
         beanIterator.setStatus(status);
         responseWrapper.setResponseBeanIterator(beanIterator);
         // } else {

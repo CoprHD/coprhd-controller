@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.vmax3.smc.basetype.ResponseWrapper;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.IteratorType;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.bean.VolumeListResultType;
+import com.google.gson.reflect.TypeToken;
 
 public class VolumeManager extends AbstractManager {
     private static final Logger LOG = LoggerFactory.getLogger(VolumeManager.class);
@@ -35,7 +37,9 @@ public class VolumeManager extends AbstractManager {
     public IteratorType<VolumeListResultType> listVolumes(List<String> urlFillers,
             Map<String, String> urlParams) {
         String url = urlGenerator.genUrl(EndPointHolder.LIST_VOLUME_URL, urlFillers, urlParams);
-        ResponseWrapper<VolumeListResultType> responseWrapper = engine.list(url, VolumeListResultType.class);
+        Type responseClazzType = new TypeToken<IteratorType<VolumeListResultType>>() {
+        }.getType();
+        ResponseWrapper<VolumeListResultType> responseWrapper = engine.list(url, VolumeListResultType.class, responseClazzType);
         IteratorType<VolumeListResultType> responseBeanIterator = responseWrapper.getResponseBeanIterator();
         if (responseWrapper.getException() != null) {
             LOG.error("Exception happened during listing volumes:{}", responseWrapper.getException());
@@ -62,6 +66,9 @@ public class VolumeManager extends AbstractManager {
         }
 
         List<VolumeListResultType> volumeList = iterator.fetchAllResults();
+        for (VolumeListResultType volume : volumeList) {
+            volIds.add(volume.getVolumeId());
+        }
 
         return volIds;
     }

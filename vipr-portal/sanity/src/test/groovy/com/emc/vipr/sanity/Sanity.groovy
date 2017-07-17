@@ -26,6 +26,10 @@ import com.emc.vipr.sanity.setup.VirtualArraySetup
 import com.emc.vipr.sanity.setup.RemoteReplicationSetup
 
 class Sanity {
+
+    static int verbosity = 4;  // 1=silent, 2=minimal, 3=runtime messages, 4=chatty, 5=verbose
+    static int verbosityDefault = 4; // default if not specified for a line
+
     static final Integer API_TASK_TIMEOUT = 120000
 
     static ExtendedProperties properties
@@ -95,6 +99,7 @@ class Sanity {
                 break
            case "remotereplication":
                 initClients("ldapvipruser1@viprsanity.com","secret")
+                verbosity = 3 // less output for these tests
                 RemoteReplicationSetup.loadTopology()
                 result = junit.run(remoteReplicationTests)
                 break
@@ -142,5 +147,38 @@ class Sanity {
         catalog = new ViPRCatalogClient2(clientConfig).withAuthToken(authToken)
         portal = new ViPRPortalClient(clientConfig).withAuthToken(authToken)
         sys = new ViPRSystemClient(clientConfig).withAuthToken(authToken)
+    }
+
+    /*
+     * logging methods
+     */
+    static void printMsg(Object msg) {
+        printMsg(msg,verbosityDefault)
+    }
+
+    static void printMsg1(Object msg) {
+        printMsg(msg,1)
+    }
+
+    static void printMsg2(Object msg) {
+        printMsg(msg,2)
+    }
+
+    static void printMsg3(Object msg) {
+        printMsg(msg,3)
+    }
+
+    static void printMsg4(Object msg) {
+        printMsg(msg,4)
+    }
+
+    static void printMsg5(Object msg) {
+        printMsg(msg,5)
+    }
+
+    static void printMsg(Object msg, int level) {
+        if ( level <= verbosity) {
+            println msg.toString();
+        }
     }
 }

@@ -1086,4 +1086,37 @@ public class DiscoveryUtils {
             supportedVpoolURIs.remove(uri);
         }
     }
+
+    /*
+     * Find the Virtual NAS by Native ID for the specified VNX unity storage
+     * array
+     * 
+     * @param system
+     * storage system information including credentials.
+     * 
+     * @param Native
+     * id of the specified Virtual NAS
+     * 
+     * @return Virtual NAS Server
+     */
+    public static VirtualNAS findvNasByNativeId(DbClient dbClient, StorageSystem system, String nativeId) {
+        URIQueryResultList results = new URIQueryResultList();
+        VirtualNAS vNas = null;
+
+        // Set storage port details to vNas
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, nativeId, NativeGUIDGenerator.VIRTUAL_NAS);
+
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualNASByNativeGuidConstraint(nasNativeGuid), results);
+        Iterator<URI> iter = results.iterator();
+        while (iter.hasNext()) {
+            VirtualNAS tmpVnas = dbClient.queryObject(VirtualNAS.class, iter.next());
+
+            if (tmpVnas != null && !tmpVnas.getInactive()) {
+                vNas = tmpVnas;
+                _log.info("Found virtual NAS {}", tmpVnas.getNativeGuid() + ":" + tmpVnas.getNasName());
+                break;
+            }
+        }
+        return vNas;
+    }
 }

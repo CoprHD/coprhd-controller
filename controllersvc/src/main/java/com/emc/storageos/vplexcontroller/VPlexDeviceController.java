@@ -5678,14 +5678,16 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
-     * Finds the next available HLU for cluster export by querying the cluster's hosts'
+     * Finds the next available HLU for cluster export/Host Export(only applicable for vplex metro volume export) by querying the cluster's
+     * hosts'
      * used HLUs and updates the volumeHLU map with free HLUs.
      */
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
         try {
-            if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster()
+            if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)
+                    && (exportGroup.forCluster() || exportGroup.hasAltVirtualArray(storage.getId().toString()))
                     && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
                     && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
                 _log.info("Find and update free HLUs for Cluster Export START..");

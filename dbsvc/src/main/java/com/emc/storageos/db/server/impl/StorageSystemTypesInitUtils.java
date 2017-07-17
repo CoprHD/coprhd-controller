@@ -67,7 +67,6 @@ public class StorageSystemTypesInitUtils {
     private static final Map<String, String> DISPLAY_NAME_MAP;
     private static final Map<String, String> SSL_PORT_MAP;
     private static final Map<String, String> NON_SSL_PORT_MAP;
-    private static final Map<String, Set<String>> SUPPORTED_PROFILES_MAP;
 
     /*
      * Some storage systems should only be discovered by provider, not be added directly.
@@ -176,12 +175,6 @@ public class StorageSystemTypesInitUtils {
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(XTREMIO, "Storage Provider for EMC XtremIO");
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(CEPH, "Block Storage powered by Ceph");
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(DELLSCSYSTEM, "Storage Provider for Dell SC Storage");
-
-        // Among native types, only vmax supports remote replication for block
-        SUPPORTED_PROFILES_MAP = new HashMap<>();
-        Set<String> supportedProfiles = new HashSet<>();
-        supportedProfiles.add(StorageProfile.REMOTE_REPLICATION_FOR_BLOCK.toString());
-        SUPPORTED_PROFILES_MAP.put(VMAX, supportedProfiles);
     }
 
     public StorageSystemTypesInitUtils(DbClient dbClient) {

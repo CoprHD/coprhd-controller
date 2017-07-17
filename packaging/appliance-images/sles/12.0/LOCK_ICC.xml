@@ -40,8 +40,8 @@
 <target name="adg-security"                        depends="adg-security-11-4_1"/>
 <target name="adg-tools"                           depends="adg-tools-4-3_1"/>
 <target name="adg-vami25"                          depends="adg-vami25-1-2"/>
-<target name="adg_platform"                        depends="adg_platform_12_0_15_0"/>
-<target name="adg_minimal"                         depends="adg_minimal_12_0_15_0"/>
+<target name="adg_platform"                        depends="adg_platform_12_0_17_0"/>
+<target name="adg_minimal"                         depends="adg_minimal_12_0_17_0"/>
 <target name="adg_web-demo-conf"                   depends="adg_web-demo-conf-2-1_1"/>
 <target name="adobe-flex-dev-rt"                   depends="adobe-flex-dev-rt-3.5.0.12683-1"/>
 <target name="ant"                                 depends="ant-1.9.4-1.31_1"/>

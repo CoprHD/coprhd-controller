@@ -4351,7 +4351,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         boolean validPolicy = validateIsilonReplicationPolicy(isiSynIQPolicy, filePolicy, targetFs.getNativeId(),
                                 targetSystem, system);
                         if (validPolicy) {
-                            setReplicationInfoInExtension(srcFs, targetPath, isiSynIQPolicy.getTargetHost());
+                            setReplicationInfoInExtension(srcFs, targetPath);
                         } else {
                             throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
                                     filePolicy.getApplyAt(), "File policy and Isilon syncIQ policy differs for attributes");
@@ -4376,12 +4376,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
     }
     
-    private void setReplicationInfoInExtension(FileShare sourceFileShare, String path, String host) {
+    private void setReplicationInfoInExtension(FileShare sourceFileShare, String path) {
         if (sourceFileShare != null) {
            if(!sourceFileShare.getExtensions().containsKey("ReplicationInfo")){
-               sourceFileShare.getExtensions().put("ReplicationInfo", path+":"+host);
+               sourceFileShare.getExtensions().put("ReplicationInfo", path);
            } else {
-               sourceFileShare.getExtensions().replace("ReplicationInfo", path+":"+host);
+               sourceFileShare.getExtensions().replace("ReplicationInfo", path);
            }
             _dbClient.updateObject(sourceFileShare);
         } else {

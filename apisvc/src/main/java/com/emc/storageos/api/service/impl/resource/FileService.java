@@ -4597,10 +4597,7 @@ public class FileService extends TaskResourceService {
                 if (fs.getExtensions().containsKey("ReplicationInfo")) {
                     String targetInfo = fs.getExtensions().get("ReplicationInfo");
                     if (targetInfo != null) {
-                        String[] targValue = targetInfo.split(":");
-                        String targetPath = targValue[0];
-                        String targetHost = targValue[1];
-                        targetSystem = _dbClient.queryObject(StorageSystem.class, URI.create(targetHost));
+                        String targetPath = targetInfo;
                         URIQueryResultList queryResult = new URIQueryResultList();
                         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharePathConstraint(targetPath), queryResult);
                         Iterator<URI> iter = queryResult.iterator();
@@ -4658,17 +4655,14 @@ public class FileService extends TaskResourceService {
             List recommendations = new ArrayList<>();
 
             boolean validTarget = false;
-            if(targetSystem.getInactive() || targetSystem.isStorageSystemManagedByProvider()) {
-                
-            }
-            if (targetFs != null && !targetSystem.getInactive() && targetSystem.isStorageSystemManagedByProvider()) {
-                validTarget = validateTarget(targetFs, projectURI, targertVarrayURIs);
+            if (targetFs != null) {
+                targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+                if (!targetSystem.getInactive() && targetSystem.isStorageSystemManagedByProvider()) {
+                    validTarget = validateTarget(targetFs, projectURI, targertVarrayURIs);
+                }
             }
 
-            if (validTarget) {
-             // skipping the recommendation as we have a targetFs in database
-                _log.info("Skipping the placement as we have a targetFs");
-            }else if (targetFs == null){
+            if (!validTarget && targetFs == null) {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
                 if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
@@ -4730,7 +4724,7 @@ public class FileService extends TaskResourceService {
                 }
                 recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
                         vpool, capabilities);
-            } else {
+            } else if (!validTarget && targetFs != null) {
                 _log.error("The target Fs validation failed");
                 op = fs.getOpStatus().get(task);
                 op.error(APIException.badRequests
@@ -4738,7 +4732,10 @@ public class FileService extends TaskResourceService {
                 fs.getOpStatus().updateTaskStatus(task, op);
                 _dbClient.updateObject(fs);
                 throw APIException.badRequests
-                .unableToProcessRequest("Error occured while validating the target FS");
+                        .unableToProcessRequest("Error occured while validating the target FS");
+            } else {
+                // skipping the recommendation as we have a targetFs in database
+                _log.info("Skipping the placement as we have a targetFs");
             }
             FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,

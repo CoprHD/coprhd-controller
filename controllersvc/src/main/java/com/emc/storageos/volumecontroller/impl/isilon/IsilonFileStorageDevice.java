@@ -2570,11 +2570,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      *            - vipr ACE object.
      * @return
      */
-    private Acl getIsilonAclFromNfsACE(NfsACE nfsACE, ArrayList<String> inheritFlags) {
+    private Acl getIsilonAclFromNfsACE(NfsACE nfsACE) {
 
         IsilonNFSACL isilonAcl = new IsilonNFSACL();
         Acl acl = isilonAcl.new Acl();
-        acl.setInherit_flags(inheritFlags);
+        ArrayList<String> flags = new ArrayList<String>(nfsACE.getInheritFlagSet());
+        acl.setInherit_flags(flags);
         acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
         acl.setOp("add");
         acl.setAccesstype(nfsACE.getPermissionType());
@@ -2595,23 +2596,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonNFSACL isilonAcl = new IsilonNFSACL();
         ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
         List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
-        ArrayList<String> inheritFlags = (ArrayList<String>) args.getNfsAclsInheritFlags();
         for (NfsACE nfsACE : aceToAdd) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE, inheritFlags);
+            Acl acl = getIsilonAclFromNfsACE(nfsACE);
             acl.setOp("add");
             aclCompleteList.add(acl);
         }
 
         List<NfsACE> aceToModify = args.getNfsAclsToModify();
         for (NfsACE nfsACE : aceToModify) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE, inheritFlags);
+            Acl acl = getIsilonAclFromNfsACE(nfsACE);
             acl.setOp("replace");
             aclCompleteList.add(acl);
         }
 
         List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
         for (NfsACE nfsACE : aceToDelete) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE, inheritFlags);
+            Acl acl = getIsilonAclFromNfsACE(nfsACE);
             acl.setOp("delete");
             aclCompleteList.add(acl);
         }
@@ -2665,9 +2665,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
 
         List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
-        ArrayList<String> inheritFlags = (ArrayList<String>) args.getNfsAclsInheritFlags();
+
         for (NfsACE nfsACE : aceToDelete) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE, inheritFlags);
+            Acl acl = getIsilonAclFromNfsACE(nfsACE);
             acl.setOp("delete");
             aclCompleteList.add(acl);
         }

@@ -25,10 +25,11 @@ public class NfsACE implements Serializable {
     private String user;
     private String type = NfsUserType.user.name();
     private String permissions;
-    private String permissionType = NfsPermissionType.ALLOW.name();
+    protected String inheritFlags;
+    private String permissionType = NfsPermissionType.allow.name();
 
     public enum NfsPermissionType {
-        ALLOW, DENY
+        allow, deny
     }
 
     public enum NfsUserType {
@@ -94,9 +95,31 @@ public class NfsACE implements Serializable {
     }
 
     public Set<String> getPermissionSet() {
+        if (null != this.permissions) {
+            String[] permissionArray = this.permissions.split(",");
+            return new HashSet<String>(Arrays.asList(permissionArray));
+        } else {
+            return new HashSet<String>();
+        }
 
-        String[] permissionArray = this.permissions.split(",");
-        return new HashSet<String>(Arrays.asList(permissionArray));
+    }
+
+    @XmlElement(name = "inheritFlags")
+    public String getInheritFlags() {
+        return permissions;
+    }
+
+    public void setInheritFlags(String inheritFlags) {
+        this.inheritFlags = inheritFlags;
+    }
+
+    public Set<String> getInheritFlagSet() {
+        if (null != this.inheritFlags) {
+            String[] flagArray = this.inheritFlags.split(",");
+            return new HashSet<String>(Arrays.asList(flagArray));
+        } else {
+            return new HashSet<String>();
+        }
 
     }
 
@@ -124,6 +147,11 @@ public class NfsACE implements Serializable {
         if (permissions != null) {
             builder.append("permissions=");
             builder.append(permissions);
+            builder.append(", ");
+        }
+        if (inheritFlags != null) {
+            builder.append("inheritFlags=");
+            builder.append(inheritFlags);
             builder.append(", ");
         }
         if (permissionType != null) {

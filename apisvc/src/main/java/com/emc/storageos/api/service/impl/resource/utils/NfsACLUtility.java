@@ -88,7 +88,6 @@ public class NfsACLUtility {
         List<NfsACE> addList = param.getAcesToAdd();
         List<NfsACE> modifyList = param.getAcesToModify();
         List<NfsACE> deleteList = param.getAcesToDelete();
-        List<String> inheritFlags = param.getInheritFlags();
 
         List<NFSShareACL> dbACLList = queryDBSFileNfsACLs(false);
         Set<String> userSetDB = new HashSet<String>();
@@ -105,9 +104,7 @@ public class NfsACLUtility {
         if (deleteList != null && !deleteList.isEmpty()) {
             verifyNfsACLsModifyOrDeleteList(deleteList, userSetDB);
         }
-        if (inheritFlags != null && !inheritFlags.isEmpty()) {
-            verifyNfsInheritFlagsValid(inheritFlags);
-        }
+
     }
 
     /**
@@ -133,7 +130,19 @@ public class NfsACLUtility {
                     throw APIException.badRequests.invalidUserType(ace.getType());
                 }
             }
+            
 
+            for (String flag : ace.getInheritFlagSet()) {
+                if (!isValidEnum(flag, NFSInheritFlag.class)) {
+                    throw APIException.badRequests.invalidNfsACLInheritFlag(flag);
+                }
+            }
+
+            //check permission is not empty
+            if (ace.getPermissions() == null || ace.getPermissions().isEmpty()) {
+                throw APIException.badRequests.missingValueInACE("update", "permissions");
+                
+            }
             for (String permission : ace.getPermissionSet()) {
                 if (!isValidEnum(permission, NfsPermission.class)) {
                     throw APIException.badRequests.invalidNFSPermission(permission);
@@ -346,11 +355,5 @@ public class NfsACLUtility {
         return dest;
     }
 
-    private void verifyNfsInheritFlagsValid(List<String> inheritflags) {
-        for (String flag : inheritflags) {
-            if (!isValidEnum(flag, NFSInheritFlag.class)) {
-                throw APIException.badRequests.invalidNfsACLInheritFlag(flag, NFSInheritFlag.values().toString());
-            }
-        }
-    }
+
 }

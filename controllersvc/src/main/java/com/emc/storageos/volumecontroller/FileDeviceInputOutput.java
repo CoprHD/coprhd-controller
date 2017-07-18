@@ -91,7 +91,6 @@ public class FileDeviceInputOutput {
     private List<NfsACE> nfsAclsToAdd = new ArrayList<>();
     private List<NfsACE> nfsAclsToModify = new ArrayList<>();
     private List<NfsACE> nfsAclsToDelete = new ArrayList<>();
-    private List<String> nfsAclsInheritFlags = new ArrayList<>();
 
     // New Addition for File Policy Work
     private FilePolicy fileProtectionPolicy;
@@ -144,13 +143,6 @@ public class FileDeviceInputOutput {
         this.nfsAclsToDelete = nfsAclsToDelete;
     }
 
-    public List<String> getNfsAclsInheritFlags() {
-        return nfsAclsInheritFlags;
-    }
-
-    public void setNfsAclsInheritFlags(List<String> nfsAclsInheritFlags) {
-        this.nfsAclsInheritFlags = nfsAclsInheritFlags;
-    }
 
     public String getComments() {
         return comments;
@@ -217,9 +209,6 @@ public class FileDeviceInputOutput {
         }
         if (param.getAcesToDelete() != null && !param.getAcesToDelete().isEmpty()) {
             this.nfsAclsToDelete = param.getAcesToDelete();
-        }
-        if (param.getInheritFlags() != null && !param.getInheritFlags().isEmpty()) {
-            this.nfsAclsInheritFlags = param.getInheritFlags();
         }
 
     }

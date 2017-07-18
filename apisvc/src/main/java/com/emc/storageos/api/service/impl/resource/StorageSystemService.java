@@ -561,14 +561,17 @@ public class StorageSystemService extends TaskResourceService {
             if (param.getIpAddress() != null || param.getPortNumber() != null || param.getUserName() != null ||
                     param.getPassword() != null || param.getSmisProviderIP() != null || param.getSmisPortNumber() != null ||
                     param.getSmisUserName() != null || param.getSmisPassword() != null || param.getSmisUseSSL() != null) {
-                throw APIException.badRequests.onlyNameAndMaxResourceCanBeUpdatedForSystemWithType(systemType.name());
+                throw APIException.badRequests.onlyNameSiteAndMaxResourceCanBeUpdatedForSystemWithType(systemType.name());
             }
-            _dbClient.persistObject(system);
+
+            TagUtils.setSiteName(system, param.getSite());
+
+            _dbClient.updateObject(system);
 
             String taskId = UUID.randomUUID().toString();
             TaskList taskList = new TaskList();
             Operation op = new Operation();
-            op.ready("Updated Storage System name");
+            op.ready("Updated Storage System name, site, or max resources");
             op.setResourceType(ResourceOperationTypeEnum.UPDATE_STORAGE_SYSTEM);
             _dbClient.createTaskOpStatus(StorageSystem.class, system.getId(), taskId, op);
 
@@ -663,7 +666,6 @@ public class StorageSystemService extends TaskResourceService {
         system.setSmisUserName(param.getSmisUserName());
         system.setSmisPassword(param.getSmisPassword());
 
-        _log.info("param.getSite() is " + param.getSite());
         TagUtils.setSiteName(system, param.getSite());
 
         _dbClient.updateObject(system);

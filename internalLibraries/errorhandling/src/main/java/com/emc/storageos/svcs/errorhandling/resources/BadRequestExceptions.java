@@ -1023,7 +1023,7 @@ public interface BadRequestExceptions {
     public BadRequestException numberOfInstalledExceedsMax();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException onlyNameAndMaxResourceCanBeUpdatedForSystemWithType(
+    public BadRequestException onlyNameSiteAndMaxResourceCanBeUpdatedForSystemWithType(
             final String systemType);
 
     @DeclareServiceCode(ServiceCode.API_UNSUPPORTED_INGESTED_VOLUME_OPERATION)

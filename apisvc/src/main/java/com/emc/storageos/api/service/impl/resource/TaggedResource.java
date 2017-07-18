@@ -22,6 +22,7 @@ import javax.ws.rs.core.MediaType;
 
 
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
 import org.apache.commons.lang.StringUtils;
 
@@ -102,8 +103,13 @@ public abstract class TaggedResource extends ResourceService {
                 if (tagName == null || tagName.isEmpty() || tagName.length() < 2) {
                     throw APIException.badRequests.parameterTooShortOrEmpty("Tag", 2);
                 }
-                ScopedLabel tagLabel = new ScopedLabel(getTenantOwnerIdString(id), tagName);
-                tagSet.add(tagLabel);
+                // FIXME temporary hack for site
+                if (tagName.startsWith(TagUtils.SITE + TagUtils.SEPARATOR)) {
+                    TagUtils.setSiteName(object, tagName);
+                } else {
+                    ScopedLabel tagLabel = new ScopedLabel(getTenantOwnerIdString(id), tagName);
+                    tagSet.add(tagLabel);
+                }
             }
         }
         if (assignment.getRemove() != null && !assignment.getRemove().isEmpty()) {

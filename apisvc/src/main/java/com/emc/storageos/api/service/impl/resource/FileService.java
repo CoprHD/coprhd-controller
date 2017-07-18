@@ -4581,7 +4581,7 @@ public class FileService extends TaskResourceService {
          // wait till result from controller service ,whichever is earlier add timeout if needed.
             do {
                 TimeUnit.SECONDS.sleep(1);
-                taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
+                taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), checkingTask);
                 // exit the loop if task is completed with error/success
             } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()));
             
@@ -4594,7 +4594,7 @@ public class FileService extends TaskResourceService {
                 }
             }
         }catch (BadRequestException e) {
-            checkExistingPolOp = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            checkExistingPolOp = _dbClient.error(FileShare.class, fs.getId(), checkingTask, e);
             _log.error("Error while getting existing  policy {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         } catch (Exception e) {

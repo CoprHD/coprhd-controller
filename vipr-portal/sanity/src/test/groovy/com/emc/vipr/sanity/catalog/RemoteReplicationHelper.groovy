@@ -16,25 +16,25 @@ class RemoteReplicationHelper {
     static final String RR_VPOOL = "SBSDK_VPOOL_RR"
 
     // constants for asset option types
-    private static final String AO_RR_STORAGE_TYPE = "vipr.storageSystemType"
-    private static final String AO_RR_SETS_FOR_TYPE = "vipr.remoteReplicationSetsForArrayType" // depends on 'storageSystemType'
-    private static final String AO_RR_GROUPS_FOR_SET = "vipr.remoteReplicationGroupForSet"  // depends on 'remoteReplicationSetsForArrayType'
-    private static final String AO_RR_CG_OR_PAIR = "vipr.remoteReplicationCgOrPair"
-    private static final String AO_RR_PAIRS_OR_CGS = "vipr.remoteReplicationPairsOrCGs" // depends on "remoteReplicationSetsForArrayType","remoteReplicationGroupForSet","remoteReplicationCgOrPair"
-    private static final String AO_VARRAY = "vipr.blockVirtualArray"
-    private static final String AO_VPOOL = "vipr.blockVirtualPool"
-    private static final String AO_PROJECT = "vipr.project"
+    static final AO_RR_STORAGE_TYPE = "vipr.storageSystemType"
+    static final AO_RR_SETS_FOR_TYPE = "vipr.remoteReplicationSetsForArrayType" // depends on 'storageSystemType'
+    static final AO_RR_GROUPS_FOR_SET = "vipr.remoteReplicationGroupForSet"  // depends on 'remoteReplicationSetsForArrayType'
+    static final AO_RR_CG_OR_PAIR = "vipr.remoteReplicationCgOrPair"
+    static final AO_RR_PAIRS_OR_CGS = "vipr.remoteReplicationPairsOrCGs" // depends on "remoteReplicationSetsForArrayType","remoteReplicationGroupForSet","remoteReplicationCgOrPair"
+    static final AO_VARRAY = "vipr.blockVirtualArray"
+    static final AO_VPOOL = "vipr.blockVirtualPool"
+    static final AO_PROJECT = "vipr.project"
 
     // constants for expected resources made by sbsdk sanity tests
-    private static final String RR_DRIVER_TYPE = "DRIVERSYSTEM"
-    private static final String RR_SET = "replicationSet1 [ACTIVE]"
-    private static final String RR_GROUP = "replicationGroup1_set1 [ACTIVE] (synchronous)"
+    static final RR_DRIVER_TYPE = "DRIVERSYSTEM"
+    static final RR_SET = "replicationSet1 [ACTIVE]"
+    static final RR_GROUP = "replicationGroup1_set1 [ACTIVE] (synchronous)"
 
     // global fields
-    private static String RR_DRIVER_TYPE_ID
-    private static String RR_SET_ID
-    private static String RR_GROUP_ID
-    private static URI tenantId
+    static String RR_DRIVER_TYPE_ID
+    static String RR_SET_ID
+    static String RR_GROUP_ID
+    static URI tenantId
 
     static boolean topologyLoadedTest() {
         def vpoolId = client.blockVpools().search().byExactName(RR_VPOOL).first()?.id

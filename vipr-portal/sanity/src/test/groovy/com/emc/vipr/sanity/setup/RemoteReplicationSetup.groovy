@@ -7,19 +7,19 @@ package com.emc.vipr.sanity.setup
 import com.emc.storageos.model.NamedRelatedResourceRep
 import java.net.URI
 
-import com.emc.vipr.sanity.catalog.RemoteReplicationHelper
-import com.emc.vipr.sanity.catalog.CatalogServiceHelper
-import com.emc.vipr.sanity.catalog.BlockServicesHelper
-import com.emc.storageos.model.block.BlockConsistencyGroupCreate
-import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam
-
 import static com.emc.vipr.sanity.Sanity.*
+import static com.emc.vipr.sanity.catalog.RemoteReplicationHelper.*
+import static com.emc.vipr.sanity.catalog.CatalogServiceHelper.*
+import static com.emc.vipr.sanity.catalog.BlockServicesHelper.*
+
 import static com.emc.vipr.sanity.Sanity.printDebug
 import static com.emc.vipr.sanity.Sanity.printVerbose
 import static com.emc.vipr.sanity.Sanity.printInfo
 import static com.emc.vipr.sanity.Sanity.printWarn
 import static com.emc.vipr.sanity.Sanity.printError
 
+import com.emc.storageos.model.block.BlockConsistencyGroupCreate
+import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam
 
 class RemoteReplicationSetup {
 
@@ -51,8 +51,7 @@ class RemoteReplicationSetup {
         println "Setting up remote replication"
 
         // run sbsdk sanity script
-        def helper = new com.emc.vipr.sanity.catalog.RemoteReplicationHelper()
-        if (!helper.topologyLoadedTest()) { 
+        if (!topologyLoadedTest()) {
             println "Running ViPR sanity script for SB SDK to load topology for tests..."
             String sanityConf = System.getenv("CatalogSanityConf") //set in startup shell script (catalog_sanity.sh)
             String workspace = System.getenv("CatalogWorkspace")   //set in startup shell script (catalog_sanity.sh)
@@ -70,14 +69,14 @@ class RemoteReplicationSetup {
         List<NamedRelatedResourceRep> tenants = client.tenants().listSubtenants(currentTenant)
         for (NamedRelatedResourceRep tenant : tenants) { 
             if(tenant.getName().equals("linux")) { 
-                helper.setTenant(tenant.getId());
+                setTenant(tenant.getId());
             }
         }
-        if (helper.getTenant() == null) { 
+        if (getTenant() == null) {
             println "FAILED TO LOCATE TENANT 'linux'"
         }
 
-        enableVpoolForCg(RemoteReplicationHelper.RR_VPOOL)
+        enableVpoolForCg(RR_VPOOL)
         createCg(CG_NAME_FOR_GRP,VOL_PROJECT_NAME)
         createCg(CG_NAME_FOR_SET,VOL_PROJECT_NAME)
 
@@ -85,6 +84,15 @@ class RemoteReplicationSetup {
         createRrVolume(VOL_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP,NONE)
         createRrVolume(VOL_IN_CG_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,NONE,CG_NAME_FOR_SET)
         createRrVolume(VOL_IN_CG_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP,CG_NAME_FOR_GRP)
+    }
+
+    static clearTopology() {
+        deleteRrVolume(VOL_IN_SET_NAME)
+        deleteRrVolume(VOL_IN_GRP_NAME)
+        deleteRrVolume(VOL_IN_CG_NAME)
+        deleteRrVolume(VOL_IN_CG_IN_GRP_NAME)
+        deleteCg(CG_NAME_FOR_GRP)
+        deleteCg(CG_NAME_FOR_SET)
     }
 
     static enableVpoolForCg(String vpoolName) {
@@ -104,19 +112,19 @@ class RemoteReplicationSetup {
         def overrideParameters = [:]
         overrideParameters.name = name
         overrideParameters.size = size
-        overrideParameters.virtualArray = RemoteReplicationHelper.getOption(RemoteReplicationHelper.AO_VARRAY,varray)
-        def vpoolParams = [(RemoteReplicationHelper.AO_VARRAY):overrideParameters.virtualArray]
-        overrideParameters.virtualPool = RemoteReplicationHelper.getOption(RemoteReplicationHelper.AO_VPOOL,vpool,vpoolParams)
-        overrideParameters.project = RemoteReplicationHelper.getOption(RemoteReplicationHelper.AO_PROJECT,project)
+        overrideParameters.virtualArray = getOption(AO_VARRAY,varray)
+        def vpoolParams = [(AO_VARRAY):overrideParameters.virtualArray]
+        overrideParameters.virtualPool = getOption(AO_VPOOL,vpool,vpoolParams)
+        overrideParameters.project = getOption(AO_PROJECT,project)
         overrideParameters.remoteReplicationMode = rrMode
         if (rrGroup == NONE) {
             overrideParameters.remoteReplicationGroup = NONE
         } else {
-            def RR_DRIVER_TYPE_ID = RemoteReplicationHelper.getOption(RemoteReplicationHelper.AO_RR_STORAGE_TYPE,RemoteReplicationHelper.RR_DRIVER_TYPE)
-            def params = [(RemoteReplicationHelper.AO_RR_STORAGE_TYPE):RR_DRIVER_TYPE_ID]
-            def RR_SET_ID = RemoteReplicationHelper.getOption(RemoteReplicationHelper.AO_RR_SETS_FOR_TYPE,RemoteReplicationHelper.RR_SET,params)
-            params = [(RemoteReplicationHelper.AO_RR_SETS_FOR_TYPE):RR_SET_ID]
-            def RR_GROUP_ID = RemoteReplicationHelper.getOption(RemoteReplicationHelper.AO_RR_GROUPS_FOR_SET,rrGroup,params)
+            def RR_DRIVER_TYPE_ID = getOption(AO_RR_STORAGE_TYPE,RR_DRIVER_TYPE)
+            def params = [(AO_RR_STORAGE_TYPE):RR_DRIVER_TYPE_ID]
+            def RR_SET_ID = getOption(AO_RR_SETS_FOR_TYPE,RR_SET,params)
+            params = [(AO_RR_SETS_FOR_TYPE):RR_SET_ID]
+            def RR_GROUP_ID = getOption(AO_RR_GROUPS_FOR_SET,rrGroup,params)
             overrideParameters.remoteReplicationGroup = RR_GROUP_ID
         }
         if(cgName == NONE) {
@@ -126,7 +134,7 @@ class RemoteReplicationSetup {
         }
         printInfo "Creating Volume '" + name + "'"
         printVerbose formatMap(overrideParameters)
-        return CatalogServiceHelper.placeOrder(BlockServicesHelper.CREATE_BLOCK_VOLUME_SERVICE, overrideParameters)
+        return placeOrder(CREATE_BLOCK_VOLUME_SERVICE, overrideParameters)
         printVerbose "Volume created successfully"
     }
 
@@ -139,8 +147,8 @@ class RemoteReplicationSetup {
         println "Deleting Volume '" + name + "' [" + volId + "]"
         def overrideParameters = [:]
         overrideParameters.volumes = volId.toString()
-        overrideParameters.project = RemoteReplicationHelper.getOption(RemoteReplicationHelper.AO_PROJECT,VOL_PROJECT_NAME)
-        return CatalogServiceHelper.placeOrder(BlockServicesHelper.REMOVE_BLOCK_VOLUME_SERVICE, overrideParameters)
+        overrideParameters.project = getOption(AO_PROJECT,VOL_PROJECT_NAME)
+        return placeOrder(REMOVE_BLOCK_VOLUME_SERVICE, overrideParameters)
     }
 
     static createCg(String name, String project) {
@@ -150,7 +158,7 @@ class RemoteReplicationSetup {
             return
         }
         println "Creating CG '" + name + "'"
-        URI VOL_PROJECT_URI = new URI(RemoteReplicationHelper.getOption(RemoteReplicationHelper.AO_PROJECT,project))
+        URI VOL_PROJECT_URI = new URI(getOption(AO_PROJECT,project))
         client.blockConsistencyGroups().create(new BlockConsistencyGroupCreate(name,VOL_PROJECT_URI))
     }
 

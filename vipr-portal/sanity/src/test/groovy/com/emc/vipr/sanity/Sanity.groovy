@@ -29,7 +29,7 @@ class Sanity {
 
     static enum LogLevel {ERROR,WARN,INFO,VERBOSE,DEBUG}
     static currentLogLevel = LogLevel.VERBOSE  // adjust to change amount of output
-    static final defaultLogLevel = LogLevel.VERBOSE
+    static removeTopologyWhenDone = true
 
     static final Integer API_TASK_TIMEOUT = 120000
 
@@ -59,6 +59,7 @@ class Sanity {
     ] as Class[]
 
     public static void main(String[] args) {
+        println "----------------------  Starting tests --------------------"
         JUnitCore junit = new JUnitCore()
         junit.addListener(new RunListener() {
                     @Override
@@ -101,6 +102,7 @@ class Sanity {
            case "remotereplication":
                 initClients("ldapvipruser1@viprsanity.com","secret")
                 currentLogLevel = LogLevel.INFO
+                //removeTopologyWhenDone = false
                 RemoteReplicationSetup.loadTopology()
                 result = junit.run(remoteReplicationTests)
                 break
@@ -153,10 +155,6 @@ class Sanity {
     /*
      * logging methods
      */
-    static void printMsg(Object msg) {
-        printMsg(msg,defaultLogLevel)
-    }
-
     static void printError(Object msg) {
         printMsg(msg,LogLevel.ERROR)
     }

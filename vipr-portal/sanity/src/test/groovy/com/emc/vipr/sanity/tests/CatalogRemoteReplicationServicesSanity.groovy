@@ -7,8 +7,9 @@ package com.emc.vipr.sanity.tests
 import org.junit.AfterClass
 import org.junit.Test
 
-import com.emc.vipr.sanity.catalog.RemoteReplicationHelper
-import com.emc.vipr.sanity.setup.RemoteReplicationSetup
+import static com.emc.vipr.sanity.catalog.RemoteReplicationHelper.*
+import static com.emc.vipr.sanity.setup.RemoteReplicationSetup.*
+import static com.emc.vipr.sanity.Sanity.*
 import static com.emc.vipr.sanity.Sanity.printDebug
 import static com.emc.vipr.sanity.Sanity.printVerbose
 import static com.emc.vipr.sanity.Sanity.printInfo
@@ -19,20 +20,22 @@ public class CatalogRemoteReplicationServicesSanity {
 
     @Test void assetOptionOrderedTests() {
         printInfo "Starting tests..."
-        RemoteReplicationHelper.storageTypeAssetOptionTest()
-        RemoteReplicationHelper.rrSetsAssetOptionTest()
-        RemoteReplicationHelper.rrGroupsForSetAssetOptionTest()
+
+        storageTypeAssetOptionTest()
+        rrSetsAssetOptionTest()
+        rrGroupsForSetAssetOptionTest()
+
         printInfo "Tests Complete"
     }
 
     @AfterClass static void cleanup() {
+        if(!removeTopologyWhenDone) {
+            printInfo("Topology being left in place")
+            return
+        }
+
         printInfo "Cleaning up..."
-        RemoteReplicationSetup.deleteRrVolume(RemoteReplicationSetup.VOL_IN_SET_NAME)
-        RemoteReplicationSetup.deleteRrVolume(RemoteReplicationSetup.VOL_IN_GRP_NAME)
-        RemoteReplicationSetup.deleteRrVolume(RemoteReplicationSetup.VOL_IN_CG_NAME)
-        RemoteReplicationSetup.deleteRrVolume(RemoteReplicationSetup.VOL_IN_CG_IN_GRP_NAME)
-        RemoteReplicationSetup.deleteCg(RemoteReplicationSetup.CG_NAME_FOR_GRP)
-        RemoteReplicationSetup.deleteCg(RemoteReplicationSetup.CG_NAME_FOR_SET)
+        clearTopology()
         printInfo "Cleanup complete"
     }
 }

@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * Block volume data object
  */
 @Cf("Volume")
-@DbView(cf = "vol_view", pkey = "Project", clkeys = {"type"}, cols = {"label"})
+@DbView(cf = "vol_view", pkey = "project", clkeys = {"type"}, cols = {"label"})
 public class Volume extends BlockObject implements ProjectResource {
     private static Logger log = LoggerFactory.getLogger(Volume.class.getName());
     // project this volume is associated with

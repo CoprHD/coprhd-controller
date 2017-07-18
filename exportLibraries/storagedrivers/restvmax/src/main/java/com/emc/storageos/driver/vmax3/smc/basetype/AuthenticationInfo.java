@@ -6,6 +6,7 @@ package com.emc.storageos.driver.vmax3.smc.basetype;
 
 public class AuthenticationInfo {
 
+    private String protocol = "https";
     private String host;
     private Integer port;
     private String userName;
@@ -18,8 +19,9 @@ public class AuthenticationInfo {
      * @param userName
      * @param password
      */
-    public AuthenticationInfo(String host, Integer port, String userName, String password) {
+    public AuthenticationInfo(String protocol, String host, Integer port, String userName, String password) {
         super();
+        this.protocol = protocol;
         this.host = host;
         this.port = port;
         this.userName = userName;
@@ -96,6 +98,20 @@ public class AuthenticationInfo {
         this.sn = sn;
     }
 
+    /**
+     * @return the protocol
+     */
+    public String getProtocol() {
+        return protocol;
+    }
+
+    /**
+     * @param protocol the protocol to set
+     */
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
     /*
      * (non-Javadoc)
      * 
@@ -103,8 +119,8 @@ public class AuthenticationInfo {
      */
     @Override
     public String toString() {
-        return "AuthenticationInfo [host=" + host + ", port=" + port + ", userName=" + userName + ", password=" + password + ", sn=" + sn
-                + "]";
+        return "AuthenticationInfo [protocol=" + protocol + ", host=" + host + ", port=" + port + ", userName=" + userName + ", password="
+                + password + ", sn=" + sn + "]";
     }
 
 }

@@ -41,7 +41,8 @@ final public class UrlGenerator {
     }
 
     private String formatHostUrl() {
-        return String.format(SymConstants.HOST_FORMAT, authenticationInfo.getHost(), authenticationInfo.getPort());
+        return String.format(SymConstants.HOST_FORMAT, authenticationInfo.getProtocol(), authenticationInfo.getHost(),
+                authenticationInfo.getPort());
     }
 
     private String formatCustUrl(String url, List<String> urlFillers) {
@@ -70,7 +71,7 @@ final public class UrlGenerator {
         Map<String, String> params = new HashMap<String, String>();
         params.put("aaa", "vaaa");
         params.put("bbb", "vbbb");
-        AuthenticationInfo authenticationInfo = new AuthenticationInfo("1.2.3.4", 1234, "user", "ppp");
+        AuthenticationInfo authenticationInfo = new AuthenticationInfo("https", "1.2.3.4", 1234, "user", "ppp");
         UrlGenerator gen = new UrlGenerator(authenticationInfo);
         System.out.println(gen.genUrl(LIST_VOLUME_URL, list, params));
     }

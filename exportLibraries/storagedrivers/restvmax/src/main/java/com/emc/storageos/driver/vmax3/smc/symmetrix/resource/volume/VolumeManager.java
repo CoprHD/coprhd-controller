@@ -16,7 +16,7 @@ import com.emc.storageos.driver.vmax3.smc.basetype.AbstractManager;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.vmax3.smc.basetype.ResponseWrapper;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.IteratorType;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.bean.VolumeListResultType;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.model.VolumeListResultType;
 import com.google.gson.reflect.TypeToken;
 
 public class VolumeManager extends AbstractManager {
@@ -72,5 +72,7 @@ public class VolumeManager extends AbstractManager {
 
         return volIds;
     }
+
+    // public VolumeType fetchVolume()
 
 }

@@ -5,7 +5,8 @@
 package com.emc.storageos.driver.vmax3.smc;
 
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
-import com.emc.storageos.driver.vmax3.smc.provider.version.VersionManager;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.config.ConfigManager;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.hw.HardwareManager;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.StorageGroupManager;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.VolumeManager;
 
@@ -13,15 +14,13 @@ final public class ManagerFactory {
     private AuthenticationInfo authenticationInfo;
     private VolumeManager volumeManager;
     private StorageGroupManager storageGroupManager;
-    private VersionManager versionManager;
+
+    private ConfigManager configManager;
+    private HardwareManager hardwareManager;
 
     public ManagerFactory(AuthenticationInfo authenticationInfo) {
         this.authenticationInfo = authenticationInfo;
 
-    }
-
-    public ManagerFactory(String host, Integer port, String userName, String password) {
-        this(new AuthenticationInfo(host, port, userName, password));
     }
 
     public VolumeManager genVolumeManager() {
@@ -38,10 +37,17 @@ final public class ManagerFactory {
         return storageGroupManager;
     }
 
-    public VersionManager genVersionManager() {
-        if (versionManager == null) {
-            versionManager = new VersionManager(authenticationInfo);
+    public ConfigManager genConfigManager() {
+        if (configManager == null) {
+            configManager = new ConfigManager(authenticationInfo);
         }
-        return versionManager;
+        return configManager;
+    }
+
+    public HardwareManager genHardwareManager() {
+        if (hardwareManager == null) {
+            hardwareManager = new HardwareManager(authenticationInfo);
+        }
+        return hardwareManager;
     }
 }

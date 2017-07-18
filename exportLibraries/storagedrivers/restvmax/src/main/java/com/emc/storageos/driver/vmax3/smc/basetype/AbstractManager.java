@@ -15,16 +15,6 @@ public class AbstractManager {
     protected RestEngine engine;
 
     /**
-     * @param host
-     * @param port
-     * @param userName
-     * @param password
-     */
-    public AbstractManager(String host, Integer port, String userName, String password) {
-        this(new AuthenticationInfo(host, port, userName, password));
-    }
-
-    /**
      * @param authenticationInfo
      */
     public AbstractManager(AuthenticationInfo authenticationInfo) {

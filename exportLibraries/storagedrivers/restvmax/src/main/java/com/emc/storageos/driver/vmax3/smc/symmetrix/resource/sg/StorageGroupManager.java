@@ -14,9 +14,9 @@ import com.emc.storageos.driver.vmax3.smc.basetype.AbstractManager;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.vmax3.smc.basetype.EmptyResponse;
 import com.emc.storageos.driver.vmax3.smc.basetype.ResponseWrapper;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.bean.CreateStorageGroupParameter;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.bean.EditStorageGroupParameter;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.bean.StorageGroupResponse;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.CreateStorageGroupParameter;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupParameter;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.StorageGroupResponse;
 
 public class StorageGroupManager extends AbstractManager {
     /**

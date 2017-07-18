@@ -69,7 +69,10 @@ public class VolumeManagerTest {
         Map<String, String> filters = new HashMap<String, String>();
         filters.put("volume_identifier", "stone_vol_auto_004-1");
         filters.put("tdev", "true");
-        Assert.assertEquals(1, volManager.findValidVolumes(urlFillers, filters).size());
+        List<String> volumeIds = volManager.findValidVolumes(urlFillers, filters);
+        Assert.assertEquals(1, volumeIds.size());
+        LOG.info("VolumeId as {}", volumeIds);
+
     }
 
 }

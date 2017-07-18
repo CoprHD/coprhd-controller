@@ -57,8 +57,12 @@ public class DataCollectionService {
     private static final String INTERNAL_NODE_GET_DIAGUTIL_DATA = "/diagutil/internal/data";
     private static final String INTERNAL_NODE_CLEANUP_DATA = "/diagutil/internal/cleanup";
 
-    public void setCoordinatorClient(CoordinatorClientExt client) {
+    public void setCoordinator(CoordinatorClientExt client) {
         this._coordinator = client;
+    }
+
+    public void setJobProducer(JobProducer jobProducer) {
+        this.jobProducer = jobProducer;
     }
 
     @POST

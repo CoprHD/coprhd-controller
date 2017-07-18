@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -918,6 +919,9 @@ public class DataCollectionJobUtil {
             setActiveProviderDetailsInSystem(providerFromDB, newStorageSystem, providersToUpdate);
             newStorageSystem.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
             newStorageSystem.setReachableStatus(true);
+
+            String siteName = TagUtils.getSiteName(providerFromDB);
+            TagUtils.setSiteName(newStorageSystem, siteName);
         }
         return newStorageSystem;
     }

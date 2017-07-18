@@ -13,10 +13,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.collect.Maps;
 
 /**
@@ -24,7 +29,8 @@ import com.google.common.collect.Maps;
  */
 public class TagUtils {
     private TagUtils(){};
-    
+
+    private static final Logger _log = LoggerFactory.getLogger(TagUtils.class);
     private static String ISA_NAMESPACE = "vipr";
 
     private static String MOUNTPOINT = fqnName(ISA_NAMESPACE, "mountPoint");
@@ -34,6 +40,9 @@ public class TagUtils {
     private static String ORDER_NUMBER = fqnName(ISA_NAMESPACE, "orderNumber");
 
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
+
+    public static String SITE = "site";
+    public static String SEPARATOR = "=";
 
     private static String fqnName(String namespace, String name) {
         return namespace + ":" + name;
@@ -109,5 +118,83 @@ public class TagUtils {
 
     public static String getOrderNumberTagValue(DataObject dataObject) {
         return getTagValue(dataObject, getOrderNumberTagName());
+    }
+
+    /**
+     * Returns the site that a DataObject should be a part of.
+     * This is currently stored as a tag of form Site=siteName
+     * 
+     * @param dataObject -- DataObject to check
+     * @return - site name String, or null if not found
+     */
+    public static String getSiteName(DataObject dataObject) {
+        ScopedLabelSet tags = dataObject.getTag();
+        if (tags != null) {
+            String labelPrefix = SITE + SEPARATOR;
+            for (ScopedLabel tag : tags) {
+                String label = tag.getLabel();
+                if (NullColumnValueGetter.isNotNullValue(label) && label.startsWith(labelPrefix)) {
+                    String site = label.replaceAll(labelPrefix, "");
+                    return site;
+                }
+            }
+        }
+        return null;
+    }
+    
+    public static void setSiteName(DataObject dataObject, String siteName) {
+        _log.info("****** dataObject is " + dataObject);
+        _log.info("****** siteName is " + siteName);
+
+        boolean siteNameIsNull = NullColumnValueGetter.isNullValue(siteName);
+        _log.info("****** siteNameIsNull is " + siteNameIsNull);
+
+        ScopedLabelSet tags = dataObject.getTag();
+        if (tags == null && siteNameIsNull) {
+            // no need to update anything if siteName is null and no existing tags set
+            return;
+        }
+
+        // find the existing Site tag, if set
+        String labelPrefix = SITE + SEPARATOR;
+        ScopedLabel siteTag = null;
+        if (tags != null) {
+            for (ScopedLabel tag : tags) {
+                String label = tag.getLabel();
+                if (NullColumnValueGetter.isNotNullValue(label) && label.startsWith(labelPrefix)) {
+                    siteTag = tag;
+                }
+                String oldSiteName = label.replaceAll(labelPrefix, "");
+                if (!siteNameIsNull && siteName.equals(oldSiteName)) {
+                    // no need to update anything because the new name is the same as the old
+                    return;
+                }
+            }
+        }
+
+        // if any existing site tag was found, remove it because we're going to set a new one.
+        if (siteTag != null) {
+            tags.remove(siteTag); // if the siteTag was found, tags cannot be null
+            _log.info("****** removed existing site tag " + siteTag);
+            dataObject.markChangedValue("tags");
+            if (siteNameIsNull) {
+                // if the siteName is null, then the user is intending to clear out the site tag, altogether 
+                return;
+            }
+        }
+
+        // if the siteName is not null, then create a new siteTag and set it in the tags.
+        if (!siteNameIsNull) {
+            if (tags == null) {
+                tags = new ScopedLabelSet();
+                dataObject.setTag(tags);
+            }
+            _log.info("****** create new siteTag {} " + siteTag, siteName);
+            ScopedLabel newSiteTag = new ScopedLabel();
+            newSiteTag.setLabel(labelPrefix + siteName);
+            tags.add(newSiteTag);
+            dataObject.markChangedValue("tags");
+            _log.info("****** newSiteTag is " + newSiteTag);
+        }
     }
 }

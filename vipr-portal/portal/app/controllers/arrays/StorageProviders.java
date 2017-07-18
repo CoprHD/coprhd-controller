@@ -375,6 +375,10 @@ public class StorageProviders extends ViprResourceController {
         @Required
         public String name;
 
+        @MaxSize(128)
+        @MinSize(2)
+        public String site;
+
         @MaxSize(2048)
         public String userName;
 
@@ -474,6 +478,7 @@ public class StorageProviders extends ViprResourceController {
         public void readFrom(StorageProviderRestRep storageProvider) {
             this.id = storageProvider.getId().toString();
             this.name = storageProvider.getName();
+            this.site = storageProvider.getSite();
             this.ipAddress = storageProvider.getIPAddress();
             this.userName = storageProvider.getUserName();
             this.password = ""; // the platform will never return the real
@@ -518,14 +523,14 @@ public class StorageProviders extends ViprResourceController {
         }
 
         public StorageProviderRestRep update() {
-            return StorageProviderUtils.update(uri(id), name, ipAddress,
+            return StorageProviderUtils.update(uri(id), name, site, ipAddress,
                     portNumber, userName, password, useSSL, interfaceType,
                     secondaryUsername, secondaryPassword, elementManagerURL, secondaryURL, secretKey);
         }
 
         public Task<StorageProviderRestRep> create() {
             Task<StorageProviderRestRep> task = StorageProviderUtils.create(
-                    name, ipAddress, portNumber, userName, password, useSSL,
+                    name, site, ipAddress, portNumber, userName, password, useSSL,
                     interfaceType, secondaryUsername, secondaryPassword,
                     elementManagerURL, secondaryURL, secretKey);
             new SaveWaitJob(getViprClient(), task).now();

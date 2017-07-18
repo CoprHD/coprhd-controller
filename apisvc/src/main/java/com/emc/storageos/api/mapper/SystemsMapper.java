@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
@@ -94,6 +95,7 @@ public class SystemsMapper {
 		to.setSuccessScanTime(from.getSuccessScanTime());
 		to.setCompatibilityStatus(from.getCompatibilityStatus());
 		to.setRegistrationStatus(from.getRegistrationStatus());
+		to.setSite(TagUtils.getSiteName(from));
 		return to;
 	}
 
@@ -128,6 +130,7 @@ public class SystemsMapper {
 		to.setSecondaryUsername(from.getSecondaryUsername());
 		to.setElementManagerURL(from.getElementManagerURL());
 		to.setSecondaryURL(from.getSecondaryURL());
+		to.setSite(TagUtils.getSiteName(from));
 		return to;
 	}
 
@@ -424,6 +427,7 @@ public class SystemsMapper {
 		to.setLastArrayAffinityRunTime(from.getLastArrayAffinityRunTime());
 		to.setNextArrayAffinityRunTime(from.getNextArrayAffinityRunTime());
 		to.setSuccessArrayAffinityTime(from.getSuccessArrayAffinityTime());
+		to.setSite(TagUtils.getSiteName(from));
 		return to;
 	}
 

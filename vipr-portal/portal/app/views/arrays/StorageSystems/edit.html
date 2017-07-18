@@ -467,6 +467,13 @@
       #{Form.inputTextControlGroup field:field /}
     #{/field}
 
+    #{field 'storageArray.site'}
+        %{
+          field.required = false
+        }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
     #{field 'storageArray.ipAddress'}
       %{
         field.required = true

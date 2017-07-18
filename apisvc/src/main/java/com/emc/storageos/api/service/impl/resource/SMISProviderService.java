@@ -653,6 +653,7 @@ public class SMISProviderService extends TaskResourceService {
         else {
             system.setLabel(nativeGuid);
         }
+
         _dbClient.createObject(system);
         _log.info("Created Storage System with Native Guid:" + system.getNativeGuid());
 

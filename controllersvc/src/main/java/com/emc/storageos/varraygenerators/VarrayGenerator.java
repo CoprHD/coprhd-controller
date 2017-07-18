@@ -46,9 +46,9 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
     protected CoordinatorClient coordinator;
     protected DbClient dbClient;
     private static Map<String, VarrayGeneratorInterface> registrationMap = new HashMap<String, VarrayGeneratorInterface>();
-    protected static String SITE = "Site";
     private Set<VpoolTemplate> vpoolTemplates = new HashSet<VpoolTemplate>();;
-    
+    protected static String SITE = "Site";
+
     protected VarrayGenerator(String type) {
         registrationMap.put(type, this);
     }
@@ -350,28 +350,7 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
         }
         return vpool;
     }
-    
-    /**
-     * Returns the site that a Storage System should be a part of. 
-     * This is currently stored as a tag of form Site-siteName
-     * @param system -- StorageSystem
-     * @return - Site name
-     */
-    protected String getSiteName(StorageSystem system) {
-        ScopedLabelSet tags= system.getTag();
-        if (tags != null) {
-            for (ScopedLabel tag : tags) {
-                String labelPrefix = SITE + "=";
-                String label = tag.getLabel();
-                if (NullColumnValueGetter.isNotNullValue(label) && label.startsWith(labelPrefix)) {
-                   String site = label.replaceAll(labelPrefix, "");
-                   return site;
-                }
-            }
-        }
-        return null;
-    }
-    
+
     public CoordinatorClient getCoordinator() {
         return coordinator;
     }

@@ -21,6 +21,7 @@ import com.emc.storageos.model.adapters.CalendarAdapter;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public abstract class DataObjectRestRep {
     private String name;
+    private String site;
     private URI id;
     private RestLinkRep link;
     private Calendar creationTime;
@@ -56,6 +57,19 @@ public abstract class DataObjectRestRep {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * The site assigned to this resource in ViPR. 
+     * 
+     */
+    @XmlElement
+    public String getSite() {
+        return site;
+    }
+
+    public void setSite(String site) {
+        this.site = site;
     }
 
     /**

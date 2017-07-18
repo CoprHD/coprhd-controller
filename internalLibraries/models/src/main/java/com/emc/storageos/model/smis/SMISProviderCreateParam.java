@@ -13,6 +13,7 @@ import com.emc.storageos.model.valid.Length;
 public class SMISProviderCreateParam {
 
     private String name;
+    private String site;
     private String ipAddress;
     private Integer portNumber;
     private String userName;
@@ -22,9 +23,10 @@ public class SMISProviderCreateParam {
     public SMISProviderCreateParam() {
     }
 
-    public SMISProviderCreateParam(String name, String ipAddress,
+    public SMISProviderCreateParam(String name, String site, String ipAddress,
             Integer portNumber, String userName, String password, Boolean useSSL) {
         this.name = name;
+        this.site = site;
         this.ipAddress = ipAddress;
         this.portNumber = portNumber;
         this.userName = userName;
@@ -43,6 +45,19 @@ public class SMISProviderCreateParam {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * Site of the Storage Provider
+     */
+    @XmlElement(name = "site")
+    @Length(min = 2, max = 128)
+    public String getSite() {
+        return site;
+    }
+
+    public void setSite(String site) {
+        this.site = site;
     }
 
     /**

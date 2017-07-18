@@ -69,11 +69,12 @@ public class StorageProviderUtils {
         return false;
     }
 
-    public static Task<StorageProviderRestRep> create(String name, String ipAddress, Integer portNumber, String userName,
+    public static Task<StorageProviderRestRep> create(String name, String site, String ipAddress, Integer portNumber, String userName,
             String password, Boolean useSSL, String interfaceType, String secondaryUsername, String secondaryPassword,
             String elementManagerURL, String secondaryURL, String secretKey) {
         StorageProviderCreateParam update = new StorageProviderCreateParam();
         update.setName(name);
+        update.setSite(site);
         update.setIpAddress(ipAddress);
         update.setPortNumber(portNumber);
         update.setUserName(userName);        
@@ -95,11 +96,12 @@ public class StorageProviderUtils {
         return getViprClient().storageProviders().create(update);
     }
 
-    public static StorageProviderRestRep update(URI id, String name, String ipAddress, Integer portNumber,
+    public static StorageProviderRestRep update(URI id, String name, String site, String ipAddress, Integer portNumber,
             String userName, String password, Boolean useSSL, String interfaceType, String secondaryUsername,
             String secondaryPassword, String elementManagerURL, String secondaryURL, String secretKey) {
         StorageProviderUpdateParam update = new StorageProviderUpdateParam();
         update.setName(name);
+        update.setSite(site);
         update.setIpAddress(ipAddress);
         update.setPortNumber(portNumber);
         update.setUserName(userName);

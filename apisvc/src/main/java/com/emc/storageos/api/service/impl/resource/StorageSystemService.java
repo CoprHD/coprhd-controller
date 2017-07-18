@@ -83,6 +83,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -560,14 +561,17 @@ public class StorageSystemService extends TaskResourceService {
             if (param.getIpAddress() != null || param.getPortNumber() != null || param.getUserName() != null ||
                     param.getPassword() != null || param.getSmisProviderIP() != null || param.getSmisPortNumber() != null ||
                     param.getSmisUserName() != null || param.getSmisPassword() != null || param.getSmisUseSSL() != null) {
-                throw APIException.badRequests.onlyNameAndMaxResourceCanBeUpdatedForSystemWithType(systemType.name());
+                throw APIException.badRequests.onlyNameSiteAndMaxResourceCanBeUpdatedForSystemWithType(systemType.name());
             }
-            _dbClient.persistObject(system);
+
+            TagUtils.setSiteName(system, param.getSite());
+
+            _dbClient.updateObject(system);
 
             String taskId = UUID.randomUUID().toString();
             TaskList taskList = new TaskList();
             Operation op = new Operation();
-            op.ready("Updated Storage System name");
+            op.ready("Updated Storage System name, site, or max resources");
             op.setResourceType(ResourceOperationTypeEnum.UPDATE_STORAGE_SYSTEM);
             _dbClient.createTaskOpStatus(StorageSystem.class, system.getId(), taskId, op);
 
@@ -631,6 +635,8 @@ public class StorageSystemService extends TaskResourceService {
         system.setSmisPassword(param.getSmisPassword());
         system.setSmisUseSSL(param.getSmisUseSSL());
 
+        TagUtils.setSiteName(system, param.getSite());
+
         _dbClient.createObject(system);
         _log.info("Created Storage System with Native Guid:" + system.getNativeGuid());
         return system;
@@ -660,7 +666,9 @@ public class StorageSystemService extends TaskResourceService {
         system.setSmisUserName(param.getSmisUserName());
         system.setSmisPassword(param.getSmisPassword());
 
-        _dbClient.persistObject(system);
+        TagUtils.setSiteName(system, param.getSite());
+
+        _dbClient.updateObject(system);
     }
 
     /**

@@ -394,6 +394,7 @@ public class ExternalDeviceCommunicationInterface extends
     private void discoverStorageSystem(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
 
+        // TODO: how to set Site?
         StorageSystem driverStorageSystem = new StorageSystem();
         driverStorageSystem.setIpAddress(accessProfile.getIpAddress());
         driverStorageSystem.setPortNumber(accessProfile.getPortNumber());
@@ -995,6 +996,7 @@ public class ExternalDeviceCommunicationInterface extends
     }
 
     public static StorageSystem initStorageSystem(com.emc.storageos.db.client.model.StorageSystem storageSystem) {
+        // TODO: how to set Site?
         StorageSystem driverStorageSystem = new StorageSystem();
         driverStorageSystem.setNativeId(storageSystem.getNativeId());
         driverStorageSystem.setIpAddress(storageSystem.getIpAddress());

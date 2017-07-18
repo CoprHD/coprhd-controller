@@ -868,6 +868,9 @@ public class StorageSystems extends ViprResourceController {
         @Required
         public String name;
 
+        @MaxSize(2048)
+        public String site;
+
         @Required
         @HostNameOrIpAddress
         public String ipAddress;
@@ -954,6 +957,7 @@ public class StorageSystems extends ViprResourceController {
         public StorageSystemForm(StorageSystemRestRep storageArray) {
             this.id = storageArray.getId().toString();
             this.name = StorageSystemUtils.getName(storageArray);
+            this.site = storageArray.getSite();
             this.type = storageArray.getSystemType();
             this.supportsSoftLimit = storageArray.getSupportsSoftLimit();
             this.supportsNotificationLimit = storageArray
@@ -995,6 +999,7 @@ public class StorageSystems extends ViprResourceController {
         public Task<StorageSystemRestRep> update() {
             StorageSystemUpdateRequestParam storageArray = new StorageSystemUpdateRequestParam();
             storageArray.setName(name);
+            storageArray.setSite(site);
 
             // if unlimit resources was unchecked, set the given limit
             if (!unlimitResource) {
@@ -1036,6 +1041,7 @@ public class StorageSystems extends ViprResourceController {
         public Task<StorageSystemRestRep> create() {
             StorageSystemRequestParam storageArray = new StorageSystemRequestParam();
             storageArray.setName(name);
+            storageArray.setSite(site);
             storageArray.setSystemType(type);
 
             storageArray.setPassword(userPassword);
@@ -1061,6 +1067,7 @@ public class StorageSystems extends ViprResourceController {
         public Task<StorageProviderRestRep> createStorageProvider() {
             StorageProviderForm storageProviderForm = new StorageProviderForm();
             storageProviderForm.name = this.name;
+            storageProviderForm.site = this.site;
             storageProviderForm.password = this.userPassword;
             storageProviderForm.userName = this.userName;
             storageProviderForm.useSSL = this.useSSL;

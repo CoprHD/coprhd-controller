@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.ConnectivityUtil;
 
@@ -54,7 +55,7 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
             
             // If the array is part of a Site, add it to the Site array.
             VirtualArray siteVarray = null;
-            String siteName = getSiteName(system);
+            String siteName = TagUtils.getSiteName(system);
             if (siteName != null) {
                 siteName = String.format("%s %s", SITE, siteName);
                 siteVarray = buildVarray(system, siteName, ports, networks);

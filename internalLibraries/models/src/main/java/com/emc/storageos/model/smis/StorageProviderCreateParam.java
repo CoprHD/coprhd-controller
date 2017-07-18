@@ -15,6 +15,7 @@ public class StorageProviderCreateParam {
     public static Boolean USE_SSL_DEFAULT = Boolean.TRUE;
 
     private String name;
+    private String site;
     private String ipAddress;
     private Integer portNumber;
     private String userName;
@@ -30,9 +31,10 @@ public class StorageProviderCreateParam {
     public StorageProviderCreateParam() {
     }
 
-    public StorageProviderCreateParam(String name, String ipAddress,
+    public StorageProviderCreateParam(String name, String site, String ipAddress,
             Integer portNumber, String userName, String password, Boolean useSSL, String interfaceType) {
         this.name = name;
+        this.site = site;
         this.ipAddress = ipAddress;
         this.portNumber = portNumber;
         this.userName = userName;
@@ -52,6 +54,19 @@ public class StorageProviderCreateParam {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * Site of the Storage Provider
+     */
+    @XmlElement(name = "site")
+    @Length(min = 2, max = 128)
+    public String getSite() {
+        return site;
+    }
+
+    public void setSite(String site) {
+        this.site = site;
     }
 
     /**

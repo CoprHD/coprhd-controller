@@ -5,6 +5,7 @@
 
 package com.emc.storageos.dbutils;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -692,13 +693,33 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) {
+
+            long beginMillis = new Date().getTime();
             if (specificCF) {
                 _client.checkDB(cfName);
             } else {
                 _client.checkDB();
             }
+            long endMillis = new Date().getTime();
+            System.out.println("db consistency check consumed: "  + getFormattedDuration(beginMillis, endMillis));
         }
+
+        private String getFormattedDuration(long beginMillis, long endMillis) {
+
+            long consumedMillis = endMillis - beginMillis;
+
+            Duration duration = Duration.ofMillis(consumedMillis);
+            long hours = duration.toHours();
+            int minutes = (int) ((duration.getSeconds() % (60 * 60)) / 60);
+            int seconds = (int) (duration.getSeconds() % 60);
+            String formattedDuration = hours + "hours" + minutes + ",minutes" + seconds + ",seconds";
+
+            return formattedDuration;
+        }
+
     }
+
+
 
     public static class RebuildIndexHandler extends CommandHandler {
         private String rebuildIndexFileName;

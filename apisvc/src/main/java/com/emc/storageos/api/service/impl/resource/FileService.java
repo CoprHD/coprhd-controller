@@ -4739,7 +4739,7 @@ public class FileService extends TaskResourceService {
             }
             FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,
-                    recommendations, capabilities);
+                    recommendations, capabilities, targetFs);
         } catch (BadRequestException e) {
             _dbClient.error(FileShare.class, fs.getId(), task, e);
             _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);

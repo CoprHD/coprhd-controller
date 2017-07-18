@@ -23,6 +23,8 @@ import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
@@ -2353,14 +2355,31 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow = _workflowService.getNewWorkflow(this, ASSIGN_FILE_POLICY_TO_FS_WF_NAME, false, taskId);
             String waitFor = null;
             s_logger.info("Generating steps for creating mirror filesystems...");
-            // setting if the create fs step is needed.
-            boolean isTargetExisting = false;
+            
             for (FileDescriptor fileDescriptor : fileDescriptors) {
                 if (fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE.name())
                         || fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_EXISTING_SOURCE.name())) {
                     sourceFS = s_dbClient.queryObject(FileShare.class, fileDescriptor.getFsURI());
-                } else if (fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_LOCAL_MIRROR_TARGET.name()) || fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_MIRROR_TARGET.name())){
-                    isTargetExisting = true;
+                    break;
+                }
+            }
+         // setting if the create fs step is needed.
+            boolean isTargetExisting = false;
+            if (sourceFS.getExtensions().containsKey("ReplicationInfo")) {
+                FileShare targetFs = null;
+                String targetInfo = sourceFS.getExtensions().get("ReplicationInfo");
+                if (targetInfo != null) {
+                    String targetPath = targetInfo;
+                    URIQueryResultList queryResult = new URIQueryResultList();
+                    s_dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharePathConstraint(targetPath), queryResult);
+                    Iterator<URI> iter = queryResult.iterator();
+                    while (iter.hasNext()) {
+                        URI fsURI = iter.next();
+                        targetFs = s_dbClient.queryObject(FileShare.class, fsURI);
+                    }
+                    if(targetFs != null){
+                        isTargetExisting = true;
+                    }
                 }
             }
 

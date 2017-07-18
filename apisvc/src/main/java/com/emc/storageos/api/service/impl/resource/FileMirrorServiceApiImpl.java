@@ -633,6 +633,13 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task, recommendations, vpoolCapabilities, null);
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool, VirtualArray varray,
+            TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities,
+            FileShare targetFs) throws InternalException {
         List<FileShare> fileList = null;
         List<FileShare> fileShares = new ArrayList<>();
 
@@ -649,7 +656,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 varray, vpool, recommendations, vpoolCapabilities, false);
         fileShares.addAll(fileList);
         
-        if(CollectionUtils.isEmpty(fileShares)){
+        if(CollectionUtils.isEmpty(fileShares) && targetFs != null){
+            setMirrorFileShareAttributes(fs, targetFs);
             fileShares.add(fs);
         }
 
@@ -669,6 +677,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
             throw e;
         }
+        
     }
 
 }

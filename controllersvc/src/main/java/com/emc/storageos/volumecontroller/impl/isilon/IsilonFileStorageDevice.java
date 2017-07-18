@@ -3071,16 +3071,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("doResyncPrepSourcePolicy - resync-prep action on source policy ", policyName);
         BiosCommandResult cmdResult = null;
         IsilonSyncTargetPolicy policy = null;
+
         // test the source policy details
         cmdResult = mirrorOperations.doTestReplicationPolicy(sourceSystem, policyName);
         if (cmdResult.isCommandSuccess()) {
             // get source policy details on target storage system
             policy = mirrorOperations.getIsilonSyncTargetPolicy(targetSystem, policyName);
+
             if (cmdResult.isCommandSuccess() && null != policy) {
-                if (!policy.getEnabled()) {
-                    // enable the replication policy
-                    cmdResult = mirrorOperations.doEnablePolicy(sourceSystem, policyName);
-                }
+                // enable the replication policy
+                cmdResult = mirrorOperations.doEnablePolicy(sourceSystem, policyName);
                 if (!cmdResult.isCommandSuccess()) {
                     return cmdResult;
                 }
@@ -3098,7 +3098,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     // call isilon api
                     return mirrorOperations.doResyncPrep(sourceSystem, policyName, completer);
                 }
-
             } else {
                 return cmdResult;
             }

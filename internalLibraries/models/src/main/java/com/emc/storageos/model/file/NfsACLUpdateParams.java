@@ -23,6 +23,7 @@ public class NfsACLUpdateParams implements Serializable {
     protected List<NfsACE> acesToDelete;
 
     protected String subDir;
+    protected List<String> inheritFlags;
 
     public NfsACLUpdateParams() {
 
@@ -67,11 +68,30 @@ public class NfsACLUpdateParams implements Serializable {
         this.subDir = subDir;
     }
 
+
+    /**
+     * List of inheritFlags for the file system NFS ACL.
+     */
+    @XmlElementWrapper(required = false, name = "inheritFlags")
+    @XmlElement(name = "inheritFlag")
+    public List<String> getInheritFlags() {
+        if (inheritFlags == null) {
+            inheritFlags = new ArrayList<String>();
+        }
+        return inheritFlags;
+    }
+
+    public void setInheritFlags(List<String> inheritFlags) {
+        this.inheritFlags = inheritFlags;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("NfsACLUpdateParams [Subdirectory=");
         builder.append(subDir);
+        builder.append(", inheritFlags=");
+        builder.append(inheritFlags);
         builder.append(", acesToAdd=");
         builder.append(acesToAdd);
         builder.append(", acesToModify=");

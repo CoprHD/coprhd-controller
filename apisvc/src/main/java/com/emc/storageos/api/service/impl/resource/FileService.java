@@ -4657,7 +4657,7 @@ public class FileService extends TaskResourceService {
             boolean validTarget = false;
             if (targetFs != null) {
                 targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
-                if (!targetSystem.getInactive() && targetSystem.isStorageSystemManagedByProvider()) {
+                if (!targetSystem.getInactive()) {
                     validTarget = validateTarget(targetFs, projectURI, targertVarrayURIs);
                 }
             }
@@ -4726,13 +4726,7 @@ public class FileService extends TaskResourceService {
                         vpool, capabilities);
             } else if (!validTarget && targetFs != null) {
                 _log.error("The target Fs validation failed");
-                op = fs.getOpStatus().get(task);
-                op.error(APIException.badRequests
-                        .unableToProcessRequest("Error occured while validating the target FS"));
-                fs.getOpStatus().updateTaskStatus(task, op);
-                _dbClient.updateObject(fs);
-                throw APIException.badRequests
-                        .unableToProcessRequest("Error occured while validating the target FS");
+                return getFailureResponse(targetFs, task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM, "Error occured while validating the target FS");
             } else {
                 // skipping the recommendation as we have a targetFs in database
                 _log.info("Skipping the placement as we have a targetFs");

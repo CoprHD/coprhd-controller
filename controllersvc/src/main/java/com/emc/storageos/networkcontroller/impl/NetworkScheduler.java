@@ -535,7 +535,7 @@ public class NetworkScheduler {
         for (NetworkFCZoneInfo info : infos) {
             Boolean noReferences = zoneNameToZoneReferencesSet.get(info.getZoneName()).isEmpty();
             info.setLastReference(noReferences);
-            Log.info(String.format("Zone %s lastRef %s", info.getZoneName(), noReferences.toString()));
+            _log.info(String.format("Zone %s lastRef %s", info.getZoneName(), noReferences.toString()));
         }
     }
 

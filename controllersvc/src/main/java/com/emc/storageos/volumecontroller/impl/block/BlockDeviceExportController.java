@@ -1098,7 +1098,7 @@ public class BlockDeviceExportController implements BlockExportController {
             List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
                     _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
                     StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), systemURI);
-            /*boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
+            boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
                     workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
                 _log.error("Change port group could not require locks");
@@ -1106,7 +1106,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 taskCompleter.error(_dbClient, serviceError);
                 return;
 
-            }*/
+            }
             _wfUtils.generateExportGroupChangePortWorkflow(workflow, "change port group", exportGroupURI, newPortGroupURI,
                     waitForApproval);
         

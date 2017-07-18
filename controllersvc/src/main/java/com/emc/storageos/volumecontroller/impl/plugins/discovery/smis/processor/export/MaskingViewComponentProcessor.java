@@ -22,10 +22,14 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.MigrationStatus;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.WWNUtility;
+import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -33,9 +37,11 @@ import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.PermissionsKey;
+import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
- * This processor is responsible for processing associated Storage Group information for masking views created on array.
+ * This processor is responsible for processing associated members information for masking views created on array.
  */
 public class MaskingViewComponentProcessor extends Processor {
     private Logger logger = LoggerFactory.getLogger(MaskingViewComponentProcessor.class);
@@ -44,6 +50,7 @@ public class MaskingViewComponentProcessor extends Processor {
     private static final String ROOT = "root";
     private static final String LABEL = "label";
     private static final String MIGRATION_PROJECT = "Migration_Project";
+    private static final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
 
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -58,6 +65,7 @@ public class MaskingViewComponentProcessor extends Processor {
             // Storage group names for book-keeping
             @SuppressWarnings("unchecked")
             Set<String> storageGroupNames = (Set<String>) keyMap.get(Constants.MIGRATION_STORAGE_GROUPS);
+            // Add all the storage groups to a Project named Migration
             Project project = (Project) keyMap.get(MIGRATION_PROJECT);
             if (project == null) {
                 project = getMigrationProject();
@@ -66,38 +74,85 @@ public class MaskingViewComponentProcessor extends Processor {
 
             CIMObjectPath lunMaskingView = getObjectPathfromCIMArgument(args);
             maskingViewName = lunMaskingView.getKey(Constants.DEVICEID).getValue().toString();
-            logger.info("Processing Masking View {} to get associated storage group information", maskingViewName);
+            logger.info("Processing associated memebers for Masking View {}", maskingViewName);
+            BlockConsistencyGroup storageGroup = null;
+            StringSet initiators = new StringSet();
+            boolean sgCreated = false;
             while (it.hasNext()) {
-                CIMObjectPath deviceMaskingGroup = it.next();
-                String instanceID = deviceMaskingGroup.getKey(Constants.INSTANCEID).getValue().toString();
-                instanceID = instanceID.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
-                // InstandID format: SYMMETRIX+<SERIAL_NUMBER>+<SG_NAME>
-                // All SGs from different arrays will be put under one project. It is
-                // better to have the label format like this.
-                BlockConsistencyGroup storageGroup = checkStorageGroupExistsInDB(instanceID, dbClient);
-                if (storageGroup == null) {
-                    // This CG cannot be used for provisioning operations currently.
-                    storageGroup = new BlockConsistencyGroup();
-                    storageGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));
-                    storageGroup.setLabel(instanceID);
-                    // storageGroup.setAlternateLabel(instanceID);
-                    storageGroup.addConsistencyGroupTypes(Types.MIGRATION.name());
-                    storageGroup.setStorageController(systemId);
-                    storageGroup.setMigrationStatus(MigrationStatus.NONE.toString());
-                    storageGroup.addSystemConsistencyGroup(systemId.toString(), instanceID);
-                    storageGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
-                    storageGroup.setTenant(project.getTenantOrg());
-                    dbClient.createObject(storageGroup);
+                CIMObjectPath associatedInstancePath = it.next();
+                if (associatedInstancePath.toString().contains(SmisConstants.SE_DEVICE_MASKING_GROUP)) {
+                    String instanceID = associatedInstancePath.getKey(Constants.INSTANCEID).getValue().toString();
+                    instanceID = instanceID.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
+                    // InstandID format: SYMMETRIX+<SERIAL_NUMBER>+<SG_NAME>
+                    // All SGs from different arrays will be put under one project. It is
+                    // better to have the label format like this.
+                    storageGroup = checkStorageGroupExistsInDB(instanceID, dbClient);
+                    if (storageGroup == null) {
+                        // This CG cannot be used for provisioning operations currently.
+                        sgCreated = true;
+                        storageGroup = new BlockConsistencyGroup();
+                        storageGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));
+                        storageGroup.setLabel(instanceID);
+                        // storageGroup.setAlternateLabel(instanceID);
+                        storageGroup.addConsistencyGroupTypes(Types.MIGRATION.name());
+                        storageGroup.setStorageController(systemId);
+                        storageGroup.setMigrationStatus(MigrationStatus.NONE.toString());
+                        storageGroup.addSystemConsistencyGroup(systemId.toString(), instanceID);
+                        storageGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+                        storageGroup.setTenant(project.getTenantOrg());
+                    } else {
+                        storageGroup.getInitiators().clear();
+                        // TODO see how to get latest migration status
+                        // storageGroup.setMigrationStatus(MigrationStatus.NONE.toString());
+                    }
+                    storageGroupNames.add(instanceID);
+                } else if (associatedInstancePath.toString().contains(SmisConstants.CP_SE_STORAGE_HARDWARE_ID)) {
+                    // SE_StorageHardwareID.InstanceID="I-+-iqn.1994-05.com.redhat:xxxx9999"
+                    // SE_StorageHardwareID.InstanceID="W-+-10000000FFFFFFFF"
+                    String initiatorStr = associatedInstancePath.getKey(Constants.INSTANCEID).getValue().toString()
+                            .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
+                    String initiatorNetworkId = initiatorStr.substring(initiatorStr.lastIndexOf(Constants.PLUS) + 1);
+                    logger.info("looking at initiator network id {}", initiatorNetworkId);
+                    if (WWNUtility.isValidNoColonWWN(initiatorNetworkId)) {
+                        initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
+                        logger.debug("wwn normalized to {}", initiatorNetworkId);
+                    } else if (WWNUtility.isValidWWN(initiatorNetworkId)) {
+                        initiatorNetworkId = initiatorNetworkId.toUpperCase();
+                        logger.debug("wwn normalized to {}", initiatorNetworkId);
+                    } else if (initiatorNetworkId.matches(ISCSI_PATTERN)
+                            && (iSCSIUtility.isValidIQNPortName(initiatorNetworkId) || iSCSIUtility
+                                    .isValidEUIPortName(initiatorNetworkId))) {
+                        logger.debug("iSCSI storage port normalized to {}", initiatorNetworkId);
+                    } else {
+                        logger.warn("this is not a valid FC or iSCSI network id format, skipping.");
+                        continue;
+                    }
+
+                    // check if a host initiator exists for this id
+                    Initiator knownInitiator = NetworkUtil.getInitiator(initiatorNetworkId, dbClient);
+                    if (knownInitiator != null) {
+                        logger.info("Found an initiator ({}) in ViPR for network id {} ",
+                                knownInitiator.getId(), initiatorNetworkId);
+                        initiators.add(knownInitiator.getId().toString());
+                    } else {
+                        logger.info("No hosts in ViPR found configured for network id {}", initiatorNetworkId);
+                    }
                 } else {
-                    // TODO see how to get latest migration status
-                    // storageGroup.setMigrationStatus(MigrationStatus.NONE.toString());
-                    dbClient.updateObject(storageGroup);
+                    logger.debug("Skipping associator {}", associatedInstancePath.toString());
                 }
-                storageGroupNames.add(instanceID);
+            }
+
+            if (!initiators.isEmpty()) {
+                storageGroup.setInitiators(initiators);
+            }
+            if (sgCreated) {
+                dbClient.createObject(storageGroup);
+            } else {
+                dbClient.updateObject(storageGroup);
             }
         } catch (Exception e) {
             logger.error(
-                    String.format("Processing associated storage group information for Masking View %s failed: ", maskingViewName), e);
+                    String.format("Processing associated member information for Masking View %s failed: ", maskingViewName), e);
         }
     }
 

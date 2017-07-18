@@ -1674,7 +1674,7 @@
 			<list>
 				<ref bean="reference-maskingViews" />
 				<ref bean="null" />
-				<ref bean="resultClass-StorageGroup" />
+				<ref bean="null" />
 				<ref bean="null" />
 				<ref bean="null" />
 			</list>
@@ -1691,12 +1691,6 @@
 		<property name="creator" ref="argscreator" />
 		<property name="method" value="getReferenceValue" />
 		<property name="value" value="maskingViews" />
-	</bean>
-
-	<bean id="resultClass-StorageGroup" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="creator" ref="argscreator" />
-		<property name="method" value="getStringValue" />
-		<property name="value" value="SE_DeviceMaskingGroup" />
 	</bean>
 
 	<bean id="maskingViewComponentProcessor"

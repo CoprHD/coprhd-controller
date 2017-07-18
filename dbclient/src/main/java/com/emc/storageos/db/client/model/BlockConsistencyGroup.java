@@ -67,6 +67,12 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     private String migrationStatus;
 
     /**
+     * List of known initiators belonging to the masking view to which this
+     * storage group is attached to.
+     */
+    private StringSet initiators;
+
+    /**
      * Alternate label used in SRDF.
      */
     private String alternateLabel;
@@ -284,6 +290,20 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     public void setMigrationStatus(String migrationStatus) {
         this.migrationStatus = migrationStatus;
         setChanged("migrationStatus");
+    }
+
+    @Name("initiators")
+    @AlternateId("BlockConsistencyGroupInitiators")
+    public StringSet getInitiators() {
+        if (initiators == null) {
+            initiators = new StringSet();
+        }
+        return initiators;
+    }
+
+    public void setInitiators(StringSet initiators) {
+        this.initiators = initiators;
+        setChanged("initiators");
     }
 
     @Name("systemConsistencyGroups")

@@ -139,8 +139,8 @@ public class VNXFileCommApi {
             final Map autoAtts) throws VNXException {
 
         _log.info("Create VNX File System: {} on data mover {}", fileSys, dataMover);
-        XMLApiResult result = new XMLApiResult();
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
+        XMLApiResult result = new XMLApiResult();
 
         try {
             updateAttributes(reqAttributeMap, system);
@@ -235,12 +235,7 @@ public class VNXFileCommApi {
                     result.setMessage("File System creation failed");
                 }
             } else {
-                String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
-                if (errMsg == null) {
-                    errMsg = result.getMessage();
-                }
-                result.setCommandFailed();
-                result.setMessage(errMsg);
+                _log.error("Execution of createFS command failed with error: {}", result.getMessage());
             }
 
         } catch (Exception e) {

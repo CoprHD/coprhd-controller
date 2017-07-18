@@ -22,7 +22,9 @@ import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.vipr.model.catalog.OrderRestRep;
 
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
@@ -701,20 +703,9 @@ public abstract class CommandHandler {
                 _client.checkDB();
             }
             long endMillis = new Date().getTime();
-            System.out.println("db consistency check consumed: "  + getFormattedDuration(beginMillis, endMillis));
-        }
 
-        private String getFormattedDuration(long beginMillis, long endMillis) {
-
-            long consumedMillis = endMillis - beginMillis;
-
-            Duration duration = Duration.ofMillis(consumedMillis);
-            long hours = duration.toHours();
-            int minutes = (int) ((duration.getSeconds() % (60 * 60)) / 60);
-            int seconds = (int) (duration.getSeconds() % 60);
-            String formattedDuration = hours + "hours, " + minutes + "minutes, " + seconds + "seconds";
-
-            return formattedDuration;
+            System.out.println("db consistency check consumed: "  +
+                    DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginMillis));
         }
 
     }

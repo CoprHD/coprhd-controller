@@ -236,6 +236,9 @@ public class VNXFileCommApi {
                 }
             } else {
                 String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
+                if (errMsg == null) {
+                    errMsg = result.getMessage();
+                }
                 result.setCommandFailed();
                 result.setMessage(errMsg);
             }
@@ -690,7 +693,7 @@ public class VNXFileCommApi {
                 for (TreeQuota quota : quotaDirs) {
                     if (quota != null) {
                         String quotaDirName = quota.getPath().substring(1); // exclude the "/" in the beginning of the
-                                                                            // path.
+                        // path.
                         XMLApiResult status = deleteQuotaDirectory(system, fs.getName(), quotaDirName, true, false);
                         if (!status.isCommandSuccess()) {
                             String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);

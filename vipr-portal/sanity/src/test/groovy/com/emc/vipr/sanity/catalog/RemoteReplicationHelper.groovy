@@ -5,6 +5,7 @@
 package com.emc.vipr.sanity.catalog
 
 import static com.emc.vipr.sanity.Sanity.*
+import static com.emc.vipr.sanity.setup.RemoteReplicationSetup.*
 import static org.junit.Assert.*
 
 import com.emc.vipr.model.catalog.AssetOption
@@ -29,6 +30,13 @@ class RemoteReplicationHelper {
     static final RR_DRIVER_TYPE = "DRIVERSYSTEM"
     static final RR_SET = "replicationSet1 [ACTIVE]"
     static final RR_GROUP = "replicationGroup1_set1 [ACTIVE] (synchronous)"
+    static final CG_OR_PAIR_PAIR = "Remote Replication Pair"
+    static final CG_OR_PAIR_CG = "Consistency Group"
+    static final RR_GROUP_NONE_OPTION = "None" // none option shown in rr group menu
+    static final RR_PAIR_IN_CG = "rr_vol_in_cg -> rr_vol_in_cg_TARGET [INACTIVE] (synchronous)"
+    static final RR_PAIR_IN_CG_IN_RR_GRP = "rr_vol_in_cg_rr_grp -> rr_vol_in_cg_rr_grp_TARGET [INACTIVE] (synchronous)"
+    static final RR_PAIR_IN_RR_GRP = "rr_vol_in_rr_grp -> rr_vol_in_rr_grp_TARGET [INACTIVE] (synchronous)"
+    static final RR_PAIR_IN_RR_SET = "rr_vol_in_rr_set -> rr_vol_in_rr_set_TARGET [INACTIVE] (synchronous)"
 
     // global fields
     static String RR_DRIVER_TYPE_ID
@@ -58,7 +66,6 @@ class RemoteReplicationHelper {
 
     static void rrSetsAssetOptionTest() {  // depends on storageTypeAssetOptionTest()
         println "Testing Asset Option Provider for RR Sets for storage type"
-
         Set availableAssetTypes = [AO_RR_STORAGE_TYPE] as Set
         List<String> dependencies = catalog.assetOptions().getAssetDependencies(AO_RR_SETS_FOR_TYPE, availableAssetTypes)
         assertNotNull("Asset Dependencies for " + AO_RR_SETS_FOR_TYPE + " are not null", dependencies)
@@ -74,7 +81,6 @@ class RemoteReplicationHelper {
 
     static void rrGroupsForSetAssetOptionTest() {   // depends on rrSetsAssetOptionTest()
         println "Testing Asset Option Provider for RR Groups for RR Set"
-
         Set availableAssetTypes = [AO_RR_SETS_FOR_TYPE] as Set
         List<String> dependencies = catalog.assetOptions().getAssetDependencies(AO_RR_GROUPS_FOR_SET, availableAssetTypes)
         assertNotNull("Asset Dependencies for " + AO_RR_GROUPS_FOR_SET + " are not null", dependencies)
@@ -86,6 +92,59 @@ class RemoteReplicationHelper {
         assertNotNull("AssetOptions for " + AO_RR_GROUPS_FOR_SET + " are not null", assetOptions)
         assertTrue("At least one asset option is returned for " + AO_RR_GROUPS_FOR_SET, assetOptions.size() > 0)
         assertTrue("RR Groups contains " + RR_GROUP + " in " + assetOptions, optionsContainValue(assetOptions,RR_GROUP))
+    }
+
+    static void cgOrPairOptionTest() {
+        println "Testing Asset Option Provider for CG or RR Pair Selector"
+        List<AssetOption> assetOptions = getOptions(AO_RR_CG_OR_PAIR)
+        assertNotNull("AssetOptions for " + AO_RR_CG_OR_PAIR + " are not null", assetOptions)
+        assertTrue("Two asset option returned for " + AO_RR_CG_OR_PAIR, assetOptions.size() == 2)
+        assertTrue("RR Groups contains " + CG_OR_PAIR_PAIR + " in " + assetOptions, optionsContainValue(assetOptions,CG_OR_PAIR_PAIR))
+        assertTrue("RR Groups contains " + CG_OR_PAIR_CG + " in " + assetOptions, optionsContainValue(assetOptions,CG_OR_PAIR_CG))
+    }
+
+    static void cgsOrPairsDependenciesTest(){
+        println "Testing Asset Option Provider dependencies for CG or Pairs provider"
+        Set availableAssetTypes = [AO_RR_SETS_FOR_TYPE,AO_RR_GROUPS_FOR_SET,AO_RR_CG_OR_PAIR] as Set
+        List<String> dependencies = catalog.assetOptions().getAssetDependencies(AO_RR_PAIRS_OR_CGS, availableAssetTypes)
+        assertNotNull("Asset Dependencies for " + AO_RR_PAIRS_OR_CGS + " are not null", dependencies)
+        assertEquals("Number of asset dependencies returned for " + AO_RR_PAIRS_OR_CGS, 3, dependencies.size())
+    }
+
+    static void cgsForSetTest(){
+        println "Testing Asset Option Provider for ConsistencyGroups in RR Set"
+        def params = [(AO_RR_SETS_FOR_TYPE):RR_SET_ID,(AO_RR_GROUPS_FOR_SET):RR_GROUP_NONE_OPTION,(AO_RR_CG_OR_PAIR):CG_OR_PAIR_CG]
+        List<AssetOption> assetOptions = getOptions(AO_RR_PAIRS_OR_CGS,params)
+        assertTrue("CGs for set contains " + CG_NAME_FOR_SET + " in " + assetOptions, optionsContainValue(assetOptions,CG_NAME_FOR_SET))
+        assertTrue("CGs for set contains " + CG_NAME_FOR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,CG_NAME_FOR_GRP))
+        assertTrue("Two asset options returned for " + AO_RR_PAIRS_OR_CGS, assetOptions.size() == 2)
+    }
+    static void cgsForGrpTest(){
+        println "Testing Asset Option Provider for ConsistencyGroups in RR Grp"
+        def params = [(AO_RR_SETS_FOR_TYPE):RR_SET_ID,(AO_RR_GROUPS_FOR_SET):RR_GROUP_ID,(AO_RR_CG_OR_PAIR):CG_OR_PAIR_CG]
+        List<AssetOption> assetOptions = getOptions(AO_RR_PAIRS_OR_CGS,params)
+        assertTrue("One asset option returned for " + AO_RR_PAIRS_OR_CGS, assetOptions.size() == 1)
+        assertTrue("CGs for set contains " + CG_NAME_FOR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,CG_NAME_FOR_GRP))
+    }
+
+    static void pairsForSetTest(){
+        println "Testing Asset Option Provider for RR Pairs in RR Set"
+        def params = [(AO_RR_SETS_FOR_TYPE):RR_SET_ID,(AO_RR_GROUPS_FOR_SET):RR_GROUP_NONE_OPTION,(AO_RR_CG_OR_PAIR):CG_OR_PAIR_PAIR]
+        List<AssetOption> assetOptions = getOptions(AO_RR_PAIRS_OR_CGS,params)
+        assertTrue("Four asset options returned for " + AO_RR_PAIRS_OR_CGS, assetOptions.size() == 4)
+        assertTrue("CGs for set contains " + RR_PAIR_IN_CG + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_CG))
+        assertTrue("CGs for set contains " + RR_PAIR_IN_CG_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_CG_IN_RR_GRP))
+        assertTrue("CGs for set contains " + RR_PAIR_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_RR_GRP))
+        assertTrue("CGs for set contains " + RR_PAIR_IN_RR_SET + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_RR_SET))
+    }
+
+    static void pairsForGrpTest(){
+        println "Testing Asset Option Provider for RR Pairs in RR Grp"
+        def params = [(AO_RR_SETS_FOR_TYPE):RR_SET_ID,(AO_RR_GROUPS_FOR_SET):RR_GROUP_ID,(AO_RR_CG_OR_PAIR):CG_OR_PAIR_PAIR]
+        List<AssetOption> assetOptions = getOptions(AO_RR_PAIRS_OR_CGS,params)
+        assertTrue("Two asset options returned for " + AO_RR_PAIRS_OR_CGS, assetOptions.size() == 2)
+        assertTrue("CGs for set contains " + RR_PAIR_IN_CG_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_CG_IN_RR_GRP))
+        assertTrue("CGs for set contains " + RR_PAIR_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_RR_GRP))
     }
 
 	// see if asset options contains one with specific value

@@ -24,6 +24,12 @@ public class CatalogRemoteReplicationServicesSanity {
         storageTypeAssetOptionTest()
         rrSetsAssetOptionTest()
         rrGroupsForSetAssetOptionTest()
+        cgOrPairOptionTest()
+        cgsOrPairsDependenciesTest()
+        cgsForGrpTest()
+        cgsForSetTest()
+        pairsForSetTest()
+        pairsForGrpTest()
 
         printInfo "Tests Complete"
     }

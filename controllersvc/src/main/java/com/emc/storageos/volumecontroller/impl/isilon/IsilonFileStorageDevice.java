@@ -3099,7 +3099,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     // if policy is failed then we call to get the reports, return error
                 } else if (JobState.failed.equals(policy.getLastJobState()) ||
                         JobState.needs_attention.equals(policy.getLastJobState())) {
-                    return getSyncPolicyErrorReport(targetSystem, policy);
+                    return getSyncPolicyErrorReport(sourceSystem, policy);
                 } else {
                     // call isilon api
                     return mirrorOperations.doResyncPrep(sourceSystem, policyName, completer);
@@ -3161,7 +3161,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @param syncPolicy - synciq policy name
      * @return
      */
-    private BiosCommandResult getSyncPolicyErrorReport(StorageSystem device, IsilonSyncTargetPolicy policy) {
+    private BiosCommandResult getTargetSyncPolicyErrorReport(StorageSystem device, IsilonSyncTargetPolicy policy) {
         List<IsilonSyncPolicyReport> listMirrorPolicyReports = null;
         StringBuffer errorMsgBuff = new StringBuffer();
 
@@ -3171,6 +3171,34 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // get policy reports from device.
         IsilonApi isi = getIsilonDevice(device);
         listMirrorPolicyReports = isi.getTargetReplicationPolicyReports(policy.getName()).getList();
+
+        String errorMsg = isiGetReportErrMsg(listMirrorPolicyReports);
+
+        errorMsgBuff.append(String.format("Policy Error Target Report details: %s", errorMsg));
+
+        ServiceError serviceError = DeviceControllerErrors.isilon.unableToResyncPrepPolicy(device.getIpAddress(), policy.getName(),
+                errorMsgBuff.toString());
+        _log.error(errorMsgBuff.toString());
+        return BiosCommandResult.createErrorResult(serviceError);
+    }
+
+    /**
+     * get the error reports from device
+     * 
+     * @param device - storage system
+     * @param syncPolicy - synciq policy name
+     * @return
+     */
+    private BiosCommandResult getSyncPolicyErrorReport(StorageSystem device, IsilonSyncTargetPolicy policy) {
+        List<IsilonSyncPolicyReport> listMirrorPolicyReports = null;
+        StringBuffer errorMsgBuff = new StringBuffer();
+
+        errorMsgBuff.append(String.format("Policy details  - failback-failover state : [%s] and policy status: [%s] ",
+                policy.getFoFbState().toString(), policy.getLastJobState()));
+
+        // get policy reports from device.
+        IsilonApi isi = getIsilonDevice(device);
+        listMirrorPolicyReports = isi.getReplicationPolicyReports(policy.getName()).getList();
 
         String errorMsg = isiGetReportErrMsg(listMirrorPolicyReports);
 

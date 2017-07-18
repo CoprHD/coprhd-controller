@@ -712,7 +712,7 @@ public abstract class CommandHandler {
             long hours = duration.toHours();
             int minutes = (int) ((duration.getSeconds() % (60 * 60)) / 60);
             int seconds = (int) (duration.getSeconds() % 60);
-            String formattedDuration = hours + "hours" + minutes + ",minutes" + seconds + ",seconds";
+            String formattedDuration = hours + "hours, " + minutes + "minutes, " + seconds + "seconds";
 
             return formattedDuration;
         }

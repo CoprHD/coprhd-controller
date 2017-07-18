@@ -178,6 +178,7 @@ public class StorageProvider extends DataObject {
     public static enum InterfaceType {
         hicommand,
         smis,
+        unisphere,
         ddmc,
         vplex,
         cinder,

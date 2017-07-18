@@ -76,4 +76,7 @@ public interface IsilonErrors {
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToResyncPrepPolicy(final String storageSystem, String policyName, String msg);
 
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToGetPolicy(final String storageSystem, String msg);
+
 }

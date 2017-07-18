@@ -114,8 +114,8 @@
 			    <!-- discover storage groups for VMAX which can be migrated (NDM)-->
                 <!-- get masking views for VMAX -->
                 <ref bean="getMaskingViews"/>
-                <!-- get associated storage group for each masking view -->
-                <ref bean="getMaskingViewStorageGroup"/>
+                <!-- get associated members information for each masking view -->
+                <ref bean="getMaskingViewComponents"/>
                 <!-- storage group book keeping -->
                 <ref bean="storageGroupsMigrationBookKeeping"/>
 
@@ -1668,8 +1668,8 @@
 		<property name="value" value="Symm_LunMaskingView" />
 	</bean>
 
-	<!-- SMI-S Call to get associated storage groups for masking views -->
-	<bean id="getMaskingViewStorageGroup" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+	<!-- SMI-S Call to get associated members for masking views -->
+	<bean id="getMaskingViewComponents" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="arguments">
 			<list>
 				<ref bean="reference-maskingViews" />
@@ -1684,7 +1684,7 @@
 		<property name="method" value="associatorNames" />
 		<property name="processor" ref="maskingViewComponentProcessor" />
 		<property name="supportedVersion" value="8.x" />
-		<property name="message" value="Invoking associatorNames to get associated storage group for Masking views" />
+		<property name="message" value="Invoking associatorNames to get associated components for Masking views" />
 	</bean>
 
 	<bean id="reference-maskingViews" class="com.emc.storageos.plugins.common.domainmodel.Argument">

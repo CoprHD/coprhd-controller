@@ -285,6 +285,11 @@ public class VNXFileCommApi {
                     result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, mountCmdArgs);
                     _log.info("filesystem mount is successful for filesystem: {} mount path: {}", fileShare.getName(),
                             fileShare.getMountPath());
+                    if (!result.isCommandSuccess()) {
+                        _log.error("filesystem mount failed for filesystem: {} mount path: {}: {}", fileShare.getName(),
+                                fileShare.getMountPath(), result.getMessage());
+                        return result;
+                    }
                 }
             } else {
                 Exception e = new Exception(
@@ -640,6 +645,11 @@ public class VNXFileCommApi {
                         _log.info("Unmount FS {}", unMountCmd);
                         sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
                         result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_UNMOUNT_CMD, unMountCmd);
+                        if (!result.isCommandSuccess()) {
+                            _log.error("filesystem unmount failed for filesystem: {} mount path: {}: {}", fs.getName(),
+                                    fs.getMountPath(), result.getMessage());
+                            return result;
+                        }
                     }
                 } else {
                     _log.info("No need to Unmount FS {} since there is no mount info", fs.getMountPath());
@@ -677,12 +687,17 @@ public class VNXFileCommApi {
                 _log.info("Number of quota dirs found {} for a file system {}", quotaDirs.size(), fs.getName());
                 // In the process of delete file system, we are unmounting the FileSystem.
                 // In order to delete Quota Directory, file system should be mounted.
-                // we just mount the file system temporarily. if it was un-mounted.
+                // we just mount the file system temporarily, if it was un-mounted.
                 sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
                 Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
                 if (existingMounts.get(fs.getName()) == null) {
                     String mountCmdArgs = sshApi.formatMountCmd(dataMover.getAdapterName(), fs.getName(), fs.getMountPath());
                     result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, mountCmdArgs);
+                    if (!result.isCommandSuccess()) {
+                        _log.error("filesystem mount failed for filesystem: {} mount path: {}: {}", fs.getName(),
+                                fs.getMountPath(), result.getMessage());
+                        return result;
+                    }
                 }
 
                 for (TreeQuota quota : quotaDirs) {
@@ -1161,11 +1176,6 @@ public class VNXFileCommApi {
                     String data = sshApi.formatExportCmd(dataMover.getAdapterName(), vnxExports, null, null);
                     result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data);
                     sshApi.clearConnParams();
-                    if (result.isCommandSuccess()) {
-                        result.setCommandSuccess();
-                    } else {
-                        result.setCommandFailed();
-                    }
                 }
             } else {
                 String isVdm = "false";

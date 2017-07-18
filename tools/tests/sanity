@@ -14983,33 +14983,66 @@ performanceparams_rp_tests()
     secho "Running RP performance parameter tests for RP CLR."
 
     # Define auto tiering policies
-    src_atp="SYMMETRIX+000196801612+SLO_POLICY+Platinum SLO (3.0ms)"
-    lcpy_atp="SYMMETRIX+000196801612+SLO_POLICY+Silver SLO (8.0ms)"
-    rcpy_atp="SYMMETRIX+000197800376+SLO_POLICY+Diamond SLO (0.8ms)"
+    src_atp_name="Platinum SLO (3.0ms)"
+    src_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${src_atp_name}
+    src_jrnl_atp_name="Bronze SLO (14.0ms)"
+    src_jrnl_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${src_jrnl_atp_name}
+    lcpy_atp_name="Silver SLO (8.0ms)"
+    lcpy_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${lcpy_atp_name}
+    lcpy_jrnl_atp_name="Bronze SLO (14.0ms)"
+    lcpy_jrnl_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${lcpy_jrnl_atp_name}
+    rcpy_atp_name="Diamond SLO (0.8ms)"
+    rcpy_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_C_GUID}+SLO_POLICY+${rcpy_atp_name}
+    rcpy_jrnl_atp_name="Diamond SLO DSS Workload (2.3ms)"
+    rcpy_jrnl_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_C_GUID}+SLO_POLICY+${rcpy_jrnl_atp_name}
 
     # Create a performance parameters instance for the RP source volume
     src_pp=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${src_pp} for the RP source."
-    run performanceparams create ${src_pp} --description "${src_pp}-Description" --auto_tiering_policy_name "${src_atp}" \
+    run performanceparams create ${src_pp} --description "${src_pp}-Description" --auto_tiering_policy_name "${src_atp_name}" \
          --host_io_limit_bandwidth 10000 --host_io_limit_iops 10000 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
     performanceparams show ${src_pp}
 
+    # Create a performance parameters instance for the RP source journal volume
+    src_jrnl_pp=PerfParams-${RANDOM}
+    secho "Creating performance parameters with name ${src_jrnl_pp} for the RP source journal."
+    run performanceparams create ${src_jrnl_pp} --description "${src_jrnl_pp}-Description" --auto_tiering_policy_name "${src_jrnl_atp_name}" \
+         --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
+         --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
+    performanceparams show ${src_jrnl_pp}
+
     # Create a performance parameters instance for the local RP copy.
     lcpy_pp=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${lcpy_pp} for the RP local copy."
-    run performanceparams create ${lcpy_pp} --description "${lcpy_pp}-Description" --auto_tiering_policy_name "${lcpy_atp}" \
+    run performanceparams create ${lcpy_pp} --description "${lcpy_pp}-Description" --auto_tiering_policy_name "${lcpy_atp_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
     performanceparams show ${lcpy_pp}
 
+    # Create a performance parameters instance for the local RP copy journal.
+    lcpy_jrnl_pp=PerfParams-${RANDOM}
+    secho "Creating performance parameters with name ${lcpy_jrnl_pp} for the local RP copy journal."
+    run performanceparams create ${lcpy_jrnl_pp} --description "${lcpy_jrnl_pp}-Description" --auto_tiering_policy_name "${lcpy_jrnl_atp_name}" \
+         --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
+         --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
+    performanceparams show ${lcpy_jrnl_pp}
+
     # Create a performance parameters instance for the remote RP copy.
     rcpy_pp=PerfParams-${RANDOM}
     secho "Creating performance parameters with name ${rcpy_pp} for the RP remote copy."
-    run performanceparams create ${rcpy_pp} --description "${rcpy_pp}-Description" --auto_tiering_policy_name "${rcpy_atp}" \
+    run performanceparams create ${rcpy_pp} --description "${rcpy_pp}-Description" --auto_tiering_policy_name "${rcpy_atp_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
     performanceparams show ${rcpy_pp}
+
+    # Create a performance parameters instance for the remote RP copy journal.
+    rcpy_jrnl_pp=PerfParams-${RANDOM}
+    secho "Creating performance parameters with name ${rcpy_jrnl_pp} for the remote RP copy journal."
+    run performanceparams create ${rcpy_jrnl_pp} --description "${rcpy_jrnl_pp}-Description" --auto_tiering_policy_name "${rcpy_jrnl_atp_name}" \
+         --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
+         --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
+    performanceparams show ${rcpy_jrnl_pp}
 
     # List the performance parameters.
     performanceparams list
@@ -15017,12 +15050,27 @@ performanceparams_rp_tests()
     # Create an RP CLR volume using the 3 previously created performance parameter 
     # instances for the RP source and copies.
     vol1=RPCLR_Vol1-${RANDOM}
-    srcPerfParams='PRIMARY:'${src_pp}
-    cpyPerfParams=${RECOVERPOINT_VARRAY1}'|PRIMARY:'${lcpy_pp}','${RECOVERPOINT_VARRAY3}'|PRIMARY:'${rcpy_pp}
+    srcPerfParams='PRIMARY:'${src_pp}',JOURNAL:'${src_jrnl_pp}
+    cpyPerfParams=${RECOVERPOINT_VARRAY1}'|PRIMARY:'${lcpy_pp}'|JOURNAL:'${lcpy_jrnl_pp}','${RECOVERPOINT_VARRAY3}'|PRIMARY:'${rcpy_pp}'|JOURNAL:'${rcpy_jrnl_pp}
     secho "Creating RP CLR volume ${vol1}." 
     run volume create ${vol1} ${PROJECT} ${RECOVERPOINT_VARRAY1} rp_clr ${RP_VOLUME_SIZE} --consistencyGroup ${RP_CONSISTENCY_GROUP} \
         --sourcePerfParams ${srcPerfParams} --copyPerfParams ${cpyPerfParams}
     volume show ${PROJECT}/${vol1}
+    run performanceparams verify_volume ${PROJECT}/${vol1} auto_tier_policy ${src_atp_guid}
+    run performanceparams verify_volume ${PROJECT}/${vol1} performance_params ${src_pp}
+    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-1 auto_tier_policy ${src_jrnl_atp_guid}
+    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-1 performance_params ${src_jrnl_pp}
+    run performanceparams verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY1} auto_tier_policy ${lcpy_atp_guid}
+    run performanceparams verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY1} performance_params ${lcpy_pp}
+    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-2 auto_tier_policy ${lcpy_jrnl_atp_guid}
+    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-2 performance_params ${lcpy_jrnl_pp}
+    run performanceparams verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY3} auto_tier_policy ${rcpy_atp_guid}
+    run performanceparams verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY3} performance_params ${rcpy_pp}
+    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY3}-journal-1 auto_tier_policy ${rcpy_jrnl_atp_guid}
+    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY3}-journal-1 performance_params ${rcpy_jrnl_pp}
+
+    secho "Sleeping"
+    sleep 60
 
     # Delete the volume.
     secho "Deleting volume ${vol1}."
@@ -15035,8 +15083,11 @@ performanceparams_rp_tests()
     # Delete the performance parameter instances.
     secho "Cleaning up performance parameter instances."
     run performanceparams delete ${src_pp}
+    run performanceparams delete ${src_jrnl_pp}
     run performanceparams delete ${lcpy_pp}
+    run performanceparams delete ${lcpy_jrnl_pp}
     run performanceparams delete ${rcpy_pp}
+    run performanceparams delete ${rcpy_jrnl_pp}
 }
 
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run

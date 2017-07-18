@@ -52,4 +52,14 @@ public class DbViewDefinition {
     public boolean isKey(String name) {
         return keyName.equals(name);
     }
+
+    @Override
+    public String toString() {
+        return "DbViewDefinition{" +
+                "viewName='" + viewName + '\'' +
+                ", keyName='" + keyName + '\'' +
+                ", clusters=" + clusters +
+                ", columns=" + columns +
+                '}';
+    }
 }

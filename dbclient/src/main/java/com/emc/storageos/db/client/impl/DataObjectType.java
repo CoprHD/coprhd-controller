@@ -43,7 +43,7 @@ public class DataObjectType {
     private ColumnFamilyDefinition _cf;
     private Class<? extends DataObject> _clazz;
     private ColumnField _idField;
-    private List<DbViewDefinition> _viewDefs;
+    private List<DbViewDefinition> _viewDefs = new ArrayList<>();;
     private Map<String, ColumnField> _columnFieldMap = new HashMap<String, ColumnField>();
     private EncryptionProvider _encryptionProvider;
     private List<ColumnField> _preprocessedFields;
@@ -177,17 +177,21 @@ public class DataObjectType {
             }
         }
 
-        // todo just for volume
-        if (cfName.equals("Volume")) {
-            _viewDefs = new ArrayList<>();
+        DbView[] dbViewAnnotations = _clazz.getAnnotationsByType(DbView.class);
+        for (DbView dbViewAnno : dbViewAnnotations) {
             List<String> clusters = new ArrayList<>();
-            clusters.add("type");
-            clusters.add("id");
+            for (String cl : dbViewAnno.clkeys()) {
+                clusters.add(cl);
+            }
+            clusters.add("id"); // always has id
             List<String> cols = new ArrayList<>();
-            cols.add("label");
-            DbViewDefinition viewDef = new DbViewDefinition("vol_view", "project", clusters, cols);
+            for (String col : dbViewAnno.cols()) {
+                cols.add(col);
+            }
+            DbViewDefinition viewDef = new DbViewDefinition(dbViewAnno.cf(), dbViewAnno.pkey(), clusters, cols);
             _viewDefs.add(viewDef);
         }
+        _log.info("========= The model class {} has dbviews like [ {} ]", _clazz, _viewDefs);
 
         // Need to resolve field cross references here....
         Collection<ColumnField> fields = _columnFieldMap.values();

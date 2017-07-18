@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.lang.annotation.Repeatable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
  * Block volume data object
  */
 @Cf("Volume")
+@DbView(cf = "vol_view", pkey = "Project", clkeys = {"type"}, cols = {"label"})
 public class Volume extends BlockObject implements ProjectResource {
     private static Logger log = LoggerFactory.getLogger(Volume.class.getName());
     // project this volume is associated with

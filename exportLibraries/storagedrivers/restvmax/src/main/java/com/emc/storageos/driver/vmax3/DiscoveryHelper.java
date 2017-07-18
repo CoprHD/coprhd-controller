@@ -16,7 +16,7 @@ import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 
 /**
- * @author fengs5
+ * All the code is just fake code.
  *
  */
 public class DiscoveryHelper extends AbstractHelper {

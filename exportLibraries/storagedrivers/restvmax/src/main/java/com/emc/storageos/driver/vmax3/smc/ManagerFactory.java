@@ -7,13 +7,19 @@ package com.emc.storageos.driver.vmax3.smc;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.config.ConfigManager;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.hw.HardwareManager;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.mv.ExportManager;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.replication.ReplicationManager;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.StorageGroupManager;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.srdf.SrdfManager;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.VolumeManager;
 
 final public class ManagerFactory {
     private AuthenticationInfo authenticationInfo;
     private VolumeManager volumeManager;
     private StorageGroupManager storageGroupManager;
+    private ReplicationManager replicationManager;
+    private SrdfManager srdfManager;
+    private ExportManager exportManager;
 
     private ConfigManager configManager;
     private HardwareManager hardwareManager;
@@ -49,5 +55,26 @@ final public class ManagerFactory {
             hardwareManager = new HardwareManager(authenticationInfo);
         }
         return hardwareManager;
+    }
+
+    public ReplicationManager genReplicationManager() {
+        if (replicationManager == null) {
+            replicationManager = new ReplicationManager(authenticationInfo);
+        }
+        return replicationManager;
+    }
+
+    public SrdfManager genSrdfManager() {
+        if (srdfManager == null) {
+            srdfManager = new SrdfManager(authenticationInfo);
+        }
+        return srdfManager;
+    }
+
+    public ExportManager genExportManager() {
+        if (exportManager == null) {
+            exportManager = new ExportManager(authenticationInfo);
+        }
+        return exportManager;
     }
 }

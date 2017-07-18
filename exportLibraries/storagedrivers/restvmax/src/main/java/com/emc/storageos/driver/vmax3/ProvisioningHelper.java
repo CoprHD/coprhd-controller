@@ -14,7 +14,7 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 /**
- * @author fengs5
+ * All the code is just fake code.
  *
  */
 public class ProvisioningHelper extends AbstractHelper {

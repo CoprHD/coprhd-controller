@@ -834,6 +834,9 @@ public interface BadRequestExceptions {
     public BadRequestException nfsACLAlreadyExists(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNfsACLInheritFlag(String opType, String... valid);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException multipleACLsWithUserOrGroupFound(String opType, String userOrGroup);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

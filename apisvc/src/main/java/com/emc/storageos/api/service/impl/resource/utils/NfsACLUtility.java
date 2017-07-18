@@ -26,6 +26,7 @@ import com.emc.storageos.model.file.NfsACE.NfsPermissionType;
 import com.emc.storageos.model.file.NfsACE.NfsUserType;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
+import com.emc.storageos.model.file.NfsACLUpdateParams.NFSInheritFlag;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
@@ -87,6 +88,7 @@ public class NfsACLUtility {
         List<NfsACE> addList = param.getAcesToAdd();
         List<NfsACE> modifyList = param.getAcesToModify();
         List<NfsACE> deleteList = param.getAcesToDelete();
+        List<String> inheritFlags = param.getInheritFlags();
 
         List<NFSShareACL> dbACLList = queryDBSFileNfsACLs(false);
         Set<String> userSetDB = new HashSet<String>();
@@ -102,6 +104,9 @@ public class NfsACLUtility {
         }
         if (deleteList != null && !deleteList.isEmpty()) {
             verifyNfsACLsModifyOrDeleteList(deleteList, userSetDB);
+        }
+        if (inheritFlags != null && !inheritFlags.isEmpty()) {
+            verifyNfsInheritFlagsValid(inheritFlags);
         }
     }
 
@@ -339,5 +344,13 @@ public class NfsACLUtility {
         dest.setUser(orig.getUser());
 
         return dest;
+    }
+
+    private void verifyNfsInheritFlagsValid(List<String> inheritflags) {
+        for (String flag : inheritflags) {
+            if (!isValidEnum(flag, NFSInheritFlag.class)) {
+                throw APIException.badRequests.invalidNfsACLInheritFlag(flag, NFSInheritFlag.values().toString());
+            }
+        }
     }
 }

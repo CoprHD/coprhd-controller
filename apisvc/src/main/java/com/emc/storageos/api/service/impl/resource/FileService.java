@@ -4763,7 +4763,7 @@ public class FileService extends TaskResourceService {
             return false;
         }
         
-        if(targetFs.getProject() == null ){
+        if(targetFs.getProject() != null ){
             String targetprj = targetFs.getProject().getURI().toString();
             String srcprj = project.toString();
             if(!targetprj.equals(srcprj)){

@@ -323,7 +323,7 @@ public interface FileServiceApi {
             throws InternalException;
     
     /**
-     * 
+     * Adding new call to keep the backward compatibilty.
      * @param fs
      * @param filePolicy
      * @param project

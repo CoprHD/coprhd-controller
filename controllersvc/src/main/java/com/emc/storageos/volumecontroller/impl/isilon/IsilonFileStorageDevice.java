@@ -4344,22 +4344,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         URI fsURI = iter.next();
                         targetFs = _dbClient.queryObject(FileShare.class, fsURI);
                     }
-                    // TargetFs exists so we shall not create the FS but set the mirrortarget so as to handle it in controller side.
+                    // TargetFs exists so we shall not create the FS but set the extension so as to handle it in controller side.
                     if (targetFs != null) {
                         _log.info("TargetFileSystem already exists in database with {}", targetFs.getId(), targetFs.getName());
                         StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
-                        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, targetFs.getVirtualPool());
-                        if (!vpool.getAllowFilePolicyAtFSLevel()) {
-                            StringBuilder errorMsg = new StringBuilder();
-                            errorMsg.append("Provided vpool :" + vpool.getLabel() + " doesn't support policy at file system level");
-                            _log.error(errorMsg.toString());
-                            throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
-                                    filePolicy.getApplyAt(), errorMsg.toString());
-                        }
                         boolean validPolicy = validateIsilonReplicationPolicy(isiSynIQPolicy, filePolicy, targetFs.getNativeId(),
                                 targetSystem, system);
                         if (validPolicy) {
-                            setReplicationAttributes(srcFs, targetFs);
+                            setReplicationInfoInExtension(srcFs, targetPath, isiSynIQPolicy.getTargetHost());
                         } else {
                             throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
                                     filePolicy.getApplyAt(), "File policy and Isilon syncIQ policy differs for attributes");
@@ -4384,32 +4376,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
     }
     
-    private void setReplicationAttributes(FileShare sourceFileShare, FileShare targetFileShare) {
-        if (sourceFileShare != null && targetFileShare != null) {
-            if (sourceFileShare.getMirrorfsTargets() == null) {
-                sourceFileShare.setMirrorfsTargets(new StringSet());
-            }
-            /*
-            removing the entries added as part of recommendations and adding the existing values alone. This needs to
-            be enhanced while adding multiple target replication feature to retain the other target and only delete
-            the temp file object entry.
-            */
-            sourceFileShare.getMirrorfsTargets().clear();
-            sourceFileShare.getMirrorfsTargets().add(targetFileShare.getId().toString());
-            targetFileShare.setParentFileShare(new NamedURI(sourceFileShare.getId(), sourceFileShare.getLabel()));
-
-            targetFileShare.setPersonality(FileShare.PersonalityTypes.TARGET.toString());
-            targetFileShare.setAccessState(FileAccessState.READABLE.name());
-            // Set the directory quota values.
-            targetFileShare.setSoftGracePeriod(sourceFileShare.getSoftGracePeriod());
-            targetFileShare.setSoftLimit(sourceFileShare.getSoftLimit());
-            targetFileShare.setNotificationLimit(sourceFileShare.getNotificationLimit());
+    private void setReplicationInfoInExtension(FileShare sourceFileShare, String path, String host) {
+        if (sourceFileShare != null) {
+           if(!sourceFileShare.getExtensions().containsKey("ReplicationInfo")){
+               sourceFileShare.getExtensions().put("ReplicationInfo", path+":"+host);
+           } else {
+               sourceFileShare.getExtensions().replace("ReplicationInfo", path+":"+host);
+           }
             _dbClient.updateObject(sourceFileShare);
-            _dbClient.updateObject(targetFileShare);
         } else {
-            throw DeviceControllerException.exceptions.replicationAttributeSettingFailed(sourceFileShare.getLabel(),
-                    targetFileShare.getLabel(), "Failed to set the replication attribute to source FS " + sourceFileShare.getLabel()
-                            + " and target FS " + targetFileShare.getLabel());
+            throw DeviceControllerException.exceptions.replicationInfoSettingFailed( "Failed to set the replication attribute to source FS ");
         }
 
     }

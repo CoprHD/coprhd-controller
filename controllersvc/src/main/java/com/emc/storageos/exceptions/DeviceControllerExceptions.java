@@ -553,5 +553,5 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException assignFilePolicyFailed(String filePolicyName, String appliedAt, String details);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
-    public DeviceControllerException replicationAttributeSettingFailed(String sourcefs, String targetFs, String details);
+    public DeviceControllerException replicationInfoSettingFailed(String details);
 }

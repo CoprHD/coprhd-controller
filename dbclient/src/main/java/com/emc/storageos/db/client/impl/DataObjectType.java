@@ -178,6 +178,7 @@ public class DataObjectType {
         }
 
         DbView[] dbViewAnnotations = _clazz.getAnnotationsByType(DbView.class);
+        _log.info("========= The model class {} has {} dbviews", _clazz, dbViewAnnotations.length);
         for (DbView dbViewAnno : dbViewAnnotations) {
             List<String> clusters = new ArrayList<>();
             for (String cl : dbViewAnno.clkeys()) {

@@ -2746,9 +2746,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         FileShare targetFS = null;
         StorageSystem sourceSystem = null;
         StorageSystem targetSystem = null;
+        boolean isMirrorPolicy = false;
         if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
             sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
             targetFS = fs;
+            isMirrorPolicy = true;
         } else if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
             sourceFS = fs;
             List<String> targetfileUris = new ArrayList<String>();
@@ -2769,8 +2771,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
             // In case of fail back we need to append _mirror name since we are starting the target FS mirror policy
-            if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
+            if (isMirrorPolicy) {
                 String mirrorPolicyName = policyName.concat(MIRROR_POLICY);
+                // call start operation on mirror policy from target to source
                 return doStartTaregetMirrorPolicy(sourceSystem, policyName, targetSystem, mirrorPolicyName, completer);
             } else {
                 return mirrorOperations.doStartReplicationPolicy(system, policyName, completer);
@@ -2797,20 +2800,23 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonSyncTargetPolicy policy = mirrorOperations.getIsilonSyncTargetPolicy(targetSystem, policyName);
 
         _log.info("doStartTaregetMirrorPolicy - target policy details : {}", mirrorPolicy.toString());
+        // if already on target writes enable and perform start operation failback workflow
         if (JobState.finished.equals(policy.getLastJobState()) &&
-                JobState.finished.equals(policy.getLastJobState()) &&
+                JobState.finished.equals(mirrorPolicy.getLastJobState()) &&
                 FOFB_STATES.writes_enabled.equals(mirrorPolicy.getFoFbState())) {
-            _log.info("Ignored the start action on mirror policy : {}", mirrorPolicyName);
-            _log.info(String.format("source policy details : - %s and target policy details :- %s", policy.toString(),
+            _log.info("Skipped the starting the mirror policy : {}", mirrorPolicyName);
+            _log.info(String.format("Source policy details : - %s and Target mirror policy details :- %s", policy.toString(),
                     mirrorPolicy.toString()));
             return BiosCommandResult.createSuccessfulResult();
-        } else if (JobState.failed.equals(policy.getLastJobState()) ||
+        } else if (JobState.failed.equals(mirrorPolicy.getLastJobState()) ||
                 JobState.needs_attention.equals(mirrorPolicy.getLastJobState())) {
-            // get error the reports
-            return getSyncPolicyErrorReport(sourceSystem, policy);
+            return getSyncPolicyErrorReport(sourceSystem, mirrorPolicy);
+        } else if (JobState.failed.equals(policy.getLastJobState()) ||
+                JobState.needs_attention.equals(policy.getLastJobState())) {
+            return getSyncPolicyErrorReport(targetSystem, policy);
         } else {
             // call to isilon api
-            _log.info(String.format("start a mirror policy %s on target system %s,", policyName, targetSystem.getLabel()));
+            _log.info(String.format("Starting a mirror policy %s on target system %s ", policyName, targetSystem.getLabel()));
             return mirrorOperations.doStartReplicationPolicy(targetSystem, mirrorPolicyName, completer);
         }
     }
@@ -2904,15 +2910,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             BiosCommandResult cmdResult = null;
             // In case of failback we do failover on the source file system, so we need to append _mirror
             if (failback) {
-                policyName = policyName.concat(MIRROR_POLICY);
+                String mirrorPolicyName = policyName.concat(MIRROR_POLICY);
 
                 // prepared policy for failback
                 cmdResult = prepareFailbackOp(targetSystem, policyName);
                 if (!cmdResult.isCommandSuccess()) {
                     return cmdResult;
                 }
+
                 // Call Isilon Api failback job
-                return mirrorOperations.doFailover(sourceSystem, policyName, completer);
+                return doFailoverMirrorPolicy(sourceSystem, policyName, targetSystem, mirrorPolicyName, completer);
             } else {
                 // prepared policy for failover
                 cmdResult = prepareFailoverOp(sourceSystem, policyName);
@@ -2928,6 +2935,36 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 .unableToFailoverFileSystem(
                         systemTarget.getIpAddress(), "Unable to get the policy details for filesystem :" + fs.getName());
         return BiosCommandResult.createErrorResult(serviceError);
+    }
+
+    private BiosCommandResult doFailoverMirrorPolicy(StorageSystem sourceSystem, String policyName, StorageSystem targetSystem,
+            String mirrorPolicyName, TaskCompleter completer) {
+        IsilonSyncTargetPolicy policy = null;
+        IsilonSyncTargetPolicy mirrorPolicy = null;
+
+        mirrorPolicy = mirrorOperations.getIsilonSyncTargetPolicy(sourceSystem, mirrorPolicyName);
+        policy = mirrorOperations.getIsilonSyncTargetPolicy(targetSystem, policyName);
+
+        // if mirror has already "write_enabled" the skip the step
+        if (JobState.finished.equals(mirrorPolicy.getLastJobState()) &&
+                FOFB_STATES.resync_policy_created.equals(mirrorPolicy.getFoFbState()) &&
+                JobState.finished.equals(policy.getLastJobState()) &&
+                FOFB_STATES.writes_enabled.equals(policy.getFoFbState())) {
+            _log.info("Skipped the failover action on mirror policy : {}", mirrorPolicyName);
+            _log.info(String.format("Source policy details : - %s and Target policy details :- %s", policy.toString(),
+                    mirrorPolicy.toString()));
+            return BiosCommandResult.createSuccessfulResult();
+            // if policy is in error state then call to get error reports from device.
+        } else if (JobState.failed.equals(mirrorPolicy.getLastJobState()) ||
+                JobState.needs_attention.equals(mirrorPolicy.getLastJobState())) {
+            return getSyncPolicyErrorReport(sourceSystem, mirrorPolicy);
+        } else if (JobState.failed.equals(policy.getLastJobState()) ||
+                JobState.needs_attention.equals(policy.getLastJobState())) {
+            return getSyncPolicyErrorReport(targetSystem, policy);
+        } else {
+            // call isilon api
+            return mirrorOperations.doFailover(sourceSystem, mirrorPolicyName, completer);
+        }
     }
 
     /**
@@ -3010,7 +3047,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (isMirrorPolicy) {
                 String mirrorPolicyName = policyName.concat(MIRROR_POLICY);
                 // call to isilon api
-                return doResyncPrepTargetPolicy(targetSystem, mirrorPolicyName, sourceSystem, policyName, completer);
+                return doResyncPrepTargetPolicy(sourceSystem, policyName, targetSystem, mirrorPolicyName, completer);
             } else {
                 // resync-prep operation on source storagesystem
                 return doResyncPrepSourcePolicy(sourceSystem, targetSystem, policyName, completer);
@@ -3050,8 +3087,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // resync-prep operation already done and mirror policy exist
                 if (JobState.finished.equals(policy.getLastJobState()) &&
                         FOFB_STATES.resync_policy_created.equals(policy.getFoFbState())) {
-                    _log.info("Ignored the resyncprep action on policy : {}", policyName);
-                    _log.info(String.format("source policy details : - %s ", policy.toString()));
+                    _log.info("Skipped the resyncprep action on policy : {}", policyName);
+                    _log.info(String.format("Source policy details : - %s ", policy.toString()));
                     return BiosCommandResult.createSuccessfulResult();
                     // if policy is failed then we call to get the reports, return error
                 } else if (JobState.failed.equals(policy.getLastJobState()) ||
@@ -3080,9 +3117,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @param completer
      * @return
      */
-    private BiosCommandResult doResyncPrepTargetPolicy(StorageSystem targetSystem, String mirrorPolicyName,
-            StorageSystem sourceSystem, String policyName,
-            TaskCompleter completer) {
+    private BiosCommandResult doResyncPrepTargetPolicy(StorageSystem sourceSystem, String policyName, StorageSystem targetSystem,
+            String mirrorPolicyName, TaskCompleter completer) {
         _log.info("doResyncPrepTargetPolicy - resync-prep action on mirror policy ", mirrorPolicyName);
         IsilonSyncTargetPolicy policy = null;
         IsilonSyncTargetPolicy mirrorPolicy = null;
@@ -3095,14 +3131,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 FOFB_STATES.resync_policy_created.equals(mirrorPolicy.getFoFbState()) &&
                 JobState.finished.equals(policy.getLastJobState()) &&
                 FOFB_STATES.writes_disabled.equals(policy.getFoFbState())) {
-            _log.info("Ignored the resyncprep action on mirror policy : {}", mirrorPolicyName);
-            _log.info(String.format("source policy details : - %s and target policy details :- %s", policy.toString(),
+            _log.info("Skipped the resyncprep action on mirror policy : {}", mirrorPolicyName);
+            _log.info(String.format("Source policy details : - %s and Target policy details :- %s", policy.toString(),
                     mirrorPolicy.toString()));
             return BiosCommandResult.createSuccessfulResult();
             // if policy is in error state then call to get error reports from device.
+        } else if (JobState.failed.equals(mirrorPolicy.getLastJobState()) ||
+                JobState.needs_attention.equals(mirrorPolicy.getLastJobState())) {
+            return getSyncPolicyErrorReport(sourceSystem, mirrorPolicy);
         } else if (JobState.failed.equals(policy.getLastJobState()) ||
                 JobState.needs_attention.equals(policy.getLastJobState())) {
-            return getSyncPolicyErrorReport(sourceSystem, mirrorPolicy);
+            return getSyncPolicyErrorReport(targetSystem, policy);
         } else {
             // call isilon api
             return mirrorOperations.doResyncPrep(targetSystem, mirrorPolicyName, completer);
@@ -4534,4 +4573,5 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
     }
+
 }

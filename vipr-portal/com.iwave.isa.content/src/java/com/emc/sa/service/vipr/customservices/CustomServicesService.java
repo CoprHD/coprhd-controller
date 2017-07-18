@@ -70,7 +70,6 @@ public class CustomServicesService extends ViPRService {
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
     private Map<String, Object> params;
-    private boolean isIter = false;
 
     @Autowired
     private DbClient dbClient;
@@ -141,8 +140,8 @@ public class CustomServicesService extends ViPRService {
                 final MakeCustomServicesExecutor task = executor.get(step.getType());
                 task.setParam(getClient().getRestClient());
 
-                if (isIter) {
-                    for (int i=0; i<2; i++) {
+                if (isIter(step)) {
+                    for (int i=0; i<getIterCount(step); i++) {
                         logger.info("call executor");
                         res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step, i));
                     }
@@ -172,6 +171,41 @@ public class CustomServicesService extends ViPRService {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
             }
         }
+    }
+
+    private boolean isIter(final Step step) {
+        for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
+            for (final Input value : inputGroup.getInputGroup()) {
+                if (!StringUtils.isEmpty(value.getTableName()) && isScript(step)) {
+                    logger.info("CS: It is of iteration type");
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private int getIterCount(final Step step) {
+        if (isScript(step)) {
+            logger.info("CS: Count the iteration number");
+            final Map<String, List<String>> input = inputPerStep.get(step.getId());
+            if (input == null) {
+                return 1;
+            }
+            for(Map.Entry<String, List<String>> e : input.entrySet()) {
+                if (StringUtils.isEmpty(e.getKey()) || e.getValue().isEmpty()) {
+                    continue;
+                }
+                List<String> val = e.getValue();
+                if (val.size() > 1) {
+                    logger.info("Update the size to:{}", val.size());
+                    return val.size();
+                }
+            }
+        }
+
+        return 1;
     }
 
     private ImmutableMap<String, Step> getStepHash(final URI uri) throws Exception {
@@ -355,7 +389,6 @@ public class CustomServicesService extends ViPRService {
                             if (StringUtils.isEmpty(value.getTableName())) {
                                 inputs.put(name, Arrays.asList(param.replace("\"", "")));
                             } else {
-                                isIter = true;
                                 inputs.put(name, Arrays.asList(param.replace("\"", "").split(",")));
                             }
                         } else {
@@ -373,7 +406,6 @@ public class CustomServicesService extends ViPRService {
 
                             if (!StringUtils.isEmpty(value.getTableName())) {
                                 arrayInput = Arrays.asList(params.get(friendlyName).toString().split("\",\""));
-                                isIter = true;
                             } else {
                                 arrayInput = Arrays.asList(params.get(friendlyName).toString());
                             }
@@ -400,33 +432,29 @@ public class CustomServicesService extends ViPRService {
                         final String stepId = paramVal[CustomServicesConstants.STEP_ID];
                         final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
 
-                        Map<String, List<String>> stepInput;
-                        boolean fromStepOutput = true;
+                        final Map<String, List<String>> stepInput;
                         if (value.getType().equals(InputType.FROM_STEP_INPUT.toString())) {
                             stepInput = inputPerStep.get(stepId);
-                            fromStepOutput = false;
                         } else {
                             stepInput = outputPerStep.get(stepId);
                         }
                         if (stepInput != null && stepInput.get(attribute) != null) {
-                            if (fromStepOutput && StringUtils.isEmpty(value.getTableName())) {
+                            if (StringUtils.isEmpty(value.getTableName())) {
                                 inputs.put(name, Arrays.asList(String.join(", ", stepInput.get(attribute)).replace("\"", "")));
                                 break;
                             } else {
-                                isIter = true;
                                 inputs.put(name, stepInput.get(attribute));
                                 break;
-                            }
-                        } else {
-                            if (value.getRequired()) {
-                                throw InternalServerErrorException.internalServerErrors
-                                        .customServiceExecutionFailed("Value mapped is null : " + value.getValue());
                             }
                         }
                         if (value.getDefaultValue() != null) {
                             inputs.put(name, Arrays.asList(value.getDefaultValue()));
-                        } else {
-                            inputs.put(name, Arrays.asList(""));
+                            break;
+                        }
+
+                        if (value.getRequired()) {
+                            throw InternalServerErrorException.internalServerErrors
+                                    .customServiceExecutionFailed("Value mapped is null : " + value.getValue());
                         }
 
                         break;

@@ -52,6 +52,7 @@
         </property>
     </bean>
 
+
     <bean id="clusterPoller" class="com.emc.storageos.systemservices.impl.upgrade.ClusterAddressPoller">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
@@ -86,6 +87,21 @@
         <property name="backupOps" ref="backupOps" />
         <property name="backupScheduler" ref="backupScheduler" />
         <property name="jobProducer" ref="backupUploadJobProducer" />
+    </bean>
+
+    <bean id="DataCollectionService" class="com.emc.storageos.systemservices.impl.resource.DataCollectionService" >
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="jobProducer" ref="diagutilsJobProducer" />
+    </bean>
+
+    <bean id="diagutilsJobProducer" class="com.emc.storageos.systemservices.impl.jobs.common.JobProducer" init-method="startQueue" destroy-method="stopQueue">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="consumer" ref="diagutilsJobConsumer"/>
+        <property name="queueName" value="diagutilsjob"/>
+    </bean>
+
+    <bean id="diagutilsJobConsumer" class="com.emc.storageos.systemservices.impl.jobs.consumer.DiagutilsJobConsumer">
+        <property name="coordinatorClientExt" ref="coordinatorClientExt"/>
     </bean>
 
     <bean id="syssvcApp" class="com.emc.storageos.systemservices.impl.resource.SysSvcApp">

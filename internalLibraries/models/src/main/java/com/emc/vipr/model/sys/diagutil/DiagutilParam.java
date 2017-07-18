@@ -11,6 +11,7 @@ import java.util.List;
 @XmlRootElement(name = "diagutils_param")
 public class DiagutilParam {
     private String logEnable="";
+    private List<String> options;
     private List<String> nodeIds;
     private List<String> nodeNames;
     private List<String> logNames;
@@ -21,10 +22,18 @@ public class DiagutilParam {
     private int maxCount;
 
     public DiagutilParam() {}
+    @XmlElement(name="options")
+    public List<String> getOptions() {
+        return options;
+    }
+
+    public void setOptions(List<String> options) {
+        this.options = options;
+    }
 
     @XmlElement(name = "log_enable")
     public String getLogEnable() {
-        return this.logEnable;
+        return logEnable;
     }
 
     public void setLogEnable(String enable) {

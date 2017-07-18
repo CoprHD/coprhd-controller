@@ -63,17 +63,18 @@ public class DiagutilInfo {
         this.errcode = errcode;
     }
 
-    public enum DiagutilStatus {
+    public enum DiagutilStatus{
+        INITIALIZE,
         PRECHECK_IN_PROGRESS,
+        PRECHECK_ERROR,
         PRECHECK_SUCCESS,
         COLLECTING_IN_PROGRESS,
+        COLLECTING_ERROR,
         COLLECTING_SUCCESS,
         UPLOADING_IN_PROGRESS,
+        UPLOADING_ERROR,
         COMPLETE,
-        PRECHECK_ERROR,
-        COLLECTING_ERROR,
-        UPLOADING_ERROR
-    }
+     }
 
     public enum DiagutilStatusDesc {
         PRECHECK_IN_PROGRESS,
@@ -83,6 +84,7 @@ public class DiagutilInfo {
         COLLECTING_PROPERTIES,
         COLLECTING_HEALTH,
         COLLECTING_BACKUP,
+        COLLECTING_ARCHIVE,
         COLLECT_COMPLETE,
         UPLOADING_INPROGRESS,
         UPLOAD_COMPLETE,
@@ -94,8 +96,5 @@ public class DiagutilInfo {
         COLLECTING_BACKUP_FAILURE,
         UPLOAD_FAILURE
     }
-
-
-
 
 }

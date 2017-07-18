@@ -35,6 +35,7 @@ public class SysClientFactory {
     public static final URI URI_WAKEUP_PROPERTY_MANAGER = URI.create("/upgrade/internal/wakeup?type=property");
     public static final URI URI_WAKEUP_VDC_MANAGER = URI.create("/upgrade/internal/wakeup?type=vdc");
     public static final URI URI_GET_INTERNAL_NODE_HARDWARE = URI.create("/monitor/internal/node-hardware-info");
+    public static final URI URI_LOGS = URI.create("/logs");
     public static final URI URI_NODE_LOGS = URI.create("/logs/internal/node-logs");
     public static final URI URI_LOG_LEVELS = URI.create("/logs/internal/log-level");
     public static final URI URI_RESTART_SERVICE = URI.create("/control/internal/service/restart");

@@ -395,6 +395,10 @@ public class DbClientImpl implements DbClient {
     @Override
     public DataObject queryObject(URI id) {
         tracer.newTracer("read");
+        if (id == null) {
+        	return null;
+        }
+        
         Class<? extends DataObject> clazz = URIUtil.getModelClass(id);
 
         return queryObject(clazz, id);
@@ -1625,7 +1629,10 @@ public class DbClientImpl implements DbClient {
         List<String> idList = new ArrayList<String>();
         Iterator<URI> it = uriList.iterator();
         while (it.hasNext()) {
-            idList.add(it.next().toString());
+        	URI uri = it.next();
+        	if (uri != null) {
+        		idList.add(uri.toString());
+        	}
         }
         if (idList.size() > DEFAULT_PAGE_SIZE) {
             int MAX_STACK_SIZE = 10; // Maximum stack we'll search in our thread.

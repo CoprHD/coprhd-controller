@@ -545,6 +545,25 @@ load_zones() {
     fi
 }
 
+# Filter a zone out of the zones list used for verification
+# args $1=wwn of initiator in zone(s) to remove
+# Note: if the initiator is zoned to multiple ports, this will remove all zones of the initiator
+# Also, it takes off the first two bytes of the WWN (because they aren't in the zone name.) 
+filter_zone() {
+    filteredzones=""
+    wwn=$(echo $1 | sed -e s/://g | sed -e s/^[0-9a-f][0-9a-f][0-9a-f][0-9a-f]// )
+    echo filter_zone wwn = $wwn
+    for zone in ${zones}
+    do
+        matchzone=$(echo $zone | grep $wwn)
+	if [ "$matchzone" = "" ]; then
+	    filteredzones="$zone $filteredzones"
+	fi
+    done
+    zones=${filteredzones}
+    echo "Filtered zones: "  $zones
+}
+
 # Verify the zones exist (or don't exist)
 verify_zones() {
     fabricid=$1

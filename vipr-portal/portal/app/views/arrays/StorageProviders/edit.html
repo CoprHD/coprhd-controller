@@ -29,6 +29,10 @@
         <input-text class="initialFocus"></input-text>
       </control-group>
 
+      <control-group v-field="smisProvider.site" required="false">
+        <input-text></input-text>
+      </control-group>
+
       <control-group v-field="smisProvider.interfaceType" ng-if="!editMode" required>
         <select-one options="interfaceTypeOptions" ></select-one>
       </control-group>      

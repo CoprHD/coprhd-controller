@@ -13,10 +13,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.collect.Maps;
 
 /**
@@ -24,7 +29,8 @@ import com.google.common.collect.Maps;
  */
 public class TagUtils {
     private TagUtils(){};
-    
+
+    private static final Logger _log = LoggerFactory.getLogger(TagUtils.class);
     private static String ISA_NAMESPACE = "vipr";
 
     private static String MOUNTPOINT = fqnName(ISA_NAMESPACE, "mountPoint");
@@ -34,6 +40,8 @@ public class TagUtils {
     private static String ORDER_NUMBER = fqnName(ISA_NAMESPACE, "orderNumber");
 
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
+
+    protected static String SITE = "site";
 
     private static String fqnName(String namespace, String name) {
         return namespace + ":" + name;
@@ -109,5 +117,75 @@ public class TagUtils {
 
     public static String getOrderNumberTagValue(DataObject dataObject) {
         return getTagValue(dataObject, getOrderNumberTagName());
+    }
+
+    /**
+     * Returns the site that a DataObject should be a part of.
+     * This is currently stored as a tag of form Site=siteName
+     * 
+     * @param dataObject -- DataObject to check
+     * @return - site name String, or null if not found
+     */
+    public static String getSiteName(DataObject dataObject) {
+        ScopedLabelSet tags = dataObject.getTag();
+        if (tags != null) {
+            for (ScopedLabel tag : tags) {
+                String scope = tag.getScope();
+                if (SITE.equals(scope)) {
+                    String site = tag.getLabel();
+                    return site;
+                }
+            }
+        }
+        return null;
+    }
+    
+    public static void setSiteName(DataObject dataObject, String siteName) {
+        _log.info("dataObject is " + dataObject);
+        _log.info("siteName is " + siteName);
+        boolean siteNameIsNull = NullColumnValueGetter.isNullValue(siteName);
+        _log.info("siteNameIsNull is " + siteNameIsNull);
+        ScopedLabelSet tags = dataObject.getTag();
+        if (tags == null) {
+            if (siteNameIsNull) {
+                // no need to update if siteName is null
+                return;
+            }
+            tags = new ScopedLabelSet();
+            dataObject.setTag(tags);
+        }
+        _log.info("tags is " + tags);
+        ScopedLabel siteTag = null;
+        for (ScopedLabel tag : tags) {
+            String scope = tag.getScope();
+            _log.info("scope is " + scope);
+            if (SITE.equals(scope)) {
+                siteTag = tag;
+                _log.info("found siteTag " + siteTag);
+                break;
+            }
+        }
+        if (siteTag == null) {
+            if (siteNameIsNull) {
+                // no need to update if siteName is null
+                _log.info("return do nothing");
+                return;
+            } else {
+                // set up a new ScopedLabel for the site tag
+                siteTag = new ScopedLabel(SITE, siteName);
+                tags.add(siteTag);
+                _log.info("add new site tag " + siteTag);
+            }
+        } else {
+            tags.remove(siteTag);
+            _log.info("remove existing site tag " + siteTag);
+            if (!siteNameIsNull) {
+                _log.info("create new siteTag {}" + siteTag, siteName);
+                ScopedLabel newSiteTag = new ScopedLabel(SITE, siteName);
+                tags.add(newSiteTag);
+                _log.info("newSiteTag is " + newSiteTag);
+            }
+            dataObject.markChangedValue("tags");
+        }
     }
 }

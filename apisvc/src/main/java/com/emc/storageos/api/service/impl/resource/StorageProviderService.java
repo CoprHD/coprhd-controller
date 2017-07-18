@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -250,6 +251,9 @@ public class StorageProviderService extends TaskResourceService {
         provider.setSecondaryPassword(param.getSecondaryPassword());
         provider.setSecondaryURL(param.getSecondaryURL());
         provider.setElementManagerURL(param.getElementManagerURL());
+
+        TagUtils.setSiteName(provider, param.getSite());
+
         if (param.getSioCLI() != null) {
             // TODO: Validate the input?
             provider.addKey(StorageProvider.GlobalKeys.SIO_CLI.name(), param.getSioCLI());
@@ -481,11 +485,10 @@ public class StorageProviderService extends TaskResourceService {
                 storageProvider.setElementManagerURL(param.getElementManagerURL());
             }
 
-            _dbClient.persistObject(storageProvider);
+            TagUtils.setSiteName(storageProvider, param.getSite());
+
+            _dbClient.updateObject(storageProvider);
         }
-        
-        
-        
 
         auditOp(OperationTypeEnum.UPDATE_STORAGEPROVIDER, true, null,
                 storageProvider.getId().toString(), storageProvider.getLabel(), storageProvider.getIPAddress(),

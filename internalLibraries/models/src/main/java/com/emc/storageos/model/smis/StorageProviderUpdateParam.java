@@ -13,6 +13,7 @@ import com.emc.storageos.model.valid.Length;
 public class StorageProviderUpdateParam {
 
     private String name;
+    private String site;
     private String ipAddress;
     private Integer portNumber;
     private String userName;
@@ -27,9 +28,10 @@ public class StorageProviderUpdateParam {
     public StorageProviderUpdateParam() {
     }
 
-    public StorageProviderUpdateParam(String name, String ipAddress,
+    public StorageProviderUpdateParam(String name, String site, String ipAddress,
             Integer portNumber, String userName, String password, Boolean useSSL, String interfaceType) {
         this.name = name;
+        this.site = site;
         this.ipAddress = ipAddress;
         this.portNumber = portNumber;
         this.userName = userName;
@@ -49,6 +51,19 @@ public class StorageProviderUpdateParam {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * New mgmt Provider site
+     */
+    @XmlElement
+    @Length(min = 2, max = 128)
+    public String getSite() {
+        return site;
+    }
+
+    public void setSite(String site) {
+        this.site = site;
     }
 
     /**

@@ -13,6 +13,7 @@ import com.emc.storageos.model.valid.Length;
 public class StorageSystemRequestParam {
 
     private String name;
+    private String site;
     private String systemType;
     private String ipAddress;
     private Integer portNumber;
@@ -40,6 +41,20 @@ public class StorageSystemRequestParam {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * Site of the storage system
+     * 
+     */
+    @XmlElement(name = "site")
+    @Length(min = 2, max = 128)
+    public String getSite() {
+        return site;
+    }
+
+    public void setSite(String site) {
+        this.site = site;
     }
 
     /**

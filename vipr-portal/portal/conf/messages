@@ -2037,6 +2037,7 @@ SMISProviders.introspection=Rediscovery for all Storage Providers has been initi
 SMISProviders.connectedStorageArrays.error=There is problem with getting connected storage systems of the following Storage Providers: '%s'.  Please check server log for more details.
 
 smisProvider.name=Name
+smisProvider.site=Site
 smisProvider.ipAddress=Host
 smisProvider.ipAddress.help=Enter the fully qualified domain name or IP address of the host.
 smisProvider.host=Host
@@ -2105,6 +2106,7 @@ StorageSystems.not.registered=Storage Array: '%s' is not registered.  It can not
 storageArray.id=ID
 storageArray.serialNumber=Serial Number
 storageArray.name=Name
+storageArray.site=Site
 storageArray.lastDiscoveredDate=Last Discovery
 storageArray.discoveryStatus=Status
 storageArray.registrationStatus=Registered

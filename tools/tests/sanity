@@ -6947,6 +6947,7 @@ sbsdk_setup()
                      --max_mirrors 1                           \
                      --host_io_limit_bandwidth 100             \
                      --host_io_limit_iops 200                  \
+                     --compressionEnabled true                 \
                      --expandable false 
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID

@@ -30,13 +30,14 @@ public class VolumeManagerTest {
 
     @BeforeClass
     public static void setup() {
+        String protocol = "https";
         String host = "lglw7150.lss.emc.com";
         int port = 8443;
         String user = "smc";
         String password = "smc";
         String sn = "000196801468";
 
-        AuthenticationInfo authenticationInfo = new AuthenticationInfo(host, port, user, password);
+        AuthenticationInfo authenticationInfo = new AuthenticationInfo(protocol, host, port, user, password);
         authenticationInfo.setSn(sn);
         managerFacory = new ManagerFactory(authenticationInfo);
         volManager = managerFacory.genVolumeManager();

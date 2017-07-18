@@ -11,6 +11,7 @@ import com.emc.storageos.driver.vmax3.smc.ManagerFactory;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
@@ -24,8 +25,8 @@ public class DiscoveryHelper extends AbstractHelper {
     /**
      * 
      */
-    public DiscoveryHelper(Registry driverRegistry, String arrayId) {
-        super(driverRegistry, arrayId);
+    public DiscoveryHelper(Registry driverRegistry, LockManager lockManager, String arrayId) {
+        super(driverRegistry, lockManager, arrayId);
     }
 
     /**
@@ -38,8 +39,9 @@ public class DiscoveryHelper extends AbstractHelper {
      * @param username
      * @param password
      */
-    public DiscoveryHelper(Registry driverRegistry, String protocol, String host, int port, String username, String password) {
-        super(driverRegistry);
+    public DiscoveryHelper(Registry driverRegistry, LockManager lockManager, String protocol, String host, int port, String username,
+            String password) {
+        super(driverRegistry, lockManager);
         AuthenticationInfo authenticationInfo = new AuthenticationInfo(protocol, host, port, username, password);
         managerFactory = new ManagerFactory(authenticationInfo);
     }

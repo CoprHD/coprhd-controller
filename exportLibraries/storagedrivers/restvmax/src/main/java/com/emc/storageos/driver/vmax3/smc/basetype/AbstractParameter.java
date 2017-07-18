@@ -12,4 +12,15 @@ public abstract class AbstractParameter implements IParameter {
     public String bean2Json() {
         return new Gson().toJson(this);
     }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.driver.vmax3.smc.basetype.IParameter#fromViprPojo(java.lang.Object)
+     */
+    @Override
+    public <T> void fromViprPojo(T viprPojo) {
+        // TODO Auto-generated method stub
+
+    }
 }

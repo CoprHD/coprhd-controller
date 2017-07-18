@@ -71,4 +71,15 @@ public abstract class AbstractResponse implements IResponse {
         return status == SymConstants.StatusCode.EXCEPTION;
     }
 
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.driver.vmax3.smc.basetype.IResponse#toViprPojo(java.lang.Class)
+     */
+    @Override
+    public <T> T toViprPojo(Class<T> clazz) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }

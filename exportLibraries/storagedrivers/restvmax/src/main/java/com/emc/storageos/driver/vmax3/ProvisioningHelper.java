@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
@@ -23,8 +24,8 @@ public class ProvisioningHelper extends AbstractHelper {
      * @param driverRegistry
      * @param arrayId
      */
-    public ProvisioningHelper(Registry driverRegistry, String arrayId) {
-        super(driverRegistry, arrayId);
+    public ProvisioningHelper(Registry driverRegistry, LockManager lockManager, String arrayId) {
+        super(driverRegistry, lockManager, arrayId);
     }
 
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {

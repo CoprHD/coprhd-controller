@@ -34,4 +34,12 @@ public interface IResponse {
     void setStatus(int status);
 
     boolean isSuccessfulStatus();
+
+    /**
+     * Translate this pojo to ViPR pojo
+     * 
+     * @param clazz
+     * @return
+     */
+    <T> T toViprPojo(Class<T> clazz);
 }

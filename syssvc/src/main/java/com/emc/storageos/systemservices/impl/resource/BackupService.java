@@ -223,6 +223,22 @@ public class BackupService {
         }
     }
 
+    private BackupInfo getBackupInfoModel(String backupName, boolean isLocal) throws Exception {
+        if (isLocal) {
+            //query info of a local backup
+            return backupOps.queryLocalBackupInfo(backupName);
+        }
+
+        checkExternalServer();
+
+        SchedulerConfig cfg = backupScheduler.getCfg();
+
+        BackupInfo backupInfo =  backupOps.getBackupInfo(backupName, getExternalServerClient(cfg));
+
+        log.info("The backupInfo={}", backupInfo);
+        return backupInfo;
+    }
+
     /**
      * Get info for a specific backup
      * 
@@ -239,19 +255,7 @@ public class BackupService {
     public BackupInfo queryBackupInfo(@QueryParam("backupname") String backupName, @QueryParam("isLocal") @DefaultValue("false") boolean isLocal) {
         log.info("Query backup info backupName={} isLocal={}", backupName, isLocal);
         try {
-            if (isLocal) {
-                //query info of a local backup
-                return backupOps.queryLocalBackupInfo(backupName);
-            }
-
-            checkExternalServer();
-
-            SchedulerConfig cfg = backupScheduler.getCfg();
-
-            BackupInfo backupInfo =  backupOps.getBackupInfo(backupName, getExternalServerClient(cfg));
-
-            log.info("The backupInfo={}", backupInfo);
-            return backupInfo;
+            return getBackupInfoModel(backupName, isLocal);
         } catch (Exception e) {
             log.error("Failed to query external backup info", e);
             throw APIException.internalServerErrors.queryExternalBackupFailed(e);
@@ -631,11 +635,20 @@ public class BackupService {
         }
 
         File backupDir= backupOps.getBackupDir(backupName, isLocal);
-
         String myNodeId = backupOps.getCurrentNodeId();
 
+        BackupInfo backupInfo;
         try {
-            backupOps.checkBackup(backupDir, isLocal);
+            backupInfo = getBackupInfoModel(backupName, isLocal);
+        } catch (Exception e) {
+            String errMsg = String.format("Cannot collect backup info in %s: %s", backupName, e.getMessage());
+            setRestoreFailed(backupName, isLocal, errMsg, e);
+            auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
+            return Response.status(ASYNC_STATUS).build();
+        }
+
+        try {
+            backupOps.checkBackupFromMergedInfo(backupName, backupInfo);
         }catch (Exception e) {
             if (backupOps.shouldHaveBackupData()) {
                 String errMsg = String.format("Invalid backup on %s: %s", myNodeId, e.getMessage());
@@ -644,7 +657,7 @@ public class BackupService {
                 return Response.status(ASYNC_STATUS).build();
             }
 
-            log.info("The current node doesn't have valid backup data {} so redirect to virp1", backupDir.getAbsolutePath());
+            log.info("The current node doesn't have valid backup data {} so redirect to vipr1", backupDir.getAbsolutePath());
             redirectRestoreRequest(backupName, isLocal, password, isGeoFromScratch);
             return Response.status(ASYNC_STATUS).build();
         }
@@ -757,19 +770,13 @@ public class BackupService {
         status.setBackupName(backupName); // in case it is not saved in the ZK
 
         if (isLocal) {
-            File backupDir = backupOps.getBackupDir(backupName, true);
-            String[] files = backupDir.list();
-            if (files.length == 0) {
+            BackupInfo backupInfo = backupOps.queryLocalBackupInfo(backupName);
+
+            if (backupInfo.getVersion().isEmpty()) {
                 throw BackupException.fatals.backupFileNotFound(backupName);
             }
 
-            for (String f : files) {
-                if (backupOps.isGeoBackup(f)) {
-                    log.info("{} is a geo backup", backupName);
-                    status.setGeo(true);
-                    break;
-                }
-            }
+            status.setGeo(backupInfo.isGeo());
         }else {
             checkExternalServer();
 

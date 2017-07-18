@@ -338,6 +338,34 @@ public class BackupOps {
         }
     }
 
+    /**
+     * Check backup files from backupInfo model
+     *
+     * @param backupInfo
+     * @throws Exception
+     */
+    public void checkBackupFromMergedInfo(String backupName, BackupInfo backupInfo) throws Exception {
+
+        if(backupInfo.getVersion().isEmpty()) {
+            String errMsg = String.format("%s does not contain property file", backupName);
+            throw new RuntimeException(errMsg);
+        }
+
+        log.info("found db: {} geodb: {} isGeo: {}", backupInfo.isFoundDBfile(), backupInfo.isFoundGeoFile(), backupInfo.isGeo());
+
+        if (!backupInfo.isFoundDBfile()) {
+            String errMsg = String.format("%s does not contain db files", backupName);
+            throw new RuntimeException(errMsg);
+        }
+
+        if (!backupInfo.isFoundGeoFile()) {
+            String errMsg = String.format("%s does not contain geodb files", backupName);
+            throw new RuntimeException(errMsg);
+        }
+
+        checkBackupPropertyInfoFromBackupInfo(backupInfo);
+    }
+
     public void checkBackup(File backupFolder, boolean isLocal) throws Exception {
         File[] backupFiles = getBackupFiles(backupFolder);
 
@@ -399,6 +427,21 @@ public class BackupOps {
 
 
         checkBackupPropertyInfo(infoPropertyFile, isGeo);
+    }
+
+    private void checkBackupPropertyInfoFromBackupInfo(BackupInfo backupInfo) throws IOException {
+        RestoreManager manager = new RestoreManager();
+        CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
+        manager.setNodeCount(client.getNodeCount());
+
+        DualInetAddress addresses = coordinatorClient.getInetAddessLookupMap().getDualInetAddress();
+        String ipaddress4 = addresses.getInet4();
+        String ipaddress6 = addresses.getInet6();
+        manager.setIpAddress4(ipaddress4);
+        manager.setIpAddress6(ipaddress6);
+        manager.setEnableChangeVersion(false);
+
+        manager.checkBackupInfo(backupInfo);
     }
 
     private void checkBackupPropertyInfo(File propertyInfoFile, boolean isGeo) throws Exception {
@@ -1562,6 +1605,12 @@ public class BackupOps {
         }
     }
 
+    /**
+     * Collect and merge local backup info from all hosts
+     *
+     * @param backupTag
+     * @return
+     */
     public BackupInfo queryLocalBackupInfo(String backupTag) {
         BackupInfo backupInfo = new BackupInfo();
         backupInfo.setBackupName(backupTag);
@@ -1602,6 +1651,10 @@ public class BackupOps {
             dst.setSiteName(info.getSiteName());
             dst.setCreateTime(info.getCreateTime());
             dst.setVersion(info.getVersion());
+            dst.setFoundGeoFile(info.isFoundGeoFile());
+            dst.setFoundDBfile(info.isFoundDBfile());
+            dst.setGeo(info.isGeo());
+            dst.setHosts(info.getHosts());
         }
 
         log.info("merged backup info {}", dst);
@@ -1775,11 +1828,12 @@ public class BackupOps {
         ZipEntry zentry = zin.getNextEntry();
 
         while (zentry != null) {
+            String filename = zentry.getName();
             if (isPropEntry(zentry)) {
-                log.info("Found the property file={}", zentry.getName());
+                log.info("Found the property file={}", filename);
                 setBackupInfo(backupInfo, backupName, zin);
-                break;
             }
+            setBackupInfoFromFilename(backupInfo, filename);
             zentry = zin.getNextEntry();
         }
 
@@ -1802,6 +1856,18 @@ public class BackupOps {
         return zentry.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
     }
 
+    public void setBackupInfoFromFilename(BackupInfo backupInfo, String filename) {
+        if (isGeoBackup(filename)) {
+            backupInfo.setGeo(true);
+        }
+
+        if (filename.contains("_db_")) {
+            backupInfo.setFoundDBfile(true);
+        }else if (filename.contains(BackupType.geodb.toString()) || filename.contains(BackupType.geodbmultivdc.toString())) {
+            backupInfo.setFoundGeoFile(true);
+        }
+    }
+
     public void setBackupInfo(BackupInfo backupInfo, String backupName, InputStream in) {
         Properties properties = loadProperties(in);
         backupInfo.setVersion(getBackupVersion(properties));
@@ -1809,6 +1875,11 @@ public class BackupOps {
         backupInfo.setSiteId(getSiteIDFromProperties(properties));
         backupInfo.setSiteName(getSiteNameFromProperties(properties));
         backupInfo.setBackupName(backupName);
+        backupInfo.setHosts(getBackupHosts(properties));
+    }
+
+    private String getBackupHosts(Properties properties) {
+        return properties.getProperty(BackupConstants.BACKUP_INFO_HOSTS);
     }
 
     private String getBackupVersion(Properties properties) {

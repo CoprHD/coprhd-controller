@@ -4762,9 +4762,15 @@ public class FileService extends TaskResourceService {
             _log.error("The target fs virtual array does not match the expected target virtual array");
             return false;
         }
-        if(!targetFs.getProject().equals(project)){
-            _log.error("The target fs project does not match the source fs project");
-            return false;
+        
+        if(targetFs.getProject() == null ){
+            String targetprj = targetFs.getProject().getURI().toString();
+            String srcprj = project.toString();
+            if(!targetprj.equals(srcprj)){
+                _log.error("The target fs project does not match the source fs project");
+                return false;
+        }
+            
         }
         return true;
     }

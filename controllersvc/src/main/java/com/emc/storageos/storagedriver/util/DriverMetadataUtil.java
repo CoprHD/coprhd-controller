@@ -27,6 +27,9 @@ import com.emc.storageos.storagedriver.StorageProfile;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public final class DriverMetadataUtil {
+
+    public static final String META_DEF_FILE_NAME = "metadata.properties";
+
     private static final Logger log = LoggerFactory.getLogger(DriverMetadataUtil.class);
 
     private static final int MAX_DISPLAY_STRING_LENGTH = 50;

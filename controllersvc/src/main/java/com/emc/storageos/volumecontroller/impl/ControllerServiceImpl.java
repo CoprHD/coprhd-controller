@@ -4,13 +4,17 @@
  */
 package com.emc.storageos.volumecontroller.impl;
 
+import java.io.InputStream;
 import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -51,6 +55,7 @@ import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.storagedriver.util.DriverMetadataUtil;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -109,6 +114,7 @@ public class ControllerServiceImpl implements ControllerService {
     private static final String METERING_COREPOOLSIZE = "metering-core-pool-size";
     private static final String RR_DISCOVERY_COREPOOLSIZE = "rr-config-discovery-core-pool-size";
     private static final int DEFAULT_MAX_THREADS = 100;
+    private static final String INTREE_DRIVER_METADATA_INIT_LOCK = "intreedrivermetadatainitlock";
     public static final String CONNECTION = "Connection";
     public static final String CAPACITY_COMPUTE_DELAY = "capacity-compute-delay";
     public static final String CAPACITY_COMPUTE_INTERVAL = "capacity-compute-interval";
@@ -487,6 +493,9 @@ public class ControllerServiceImpl implements ControllerService {
         // Watson
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
+
+        initIntreeDriverMetadata();
+
         initDriverInfo();
         _drQueueCleanupHandler.run();
         
@@ -598,11 +607,47 @@ public class ControllerServiceImpl implements ControllerService {
     }
 
     /**
+     * Scan and insert meta data of in-tree drivers.
+     */
+    private void initIntreeDriverMetadata() {
+        InterProcessLock lock = null;
+        try {
+            lock = _coordinator.getLock(INTREE_DRIVER_METADATA_INIT_LOCK);
+            _log.info("Waiting for lock of initializing in-tree drivers' meta data");
+            lock.acquire();
+            Enumeration<URL> resources = getClass().getClassLoader()
+                    .getResources(DriverMetadataUtil.META_DEF_FILE_NAME);
+            while (resources.hasMoreElements()) {
+                URL propsUrl = resources.nextElement();
+                String driverFileName = extractJarName(propsUrl.getPath());
+                InputStream propsStream = propsUrl.openStream();
+                Properties props = new Properties();
+                props.load(propsStream);
+                propsStream.close();
+                DriverMetadataUtil.insertDriverMetadata(props, driverFileName, _dbClient);
+            }
+        } catch (Exception e) {
+            _log.warn("Exception happened when initializing in-tree driver meta data:", e);
+        } finally {
+            if (lock != null) {
+                try {
+                    lock.release();
+                } catch (Exception e) {
+                    _log.error("Fail to release lock", e);
+                }
+            }
+        }
+    }
+
+    private String extractJarName(String metadataFilePath) {
+        return null;
+    }
+    /**
      * Fetch driver information from db and wire it into StorageDriverManager
      * instance and ExternalBlockStorageDevice instance
      */
     private void initDriverInfo() {
-        List<StorageSystemType> types = listNonNativeTypes();
+        List<StorageSystemType> types = listDriverManagedTypes();
         if (types.isEmpty()) {
             _log.info("No out-of-tree driver is installed, keep driver info remained as loaded from Spring context");
             return;
@@ -676,13 +721,16 @@ public class ControllerServiceImpl implements ControllerService {
         }
     }
 
-    private List<StorageSystemType> listNonNativeTypes() {
+    /**
+     * @return all storage system types managed by driver, whatever in-tree or out-of-tree
+     */
+    private List<StorageSystemType> listDriverManagedTypes() {
         List<StorageSystemType> result = new ArrayList<>();
         List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
         Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         while (it.hasNext()) {
             StorageSystemType type = it.next();
-            if (type.getIsNative() == null || type.getIsNative()) {
+            if (type.getDriverClassName() == null) {
                 continue;
             }
             if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {

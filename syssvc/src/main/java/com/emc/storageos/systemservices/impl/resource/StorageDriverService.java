@@ -88,7 +88,6 @@ public class StorageDriverService {
     private static final Logger log = LoggerFactory.getLogger(StorageDriverService.class);
 
     // meta data fields related constants
-    private static final String META_DEF_FILE_NAME = "metadata.properties";
     private static final String READY = "READY";
     private static final String IN_USE = "IN_USE";
     private static final String EVENT_SERVICE_TYPE = "StorageDriver";

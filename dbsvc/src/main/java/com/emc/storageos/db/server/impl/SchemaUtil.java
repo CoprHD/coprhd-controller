@@ -955,7 +955,7 @@ public class SchemaUtil {
             StorageSystemTypesInitUtils utils = new StorageSystemTypesInitUtils(dbClient);
             utils.initializeStorageSystemTypes();
         } catch (Exception e) {
-           _log.warn("Exception happend when trying to acquire lock", e);
+           _log.warn("Exception happened when trying to acquire lock", e);
         } finally {
             if (lock != null) {
                 try {

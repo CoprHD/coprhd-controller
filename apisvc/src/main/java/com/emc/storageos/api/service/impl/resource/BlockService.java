@@ -5707,11 +5707,8 @@ public class BlockService extends TaskResourceService {
             StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
             List<URI>varrays = StringSetUtil.stringSetToUriList(port.getTaggedVirtualArrays());
             if (!varrays.contains(varray)) {
-                List<URI> connectedVarrays = StringSetUtil.stringSetToUriList(port.getConnectedVirtualArrays());
-                if (!connectedVarrays.contains(varray)) {
-                    throw APIException.badRequests.portGroupNotInVarray(port.getPortName(), portGroup.getNativeGuid(),
+                throw APIException.badRequests.portGroupNotInVarray(port.getPortName(), portGroup.getNativeGuid(),
                             varray.toString());
-                }
             }
         }
     }

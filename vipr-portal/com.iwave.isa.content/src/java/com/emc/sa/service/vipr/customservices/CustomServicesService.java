@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAO;
+import com.emc.storageos.primitives.CustomServicesPrimitiveType;
+import com.emc.storageos.primitives.input.InputParameter;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
@@ -79,6 +82,8 @@ public class CustomServicesService extends ViPRService {
     private CustomServicesViprPrimitiveDAO customServicesViprDao;
     @Autowired
     private CustomServicesWorkflowManager customServicesWorkflowManager;
+    @Autowired
+    private CustomServicesPrimitiveDAO primitive;
 
     protected String decrypt(final String value) {
         if (StringUtils.isNotBlank(value)) {
@@ -174,15 +179,25 @@ public class CustomServicesService extends ViPRService {
     }
 
     private boolean isIter(final Step step) {
+        final Map<String, List<String>> input = inputPerStep.get(step.getId());
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
-                if (!StringUtils.isEmpty(value.getTableName()) && isScript(step)) {
-                    logger.info("CS: It is of iteration type");
-                    return true;
+                if (isScript(step)) {
+                    if (!StringUtils.isEmpty(value.getTableName())) {
+                        logger.info("CS: It is of iteration type as table type is set");
+                        return true;
+                    }
+                    if (!value.getName().startsWith("@")) {
+                        if (input != null && input.get(value.getName()) != null && input.get(value.getName()).size() > 1) {
+                            logger.info("CS: It is Not an array but More elements present in list");
+                            return true;
+                        }
+                    }
                 }
             }
         }
 
+        logger.info("It is not an iterative step");
         return false;
     }
 
@@ -198,7 +213,7 @@ public class CustomServicesService extends ViPRService {
                     continue;
                 }
                 List<String> val = e.getValue();
-                if (val.size() > 1) {
+                if (!e.getKey().startsWith("@") && val.size() > 1) {
                     logger.info("Update the size to:{}", val.size());
                     return val.size();
                 }
@@ -356,6 +371,7 @@ public class CustomServicesService extends ViPRService {
             return;
         }
 
+
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
@@ -439,7 +455,7 @@ public class CustomServicesService extends ViPRService {
                             stepInput = outputPerStep.get(stepId);
                         }
                         if (stepInput != null && stepInput.get(attribute) != null) {
-                            if (StringUtils.isEmpty(value.getTableName())) {
+                            if (name.startsWith("@")) {
                                 inputs.put(name, Arrays.asList(String.join(", ", stepInput.get(attribute)).replace("\"", "")));
                                 break;
                             } else {
@@ -467,6 +483,7 @@ public class CustomServicesService extends ViPRService {
         }
         inputPerStep.put(step.getId(), inputs);
     }
+
 
     private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception {
         final List<String> out = new ArrayList<String>();

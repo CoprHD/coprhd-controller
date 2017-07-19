@@ -81,15 +81,15 @@ def discovered_storagedevice_register(args):
 #
 # display storage system in list form
 #
-ss_display_fmt = '{0:8s} {1:28s} {2:10s} {3:12s} {4:s}'
+ss_display_fmt = '{0:8s} {1:28s} {2:10s} {3:12s} {4:69s} {5:s}'
 
 def ss_display_hdr():
-    print ss_display_fmt.format('type', 'guid', 'discovery', 'reg-status', 'id')
+    print ss_display_fmt.format('type', 'guid', 'discovery', 'reg-status', 'id', 'tags')
 
 def ss_display(ss):
     try:
         print ss_display_fmt.format(ss['system_type'], ss['native_guid'], ss['job_discovery_status'],
-            ss['registration_status'],  ss['id'])
+            ss['registration_status'],  ss['id'], ss['tags'])
     except: 
 	print "there was an error"
 

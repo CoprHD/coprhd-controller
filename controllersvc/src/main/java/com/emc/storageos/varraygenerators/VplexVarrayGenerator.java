@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.util.CinderQosUtil;
@@ -158,7 +159,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             // If the VPLEX is associated with a Site, then add one of the clusters to a Site varray.
             VirtualArray siteVarray = null, altSiteVarray = null;
             String vplexClusterForSite  = ConnectivityUtil.CLUSTER_UNKNOWN;
-            String siteName = getSiteName(system);
+            String siteName = TagUtils.getSiteName(system);
             if (siteName != null) {
                 String siteVarrayName = String.format("%s %s", SITE, siteName);
                 siteVarray = getVirtualArray(siteVarrayName);
@@ -298,7 +299,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                 if (Type.isVPlexStorageSystem(Type.valueOf(system.getSystemType()))) {
                     continue;
                 }
-                if (site != null && !site.equals(getSiteName(system))) {
+                if (site != null && !site.equals(TagUtils.getSiteName(system))) {
                     // skip arrays not in this site
                     continue;
                 }

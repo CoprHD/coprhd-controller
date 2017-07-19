@@ -77,8 +77,8 @@ public class CompressionValidator extends VirtualPoolValidator<BlockVirtualPoolP
             throw APIException.badRequests.invalidParameterSystemTypeforCompression();
         }
 
-        if (null == createParam.getAutoTieringPolicyName()
-                || createParam.getAutoTieringPolicyName().equalsIgnoreCase(NONE)) {
+        if (!getStorageDriverManager().isDriverManaged(createParam.getSystemType()) && (null == createParam.getAutoTieringPolicyName()
+                || createParam.getAutoTieringPolicyName().equalsIgnoreCase(NONE))) {
             throw APIException.badRequests.invalidParameterAutoTieringPolicyforCompression();
         }
     }

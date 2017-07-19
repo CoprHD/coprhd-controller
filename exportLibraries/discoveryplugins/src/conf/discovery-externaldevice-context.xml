@@ -47,4 +47,6 @@
     </bean>
     <bean id="deduplicationCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition">
     </bean>
+    <bean id="volumeCompressionCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition">
+    </bean>
 </beans>

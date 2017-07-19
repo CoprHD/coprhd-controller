@@ -5017,4 +5017,56 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
 
     }
+
+    @Override
+    public void getExistingPolicyAndTargetInfo(URI storageURI, URI fsURI, URI policy, String opId) {
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        FileShare fs = null;
+        FilePolicy fp = null;
+        StorageSystem storageObj = null;
+        try {
+            fs = _dbClient.queryObject(FileShare.class, fsURI);
+            fp = _dbClient.queryObject(FilePolicy.class, policy);
+            storageObj = _dbClient.queryObject(StorageSystem.class, storageURI);
+
+            if (fs != null && fp != null && storageObj != null) {
+                _log.info("Controller Recieved File Policy  {}", policy);
+
+                args.addFSFileObject(fs);
+                args.setFileSystemPath(fs.getPath());
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+                args.setFileProtectionPolicy(fp);
+                args.setFileOperation(true);
+                args.setOpId(opId);
+
+                // Do the Operation on device.
+                BiosCommandResult result = getDevice(storageObj.getSystemType()).checkForExistingSyncPolicyAndTarget(storageObj, args);
+                if (result.isCommandSuccess()) {
+                    fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                    _dbClient.updateObject(fs);
+                }
+                if (result.getCommandPending()) {
+                    return;
+                }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
+                            fp.getApplyAt(), result.getMessage());
+                }
+            } else {
+                throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
+                            fp.getApplyAt(), "Could not retrieve reuired entities- filesystem / filepolicy / storage system");
+            }
+        } catch (Exception e) {
+            StringBuffer errormsg = new StringBuffer();
+            errormsg = errormsg.append(String.format("Unable to get existing sync policy : storage %s, FS URI %s,: Error %s",
+                    storageObj.getLabel(), fs.getLabel(), e.getMessage()));
+            _log.error("Unable to get existing sync policy : storage {}, FS URI {},: Error {}", errormsg);
+            updateTaskStatus(opId, fs, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, error);
+        }
+    }
 }

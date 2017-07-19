@@ -29,7 +29,9 @@ import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FilePolicy;
@@ -39,6 +41,7 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationCopyMode;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.FileAccessState;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -93,6 +96,7 @@ import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
@@ -4108,7 +4112,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private boolean isValidTargetHostOnExistingPolicy(String existingPolicyTargetHost, StorageSystem system) {
         if (existingPolicyTargetHost != null && !existingPolicyTargetHost.isEmpty()) {
             // target cluster IP address is matching????
-            if (existingPolicyTargetHost.equalsIgnoreCase(system.getIpAddress())) {
+            if (existingPolicyTargetHost.equalsIgnoreCase(system.getIpAddress()) || existingPolicyTargetHost.equalsIgnoreCase("localhost")) {
                 return true;
             }
             IsilonApi isi = getIsilonDevice(system);
@@ -4314,6 +4318,82 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         } catch (IsilonException e) {
             _log.error("checkFilePolicyPathHasResourceLabel failed.", e);
             return BiosCommandResult.createErrorResult(e);
+        }
+
+    }
+    
+    @Override
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args){
+        BiosCommandResult result = null;
+        FileShare srcFs = args.getFs();
+        if (srcFs == null){
+            throw DeviceControllerException.exceptions.assignFilePolicyFailed(args.getFileProtectionPolicy().getFilePolicyName(),
+                    args.getFileProtectionPolicy().getApplyAt(),"Failed to retrieve source filesystem");
+        }
+        Task task = TaskUtils.findTaskForRequestId(_dbClient, srcFs.getId(), args.getOpId());
+        try {
+            IsilonApi isi = getIsilonDevice(system);
+            _log.info("IsilonFileStorageDevice checkForExistingSyncPolicyAndTarget for FS {} - start", args.getFsName());
+            FilePolicy filePolicy = args.getFileProtectionPolicy();
+            if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
+                String sourcePath = generatePathForPolicy(filePolicy, srcFs, args);
+                IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
+                if (isiSynIQPolicy != null) {
+                    String targetPath = isiSynIQPolicy.getTargetPath();
+                    FileShare targetFs = null;
+                    // Check if the target FS in the islon syncIQ policy exitst in ViPR DB
+                    URIQueryResultList queryResult = new URIQueryResultList();
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharePathConstraint(targetPath), queryResult);
+                    Iterator<URI> iter = queryResult.iterator();
+                    while (iter.hasNext()) {
+                        URI fsURI = iter.next();
+                        targetFs = _dbClient.queryObject(FileShare.class, fsURI);
+                    }
+                    // TargetFs exists so we shall not create the FS but set the extension so as to handle it in controller side.
+                    if (targetFs != null) {
+                        _log.info("TargetFileSystem already exists in database with {}", targetFs.getId(), targetFs.getName());
+                        StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+                        boolean validPolicy = validateIsilonReplicationPolicy(isiSynIQPolicy, filePolicy, targetFs.getNativeId(),
+                                targetSystem, system);
+                        if (validPolicy) {
+                            setReplicationInfoInExtension(srcFs, targetPath);
+                        } else {
+                            throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                                    filePolicy.getApplyAt(), "File policy and Isilon syncIQ policy differs for attributes");
+                        }
+                        
+                    } else {
+                        throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                                filePolicy.getApplyAt(), "File Policy is already applied on isilon and the target FS with path "
+                                        + targetPath.toString() + " is not ingested");
+                    }
+                }
+            }
+            
+            // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
+            task.ready();
+            task.setProgress(100);
+            _dbClient.updateObject(task);
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            task.error(e);
+            task.setProgress(100);
+            _dbClient.updateObject(task);
+            result = BiosCommandResult.createErrorResult(e);
+        }
+        return result;
+    }
+    
+    private void setReplicationInfoInExtension(FileShare sourceFileShare, String path) {
+        if (sourceFileShare != null) {
+           if(!sourceFileShare.getExtensions().containsKey("ReplicationInfo")){
+               sourceFileShare.getExtensions().put("ReplicationInfo", path);
+           } else {
+               sourceFileShare.getExtensions().replace("ReplicationInfo", path);
+           }
+            _dbClient.updateObject(sourceFileShare);
+        } else {
+            throw DeviceControllerException.exceptions.replicationInfoSettingFailed( "Failed to set the replication attribute to source FS ");
         }
 
     }

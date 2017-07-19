@@ -1820,4 +1820,10 @@ implements FileStorageDevice {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("reduction of filesystem quota", "Unity"));
     }
+
+    @Override
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXUnity"));
+    }
 }

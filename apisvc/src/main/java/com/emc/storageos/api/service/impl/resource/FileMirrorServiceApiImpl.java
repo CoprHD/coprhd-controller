@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation;
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
@@ -632,6 +633,13 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task, recommendations, vpoolCapabilities, null);
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool, VirtualArray varray,
+            TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities,
+            FileShare targetFs) throws InternalException {
         List<FileShare> fileList = null;
         List<FileShare> fileShares = new ArrayList<>();
 
@@ -647,6 +655,18 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
                 varray, vpool, recommendations, vpoolCapabilities, false);
         fileShares.addAll(fileList);
+        
+        //already existing target doesnt need preparation setting the personality and replication attributes.
+        if(targetFs != null && CollectionUtils.isEmpty(fileShares)){
+            setMirrorFileShareAttributes(fs, targetFs);
+            fs.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
+            fs.setAccessState(FileAccessState.READWRITE.name());
+            targetFs.setPersonality(FileShare.PersonalityTypes.TARGET.toString());
+            targetFs.setAccessState(FileAccessState.READABLE.name());
+            _dbClient.updateObject(fs);
+            _dbClient.updateObject(targetFs);
+            fileShares.add(fs);
+        }
 
         // prepare the file descriptors
         final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
@@ -664,6 +684,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
             throw e;
         }
+        
     }
 
 }

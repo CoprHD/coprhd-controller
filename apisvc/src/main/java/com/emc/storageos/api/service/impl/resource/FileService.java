@@ -37,6 +37,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.mapper.functions.MapFileShare;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -104,6 +105,7 @@ import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor.Type;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
@@ -4571,6 +4573,55 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
         }
 
+        // Create task to check if any replication policy is existing in backend if yes, then to check if the target fs already
+        // in database.
+        StorageSystem targetSystem;
+        FileShare targetFs = null;
+        String checkingTask = UUID.randomUUID().toString();
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileController controller = getController(FileController.class, device.getSystemType());
+        Operation checkExistingPolOp = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), checkingTask,
+                ResourceOperationTypeEnum.GET_EXISTING_FILE_SYSTEM_POLICY);
+        checkExistingPolOp.setDescription("Check if the policy is existing");
+        try {
+            controller.getExistingPolicyAndTargetInfo(device.getId(), fs.getId(), filePolicy.getId(), checkingTask);
+            Task taskObject;
+            // wait till result from controller service ,whichever is earlier add timeout if needed.
+            do {
+                TimeUnit.SECONDS.sleep(1);
+                taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), checkingTask);
+                // exit the loop if task is completed with error/success
+            } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()));
+
+            if (taskObject == null || taskObject.isError()) {
+                throw APIException.badRequests
+                        .unableToProcessRequest("Error occured while getting replication policy due to" + taskObject.getMessage());
+            } else if (taskObject.isReady()) {
+                fs = _dbClient.queryObject(FileShare.class, fs.getId());
+                if (fs.getExtensions().containsKey("ReplicationInfo")) {
+                    String targetInfo = fs.getExtensions().get("ReplicationInfo");
+                    if (targetInfo != null) {
+                        String targetPath = targetInfo;
+                        URIQueryResultList queryResult = new URIQueryResultList();
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharePathConstraint(targetPath), queryResult);
+                        Iterator<URI> iter = queryResult.iterator();
+                        while (iter.hasNext()) {
+                            URI fsURI = iter.next();
+                            targetFs = _dbClient.queryObject(FileShare.class, fsURI);
+                        }
+                    }
+                }
+            }
+        } catch (BadRequestException e) {
+            _dbClient.error(FileShare.class, fs.getId(), checkingTask, e);
+            _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error while getting existing  policy {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        } catch (Exception e) {
+            _log.error("Error while getting existing  policy {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+
         ArgValidator.checkFieldNotNull(param.getTargetVArrays(), "target_varrays");
         Set<URI> targertVarrayURIs = param.getTargetVArrays();
 
@@ -4579,13 +4630,6 @@ public class FileService extends TaskResourceService {
             VirtualArray targetVarray = _permissionsHelper.getObjectById(targertVarrayURI, VirtualArray.class);
             ArgValidator.checkEntity(targetVarray, targertVarrayURI, false);
         }
-
-        VirtualArray sourceVarray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
-        // Get the project.
-        URI projectURI = fs.getProject().getURI();
-        Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
-
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
 
         // New operation
         TaskList taskList = new TaskList();
@@ -4597,82 +4641,105 @@ public class FileService extends TaskResourceService {
         // Set current tenant as task's tenant!!!
         Task taskObj = op.getTask(fs.getId());
         FilePolicyServiceUtils.updateTaskTenant(_dbClient, filePolicy, "assign", taskObj, fs.getTenant().getURI());
-
         TaskResourceRep fileShareTask = toTask(fs, task, op);
         taskList.getTaskList().add(fileShareTask);
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 
-        // prepare vpool capability values
-        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
-        }
-        // Set the source file system details
-        // source fs details used in finding recommendations for target fs!!
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
+        try {
 
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, filePolicy.getFileReplicationType());
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE,
-                filePolicy.getFileReplicationCopyMode());
+            VirtualArray sourceVarray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
+            // Get the project.
+            URI projectURI = fs.getProject().getURI();
+            Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
 
-        Set<String> targetVArrys = new HashSet<String>();
-        if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
-            for (URI targertVarrayURI : targertVarrayURIs) {
-                targetVArrys.add(targertVarrayURI.toString());
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+
+            // prepare vpool capability values
+            VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, filePolicy.getFileReplicationType());
+            List recommendations = new ArrayList<>();
+
+            boolean validTarget = false;
+            if (targetFs != null) {
+                targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+                if (targetSystem != null && !targetSystem.getInactive()) {
+                    validTarget = validateTarget(targetFs, projectURI, targertVarrayURIs);
+                }
             }
-        } else {
-            targetVArrys.add(sourceVarray.getId().toString());
-        }
-        URI targetvPool = null;
-        // Get the existing topologies for the policy
-        if (filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
-            for (String strTopology : filePolicy.getReplicationTopologies()) {
-                FileReplicationTopology dbTopology = _dbClient.queryObject(FileReplicationTopology.class,
-                        URI.create(strTopology));
-                Set<String> dbTargetVArrys = new HashSet<String>();
-                if (dbTopology != null && sourceVarray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
-                    dbTargetVArrys.addAll(dbTopology.getTargetVArrays());
-                    if (dbTargetVArrys.containsAll(targetVArrys)) {
-                        // find a target virtual pool
-                        // Target virtual pool is required only for policies
-                        // which are created from older release remote replication vpool
-                        for (String targetVarray : targetVArrys) {
-                            if (dbTopology.getTargetVAVPool() != null && !dbTopology.getTargetVAVPool().isEmpty()) {
-                                String[] vavPool = dbTopology.getTargetVAVPool().split(SEPARATOR);
-                                if (vavPool != null && vavPool.length > 1 && targetVarray.equalsIgnoreCase(vavPool[0])) {
-                                    String strvPool = vavPool[1];
-                                    VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, URI.create(strvPool));
-                                    if (vPool != null && !vPool.getInactive()) {
-                                        targetvPool = vPool.getId();
+
+            if (!validTarget && targetFs == null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+                if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+                }
+                // Set the source file system details
+                // source fs details used in finding recommendations for target fs!!
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
+
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE,
+                        filePolicy.getFileReplicationCopyMode());
+
+                Set<String> targetVArrys = new HashSet<String>();
+                if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
+                    for (URI targertVarrayURI : targertVarrayURIs) {
+                        targetVArrys.add(targertVarrayURI.toString());
+                    }
+                } else {
+                    targetVArrys.add(sourceVarray.getId().toString());
+                }
+                URI targetvPool = null;
+                // Get the existing topologies for the policy
+                if (filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
+                    for (String strTopology : filePolicy.getReplicationTopologies()) {
+                        FileReplicationTopology dbTopology = _dbClient.queryObject(FileReplicationTopology.class,
+                                URI.create(strTopology));
+                        Set<String> dbTargetVArrys = new HashSet<String>();
+                        if (dbTopology != null
+                                && sourceVarray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
+                            dbTargetVArrys.addAll(dbTopology.getTargetVArrays());
+                            if (dbTargetVArrys.containsAll(targetVArrys)) {
+                                // find a target virtual pool
+                                // Target virtual pool is required only for policies
+                                // which are created from older release remote replication vpool
+                                for (String targetVarray : targetVArrys) {
+                                    if (dbTopology.getTargetVAVPool() != null && !dbTopology.getTargetVAVPool().isEmpty()) {
+                                        String[] vavPool = dbTopology.getTargetVAVPool().split(SEPARATOR);
+                                        if (vavPool != null && vavPool.length > 1 && targetVarray.equalsIgnoreCase(vavPool[0])) {
+                                            String strvPool = vavPool[1];
+                                            VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, URI.create(strvPool));
+                                            if (vPool != null && !vPool.getInactive()) {
+                                                targetvPool = vPool.getId();
+                                            }
+                                        }
                                     }
                                 }
                             }
+                            break;
                         }
                     }
-                    break;
                 }
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS, targetVArrys);
+                if (targetvPool != null) {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, targetvPool);
+                } else {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
+                }
+                recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
+                        vpool, capabilities);
+            } else if (!validTarget && targetFs != null) {
+                _log.error("The target Fs validation failed");
+                return getFailureResponse(targetFs, task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM, "Error occured while validating the target FS");
+            } else {
+                // skipping the recommendation as we have a targetFs in database
+                _log.info("Skipping the placement as we have a targetFs");
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
             }
-        }
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS, targetVArrys);
-        if (targetvPool != null) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, targetvPool);
-        } else {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
-        }
-
-        FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
-
-        try {
-            // Call out placementManager to get the recommendation for placement.
-            List recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
-                    vpool, capabilities);
-
+            FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,
-                    recommendations, capabilities);
+                    recommendations, capabilities, targetFs);
         } catch (BadRequestException e) {
             _dbClient.error(FileShare.class, fs.getId(), task, e);
             _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
@@ -4682,5 +4749,29 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
         return fileShareTask;
+    }
+
+    private boolean validateTarget(FileShare targetFs, URI project, Set<URI> targertVarrayURIs) {
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, targetFs.getVirtualPool());
+        // checking if the vpool of the target fs is replication capable
+        if (!vpool.getAllowFilePolicyAtFSLevel()) {
+            _log.error("The target fs vpool does not allow file replication policy at filesystem level");
+            return false;
+        }
+        if (!targertVarrayURIs.contains(targetFs.getVirtualArray())) {
+            _log.error("The target fs virtual array does not match the expected target virtual array");
+            return false;
+        }
+        
+        if(targetFs.getProject() != null ){
+            String targetprj = targetFs.getProject().getURI().toString();
+            String srcprj = project.toString();
+            if(!targetprj.equals(srcprj)){
+                _log.error("The target fs project does not match the source fs project");
+                return false;
+        }
+            
+        }
+        return true;
     }
 }

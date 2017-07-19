@@ -1638,8 +1638,8 @@ public class DbClientImpl implements DbClient {
             int MAX_STACK_SIZE = 10; // Maximum stack we'll search in our thread.
             int MAX_STACK_PRINT = 2; // Maximum number of frames we'll print.  (really the first frame is the most important)
             
-            _log.warn("Unbounded database query, request size is over allowed limit({}), " +
-                    "please use corresponding iterative API.", DEFAULT_PAGE_SIZE);
+            _log.warn("Unbounded database query, request size ({}) is over allowed limit({}), " +
+                    "please use corresponding iterative API.", idList.size(), DEFAULT_PAGE_SIZE);
             StackTraceElement[] elements = new Throwable().getStackTrace();
             int i=0, j=0;
             while (i < MAX_STACK_SIZE && j < MAX_STACK_PRINT) {

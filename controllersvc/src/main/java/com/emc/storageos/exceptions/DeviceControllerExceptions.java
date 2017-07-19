@@ -11,7 +11,6 @@ import java.util.Map;
 
 import com.emc.storageos.ceph.CephExceptions;
 import com.emc.storageos.cinder.errorhandling.CinderExceptions;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.hds.HDSExceptions;
 import com.emc.storageos.isilon.restapi.IsilonExceptions;
 import com.emc.storageos.netapp.NetAppExceptions;
@@ -280,6 +279,15 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failToCreateFileSystem(final String path);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failToCreateQuotaDirectory(final String path);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failToDeleteQuotaDirectory(final String path);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException noNasServerFoundToAddStepsToApplyPolicy(final String storage);

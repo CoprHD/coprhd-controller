@@ -545,6 +545,25 @@ load_zones() {
     fi
 }
 
+# Filter a zone out of the zones list used for verification
+# args $1=wwn of initiator in zone(s) to remove
+# Note: if the initiator is zoned to multiple ports, this will remove all zones of the initiator
+# Also, it takes off the first two bytes of the WWN (because they aren't in the zone name.) 
+filter_zone() {
+    filteredzones=""
+    wwn=$(echo $1 | sed -e s/://g | sed -e s/^[0-9a-f][0-9a-f][0-9a-f][0-9a-f]// )
+    echo filter_zone wwn = $wwn
+    for zone in ${zones}
+    do
+        matchzone=$(echo $zone | grep $wwn)
+	if [ "$matchzone" = "" ]; then
+	    filteredzones="$zone $filteredzones"
+	fi
+    done
+    zones=${filteredzones}
+    echo "Filtered zones: "  $zones
+}
+
 # Verify the zones exist (or don't exist)
 verify_zones() {
     fabricid=$1
@@ -908,17 +927,22 @@ setup_yaml() {
 	echo "WARNING: HPUX_HOST_IP not set.  host verification operations will not work!"
     fi
 
-    if [ "${HPUX_HOST_IP}" != "" ]; then
+    if [ "${LINUX_HOST_IP}" != "" ]; then
 	# Append Linux host attributes
 	printf '  linux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${LINUX_HOST_IP}" "${LINUX_HOST_PORT}" "${LINUX_HOST_USERNAME}" "${LINUX_HOST_PASSWORD}" >> $tools_file
     else
 	echo "WARNING: LINUX_HOST_IP not set.  host verification operations will not work!"
     fi
 
+    if [ "${SS}" = "hds" ]; then
+        echo "Creating ${tools_file}"
+        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s\n    usessl: false' "${SS}" "${HDS_PROVIDER_IP}" "${HDS_PROVIDER_PORT}" "${HDS_PROVIDER_USER}" "${HDS_PROVIDER_PASSWD}" >> $tools_file
+        return
+    fi
+
     if [ "$SS" = "xio" -o "$SS" = "vplex" -o "$SS" = "unity" ]; then
     	if [ "${SS}" = "unity" ]; then
             echo "Creating ${tools_file}"
-       	    touch $tools_file
             printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "${SS}" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
             return
     	fi

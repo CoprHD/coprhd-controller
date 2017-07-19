@@ -5042,7 +5042,7 @@ class Bourne:
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
 
-        if (pathParam['port_group']):
+        if ('port_group' in pathParam):
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
 	    

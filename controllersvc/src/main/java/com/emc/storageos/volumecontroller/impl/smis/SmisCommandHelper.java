@@ -88,6 +88,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -122,6 +123,7 @@ public class SmisCommandHelper implements SmisConstants {
     private static final int SYNC_WRAPPER_TIME_OUT = 12000000; // set to 200 minutes to handle striped meta volumes with
                                                                // BCV helper
                                                                // expansion (it may take long time)
+    private static final String PROVIDER_VERSION_SUPPORTS_STORAGE_GROUP_CONVERSION = "8.4";
     private static final String EMC_IS_BOUND = "EMCIsBound";
     private static final int MAX_REFRESH_LOCK_WAIT_TIME = 300;
     private static final long REFRESH_THRESHOLD = 120000;
@@ -2357,6 +2359,34 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Converts a stand alone storage group in the masking view to cascaded.
+     * This method is supported from SMI-S v8.4
+     *
+     * @param storage the storage system
+     * @param storageGroupPath the storage group path
+     * @param storageGroupName the storage group name
+     * @throws WBEMException the WBEM exception
+     */
+    public void convertStandAloneStorageGroupToCascaded(StorageSystem storage,
+            CIMObjectPath storageGroupPath, String storageGroupName) throws WBEMException {
+        // This method is supported from SMI-S v8.4
+        StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class,
+                storage.getActiveProviderURI());
+        String providerVersion = storageProvider.getVersionString();
+        if (VersionChecker.verifyVersionDetails(PROVIDER_VERSION_SUPPORTS_STORAGE_GROUP_CONVERSION, providerVersion) >= 0) {
+            String ChildStorageGroupName = String.format("%s_ChildSG", storageGroupName);
+            CIMArgument[] inArgs = getConvertStandAloneStorageGroupToCascadedInputArguments(
+                    storage, storageGroupPath, ChildStorageGroupName);
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "EMCConvertMaskingGroup", inArgs, outArgs);
+        } else {
+            _log.info("SMI-S Provider version {} does not support converting"
+                    + " Stand alone storage group to Cascaded.", providerVersion);
+        }
+    }
+
+    /**
      * Get the Volume CIM path, given a Volume object
      *
      * @param storage
@@ -2558,6 +2588,18 @@ public class SmisCommandHelper implements SmisConstants {
         argsList.add(_cimArgument.referenceArray(CP_MEMBERS, members));
         argsList.add(_cimArgument.reference(CP_SOURCE_MASKING_GROUP, sourceGroupPath));
         argsList.add(_cimArgument.reference(CP_TARGET_MASKING_GROUP, targetGroupPath));
+        CIMArgument[] args = {};
+        return argsList.toArray(args);
+    }
+
+    public CIMArgument[] getConvertStandAloneStorageGroupToCascadedInputArguments(
+            StorageSystem storageDevice, CIMObjectPath storageGroupPath, String ChildStorageGroupName) {
+        List<CIMArgument> argsList = new ArrayList<CIMArgument>();
+        argsList.add(_cimArgument.reference(CP_DEVICE_MASKING_GROUP, storageGroupPath));
+        argsList.add(_cimArgument.uint16(CP_OPERATION, CONVERT_STANDALONE_SG_TO_CASCADED));
+        argsList.add(_cimArgument.bool(CP_HOST_IOLIMIT_PARENT, Boolean.TRUE));
+        argsList.add(_cimArgument.string(CP_CHILD_STORAGE_GROUP_NAME, ChildStorageGroupName));
+        argsList.add(_cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, Boolean.TRUE));
         CIMArgument[] args = {};
         return argsList.toArray(args);
     }
@@ -3411,7 +3453,6 @@ public class SmisCommandHelper implements SmisConstants {
      * @throws WBEMException
      */
     public boolean isCascadedSG(StorageSystem storage, CIMObjectPath path) throws WBEMException {
-        String policyName = Constants.NONE;
         CloseableIterator<CIMObjectPath> pathItr = null;
         try {
             if (checkExists(storage, path, false, false) != null) {
@@ -3449,6 +3490,36 @@ public class SmisCommandHelper implements SmisConstants {
             closeCIMIterator(pathItr);
         }
         return true;
+    }
+
+    /**
+     * Returns whether this object is a stand alone or not.
+     *
+     * @param storage
+     *            storage device
+     * @param path
+     *            path of SG
+     * @return true if the object has no storage group references
+     * @throws WBEMException
+     */
+    public boolean isStandAloneSG(StorageSystem storage, CIMObjectPath path) throws WBEMException {
+        CloseableIterator<CIMObjectPath> pathItr = null;
+        try {
+            if (checkExists(storage, path, false, false) != null) {
+                pathItr = getReference(storage, path, SE_MEMBER_OF_COLLECTION_DMG_DMG, null);
+                if (!pathItr.hasNext()) {
+                    // There are no references in this SG, it is a standalone.
+                    return true;
+                }
+            } else {
+                _log.info("Instance not found for path {}. Assuming cascaded.", path);
+            }
+        } catch (Exception e) {
+            _log.info("Got exception trying to retrieve stand alone status of SG. Assuming cascaded: ", e);
+        } finally {
+            closeCIMIterator(pathItr);
+        }
+        return false;
     }
 
     /**

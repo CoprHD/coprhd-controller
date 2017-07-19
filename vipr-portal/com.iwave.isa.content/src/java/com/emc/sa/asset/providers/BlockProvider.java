@@ -48,9 +48,12 @@ import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
 import com.emc.sa.util.TextUtils;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -98,7 +101,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
-import com.emc.storageos.storagedriver.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.BlockVolumeBootVolumeFilter;
 import com.emc.vipr.client.core.filters.BlockVolumeConsistencyGroupFilter;
@@ -419,6 +422,54 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"unmountedBlockResource", "aixHost", "project"} )
+    public List<AssetOption> getExportVolumeForAixPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"aixHost", "project"} )
+    public List<AssetOption> getExportVolumeForAixPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"unmountedBlockResource", "windowsHost", "project"} )
+    public List<AssetOption> getExportVolumeForWindowsPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"windowsHost", "project"} )
+    public List<AssetOption> getExportVolumeForWindowsPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"unmountedBlockResource", "hpuxHost", "project"} )
+    public List<AssetOption> getExportVolumeForHPPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"hpuxHost", "project"} )
+    public List<AssetOption> getExportVolumeForHPPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"unmountedBlockResource", "linuxHost", "project"} )
+    public List<AssetOption> getExportVolumeForLinuxPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies( {"linuxHost", "project"} )
+    public List<AssetOption> getExportVolumeForLinuxPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    }
+    
     @Asset("exportDatastorePortGroups")
     @AssetDependencies( {"esxHost", "project"} )
     public List<AssetOption> getExportDatastorePortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
@@ -428,6 +479,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportDatastorePortGroups")
     @AssetDependencies( {"unassignedBlockDatastore", "esxHost", "project"} )
     public List<AssetOption> getExportDatastorePortGroups(AssetOptionsContext ctx, String selectedDatastore, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedDatastore, hostOrClusterId, projectId);
+    }
+    
+    @Asset("exportDatastorePortGroups")
+    @AssetDependencies( {"unmountedBlockVolume", "esxHost", "project"} )
+    public List<AssetOption> getExportMountDatastorePortGroups(AssetOptionsContext ctx, String selectedDatastore, URI hostOrClusterId, URI projectId) {
         return getExportVolumePortGroups(ctx, selectedDatastore, hostOrClusterId, projectId);
     }
 
@@ -482,6 +539,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportSnapshotForHostPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
         return getExportSnapshotForHostPortGroups(ctx, new String(""), hostOrClusterId, projectId);
     }
+    
+    @Asset("exportVolumeForComputePortGroups")
+    @AssetDependencies( {"blockVirtualArray", "blockVirtualPool", "project"} )
+    public List<AssetOption> getExportVolumeForComputePortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI projectId) {
+        final ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
+        if (value.getValue().equalsIgnoreCase("true")) {
+            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId, null, null, vpoolId);
+            return createPortGroupOptions(portGroups.getStoragePortGroups());
+        }
+
+        return options;
+    }
+    
 
     @Asset("exportSnapshotForHostPortGroups")
     @AssetDependencies( {"unassignedBlockSnapshot", "host", "project"} )
@@ -1308,15 +1380,40 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("unassignedBlockVolume")
-    @AssetDependencies({ "host", "project" })
-    public List<AssetOption> getBlockVolumes(AssetOptionsContext ctx, URI hostOrClusterId, final URI projectId) {
+    @AssetDependencies({ "host", "project", "blockStorageType" })
+    public List<AssetOption> getBlockVolumes(AssetOptionsContext ctx, URI hostOrClusterId,
+            final URI projectId, String blockStorageType) {
         ViPRCoreClient client = api(ctx);
-        Set<URI> exportedBlockResources = BlockProvider.getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
-        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
-                exportedBlockResources);
+        Set<URI> exportedBlockResources =
+                BlockProvider.getExportedVolumes(client, projectId, hostOrClusterId, null);
+        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter =
+                new UnexportedBlockResourceFilter<VolumeRestRep>(exportedBlockResources);
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
         BlockVolumeBootVolumeFilter bootVolumeFilter = new BlockVolumeBootVolumeFilter();
-        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
+        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId,
+                unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
+
+        // get varray IDs for host/cluster
+        List<VirtualArrayRestRep> varrays = new ArrayList<>();
+        if(EXCLUSIVE_STORAGE_OPTION.key.equals(blockStorageType) &&
+                URIUtil.isType(hostOrClusterId, Host.class)) {
+            varrays = client.varrays().findByConnectedHost(hostOrClusterId);
+        } else if(SHARED_STORAGE_OPTION.key.equals(blockStorageType) &&
+                URIUtil.isType(hostOrClusterId, Cluster.class)) {
+            varrays = client.varrays().findByConnectedCluster(hostOrClusterId);
+        }
+        List<URI> varrayIds = new ArrayList<>();
+        for (VirtualArrayRestRep varray : varrays){
+            varrayIds.add(varray.getId());
+        }
+
+        // remove volumes not in hosts/cluster's varray
+        Iterator<VolumeRestRep> itr = volumes.iterator();
+        while (itr.hasNext()) {
+            if (!varrayIds.contains(itr.next().getVirtualArray().getId())) {
+                itr.remove();
+            }
+        }
 
         return createVolumeOptions(client, volumes);
     }

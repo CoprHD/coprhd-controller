@@ -1501,67 +1501,70 @@ public class HDSExportOperations implements ExportMaskOperations {
                     //Create single ExportMask for each host-varray combination
                     List<ExportMask> exportMaskWithHostInitiators = fetchExportMasksFromDB(activeMasks,
                             hostInitiators, storage);
-                    for (HostStorageDomain hsd : matchedHostHSDsMap.get(hostURI)) {
-                        String storagePortOFHDSURI = getStoragePortURIs(Arrays.asList(hsd.getPortID()), storage).get(0);
-                        ExportMask maskForHSD = null;
-                        for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
-                            if(exportMaskhavingInitiators.getStoragePorts().contains(storagePortOFHDSURI)) {
-                                maskForHSD = exportMaskhavingInitiators;
-                                break;
-                            }
-                        }
-                        if (null == maskForHSD) {
-							//first get the varrays associated with the storage port of the HSD and then check if
-                        	//any of the export masks have storage ports, which have virtual arrays overlapping with the virtual
-                        	//arrays of the HSD storage port
-							//NOTE: If the storageport is assigned to multiple varrays, then maintaining one
-							//export mask per varray is not possible. Proper seggregation has to be done.
-                        	StringSet  varraysAssociatedWithHSDStoragePort = getTaggedVarrays(storagePortOFHDSURI);	                        	                  	
-                        	if(!varraysAssociatedWithHSDStoragePort.isEmpty()){
-                        		boolean bMaskFound = false;
-                        		for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
-                                    for(String storagePortUriIter : exportMaskhavingInitiators.getStoragePorts()) {
-                                        //get the storage port entity
-                                    	StringSet  varraysOfStoragePort = getTaggedVarrays(storagePortUriIter);
-                                    	if (StringSetUtil.hasIntersection(varraysOfStoragePort, varraysAssociatedWithHSDStoragePort)){
-                                    		maskForHSD = exportMaskhavingInitiators;
-                                    		//Ingest the foreign HSD into a matching export mask with same host and varray combination
-                                    		bMaskFound = true;
-                                    		break;
-                                    	}
-                                    }
-                                    if(bMaskFound){
-                                    	break;
-                                    }
-                                }
-                        	}
-                        	else{
-                        		//Since this HSD port is not tagged to any varray, we will not ingest it
-                        		continue;
-                        	}
+                    Set<HostStorageDomain> hsds = matchedHostHSDsMap.get(hostURI);
+					if (!CollectionUtils.isEmpty(hsds)) {
+						for (HostStorageDomain hsd : hsds) {
+							String storagePortOFHDSURI = getStoragePortURIs(Arrays.asList(hsd.getPortID()), storage).get(0);
+							ExportMask maskForHSD = null;
+							for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
+								if(exportMaskhavingInitiators.getStoragePorts().contains(storagePortOFHDSURI)) {
+									maskForHSD = exportMaskhavingInitiators;
+									break;
+								}
+							}
+							if (null == maskForHSD) {
+								//first get the varrays associated with the storage port of the HSD and then check if
+								//any of the export masks have storage ports, which have virtual arrays overlapping with the virtual
+								//arrays of the HSD storage port
+								//NOTE: If the storageport is assigned to multiple varrays, then maintaining one
+								//export mask per varray is not possible. Proper seggregation has to be done.
+								StringSet  varraysAssociatedWithHSDStoragePort = getTaggedVarrays(storagePortOFHDSURI);	                        	                  	
+								if(!varraysAssociatedWithHSDStoragePort.isEmpty()){
+									boolean bMaskFound = false;
+									for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
+										for(String storagePortUriIter : exportMaskhavingInitiators.getStoragePorts()) {
+											//get the storage port entity
+											StringSet  varraysOfStoragePort = getTaggedVarrays(storagePortUriIter);
+											if (StringSetUtil.hasIntersection(varraysOfStoragePort, varraysAssociatedWithHSDStoragePort)){
+												maskForHSD = exportMaskhavingInitiators;
+												//Ingest the foreign HSD into a matching export mask with same host and varray combination
+												bMaskFound = true;
+												break;
+											}
+										}
+										if(bMaskFound){
+											break;
+										}
+									}
+								}
+								else{
+									//Since this HSD port is not tagged to any varray, we will not ingest it
+									continue;
+								}
 
-                        	if(null == maskForHSD){
-                            	//No matching export mask found for the same host and varray combination. Creating a new export mask.
-                        		isNewExportMask = true;
-                                maskForHSD = new ExportMask();
-                                maskForHSD.setId(URIUtil.createId(ExportMask.class));
-                                maskForHSD.setStorageDevice(storage.getId());
-                                maskForHSD.setCreatedBySystem(false);	
-                        	}                  
-                        }
-                        Set<HostStorageDomain> hsdSet = new HashSet<>();
-                        hsdSet.add(hsd);
-                        updateHSDInfoInExportMask(maskForHSD, hostInitiators, hsdSet, storage, matchingMasks);
-                        if (isNewExportMask) {
-                            dbClient.createObject(maskForHSD);
-                            exportMaskWithHostInitiators.add(maskForHSD); 
-                        } else {
-                            ExportMaskUtils.sanitizeExportMaskContainers(dbClient, maskForHSD);
-                            dbClient.updateObject(maskForHSD);
-                        }
-                        updateMatchingMasksForHost(
-                                matchedHostInitiators.get(hostURI), maskForHSD,
-                                matchingMasks);
+								if(null == maskForHSD){
+									//No matching export mask found for the same host and varray combination. Creating a new export mask.
+									isNewExportMask = true;
+									maskForHSD = new ExportMask();
+									maskForHSD.setId(URIUtil.createId(ExportMask.class));
+									maskForHSD.setStorageDevice(storage.getId());
+									maskForHSD.setCreatedBySystem(false);	
+								}                  
+							}
+							Set<HostStorageDomain> hsdSet = new HashSet<>();
+							hsdSet.add(hsd);
+							updateHSDInfoInExportMask(maskForHSD, hostInitiators, hsdSet, storage, matchingMasks);
+							if (isNewExportMask) {
+								dbClient.createObject(maskForHSD);
+								exportMaskWithHostInitiators.add(maskForHSD); 
+							} else {
+								ExportMaskUtils.sanitizeExportMaskContainers(dbClient, maskForHSD);
+								dbClient.updateObject(maskForHSD);
+							}
+							updateMatchingMasksForHost(
+									matchedHostInitiators.get(hostURI), maskForHSD,
+									matchingMasks);
+						}
                     }
                 }
             }

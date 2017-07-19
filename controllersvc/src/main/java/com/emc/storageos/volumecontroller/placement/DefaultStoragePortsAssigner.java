@@ -658,10 +658,10 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
               List<StoragePort> assignedStoragePorts = assignments.get(initiator);
               
               //Assign these same ports to self
-              if(!assignments.containsKey(associatedInitiator)) {
+              if(null!=associatedInitiator && !assignments.containsKey(associatedInitiator)) {
                   assignmentsForAssociatedPorts.put(associatedInitiator, assignedStoragePorts);
-                  _log.info("Associated Initiator %s is assigned with storage ports %s",
-                            associatedIniUri, assignedStoragePorts.toString());
+                  _log.info(String.format("Associated Initiator %s is assigned with storage ports %s",
+                            associatedIniUri.toString(), assignedStoragePorts.toString()));
               }              
               
             }            

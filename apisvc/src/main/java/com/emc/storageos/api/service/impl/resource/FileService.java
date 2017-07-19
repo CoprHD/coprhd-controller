@@ -4730,6 +4730,8 @@ public class FileService extends TaskResourceService {
             } else {
                 // skipping the recommendation as we have a targetFs in database
                 _log.info("Skipping the placement as we have a targetFs");
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
             }
             FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,

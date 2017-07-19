@@ -656,7 +656,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 varray, vpool, recommendations, vpoolCapabilities, false);
         fileShares.addAll(fileList);
         
-        if(CollectionUtils.isEmpty(fileShares) && targetFs != null){
+        if(targetFs != null || CollectionUtils.isEmpty(fileShares)){
             setMirrorFileShareAttributes(fs, targetFs);
             fileShares.add(fs);
         }

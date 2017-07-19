@@ -41,7 +41,7 @@ public class TagUtils {
 
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
 
-    public static String SITE = "site";
+    public static String SITE = "Site";
     public static String SEPARATOR = "=";
 
     private static String fqnName(String namespace, String name) {

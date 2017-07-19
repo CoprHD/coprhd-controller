@@ -2910,7 +2910,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (failback) {
                 String mirrorPolicyName = policyName.concat(MIRROR_POLICY);
                 // prepared policy for failback
-                cmdResult = prepareFailbackOp(targetSystem, policyName);
+                cmdResult = prepareFailbackOp(sourceSystem, policyName);
                 if (!cmdResult.isCommandSuccess()) {
                     return cmdResult;
                 }
@@ -2947,6 +2947,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String mirrorPolicyName, TaskCompleter completer) {
         IsilonSyncTargetPolicy policy = null;
         IsilonSyncTargetPolicy mirrorPolicy = null;
+
+        // if policy enables on target storage then We should disable it before failback job
+        BiosCommandResult result = mirrorOperations.doStopReplicationPolicy(targetSystem, mirrorPolicyName);
+
+        if (!result.isCommandSuccess()) {
+            return result;
+        }
 
         mirrorPolicy = mirrorOperations.getIsilonSyncTargetPolicy(sourceSystem, mirrorPolicyName);
         policy = mirrorOperations.getIsilonSyncTargetPolicy(targetSystem, policyName);
@@ -3009,14 +3016,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // check for target device up and then disable the policy
         cmdResult = mirrorOperations.doTestReplicationPolicy(targetSystem, policyName);
         if (cmdResult.isCommandSuccess()) {
-            // if policy enables on target storage then We should disable it before failback job
-            cmdResult = mirrorOperations.doStopReplicationPolicy(targetSystem, policyName);
+            return cmdResult;
         } else {
             ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailbackReplicationPolicy(
                     targetSystem.getIpAddress(), policyName, cmdResult.getMessage());
             return BiosCommandResult.createErrorResult(serviceError);
         }
-        return cmdResult;
     }
 
     @Override

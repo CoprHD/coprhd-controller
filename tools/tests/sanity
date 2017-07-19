@@ -2623,7 +2623,7 @@ srdf_tests()
    
    echo 'About to run basic SRDF active test'
    sleep 60
-   #srdf_basic_active_test
+   srdf_basic_active_test
 
    echo 'About to run basic SRDF async test'
    sleep 60

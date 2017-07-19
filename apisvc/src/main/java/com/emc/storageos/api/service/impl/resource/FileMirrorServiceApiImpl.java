@@ -658,6 +658,12 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         
         if(targetFs != null || CollectionUtils.isEmpty(fileShares)){
             setMirrorFileShareAttributes(fs, targetFs);
+            fs.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
+            fs.setAccessState(FileAccessState.READWRITE.name());
+            targetFs.setPersonality(FileShare.PersonalityTypes.TARGET.toString());
+            targetFs.setAccessState(FileAccessState.READABLE.name());
+            _dbClient.updateObject(fs);
+            _dbClient.updateObject(targetFs);
             fileShares.add(fs);
         }
 

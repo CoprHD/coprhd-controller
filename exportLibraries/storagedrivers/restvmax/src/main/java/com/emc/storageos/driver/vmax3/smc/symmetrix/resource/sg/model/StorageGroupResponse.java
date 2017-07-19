@@ -6,13 +6,12 @@ package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model;
 
 import java.util.Arrays;
 
-import com.emc.storageos.driver.restvmax.vmax.type.HostIOLimitType;
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractResponse;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultResponse;
 
 /**
  * Created by xuej3 on 2017/7/12.
  */
-public class StorageGroupResponse extends AbstractResponse {
+public class StorageGroupResponse extends DefaultResponse {
     private String storageGroupId;
     private String slo;
     private String srp;
@@ -189,7 +188,7 @@ public class StorageGroupResponse extends AbstractResponse {
                 + num_of_snapshots + ", cap_gb=" + cap_gb + ", device_emulation=" + device_emulation + ", type=" + type + ", unprotected="
                 + unprotected + ", child_storage_group=" + Arrays.toString(child_storage_group) + ", parent_storage_group="
                 + Arrays.toString(parent_storage_group) + ", maskingview=" + Arrays.toString(maskingview) + ", hostIOLimit=" + hostIOLimit
-                + ", getMessage()=" + getMessage() + ", getStatus()=" + getStatus() + "]";
+                + ", getMessage()=" + getCustMessage() + ", getHttpStatusCode()=" + getHttpStatusCode() + "]";
     }
 
 }

@@ -8,9 +8,9 @@ package com.emc.storageos.driver.vmax3.smc.symmetrix.resource;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractResponse;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultResponse;
 
-public class IteratorType<T> extends AbstractResponse {
+public class IteratorType<T> extends DefaultResponse {
 
     public String getId() {
         return id;
@@ -88,8 +88,8 @@ public class IteratorType<T> extends AbstractResponse {
     @Override
     public String toString() {
         return "IteratorType [id=" + id + ", count=" + count + ", expirationTime=" + expirationTime + ", maxPageSize=" + maxPageSize
-                + ", warningMessage=" + warningMessage + ", resultList=" + resultList + ", getMessage()=" + getMessage() + ", getStatus()="
-                + getStatus() + "]";
+                + ", warningMessage=" + warningMessage + ", resultList=" + resultList + ", getMessage()=" + getCustMessage()
+                + ", getHttpStatusCode()=" + getHttpStatusCode() + "]";
     }
 
 }

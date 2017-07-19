@@ -5,10 +5,10 @@
 
 package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model;
 
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractParameter;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultParameter;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.CapacityUnitType;
 
-public class VolumeAttributeType extends AbstractParameter {
+public class VolumeAttributeType extends DefaultParameter {
     private CapacityUnitType capacityUnit;
     private String volume_size;
 

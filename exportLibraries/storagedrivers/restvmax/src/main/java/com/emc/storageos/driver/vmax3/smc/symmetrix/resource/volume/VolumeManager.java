@@ -12,14 +12,16 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractManager;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultManager;
 import com.emc.storageos.driver.vmax3.smc.basetype.ResponseWrapper;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.IteratorType;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.model.GetVolumeResultType;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.model.VolumeListResultType;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.model.VolumeType;
 import com.google.gson.reflect.TypeToken;
 
-public class VolumeManager extends AbstractManager {
+public class VolumeManager extends DefaultManager {
     private static final Logger LOG = LoggerFactory.getLogger(VolumeManager.class);
 
     static class EndPointHolder {
@@ -34,9 +36,13 @@ public class VolumeManager extends AbstractManager {
         super(authenticationInfo);
     }
 
-    public IteratorType<VolumeListResultType> listVolumes(List<String> urlFillers,
-            Map<String, String> urlParams) {
-        String url = urlGenerator.genUrl(EndPointHolder.LIST_VOLUME_URL, urlFillers, urlParams);
+    public IteratorType<VolumeListResultType> listVolumes(Map<String, String> filters) {
+        return listVolumes(genUrlFillers(), filters);
+    }
+
+    private IteratorType<VolumeListResultType> listVolumes(List<String> urlFillers,
+            Map<String, String> filters) {
+        String url = urlGenerator.genUrl(EndPointHolder.LIST_VOLUME_URL, urlFillers, filters);
         Type responseClazzType = new TypeToken<IteratorType<VolumeListResultType>>() {
         }.getType();
         ResponseWrapper<VolumeListResultType> responseWrapper = engine.list(url, VolumeListResultType.class, responseClazzType);
@@ -50,14 +56,24 @@ public class VolumeManager extends AbstractManager {
         }
 
         if (!responseBeanIterator.isSuccessfulStatus()) {
-            LOG.error("{}: Failed to list volumes with error: {}", responseBeanIterator.getStatus(),
-                    responseBeanIterator.getMessage());
+            LOG.error("{}: Failed to list volumes with error: {}", responseBeanIterator.getHttpStatusCode(),
+                    responseBeanIterator.getCustMessage());
         }
         LOG.debug("Output response bean as : {}", responseBeanIterator);
         return responseBeanIterator;
     }
 
-    public List<String> findValidVolumes(List<String> urlFillers, Map<String, String> filters) {
+    /**
+     * Find volume ids with filters.
+     * 
+     * @param filters
+     * @return List<String> volumeIds
+     */
+    public List<String> findValidVolumes(Map<String, String> filters) {
+        return findValidVolumes(genUrlFillers(), filters);
+    }
+
+    private List<String> findValidVolumes(List<String> urlFillers, Map<String, String> filters) {
         List<String> volIds = new ArrayList<String>();
         IteratorType<VolumeListResultType> iterator = listVolumes(urlFillers, filters);
         if (!iterator.isSuccessfulStatus() && iterator.getCount() <= 0) {
@@ -73,6 +89,43 @@ public class VolumeManager extends AbstractManager {
         return volIds;
     }
 
-    // public VolumeType fetchVolume()
+    /**
+     * Fetch one volume with volumeId.
+     * 
+     * @param volumeId
+     * @return VolumeType
+     */
+    public VolumeType fetchVolume(String volumeId) {
+        return fetchVolume(volumeId, genUrlFillers(volumeId));
+    }
+
+    private VolumeType fetchVolume(String volumeId, List<String> urlFillers) {
+        String url = urlGenerator.genUrl(EndPointHolder.GET_VOLUME_URL, urlFillers, null);
+        ResponseWrapper<GetVolumeResultType> responseWrapper = engine.get(url, GetVolumeResultType.class);
+        GetVolumeResultType responseBean = responseWrapper.getResponseBean();
+        VolumeType volumeBean = new VolumeType();
+        if (responseWrapper.getException() != null) {
+            LOG.error("Exception happened during fetching volume {}:{}", volumeId, responseWrapper.getException());
+            appendExceptionMessage(volumeBean, "Exception happened during fetching volume %s:%s",
+                    volumeId,
+                    responseWrapper.getException());
+            volumeBean.setHttpStatusCode(responseBean.getHttpStatusCode());
+            return volumeBean;
+        }
+
+        if (!responseBean.isSuccessfulStatus()) {
+            LOG.error("{}: Failed to fetch volume {} with error: {}", volumeId, responseBean.getHttpStatusCode(),
+                    responseBean.getCustMessage());
+            volumeBean.setHttpStatusCode(responseBean.getHttpStatusCode());
+            volumeBean.setCustMessage(responseBean.getCustMessage());
+            return volumeBean;
+        }
+
+        volumeBean = responseBean.getVolume()[0];
+        volumeBean.setHttpStatusCode(responseBean.getHttpStatusCode());
+
+        LOG.debug("Output response bean as : {}", volumeBean);
+        return volumeBean;
+    }
 
 }

@@ -9,29 +9,29 @@ public interface IResponse {
     /**
      * @return the message
      */
-    String getMessage();
+    String getCustMessage();
 
     /**
      * @param message the message to set
      */
-    void setMessage(String message);
+    void setCustMessage(String message);
 
     /**
      * Append new message to original message.
      * 
      * @param message
      */
-    void appendMessage(String message);
+    void appendCustMessage(String message);
 
     /**
      * @return the status
      */
-    int getStatus();
+    int getHttpStatusCode();
 
     /**
      * @param status the status to set
      */
-    void setStatus(int status);
+    void setHttpStatusCode(int httpStatusCode);
 
     boolean isSuccessfulStatus();
 

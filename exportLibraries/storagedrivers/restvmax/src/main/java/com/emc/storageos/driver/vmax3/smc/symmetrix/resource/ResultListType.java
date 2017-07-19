@@ -6,9 +6,9 @@ package com.emc.storageos.driver.vmax3.smc.symmetrix.resource;
 
 import java.util.List;
 
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractResponse;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultResponse;
 
-public class ResultListType<T> extends AbstractResponse {
+public class ResultListType<T> extends DefaultResponse {
     private Integer from;
     private Integer to;
     private List<T> result;

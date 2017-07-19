@@ -34,8 +34,8 @@ public class ProvisioningHelper extends AbstractHelper {
         DriverTask task = new DefaultDriverTask(taskId);
         String sgId = volumes.get(0).getConsistencyGroup();
 
-        this.managerFactory.genStorageGroupManager().createEmptySg(null, null);
-        this.managerFactory.genStorageGroupManager().createNewVolInSg(null, null, null);
+        this.managerFactory.genStorageGroupManager().createEmptySg(null);
+        this.managerFactory.genStorageGroupManager().createNewVolInSg(null, null);
         return task;
     }
 }

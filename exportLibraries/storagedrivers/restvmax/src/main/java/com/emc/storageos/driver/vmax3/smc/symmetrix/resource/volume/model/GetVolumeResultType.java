@@ -4,12 +4,10 @@
  */
 package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.model;
 
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.GenericResultImplType;
+
 public class GetVolumeResultType extends GenericResultImplType {
     private VolumeType[] volume;
-
-    GetVolumeResultType(Boolean success) {
-        super(success);
-    }
 
     public VolumeType[] getVolume() {
         return volume;

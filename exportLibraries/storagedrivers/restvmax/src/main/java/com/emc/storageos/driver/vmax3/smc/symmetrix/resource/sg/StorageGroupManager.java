@@ -10,15 +10,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.vmax3.smc.SymConstants;
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractManager;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultManager;
 import com.emc.storageos.driver.vmax3.smc.basetype.EmptyResponse;
 import com.emc.storageos.driver.vmax3.smc.basetype.ResponseWrapper;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.CreateStorageGroupParameter;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupParameter;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.StorageGroupResponse;
 
-public class StorageGroupManager extends AbstractManager {
+public class StorageGroupManager extends DefaultManager {
     /**
      * 
      */
@@ -52,7 +52,11 @@ public class StorageGroupManager extends AbstractManager {
         super(authenticationInfo);
     }
 
-    public StorageGroupResponse createEmptySg(CreateStorageGroupParameter param, List<String> urlFillers) {
+    public StorageGroupResponse createEmptySg(CreateStorageGroupParameter param) {
+        return createEmptySg(param, genUrlFillers());
+    }
+
+    private StorageGroupResponse createEmptySg(CreateStorageGroupParameter param, List<String> urlFillers) {
         String url = urlGenerator.genUrl(EndPointHolder.CREATE_SG_URL, urlFillers, null);
         ResponseWrapper<StorageGroupResponse> responseWrapper = engine.post(url, param, StorageGroupResponse.class);
         StorageGroupResponse responseBean = responseWrapper.getResponseBean();
@@ -64,28 +68,31 @@ public class StorageGroupManager extends AbstractManager {
         }
 
         if (!responseBean.isSuccessfulStatus()) {
-            LOG.error("{}: Failed to create empty storageGroup {} with error: {}", responseBean.getStatus(),
+            LOG.error("{}: Failed to create empty storageGroup {} with error: {}", responseBean.getHttpStatusCode(),
                     param.getStorageGroupId(),
-                    responseBean.getMessage());
+                    responseBean.getCustMessage());
         }
         LOG.debug("Output response bean as : {}", responseBean);
         return responseBean;
     }
 
-    public EmptyResponse editSgWithSlo(String sgId, EditStorageGroupParameter param, List<String> urlFillers) {
-        return editProperty4Sg(sgId, param, urlFillers, SgPropertyType.SLO);
+    public EmptyResponse editSgWithSlo(String sgId, EditStorageGroupParameter param) {
+        return editProperty4Sg(sgId, param, genUrlFillers(sgId), SgPropertyType.SLO);
     }
 
-    public EmptyResponse editSgWithWorkload(String sgId, EditStorageGroupParameter param, List<String> urlFillers) {
-        return editProperty4Sg(sgId, param, urlFillers, SgPropertyType.WORK_LOAD);
+    public EmptyResponse editSgWithWorkload(String sgId, EditStorageGroupParameter param) {
+        return editProperty4Sg(sgId, param, genUrlFillers(sgId), SgPropertyType.WORK_LOAD);
     }
 
-    public EmptyResponse editSgWithHostIoLimit(String sgId, EditStorageGroupParameter param, List<String> urlFillers) {
-        return editProperty4Sg(sgId, param, urlFillers, SgPropertyType.HOST_IO_LIMIT);
+    public EmptyResponse editSgWithHostIoLimit(String sgId, EditStorageGroupParameter param) {
+        return editProperty4Sg(sgId, param, genUrlFillers(sgId), SgPropertyType.HOST_IO_LIMIT);
     }
 
-    public StorageGroupResponse createNewVolInSg(String sgId, EditStorageGroupParameter param, List<String> urlFillers) {
-        urlFillers.add(sgId);
+    public StorageGroupResponse createNewVolInSg(String sgId, EditStorageGroupParameter param) {
+        return createNewVolInSg(sgId, param, genUrlFillers(sgId));
+    }
+
+    private StorageGroupResponse createNewVolInSg(String sgId, EditStorageGroupParameter param, List<String> urlFillers) {
         String url = urlGenerator.genUrl(EndPointHolder.create_vol_in_SG_URL, urlFillers, null);
         ResponseWrapper<StorageGroupResponse> responseWrapper = engine.put(url, param, StorageGroupResponse.class);
         StorageGroupResponse responseBean = responseWrapper.getResponseBean();
@@ -98,9 +105,9 @@ public class StorageGroupManager extends AbstractManager {
         }
 
         if (!responseBean.isSuccessfulStatus()) {
-            LOG.error("{}: Failed to create volume in storageGroup {} with error: {}", responseBean.getStatus(),
+            LOG.error("{}: Failed to create volume in storageGroup {} with error: {}", responseBean.getHttpStatusCode(),
                     sgId,
-                    responseBean.getMessage());
+                    responseBean.getCustMessage());
         }
         LOG.debug("Output response bean as : {}", responseBean);
         return responseBean;
@@ -108,7 +115,6 @@ public class StorageGroupManager extends AbstractManager {
 
     private EmptyResponse editProperty4Sg(String sgId, EditStorageGroupParameter param, List<String> urlFillers,
             SgPropertyType sgPropertyType) {
-        urlFillers.add(sgId);
         String url = urlGenerator.genUrl(EndPointHolder.EDIT_SG_URL, urlFillers, null);
         ResponseWrapper<EmptyResponse> responseWrapper = engine.put(url, param, EmptyResponse.class);
         EmptyResponse responseBean = responseWrapper.getResponseBean();
@@ -121,16 +127,16 @@ public class StorageGroupManager extends AbstractManager {
         }
 
         if (!responseBean.isSuccessfulStatus()) {
-            LOG.error("{}: Failed to edit {} for storageGroup {} with error: {}", sgPropertyType, responseBean.getStatus(),
+            LOG.error("{}: Failed to edit {} for storageGroup {} with error: {}", sgPropertyType, responseBean.getHttpStatusCode(),
                     sgId,
-                    responseBean.getMessage());
-            if (responseBean.getMessage().equals(IgnoredErrorMessage.NO_CHANGES_REQUIRED)) {
+                    responseBean.getCustMessage());
+            if (responseBean.getCustMessage().equals(IgnoredErrorMessage.NO_CHANGES_REQUIRED)) {
                 LOG.info("This error should be ignored, for the resource has the properties already.");
-                responseBean.setStatus(SymConstants.StatusCode.OK);
+                responseBean.setHttpStatusCode(SymConstants.StatusCode.OK);
             }
-            if (sgPropertyType.equals(SgPropertyType.HOST_IO_LIMIT) && responseBean.getMessage().equals(IgnoredErrorMessage.NO_IO_SET)) {
+            if (sgPropertyType.equals(SgPropertyType.HOST_IO_LIMIT) && responseBean.getCustMessage().equals(IgnoredErrorMessage.NO_IO_SET)) {
                 LOG.info("This error should be ignored, for the resource has the properties already.");
-                responseBean.setStatus(SymConstants.StatusCode.OK);
+                responseBean.setHttpStatusCode(SymConstants.StatusCode.OK);
             }
         }
         LOG.debug("Output response bean as : {}", responseBean);

@@ -10,11 +10,11 @@ import com.emc.storageos.driver.vmax3.smc.basetype.DefaultParameter;
  * @author fengs5
  *
  */
-public class SetHostIOLimitsParam extends DefaultParameter {
+public class HostIOLimitType extends DefaultParameter {
 
     private String host_io_limit_mb_sec;
     private String host_io_limit_io_sec;
-    private DynamicDistributionType dynamicDistribution;
+    private String dynamicDistribution;
 
     /**
      * @return the host_io_limit_mb_sec
@@ -47,27 +47,26 @@ public class SetHostIOLimitsParam extends DefaultParameter {
     /**
      * @return the dynamicDistribution
      */
-    public DynamicDistributionType getDynamicDistribution() {
+    public String getDynamicDistribution() {
         return dynamicDistribution;
     }
 
     /**
      * @param dynamicDistribution the dynamicDistribution to set
      */
-    public void setDynamicDistribution(DynamicDistributionType dynamicDistribution) {
+    public void setDynamicDistribution(String dynamicDistribution) {
         this.dynamicDistribution = dynamicDistribution;
     }
 
-    /**
-     * @param host_io_limit_mb_sec
-     * @param host_io_limit_io_sec
-     * @param dynamicDistribution
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#toString()
      */
-    public SetHostIOLimitsParam(String host_io_limit_mb_sec, String host_io_limit_io_sec, DynamicDistributionType dynamicDistribution) {
-        super();
-        this.host_io_limit_mb_sec = host_io_limit_mb_sec;
-        this.host_io_limit_io_sec = host_io_limit_io_sec;
-        this.dynamicDistribution = dynamicDistribution;
+    @Override
+    public String toString() {
+        return "HostIOLimitType [host_io_limit_mb_sec=" + host_io_limit_mb_sec + ", host_io_limit_io_sec=" + host_io_limit_io_sec
+                + ", dynamicDistribution=" + dynamicDistribution + "]";
     }
 
 }

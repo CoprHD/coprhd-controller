@@ -5,9 +5,9 @@
 
 package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model;
 
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractParameter;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultParameter;
 
-public class CreateStorageGroupParameter extends AbstractParameter {
+public class CreateStorageGroupParameter extends DefaultParameter {
     private String storageGroupId;
     private Boolean create_empty_storage_group;
     private String srpId;

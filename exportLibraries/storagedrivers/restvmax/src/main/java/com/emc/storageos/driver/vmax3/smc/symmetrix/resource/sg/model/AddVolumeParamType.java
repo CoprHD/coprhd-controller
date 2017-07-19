@@ -4,13 +4,13 @@
  */
 package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model;
 
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractParameter;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultParameter;
 
 /**
  * @author fengs5
  *
  */
-public class AddVolumeParamType extends AbstractParameter {
+public class AddVolumeParamType extends DefaultParameter {
 
     private Long num_of_vols;
     private VolumeAttributeType volumeAttribute;

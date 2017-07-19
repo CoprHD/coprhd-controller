@@ -4,9 +4,9 @@
  */
 package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.model;
 
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractResponse;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultResponse;
 
-public class SymmetrixPortKeyType extends AbstractResponse {
+public class SymmetrixPortKeyType extends DefaultResponse {
     private String directorId;
     private String portId;
 
@@ -25,4 +25,15 @@ public class SymmetrixPortKeyType extends AbstractResponse {
     public void setPortId(String portId) {
         this.portId = portId;
     }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "SymmetrixPortKeyType [directorId=" + directorId + ", portId=" + portId + "]";
+    }
+
 }

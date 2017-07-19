@@ -4,13 +4,13 @@
  */
 package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model;
 
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractParameter;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultParameter;
 
 /**
  * @author fengs5
  *
  */
-public class VolumeIdentifierType extends AbstractParameter {
+public class VolumeIdentifierType extends DefaultParameter {
 
     private VolumeIdentifierChoiceType volumeIdentifierChoice;
     private String identifier_name;

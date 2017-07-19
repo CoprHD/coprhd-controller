@@ -4,9 +4,9 @@
  */
 package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model;
 
-import com.emc.storageos.driver.vmax3.smc.basetype.AbstractParameter;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultParameter;
 
-public class EditStorageGroupActionParam extends AbstractParameter {
+public class EditStorageGroupActionParam extends DefaultParameter {
 
     private EditStorageGroupSLOParam editStorageGroupSLOParam;
     private EditStorageGroupWorkloadParam editStorageGroupWorkloadParam;

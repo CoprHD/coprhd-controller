@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.driver.vmax3.smc.basetype;
 
-public class EmptyResponse extends AbstractResponse {
+public class EmptyResponse extends DefaultResponse {
 
     /*
      * (non-Javadoc)
@@ -13,7 +13,7 @@ public class EmptyResponse extends AbstractResponse {
      */
     @Override
     public String toString() {
-        return "EmptyResponse [getMessage()=" + getMessage() + ", getStatus()=" + getStatus() + "]";
+        return "EmptyResponse [getMessage()=" + getCustMessage() + ", getHttpStatusCode()=" + getHttpStatusCode() + "]";
     }
 
 }

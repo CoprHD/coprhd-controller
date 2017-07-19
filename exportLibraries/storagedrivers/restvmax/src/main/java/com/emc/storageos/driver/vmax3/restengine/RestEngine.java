@@ -11,6 +11,11 @@ import java.lang.reflect.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.driver.vmax3.exception.FailedDeleteRestCallException;
+import com.emc.storageos.driver.vmax3.exception.FailedGetRestCallException;
+import com.emc.storageos.driver.vmax3.exception.FailedPostRestCallException;
+import com.emc.storageos.driver.vmax3.exception.FailedPutRestCallException;
+import com.emc.storageos.driver.vmax3.exception.NullResponseException;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.vmax3.smc.basetype.IParameter;
 import com.emc.storageos.driver.vmax3.smc.basetype.IResponse;
@@ -48,7 +53,7 @@ public class RestEngine {
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
         try {
             response = restClient.get(url);
-            processResponse(response, clazz, responseWrapper);
+            processResponse(url, response, clazz, responseWrapper);
 
         } catch (Exception e) {
             // TODO: translate this exception to cust exception
@@ -69,12 +74,11 @@ public class RestEngine {
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
         try {
             response = restClient.get(url);
-            processIteratorResponse(response, clazz, responseClazzType, responseWrapper);
+            processIteratorResponse(url, response, clazz, responseClazzType, responseWrapper);
 
         } catch (Exception e) {
-            // TODO: translate this exception to cust exception
-            LOG.error("");
-            responseWrapper.setException(e);
+            LOG.error("Exception happened during calling get rest call {}", e);
+            responseWrapper.setException(new FailedGetRestCallException(e));
         } finally {
             if (response != null) {
                 response.close();
@@ -98,12 +102,11 @@ public class RestEngine {
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
         try {
             response = restClient.post(url, params.bean2Json());
-            processResponse(response, clazz, responseWrapper);
+            processResponse(url, response, clazz, responseWrapper);
 
         } catch (Exception e) {
-            // TODO: translate this exception to cust exception
-            LOG.error("{}", e);
-            responseWrapper.setException(e);
+            LOG.error("Exception happened during calling post rest call {}", e);
+            responseWrapper.setException(new FailedPostRestCallException(e));
         } finally {
             if (response != null) {
                 response.close();
@@ -127,12 +130,11 @@ public class RestEngine {
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
         try {
             response = restClient.put(url, params.bean2Json());
-            processResponse(response, clazz, responseWrapper);
+            processResponse(url, response, clazz, responseWrapper);
 
         } catch (Exception e) {
-            // TODO: translate this exception to cust exception
-            LOG.error("");
-            responseWrapper.setException(e);
+            LOG.error("Exception happened during calling put rest call {}", e);
+            responseWrapper.setException(new FailedPutRestCallException(e));
         } finally {
             if (response != null) {
                 response.close();
@@ -155,12 +157,11 @@ public class RestEngine {
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
         try {
             response = restClient.delete(url);
-            processResponse(response, clazz, responseWrapper);
+            processResponse(url, response, clazz, responseWrapper);
 
         } catch (Exception e) {
-            // TODO: translate this exception to cust exception
-            LOG.error("");
-            responseWrapper.setException(e);
+            LOG.error("Exception happened during calling delete rest call {}", e);
+            responseWrapper.setException(new FailedDeleteRestCallException(e));
         } finally {
             if (response != null) {
                 response.close();
@@ -171,42 +172,30 @@ public class RestEngine {
 
     }
 
-    private <T extends IResponse> void processResponse(ClientResponse response, Class<T> clazz, ResponseWrapper<T> responseWrapper) {
-        if (response == null) {
-            // TODO: define cust Exception and use it here
-            responseWrapper.setException(new NullPointerException(""));
-            return;
-        }
-        String respnseString = response.getEntity(String.class);
-        int status = response.getStatus();
-        // if (responseWrapper.isSuccessfulStatus()) {
-        T bean = JsonParser.parseJson2Bean((respnseString), clazz);
-        bean.setStatus(status);
-        responseWrapper.setResponseBean(bean);
-        // } else {
-        // responseWrapper.setMessage(respnseString);
-        // }
-    }
-
-    private <T extends IResponse> void processIteratorResponse(ClientResponse response, Class<T> clazz, Type responseClazzType,
+    private <T extends IResponse> void processResponse(String url, ClientResponse response, Class<T> clazz,
             ResponseWrapper<T> responseWrapper) {
         if (response == null) {
-            // TODO: define cust Exception and use it here
-            responseWrapper.setException(new NullPointerException(""));
+            responseWrapper.setException(new NullResponseException(String.format("Null Response meet during calling %s", url)));
             return;
         }
         String respnseString = response.getEntity(String.class);
         int status = response.getStatus();
-        // if (responseWrapper.isSuccessfulStatus()) {
+        T bean = JsonParser.parseJson2Bean((respnseString), clazz);
+        bean.setHttpStatusCode(status);
+        responseWrapper.setResponseBean(bean);
+    }
 
-        // add the polymorphic specialization
-
+    private <T extends IResponse> void processIteratorResponse(String url, ClientResponse response, Class<T> clazz, Type responseClazzType,
+            ResponseWrapper<T> responseWrapper) {
+        if (response == null) {
+            responseWrapper.setException(new NullResponseException(String.format("Null Response meet during calling %s", url)));
+            return;
+        }
+        String respnseString = response.getEntity(String.class);
+        int status = response.getStatus();
         IteratorType<T> beanIterator = new Gson().fromJson(sanitize(respnseString), responseClazzType);
-        beanIterator.setStatus(status);
+        beanIterator.setHttpStatusCode(status);
         responseWrapper.setResponseBeanIterator(beanIterator);
-        // } else {
-        // responseWrapper.setMessage(respnseString);
-        // }
     }
 
 }

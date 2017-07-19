@@ -2,7 +2,11 @@
  * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg;
+package com.emc.storageos.driver.vmax3.smc.symmetrix.resource;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -12,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.vmax3.smc.ManagerFactory;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.CapacityUnitType;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.StorageGroupManager;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.AddVolumeParamType;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.CreateStorageGroupParameter;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.DynamicDistributionType;
@@ -25,15 +29,19 @@ import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.SetHostIOL
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.VolumeAttributeType;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.VolumeIdentifierChoiceType;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.VolumeIdentifierType;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.VolumeManager;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.model.VolumeType;
 
 /**
  * @author fengs5
  *
  */
-public class StorageGroupManagerTest {
-    private static final Logger LOG = LoggerFactory.getLogger(StorageGroupManagerTest.class);
-    static ManagerFactory managerFacory;
+public class ManagerFunctionTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ManagerFunctionTest.class);
+    static ManagerFactory managerFactory;
     static StorageGroupManager sgManager;
+    static VolumeManager volManager;
 
     @BeforeClass
     public static void setup() {
@@ -46,14 +54,28 @@ public class StorageGroupManagerTest {
 
         AuthenticationInfo authenticationInfo = new AuthenticationInfo(protocol, host, port, user, password);
         authenticationInfo.setSn(sn);
-        managerFacory = new ManagerFactory(authenticationInfo);
-        sgManager = managerFacory.genStorageGroupManager();
+        managerFactory = new ManagerFactory(authenticationInfo);
+        sgManager = managerFactory.genStorageGroupManager();
+        volManager = managerFactory.genVolumeManager();
     }
 
     @Test
-    public void testCreateEmptySg() {
+    public void testCreateOneVolumeWithNewSg() {
+        String sgName = "stone_test_sg_auto_006";
+        String volumeNamePrefix = "stone_test_vol_006-";
+        testCreateEmptySg(sgName);
+        testEditSgSlo(sgName);
+        testEditSgWithWorkload(sgName);
+        testEditSgWithHostIoLimit(sgName);
+        testCreateNewVolInSg(sgName, volumeNamePrefix, 2l);
+        testListVolumesOfSg(sgName);
+        testListVolumesWithName(volumeNamePrefix + "1");
+        List<String> volumeIds = testFindValidVolumes(volumeNamePrefix + "1");
+        testFetchVolume(volumeIds.get(0));
+    }
 
-        String sgName = "stone_test_sg_auto_003";
+    private void testCreateEmptySg(String sgName) {
+
         CreateStorageGroupParameter param = new CreateStorageGroupParameter(sgName);
         param.setCreateEmptyStorageGroup(true);
         param.setEmulation("FBA");
@@ -61,9 +83,7 @@ public class StorageGroupManagerTest {
         Assert.assertTrue(sgManager.createEmptySg(param).isSuccessfulStatus());
     }
 
-    @Test
-    public void testEditSgSlo() {
-        String sgName = "stone_test_sg_auto_003";
+    private void testEditSgSlo(String sgName) {
 
         EditStorageGroupSLOParam sloParam = new EditStorageGroupSLOParam("Bronze");
         EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
@@ -73,9 +93,7 @@ public class StorageGroupManagerTest {
         Assert.assertTrue(sgManager.editSgWithSlo(sgName, param).isSuccessfulStatus());
     }
 
-    @Test
-    public void testEditSgWithWorkload() {
-        String sgName = "stone_test_sg_auto_003";
+    private void testEditSgWithWorkload(String sgName) {
 
         EditStorageGroupWorkloadParam wlParam = new EditStorageGroupWorkloadParam("DSS");
         EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
@@ -85,9 +103,7 @@ public class StorageGroupManagerTest {
         Assert.assertTrue(sgManager.editSgWithSlo(sgName, param).isSuccessfulStatus());
     }
 
-    @Test
-    public void testEditSgWithHostIoLimit() {
-        String sgName = "stone_test_sg_auto_003";
+    private void testEditSgWithHostIoLimit(String sgName) {
 
         SetHostIOLimitsParam setHostIOLimitsParam = new SetHostIOLimitsParam("10", "300", DynamicDistributionType.Never);
         EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
@@ -97,14 +113,12 @@ public class StorageGroupManagerTest {
         Assert.assertTrue(sgManager.editSgWithHostIoLimit(sgName, param).isSuccessfulStatus());
     }
 
-    @Test
-    public void testCreateNewVolInSg() {
-        String sgName = "stone_test_sg_auto_003";
+    private void testCreateNewVolInSg(String sgName, String volumeIdentifierName, long volumeNum) {
         VolumeAttributeType volumeAttribute = new VolumeAttributeType(CapacityUnitType.GB, "1");
         VolumeIdentifierType volumeIdentifier = new VolumeIdentifierType(VolumeIdentifierChoiceType.identifier_name_plus_append_number);
-        volumeIdentifier.setIdentifier_name("stone_vol_auto_005-");
+        volumeIdentifier.setIdentifier_name(volumeIdentifierName);
         volumeIdentifier.setAppend_number("1");
-        AddVolumeParamType addVolumeParam = new AddVolumeParamType(2l, volumeAttribute);
+        AddVolumeParamType addVolumeParam = new AddVolumeParamType(volumeNum, volumeAttribute);
         addVolumeParam.setCreate_new_volumes(true);
         addVolumeParam.setVolumeIdentifier(volumeIdentifier);
         // addVolumeParam.setEmulation(EmulationType.CKD_3380.getValue());
@@ -118,4 +132,38 @@ public class StorageGroupManagerTest {
         Assert.assertTrue(sgManager.createNewVolInSg(sgName, param).isSuccessfulStatus());
     }
 
+    private void testListVolumesOfSg(String sgName) {
+
+        Map<String, String> urlParams = new HashMap<String, String>();
+        urlParams.put("storageGroupId", sgName);
+        urlParams.put("tdev", "true");
+        Assert.assertTrue(volManager.listVolumes(urlParams).isSuccessfulStatus());
+    }
+
+    private void testListVolumesWithName(String volumeIdentifierName) {
+
+        Map<String, String> urlParams = new HashMap<String, String>();
+        urlParams.put("volume_identifier", volumeIdentifierName);
+        urlParams.put("tdev", "true");
+        Assert.assertTrue(volManager.listVolumes(urlParams).isSuccessfulStatus());
+    }
+
+    private List<String> testFindValidVolumes(String volumeIdentifierName) {
+
+        Map<String, String> filters = new HashMap<String, String>();
+        filters.put("volume_identifier", volumeIdentifierName);
+        filters.put("tdev", "true");
+        List<String> volumeIds = volManager.findValidVolumes(filters);
+        Assert.assertEquals(1, volumeIds.size());
+        LOG.info("VolumeId as {}", volumeIds);
+        return volumeIds;
+
+    }
+
+    private void testFetchVolume(String volumeId) {
+        VolumeType volume = volManager.fetchVolume(volumeId);
+        Assert.assertNotNull(volume);
+        Assert.assertEquals(volumeId, volume.getVolumeId());
+        LOG.info("Volume as {}", volume);
+    }
 }

@@ -113,7 +113,6 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
     }
 
     protected VirtualArray getVirtualArray(String label) {
-
         List<VirtualArray> existingVAs = CustomQueryUtility.queryActiveResourcesByConstraint(
                 dbClient, VirtualArray.class, PrefixConstraint.Factory.getFullMatchConstraint(VirtualArray.class, "label", label));
         if (existingVAs != null && !existingVAs.isEmpty()) {

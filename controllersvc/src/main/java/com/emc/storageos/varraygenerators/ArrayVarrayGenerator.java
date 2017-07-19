@@ -65,6 +65,9 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
             VpoolGenerator vpoolGenerator = new VpoolGenerator(dbClient, coordinator);
             Set<String> varraySet = new HashSet<String>();
             varraySet.add(varray.getId().toString());
+            if (siteVarray != null) {
+                varraySet.add(siteVarray.getId().toString());
+            }
             for (VpoolTemplate template : getVpoolTemplates()) {
                 // If not vplex, and if matches our system type
                 if (!template.hasAttribute("highAvailability")

@@ -19,10 +19,18 @@ public class IngestUnmanagedFilesystems extends ViPRExecutionTask<List<NamedRela
     private URI projectId;
     private URI varrayId;
     private List<URI> unmanagedFilesystemIds;
+    private URI targetVarrayId;
+    private boolean ingestTargetSystems;
 
     public IngestUnmanagedFilesystems(String vpoolId, String varrayId, String projectId,
             List<String> unmanagedFilesystemIds) {
         this(uri(vpoolId), uri(varrayId), uri(projectId), uris(unmanagedFilesystemIds));
+    }
+
+    public IngestUnmanagedFilesystems(String vpoolId, String varrayId, String projectId,
+            List<String> unmanagedFilesystemIds, String targetVarrayId, boolean ingestTargetSystems) {
+        this(uri(vpoolId), uri(varrayId), uri(projectId), uris(unmanagedFilesystemIds),
+                uri(targetVarrayId), ingestTargetSystems);
     }
 
     public IngestUnmanagedFilesystems(URI vpoolId, URI varrayId, URI projectId, List<URI> unmanagedFilesystemIds) {
@@ -33,13 +41,27 @@ public class IngestUnmanagedFilesystems extends ViPRExecutionTask<List<NamedRela
         provideDetailArgs(vpoolId, projectId, varrayId, unmanagedFilesystemIds.size());
     }
 
+    public IngestUnmanagedFilesystems(URI vpoolId, URI varrayId, URI projectId, List<URI> unmanagedFilesystemIds,
+            URI targetVarrayId, boolean ingestTargetSystems) {
+        this.vpoolId = vpoolId;
+        this.varrayId = varrayId;
+        this.projectId = projectId;
+        this.unmanagedFilesystemIds = unmanagedFilesystemIds;
+        this.targetVarrayId = targetVarrayId;
+        this.ingestTargetSystems = ingestTargetSystems;
+        provideDetailArgs(vpoolId, projectId, varrayId, unmanagedFilesystemIds.size(), targetVarrayId, ingestTargetSystems);
+    }
+
     @Override
     public List<NamedRelatedResourceRep> executeTask() throws Exception {
         FileSystemIngest ingest = new FileSystemIngest();
         ingest.setProject(projectId);
         ingest.setVarray(varrayId);
         ingest.setVpool(vpoolId);
-
+        if (targetVarrayId != null) {
+            ingest.setTargetVarrayId(targetVarrayId);
+        }
+        ingest.setIngestTargetSystems(ingestTargetSystems);
         return ingestInChunks(ingest);
     }
 

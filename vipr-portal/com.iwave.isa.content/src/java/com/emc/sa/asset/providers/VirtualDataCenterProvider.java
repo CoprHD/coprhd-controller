@@ -37,10 +37,16 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.sa.util.SizeUtils;
 import com.emc.sa.util.StringComparator;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep.ScheduleRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
@@ -394,9 +400,28 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    @Asset("unmanagedFileSystemsByStorageSystemVirtualPool")
-    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool" })
-    public List<AssetOption> getUnmanagedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
+    @Asset("unmanagedProtectedFileVirtualPool")
+    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType" })
+    public List<AssetOption> getUnmanagedFileSystemProtectedVirtualPools(AssetOptionsContext ctx, URI storageSystem,
+            URI virtualArray, String ingestExportType) {
+        Map<URI, Integer> vpools = getFileVirtualPools(listUnmanagedFilesystems(ctx, storageSystem), ingestExportType);
+        Map<URI, FileVirtualPoolRestRep> virtualPoolMap = FileProvider.getFileVirtualPools(api(ctx), vpools.keySet());
+
+        List<AssetOption> options = Lists.newArrayList();
+        for (Map.Entry<URI, Integer> entry : vpools.entrySet()) {
+            FileVirtualPoolRestRep vpool = virtualPoolMap.get(entry.getKey());
+            if (vpool.getProtection() != null && vpool.getProtection().getReplicationSupported()) {
+                if (isVirtualPoolInVirtualArray(vpool, virtualArray)) {
+                    options.add(newAssetOption(vpool.getId().toString(), "file.virtualPool.unmanaged", vpool.getName(),
+                            entry.getValue()));
+                }
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
+    private List<AssetOption> getUMFSByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
             URI virtualArray, String fileIngestExportType, URI unmanagedFileVirtualPool) {
         List<AssetOption> options = Lists.newArrayList();
         FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
@@ -407,6 +432,33 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return getVolumeSublist(VOLUME_PAGE_ALL, options);
+    }
+
+    @Asset("unmanagedFileSystemsByStorageSystemVirtualPool")
+    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool" })
+    public List<AssetOption> getUnmanagedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
+            URI virtualArray, String fileIngestExportType, URI unmanagedFileVirtualPool) {
+        return getUMFSByStorageSystemVirtualPool(ctx, fileStorageSystem, virtualArray,
+                fileIngestExportType, unmanagedFileVirtualPool);
+    }
+
+    @Asset("unmanagedProtectedFileSystemsByVirtualPool")
+    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "protectedFileVirtualPool" })
+    public List<AssetOption> getUnmanagedProtectedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
+            URI virtualArray, String fileIngestExportType, URI protectedFileVirtualPool) {
+        return getUMFSByStorageSystemVirtualPool(ctx, fileStorageSystem, virtualArray,
+                fileIngestExportType, protectedFileVirtualPool);
+    }
+
+    @Asset("policyTemplate")
+    @AssetDependencies({ "unmanagedProtectedFileVirtualPool" })
+    public List<AssetOption> getFileProtectionTemplates(AssetOptionsContext ctx, URI unmanagedFileVirtualPool) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (FilePolicyRestRep policy : listFSLevelReplicationPolicyTemplate(ctx)) {
+            options.add(toAssetOption(policy));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
     }
 
     protected AssetOption toAssetOption(UnManagedFileSystemRestRep umfs) {
@@ -428,6 +480,60 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         }
         return newAssetOption(umfs.getId(), resource, deviceLabel, path,
                 SizeUtils.humanReadableByteCount(provisionedSize));
+    }
+
+    private String getPolicySchedule(ScheduleRestRep schedule) {
+        StringBuilder builder = new StringBuilder();
+
+        if (schedule != null) {
+            ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(schedule.getFrequency().toUpperCase());
+            switch (scheduleFreq) {
+                case MINUTES:
+                    builder.append("every 1 days every ");
+                    builder.append(schedule.getRepeat());
+                    builder.append(" minute(s) ");
+                    break;
+
+                case HOURS:
+                    builder.append("every 1 days every ");
+                    builder.append(schedule.getRepeat());
+                    builder.append(" hour(s) ");
+                    break;
+
+                case DAYS:
+                    builder.append("every ");
+                    builder.append(schedule.getRepeat());
+                    builder.append(" day(s)");
+                    break;
+                case WEEKS:
+                    builder.append("every ");
+                    builder.append(schedule.getRepeat());
+                    builder.append(" weeks on ");
+                    builder.append(schedule.getDayOfWeek());
+                    break;
+                case MONTHS:
+                    builder.append("the ");
+                    builder.append(schedule.getDayOfMonth());
+                    builder.append(" every ");
+                    builder.append(schedule.getRepeat());
+                    builder.append(" month ");
+                    break;
+                default:
+                    builder.append("Invalid policy schedule");
+            }
+
+        } else {
+            builder.append("No schedule");
+        }
+        return builder.toString();
+    }
+
+    protected AssetOption toAssetOption(FilePolicyRestRep policy) {
+
+        String schedule = getPolicySchedule(policy.getSchedule());
+        String resource = "file.policy.template";
+        // Name looks like policy name followed by policy schedule
+        return newAssetOption(policy.getId(), resource, policy.getName(), schedule);
     }
 
     // Get virtual pool details!!
@@ -462,6 +568,19 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
             String expType) {
         boolean exported = StringUtils.equalsIgnoreCase(expType, FileProvider.EXPORTED_TYPE);
         return api(ctx).unmanagedFileSystems().getByStorageSystemVirtualPool(storageSystem, virtualPool, exported, null);
+    }
+
+    private List<FilePolicyRestRep> listFSLevelReplicationPolicyTemplate(AssetOptionsContext ctx) {
+        List<FilePolicyRestRep> replPolicies = new ArrayList<FilePolicyRestRep>();
+        List<NamedRelatedResourceRep> policies = api(ctx).fileProtectionPolicies().listFilePolicies().getFilePolicies();
+        for (NamedRelatedResourceRep res : policies) {
+            FilePolicyRestRep policy = api(ctx).fileProtectionPolicies().get(res.getId());
+            if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getType())
+                    && FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(policy.getAppliedAt())) {
+                replPolicies.add(policy);
+            }
+        }
+        return replPolicies;
     }
 
     private List<String> getStorageSystemType(AssetOptionsContext ctx, String storagetype) {

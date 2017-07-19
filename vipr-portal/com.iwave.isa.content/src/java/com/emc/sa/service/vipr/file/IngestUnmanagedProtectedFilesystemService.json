@@ -1,0 +1,49 @@
+{
+  baseKey:"IngestUnmanagedProtectedFilesystems.File",
+  serviceId:"IngestUnmanagedProtectedFilesystems",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
+  fields:{
+    storageSystems:{
+      type:"assetType.vipr.fileStorageSystem",
+      lockable: true
+    },  
+    
+    srcVirtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+       
+    type:{
+      type:"assetType.vipr.fileIngestExportType",
+      lockable: true
+    },
+
+    virtualPool:{
+      type:"assetType.vipr.protectedFileVirtualPool",
+      lockable: true
+    },
+    
+    targetVirtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    policyTemplate:{
+      type:"assetType.vipr.policyTemplate",
+      lockable: true
+    },
+    
+    fileSystems: {
+      type: "assetType.vipr.unmanagedProtectedFileSystemsByVirtualPool",
+      select: "many"
+    }
+    
+  }
+}

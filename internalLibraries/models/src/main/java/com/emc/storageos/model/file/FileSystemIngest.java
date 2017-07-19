@@ -5,11 +5,12 @@
 
 package com.emc.storageos.model.file;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * FileSystem Ingest parameters
@@ -30,6 +31,8 @@ public class FileSystemIngest {
     private URI varray;
     private URI project;
     private List<URI> unManagedFileSystems;
+    private URI targetVarrayId;
+    private boolean ingestTargetSystems;
 
     public FileSystemIngest() {
     }
@@ -97,6 +100,33 @@ public class FileSystemIngest {
 
     public void setUnManagedFileSystems(List<URI> unManagedFileSystems) {
         this.unManagedFileSystems = unManagedFileSystems;
+    }
+
+    /**
+     * URI representing the target virtual array supporting the unmanaged file systems
+     * 
+     */
+
+    @XmlElement(required = false)
+    public URI getTargetVarrayId() {
+        return targetVarrayId;
+    }
+
+    public void setTargetVarrayId(URI targetVarrayId) {
+        this.targetVarrayId = targetVarrayId;
+    }
+
+    /**
+     * boolean representing the target unmanaged file system should be ingested along with source
+     * 
+     */
+    @XmlElement(required = false)
+    public boolean isIngestTargetSystems() {
+        return ingestTargetSystems;
+    }
+
+    public void setIngestTargetSystems(boolean ingestTargetSystems) {
+        this.ingestTargetSystems = ingestTargetSystems;
     }
 
 }

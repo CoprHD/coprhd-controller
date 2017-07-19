@@ -1416,6 +1416,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         StringSet targetPaths = new StringSet();
         StringSet targetHosts = new StringSet();
         StringSet policySourcePath = new StringSet();
+        StringSet policySchedule = new StringSet();
 
         if (fsPath != null && !fsPath.isEmpty()) {
             for (IsilonSyncPolicy isiSyncIQPolicy : isiSyncIQPolicies) {
@@ -1441,6 +1442,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         targetPaths.add(isiSyncIQPolicy.getTargetPath());
                         targetHosts.add(isiSyncIQPolicy.getTargetHost());
                         policySourcePath.add(isiSyncIQPolicy.getSourceRootPath());
+                        policySchedule.add(isiSyncIQPolicy.getSchedule());
 
                         unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.TARGET_HOST.toString(),
                                 targetHosts);
@@ -1448,6 +1450,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 targetPaths);
                         unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_PATH.toString(),
                                 policySourcePath);
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_SCHEDULE.toString(),
+                                policySchedule);
 
                         // What about if there are policies at higher level as well fs level
                         // TODO
@@ -1471,6 +1475,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             ArrayList<IsilonSyncTargetPolicy> isiSyncIQPolicies) {
         StringSet sourceHosts = new StringSet();
         StringSet policyDirPath = new StringSet();
+        StringSet policySchedule = new StringSet();
 
         if (fsPath != null && !fsPath.isEmpty()) {
             for (IsilonSyncTargetPolicy localTargetPolicy : isiSyncIQPolicies) {
@@ -1495,11 +1500,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         // Add the policy attributes to UMFS object
                         sourceHosts.add(localTargetPolicy.getSourceHost());
                         policyDirPath.add(localTargetPolicy.getTargetPath());
+                        policySchedule.add(localTargetPolicy.getSchedule());
 
                         unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.SOURCE_HOST.toString(),
                                 sourceHosts);
                         unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_PATH.toString(),
                                 policyDirPath);
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_SCHEDULE.toString(),
+                                policySchedule);
 
                         // What about if there are policies at higher level as well fs level
                         // TODO

@@ -29,7 +29,8 @@ public class UnmanagedHelper {
     public static final String IS_LOCAL_MIRROR = "IS_LOCAL_MIRROR";
     public static final String IS_VOLUME_EXPORTED = "IS_VOLUME_EXPORTED";
     public static final String IS_NONRP_EXPORTED = "IS_NONRP_EXPORTED";
-    public static final String IS_MIRRORED = "IS_MIRRORED";
+    public static final String IS_MIRROR_TARGET = "IS_MIRROR_TARGET";
+    public static final String IS_MIRROR_SOURCE = "IS_MIRROR_SOURCE";
 
     private static final String IS_FILESYSTEM_EXPORTED = "IS_FILESYSTEM_EXPORTED";
 
@@ -71,8 +72,12 @@ public class UnmanagedHelper {
         return results;
     }
 
-    public static boolean isReplicationEnabled(List<StringHashMapEntry> characteristicsEntries) {
-        return getValue(characteristicsEntries, IS_MIRRORED, true);
+    public static boolean isReplicationSource(List<StringHashMapEntry> characteristicsEntries) {
+        return getValue(characteristicsEntries, IS_MIRROR_SOURCE, false);
+    }
+
+    public static boolean isReplicationTarget(List<StringHashMapEntry> characteristicsEntries) {
+        return getValue(characteristicsEntries, IS_MIRROR_TARGET, false);
     }
 
     public static boolean isSupportedForIngest(List<StringHashMapEntry> entries) {

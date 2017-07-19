@@ -114,6 +114,7 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         SOURCE_HOST("sourcetHost"),
         TARGET_HOST("targetHost"),
         TARGET_PATH("targetPath"),
+        POLICY_SCHEDULE("policySchedule"),
         POLICY_PATH("policySourcePath");
 
         private String _infoKey;

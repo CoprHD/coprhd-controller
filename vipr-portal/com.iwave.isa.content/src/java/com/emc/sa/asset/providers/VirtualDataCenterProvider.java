@@ -50,6 +50,7 @@ import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.StorageSystemTypeFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import com.emc.vipr.client.core.util.UnmanagedHelper;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -420,6 +421,11 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         }
 
         String resource = "file.unmanaged.filesystem";
+        if (UnmanagedHelper.isReplicationSource(umfs.getFileSystemCharacteristics())) {
+            resource = "file.unmanaged.filesystemSource";
+        } else if (UnmanagedHelper.isReplicationTarget(umfs.getFileSystemCharacteristics())) {
+            resource = "file.unmanaged.filesystemTarget";
+        }
         return newAssetOption(umfs.getId(), resource, deviceLabel, path,
                 SizeUtils.humanReadableByteCount(provisionedSize));
     }

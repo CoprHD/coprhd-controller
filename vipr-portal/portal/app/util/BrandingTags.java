@@ -11,6 +11,7 @@ import play.templates.FastTags;
 import play.templates.GroovyTemplate;
 import java.io.PrintWriter;
 import java.util.Map;
+import java.util.Locale;
 
 /**
  * Tags to support Branding.
@@ -39,10 +40,19 @@ public class BrandingTags extends FastTags {
     }
 
     private static String getBrandingMessagePrefix() {
+    	Locale locale=Locale.getDefault();
+    	
+    	String currentCountry = locale.getCountry(); 
+    	String currentLanguage = locale.getLanguage();
+    	
         String brand = Play.configuration.getProperty("branding.brand", "");
         if (StringUtils.isNotEmpty(brand)) {
             return brand + ".";
         }
+
+        if (!currentLanguage.equals("zh") && !currentCountry.equals("CN")) 
+        	return "Dell-";
+        
         return "";
     }
 }

@@ -3039,6 +3039,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (ace.getPermissions() != null) {
             dbShareAcl.setPermissions(ace.getPermissions());
         }
+        if (ace.getInheritFlags() != null) {
+            dbShareAcl.setInheritFlags(ace.getInheritFlags());
+        }
         if (ace.getPermissionType() != null) {
             dbShareAcl.setPermissionType(ace.getPermissionType());
         }
@@ -3713,6 +3716,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             String permission = nfsShareACL.getPermissions();
             if (permission != null && !permission.isEmpty()) {
                 nfsAce.setPermissions(permission);
+            }
+
+            String inheritFlags = nfsShareACL.getInheritFlags();
+            if (inheritFlags != null && !inheritFlags.isEmpty()) {
+                nfsAce.setInheritFlags(inheritFlags);
             }
 
             String domain = nfsShareACL.getDomain();

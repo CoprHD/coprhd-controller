@@ -106,7 +106,7 @@ public class NfsACE implements Serializable {
 
     @XmlElement(name = "inheritFlags")
     public String getInheritFlags() {
-        return permissions;
+        return inheritFlags;
     }
 
     public void setInheritFlags(String inheritFlags) {

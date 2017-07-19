@@ -21,6 +21,9 @@ public abstract class FileACL extends DataObject {
     // Permissions for user or group: read(r), write (w) or execute(x) comma separated.
     protected String permissions;
 
+    // inheritFlags which can be object_inherit, container_inherit, no_prop_inherit, inherit_only, inherited_ace comma separated.
+    protected String inheritFlags;
+
     // permissionType can be allow or deny
     protected String permissionType;
 
@@ -78,6 +81,16 @@ public abstract class FileACL extends DataObject {
         setChanged("permissions");
     }
 
+    @Name("inheritFlags")
+    public String getInheritFlags() {
+        return inheritFlags;
+    }
+
+    public void setInheritFlags(String inheritFlags) {
+        this.inheritFlags = inheritFlags;
+        setChanged("inheritFlags");
+    }
+
     @Name("fileSystemNfsACLIndex")
     @AlternateId("fileSystemNfsACLIndexTable")
     public String getFileSystemNfsACLIndex() {
@@ -121,6 +134,8 @@ public abstract class FileACL extends DataObject {
         builder.append(fileSystemPath);
         builder.append(", permissions=");
         builder.append(permissions);
+        builder.append(", inheritFlags=");
+        builder.append(inheritFlags);
         builder.append(", permission type=");
         builder.append(permissionType);
         builder.append("]");

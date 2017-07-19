@@ -41,7 +41,6 @@ inputOutputTabID = 'inputOutputLAContent';
                 </div>
                 <div class="tab-pane" id="${packageTabID}">
                     #{Modal.body}
-
                         <control-group v-field="localAnsible.existing">
                             <boolean-checkbox></boolean-checkbox>
                         </control-group>
@@ -76,20 +75,22 @@ inputOutputTabID = 'inputOutputLAContent';
                             %{
                             field.width = 8
                             field.labelWidth = 2
+                            field.required = true
                             }%
                             #{Form.multiFileUpload field:field/}
                         #{/field}
-                        <div class="row" ng-repeat="inventory in updatedInventoryFiles track by $index" style="margin-bottom:5px;">
-                            <div class="pull-left col-sm-11" v-field="inventory">
-                                <input-text disabled></input-text>
+                        <div ng-if="localAnsible.existing">
+                            <div class="row" ng-repeat="inventory in updatedInventoryFiles track by $index" style="margin-bottom:5px;">
+                                <div class="pull-left col-sm-11" v-field="inventory">
+                                    <input-text disabled></input-text>
+                                </div>
+                                <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                    <button type="button" ng-click="deleteInventoryFile($index)" class="close" title="&{'localAnsible.inventoryFiles.delete'}"><span class="glyphicon glyphicon-trash"></span></button>
+                                </div>
                             </div>
-                            <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
-                                <button type="button" ng-click="deleteInventoryFile($index)" class="close" title="&{'localAnsible.inventoryFiles.delete'}"><span class="glyphicon glyphicon-trash"></span></button>
-                            </div>
+                            <input type="hidden" name="localAnsible.updatedInventoryFiles" ng-value="updatedInventoryFileNamesStr"/>
                         </div>
-                        <input type="hidden" name="localAnsible.updatedInventoryFiles" ng-value="updatedInventoryFileNamesStr"/>
                     #{/Modal.body}
-
                 </div>
                 <div class="tab-pane" id="${inputOutputTabID}">
                     #{Modal.body}
@@ -167,7 +168,12 @@ inputOutputTabID = 'inputOutputLAContent';
         if (!chooseExisting || chooseExisting === "false") {
             chooseExisting = false;
         }
-        else chooseExisting = true;
+        else {
+            chooseExisting = true;
+        }
+
+        var localInventFile = $('[name="localAnsible.inventoryFiles"]').val();
+        var localUpdatedFile = $('[name="localAnsible.updatedInventoryFiles"]').val();
         if (isBlank($('#localAnsible_name').val()) || isBlank($('#localAnsible_ansiblePlaybook').val())) {
             complete = false;
         }
@@ -177,7 +183,12 @@ inputOutputTabID = 'inputOutputLAContent';
         else if ( !chooseExisting && ( isBlank($('#localAnsible_ansiblePackageName').val()) || isBlank($('#localAnsible_ansiblePackage').val())) ) {
             complete = false;
         }
-
+        else if ( !chooseExisting && (localInventFile == undefined) ) {
+            complete = false;
+        }
+        else if ( chooseExisting && (localInventFile == undefined ) && (localUpdatedFile == undefined || localUpdatedFile == "") ) {
+            complete = false;
+        }
         // If form is complete, enable FINISH button
         if (complete) {
             $('#finishButtonLA').prop('disabled', false);

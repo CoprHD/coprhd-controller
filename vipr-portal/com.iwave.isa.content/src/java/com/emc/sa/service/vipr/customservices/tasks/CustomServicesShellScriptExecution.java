@@ -57,7 +57,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
-            this.timeout = Exec.DEFAULT_CMD_TIMEOUT;
+            this.timeout = CustomServicesConstants.OPERATION_TIMEOUT;
         } else {
             this.timeout = step.getAttributes().getTimeout();
         }
@@ -124,6 +124,12 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         logger.info("CustomScript Execution result:output{} error{} exitValue:{} ", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
+        if (result.getExitValue()!=0) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Shell Script execution Failed. ReturnCode:" + result.getExitValue());
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Shell Script execution Failed");
+        }
+
         return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
@@ -153,14 +159,17 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             }
             final List<String> listVal = e.getValue();
             final StringBuilder sb = new StringBuilder();
+            sb.append("\"");
             String prefix = "";
             for (final String val : listVal) {
                 sb.append(prefix);
                 prefix = ",";
                 sb.append(val.replace("\"", ""));
             }
+            sb.append("\"");
             str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
         }
+
         logger.info("CS: Shell arguments:{}", str.toString());
 
         return str.toString();

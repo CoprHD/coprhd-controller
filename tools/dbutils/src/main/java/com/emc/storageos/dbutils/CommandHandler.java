@@ -5,6 +5,7 @@
 
 package com.emc.storageos.dbutils;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -21,7 +22,9 @@ import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.vipr.model.catalog.OrderRestRep;
 
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
@@ -692,13 +695,22 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) {
+
+            long beginMillis = new Date().getTime();
             if (specificCF) {
                 _client.checkDB(cfName);
             } else {
                 _client.checkDB();
             }
+            long endMillis = new Date().getTime();
+
+            System.out.println("db consistency check consumed: "  +
+                    DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginMillis));
         }
+
     }
+
+
 
     public static class RebuildIndexHandler extends CommandHandler {
         private String rebuildIndexFileName;

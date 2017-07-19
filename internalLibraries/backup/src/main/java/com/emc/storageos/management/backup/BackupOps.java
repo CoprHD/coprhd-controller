@@ -303,7 +303,7 @@ public class BackupOps {
      *            The tag of this backup
      */
     public void createBackup(String backupTag) {
-        createBackup(backupTag, false);
+        createBackup(backupTag, false, false);
     }
 
     /**
@@ -314,14 +314,17 @@ public class BackupOps {
      * @param force
      *            Ignore the errors during the creation
      */
-    public void createBackup(String backupTag, boolean force) {
+    public void createBackup(String backupTag, boolean force, boolean ignore) {
         checkOnStandby();
         if (backupTag == null) {
             backupTag = createBackupName();
         } else {
             validateBackupName(backupTag);
         }
-        precheckForCreation(backupTag);
+
+        if (!ignore) {
+            precheckForCreation(backupTag);
+        }
 
         InterProcessLock backupLock = null;
         InterProcessLock recoveryLock = null;

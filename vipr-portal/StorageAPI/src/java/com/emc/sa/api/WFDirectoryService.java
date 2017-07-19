@@ -52,6 +52,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -65,7 +66,7 @@ import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
  * WF Directory API service
  */
 
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
         Role.SYSTEM_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 @Path("/customservices/workflows/directory")
 public class WFDirectoryService extends TaggedResource {
@@ -83,14 +84,16 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Get workflow directories
+     * List the workflow directories
      *
      * @prereq none
-     * @brief Get workflow directories
+     * @brief List workflow directories
      * @return List of workflow directories
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+
     public WFDirectoryList getWorkflowDirectories() {
         List<WFDirectory> wfDirectories = wfDirectoryManager.getWFDirectories();
         WFDirectoryList wfDirectoryList = new WFDirectoryList();
@@ -107,10 +110,11 @@ public class WFDirectoryService extends TaggedResource {
      * Retrieve resource representations based on input ids.
      *
      * @prereq none
-     * @brief List of workflow directories
+     * @brief List data of workflow directories
      * @return list of representations
      */
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/bulk")
     @Override
@@ -119,13 +123,15 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Get workflow directory by ID
-     *
+     * Get the workflow directory
+     * 
      * @prereq none
-     * @brief Get workflow directory by ID
-     * @return Workflow directory
+     * @brief Show workflow directory
+     * @param id the ID of the workflow directory to be retrieved
+     * @return
      */
     @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public WFDirectoryRestRep getWFDirectory(@PathParam("id") URI id) {
@@ -134,13 +140,15 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Create workflow directory
-     *
+     * Create the workflow directory
+     * 
      * @prereq none
      * @brief Create workflow directory
-     * @return Created workflow directory
+     * @param wfDirectoryParam the workflow directory parameter (name, parent, workflows)
+     * @return
      */
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public WFDirectoryRestRep createWFDirectory(WFDirectoryParam wfDirectoryParam) {
@@ -150,7 +158,7 @@ public class WFDirectoryService extends TaggedResource {
         WFDirectory wfDirectory = new WFDirectory();
         final String createParamLabel = wfDirectoryParam.getName();
         final URI parentId = wfDirectoryParam.getParent() == null ? getRootLevelParentId() : wfDirectoryParam.getParent();
-        if(null != wfDirectoryParam.getParent()){
+        if (null != wfDirectoryParam.getParent()) {
             checkWFDirExists(wfDirectoryParam.getParent());
         }
         if (StringUtils.isNotBlank(createParamLabel)) {
@@ -178,13 +186,15 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Deactivate workflow directory
-     *
+     * Deactivate the workflow directory
+     * 
      * @prereq none
      * @brief Deactivate workflow directory
-     * @return No data returned in response body
+     * @param id the ID of the workflow directory to be deactivated
+     * @return
      */
     @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     public Response deactivateWFDirectory(@PathParam("id") URI id) {
@@ -194,13 +204,16 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Update workflow directory (name, parent, workflows)
-     *
+     * Update the workflow directory 
+     * 
      * @prereq none
      * @brief Update workflow directory
-     * @return Updated workflow directory
+     * @param id the ID of the workflow directory to be updated
+     * @param param the workflow directory parameter (name, parent, workflows)
+     * @return
      */
     @PUT
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public WFDirectoryRestRep updateWFDirectory(@PathParam("id") URI id, WFDirectoryUpdateParam param) {
@@ -230,7 +243,7 @@ public class WFDirectoryService extends TaggedResource {
         return map(wfDirectory);
     }
 
-    private WFDirectory checkWFDirExists(final URI id){
+    private WFDirectory checkWFDirExists(final URI id) {
         final WFDirectory wfDirectory = wfDirectoryManager.getWFDirectoryById(id);
         if (null == wfDirectory) {
             throw APIException.notFound.unableToFindEntityInURL(id);

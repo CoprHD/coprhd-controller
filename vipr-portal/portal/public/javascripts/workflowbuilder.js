@@ -23,8 +23,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowTabs[elementid] = { id:id, elementid:elementid, name:name, href:'#'+elementid };
     }
     $scope.closeTab = function(tabID){
+      var r = confirm("Are you sure you want to close the tab?");
+      if (r == true) {
         delete $scope.workflowTabs[tabID];
         $(".workflow-nav-tabs li").children('a').first().click();
+        }
     };
 
     $http.get(routes.Workflow_getAssetOptions()).then(function (resp) {
@@ -60,7 +63,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         return this.indexOf(searchString, position) === position;
       };
     }
-    // --
 
     function initializeJsTree(){
         var to = null;
@@ -159,7 +161,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var itemData = jstreeContainer.jstree(true).get_json(treeId).data;
         // Data is not populated for workflows. So setting required fields here.
         if($.isEmptyObject(itemData)) {
-            itemData = {"friendlyName":stepName,"type":workflowNodeType};
+            itemData = {"friendlyName":stepName,"type":workflowNodeType,"id":treeId};
+            $item = '<div style="z-index:999;"class="item-stacked">' +
+            '<div style="z-index:999;"class="item-stacked">' +
+            '<div class="item">' +
+            '<div class="itemText">' + stepName + '</div>' +
+            '</div></div></div>';
         }
         $rootScope.primitiveData = itemData;
 
@@ -244,6 +251,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.deleteNode = function() {
+      var r = confirm("Are you sure you want to delete?");
+      if (r == true) {
         var ref = jstreeContainer.jstree(true),
             sel = ref.get_selected('full',true);
         if(!sel.length) { return false; }
@@ -259,12 +268,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             });
         }
         else if($.inArray(nodeType, primitiveNodeTypes) > -1) {
-        	$http.get(routes.Primitive_delete({"primitiveId": nodeId, "dirID": nodeParent})).success(function() {
-                deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
-            })
-            .error(function (error){
-                displayErrorMessage(error.details);
-            });
+            $('#deletePrimitiveId').val(nodeId);
+            $('#deleteDirId').val(nodeParent);
+        	$('#deletePrimitiveForm').submit();
         }
         else {
             $http.get(routes.Workflow_delete({"workflowID": nodeId, "dirID": nodeParent})).success(function() {
@@ -273,8 +279,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             .error(function (error){
                 displayErrorMessage(error.details);
             });
+            }
         }
-
     };
 
     function revertRename(node, oldText, errorMessage) {
@@ -382,7 +388,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var generated = jstreeContainer.jstree(true).get_node(nodeId, true);
         $compile(generated.contents())($scope);
     }
-
 
     function selectDir(event, data) {
         $scope.selNodeId = data.node.id;
@@ -582,7 +587,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     function activateTab(tab){
         $('.nav-tabs a[href="#' + tab + '"]').tab('show');
-        loadJSON();
+        loadJSON($scope.workflowData.document);
         $scope.modified = false;
     };
 
@@ -710,11 +715,66 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         filter:":not(a)"
     };
 
+    function copyWorkflow(e,workflow) {
+        var newSteps = [];
+        var idMap = {};
+        //create id map
+        workflow.steps.forEach(function(step) {
+            if (step.id !== "Start" && step.id !== "End"){
+                var newId = generateUUID();
+                idMap[step.id] = newId;
+            }
+        });
+
+        //get position offset
+        var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+        var y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+        var scaleMultiplier = 1 / jspInstance.getZoom();;
+        var positionY = (y - diagramContainer.offset().top) * scaleMultiplier;
+        var positionX = (x - diagramContainer.offset().left) * scaleMultiplier;
+        var offsetY = positionY - 2000;
+        var offsetX = positionX - 1500;
+
+        workflow.steps.forEach(function(step) {
+            if (step.id !== "Start" && step.id !== "End"){
+                if (step.next.defaultStep === "End"){
+                    delete step.next.defaultStep;
+                }
+                else if (idMap[step.next.defaultStep]){
+                    step.next.defaultStep = idMap[step.next.defaultStep];
+                }
+                if (step.next.failedStep === "End"){
+                    delete step.next.failedStep;
+                }
+                else if (idMap[step.next.failedStep]){
+                    step.next.failedStep = idMap[step.next.failedStep];
+                }
+                step.id = idMap[step.id];
+
+                step.positionX = step.positionX + offsetX;
+                step.positionY = step.positionY + offsetY;
+
+                newSteps.push(step);
+            }
+        });
+
+        workflow.steps = newSteps;
+        loadJSON(workflow);
+    }
 
     /*
     Functions for managing step data on jsplumb instance
     */
     function dragEndFunc(e) {
+        var stepData = $rootScope.primitiveData;
+        if (stepData.type === "Workflow"){
+            $http.get(routes.Workflow_get({workflowId: stepData.id})).then(function (resp) {
+                if (resp.status === 200) {
+                    copyWorkflow(e,resp.data.document);
+                }
+            });
+            return
+        }
         //set ID and text within the step element
         var randomIdHash = generateUUID ();
         //compensate x,y for zoom
@@ -724,9 +784,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var positionY = (y - diagramContainer.offset().top) * scaleMultiplier;
         var positionX = (x - diagramContainer.offset().left) * scaleMultiplier;
 
-
-        //add data
-        var stepData = $rootScope.primitiveData;
+        // copy data
         stepData.operation = stepData.id;
         stepData.id = randomIdHash;
         stepData.positionY = positionY;
@@ -1049,15 +1107,35 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowData.state = 'PUBLISHING';
         $http.post(routes.Workflow_publish({workflowId : $scope.workflowData.id})).then(function (resp) {
             //redirect automatically on success
-            var url = routes.ServiceCatalog_createServiceFromBase({baseService: resp.data.name});
+            var url = routes.ServiceCatalog_createServiceFromBase({baseService: resp.data.id});
             window.location.href = url;
         });
     }
 
     $scope.unpublishWorkflow = function() {
         $scope.workflowData.state = 'UNPUBLISHING';
+        delete $scope.alert;
         $http.post(routes.Workflow_unpublish({workflowId : $scope.workflowData.id})).then(function (resp) {
-            updateWorkflowData(resp);
+                  $scope.workflowData.state = resp.data.status;
+                    if (resp.data.status == "INVALID") {
+                        $scope.showAlert = true;
+                        $scope.alert = resp.data;
+                        if ($scope.alert.error) {
+                            if (!$scope.alert.error.errorMessage) {
+                                $scope.alert.error.errorMessage='Workflow un-publish failed. There are active catalog service using this workflow';
+                            }
+                        }
+                    } else {
+                        $scope.showAlert = true;
+                        $scope.alert = {status : "SUCCESS",success : {successMessage : "Workflow un-published Successfully."}};
+                        updateWorkflowData(resp);
+                    }
+
+        },
+        function(){
+                    $scope.showAlert = true;
+                    $scope.alert = {status : "INVALID", error : {errorMessage : "Workflow un-publish failed. There are active catalog service using this workflow"}};
+                    $scope.workflowData.state = 'PUBLISHED';
         });
     }
 
@@ -1084,6 +1162,18 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             return translateList(INPUT_TYPE_OPTIONS_REQUIRED,'input.type');
         } else {
             return translateList(INPUT_TYPE_OPTIONS.concat(INPUT_TYPE_OPTIONS_REQUIRED),'input.type');
+        }
+    }
+
+    $scope.getDefaultInputFieldType = function(fieldType) {
+        switch(fieldType.toLowerCase()) {
+            case "integer":
+            case "short":
+                return "number";
+            case "boolean":
+                return "boolean";
+            default:
+                return "text";
         }
     }
 
@@ -1269,15 +1359,15 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     }
 
-    function loadJSON() {
+    function loadJSON(workflowDocument) {
 
         //load steps with position data
-        $scope.workflowData.document.steps.forEach(function(step) {
+        workflowDocument.steps.forEach(function(step) {
             loadStep(step);
         });
 
         //load connections
-        $scope.workflowData.document.steps.forEach(function(step) {
+        workflowDocument.steps.forEach(function(step) {
             loadConnections(step);
         });
 

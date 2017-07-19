@@ -127,6 +127,14 @@ public class IsilonSmartQuota {
     private String id;
     private String path;
     private String type; /* <string[directory|user|group]> */
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
     private String user;
     private String group;
     private Boolean include_snapshots;

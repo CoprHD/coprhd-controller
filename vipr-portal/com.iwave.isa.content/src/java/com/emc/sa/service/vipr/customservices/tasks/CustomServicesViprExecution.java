@@ -19,10 +19,12 @@ package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
+import javax.ws.rs.core.UriBuilder;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -33,15 +35,18 @@ import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
+import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.impl.RestClient;
+import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
 
 /**
@@ -85,18 +90,20 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         final String templatePath = primitive.path();
         final String body = primitive.body();
         final String method = primitive.method();
-
+        final Map<String, List<InputParameter>> inputKeys = primitive.input() == null ? Collections.emptyMap() : primitive.input();
         if (CustomServicesConstants.BODY_REST_METHOD.contains(method) && !body.isEmpty()) {
             requestBody = RESTHelper.makePostBody(body, 0, input);
         } else {
             requestBody = "";
         }
 
-        String path = RESTHelper.makePath(templatePath, input, primitive);
-
+        final List<InputParameter> queryParams = inputKeys.get(CustomServicesConstants.QUERY_PARAMS);
+        final UriBuilder builder = client.uriBuilder().path(RESTHelper.makePath(templatePath, input));
+        RESTHelper.addQueryParams(builder, queryParams, input);
+        
         ExecutionUtils.currentContext().logInfo("customServicesViprExecution.startInfo", step.getId(), primitive.friendlyName());
 
-        CustomServicesTaskResult result = makeRestCall(path, requestBody, method);
+        CustomServicesTaskResult result = makeRestCall(builder.build(), requestBody, method);
 
         logger.info("result is:{}", result.getOut());
         ExecutionUtils.currentContext().logInfo("customServicesViprExecution.doneInfo", step.getId(), primitive.friendlyName());
@@ -121,7 +128,15 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                 uris.add(res.getId());
             }
 
+        } else if(classname.contains(RESTHelper.TASK)) {
+            final ObjectMapper mapper = new ObjectMapper();
+            mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
+            final Class<?> clazz = Class.forName(classname);
+
+            final Object task = mapper.readValue(result, clazz.newInstance().getClass());
+            uris.add(((TaskResourceRep)task).getId());
         }
+        
         if (!uris.isEmpty()) {
             return CustomServicesUtils.waitForTasks(uris, getClient());
         }
@@ -129,7 +144,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         return null;
     }
 
-    private CustomServicesTaskResult makeRestCall(final String path, final Object requestBody, final String method)
+    private CustomServicesTaskResult makeRestCall(final URI uri, final Object requestBody, final String method)
             throws InternalServerErrorException {
 
         ClientResponse response = null;
@@ -139,16 +154,16 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         try {
             switch (restmethod) {
                 case GET:
-                    response = client.get(ClientResponse.class, path);
+                    response = client.getURI(ClientResponse.class, uri);
                     break;
                 case PUT:
-                    response = client.put(ClientResponse.class, requestBody, path);
+                    response = client.putURI(ClientResponse.class, requestBody, uri);
                     break;
                 case POST:
-                    response = client.post(ClientResponse.class, requestBody, path);
+                    response = client.postURI(ClientResponse.class, requestBody, uri);
                     break;
                 case DELETE:
-                    response = client.delete(ClientResponse.class, path);
+                    response = client.deleteURI(ClientResponse.class, uri);
                     break;
                 default:
                     throw InternalServerErrorException.internalServerErrors
@@ -173,6 +188,12 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             if (classname.contains(RESTHelper.TASKLIST)) {
                 responseString = updateState(responseString, taskState);
             }
+            final boolean isSuccess = isSuccess(taskState, response.getStatus());
+            if (!isSuccess) {
+                throw InternalServerErrorException.internalServerErrors.
+                        customServiceExecutionFailed("Failed to Execute ViPR request");
+            }
+
             return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), taskState);
 
         } catch (final InternalServerErrorException e) {
@@ -191,6 +212,32 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }
+    }
+
+    private boolean isSuccess(final Map<URI, String> states, final int returnCode) {
+
+        if (states != null) {
+            for (Map.Entry<URI, String> e : states.entrySet()) {
+                if (!StringUtils.isEmpty(e.getValue())) {
+                    if (e.getValue().equals(Task.Status.error.toString())) {
+                        ExecutionUtils.currentContext().logError("customServicesService.logStatus",
+                                "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
+                                        + " Task Failed TaskId: " + e.getKey() + " State:" + e.getValue());
+                        return false;
+                    }
+                }
+            }
+        }
+        if (!(returnCode >= 200 && returnCode < 300)) {
+            ExecutionUtils.currentContext().logError("customServicesService.logStatus",
+                    "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
+                            + " Operation Failed ReturnCode: " + returnCode);
+
+            return false;
+        }
+
+        return true;
+
     }
 
     private String updateState(final String response, final Map<URI, String> uristates) {

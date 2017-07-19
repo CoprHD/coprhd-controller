@@ -1538,18 +1538,16 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             // find member volumes in the group
             volURIs = new ArrayList<URI>(cgVolsWithBackingVolsMap.get(cgURI));
-            List<Volume> volumeList = new ArrayList<Volume>();
-            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volURIs, true);
-            while (volumeIterator.hasNext()) {
-                volumeList.add(volumeIterator.next());
-            }
-            Volume firstVol = volumeList.get(0);
+            Volume firstVol = _dbClient.queryObject(Volume.class, volURIs.get(0));
             URI storage = firstVol.getStorageController();
             // delete CG from array
-            if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
+            if (VPlexUtil.cgHasNoOtherVPlexVolumes(_dbClient, cgURI, volURIs)) {
                 _log.info(String.format("Adding step to delete the consistency group %s", cgURI));
                 returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor,
                         storage, cgURI, false);
+            } else {
+            	_log.info(String.format("Skipping add step to delete the consistency group %s. Consistency group "
+            			+ "contains other VPLEX volumes that have not been accounted for.", cgURI));
             }
         }
 
@@ -5680,14 +5678,16 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
-     * Finds the next available HLU for cluster export by querying the cluster's hosts'
+     * Finds the next available HLU for cluster export/Host Export(only applicable for vplex metro volume export) by querying the cluster's
+     * hosts'
      * used HLUs and updates the volumeHLU map with free HLUs.
      */
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
         try {
-            if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster()
+            if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)
+                    && (exportGroup.forCluster() || exportGroup.hasAltVirtualArray(storage.getId().toString()))
                     && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
                     && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
                 _log.info("Find and update free HLUs for Cluster Export START..");

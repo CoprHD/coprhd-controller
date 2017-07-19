@@ -5044,7 +5044,18 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 // Do the Operation on device.
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).checkForExistingSyncPolicyAndTarget(storageObj, args);
-                fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                if (result.isCommandSuccess()) {
+                    fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                    _dbClient.updateObject(fs);
+                }
+                if (result.getCommandPending()) {
+                    return;
+                }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                    throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
+                            fp.getApplyAt(), result.getMessage());
+                }
             } else {
                 throw DeviceControllerException.exceptions.invalidObjectNull();
             }
@@ -5054,6 +5065,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     storageObj.getLabel(), fs.getLabel(), e.getMessage()));
             _log.error("Unable to get existing sync policy : storage {}, FS URI {},: Error {}", errormsg);
             updateTaskStatus(opId, fs, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, error);
         }
     }
 }

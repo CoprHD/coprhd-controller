@@ -4326,6 +4326,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args){
         BiosCommandResult result = null;
         FileShare srcFs = args.getFs();
+        Task task = TaskUtils.findTaskForRequestId(_dbClient, srcFs.getId(), args.getOpId());
         try {
             IsilonApi isi = getIsilonDevice(system);
             _log.info("IsilonFileStorageDevice checkForExistingSyncPolicyAndTarget for FS {} - start", args.getFsName());
@@ -4364,13 +4365,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
                 }
             }
-            Task task = TaskUtils.findTaskForRequestId(_dbClient, srcFs.getId(), args.getOpId());
+            
             // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
             task.ready();
             task.setProgress(100);
             _dbClient.updateObject(task);
             result = BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
+            task.error(e);
+            task.setProgress(100);
+            _dbClient.updateObject(task);
             result = BiosCommandResult.createErrorResult(e);
         }
         return result;

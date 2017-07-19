@@ -5052,7 +5052,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     return;
                 }
                 if (!result.isCommandSuccess() && !result.getCommandPending()) {
-                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
                     throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
                             fp.getApplyAt(), result.getMessage());
                 }

@@ -2342,13 +2342,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String taskId) throws ControllerException {
         FileShare sourceFS = null;
         Workflow workflow = null;
-        List<URI> fsURIs = FileDescriptor.getFileSystemURIs(fileDescriptors);
-        if(CollectionUtils.isEmpty(fsURIs)){
+        if(CollectionUtils.isEmpty(fileDescriptors)){
             s_logger.error("Source and target filesystem descriptors is empty.");
             throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
                     filePolicy.getApplyAt(),
                     "Source and target filesystem descriptors is empty.");
         }
+
+        List<URI> fsURIs = FileDescriptor.getFileSystemURIs(fileDescriptors);
 
         FileSystemAssignPolicyWorkflowCompleter completer = new FileSystemAssignPolicyWorkflowCompleter(filePolicy.getId(), fsURIs, taskId);
         try {
@@ -2363,9 +2364,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     break;
                 }
             }
+            
+            if(sourceFS == null){
+                s_logger.error("Source FS is null.");
+                throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                        filePolicy.getApplyAt(),
+                        "Could not retrieve source FS.");
+            }
          // setting if the create fs step is needed.
             boolean isTargetExisting = false;
-            if (sourceFS.getExtensions().containsKey("ReplicationInfo")) {
+            if (CollectionUtils.isEmpty(sourceFS.getExtensions()) && sourceFS.getExtensions().containsKey("ReplicationInfo")) {
                 FileShare targetFs = null;
                 String targetInfo = sourceFS.getExtensions().get("ReplicationInfo");
                 if (targetInfo != null) {
@@ -2403,8 +2411,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
-            s_logger.error(String.format("Assigning file policy : %s to file system : %s failed", filePolicy.getId(),
-                    sourceFS.getId()), ex);
+            s_logger.error(String.format("Assigning file policy : %s to file system failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors.assignFilePolicyFailed(filePolicy.toString(),
                     FilePolicyApplyLevel.file_system.name(), ex);
             completer.error(s_dbClient, _locker, serviceError);

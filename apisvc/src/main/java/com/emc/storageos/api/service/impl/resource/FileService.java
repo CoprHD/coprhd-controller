@@ -4569,9 +4569,9 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
         }
 
-        // Create task to check if any replication policy is existing in backend if yes, then is the target fs already
+        // Create task to check if any replication policy is existing in backend if yes, then to check if the target fs already
         // in database.
-        StorageSystem targetSystem = null;
+        StorageSystem targetSystem;
         FileShare targetFs = null;
         String checkingTask = UUID.randomUUID().toString();
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -4657,7 +4657,7 @@ public class FileService extends TaskResourceService {
             boolean validTarget = false;
             if (targetFs != null) {
                 targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
-                if (!targetSystem.getInactive()) {
+                if (targetSystem != null && !targetSystem.getInactive()) {
                     validTarget = validateTarget(targetFs, projectURI, targertVarrayURIs);
                 }
             }

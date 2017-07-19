@@ -3507,7 +3507,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     // as the suffix already present in target file system native id
                     // Add the suffix only for local replication policy at higher level
                     if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())
-                            && !FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(filePolicy.getApplyAt()) && targetFS.getLabel().contains("localTarget")) {
+                            && !FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(filePolicy.getApplyAt())) {
                         targetPath = targetPath + "_localTarget";
                     }
                     // Get the target smart connect zone!!
@@ -4326,6 +4326,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args){
         BiosCommandResult result = null;
         FileShare srcFs = args.getFs();
+        if (srcFs == null){
+            throw DeviceControllerException.exceptions.assignFilePolicyFailed(args.getFileProtectionPolicy().getFilePolicyName(),
+                    args.getFileProtectionPolicy().getApplyAt(),"Failed to retrieve source filesystem");
+        }
         Task task = TaskUtils.findTaskForRequestId(_dbClient, srcFs.getId(), args.getOpId());
         try {
             IsilonApi isi = getIsilonDevice(system);

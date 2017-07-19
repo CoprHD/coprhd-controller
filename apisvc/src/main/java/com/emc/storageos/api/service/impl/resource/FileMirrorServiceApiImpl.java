@@ -656,7 +656,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 varray, vpool, recommendations, vpoolCapabilities, false);
         fileShares.addAll(fileList);
         
-        if(targetFs != null || CollectionUtils.isEmpty(fileShares)){
+        //already existing target doesnt need preparation setting the personality and replication attributes.
+        if(targetFs != null && CollectionUtils.isEmpty(fileShares)){
             setMirrorFileShareAttributes(fs, targetFs);
             fs.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
             fs.setAccessState(FileAccessState.READWRITE.name());

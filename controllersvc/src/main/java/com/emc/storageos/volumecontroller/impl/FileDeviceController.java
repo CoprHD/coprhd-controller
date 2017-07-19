@@ -5030,7 +5030,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fp = _dbClient.queryObject(FilePolicy.class, policy);
             storageObj = _dbClient.queryObject(StorageSystem.class, storageURI);
 
-            if (fs != null && fp != null) {
+            if (fs != null && fp != null && storageObj != null) {
                 _log.info("Controller Recieved File Policy  {}", policy);
 
                 args.addFSFileObject(fs);
@@ -5056,7 +5056,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             fp.getApplyAt(), result.getMessage());
                 }
             } else {
-                throw DeviceControllerException.exceptions.invalidObjectNull();
+                throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
+                            fp.getApplyAt(), "Could not retrieve reuired entities- filesystem / filepolicy / storage system");
             }
         } catch (Exception e) {
             StringBuffer errormsg = new StringBuffer();

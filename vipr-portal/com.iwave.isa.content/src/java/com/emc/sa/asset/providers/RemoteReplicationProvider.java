@@ -551,12 +551,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * Get supported Storage System types for RR operations
      */
     private List<StorageSystemTypeRestRep> getSupportedStorageSystemTypes(ViPRCoreClient coreClient) {
-        List<StorageSystemTypeRestRep> storageSystemTypes =
-                coreClient.storageSystemType().listStorageSystemTypes("block").getStorageSystemTypes();
-        List<StorageSystemTypeRestRep> storageSystemFileTypes =
-                coreClient.storageSystemType().listStorageSystemTypes("file").getStorageSystemTypes();
-        storageSystemTypes.addAll(storageSystemFileTypes);
-        return storageSystemTypes;
+        return coreClient.storageSystemType().listRemoteReplicationTypes().getStorageSystemTypes();
     }
 
     /*

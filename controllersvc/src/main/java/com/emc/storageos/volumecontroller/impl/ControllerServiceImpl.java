@@ -11,8 +11,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -664,6 +666,12 @@ public class ControllerServiceImpl implements ControllerService {
             } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
                 driverManager.getBlockSystems().add(typeName);
             }
+
+            Set<String> supportedStorageProfiles = type.getSupportedStorageProfiles();
+            if (CollectionUtils.isNotEmpty(supportedStorageProfiles)) {
+                driverManager.getSupportedStorageProfiles().put(typeName, supportedStorageProfiles);
+            }
+
             _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
         }
     }

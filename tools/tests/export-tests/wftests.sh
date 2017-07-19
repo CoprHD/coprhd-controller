@@ -4048,6 +4048,76 @@ test_delete_srdf_cg_last_vol() {
     done
 }
 
+# Test test_pause_single_srdf
+#
+# Test pausing individual SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Pause the SRDF volume
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry pause operation
+test_pause_single_srdf() {
+    echot "Test test_pause_single_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization"
+
+    cfs=("Volume")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections=""
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_pause_single_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      fail volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
+      snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+      validate_db 1 2 ${cfs}
+
+      set_artificial_failure none
+
+      runcmd volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
+      runcmd volume change_link $PROJECT/$volname-1 resume $PROJECT/$volname-1-target-$NH srdf
+
+      report_results "test_pause_single_srdf" ${failure}
+    done
+}
+
 # Test test_delete_srdf_cg_vol
 #
 # Test deleting SRDF CG volumes whilst injecting various failures, then test the retryability.

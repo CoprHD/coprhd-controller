@@ -73,7 +73,7 @@ public class VMAXApiClient extends StandardRestClient{
 
 
 	@Override
-	protected int checkResponse(URI uri, ClientResponse response) {
+    protected int checkResponse(URI uri, ClientResponse response) {
         ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode();
         if (errorCode >= 300) {

@@ -22,13 +22,13 @@ import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 
 @MessageBundle
 public interface VMAXExceptions {
-    
+
     @DeclareServiceCode(ServiceCode.UNISPHERE_PROVIDER_UNAVAILABLE)
     XtremIOApiException authenticationFailure(String storageSystemForDisplay);
 
     @DeclareServiceCode(ServiceCode.UNISPHERE_API_ERROR)
     XtremIOApiException resourceNotFound(String storageSystemForDisplay);
-    
-	@DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
+
+    @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
     public VMAXException invalidResponseFromHDS(final String message);
 }

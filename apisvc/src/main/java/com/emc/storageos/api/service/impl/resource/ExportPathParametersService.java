@@ -108,22 +108,17 @@ public class ExportPathParametersService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
-    public ExportPathParametersList getExportPathParametersList(@DefaultValue("false") @QueryParam("is-port-group") boolean isPortGroup) {
-
-        NamedElementQueryResultList resultSetList = new NamedElementQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getPathParamsByPortGroupConstraint(isPortGroup), resultSetList);
-
+    public ExportPathParametersList getExportPathParametersList() {
+        List<URI> exportPathParams = _dbClient.queryByType(ExportPathParams.class, true);
         ExportPathParametersList pathParamsList = new ExportPathParametersList();
-        for (NamedElementQueryResultList.NamedElement el : resultSetList) {
-            ExportPathParams pathParams = _dbClient.queryObject(ExportPathParams.class, el.getId());
+        for (URI uri : exportPathParams) {
+            ExportPathParams pathParams = _dbClient.queryObject(ExportPathParams.class, uri);
             if (pathParams != null && !pathParams.getInactive()) {
                 pathParamsList.getPathParamsList().add(
-                        toNamedRelatedResource(ResourceTypeEnum.EXPORT_PATH_PARAMETERS, el.getId(), el.getName()));
+                        toNamedRelatedResource(ResourceTypeEnum.EXPORT_PATH_PARAMETERS, pathParams.getId(), pathParams.getLabel()));
             }
-
         }
         return pathParamsList;
-
     }
 
     @PUT
@@ -255,8 +250,6 @@ public class ExportPathParametersService extends TaggedResource {
             }
             params.setStoragePorts(exportPathParamSet);
         }
-
-        params.setPortGroupFlag(isPortGroup);
         return params;
     }
 

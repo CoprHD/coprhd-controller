@@ -27,42 +27,40 @@ public class PathParameters extends AbstractCoreBulkResources<ExportPathParamete
     }
 
     /**
-     * Deletes the given Export Path Params or Port group by ID.
+     * Deletes the given Export Path Params by ID.
      * <p>
      * API Call: <tt>POST /block/export-path-parameters/{id}/deactivate</tt>
      * 
      * @param id
-     *            the ID of Export Path Params or Port group to deactivate.
+     *            the ID of Export Path Params to deactivate.
      */
     public void delete(URI id) {
         client.post(String.class, PathConstants.PATH_PARAMS__DEACTIVATE_BY_ID_URL, id);
     }
 
     /**
-     * Creates a xport Path Params or Port group.
+     * Creates an Export Path Params.
      * <p>
-     * API Call: <tt>POST/block/export-path-parameters?is-port-group=<value></tt>
+     * API Call: <tt>POST/block/export-path-parameters</tt>
      * 
      * @param input
-     *            the Export Path Params or Port group configuration.
-     * @param isPortGroup
-     *            query parameter flag for
-     * @return the newly created Export Path Params or Port group.
+     *            the Export Path Params.
+     * @return the newly created Export Path Params.
      */
-    public ExportPathParametersRestRep create(ExportPathParameters input, String isPortGroup) {
-        URI targetUri = client.uriBuilder(baseUrl).queryParam("is-port-group", isPortGroup).build();
+    public ExportPathParametersRestRep create(ExportPathParameters input) {
+        URI targetUri = client.uriBuilder(baseUrl).build();
         ExportPathParametersRestRep element = client
                 .postURI(ExportPathParametersRestRep.class, input, targetUri);
         return get(element.getId());
     }
 
     /**
-     * Update the given Export Path Params or Port group by ID.
+     * Update the given Export Path Params by ID.
      * <p>
      * API Call: <tt>PUT /block/export-path-parameters/{id}</tt>
      * 
      * @param id
-     *            the ID of Export Path Params or Port group to deactivate.
+     *            the ID of Export Path Params to deactivate.
      */
     public void update(URI id, ExportPathUpdateParams input) {
         client.put(String.class, input, PathConstants.EXPORT_PATH_PARAMS_BY_ID_URL, id);

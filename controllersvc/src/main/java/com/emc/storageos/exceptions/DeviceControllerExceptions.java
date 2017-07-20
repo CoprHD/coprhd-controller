@@ -320,6 +320,9 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException operationNotSupported();
 
+    @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
+    public DeviceControllerException operationDeprecated(final String deprecatedOperationName, final String controllerType, final String recommendationDetails);
+
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException createSmbShareFailed(final String name, final String description);
 

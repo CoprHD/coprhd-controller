@@ -15,7 +15,7 @@ public class VMAXRestClientTest {
 	
 	 @BeforeClass
 	    public static void setup() throws Exception {
-		 VMAXApiRestClientFactory apiClientFactory = new VMAXApiRestClientFactory();
+		 VMAXApiRestClientFactory apiClientFactory = VMAXApiRestClientFactory.getInstance();
 		 apiClientFactory.setConnectionTimeoutMs(30000);
 		 apiClientFactory.setConnManagerTimeout(60000);
 		 apiClientFactory.setMaxConnections(300);

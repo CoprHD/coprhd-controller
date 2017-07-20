@@ -1726,7 +1726,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete "
+    # failure_injections="failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete "
 
     if [ "${SS}" = "vplex" ]
     then

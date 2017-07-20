@@ -58,8 +58,8 @@ public class ManagerFunctionTest {
 
     @Test
     public void testCreateOneVolumeWithNewSg() {
-        String sgName = "stone_test_sg_auto_007";
-        String volumeNamePrefix = "stone_test_vol_007-";
+        String sgName = "stone_test_sg_auto_008";
+        String volumeNamePrefix = "stone_test_vol_008-";
         testCreateEmptySg(sgName);
         testEditSgSlo(sgName);
         testEditSgWithWorkload(sgName);

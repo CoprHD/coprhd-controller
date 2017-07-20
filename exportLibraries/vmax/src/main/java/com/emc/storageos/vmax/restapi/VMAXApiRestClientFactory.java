@@ -15,12 +15,27 @@ import com.sun.jersey.client.apache.ApacheHttpClient;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
 public class VMAXApiRestClientFactory extends RestClientFactory{
-
-    
-
-    // The root HTTP client handler.
-    private ApacheHttpClientHandler _clientHandler;
-
+	
+	private static VMAXApiRestClientFactory singleton = new VMAXApiRestClientFactory();
+	private static boolean isInitiated = false;
+	
+	private VMAXApiRestClientFactory(){
+		
+	}
+	
+	public static VMAXApiRestClientFactory getInstance(){
+		return singleton;
+	}
+	
+	@Override
+    public void init() {
+        if (!isInitiated) {
+            synchronized(this) {
+                super.init();
+                isInitiated = true;
+            }
+        }
+    }
     
     
     public RestClientItf getRESTClient(URI endpoint, String username, String password, String version, boolean authFilter) {

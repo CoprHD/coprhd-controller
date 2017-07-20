@@ -85,20 +85,23 @@ is_local_backup() {
     local backup=$1
 
     if ! [[ "${backup}" =~ ^\/data\/backup ]]; then
-        return "false"
+        echo "false"
+        return
     fi
 
-    local command="test -d ${backup} && echo true || echo false"
+    local command="test -d ${backup} && echo 0 || echo 1"
     for i in $(seq 1 ${NODE_COUNT})
     do
         local viprNode=$(get_nodeid)
         local result=`ssh_execute_with_output "${viprNode}" "${command}" "${ROOT_PASSWORD}"`
-        if [ ${result} ]; then
-            return "true"
+        if [ ${result} == 0 ]; then
+            echo "true"
+            return
         fi
     done
     set -e
-    return "false"
+    echo "false"
+    return
 }
 
 is_vdc_connected() {
@@ -114,10 +117,10 @@ is_vdc_connected() {
         geodb_type=${geodb_type%%_*}
         if [ "$geodb_type" == "geodb" ]; then
             IS_CONNECTED_VDC=false
-            return false
+            return
         elif [ "$geodb_type" == "geodbmultivdc" ]; then
             IS_CONNECTED_VDC=true
-            return true
+            return
         fi
     done
     echo -e "\nInvalid geodb type: $geodb_type, exiting.."

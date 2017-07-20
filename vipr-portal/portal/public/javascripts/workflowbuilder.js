@@ -41,6 +41,15 @@ angular.module("portalApp")
 	    	return hasModified ;
 	    }
 	    
+	    $win.onbeforeunload = function(e) {
+	    	if(!hasChangedWorkflow() || suppressUnloadEvent) {
+	    		return null ;
+	    	}
+	    	
+	    	e.returnValue = "There are workflows being changed but not saved yet" ;
+	    	return e.returnValue ;
+	    } ;
+	    
 		return {
 			getWorkflowInfo : function() {
 				return workflowInfo ;

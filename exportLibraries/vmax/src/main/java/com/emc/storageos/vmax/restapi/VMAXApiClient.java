@@ -13,7 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.services.restutil.StandardRestClient;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.vmax.VMAXConstants;
+import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
+import com.emc.storageos.vmax.restapi.errorhandling.VMAXExceptions;
 import com.emc.storageos.vmax.restapi.model.response.NDMMigrationEnvironmentResponse;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
@@ -25,8 +28,6 @@ import com.sun.jersey.api.client.WebResource.Builder;
 
 public class VMAXApiClient extends StandardRestClient{
 	private static Logger log = LoggerFactory.getLogger(VMAXApiClient.class);
-
-    private URI baseURI;
 
     public VMAXApiClient(URI baseURI, String username, String password, Client client) {
         _client = client;
@@ -78,19 +79,19 @@ public class VMAXApiClient extends StandardRestClient{
         if (errorCode >= 300) {
             JSONObject obj = null;
             String extraExceptionInfo = null;
-            int xtremIOCode = 0;
+            int code = 0;
             try {
                 obj = response.getEntity(JSONObject.class);
-                xtremIOCode = obj.getInt(XtremIOConstants.ERROR_CODE);
+                code = obj.getInt(XtremIOConstants.ERROR_CODE);
             } catch (Exception e) {
                 extraExceptionInfo = e.getMessage();
                 log.error("Parsing the failure response object failed", e);
             }
 
-            if (xtremIOCode == 404 || xtremIOCode == 410) {
-                throw XtremIOApiException.exceptions.resourceNotFound(uri.toString());
-            } else if (xtremIOCode == 401) {
-                throw XtremIOApiException.exceptions.authenticationFailure(uri.toString());
+            if (code == 404 || code == 410) {
+                throw VMAXException.exceptions.resourceNotFound(uri.toString());
+            } else if (code == 401) {
+                throw VMAXException.exceptions.authenticationFailure(uri.toString());
             } else {
                 // Sometimes the response object can be null, just set it to empty when it is null.
                 String objStr = (obj == null) ? "" : obj.toString();
@@ -104,6 +105,77 @@ public class VMAXApiClient extends StandardRestClient{
         } else {
             return errorCode;
         }
+    }
+	
+	@Override
+    public ClientResponse post(URI uri, String body) throws InternalException {
+        ClientResponse response = null;
+        log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
+        response = super.post(uri, body);        
+        return response;
+    }
+    
+    @Override
+    public ClientResponse get(URI uri) throws InternalException {
+        ClientResponse response = null;
+        log.info("Calling GET {}", uri.toString());
+        response = super.get(uri);        
+        return response;
+    }
+
+    /**
+     * Wrapper of post method to ignore the response
+     *
+     * @param uri URI
+     * @param body request body string
+     * @return null
+     * @throws InternalException
+     */
+    public ClientResponse postIgnoreResponse(URI uri, String body) throws InternalException {
+        ClientResponse response = null;
+        try {
+            log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
+            response = super.post(uri,  body);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
+    }
+
+    @Override
+    public ClientResponse put(URI uri, String body) throws InternalException {
+        ClientResponse response = null;
+        try {
+            log.info(String.format("Calling PUT %s with data %s", uri.toString(), body));
+            response = super.put(uri,  body);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
+    }
+
+    @Override
+    public ClientResponse delete(URI uri) throws InternalException {
+        ClientResponse response = null;
+        try {
+            log.info("Calling DELETE {}", uri.toString());
+            response = super.delete(uri);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
+    }
+
+    @Override
+    public ClientResponse delete(URI uri, String body) throws InternalException {
+        ClientResponse response = null;
+        try {
+            log.info(String.format("Calling DELETE %s with data %s", uri.toString(), body));
+            response = super.delete(uri, body);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
     }
     
     

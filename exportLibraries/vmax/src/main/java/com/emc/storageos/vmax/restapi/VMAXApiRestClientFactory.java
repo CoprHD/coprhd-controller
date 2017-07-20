@@ -12,7 +12,6 @@ import com.emc.storageos.vmax.VMAXConstants;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
-import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
 public class VMAXApiRestClientFactory extends RestClientFactory{
 	

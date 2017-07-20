@@ -7,6 +7,7 @@ package com.emc.storageos.vmax.restapi.errorhandling;
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 
 /**
  * This interface holds all the methods used to create {@link VMAXException}s
@@ -21,6 +22,13 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 @MessageBundle
 public interface VMAXExceptions {
+    
+    @DeclareServiceCode(ServiceCode.UNISPHERE_PROVIDER_UNAVAILABLE)
+    XtremIOApiException authenticationFailure(String storageSystemForDisplay);
+
+    @DeclareServiceCode(ServiceCode.UNISPHERE_API_ERROR)
+    XtremIOApiException resourceNotFound(String storageSystemForDisplay);
+    
 	@DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
     public VMAXException invalidResponseFromHDS(final String message);
 }

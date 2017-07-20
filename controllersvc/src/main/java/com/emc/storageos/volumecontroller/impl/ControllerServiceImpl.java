@@ -620,9 +620,11 @@ public class ControllerServiceImpl implements ControllerService {
             while (resources.hasMoreElements()) {
                 URL propsUrl = resources.nextElement();
                 String driverFileName = extractJarName(propsUrl.getPath());
+                _log.info("Parsing meta data from {} ...", driverFileName);
                 InputStream propsStream = propsUrl.openStream();
                 Properties props = new Properties();
                 props.load(propsStream);
+                _log.info("Meta props: {}", props.toString());
                 propsStream.close();
                 DriverMetadataUtil.insertDriverMetadata(props, driverFileName, _dbClient);
             }
@@ -640,7 +642,9 @@ public class ControllerServiceImpl implements ControllerService {
     }
 
     private String extractJarName(String metadataFilePath) {
-        return null;
+        String[] dirs = metadataFilePath.split("/");
+        String driverName = dirs[dirs.length - 2];
+        return driverName.substring(0, driverName.length() - 1);
     }
     /**
      * Fetch driver information from db and wire it into StorageDriverManager

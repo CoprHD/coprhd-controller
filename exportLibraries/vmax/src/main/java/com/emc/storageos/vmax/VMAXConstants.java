@@ -18,5 +18,5 @@ public interface VMAXConstants {
     String DOT_OPERATOR = ".";
     
     String UNIVMAX_BASE_URI="/univmax/restapi/84";
-    String VALIDATE_ENVIRONMENT_URI=UNIVMAX_BASE_URI+"/migration/symmetrix/000195701430/environment/000196701405";
+    String VALIDATE_ENVIRONMENT_URI="/migration/symmetrix/000195701430/environment/000196701405";
 }

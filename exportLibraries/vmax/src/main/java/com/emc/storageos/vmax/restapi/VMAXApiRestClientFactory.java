@@ -160,14 +160,14 @@ public class VMAXApiRestClientFactory{
         clientKeyBuilder.append("_");
         clientKeyBuilder.append(password);
         String clientKey = clientKeyBuilder.toString();
-        VMAXApiClient hdsApiClient = _clientMap.get(clientKey);
-        if (hdsApiClient == null) {
+        VMAXApiClient vmaxApiClient = _clientMap.get(clientKey);
+        if (vmaxApiClient == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
             RESTClient restClient = new RESTClient(jerseyClient, username, password);
-            hdsApiClient = new VMAXApiClient(endpoint, restClient);
-            _clientMap.putIfAbsent(clientKey, hdsApiClient);
+            vmaxApiClient = new VMAXApiClient(endpoint, restClient);
+            _clientMap.putIfAbsent(clientKey, vmaxApiClient);
         }
-        return hdsApiClient;
+        return vmaxApiClient;
     }
 
 }

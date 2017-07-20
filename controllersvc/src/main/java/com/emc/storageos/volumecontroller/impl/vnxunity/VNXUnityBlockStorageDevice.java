@@ -1268,4 +1268,14 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    
+    @Override
+    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

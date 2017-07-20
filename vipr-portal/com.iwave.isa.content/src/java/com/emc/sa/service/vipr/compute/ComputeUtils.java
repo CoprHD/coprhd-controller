@@ -490,9 +490,10 @@ public class ComputeUtils {
      * @param project project
      * @param virtualArray virtual array
      * @param hlu HLU
+     * @param portGroup port group URI
      * @return returns a map of hosts to Export Group URIs
      */
-    public static Map<Host, URI> exportBootVols(Map<Host, URI> hostToVolumeIdMap, URI project, URI virtualArray, Integer hlu) {
+    public static Map<Host, URI> exportBootVols(Map<Host, URI> hostToVolumeIdMap, URI project, URI virtualArray, Integer hlu, URI portGroup) {
 
         if (hostToVolumeIdMap == null || hostToVolumeIdMap.isEmpty()) {
             return Maps.newHashMap();
@@ -529,12 +530,12 @@ public class ComputeUtils {
                     
                     if (createExport) {
                         task = BlockStorageUtils.createHostExportNoWait(exportName,
-                                project, virtualArray, Arrays.asList(volumeId), hlu, host);
+                                project, virtualArray, Arrays.asList(volumeId), hlu, host, portGroup);
                     } else {
                         task = BlockStorageUtils.addHostAndVolumeToExportNoWait(export.getId(),
                                     // Don't add the host if there are already initiators in this export group.
                                     export.getInitiators() != null && !export.getInitiators().isEmpty() ? null : host.getId(), 
-                                    volumeId, hlu); 
+                                    volumeId, hlu, portGroup); 
                     }
                     taskToHostMap.put(task, host);
                 } catch (ExecutionException e) {

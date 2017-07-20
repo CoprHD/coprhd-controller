@@ -16,7 +16,6 @@ import com.emc.storageos.services.restutil.StandardRestClient;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.vmax.VMAXConstants;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
-import com.emc.storageos.vmax.restapi.errorhandling.VMAXExceptions;
 import com.emc.storageos.vmax.restapi.model.response.NDMMigrationEnvironmentResponse;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
@@ -26,8 +25,8 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.WebResource.Builder;
 
-public class VMAXApiClient extends StandardRestClient{
-	private static Logger log = LoggerFactory.getLogger(VMAXApiClient.class);
+public class VMAXApiClient extends StandardRestClient {
+    private static Logger log = LoggerFactory.getLogger(VMAXApiClient.class);
 
     public VMAXApiClient(URI baseURI, String username, String password, Client client) {
         _client = client;
@@ -36,16 +35,14 @@ public class VMAXApiClient extends StandardRestClient{
         _password = password;
         _authToken = "";
     }
-    
+
     @Override
     protected Builder setResourceHeaders(WebResource resource) {
-    	return resource.header(XtremIOConstants.AUTH_TOKEN, _authToken);
+        return resource.header(XtremIOConstants.AUTH_TOKEN, _authToken);
     }
 
-
-
-	@Override
-	protected void authenticate() {
+    @Override
+    protected void authenticate() {
         ClientResponse response = null;
         try {
             XtremIOAuthInfo authInfo = new XtremIOAuthInfo();
@@ -70,9 +67,7 @@ public class VMAXApiClient extends StandardRestClient{
         }
     }
 
-
-
-	@Override
+    @Override
     protected int checkResponse(URI uri, ClientResponse response) {
         ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode();
@@ -87,6 +82,9 @@ public class VMAXApiClient extends StandardRestClient{
                 extraExceptionInfo = e.getMessage();
                 log.error("Parsing the failure response object failed", e);
             }
+            if (code == 0) {
+                code = errorCode;
+            }
 
             if (code == 404 || code == 410) {
                 throw VMAXException.exceptions.resourceNotFound(uri.toString());
@@ -97,29 +95,29 @@ public class VMAXApiClient extends StandardRestClient{
                 String objStr = (obj == null) ? "" : obj.toString();
                 // Append extra exception info if present
                 if (extraExceptionInfo != null) {
-                    objStr = String.format("%s%s", 
+                    objStr = String.format("%s%s",
                             (objStr.isEmpty()) ? objStr : objStr + " | ", extraExceptionInfo);
                 }
-                throw XtremIOApiException.exceptions.internalError(uri.toString(), objStr);
+                throw VMAXException.exceptions.internalError(uri.toString(), objStr);
             }
         } else {
             return errorCode;
         }
     }
-	
-	@Override
+
+    @Override
     public ClientResponse post(URI uri, String body) throws InternalException {
         ClientResponse response = null;
         log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
-        response = super.post(uri, body);        
+        response = super.post(uri, body);
         return response;
     }
-    
+
     @Override
     public ClientResponse get(URI uri) throws InternalException {
         ClientResponse response = null;
         log.info("Calling GET {}", uri.toString());
-        response = super.get(uri);        
+        response = super.get(uri);
         return response;
     }
 
@@ -135,7 +133,7 @@ public class VMAXApiClient extends StandardRestClient{
         ClientResponse response = null;
         try {
             log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
-            response = super.post(uri,  body);
+            response = super.post(uri, body);
         } finally {
             closeResponse(response);
         }
@@ -147,7 +145,7 @@ public class VMAXApiClient extends StandardRestClient{
         ClientResponse response = null;
         try {
             log.info(String.format("Calling PUT %s with data %s", uri.toString(), body));
-            response = super.put(uri,  body);
+            response = super.put(uri, body);
         } finally {
             closeResponse(response);
         }
@@ -177,16 +175,13 @@ public class VMAXApiClient extends StandardRestClient{
         }
         return null;
     }
-    
-    
-    
-    public NDMMigrationEnvironmentResponse getMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber) throws Exception{
-    	ClientResponse clientResponse = get(URI.create(VMAXConstants.VALIDATE_ENVIRONMENT_URI));
-    	NDMMigrationEnvironmentResponse environmentResponse = getResponseObject(NDMMigrationEnvironmentResponse.class, clientResponse);
-    	return environmentResponse;
+
+    public NDMMigrationEnvironmentResponse getMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber)
+            throws Exception {
+        ClientResponse clientResponse = get(
+                URI.create(VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber)));
+        NDMMigrationEnvironmentResponse environmentResponse = getResponseObject(NDMMigrationEnvironmentResponse.class, clientResponse);
+        return environmentResponse;
     }
 
-
-
-	
 }

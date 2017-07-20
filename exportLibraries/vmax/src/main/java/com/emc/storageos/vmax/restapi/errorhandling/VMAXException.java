@@ -25,9 +25,9 @@ public class VMAXException extends InternalException {
     /** Holds the methods used to create UNISPHERE related error conditions */
     public static final VMAXErrors errors = ExceptionMessagesProxy.create(VMAXErrors.class);
 
-    protected VMAXException(boolean retryable, ServiceCode code, Throwable cause, String detailBase, String detailKey,
+    protected VMAXException(ServiceCode code, Throwable cause, String detailBase, String detailKey,
             Object[] detailParams) {
-        super(retryable, code, cause, detailBase, detailKey, detailParams);
+        super(false, code, cause, detailBase, detailKey, detailParams);
         // TODO Auto-generated constructor stub
     }
 

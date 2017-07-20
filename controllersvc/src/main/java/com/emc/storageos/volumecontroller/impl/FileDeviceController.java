@@ -419,7 +419,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         doFSDeleteQuotaDirsFromDB(args); // Delete Quota Directory from DB
                         deleteShareACLsFromDB(args); // Delete CIFS Share ACLs from DB
                         doDeleteExportRulesFromDB(true, null, args); // Delete Export Rules from DB
-                        doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
+                        doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from File Policy
                     }
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else if (!result.getCommandPending()
@@ -430,6 +430,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         && (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType))) {
                     boolean snapshotsExist = snapshotsExistsOnFS(fsObj);
                     boolean quotaDirsExist = quotaDirectoriesExistsOnFS(fsObj);
+                    boolean policyExists = fileProtectionPoliciesExistsOnFS(fsObj);
                     boolean fsCheck = getDevice(storageObj.getSystemType()).doCheckFSExists(storageObj, args);
 
                     if (fsCheck) {
@@ -442,6 +443,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             errMsg = new String(
                                     "delete file system from ViPR database failed because quota directories exist for file system "
                                             + fsObj.getLabel() + " and once deleted the quota directory cannot be ingested into ViPR");
+                        } else if (policyExists) {
+                            errMsg = new String(
+                                    "delete file system from ViPR database failed because file protection policies exist for file system "
+                                            + fsObj.getLabel() + " and once deleted the policy cannot be ingested into ViPR");
                         }
                         if (errMsg != null) {
                             _log.error(errMsg);
@@ -462,7 +467,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     doFSDeleteQuotaDirsFromDB(args);
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
-                    doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
+                    doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from File Policy
                     SMBShareMap cifsSharesMap = fsObj.getSMBFileShares();
                     if (cifsSharesMap != null && !cifsSharesMap.isEmpty()) {
                         cifsSharesMap.clear();
@@ -1850,8 +1855,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj = _dbClient.queryObject(FileShare.class, fs);
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir.getId());
-
-            quotaDirObj.setSize(quotaDir.getSize());
+            if (null != quotaDir.getSize()) {
+                quotaDirObj.setSize(quotaDir.getSize());
+            }
             quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
             quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
             quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
@@ -1919,46 +1925,46 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      */
     private void deleteQDExportsAndShares(URI storage, FileShare fs, QuotaDirectory quotaDirObj, String task) {
         FSExportMap fsExportMap = fs.getFsExports();
-            String quotaName = quotaDirObj.getName();
-            boolean isExported = false;
-            // delete export
-            if (fsExportMap != null && !fsExportMap.isEmpty()) {
-                // check the quota directory is exported
-                for (FileExport fileExport : fsExportMap.values()) {
-                    if (quotaName.equals(fileExport.getSubDirectory()) &&
-                            fileExport.getPath().endsWith(quotaName)) {
-                        isExported = true;
-                        _log.info("Delete the nfs sub directory export path {} and key {}",
-                                fileExport.getPath(), fileExport.getFileExportKey());
-                    }
-                }
-                if (true == isExported) {
-                    // delete the export of quota directory
-                    this.deleteExportRules(storage, fs.getId(), false, quotaName, task);
+        String quotaName = quotaDirObj.getName();
+        boolean isExported = false;
+        // delete export
+        if (fsExportMap != null && !fsExportMap.isEmpty()) {
+            // check the quota directory is exported
+            for (FileExport fileExport : fsExportMap.values()) {
+                if (quotaName.equals(fileExport.getSubDirectory()) &&
+                        fileExport.getPath().endsWith(quotaName)) {
+                    isExported = true;
+                    _log.info("Delete the nfs sub directory export path {} and key {}",
+                            fileExport.getPath(), fileExport.getFileExportKey());
                 }
             }
+            if (true == isExported) {
+                // delete the export of quota directory
+                this.deleteExportRules(storage, fs.getId(), false, quotaName, task);
+            }
+        }
 
-            // delete fileshare of quota directory
-            SMBShareMap smbShareMap = fs.getSMBFileShares();
-            if (smbShareMap != null && !smbShareMap.isEmpty()) {
-                FileSMBShare fileSMBShare = null;
-                List<FileSMBShare> fileSMBShares = new ArrayList<FileSMBShare>();
-                for (SMBFileShare smbFileShare : smbShareMap.values()) {
-                    // check for quotaname in native fs path
-                    if (true == (smbFileShare.getPath().endsWith(quotaName))) {
-                        fileSMBShare = new FileSMBShare(smbFileShare);
-                        _log.info("Delete the cifs sub directory path of quota directory {}",
-                                smbFileShare.getPath());
-                        fileSMBShares.add(fileSMBShare);
-                    }
-                }
-                if (fileSMBShares != null && !fileSMBShares.isEmpty()) { // delete shares
-                    for (FileSMBShare tempFileSMBShare : fileSMBShares) {
-                        this.deleteShare(storage, fs.getId(), tempFileSMBShare, task);
-                        _log.info("Delete SMB Share Name{} for quota ", tempFileSMBShare.getName());
-                    }
+        // delete fileshare of quota directory
+        SMBShareMap smbShareMap = fs.getSMBFileShares();
+        if (smbShareMap != null && !smbShareMap.isEmpty()) {
+            FileSMBShare fileSMBShare = null;
+            List<FileSMBShare> fileSMBShares = new ArrayList<FileSMBShare>();
+            for (SMBFileShare smbFileShare : smbShareMap.values()) {
+                // check for quotaname in native fs path
+                if (true == (smbFileShare.getPath().endsWith(quotaName))) {
+                    fileSMBShare = new FileSMBShare(smbFileShare);
+                    _log.info("Delete the cifs sub directory path of quota directory {}",
+                            smbFileShare.getPath());
+                    fileSMBShares.add(fileSMBShare);
                 }
             }
+            if (fileSMBShares != null && !fileSMBShares.isEmpty()) { // delete shares
+                for (FileSMBShare tempFileSMBShare : fileSMBShares) {
+                    this.deleteShare(storage, fs.getId(), tempFileSMBShare, task);
+                    _log.info("Delete SMB Share Name{} for quota ", tempFileSMBShare.getName());
+                }
+            }
+        }
 
     }
 
@@ -2036,7 +2042,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             args.setSubDirectory(param.getSubDir());
             args.setAllExportRules(param);
-            args.setBypassDnsCheck(param.getBypassDnsCheck());
+            if(null != param.getBypassDnsCheck()) {
+                args.setBypassDnsCheck(param.getBypassDnsCheck());
+            } else {
+                args.setBypassDnsCheck(false);
+            }
 
             _log.info("Controller Recieved FileExportUpdateParams {}", param);
 
@@ -2340,13 +2350,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         _log.info("Removing policy reference for file system  " + fs.getName());
         for (String policy : fs.getFilePolicies()) {
-
-            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
-
-            StringSet fsURIs = fp.getAssignedResources();
-            fsURIs.remove(fs.getId().toString());
-            fp.setAssignedResources(fsURIs);
-            _dbClient.updateObject(fp);
+            FilePolicy fp = _dbClient.queryObject(FilePolicy.class, URI.create(policy));
+            if (fp != null && !fp.getInactive()) {
+                StringSet fsURIs = fp.getAssignedResources();
+                fsURIs.remove(fs.getId().toString());
+                fp.setAssignedResources(fsURIs);
+                _dbClient.updateObject(fp);
+            }
 
         }
 
@@ -3154,6 +3164,23 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         }
 
+        return false;
+    }
+
+    /*
+     * This function verifies that the file system has any protection policies
+     * return true, if there are any; false otherwise.
+     */
+    private boolean fileProtectionPoliciesExistsOnFS(FileShare fs) {
+        _log.info("Verifying file protection policies on file system  " + fs.getName());
+        if (fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+            for (String policy : fs.getFilePolicies()) {
+                FilePolicy fp = _dbClient.queryObject(FilePolicy.class, URI.create(policy));
+                if (fp != null && !fp.getInactive()) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 

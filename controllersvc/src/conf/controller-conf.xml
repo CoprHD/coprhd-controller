@@ -8,7 +8,8 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
     <!-- Import the CIM adapter Spring config file so that the ConnnectionManager bean -->
-    <!-- can be referenced.                                                            -->
+    <!-- can be referenced. 
+    <import resource="classpath:controller-custom-config-info.xml"/>                                                           -->
     <import resource="classpath:controller-configinfo.xml"/>
     <import resource="CimAdapterSpringContext.xml"/>
     <import resource="classpath:dbclient-conf.xml"/>
@@ -20,7 +21,6 @@
     <import resource="classpath:controller-hds-prov.xml"/>
     <import resource="classpath:controller-scaleio-prov.xml"/>
     <import resource="classpath:controller-xtremio-prov.xml"/>
-    <import resource="classpath:controller-custom-config-info.xml"/>
     <import resource="classpath:controller-unity.xml"/>
 
 	<context:property-placeholder location="classpath:isilon.properties" ignore-unresolvable="true"/>
@@ -1124,6 +1124,10 @@
     </bean>
 
     <bean id="exportUtils" class="com.emc.storageos.util.ExportUtils">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="discoveryUtils" class="com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils">
         <property name="coordinator" ref="coordinator"/>
     </bean>
 

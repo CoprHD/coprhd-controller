@@ -1511,6 +1511,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     totalIsilonFSDiscovered += discoveredFS.size();
 
                     for (FileShare fs : discoveredFS) {
+
+                        if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getName())) {
+                            // skipping this file system because the filter doesn't match
+                            continue;
+                        }
+
                         if (!checkStorageFileSystemExistsInDB(fs.getNativeGuid())) {
 
                             // Create UnManaged FS
@@ -1601,7 +1607,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     Constants.DEFAULT_PARTITION_SIZE * 2);
 
                             // save bunch of NFS ACLs in db
-                            validateSizeLimitAndPersist(newUnManagedNfsShareACLList, newUnManagedNfsShareACLList,
+                            validateSizeLimitAndPersist(newUnManagedNfsShareACLList, oldUnManagedNfsShareACLList,
                                     Constants.DEFAULT_PARTITION_SIZE * 2);
 
                             allDiscoveredUnManagedFileSystems.add(unManagedFs.getId());
@@ -1651,8 +1657,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             if (!oldUnManagedExportRules.isEmpty()) {
-                _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
-                _dbClient.updateObject(newUnManagedExportRules);
+                _log.info("Saving Number of UnManagedFileExportRule(s) {}", oldUnManagedExportRules.size());
+                _dbClient.updateObject(oldUnManagedExportRules);
                 oldUnManagedExportRules.clear();
             }
 
@@ -3451,22 +3457,39 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     private String getCustomConfigPath() {
+        String custompath = "";
         URIQueryResultList results = new URIQueryResultList();
 
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getCustomConfigByConfigType(ISILON_PATH_CUSTOMIZATION), results);
 
         Iterator<URI> iter = results.iterator();
 
-        CustomConfig tempConfig = null;
+        List<CustomConfig> configList = new ArrayList<>();
 
         while (iter.hasNext()) {
-            tempConfig = _dbClient.queryObject(CustomConfig.class, iter.next());
-            if (tempConfig != null && !tempConfig.getInactive()) {
-                _log.info("Getting custom Config {}  ", tempConfig.getLabel());
-                break;
+            CustomConfig config = _dbClient.queryObject(CustomConfig.class, iter.next());
+            if (config != null && !config.getInactive()) {
+                configList.add(config);
+                _log.info("Getting custom Config {}  ", config.getLabel());
             }
         }
-        return tempConfig.getValue();
+
+        // only 1 config value means only default
+        if (configList.size() == 1) {
+            custompath = configList.get(0).getValue();
+            _log.info("Selecting custom Config {} with value: {} ", configList.get(0).getLabel(), configList.get(0).getValue());
+            // More than 1 config means return the custom one, NOT the default one..
+        } else {
+            for (CustomConfig conf : configList) {
+                if (conf.getSystemDefault()) {
+                    continue;
+                } else {
+                    custompath = conf.getValue();
+                    _log.info("Selecting custom Config {} with value: {} ", conf.getLabel(), conf.getValue());
+                }
+            }
+        }
+        return custompath;
     }
 
     /**
@@ -3578,7 +3601,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             isilonFSList.setToken(quotas.getToken());
 
             for (IsilonSmartQuota quota : quotas.getList()) {
-
+                if(quota.getType().compareTo("directory") != 0) {
+                    _log.debug("ignore quota path {} with quota id {}:", 
+                            quota.getPath(), quota.getId() + " and quota type" + quota.getType());
+                    continue;
+                }
                 if ("/ifs/".equals(umfsDiscoverPath) &&
                         isQuotaUnderAccessZonePath(quota.getPath(), tempAccessZonePath)) {
                     continue;

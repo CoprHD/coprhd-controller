@@ -10,6 +10,7 @@ import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.MAX_PATHS;
 import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SNAPSHOTS;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -31,10 +32,13 @@ import java.util.Set;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.block.tasks.FindExportByHost;
+import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -74,6 +78,9 @@ public class ExportBlockVolumeHelper {
     @Param(value = PATHS_PER_INITIATOR, required = false)
     protected Integer pathsPerInitiator;
 
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
+
     protected Host host;
     protected Cluster cluster;
 
@@ -91,6 +98,8 @@ public class ExportBlockVolumeHelper {
         if (volumeIds == null || volumeIds.isEmpty() && volumeId != null) {
             volumeIds = Collections.singletonList(volumeId);
         }
+
+        precheckPortGroupParameter(ResourceUtils.uri(volumeIds.get(0)), hostId, projectId, virtualArrayId, portGroup);
 
         if (BlockStorageUtils.isHost(hostId)) {
             host = BlockStorageUtils.getHost(hostId);
@@ -205,7 +214,7 @@ public class ExportBlockVolumeHelper {
 
         for (Map.Entry<URI, Set<URI>> entry : addVolumeExports.entrySet()) {
             BlockStorageUtils.addVolumesToExport(entry.getValue(), currentHlu, entry.getKey(), volumeHlus, minPaths, maxPaths,
-                    pathsPerInitiator);
+                    pathsPerInitiator, portGroup);
             logInfo("export.block.volume.add.existing", entry.getValue(), entry.getKey());
             if ((currentHlu != null) && (currentHlu > -1)) {
                 currentHlu += entry.getValue().size();
@@ -214,10 +223,10 @@ public class ExportBlockVolumeHelper {
 
         for (Map.Entry<URI, URI> entry : addComputeResourceToExports.entrySet()) {
             if (cluster != null) {
-                BlockStorageUtils.addClusterToExport(entry.getKey(), cluster.getId(), minPaths, maxPaths, pathsPerInitiator);
+                BlockStorageUtils.addClusterToExport(entry.getKey(), cluster.getId(), minPaths, maxPaths, pathsPerInitiator, portGroup);
                 logInfo("export.cluster.add.existing", entry.getValue(), entry.getKey());
             } else {
-                BlockStorageUtils.addHostToExport(entry.getKey(), host.getId(), minPaths, maxPaths, pathsPerInitiator);
+                BlockStorageUtils.addHostToExport(entry.getKey(), host.getId(), minPaths, maxPaths, pathsPerInitiator, portGroup);
                 logInfo("export.host.add.existing", entry.getValue(), entry.getKey());
             }
         }
@@ -227,12 +236,12 @@ public class ExportBlockVolumeHelper {
             volumeHlus = getVolumeHLUs(newVolumes);
             URI exportId = null;
             if (cluster != null) {
-                exportId = BlockStorageUtils.createClusterExport(exportName, projectId, virtualArrayId, newVolumes, currentHlu, cluster,
+                exportId = BlockStorageUtils.createClusterExport(projectId, virtualArrayId, newVolumes, currentHlu, cluster,
                         volumeHlus,
-                        minPaths, maxPaths, pathsPerInitiator);
+                        minPaths, maxPaths, pathsPerInitiator, portGroup);
             } else {
-                exportId = BlockStorageUtils.createHostExport(exportName, projectId, virtualArrayId, newVolumes, currentHlu, host, volumeHlus,
-                        minPaths, maxPaths, pathsPerInitiator);
+                exportId = BlockStorageUtils.createHostExport(projectId, virtualArrayId, newVolumes, currentHlu, host, volumeHlus,
+                        minPaths, maxPaths, pathsPerInitiator, portGroup);
             }
             ExportGroupRestRep exportGroup = BlockStorageUtils.getExport(exportId);
 
@@ -320,6 +329,25 @@ public class ExportBlockVolumeHelper {
             } else if (pathsPerInitiator > maxPaths) {
                 ExecutionUtils.fail("failTask.exportPathParameters.pathsPerInitiator", new Object[] {}, new Object[] {});
             }
+        }
+    }
+    
+    public static void precheckPortGroupParameter(URI resourceId, URI hostOrClusterId, URI projectId, URI vArrayId, URI portGroup) {
+        boolean exportExist = false;
+        if (BlockStorageUtils.isHost(hostOrClusterId)) {
+            List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingHost(hostOrClusterId, projectId, vArrayId);
+            if (exportGroups != null && !exportGroups.isEmpty()) {
+                exportExist = true;
+            }
+        } else if (BlockStorageUtils.isCluster(hostOrClusterId)) {
+            List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingCluster(hostOrClusterId, projectId, vArrayId);
+            if (exportGroups != null && !exportGroups.isEmpty()) {
+                exportExist = true;
+            }
+        }
+
+        if (!exportExist && BlockStorageUtils.isVMAXUsePortGroupEnabled(resourceId) && portGroup == null) {
+            ExecutionUtils.fail("failTask.exportPortGroupParameters.precheck", new Object[] {}, new Object[] {});
         }
     }
 }

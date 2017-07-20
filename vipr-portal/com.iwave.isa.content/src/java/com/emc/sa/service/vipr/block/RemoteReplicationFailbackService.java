@@ -26,7 +26,7 @@ public class RemoteReplicationFailbackService extends ViPRService {
     @Param(ServiceParams.REMOTE_REPLICATION_GROUP)
     protected String remoteReplicationGroup;
 
-    @Param(ServiceParams.REMOTE_REPLICATION_CG_OR_PAIR)
+    @Param(value = ServiceParams.REMOTE_REPLICATION_CG_OR_PAIR, required = false)
     protected String remoteReplicationCgOrPair;
 
     @Param(value = ServiceParams.REMOTE_REPLICATION_PAIRS_CGS, required = false)

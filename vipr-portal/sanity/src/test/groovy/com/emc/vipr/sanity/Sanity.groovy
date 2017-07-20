@@ -100,9 +100,15 @@ class Sanity {
                 result = junit.run(vmwareTests)
                 break
            case "remotereplication":
+                currentLogLevel = LogLevel.INFO  // default is VERBOSE
+                removeTopologyWhenDone = false
+
+                // check topo loaded from sbsdk functional sanity
+                initClients()
+                RemoteReplicationSetup.loadTopologyViprSanity()
+
+                // run tests for sbsdk catalog sanity
                 initClients("ldapvipruser1@viprsanity.com","secret")
-                currentLogLevel = LogLevel.INFO
-                //removeTopologyWhenDone = false
                 RemoteReplicationSetup.loadTopology()
                 result = junit.run(remoteReplicationTests)
                 break

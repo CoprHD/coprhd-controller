@@ -21,6 +21,7 @@ public class CatalogRemoteReplicationServicesSanity {
     @Test void assetOptionOrderedTests() {
         printInfo "Starting tests..."
 
+        // asset option provider tests
         storageTypeAssetOptionTest()
         rrSetsAssetOptionTest()
         rrGroupsForSetAssetOptionTest()
@@ -30,6 +31,9 @@ public class CatalogRemoteReplicationServicesSanity {
         cgsForSetTest()
         pairsForSetTest()
         pairsForGrpTest()
+
+        // catalog service tests
+        linkOpersTest()
 
         printInfo "Tests Complete"
     }

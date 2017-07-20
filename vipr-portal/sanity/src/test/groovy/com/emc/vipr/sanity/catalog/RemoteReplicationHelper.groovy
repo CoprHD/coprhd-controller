@@ -6,6 +6,7 @@ package com.emc.vipr.sanity.catalog
 
 import static com.emc.vipr.sanity.Sanity.*
 import static com.emc.vipr.sanity.setup.RemoteReplicationSetup.*
+import static com.emc.vipr.sanity.catalog.CatalogServiceHelper.*
 import static org.junit.Assert.*
 
 import com.emc.vipr.model.catalog.AssetOption
@@ -38,22 +39,42 @@ class RemoteReplicationHelper {
     static final RR_PAIR_IN_RR_GRP = "rr_vol_in_rr_grp -> rr_vol_in_rr_grp_TARGET [INACTIVE] (synchronous)"
     static final RR_PAIR_IN_RR_SET = "rr_vol_in_rr_set -> rr_vol_in_rr_set_TARGET [INACTIVE] (synchronous)"
 
-    // global fields
+    // global fields for ViPR IDs discovered during testing
     static String RR_DRIVER_TYPE_ID
     static String RR_SET_ID
     static String RR_GROUP_ID
+    static String RR_GROUP2_ID
+    static String RR_PAIR_IN_CG_ID
+    static String RR_PAIR_IN_CG_IN_RR_GRP_ID
+    static String RR_PAIR_IN_RR_GRP_ID
+    static String RR_PAIR_IN_RR_SET_ID
+    static String CG_FOR_GRP_ID
+    static String CG_FOR_SET_ID
+
     static URI tenantId
 
-    static boolean topologyLoadedTest() {
+    static boolean topologyLoadedViprSanityTest() {
         def vpoolId = client.blockVpools().search().byExactName(RR_VPOOL).first()?.id
         if (vpoolId == null) {
-            println "Required topology does not exist"
+            println "Required topology from ViPR SB SDK sanity does not exist"
             return false;
         }
-        println "Required topology exists"
+        println "Required topology from ViPR SB SDK sanity exists"
         return true;
         // TODO: add more checks to confirm topology is loaded
     }
+
+    static boolean topologyLoadedTest() {
+        def volId = client.blockVolumes().search().byExactName(VOL_IN_SET_NAME).first()?.id
+        if (volId == null) {
+            println "Required topology for catalog sanity does not exist"
+            return false;
+        }
+        println "Required topology for catalog sanity exists"
+        return true;
+        // TODO: add more checks to confirm topology is loaded
+    }
+
 
     static void storageTypeAssetOptionTest() { 
         println "Testing Asset Option Provider for Storage System Type"
@@ -92,6 +113,10 @@ class RemoteReplicationHelper {
         assertNotNull("AssetOptions for " + AO_RR_GROUPS_FOR_SET + " are not null", assetOptions)
         assertTrue("At least one asset option is returned for " + AO_RR_GROUPS_FOR_SET, assetOptions.size() > 0)
         assertTrue("RR Groups contains " + RR_GROUP + " in " + assetOptions, optionsContainValue(assetOptions,RR_GROUP))
+
+        // get ID for other grp while we're here
+        assetOptions = getOptions(AO_RR_GROUPS_FOR_SET,params)
+        RR_GROUP2_ID = optionKeyForValue(assetOptions,RR_GROUP2)
     }
 
     static void cgOrPairOptionTest() {
@@ -118,10 +143,15 @@ class RemoteReplicationHelper {
         assertTrue("CGs for set contains " + CG_NAME_FOR_SET + " in " + assetOptions, optionsContainValue(assetOptions,CG_NAME_FOR_SET))
         assertTrue("CGs for set contains " + CG_NAME_FOR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,CG_NAME_FOR_GRP))
         assertTrue("Two asset options returned for " + AO_RR_PAIRS_OR_CGS, assetOptions.size() == 2)
+
+        // save for later tests
+        CG_FOR_SET_ID = optionKeyForValue(assetOptions,CG_NAME_FOR_SET)
+        CG_FOR_GRP_ID = optionKeyForValue(assetOptions,CG_NAME_FOR_GRP)
     }
+
     static void cgsForGrpTest(){
         println "Testing Asset Option Provider for ConsistencyGroups in RR Grp"
-        def params = [(AO_RR_SETS_FOR_TYPE):RR_SET_ID,(AO_RR_GROUPS_FOR_SET):RR_GROUP_ID,(AO_RR_CG_OR_PAIR):CG_OR_PAIR_CG]
+        def params = [(AO_RR_SETS_FOR_TYPE):RR_SET_ID,(AO_RR_GROUPS_FOR_SET):RR_GROUP2_ID,(AO_RR_CG_OR_PAIR):CG_OR_PAIR_CG]
         List<AssetOption> assetOptions = getOptions(AO_RR_PAIRS_OR_CGS,params)
         assertTrue("One asset option returned for " + AO_RR_PAIRS_OR_CGS, assetOptions.size() == 1)
         assertTrue("CGs for set contains " + CG_NAME_FOR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,CG_NAME_FOR_GRP))
@@ -136,15 +166,85 @@ class RemoteReplicationHelper {
         assertTrue("CGs for set contains " + RR_PAIR_IN_CG_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_CG_IN_RR_GRP))
         assertTrue("CGs for set contains " + RR_PAIR_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_RR_GRP))
         assertTrue("CGs for set contains " + RR_PAIR_IN_RR_SET + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_RR_SET))
+
+        // save IDs to run services later
+        RR_PAIR_IN_CG_ID = optionKeyForValue(assetOptions,RR_PAIR_IN_CG)
+        RR_PAIR_IN_CG_IN_RR_GRP_ID = optionKeyForValue(assetOptions,RR_PAIR_IN_CG_IN_RR_GRP)
+        RR_PAIR_IN_RR_GRP_ID = optionKeyForValue(assetOptions,RR_PAIR_IN_RR_GRP)
+        RR_PAIR_IN_RR_SET_ID = optionKeyForValue(assetOptions,RR_PAIR_IN_RR_SET)
     }
 
     static void pairsForGrpTest(){
         println "Testing Asset Option Provider for RR Pairs in RR Grp"
         def params = [(AO_RR_SETS_FOR_TYPE):RR_SET_ID,(AO_RR_GROUPS_FOR_SET):RR_GROUP_ID,(AO_RR_CG_OR_PAIR):CG_OR_PAIR_PAIR]
         List<AssetOption> assetOptions = getOptions(AO_RR_PAIRS_OR_CGS,params)
-        assertTrue("Two asset options returned for " + AO_RR_PAIRS_OR_CGS, assetOptions.size() == 2)
-        assertTrue("CGs for set contains " + RR_PAIR_IN_CG_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_CG_IN_RR_GRP))
+        assertTrue("One asset options returned for " + AO_RR_PAIRS_OR_CGS, assetOptions.size() == 1)
         assertTrue("CGs for set contains " + RR_PAIR_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_RR_GRP))
+    }
+
+    static void linkOpersTest(){
+
+        def overrideParametersPairsInSet = [:]
+        overrideParametersPairsInSet.remoteReplicationSet = RR_SET_ID
+        overrideParametersPairsInSet.remoteReplicationGroup = RR_GROUP_NONE_OPTION
+        overrideParametersPairsInSet.remoteReplicationCgOrPair = CG_OR_PAIR_PAIR
+        overrideParametersPairsInSet.remoteReplicationPairsOrCGs = RR_PAIR_IN_RR_SET_ID
+
+        def overrideParametersCGsInSet = [:]
+        overrideParametersCGsInSet.remoteReplicationSet = RR_SET_ID
+        overrideParametersCGsInSet.remoteReplicationGroup = RR_GROUP_NONE_OPTION
+        overrideParametersCGsInSet.remoteReplicationCgOrPair = CG_OR_PAIR_CG
+        overrideParametersCGsInSet.remoteReplicationPairsOrCGs = CG_FOR_SET_ID
+
+        // fix this ir change to test link op on entire group
+        def overrideParametersPairsInGrp = [:]
+        overrideParametersPairsInGrp.remoteReplicationSet = RR_SET_ID
+        overrideParametersPairsInGrp.remoteReplicationGroup = RR_GROUP_ID
+        overrideParametersPairsInGrp.remoteReplicationCgOrPair = CG_OR_PAIR_PAIR
+        overrideParametersPairsInGrp.remoteReplicationPairsOrCGs = RR_PAIR_IN_RR_GRP_ID
+
+        // fix this ir change to test link op on entire set
+        def overrideParametersCGsInGrp = [:]
+        overrideParametersCGsInGrp.remoteReplicationSet = RR_SET_ID
+        overrideParametersCGsInGrp.remoteReplicationGroup = RR_GROUP2_ID
+        overrideParametersCGsInGrp.remoteReplicationCgOrPair = CG_OR_PAIR_CG
+        overrideParametersCGsInGrp.remoteReplicationPairsOrCGs = CG_FOR_GRP_ID
+
+        def overrideParametersMap = [
+            "Pair in set":overrideParametersPairsInSet,
+            "CG in set":overrideParametersCGsInSet,
+            //"Whole group":overrideParametersPairsInGrp,
+            //"Whole Set":overrideParametersCGsInGrp
+        ]
+
+        println "TODO: add tests for operations on RR Pairs in an RR Group"
+        println "TODO: add tests for operations on RR Pairs in a ConsistencyGroup"
+
+        def servicePaths = [ // order of tests should insure operations are undone in next test
+            "Failover":"BlockProtectionServices/RemoteReplicationManagement/FailoverRemoteReplicationPair",
+            "Failback":"BlockProtectionServices/RemoteReplicationManagement/FailbackRemoteReplicationPair",
+            "Split":"BlockProtectionServices/RemoteReplicationManagement/SplitRemoteReplicationPair",
+            "Establish":"BlockProtectionServices/RemoteReplicationManagement/EstablishRemoteReplicationPair",
+            "Suspend":"BlockProtectionServices/RemoteReplicationManagement/SuspendRemoteReplicationPair",
+            "Resume":"BlockProtectionServices/RemoteReplicationManagement/ResumeRemoteReplicationPair",
+            "Swap":"BlockProtectionServices/RemoteReplicationManagement/SwapRemoteReplicationPair",
+            "Swap":"BlockProtectionServices/RemoteReplicationManagement/SwapRemoteReplicationPair",
+            "Stop":"BlockProtectionServices/RemoteReplicationManagement/StopRemoteReplicationPair"
+            //,"Move":"BlockProtectionServices/RemoteReplicationManagement/MoveRemoteReplicationPair"
+        ]
+
+        println "TODO: add test for Move operation"
+
+        // execute all services for all param combos
+        for (params in overrideParametersMap) {
+            printInfo "Running tests for: " + params.key
+            for (servicePath in servicePaths) {
+                printInfo "  Testing catalog service: " + servicePath.key
+                printVerbose servicePath.value + " : " + formatMap(params.value)
+                placeOrder(servicePath.value, params.value)
+                printVerbose "Service ran successfully"
+            }
+        }
     }
 
 	// see if asset options contains one with specific value

@@ -45,13 +45,12 @@ class RemoteReplicationSetup {
     private final static String SYNC_MODE = "synchronous"
     private final static String ASYNC_MODE = "asynchronous"
     private final static String RR_GROUP = "replicationGroup1_set1 [ACTIVE] (synchronous)"
+    private final static String RR_GROUP2 = "replicationGroup2_set1 [ACTIVE] (synchronous)"
     private final static String NONE = ""
 
-    static void loadTopology() {
-        println "Setting up remote replication"
-
+    static void loadTopologyViprSanity() {
         // run sbsdk sanity script
-        if (!topologyLoadedTest()) {
+        if (!topologyLoadedViprSanityTest()) {
             println "Running ViPR sanity script for SB SDK to load topology for tests..."
             String sanityConf = System.getenv("CatalogSanityConf") //set in startup shell script (catalog_sanity.sh)
             String workspace = System.getenv("CatalogWorkspace")   //set in startup shell script (catalog_sanity.sh)
@@ -63,27 +62,32 @@ class RemoteReplicationSetup {
             p.waitFor()
             println "Finished ViPR sanity for SB SDK Remote Replication.  Topology loaded"
         }
+    }
 
-        // set tenant
-        URI currentTenant = client.tenants().currentId()
-        List<NamedRelatedResourceRep> tenants = client.tenants().listSubtenants(currentTenant)
-        for (NamedRelatedResourceRep tenant : tenants) { 
-            if(tenant.getName().equals("linux")) { 
-                setTenant(tenant.getId());
+    static void loadTopology() {
+        if (!topologyLoadedTest()) {
+            println "Setting up remote replication"
+            // set tenant
+            URI currentTenant = client.tenants().currentId()
+            List<NamedRelatedResourceRep> tenants = client.tenants().listSubtenants(currentTenant)
+            for (NamedRelatedResourceRep tenant : tenants) {
+                if(tenant.getName().equals("linux")) {
+                    setTenant(tenant.getId());
+                }
             }
-        }
-        if (getTenant() == null) {
-            println "FAILED TO LOCATE TENANT 'linux'"
-        }
+            if (getTenant() == null) {
+                println "FAILED TO LOCATE TENANT 'linux'"
+            }
 
-        enableVpoolForCg(RR_VPOOL)
-        createCg(CG_NAME_FOR_GRP,VOL_PROJECT_NAME)
-        createCg(CG_NAME_FOR_SET,VOL_PROJECT_NAME)
+            enableVpoolForCg(RR_VPOOL)
+            createCg(CG_NAME_FOR_GRP,VOL_PROJECT_NAME)
+            createCg(CG_NAME_FOR_SET,VOL_PROJECT_NAME)
 
-        createRrVolume(VOL_IN_SET_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,NONE,NONE)
-        createRrVolume(VOL_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP,NONE)
-        createRrVolume(VOL_IN_CG_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,NONE,CG_NAME_FOR_SET)
-        createRrVolume(VOL_IN_CG_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP,CG_NAME_FOR_GRP)
+            createRrVolume(VOL_IN_SET_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,NONE,NONE)
+            createRrVolume(VOL_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP,NONE)
+            createRrVolume(VOL_IN_CG_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,NONE,CG_NAME_FOR_SET)
+            createRrVolume(VOL_IN_CG_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP2,CG_NAME_FOR_GRP)
+        }
     }
 
     static clearTopology() {
@@ -135,7 +139,6 @@ class RemoteReplicationSetup {
         printInfo "Creating Volume '" + name + "'"
         printVerbose formatMap(overrideParameters)
         return placeOrder(CREATE_BLOCK_VOLUME_SERVICE, overrideParameters)
-        printVerbose "Volume created successfully"
     }
 
     static deleteRrVolume(String name) {

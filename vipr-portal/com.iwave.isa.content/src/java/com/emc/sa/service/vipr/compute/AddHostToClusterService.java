@@ -14,6 +14,7 @@ import static com.emc.sa.service.ServiceParams.HOST_PASSWORD;
 import static com.emc.sa.service.ServiceParams.MANAGEMENT_NETWORK;
 import static com.emc.sa.service.ServiceParams.NETMASK;
 import static com.emc.sa.service.ServiceParams.NTP_SERVER;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -25,7 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.sa.engine.ExecutionException;
+import org.apache.commons.collections.CollectionUtils;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
@@ -33,19 +35,13 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnToIpTable;
-import com.emc.sa.service.vmware.VMwareSupport;
-import com.emc.sa.service.vmware.tasks.GetVcenter;
-import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.vmware.vim25.mo.ClusterComputeResource;
 
 @Service("AddHostToCluster")
 public class AddHostToClusterService extends ViPRService {
@@ -91,6 +87,9 @@ public class AddHostToClusterService extends ViPRService {
 
     @Param(HOST_PASSWORD)
     protected String rootPassword;
+    
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
 
     @Bindable(itemType = FqdnToIpTable.class)
     protected FqdnToIpTable[] fqdnToIps;
@@ -260,7 +259,7 @@ public class AddHostToClusterService extends ViPRService {
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
         // Export the boot volume, return a map of hosts and their EG IDs
-        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu, portGroup);
         logInfo("compute.cluster.exports.created",
                 hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
 
@@ -282,8 +281,7 @@ public class AddHostToClusterService extends ViPRService {
 
         try {
             if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-                pushToVcenter();
-                ComputeUtils.discoverHosts(hosts);
+                pushToVcenter(hosts);
             } else {
                 logWarn("compute.cluster.newly.provisioned.hosts.none");
             }
@@ -363,7 +361,7 @@ public class AddHostToClusterService extends ViPRService {
         }
     }
 
-    private void pushToVcenter() {
+    private void pushToVcenter(List<Host> hosts) {
         // If the cluster has a datacenter associated with it,
         //it needs to be updated and push hosts to vcenter
         VcenterDataCenter dataCenter = null;
@@ -391,6 +389,9 @@ public class AddHostToClusterService extends ViPRService {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
                 throw e;
             }
+            ComputeUtils.discoverHosts(hosts);
+        } else if(CollectionUtils.isNotEmpty(hosts)) {
+            logInfo("compute.cluster.no.vcenter.manual.hostdiscover.message", hosts);
         }
     }
 

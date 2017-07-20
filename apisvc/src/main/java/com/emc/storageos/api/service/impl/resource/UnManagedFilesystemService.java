@@ -63,6 +63,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
@@ -407,6 +408,12 @@ public class UnManagedFilesystemService extends TaggedResource {
                     _logger.info("UnManaged FileSystem path {} is mounted on vNAS URI {} which is invalid for project.", path, nasUri);
                     continue;
                 }
+                // Check for same named File Share in this project
+                if (FileSystemIngestionUtil.checkForDuplicateFSName(_dbClient, project.getId(), deviceLabel, filesystems)) {
+                    _logger.info("File System with name: {}  already exists in given project: {} so, ignoring it..",
+                            deviceLabel, project.getLabel());
+                    continue;
+                }
 
                 // Check to see if UMFS's storagepool's Tagged neighborhood has the "passed in" neighborhood.
                 // if not don't ingest
@@ -455,6 +462,12 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
+
+                    if (!doesNASServerSupportVPoolProtocols(nasUri, cos.getProtocols())) {
+                        _logger.warn(
+                                "UnManaged FileSystem NAS server {} doesn't support vpool protocols. Skipping Ingestion...", nasUri);
+                        continue;
+                    }
                 }
 
                 if (nativeId != null) {
@@ -1277,6 +1290,44 @@ public class UnManagedFilesystemService extends TaggedResource {
             }
         }
         return null;
+    }
+
+    /**
+     * Checks the NAS server protocols with vpool protocols
+     * 
+     * @param nasUri the NAS server ID
+     * @param vpoolProtocols the protocols configured in vpool
+     * @return true if NAS server protocols matches with vpool protocols; false otherwise
+     */
+    private boolean doesNASServerSupportVPoolProtocols(String nasUri, StringSet vpoolProtocols) {
+        NASServer nasServer = null;
+        boolean supports = false;
+        boolean isVNAS = false;
+
+        if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))) {
+            nasServer = _dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+            isVNAS = true;
+        } else {
+            nasServer = _dbClient.queryObject(PhysicalNAS.class, URI.create(nasUri));
+        }
+        if (nasServer != null) {
+            StringSet nasProtocols = nasServer.getProtocols();
+            if (isVNAS) {
+                if (VirtualNasState.LOADED.name().equals(nasServer.getNasState())) {
+                    _logger.info("NAS server is: {}. Supported protocols: {}. Vpool protocols: {}", nasServer.getNasName(), nasProtocols,
+                            vpoolProtocols);
+                    supports = nasProtocols.containsAll(vpoolProtocols);
+                } else {
+                    _logger.warn("NAS server: {} not in LOADED state. So this vNAS server is not supported.", nasServer.getNasName());
+                    supports = false;
+                }
+            } else {
+                // Perform check on Physical NAS
+                supports = nasProtocols.containsAll(vpoolProtocols);
+            }
+        }
+        _logger.info("does NASServer support VPool Protocols? {}", supports);
+        return supports;
     }
 
     /**

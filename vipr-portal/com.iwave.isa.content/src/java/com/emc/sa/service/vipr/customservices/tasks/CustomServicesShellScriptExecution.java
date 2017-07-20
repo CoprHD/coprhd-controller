@@ -57,7 +57,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
-            this.timeout = Exec.DEFAULT_CMD_TIMEOUT;
+            this.timeout = CustomServicesConstants.OPERATION_TIMEOUT;
         } else {
             this.timeout = step.getAttributes().getTimeout();
         }
@@ -123,6 +123,12 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
         logger.info("CustomScript Execution result:output{} error{} exitValue:{} ", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
+
+        if (result.getExitValue()!=0) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Shell Script execution Failed. ReturnCode:" + result.getExitValue());
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Shell Script execution Failed");
+        }
 
         return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }

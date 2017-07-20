@@ -1272,7 +1272,9 @@ public class DBClient {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "
                     + "Please see the log for more information.");
-        }
+        } finally {
+	        DbCheckerFileWriter.close();
+	    }
     }
 
     /**
@@ -1307,7 +1309,7 @@ public class DBClient {
             Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs = helper.getIndicesOfCF(dataCf).values();
             checkResult = new CheckResult();
             for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
-                helper.checkIndexingCF(indexAndCf, true, checkResult);
+                helper.checkIndexingCF(indexAndCf, true, checkResult, false, dataCf);
             }
             logMsg(checkResult.toString());
             logMsg(String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END_SPECIFIED, idxCfs.size(), dataCf.getCF().getName(),

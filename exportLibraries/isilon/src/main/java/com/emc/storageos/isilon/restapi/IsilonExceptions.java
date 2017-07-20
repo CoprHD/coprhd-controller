@@ -41,6 +41,12 @@ public interface IsilonExceptions {
     public IsilonException createDirFailed(final String fspath, StatusType resp,
             final Throwable e);
 
+    @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)
+    public IsilonException failToDeleteFileSystem(final String path);
+
+    @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)
+    public IsilonException deleteFileSystemNotSupported();
+
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public IsilonException invalidParameters();
 

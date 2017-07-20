@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.google.common.collect.Collections2.transform;
 import static java.util.Arrays.asList;
 import static javax.cim.CIMDataType.STRING_T;
 import static javax.cim.CIMDataType.UINT16_T;
@@ -74,6 +75,7 @@ import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.ExportMaskNameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -86,6 +88,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -120,6 +123,7 @@ public class SmisCommandHelper implements SmisConstants {
     private static final int SYNC_WRAPPER_TIME_OUT = 12000000; // set to 200 minutes to handle striped meta volumes with
                                                                // BCV helper
                                                                // expansion (it may take long time)
+    private static final String PROVIDER_VERSION_SUPPORTS_STORAGE_GROUP_CONVERSION = "8.4";
     private static final String EMC_IS_BOUND = "EMCIsBound";
     private static final int MAX_REFRESH_LOCK_WAIT_TIME = 300;
     private static final long REFRESH_THRESHOLD = 120000;
@@ -2355,6 +2359,34 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Converts a stand alone storage group in the masking view to cascaded.
+     * This method is supported from SMI-S v8.4
+     *
+     * @param storage the storage system
+     * @param storageGroupPath the storage group path
+     * @param storageGroupName the storage group name
+     * @throws WBEMException the WBEM exception
+     */
+    public void convertStandAloneStorageGroupToCascaded(StorageSystem storage,
+            CIMObjectPath storageGroupPath, String storageGroupName) throws WBEMException {
+        // This method is supported from SMI-S v8.4
+        StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class,
+                storage.getActiveProviderURI());
+        String providerVersion = storageProvider.getVersionString();
+        if (VersionChecker.verifyVersionDetails(PROVIDER_VERSION_SUPPORTS_STORAGE_GROUP_CONVERSION, providerVersion) >= 0) {
+            String ChildStorageGroupName = String.format("%s_ChildSG", storageGroupName);
+            CIMArgument[] inArgs = getConvertStandAloneStorageGroupToCascadedInputArguments(
+                    storage, storageGroupPath, ChildStorageGroupName);
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "EMCConvertMaskingGroup", inArgs, outArgs);
+        } else {
+            _log.info("SMI-S Provider version {} does not support converting"
+                    + " Stand alone storage group to Cascaded.", providerVersion);
+        }
+    }
+
+    /**
      * Get the Volume CIM path, given a Volume object
      *
      * @param storage
@@ -2556,6 +2588,18 @@ public class SmisCommandHelper implements SmisConstants {
         argsList.add(_cimArgument.referenceArray(CP_MEMBERS, members));
         argsList.add(_cimArgument.reference(CP_SOURCE_MASKING_GROUP, sourceGroupPath));
         argsList.add(_cimArgument.reference(CP_TARGET_MASKING_GROUP, targetGroupPath));
+        CIMArgument[] args = {};
+        return argsList.toArray(args);
+    }
+
+    public CIMArgument[] getConvertStandAloneStorageGroupToCascadedInputArguments(
+            StorageSystem storageDevice, CIMObjectPath storageGroupPath, String ChildStorageGroupName) {
+        List<CIMArgument> argsList = new ArrayList<CIMArgument>();
+        argsList.add(_cimArgument.reference(CP_DEVICE_MASKING_GROUP, storageGroupPath));
+        argsList.add(_cimArgument.uint16(CP_OPERATION, CONVERT_STANDALONE_SG_TO_CASCADED));
+        argsList.add(_cimArgument.bool(CP_HOST_IOLIMIT_PARENT, Boolean.TRUE));
+        argsList.add(_cimArgument.string(CP_CHILD_STORAGE_GROUP_NAME, ChildStorageGroupName));
+        argsList.add(_cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, Boolean.TRUE));
         CIMArgument[] args = {};
         return argsList.toArray(args);
     }
@@ -3409,7 +3453,6 @@ public class SmisCommandHelper implements SmisConstants {
      * @throws WBEMException
      */
     public boolean isCascadedSG(StorageSystem storage, CIMObjectPath path) throws WBEMException {
-        String policyName = Constants.NONE;
         CloseableIterator<CIMObjectPath> pathItr = null;
         try {
             if (checkExists(storage, path, false, false) != null) {
@@ -3447,6 +3490,36 @@ public class SmisCommandHelper implements SmisConstants {
             closeCIMIterator(pathItr);
         }
         return true;
+    }
+
+    /**
+     * Returns whether this object is a stand alone or not.
+     *
+     * @param storage
+     *            storage device
+     * @param path
+     *            path of SG
+     * @return true if the object has no storage group references
+     * @throws WBEMException
+     */
+    public boolean isStandAloneSG(StorageSystem storage, CIMObjectPath path) throws WBEMException {
+        CloseableIterator<CIMObjectPath> pathItr = null;
+        try {
+            if (checkExists(storage, path, false, false) != null) {
+                pathItr = getReference(storage, path, SE_MEMBER_OF_COLLECTION_DMG_DMG, null);
+                if (!pathItr.hasNext()) {
+                    // There are no references in this SG, it is a standalone.
+                    return true;
+                }
+            } else {
+                _log.info("Instance not found for path {}. Assuming cascaded.", path);
+            }
+        } catch (Exception e) {
+            _log.info("Got exception trying to retrieve stand alone status of SG. Assuming cascaded: ", e);
+        } finally {
+            closeCIMIterator(pathItr);
+        }
+        return false;
     }
 
     /**
@@ -8006,5 +8079,175 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         return result;
+    }
+    
+    
+    /**
+     * Create port group
+     * 
+     * @param storage The storage system
+     * @param portGroupName The port group name
+     * @param targetURIList The list of storage ports
+     * @return The created port group CIMObjectPath
+     * @throws Exception
+     */
+    public CIMObjectPath createTargetPortGroup(StorageSystem storage,
+            String portGroupName,
+            List<URI> targetURIList) throws Exception {
+        _log.debug("{} createTargetPortGroup {} START...", storage.getSerialNumber(), portGroupName);
+        CIMObjectPath targetPortGroupPath = null;
+
+        CIMArgument[] inArgs = getCreatePortGroupInputArguments(storage, portGroupName, targetURIList);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        
+        // Try to look up the port group. If it already exists, use it,
+        // otherwise try to create it.
+        targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
+                SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+        CIMInstance instance = checkExists(storage, targetPortGroupPath, false, false);
+        if (instance == null) {
+            invokeMethod(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "CreateGroup", inArgs, outArgs);
+            targetPortGroupPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, "MaskingGroup");
+        } else {
+            _log.info("The port group exists");
+            // check if the ports members are the same
+            boolean isSame = true;
+            List<String> storagePorts = new ArrayList<String>();
+            CloseableIterator<CIMInstance> iterator = getAssociatorInstances(storage, targetPortGroupPath, null,
+                    Constants.CIM_PROTOCOL_ENDPOINT, null, null, Constants.PS_NAME);
+            while (iterator.hasNext()) {
+                CIMInstance cimInstance = iterator.next();
+                String portName = CIMPropertyFactory.getPropertyValue(cimInstance,
+                        Constants._Name);
+                String fixedName = Initiator.toPortNetworkId(portName);
+                storagePorts.add(fixedName);
+            }
+            if (!storagePorts.isEmpty()) {
+                List<URI> storagePortURIs = new ArrayList<URI>();
+                storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI));
+                if (!storagePortURIs.containsAll(targetURIList) || !(storagePortURIs.size() == targetURIList.size())) {
+                    isSame = false;
+                } 
+            } else {
+                isSame = false;
+            }
+            if (!isSame) {
+                _log.error("The port group exists, but the port members are different");
+                throw DeviceControllerException.exceptions.portGroupNameInvalid(portGroupName);
+            }
+        }
+        _log.debug("{} createTargetPortGroup END...", storage.getSerialNumber());
+        return targetPortGroupPath;
+    }
+    
+    /**
+     * create port group input arguments
+     * 
+     * @param storageDevice - Storage system
+     * @param groupName - Port group name
+     * @param targetURIList - Storage ports URIs
+     * @return The input arguments for creating port group
+     */
+    public CIMArgument[] getCreatePortGroupInputArguments(StorageSystem storageDevice, String groupName, List<URI> targetURIList) {
+        CIMObjectPath[] targetPortPaths;
+        try {
+            targetPortPaths = _cimPath.getTargetPortPaths(storageDevice, targetURIList);
+        } catch (Exception e) {
+            _log.error(String.format("Problem creating target port group: %s on array %s",
+                    groupName, storageDevice.getSerialNumber()), e);
+            throw new IllegalStateException("Problem creating target port group: " + groupName + "on array: "
+                    + storageDevice.getSerialNumber());
+        }
+        return new CIMArgument[] {
+                _cimArgument.string(CP_GROUP_NAME, groupName),
+                _cimArgument.uint16(CP_TYPE, TARGET_PORT_GROUP_TYPE),
+                _cimArgument.referenceArray(CP_MEMBERS, targetPortPaths),
+                _cimArgument.bool(CP_DELETE_WHEN_BECOMES_UNASSOCIATED, Boolean.FALSE)
+        };
+    }
+         
+    /**
+     * Finds the port group attached to the masking view.
+     *
+     * @param maskingViewName
+     *            name of masking view
+     * @param storage
+     *            storage system
+     * @return name of port group
+     * @throws Exception
+     */
+    public String getPortGroupForGivenMaskingView(String maskingViewName,
+            StorageSystem storage) throws Exception {
+        CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, maskingViewName);
+        CIMInstance maskingViewInstance = checkExists(storage, maskingViewPath, false, false);
+        return getPortGroupForGivenMaskingView(maskingViewInstance, maskingViewName, storage);
+    }
+
+    /**
+     * Finds the port group attached to the masking view.
+     *
+     * @param maskingViewInstance
+     *            CIMInstance that points to the Symm_LunMaskingView
+     * @param maskingViewName
+     *            name of masking view
+     * @param storage
+     *            storage system
+     * @return name of port group
+     * @throws Exception
+     */
+    public String getPortGroupForGivenMaskingView(CIMInstance maskingViewInstance, String maskingViewName,
+            StorageSystem storage) throws Exception {
+
+        String discoveredGroupName = null;
+        CloseableIterator<CIMInstance> targetGroupPathItr = null;
+        try {
+            if (null == maskingViewInstance) {
+                _log.error(
+                        "Masking View {} not available in Provider, either its deleted or provider might take some time to sync with Array.  Try again if group is available on Array",
+                        maskingViewName);
+            } else {
+                _log.debug("Masking View {} found", maskingViewName);
+                targetGroupPathItr = getAssociatorInstances(storage, maskingViewInstance.getObjectPath(), null,
+                        SmisCommandHelper.MASKING_GROUP_TYPE.SE_TargetMaskingGroup.toString(), null, null, PS_ELEMENT_NAME);
+                _log.info("Trying to find existing Port Groups under Masking view {}", maskingViewName);
+                while (targetGroupPathItr.hasNext()) {
+                    discoveredGroupName = CIMPropertyFactory.getPropertyValue(
+                            targetGroupPathItr.next(), SmisConstants.CP_ELEMENT_NAME);
+                    _log.info("Port Group Name {} found", discoveredGroupName);
+                }
+            }
+        } catch (Exception e) {
+            _log.error("Failed trying to find existing Storage Groups under Masking View {}", maskingViewName, e);
+            throw e;
+        } finally {
+            closeCIMIterator(targetGroupPathItr);
+        }
+
+        return discoveredGroupName;
+    }
+    
+    /**
+     * Get storage ports in the port group
+     * 
+     * @param storage The storage system
+     * @param portGroupPath The port group CIMObjectPath
+     * @return The list of storage ports URIs
+     * @throws Exception
+     */
+    public List<URI> getPortGroupMembers(StorageSystem storage, CIMObjectPath portGroupPath) throws Exception{
+        if (storage.getSystemType().equals(Type.vnxblock)) {
+            return null;
+        }
+        CIMInstance instance = getInstance(storage, portGroupPath, false, false, null);
+        WBEMClient client = getConnection(storage).getCimClient();
+        List<String> storagePorts = getStoragePortsFromLunMaskingInstance(client,
+                instance);
+        _log.info("port group members : {}", Joiner.on(',').join(storagePorts));
+        List<URI> storagePortURIs = new ArrayList<URI>();
+        storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
+                CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        return storagePortURIs;
     }
 }

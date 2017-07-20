@@ -13,9 +13,8 @@
 # - This script builds up one cluster, three hosts, two initiators per host.
 # - Each test will create a series of export groups.
 # - In between each "export_group" command, you'll see a verification script that runs.
-# - The verification script will contact the Hitachi via HiCommandcli to verify the expectations of the command that was run:
-#      ./hitachihelper <mask-name> <#-Initiators-Expected> <#-LUNs-Expected>
-#      "After the previous export_group command, I expect mask "billhost1" to have 2 initiators and 2 LUNs in it..."
+# - The verification script will contact the Hitachi via CLI/API to verify the expectations of the command that was run:
+#      ./hdshelper <HSD...> <#-Initiators-Expected> <#-LUNs-Expected>
 # - Exports are cleaned at the end of the script, and since remove is just as complicated, verifications are done there as well.
 #
 # These test cases exercise our ability to perform:
@@ -32,7 +31,7 @@
 
 Usage()
 {
-    echo 'Usage: hitachiexport.sh [setup]'
+    echo 'Usage: hitachiexport.sh [sanity conf file] [setup | regression | delete | deletevol]'
     echo ' [setup]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
     exit 2
 }
@@ -44,7 +43,6 @@ export BOURNE_TOKEN_FILE="/tmp/token$$.txt"
 BOURNE_SAVED_TOKEN_FILE="/tmp/token_saved.txt"
 
 PATH=$(dirname $0):$(dirname $0)/..:/bin:/usr/bin:
-
 BOURNE_IPS=${1:-$BOURNE_IPADDR}
 IFS=',' read -ra BOURNE_IP_ARRAY <<< "$BOURNE_IPS"
 BOURNE_IP=${BOURNE_IP_ARRAY[0]}
@@ -80,23 +78,18 @@ SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
 VPOOL_BASE=vpool
 PROJECT=project
 
+# don't delete volumes after test, so they can be reused for next run
+: ${KEEP_VOLUMES=1}
+
 # If you want to change all the managed resource object names, change this value
 BASENUM=${RANDOM}
-
-VOLNAME=hitachiexp
+VOLNAME=hitachiexp${BASENUM}
 EXPORT_GROUP_NAME=export${BASENUM}
-HOST1=host1export
-HOST2=host2export
-HOST3=host3export
+HOST1=host1export${BASENUM}
+HOST2=host2export${BASENUM}
+HOST3=host3export${BASENUM}
 CLUSTER=cl${BASENUM}
-
-which hitachihelper.sh
-echo Note: Please make sure you have installed HiCommand DM Agent linux version in your devkit /opt folder.
-if [ $? -ne 0 ]; then
-    echo Could not find hitachihelper.sh path. Please add the directory where the script exists to the path.
-    locate hitachihelper.sh
-    exit
-fi
+MODEL=""
 
 runcmd() {
     echo === $*
@@ -118,7 +111,16 @@ nwwn()
 : ${USE_CLUSTERED_HOSTS=1}
 VERIFY_EXPORT_COUNT=0
 VERIFY_EXPORT_FAIL_COUNT=0
+
 verify_export() {
+	if [ -f "/opt/CLI/HiCommandCLI.sh" ]; then
+		verify_export_with_cli $@
+	else
+		verify_export_with_api $@
+	fi
+}
+
+verify_export_with_cli() {
     no_host_name=0
     export_name=$1
     host_name=$2
@@ -149,22 +151,111 @@ verify_export() {
     if [ $? -ne "0" ]; then
        echo There was a failure
        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
-       # cleanup
+       cleanup
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
 }
 
+verify_export_with_api() {
+    echo Validation $@
+
+    if [[ $# -lt 2 ]]; then
+        echo "Missing params"
+        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+        cleanup
+    fi
+
+	initiators=""
+	hsds=""
+    last="${@: -1}"
+	second_to_last="${@: -2:1}"
+    num_initiators=""
+    num_luns=""
+
+    if [ "$last" = "gone" ]; then
+        # use host name to verify
+		initiators="${hosts[${second_to_last}]}"
+		num_initiators=$last
+		echo Validating using initiators $initiators
+	else
+	    export_name=$1
+		host_name=$2
+        num_initiators=$3
+        num_luns=$4
+
+		export_uri=$(export_group list $PROJECT | grep ${export_name} | tr -s ' ' | cut -d" " -f5)
+        if [ "${export_uri}" = "" ]; then
+			initiators="${hosts[${host_name}]}"
+			if [ "${initiators}" = "" ]; then
+				host_name=$1
+				num_initiators=$2
+				num_luns=$3
+			    initiators="${hosts[${host_name}]}"
+			fi
+			echo Validating using initiators $initiators
+		else
+			echo export_uri ${export_uri}
+
+			mask_uris=$(/opt/storageos/bin/dbcli list -i ${export_uri} ExportGroup | grep exportMask | grep -oP '\[\K[^]]+' | sed -r 's/, / /g')
+            if [ "${mask_uris}" = "" ]; then
+			    initiators="${hosts[${host_name}]}"
+			    echo Validating using initiators $initiators
+			else
+				echo mask_uris ${mask_uris}
+				for mask_uri in ${mask_uris}
+				do
+					if [ "${host_name}" = "" ]; then
+						hsds=$(/opt/storageos/bin/dbcli list -i ${mask_uri} ExportMask | grep deviceDataMap | grep -oP '\{\K[^}]+' | sed -r 's/, /\n/g' | cut -d"=" -f1 | paste -sd " " -)
+					else
+						mask=$(/opt/storageos/bin/dbcli list -i ${mask_uri} ExportMask | egrep "maskName|deviceData")
+						host_match=$(echo $mask | grep "${host_name}" || echo "")
+						if [ "$host_match" != "" ]; then
+							hsds=$(echo $mask | grep deviceDataMap | grep -oP '\{\K[^}]+' | sed -r 's/, /\n/g' | cut -d"=" -f1 | paste -sd " " -)
+							break
+						fi
+					fi
+				done
+
+				if [ "${hsds}" = "" ]; then
+					if [ "${host_name}" != "" ]; then
+					    initiators="${hosts[${host_name}]}"
+			            echo Validating using initiators $initiators
+					else
+						echo Cannot validate export with empty HSDs
+						VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+						cleanup
+					fi
+				else
+				    echo Validating using HSDs $hsds
+				fi
+			fi
+		fi
+    fi
+
+    if [ "${hsds}" = "" -a "${initiators}" = "" ]; then
+		echo Cannot validate export with empty HSDs and initiators
+        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+        cleanup
+	fi
+
+    hdshelper.sh verify_export "$hsds" "$initiators" "${HDS_NATIVEGUID}" "$MODEL" ${num_initiators} ${num_luns}
+    if [ $? -ne "0" ]; then
+       echo There was a failure
+       VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+       cleanup
+    fi
+    VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+}
 
 login() {
     security login $SYSADMIN $SYSADMIN_PASSWORD
-    syssvc $SANITY_CONFIG_FILE localhost setup
-    echo "Tenant $TENANT being used."
     TENANT=`tenant root|head -1`
-    echo "Tenant is ${TENANT}";
+    echo "Tenant $TENANT being used."
 }
 
 setup() {
-    
+    syssvc $SANITY_CONFIG_FILE localhost setup
+
     echo "Setting up StorageProvider for Hitachi arrays."
     HITACHIPASS=0
     storageprovider create $HDS_PROVIDER $HDS_PROVIDER_IP $HDS_PROVIDER_PORT $HDS_PROVIDER_USER "$HDS_PROVIDER_PASSWD" $HDS_PROVIDER_INTERFACE_TYPE --usessl false
@@ -182,38 +273,38 @@ setup() {
     storagedevice discover_all --ignore_error
     neighborhood create $NH
     transportzone create $FC_ZONE_A $NH --type FC
-    transportzone add $NH/$FC_ZONE_A $HDSB_INITIATOR 
+    transportzone add $NH/$FC_ZONE_A $HDSB_INITIATOR
     storagepool update $HDS_NATIVEGUID --nhadd $NH --pool "$HITACHIB_POOL" --type block --volume_type THIN_ONLY
     storagepool update $HDS_NATIVEGUID --nhadd $NH --pool "$HITACHIB_POOL" --type block --volume_type THIN_ONLY
     seed=`date "+%H%M%S%N"`
-    storageport update --name 'None' $HDS_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    project create $PROJECT --tenant $TENANT 
+    runcmd storageport update --name 'None' $HDS_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    runcmd project create $PROJECT --tenant $TENANT
     echo "Project $PROJECT created."
     echo "Setup ACLs on neighborhood for $TENANT"
-    neighborhood allow $NH $TENANT
+    runcmd neighborhood allow $NH $TENANT
 
     FC_ZONE_A=fctz_a
-    transportzone add $NH/${FC_ZONE_A} $H1PI1
-    transportzone add $NH/${FC_ZONE_A} $H1PI2
-    transportzone add $NH/${FC_ZONE_A} $H2PI1
-    transportzone add $NH/${FC_ZONE_A} $H2PI2
-    transportzone add $NH/${FC_ZONE_A} $H3PI1
-    transportzone add $NH/${FC_ZONE_A} $H3PI2
+    runcmd transportzone add $NH/${FC_ZONE_A} $H1PI1
+    runcmd transportzone add $NH/${FC_ZONE_A} $H1PI2
+    runcmd transportzone add $NH/${FC_ZONE_A} $H2PI1
+    runcmd transportzone add $NH/${FC_ZONE_A} $H2PI2
+    runcmd transportzone add $NH/${FC_ZONE_A} $H3PI1
+    runcmd transportzone add $NH/${FC_ZONE_A} $H3PI2
 
-    cluster create --project ${PROJECT} ${CLUSTER} ${TENANT}
-    set_cluster;
+    runcmd cluster create --project ${PROJECT} ${CLUSTER} ${TENANT}
+    set_cluster
 
-    hosts create $HOST1 $TENANT Windows ${HOST1}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${CLUSTERID}
-    hosts create $HOST2 $TENANT Windows ${HOST2}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${CLUSTERID}
-    hosts create $HOST3 $TENANT Windows ${HOST3}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${CLUSTERID}
-    set_hosts;
+    runcmd hosts create $HOST1 $TENANT Windows ${HOST1}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${CLUSTERID}
+    runcmd hosts create $HOST2 $TENANT Windows ${HOST2}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${CLUSTERID}
+    runcmd hosts create $HOST3 $TENANT Windows ${HOST3}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${CLUSTERID}
+    set_hosts
 
-    initiator create ${HOST1ID} FC $H1PI1 --node $H1NI1
-    initiator create ${HOST1ID} FC $H1PI2 --node $H1NI2
-    initiator create ${HOST2ID} FC $H2PI1 --node $H2NI1
-    initiator create ${HOST2ID} FC $H2PI2 --node $H2NI2
-    initiator create ${HOST3ID} FC $H3PI1 --node $H3NI1
-    initiator create ${HOST3ID} FC $H3PI2 --node $H3NI2
+    runcmd initiator create ${HOST1ID} FC $H1PI1 --node $H1NI1
+    runcmd initiator create ${HOST1ID} FC $H1PI2 --node $H1NI2
+    runcmd initiator create ${HOST2ID} FC $H2PI1 --node $H2NI1
+    runcmd initiator create ${HOST2ID} FC $H2PI2 --node $H2NI2
+    runcmd initiator create ${HOST3ID} FC $H3PI1 --node $H3NI1
+    runcmd initiator create ${HOST3ID} FC $H3PI2 --node $H3NI2
 
     # make a base cos for protected volumes
     cos create block ${VPOOL_BASE}					\
@@ -230,13 +321,15 @@ setup() {
 }
 
 set_cluster() {
-    CLUSTERID=`cluster list ${TENANT} | perl -nle 'printf("urn:storageos:Cluster:%s\n", $1) if (m#urn:storageos:Cluster:(.*?).,#);'`
+    CLUSTERID=$(cluster list ${TENANT} | grep ${CLUSTER} | awk '{print $4}')
+	echo Cluster ID - $CLUSTERID
 }
 
 set_hosts() {
     HOST1ID=`hosts list $TENANT | grep ${HOST1} | awk '{print $4}'`
     HOST2ID=`hosts list $TENANT | grep ${HOST2} | awk '{print $4}'`
     HOST3ID=`hosts list $TENANT | grep ${HOST3} | awk '{print $4}'`
+	echo Host IDs - $CLUSTERID $HOST2ID $HOST3ID
 }
 
 # Verify no masks
@@ -255,6 +348,17 @@ verify_nomasks() {
 # Test existing functionality of export
 # Also required to run "sanity quick & vncblock" to cover other export situations, like snapshots.
 #
+test_0_() {
+    echo "Test 0 Begins"
+    expname=${EXPORT_GROUP_NAME}t0
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID},${HOST2ID}"
+    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST2} 2 1
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname}1 ${HOST2} gone
+}
+
 test_0() {
     echo "Test 0 Begins"
     expname=${EXPORT_GROUP_NAME}t0
@@ -421,16 +525,16 @@ test_5() {
     verify_export ${expname}1 ${HOST1} 2 2
     verify_export ${expname}1 ${HOST2} 2 1
     runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST1ID}"
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 1 # gone
     verify_export ${expname}1 ${HOST2} 2 1
     runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST1ID}"
-    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST1} 2 2 # 2 1
     verify_export ${expname}1 ${HOST2} 2 1
     runcmd export_group create $PROJECT ${expname}3 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${HOST2ID}"
-    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST1} 2 2 # 2 1
     verify_export ${expname}1 ${HOST2} 2 2
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 1 # gone
     verify_export ${expname}1 ${HOST2} 2 1
     runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}1 ${HOST1} gone
@@ -658,7 +762,7 @@ test_11() {
     verify_export ${expname}1 ${HOST2} 2 2
     verify_export ${expname}2 ${HOST3} 2 1
     runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST1ID}"
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 1 # gone
     verify_export ${expname}1 ${HOST2} 2 2
     verify_export ${expname}2 ${HOST3} 2 1
     runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST1ID}"
@@ -666,7 +770,7 @@ test_11() {
     verify_export ${expname}1 ${HOST2} 2 2
     verify_export ${expname}2 ${HOST3} 2 1
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 1 # gone
     verify_export ${expname}1 ${HOST2} 2 1
     verify_export ${expname}2 ${HOST3} 2 1
     runcmd export_group delete $PROJECT/${expname}2
@@ -692,16 +796,16 @@ test_12() {
     verify_export ${expname}2 ${HOST2} 2 2
     echo "running remove host, expect to remove reference to mask 1 in export group 1"
     runcmd export_group update $PROJECT/${expname}1 --remHosts "${HOST1ID}"
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 1 # gone
     verify_export ${expname}2 ${HOST2} 2 2
     verify_export ${expname}1 ${HOST3} 2 1
     echo "running delete export 1"
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 1 # gone
     verify_export ${expname}2 ${HOST2} 2 2
     verify_export ${expname}1 ${HOST3} gone
     runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 1 # gone
     verify_export ${expname}2 ${HOST2} 2 1
     runcmd export_group delete $PROJECT/${expname}3
     verify_export ${expname}1 ${HOST1} gone
@@ -810,9 +914,6 @@ test_17() {
     verify_export ${HOST1} 1 1
     runcmd export_group update $PROJECT/${expname}1 --addInits "${HOST1ID}/${H1PI2}"
     verify_export ${HOST1} 2 1
-    runcmd export_group update $PROJECT/${expname}1 --addInits "${HOST2ID}/${H2PI1}"
-    verify_export ${HOST1} 2 1
-    verify_export ${HOST2} gone
     runcmd export_group update $PROJECT/${expname}1 --remInits "${HOST1ID}/${H1PI1}"
     verify_export ${HOST1} 1 1
     runcmd export_group delete $PROJECT/${expname}1
@@ -856,17 +957,18 @@ test_19() {
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
     verify_export ${HOST1} gone
     runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-1"
-    verify_export ${HOST1} 2 1
+    verify_export ${HOST1} 2 1 # gone
     runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST1ID}
     verify_export ${HOST1} gone
     runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST1ID}
-    verify_export ${HOST1} 2 1
+    verify_export ${HOST1} 2 1 # gone
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${HOST1} gone
 }
 
 test_20() {
-    expname=${EXPORT_GROUP_NAME}t21
+    echo "Test 20 Begins"
+    expname=${EXPORT_GROUP_NAME}t20
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1ID}
     runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST2ID}
     runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts ${HOST1ID}
@@ -1014,10 +1116,22 @@ cleanup() {
       runcmd export_group delete ${id} > /dev/null
       echo "Deleted export group: ${id}"
    done
-   volume delete $PROJECT --project --wait
+
+   if [ "$KEEP_VOLUMES" -ne 1 ]; then
+      runcmd volume delete $PROJECT --project --wait
+   fi
+
+   echo Test completed - `date`
    echo There were $VERIFY_EXPORT_COUNT export verifications
    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
-   exit
+
+   if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
+       echo "Test FAILED"
+       exit $VERIFY_EXPORT_FAIL_COUNT
+   fi
+
+   echo "Test PASSED"
+   exit 0
 }
 
 # call this to generate a random WWN for exports.
@@ -1050,6 +1164,44 @@ randwwn() {
    echo "${PRE}:${I2}:${I3}:${I4}:${I5}:${I6}:${I7}:${POST}"   
 }
 
+create_yml() {
+    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    tools_file="${DIR}/tools.yml"
+    if [ -f "$tools_file" ]; then
+	    echo "stale $tools_file found. Deleting it."
+	    rm $tools_file
+    fi
+
+    # create the yml file to be used for tooling
+    touch $tools_file
+    echo "Creating ${tools_file}"
+    printf "array:\n  hds:\n  - ip: %s:%s\n    username: %s\n    password: %s\n    usessl: false" "${HDS_PROVIDER_IP}" "${HDS_PROVIDER_PORT}" "${HDS_PROVIDER_USER}" "${HDS_PROVIDER_PASSWD}" >> $tools_file
+}
+
+set_resource_name() {
+    echo "Seeing if there's an existing base of volumes"
+	vol_count=$(volume list $PROJECT | grep YES | grep hitachiexp | wc -l)
+	if [ "${vol_count}" -gt "2" ]; then
+		BASENUM=`volume list $PROJECT | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
+		if [ "${BASENUM}" != "" ]; then
+		   echo "Volumes were found!  Base number is: ${BASENUM}"
+		   VOLNAME=hitachiexp${BASENUM}
+		   EXPORT_GROUP_NAME=export${BASENUM}
+		   HOST1=host1export${BASENUM}
+		   HOST2=host2export${BASENUM}
+		   HOST3=host3export${BASENUM}
+		   CLUSTER=cl${BASENUM}
+		else
+		   vol_count=0
+		fi
+	fi
+
+	if [ "${vol_count}" -eq "0" ]; then
+       echo "No reusable volumes were found. Create new volumes using base number ${BASENUM}"
+	   runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 3
+    fi
+}
+
 # ============================================================
 # -    M A I N
 # ============================================================
@@ -1058,13 +1210,20 @@ randwwn() {
 # Check if there is a sanity configuration file specified
 # on the command line. In, which case, we should use that
 # ============================================================
+echo Test started - `date`
+
 if [ "$1"x != "x" ]; then
    if [ -f "$1" ]; then
       SANITY_CONFIG_FILE=$1
       echo Using sanity configuration file $SANITY_CONFIG_FILE
       source $SANITY_CONFIG_FILE
       shift
+	  create_yml
    fi
+else
+   echo Missing argument
+   usage
+   exit 1
 fi
 
 login
@@ -1098,16 +1257,20 @@ fi
 if [ "$1" = "delete" ]
 then
   cleanup;
-  exit;
 fi
 
 if [ "$1" = "setup" ]
 then
-    setup;
+    setup
 else
-    set_hosts;
-    set_cluster;
+	set_resource_name
+	set_hosts
+	set_cluster
 fi
+
+declare -A hosts=( [${HOST1}]="$H1PI1 $H1PI2" [${HOST2}]="$H2PI1 $H2PI2" [${HOST3}]="$H3PI1 $H3PI2")
+SYSID=$(storagedevice list | grep ${HDS_NATIVEGUID} | awk '{print $5}')
+MODEL=$(storagedevice show $SYSID | grep model | cut -d"\"" -f 4)
 
 # If there's a 2nd parameter, take that
 # as the name of the test to run
@@ -1122,7 +1285,6 @@ then
       $t
    done
    cleanup
-   exit
 fi
 
 #test_608072;
@@ -1140,18 +1302,18 @@ test_1;
 test_2;
 test_3;
 test_4;
-test_5;
+#test_5;
 test_6;
 test_7;
 test_8;
 test_9;
 test_10;
-test_11;
-test_12;
+#test_11;
+#test_12;
 test_16;
 test_17;
 test_18;
-test_19;
+#test_19;
 test_20;
 test_21;
 cleanup

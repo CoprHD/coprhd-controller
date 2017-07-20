@@ -99,6 +99,9 @@ public class FEPortStatsProcessor extends CommonStatsProcessor {
                 // compute storage system's average of port metrics. Then, persist it into storage system object.
                 //
                 portMetricsProcessor.computeStorageSystemAvgPortMetrics(profile.getSystemId());
+                
+                // Compute port group's port metrics for vmax only
+                portMetricsProcessor.computePortGroupMetrics(profile.getSystemId());
             } else {
                 _logger.error("failed processing FEPOrt Metric values as metric sequence is null.");
             }

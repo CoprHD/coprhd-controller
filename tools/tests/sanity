@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio [quick|hlu|quick hlu] | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity | portgroup'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -225,7 +225,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity|portgroup)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -2158,8 +2158,10 @@ srdf_setup_once()
     project show $SRDF_PROJECT &> /dev/null && return $?
     run project create $SRDF_PROJECT --tenant $TENANT
 
-    run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
-    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
+    # Letter at the end of the CG name denotes SRDF mode
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}S
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}A
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}M
     
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
     run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
@@ -2565,7 +2567,7 @@ srdf_basic_sync_test()
    #run volume delete $PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    srdf_sleep
-   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}S
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
@@ -2575,9 +2577,9 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
-   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}A
    srdf_sleep
-   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}A
    echo "Created 2 volumes... now going to sleep..."
    srdf_sleep
    echo "Deleting volumes..."
@@ -2605,9 +2607,9 @@ srdf_basic_active_test()
    # rediscover storage systems for RDF group mode getting updated
    echo "Rediscovering storage systems"
    run storagedevice discover_all --ignore_error
-   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
+   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}M
    srdf_sleep
-   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
+   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}M
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}3 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}4 --wait
@@ -2892,14 +2894,10 @@ vplex_cos_setup()
         if [ $VPLEX_USE_XIO -eq 1 ]; then
         run cos update block cosvplexlocal --storage $VPLEX_XIO1_NATIVEGUID
         else 
-        run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
+        run cos update block cosvplexlocal --storage $VPLEX_VNXU_NATIVEGUID
         fi
         if [ "$AUTH" != 'ipv6' ] ; then
-                if [ $VPLEX_USE_XIO -eq 1 ]; then
-                run cos update block cosvplexlocal --storage $VPLEX_XIO2_NATIVEGUID
-                else
-                run cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
-                fi
+            run cos update block cosvplexlocal --storage $VPLEX_XIO2_NATIVEGUID
         fi
         run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
@@ -2946,7 +2944,7 @@ vplex_cos_setup()
         if [ $VPLEX_USE_XIO -eq 1 ]; then
             run cos update block cosvplexdist --storage $VPLEX_XIO1_NATIVEGUID
         else
-            run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
+            run cos update block cosvplexdist --storage $VPLEX_VNXU_NATIVEGUID
         fi
         run cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
     fi
@@ -2960,8 +2958,8 @@ vplex_setup()
 vplex_sim_variable_setup()
 {
     VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
-    VPLEX_VNX1_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
-    VPLEX_VNX2_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
+    VPLEX_VNXU_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
+    VPLEX_XIO2_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
     VPLEX_VMAX_NATIVEGUID=$VPLEX_SIM_VMAX5_NATIVEGUID
     CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
 }
@@ -2976,7 +2974,7 @@ vplex_setup_once()
         run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
         run storagedevice discover_all
         storagedevice list
-        storageport list $VPLEX_VNX1_NATIVEGUID
+        storageport list $VPLEX_VNXU_NATIVEGUID
         storageport list $VPLEX_VMAX_NATIVEGUID
         storageport list $VPLEX_GUID
 
@@ -2986,7 +2984,7 @@ vplex_setup_once()
         run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
         run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
         # The arrays are assigned to individual varrays as well.
-        run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+        run storageport update $VPLEX_VNXU_NATIVEGUID FC --addvarrays $NH
         run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
     elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
         echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
@@ -3033,12 +3031,12 @@ vplex_setup_once()
 
         if [ $VPLEX_USE_XIO -eq 1 ]; then
             run storageprovider create $VPLEX_XIO1_SMIS_DEV_NAME $VPLEX_XIO1_SMIS_IP $VPLEX_XIO1_SMIS_PORT $VPLEX_XIO1_SMIS_USER "$VPLEX_XIO1_SMIS_PASSWD" xtremio
-            run storageprovider create $VPLEX_XIO2_SMIS_DEV_NAME $VPLEX_XIO2_SMIS_IP $VPLEX_XIO2_SMIS_PORT $VPLEX_XIO2_SMIS_USER "$VPLEX_XIO2_SMIS_PASSWD" xtremio
         else
-            run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
-            run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
-            storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+            run discoveredsystem create $VPLEX_VNXU_SMIS_DEV_NAME unity $VPLEX_VNXU_IP $VPLEX_VNXU_PORT $VPLEX_VNXU_USER $VPLEX_VNXU_PW --serialno=$VPLEX_VNXU_NATIVEGUID
         fi
+
+        run storageprovider create $VPLEX_XIO2_SMIS_DEV_NAME $VPLEX_XIO2_SMIS_IP $VPLEX_XIO2_SMIS_PORT $VPLEX_XIO2_SMIS_USER "$VPLEX_XIO2_SMIS_PASSWD" xtremio
+        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
 
         run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
         run storagedevice discover_all
@@ -3048,9 +3046,9 @@ vplex_setup_once()
             storageport list $VPLEX_XIO1_NATIVEGUID --v
             storageport list $VPLEX_XIO2_NATIVEGUID --v
         else
-            storageport list $VPLEX_VNX1_NATIVEGUID --v
+            storageport list $VPLEX_VNXU_NATIVEGUID --v
             storageport list $VPLEX_VMAX_NATIVEGUID --v
-            storageport list $VPLEX_VNX2_NATIVEGUID --v
+            storageport list $VPLEX_XIO2_NATIVEGUID --v
         fi
 
         storageport list $VPLEX_VMAX_NATIVEGUID --v
@@ -3068,8 +3066,8 @@ vplex_setup_once()
             run storageport update $VPLEX_XIO1_NATIVEGUID FC --addvarrays $NH
             run storageport update $VPLEX_XIO2_NATIVEGUID FC --addvarrays $NH
         else
-            run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-            run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $NH
+            run storageport update $VPLEX_VNXU_NATIVEGUID FC --addvarrays $NH
+            run storageport update $VPLEX_XIO2_NATIVEGUID FC --addvarrays $NH
         fi
 
         run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2
@@ -3189,11 +3187,11 @@ vplex_tests()
         run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
         run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
         run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
-        if [ $VPLEX_USE_XIO -eq 0 ]; then
-            run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
-        else
-            echo "****** Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******"
-        fi
+
+        # Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******
+        # Also skipping for Unity backend because an extra snapshot with a timestamp label is created - need
+        # to figure out how to get the extra snapshot's label so that it can deleted
+        # run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
 
         echo "**** Deleting VPLEX volume snapshots"
         run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot
@@ -3274,8 +3272,8 @@ vplex_ingest_unexported() {
     # run_noundo blocksnapshot delete ${PROJECT}/${distVolume1}/${distSnapshot} --vipronly
 
     echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
-    run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
-    run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VNXU_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_XIO2_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
@@ -3325,9 +3323,9 @@ vplex_ingest_exported() {
     #run_noundo volume delete $PROJECT/$distVolume2 --vipronly --force
 
     echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
-    run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
-    run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
-    #run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VNXU_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_XIO2_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
     echo "**** saving off exported UnManagedVolume data for debug purposes to /tmp/vipr_exported_unmanaged_vols.txt"
@@ -6095,9 +6093,14 @@ recoverpoint_direct_access_test()
             secho 'Remove replication set from consistency group while a copy is in direct access mode (failover) - expected failure'		
             fail volume delete $PROJECT/${new_volume} --wait
         fi
-        
-        secho 'Expand source volume when one of the RP target copies is in direct access mode'
-        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+       
+	    if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then 
+            secho 'Expand source volume when one of the RP target copies is in direct access mode - expected failure'
+            fail volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+        else
+            secho 'Expand source volume when RP target copy is in direct access mode'
+            volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+        fi
 
         secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
         recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}
@@ -6937,12 +6940,15 @@ sbsdk_setup()
     echo "***** Creating virtual pool $SBSDK_DRIVER_SYS_VPOOL_NAME *****"
     run cos create block $SBSDK_DRIVER_SYS_VPOOL_NAME true     \
                      --description 'SBSDK-sanity-virtual-pool' \
+                     --systemtype $SBSDK_DRIVER_SYS_TYPE       \
                      --protocols FC                            \
                      --numpaths 2                              \
                      --provisionType 'Thin'                    \
                      --neighborhoods $NH                       \
                      --max_snapshots 1                         \
                      --max_mirrors 1                           \
+                     --host_io_limit_bandwidth 100             \
+                     --host_io_limit_iops 200                  \
                      --expandable false 
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
@@ -8393,17 +8399,24 @@ file_tests()
 	    run fileshare delete $PROJECT/${fs2}
     fi
 
-    run fileshare delete $PROJECT/$fsname --forceDelete true
+    run fileshare delete $PROJECT/$fsname
 
     if [ $cos = $COS_VNXFILE ] ; then
-        fsForceDelete="forceDeleteTestVNX"
-        echo "--Force Delete tests for VNXFile--"
+        fsForceDelete="deleteTestVNX"
+        echo "--Delete tests for VNXFile--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run fileshare export $PROJECT/$fsForceDelete $exp_args
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
         run snapshot export $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete $SNAPEXP_DEFAULT_EPS
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot unexport $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare unexport $PROJECT/$fsForceDelete
+        run fileshare delete $PROJECT/$fsForceDelete
+        
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8412,12 +8425,16 @@ file_tests()
 
 
     if [ $cos = $COS_NETAPP ] ; then
-        fsForceDelete="forceDeleteTestNETAPP"
-        echo "--Force Delete tests for NETAPP--"
+        fsForceDelete="deleteTestNETAPP"
+        echo "--Delete tests for NETAPP--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8425,12 +8442,16 @@ file_tests()
     fi
 
     if [ $cos = $COS_NETAPPC ] ; then
-        fsForceDelete="forceDeleteTestNETAPPC"
-        echo "--Force Delete tests for NETAPPC--"
+        fsForceDelete="deleteTestNETAPPC"
+        echo "--Delete tests for NETAPPC--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8438,12 +8459,16 @@ file_tests()
     fi
 
     if [ $cos = $COS_ISIFILE ] ; then
-        fsForceDelete="forceDeleteTestISILON"
-        echo "--Force Delete tests for ISILON--"
+        fsForceDelete="deleteTestISILON"
+        echo "--delete tests for ISILON--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
 	# duplicate label Test - Should fail
 	# run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
 	# run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8451,14 +8476,14 @@ file_tests()
 
     # Force Delete test for Data Domain
     if [ $cos = $COS_DDFILE ] ; then
-        fsForceDelete="forceDeleteTestDATADOMAIN"
+        fsForceDelete="deleteTestDATADOMAIN"
         #File systems (mtrees) are not deleted from DDMC, just marked inactive
         #until the GC runs.  To avoid conflict with the previous run, we attach
         #a timestamp to FS name.
         fsForceDeleteTimed=$fsForceDelete-$datetime
-        echo "--Force Delete tests for DATADOMAIN--"
+        echo "--Delete tests for DATADOMAIN--"
         run fileshare create $fsForceDeleteTimed $PROJECT $NH $cos $FS_SIZE
-        run fileshare delete $PROJECT/$fsForceDeleteTimed --forceDelete true
+        run fileshare delete $PROJECT/$fsForceDeleteTimed
     fi
 
     # File System Quota directory ops.
@@ -8472,8 +8497,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8487,7 +8512,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8501,8 +8527,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8518,8 +8544,9 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs"
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare unexport $PROJECT/$fsQuotaDir
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
 
 }
@@ -14624,6 +14651,130 @@ arrayaffinity_tests()
     arrayaffinity_cleanup
 
     secho "Completed array affinity tests"
+}
+
+COS_PORTGROUP=cos_portgroup
+HOST_PORTGROUP=hostpg
+portgroup_setup_once()
+{
+    # do this only once
+    smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
+
+    run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
+
+    sleep 15
+
+    secho "VMAX storage pool update"
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+    
+    echo "Enabling use port group"
+    customconfig create VMAXUsePortGroupEnabled true systemType vmax --register true
+}
+
+portgroup_cos_setup()
+{
+    secho "setting up port group block virtual pool"
+
+    run cos create block $COS_PORTGROUP \
+        --description 'Virtual-Pool-for-portgroup' true \
+                         --protocols FC \
+                         --numpaths 2 \
+                         --max_snapshots 10 \
+                         --system_type vmax \
+                         --provisionType 'Thin' \
+                         --expandable true \
+                         --neighborhoods $NH \
+                         --multiVolumeConsistency 
+
+    run cos update block $COS_PORTGROUP --storage $VMAX_NATIVEGUID
+
+}
+
+portgroup_host_setup()
+{
+    portwwn1=10:a1:b1:c1:d1:e1:f1:01
+    nodewwn1=20:a1:b1:c1:d1:e1:f1:01
+    portwwn2=10:a2:b2:c2:d2:e2:f2:02
+    portwwn3=10:a3:b3:c3:d3:e3:f3:03
+    portwwn4=10:a4:b4:c4:d4:e4:f4:04
+    fctz=${NH}/FABRIC_losam082-fabric
+    host1=hostpg
+    echo "Creating host with name $HOST_PORTGROUP"
+    run hosts create ${HOST_PORTGROUP} $TENANT Other ${HOST_PORTGROUP} --port 8111 --username user --password 'password' --osversion 1.0
+    run initiator create ${HOST_PORTGROUP} FC $portwwn1 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn2 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn3 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn4 --node $nodewwn1
+    echo "Adding WWNs to Network"
+    run transportzone add $fctz $portwwn1
+    run transportzone add $fctz $portwwn2
+    run transportzone add $fctz $portwwn3
+    run transportzone add $fctz $portwwn4
+
+    echo "Getting host URI"
+    HOST_PORTGROUP_URI=`hosts list ${TENANT} | grep ${HOST_PORTGROUP} | awk '{print $4}'`
+    echo "Host URI is ${HOST_PORTGROUP_URI}"
+}
+
+portgroup_setup()
+{
+    secho "Run port group tests setup"
+    portgroup_setup_once
+    portgroup_cos_setup
+    portgroup_host_setup
+    secho "Completed port group setup"
+}
+
+portgroup_operations_tests()
+{
+    echo "Executing port group tests"
+    portgroup=portgroup-${RANDOM}
+    storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-2D:8' 'FA-1D:8' 'FA-3D:8' 'FA-4D:8'
+    storageportgroup show $VMAX_NATIVEGUID/$portgroup
+    storageportgroup deregister ${VMAX_NATIVEGUID}/${portgroup}
+    storageportgroup register ${VMAX_NATIVEGUID}/${portgroup}
+    
+    vol1=volpg1-${RANDOM}
+    vol2=volpg2-${RANDOM}
+
+    echo "Creating volume with name $vol1 $vol2"
+    run volume create $vol1 $PROJECT $NH $COS_PORTGROUP $BLK_SIZE --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+    run volume create $vol2 $PROJECT $NH $COS_PORTGROUP $BLK_SIZE --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+
+    eg=egpg-${RANDOM}
+    run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $HOST_PORTGROUP --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+    run export_group update ${PROJECT}/$eg --addVolspec "${PROJECT}/${vol2}"
+
+    echo "Deleting volume $vol1"
+    run export_group delete ${PROJECT}/${eg}
+    run volume delete ${PROJECT}/${vol1} --wait
+    run volume delete ${PROJECT}/${vol2} --wait
+    storageportgroup delete ${VMAX_NATIVEGUID}/${portgroup}
+
+    echo "**** Done port group operations tests"
+}
+
+portgroup_cleanup()
+{
+    echo "Deleting VPools"
+
+    # delete cos so that test can be executed again
+    run cos delete $COS_PORTGROUP block
+    echo "Deleting host ${HOST_PORTGROUP}"
+    run hosts delete ${HOST_PORTGROUP}
+}
+
+# Port group tests command: "sanity sanity.conf viprIP portgroup"
+portgroup_tests()
+{
+    secho "Executing portgroup tests"
+
+    portgroup_operations_tests
+    portgroup_cleanup
+
+    secho "Completed portgroup tests"
 }
 
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run

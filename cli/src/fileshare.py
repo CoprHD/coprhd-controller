@@ -679,7 +679,7 @@ class Fileshare(object):
     
     
     #Main routine for NFSv4 ACL
-    def nfs_acl(self, tenant, project, fsname, subdir, permissiontype, type, operation, user=None, permission=None, domain=None, group=None):
+    def nfs_acl(self, tenant, project, fsname, subdir, permissiontype, type, operation, user=None, permission=None, inheritflags=None, domain=None, group=None):
         path = tenant + "/" + project + "/"
         fs_name = path + fsname
         
@@ -692,6 +692,8 @@ class Fileshare(object):
             nfs_acl_param['permission_type'] = permissiontype
         if(permission):
             nfs_acl_param['permissions'] = permission
+        if(inheritflags):
+            nfs_acl_param['inheritFlags'] = inheritflags
         if(user):
             nfs_acl_param['user'] = user
         if(domain):
@@ -1720,6 +1722,13 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                     metavar='<permissions>',
                                     help='Provide permissions for Acl',
                                     required=True)
+    nfs_acl_parser.add_argument('-inheritflags', '-inherit',
+                                    dest='inheritflags',
+                                    choices=["object_inherit", "container_inherit", "no_prop_inherit", "inherit_only", "inherited_ace"],
+                                    metavar='<inheritFlags>',
+                                    help='Provide inheritflags for Acl',
+                                    nargs='+',
+                                    required=False)
     mandatory_args.add_argument('-permissiontype', '-permtype',
                                     dest='permissiontype',
                                     choices=["allow", "deny"],
@@ -1772,6 +1781,7 @@ def nfs_acl(args):
                            args.operation, 
                            args.user, 
                            args.permissions,
+                           args.inheritflags,
                            args.domain)
     except SOSError as e:
         common.format_err_msg_and_raise("nfs-acl", "filesystem",
@@ -1966,7 +1976,7 @@ def nfs_acl_list(args):
             print " No NFSv4 ACLs for the Filesystem/Subdirectory"
         else:
             from common import TableGenerator
-            TableGenerator(res['nfs_acl'], ['domain','user','permissions','permission_type','type']).printTable() 
+            TableGenerator(res['nfs_acl'], ['domain','user','permissions','inheritFlags','permission_type','type']).printTable() 
         
     except SOSError as e:
         common.format_err_msg_and_raise("list-nfs-acl", "filesystem",

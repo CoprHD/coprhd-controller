@@ -22,5 +22,14 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 @MessageBundle
 public interface VMAXExceptions {
 	@DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
-    public VMAXException invalidResponseFromHDS(final String message);
+    public VMAXException invalidResponseFromUnisphere(final String message);
+
+    @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
+    public VMAXException discoveryNotSupported();
+
+    @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
+    public VMAXException unsupportedVersion(final String version, final String minimumVersion);
+
+    @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
+    public VMAXException scanFailed(String ip, Throwable t);
 }

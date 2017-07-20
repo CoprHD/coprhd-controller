@@ -9,6 +9,9 @@ import java.net.URI;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.emc.storageos.services.restutil.RestClientFactory;
+import com.emc.storageos.services.restutil.RestClientItf;
+
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.HttpMethodRetryHandler;
@@ -17,11 +20,12 @@ import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.httpclient.protocol.Protocol;
 
+import com.emc.storageos.vmax.VMAXConstants;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
-public class VMAXApiRestClientFactory{
+public class VMAXApiRestClientFactory extends RestClientFactory {
 
     // Default maximum number of outstanding connections.
     private static final int DEFAULT_MAX_CONN = 300;
@@ -170,4 +174,13 @@ public class VMAXApiRestClientFactory{
         return hdsApiClient;
     }
 
+    public VMAXApiClient getClient(String ipAddress, int port, boolean isSSL, String username, String password) {
+        return getClient(URI.create(VMAXConstants.getBaseURI(ipAddress, port, isSSL)), username, password);
+    }
+
+    @Override
+    protected RestClientItf createNewRestClient(URI endpoint, String username, String password, Client client) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

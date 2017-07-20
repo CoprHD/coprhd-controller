@@ -22,6 +22,7 @@
     <import resource="classpath:controller-xtremio-prov.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
     <import resource="classpath:controller-unity.xml"/>
+    <import resource="classpath:controller-vmax.xml"/>
 
 	<context:property-placeholder location="classpath:isilon.properties" ignore-unresolvable="true"/>
 
@@ -1474,6 +1475,7 @@
         <property name="hdsApiFactory" ref="hdsApiFactory"/>
         <property name="dataDomainFactory" ref="datadomainfactory"/>
         <property name="xtremIOFactory" ref="xtremioRestClientFactory"/>
+        <property name="vmaxClientFactory" ref="vmaxClientFactory"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
     </bean>
 

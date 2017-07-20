@@ -86,9 +86,9 @@ public class StorageSystem extends DiscoveredSystemObject {
     private StringSet _providers;
 
     /**
-     * REST API Provider URI.
+     * REST API Provider.
      */
-    private URI _restProviderURI;
+    private URI _restProvider;
 
     // for manually created Storage Systems, this flag will be set to FALSE
     private Boolean _autodiscovered = true;
@@ -436,14 +436,14 @@ public class StorageSystem extends DiscoveredSystemObject {
         setChanged("providers");
     }
 
-    @Name("restProviderURI")
-    public URI getRestProviderURI() {
-        return _restProviderURI;
+    @Name("restProvider")
+    public URI getRestProvider() {
+        return _restProvider;
     }
 
-    public void setRestProviderURI(final URI restProviderURI) {
-        _restProviderURI = restProviderURI;
-        setChanged("restProviderURI");
+    public void setRestProvider(final URI restProvider) {
+        _restProvider = restProvider;
+        setChanged("restProvider");
     }
 
     @Name("autodiscovered")

@@ -55,6 +55,7 @@ import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.PlatformUtils;
+import com.emc.storageos.vmax.restapi.VMAXApiRestClientFactory;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
@@ -64,6 +65,7 @@ import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOStorageDevice;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
+import com.emc.storageos.volumecontroller.impl.vmax.VMAXUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
@@ -106,6 +108,7 @@ public class DataCollectionJobScheduler {
     private HDSApiFactory hdsApiFactory;
     private DataDomainClientFactory ddClientFactory;
     private XtremIOClientFactory xioClientFactory;
+    private VMAXApiRestClientFactory vmaxClientFactory;
     private PortMetricsProcessor _portMetricsProcessor;
     private LeaderSelector computePortMetricsSelector;
 
@@ -1117,6 +1120,12 @@ public class DataCollectionJobScheduler {
         // process providers managed by SB SDK drivers
         activeProviderURIs.addAll(ExternalDeviceUtils.refreshProviderConnections(_dbClient));
 
+        // Unisphere REST API provider
+        activeProviderURIs.addAll(VMAXUtils.refreshConnections(
+                CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                        _dbClient, StorageProvider.InterfaceType.unisphere.name()),
+                _dbClient, vmaxClientFactory));
+
         return activeProviderURIs;
     }
 
@@ -1130,6 +1139,10 @@ public class DataCollectionJobScheduler {
 
     public void setXtremIOFactory(XtremIOClientFactory xioClientFactory) {
         this.xioClientFactory = xioClientFactory;
+    }
+
+    public void setVmaxClientFactory(VMAXApiRestClientFactory vmaxClientFactory) {
+        this.vmaxClientFactory = vmaxClientFactory;
     }
 
     /**

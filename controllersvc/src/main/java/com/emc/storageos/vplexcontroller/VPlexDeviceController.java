@@ -9950,7 +9950,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
         } catch (Exception ex) {
             _log.error("ExportGroup Orchestration failed.", ex);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(ex.getMessage(), ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             failStep(taskCompleter, token, serviceError);
         }
     }
@@ -9959,114 +9959,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     public void increaseMaxPaths(Workflow workflow, StorageSystem vplex,
             ExportGroup exportGroup, ExportMask exportMask, List<URI> newInitiators,
             String token) throws Exception {
-
-        // Allocate any new ports that are required for the initiators
-        // and update the zoning map in the exportMask.
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, newInitiators);
-        Collection<URI> volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),
-                CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
-                volumeURIs, exportGroup.getNumPaths(), vplex.getId(), exportGroup.getId());
-        if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(exportGroup.getType());
-        }
-        // Determine the Varray for the targets. Default to ExportGroup.virtualArray
-        URI varrayURI = exportGroup.getVirtualArray();
-        if (exportGroup.hasAltVirtualArray(vplex.getId().toString())) {
-            URI altVarrayURI = URI.create(exportGroup.getAltVirtualArrays().get(vplex.getId().toString()));
-            if (ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, altVarrayURI)) {
-                // If the targets match the alternate varray, use that instead.
-                varrayURI = altVarrayURI;
-            }
-        }
-
-        // Assign additional storage port(s).
-        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
-                initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, token);
-        List<URI> newTargets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
-        exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
-        _dbClient.updateObject(exportMask);
-
-        if (newTargets.isEmpty() == false) {
-            // Only include initiators that were assigned ports in the Storage View.
-            // If we include any inititators that are not assigned and zoned to ports,
-            // creation or update of the Storage View will fail because we won't be
-            // able to register those initiators.
-            List<URI> storageViewInitiators = newInitiators;
-
-            // Create a Step to add the initiator to the Storage View
-            String message = String.format("adding initiators %s to StorageView %s", storageViewInitiators.toString(),
-                    exportGroup.getGeneratedName());
-            ExportMask sharedExportMask = VPlexUtil
-                    .getSharedExportMaskInDb(exportGroup, vplex.getId(), _dbClient, varrayURI, null, null);
-            boolean shared = false;
-            if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
-                shared = true;
-            }
-
-            String addInitStep = workflow.createStepId();
-            ExportMaskAddInitiatorCompleter completer = new ExportMaskAddInitiatorCompleter(
-                    exportGroup.getId(), exportMask.getId(), storageViewInitiators, new ArrayList<URI>(), addInitStep);
-
-            Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplex.getId(), exportGroup.getId(), exportMask.getId(),
-                    storageViewInitiators, null, shared, completer);
-            Workflow.Method addToViewRollbackMethod = storageViewAddInitiatorsRollbackMethod(vplex.getId(),
-                    exportGroup.getId(), exportMask.getId(), storageViewInitiators, null, addInitStep);
-            workflow.createStep(STORAGE_VIEW_ADD_INITS_METHOD, message,
-                    null, vplex.getId(), vplex.getSystemType(), this.getClass(),
-                    addToViewMethod, addToViewRollbackMethod, addInitStep);
-
-            // Create a Step to add storage ports to the Storage View
-            String addPortStep = workflow.createStepId();
-            ExportMaskAddInitiatorCompleter portCompleter = new ExportMaskAddInitiatorCompleter(exportGroup.getId(), exportMask.getId(),
-                    new ArrayList<URI>(), newTargets, addPortStep);
-            Workflow.Method addPortsToViewMethod = storageViewAddStoragePortsMethod(vplex.getId(), exportGroup.getId(), exportMask.getId(),
-                    newTargets, portCompleter);
-
-            Workflow.Method addPortsToViewRollbackMethod = storageViewAddStoragePortsRollbackMethod(vplex.getId(), exportGroup.getId(),
-                    exportMask.getId(), newTargets, addPortStep);
-
-            workflow.createStep(STORAGE_VIEW_ADD_STORAGE_PORTS_METHOD,
-                    String.format("Adding storage ports %s to VPLEX storage View %s", Joiner.on(", ").join(newTargets),
-                            exportGroup.getGeneratedName()),
-                    addInitStep, vplex.getId(), vplex.getSystemType(),
-                    this.getClass(), addPortsToViewMethod, addPortsToViewRollbackMethod, addPortStep);
-
-            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex.getId());
-            Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
-            Set<URI> zoningInitiators = new HashSet<>();
-            for (ExportMask mask : exportMasks) {
-                boolean sharedMask = false;
-                if (sharedExportMask != null) {
-                    if (sharedExportMask.getId().equals(mask.getId())) {
-                        sharedMask = true;
-                    }
-                }
-                maskToInitiatorsMap.put(mask.getId(), new ArrayList<URI>());
-                Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, mask, sharedMask);
-                // Only add initiators to this ExportMask that are on the host of the Export Mask
-                for (Initiator initiator : initiators) {
-                    if (exportMaskHosts.contains(VPlexUtil.getInitiatorHost(initiator))) {
-                        maskToInitiatorsMap.get(mask.getId()).add(initiator.getId());
-                        zoningInitiators.add(initiator.getId());
-                    }
-                }
-            }
-
-            // Create a Step to add the SAN Zone
-            String zoningStepId = workflow.createStepId();
-            Workflow.Method zoningMethod = _networkDeviceController
-                    .zoneExportAddInitiatorsMethod(exportGroup.getId(), maskToInitiatorsMap);
-            List<NetworkZoningParam> zoningParams = NetworkZoningParam
-                    .convertExportMaskInitiatorMapsToNetworkZoningParam(exportGroup.getId(), maskToInitiatorsMap, _dbClient);
-            Workflow.Method zoningRollbackMethod = _networkDeviceController
-                    .zoneExportRemoveInitiatorsMethod(zoningParams);
-            zoningStepId = workflow.createStep(ZONING_STEP,
-                    String.format("Zone initiator %s to ExportGroup %s(%s)",
-                           Joiner.on(", ").join(zoningInitiators), exportGroup.getLabel(), exportGroup.getId()),
-                    addPortStep, vplex.getId(), vplex.getSystemType(),
-                    _networkDeviceController.getClass(), zoningMethod, zoningRollbackMethod, zoningStepId);
-        }
+        throw DeviceControllerException.exceptions.operationDeprecated(
+                "Change Export Path Parameters via Change Virtual Pool", 
+                vplex.getSystemType().toUpperCase(), 
+                "Use the 'Export Path Adjustment' catalog service instead.");
     }
 
     @Override

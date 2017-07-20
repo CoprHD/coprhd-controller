@@ -4071,7 +4071,9 @@ test_pause_single_srdf() {
     # Clear existing volumes
     cleanup_srdf $PROJECT
 
-    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization"
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
+                               failure_095_SRDFDeviceController.before_doSuspendLink \
+                               failure_096_SRDFDeviceController.after_doSuspendLink"
 
     cfs=("Volume")
     snap_db_esc=""
@@ -4101,20 +4103,126 @@ test_pause_single_srdf() {
 
       set_artificial_failure ${failure}
 
-      fail volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
+      if [ "$failure" = "failure_096_SRDFDeviceController.after_doSuspendLink" ]
+      then
+        runcmd volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
 
-      # Verify injected failures were hit
-      verify_failures ${failure}
+        verify_failures ${failure}
+        runcmd volume change_link $PROJECT/$volname-1 resume $PROJECT/$volname-1-target-$NH srdf
+      else
+        fail volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
 
-      snap_db 2 "${cfs[@]}" "${snap_db_esc}"
-      validate_db 1 2 ${cfs}
+        verify_failures ${failure}
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 ${cfs}
 
-      set_artificial_failure none
+        set_artificial_failure none
 
-      runcmd volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
-      runcmd volume change_link $PROJECT/$volname-1 resume $PROJECT/$volname-1-target-$NH srdf
+        runcmd volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
+        runcmd volume change_link $PROJECT/$volname-1 resume $PROJECT/$volname-1-target-$NH srdf
+      fi
 
       report_results "test_pause_single_srdf" ${failure}
+    done
+}
+
+test_resume_single_srdf() {
+  _test_resume_or_restore_single_srdf "resume"
+}
+
+test_restore_single_srdf() {
+  _test_resume_or_restore_single_srdf "restore"
+}
+
+# Test test_resume_single_srdf
+#
+# Test resuming individual SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume
+# 2. Save off state of DB (1)
+# 3. Pause the SRDF volume
+# 4. Set artificial failure to fail the operation
+# 5. Resume the SRDF volume
+# 6. Save off the state of the DB (2)
+# 7. Compare state (1) and (2)
+# 8. Retry resume operation
+_test_resume_or_restore_single_srdf() {
+    op=$1
+    echot "Test test_${op}_single_srdf Begins"
+
+    if [ "$op" != "resume" -a "$op" != "restore" ]
+    then
+        echo "Supported operations are restore or resume"
+        return
+    fi
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization"
+
+    if [ "$op" = "resume" ]
+    then
+      op_injections="failure_097_SRDFDeviceController.before_performResume \
+        failure_098_SRDFDeviceController.after_performResume"
+    elif [ "$op" = "restore" ]
+    then
+      op_injections="failure_099_SRDFDeviceController.before_performSync \
+        failure_100_SRDFDeviceController.after_performSync"
+    fi
+
+    cfs=("Volume")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections} ${op_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_100_SRDFDeviceController.after_performSync"
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_${op}_single_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      runcmd volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [[ $failure == *".after_perform"* ]]
+      then
+        runcmd volume change_link $PROJECT/$volname-1 $op $PROJECT/$volname-1-target-$NH srdf
+        verify_failures ${failure}
+      else
+        fail volume change_link $PROJECT/$volname-1 $op $PROJECT/$volname-1-target-$NH srdf
+        verify_failures ${failure}
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 ${cfs}
+
+        set_artificial_failure none
+
+        runcmd volume change_link $PROJECT/$volname-1 $op $PROJECT/$volname-1-target-$NH srdf
+      fi
+
+      report_results "test_${op}_single_srdf" ${failure}
     done
 }
 

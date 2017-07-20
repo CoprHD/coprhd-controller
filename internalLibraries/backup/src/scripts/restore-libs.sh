@@ -42,6 +42,14 @@ ssh_execute() {
     echo "${password}" | sudo -S ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${password}' | sudo -S $command" &>/dev/null
 }
 
+ssh_execute_with_output() {
+    local viprNode="${1}"
+    local command="${2}"
+    local password="${3}"
+    local result=`echo "${password}" | sudo -S ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${password}' | sudo -S $command"`
+    echo ${result}
+}
+
 get_nodeid() {
     if [ ${NODE_COUNT} -eq 1 ]; then
         echo "${LOCAL_NODE}"
@@ -69,29 +77,51 @@ finish_message() {
 # local backup includes:
 # 1. The backup created locally
 # 2. The downloaded backup
+# params:
+# $1=backup folder
+
 is_local_backup() {
-    if [[ "${1}" =~ ^\/data\/backup &&  -d "${RESTORE_ORIGIN}" ]]; then
-        echo "true"
-    else
-        echo "false"
+    set +e
+    local backup=$1
+
+    if ! [[ "${backup}" =~ ^\/data\/backup ]]; then
+        return "false"
     fi
+
+    local command="test -d ${backup} && echo true || echo false"
+    for i in $(seq 1 ${NODE_COUNT})
+    do
+        local viprNode=$(get_nodeid)
+        local result=`ssh_execute_with_output "${viprNode}" "${command}" "${ROOT_PASSWORD}"`
+        if [ ${result} ]; then
+            return "true"
+        fi
+    done
+    set -e
+    return "false"
 }
 
 is_vdc_connected() {
-    local geo_file=$(ls -1 ${RESTORE_DIR}/*geodb*.zip |head -1)
+    local command="ls -1 ${RESTORE_DIR}/*geodb*.zip |head -1"
 
-    # get type of the zip file
-    geodb_type=${geo_file#*_}
-    geodb_type=${geodb_type%%_*}
+    for i in $(seq 1 ${NODE_COUNT})
+    do
+        local viprNode=$(get_nodeid)
+        local result=`ssh_execute_with_output "${viprNode}" "${command}" "${ROOT_PASSWORD}"`
 
-    if [ "$geodb_type" == "geodb" ]; then
-        IS_CONNECTED_VDC=false
-    elif [ "$geodb_type" == "geodbmultivdc" ]; then
-        IS_CONNECTED_VDC=true
-    else
-        echo -e "\nInvalid geodb type: $geodb_type, exiting.."
-        exit 2
-    fi
+        # get type of the zip file
+        geodb_type=${result#*_}
+        geodb_type=${geodb_type%%_*}
+        if [ "$geodb_type" == "geodb" ]; then
+            IS_CONNECTED_VDC=false
+            return false
+        elif [ "$geodb_type" == "geodbmultivdc" ]; then
+            IS_CONNECTED_VDC=true
+            return true
+        fi
+    done
+    echo -e "\nInvalid geodb type: $geodb_type, exiting.."
+    exit 2
 }
 
 clean_up() {

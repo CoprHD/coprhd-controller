@@ -175,7 +175,7 @@ check_standby() {
     site_ids=${site_ids#*=}
     ids=(${site_ids//,/ })
     number_of_sites=${#ids[@]}
-    if [[ ${number_of_sites} -gt 1 ]] 
+    if [[ ${number_of_sites} -gt 1 ]]
     then
         echo "Please remove the standby sites before restore"
         exit 1

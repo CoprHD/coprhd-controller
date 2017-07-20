@@ -631,6 +631,7 @@ public class BackupService {
 
         if (!backupOps.isClusterStable()) {
             setRestoreFailed(backupName, isLocal, "The cluster is not stable", null);
+            auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
             return Response.status(ASYNC_STATUS).build();
         }
 

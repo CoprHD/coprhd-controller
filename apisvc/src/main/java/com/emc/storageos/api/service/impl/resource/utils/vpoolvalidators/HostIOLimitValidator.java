@@ -13,6 +13,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import org.apache.commons.collections.CollectionUtils;
 
 public class HostIOLimitValidator extends VirtualPoolValidator<BlockVirtualPoolParam, BlockVirtualPoolUpdateParam> {
     private Integer MAX_HOST_IO_LIMIT_BANDWIDTH = 100000;
@@ -41,9 +42,21 @@ public class HostIOLimitValidator extends VirtualPoolValidator<BlockVirtualPoolP
             }
         }
 
+        // Any driver managed type can support host io limits: return if driver type is in update param,
+        // or driver type is already in vpool system type collection.
+        if (null != updateParam.getSystemType() &&
+                getStorageDriverManager().isDriverManaged(updateParam.getSystemType())) {
+            return;
+        } else if (null != arrayInfo
+                && null != arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
+            StringSet deviceTypes = arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE);
+            if (CollectionUtils.containsAny(deviceTypes, getStorageDriverManager().getBlockSystems())) {
+                return;
+            }
+        }
+
         if (null != updateParam.getSystemType()) {
-            if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType()) &&
-                    !getStorageDriverManager().isDriverManaged(updateParam.getSystemType())) {
+            if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType())) {
                 throw APIException.badRequests.invalidParameterSystemTypeforHostIOLimits();
             }
         } else if (null != arrayInfo
@@ -64,8 +77,12 @@ public class HostIOLimitValidator extends VirtualPoolValidator<BlockVirtualPoolP
             throw APIException.badRequests.missingParameterSystemTypeforHostIOLimits();
         }
 
-        if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType()) &&
-                      !getStorageDriverManager().isDriverManaged(createParam.getSystemType())) {
+        // Any driver managed type can support host io limits
+        if (getStorageDriverManager().isDriverManaged(createParam.getSystemType())) {
+            return;
+        }
+
+        if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType())) {
             throw APIException.badRequests.invalidParameterSystemTypeforHostIOLimits();
         }
 

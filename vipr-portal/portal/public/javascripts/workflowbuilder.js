@@ -81,7 +81,6 @@ angular.module("portalApp")
     	}
     	$scope.closeTab(tabInfo , true) ;
     }) ;
-    
 
     $scope.workflowTabs = wf.getWorkflowInfo() ;
     $scope.isWorkflowTabsEmpty = function () {
@@ -675,15 +674,6 @@ angular.module("portalApp")
     $rootScope.$on('activateWorkflowTab', function(event , elemId) {
     	activateTab(elemId) ;
     })
-    
-    $rootScope.$on('unloadCancelled' , function(event){
-    	if ($scope.workflowData.state === 'TESTING' || 
-    			$scope.workflowData.state === 'PUBLISHING') {
-    		$scope.workflowData.state = "VALID" ;
-    		$scope.$apply() ;
-    	}
-    })
-    
 
     function activateTab(tab , needLoad){
         $('.nav-tabs a[href="#' + tab + '"]').tab('show');

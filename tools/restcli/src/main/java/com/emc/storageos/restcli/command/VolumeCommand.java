@@ -8,9 +8,8 @@ package com.emc.storageos.restcli.command;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.driver.restvmax.rest.BackendType;
-import com.emc.storageos.driver.restvmax.vmax.type.CapacityUnitType;
 import com.emc.storageos.driver.vmax3.Vmax3StorageDriver;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.CapacityUnitType;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
@@ -19,7 +18,7 @@ public class VolumeCommand extends CliCommand {
     private String user;
     private String pass;
     private String providerHost;
-    private Integer port = 0;
+    private Integer port = 8443;
     private boolean jsonFinePrint = true;
     private static final String INVALID_PARAM = "Invalid parameter: ";
     private String groupId;
@@ -48,7 +47,7 @@ public class VolumeCommand extends CliCommand {
         if (port > 0) {
             provider.setPortNumber(port);
         } else {
-            provider.setPortNumber(BackendType.VMAX.getPort());
+            provider.setPortNumber(port);
         }
         provider.setUsername(user);
         provider.setPassword(pass);

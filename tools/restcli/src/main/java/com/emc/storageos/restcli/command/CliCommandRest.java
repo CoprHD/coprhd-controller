@@ -8,9 +8,10 @@ package com.emc.storageos.restcli.command;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.InputStreamReader;
+import java.net.URI;
 
-import com.emc.storageos.driver.restvmax.rest.RestMethod;
 import com.emc.storageos.driver.vmax3.restengine.RestClient;
+import com.emc.storageos.driver.vmax3.restengine.RestEngine;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.restcli.Util;
 import com.google.gson.Gson;
@@ -41,8 +42,8 @@ public class CliCommandRest extends CliCommand {
     }
 
     private void init() {
-        authenticationInfo = new AuthenticationInfo(null, null, user, pass);
-        restClient = new RestClient(authenticationInfo, true);
+        authenticationInfo = new AuthenticationInfo(null, null, null, user, pass);
+        this.restClient = new RestEngine(authenticationInfo).getRestClient();
     }
 
     @Override
@@ -68,16 +69,16 @@ public class CliCommandRest extends CliCommand {
             init();
             switch (this.method) {
                 case GET:
-                    cr = restClient.get(this.url);
+                    cr = restClient.get(URI.create(this.url));
                     break;
                 case DELETE:
-                    cr = restClient.delete(this.url);
+                    cr = restClient.delete(URI.create(this.url));
                     break;
                 case POST:
-                    cr = restClient.post(this.url, this.restParam);
+                    cr = restClient.post(URI.create(this.url), this.restParam);
                     break;
                 case PUT:
-                    cr = restClient.put(this.url, this.restParam);
+                    cr = restClient.put(URI.create(this.url), this.restParam);
                     break;
                 default:
                     throw new IllegalArgumentException("unsupported REST action: " + this.method.name());

@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Migration;
@@ -839,6 +840,22 @@ public class BulkList<T> implements List<T> {
                         _user, resource.getId(), Role.SECURITY_ADMIN, Role.TENANT_ADMIN, Role.SYSTEM_MONITOR);
             }
             return ret;
+        }
+    }
+    
+    public static class ExportPathParamsFilter
+            extends PermissionsEnforcingResourceFilter<ExportPathParams> {
+
+        public ExportPathParamsFilter(StorageOSUser user,
+                PermissionsHelper permissionsHelper) {
+            super(user, permissionsHelper);
+        }
+
+        @Override
+        public boolean isAccessible(ExportPathParams resource) {
+            boolean ret = false;
+            return ret = _permissionsHelper.userHasGivenRole(
+                    _user, resource.getId(), Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN);
         }
     }
 }

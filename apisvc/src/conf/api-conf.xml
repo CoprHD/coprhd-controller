@@ -478,6 +478,11 @@
         <property name="tenantsService" ref="tenantsService"/>
         <property name="openStackSynchronizationTask" ref="openStackSynchronizationTask"/>
     </bean>
+    
+    <bean id ="exportPathParametersService" class="com.emc.storageos.api.service.impl.resource.ExportPathParametersService">
+        <property name="dbClient" ref="dbclient"/>
+    	<property name="coordinator" ref="coordinator"/>
+    </bean>
 
     <bean id="projectService" class="com.emc.storageos.api.service.impl.resource.ProjectService">
         <property name="dbClient" ref="dbclient"/>
@@ -541,6 +546,7 @@
                 <ref bean="volumeGroupService"/>
                 <ref bean="storageSystemTypeService"/>
                 <ref bean="authnConfigurationService" />
+                <ref bean="exportPathParametersService" />
 
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>

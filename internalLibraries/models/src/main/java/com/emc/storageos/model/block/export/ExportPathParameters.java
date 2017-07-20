@@ -24,7 +24,10 @@ public class ExportPathParameters {
     private Integer minPaths;
     private List<URI> storagePorts;
     private URI portGroup;
-
+    private String description;
+    private String name;
+    private Integer maxInitiatorsPerPort;
+    
     @XmlElement(name = "max_paths")
     @Range(min = 1, max = 65535)
     /**
@@ -103,4 +106,32 @@ public class ExportPathParameters {
         this.portGroup = portGroup;
     }
 
+    @XmlElement(name = "description")
+    public String getDescription() {
+        return description;
+    }
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    
+    @XmlElement(name = "name")
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    /**
+     * The number of Initiators that will be assigned and zoned to each Port.
+     */
+    @XmlElement(name = "max_initiators_per_port", required = false)
+    @Range(min = 1, max = 65535)
+    public Integer getMaxInitiatorsPerPort() {
+        return maxInitiatorsPerPort;
+    }
+    public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
+        this.maxInitiatorsPerPort = maxInitiatorsPerPort;
+    }
+    
 }

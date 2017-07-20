@@ -104,7 +104,8 @@ public enum ResourceTypeEnum {
     CUSTOM_SERVICES_WORKFLOW("custom_services_workflow", "/customservices/workflows"),
     WF_DIRECTORY("wf_directory", "/customservices/workflows/directory"),
     CUSTOM_SERVICES_PRIMITIVES("custom_services_primitives", "/customservices/primitives"),
-    CUSTOM_SERVICES_PRIMITIVE_RESOURCES("custom_services_primitive_resources", "/customservices/primitives/resource");
+    CUSTOM_SERVICES_PRIMITIVE_RESOURCES("custom_services_primitive_resources", "/customservices/primitives/resource"),
+    EXPORT_PATH_PARAMETERS("export_path_parameters","/block/export-path-parameters");
 
     private static final Map<String, ResourceTypeEnum> resourceMap = new HashMap<String, ResourceTypeEnum>();
 

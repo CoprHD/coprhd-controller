@@ -105,6 +105,7 @@ import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BulkDeleteParam;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
+import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
@@ -146,6 +147,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
     private static final int CG_MAX_LIMIT = 64;
     private static final String FULL_COPY = "Full copy";
+    private static final String ID_FIELD = "id";
 
     // A reference to the placement manager.
     private PlacementManager _placementManager;
@@ -2693,6 +2695,295 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         if (!cg.getId().equals(session.getConsistencyGroup())) {
             throw APIException.badRequests.snapshotSessionIsNotForConsistencyGroup(session.getLabel(), cg.getLabel());
+        }
+    }
+
+    /**
+     * Create/Initiate the Migration of a Storage Group.
+     * 
+     * This automatically provisions equivalent storage on the target system. The target devices
+     * are assigned the identity of the source devices and are configured in a pass-through mode
+     * that allows the data to be accessed from both the source and target devices.
+     * 
+     * @prereq Migration environment is created between source and target systems.
+     * @param id the URN of Block Consistency Group
+     * @param param MigrationCreateParam
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/create")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationCreate(@PathParam("id") URI id, MigrationCreateParam param) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+        ArgValidator.checkFieldUriType(param.getTargetStorageSystem(), StorageSystem.class, "target_storage_system");
+        // ArgValidator.checkFieldUriType(param.getTargetPorts(), StoragePort.class, "target_storage_ports");
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+        validateBlockConsistencyGroupStatusForMigrationOperation(cg, "create");
+
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the consistency group and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATION_CREATE_MIGRATION);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Cutover the Migration of a Storage Group.
+     * 
+     * A cutover operation moves the target devices out of pass-through mode, initiates data
+     * synchronization from the source to the target and makes the paths to the source array
+     * inactive so that all I/Os are being serviced by the target system.
+     * 
+     * @prereq Storage group on the target side is created. Host zoning and rescan is done.
+     * @param id the URN of Block Consistency Group
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/cutover")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationCutover(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the consistency group and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATION_CUTOVER);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Commit the Migration of a Storage Group.
+     * 
+     * After the source to target data synchronization is complete and all application data has
+     * been migrated to the target system, a commit operation is performed. It completes the migration
+     * by releasing temporary resources allocated to perform the migration, permanently disabling
+     * access to the source devices, and assigning the target device ID to the source devices.
+     * 
+     * @prereq Storage group on the target system has all the data migrated from the source system .
+     * @param id the URN of Block Consistency Group
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/commit")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationCommit(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the consistency group and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATION_COMMIT);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Cancel the Migration of a Storage Group.
+     *
+     * Ends a migration that has not been committed. It removes storage provisioned for the migration
+     * on the target system, releases resources allocated to perform the migration, and places the
+     * source devices into the state they were in before the Create operation was run.
+     * 
+     * @prereq Storage group on the target system is created and not committed yet.
+     * @param id the URN of Block Consistency Group
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/cancel")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationCancel(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the consistency group and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATION_CANCEL);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Refresh the migration status for the Storage Group.
+     * 
+     * @prereq Storage group on the source system is discovered.
+     * @param id the URN of Block Consistency Group
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/refresh")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationRefresh(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the consistency group and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATION_REFRESH);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Recovers the migration for a Storage Group from a failed state.
+     * 
+     * @prereq Migration for a storage system is created, but not yet committed.
+     * @param id the URN of Block Consistency Group
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/recover")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationRecover(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the consistency group and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATION_RECOVER);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Sync – Controls the replication from the target side devices to the source side devices
+     * after a cutover is done and all data has been migrated to the target side.
+     * Sync Stop - Stops the writes to the source volumes during a migration.
+     * 
+     * @prereq Migration for a storage group is created, cutover operation is performed,
+     *         and waiting to commit.
+     * @param id the URN of Block Consistency Group
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/sync-stop")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationSyncStop(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the consistency group and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATION_SYNCSTOP);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Sync – Controls the replication from the target side devices to the source side devices
+     * after a cutover is done and all data has been migrated to the target side.
+     * Sync Start - Synchronizes the source volumes with target volumes during a migration.
+     * 
+     * @prereq Migration for a storage group is created, cutover operation is performed,
+     *         and waiting to commit.
+     * @param id the URN of Block Consistency Group
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/sync-start")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationSyncStart(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the consistency group and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATION_SYNCSTART);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Validate block consistency group for migration.
+     *
+     * @param cg the block consistency group
+     */
+    private void validateBlockConsistencyGroupForMigration(BlockConsistencyGroup cg) {
+        if (!cg.getTypes().contains(Types.MIGRATION.name())) {
+            throw APIException.methodNotAllowed.notSupportedWithReason(
+                    "Migration Operation is supported only for Block Consistency Groups of type 'Migration'");
+        }
+    }
+
+    /**
+     * Validate block consistency group status for requested migration operation.
+     *
+     * @param cg the block consistency group
+     * @param operation the migration operation
+     */
+    private void validateBlockConsistencyGroupStatusForMigrationOperation(BlockConsistencyGroup cg, String operation) {
+        String expectedGroupStatus = null;
+        switch (operation) {
+            case "create":
+                expectedGroupStatus = "MIGRATION_READY";
+                break;
+            case "cutover":
+                expectedGroupStatus = "CUTOVER_READY";
+                break;
+            case "commit":
+                expectedGroupStatus = "COMMIT_READY";
+                break;
+            default:
+                _log.warn("Unexpected migration operation {}", operation);
+                break;
+        }
+        if (expectedGroupStatus == null ||
+                !expectedGroupStatus.equalsIgnoreCase(cg.getMigrationStatus())) {
+            // throw APIException.badRequests.;
         }
     }
 

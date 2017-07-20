@@ -2,7 +2,7 @@
  * Copyright (c) 2017 DELL EMC
  * All Rights Reserved
  */
-package com.emc.storageos.vmax;
+package com.emc.storageos.vmax.restapi.errorhandling;
 
 import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;

@@ -9,6 +9,10 @@ import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.vmax.VMAXConstants;
+import com.emc.storageos.vmax.restapi.model.response.NDMMigrationEnvironmentResponse;
+import com.sun.jersey.api.client.ClientResponse;
+
 public class VMAXApiClient{
 	private static Logger logger = LoggerFactory.getLogger(VMAXApiClient.class);
 
@@ -22,4 +26,13 @@ public class VMAXApiClient{
     	this.client = client;
 	}
 	
+    
+    
+    public NDMMigrationEnvironmentResponse getMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber){
+    	
+    	NDMMigrationEnvironmentResponse environmentResponse = null;
+    	ClientResponse clientResponse = client.get(URI.create(VMAXConstants.VALIDATE_ENVIRONMENT_URI));
+    	return environmentResponse;
+    	
+    }
 }

@@ -71,7 +71,7 @@ public final class DriverMetadataUtil {
 
         // Validate meta data and delete old meta data if it exists
         List<StorageSystemType> types = getTypesByDriverName(metaData.getDriverName(), dbClient);
-        if (!types.isEmpty()) { 
+        if (types.isEmpty()) { 
             precheckForMetaData(metaData, dbClient, false, false);
         } else {
             precheckForMetaData(metaData, dbClient, true, false);

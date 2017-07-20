@@ -17,6 +17,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.apache.commons.collections.CollectionUtils;
+
 import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
@@ -463,36 +466,15 @@ public class SystemsMapper {
         if (from.getIsNative() != null) {
             to.setNative(from.getIsNative());
         }
+        Set<String> supportedStorageProfiles = from.getSupportedStorageProfiles();
+        if (CollectionUtils.isNotEmpty(supportedStorageProfiles)) {
+            to.setSupportedStorageProfiles(supportedStorageProfiles);
+        }
 
 		return to;
 	}
 
 	public static StorageSystemTypeRestRep map(StorageSystemType from) {
-		if (from == null) {
-			return null;
-		}
-		StorageSystemTypeRestRep to = new StorageSystemTypeRestRep();
-		to.setStorageTypeName(from.getStorageTypeName());
-		to.setMetaType(from.getMetaType());
-		to.setIsSmiProvider(from.getIsSmiProvider());
-		to.setStorageTypeId(from.getStorageTypeId());
-		to.setStorageTypeDispName(from.getStorageTypeDispName());
-		to.setIsDefaultSsl(from.getIsDefaultSsl());
-		to.setIsDefaultMDM(from.getIsDefaultMDM());
-		to.setIsOnlyMDM(from.getIsOnlyMDM());
-		to.setIsElementMgr(from.getIsElementMgr());
-		to.setNonSslPort(from.getNonSslPort());
-		to.setSslPort(from.getSslPort());
-		to.setDriverClassName(from.getDriverClassName());
-        to.setIsSecretKey(from.getIsSecretKey());
-        to.setSupportAutoTierPolicy(from.getSupportAutoTierPolicy());
-        if (from.getManagedBy() != null) {
-            to.setManagedBy(from.getManagedBy());
-        }
-        if (from.getIsNative() != null) {
-            to.setNative(from.getIsNative());
-        }
-
-		return to;
+        return map(from, new StorageSystemTypeRestRep());
 	}
 }

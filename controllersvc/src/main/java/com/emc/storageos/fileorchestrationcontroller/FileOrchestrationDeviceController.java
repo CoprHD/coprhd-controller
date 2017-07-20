@@ -2375,7 +2375,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
          // setting if the create fs step is needed.
             boolean isTargetExisting = false;
-            if (CollectionUtils.isEmpty(sourceFS.getExtensions()) && sourceFS.getExtensions().containsKey("ReplicationInfo")) {
+            if (!CollectionUtils.isEmpty(sourceFS.getExtensions()) && sourceFS.getExtensions().containsKey("ReplicationInfo")) {
                 FileShare targetFs = null;
                 String targetInfo = sourceFS.getExtensions().get("ReplicationInfo");
                 if (targetInfo != null) {

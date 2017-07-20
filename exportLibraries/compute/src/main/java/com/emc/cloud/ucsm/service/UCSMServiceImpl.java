@@ -542,7 +542,6 @@ public class UCSMServiceImpl implements UCSMService {
                 errorMessage.append("Service Profile name " + serviceProfileName + " is already in use");
                 throw new RuntimeException("Service Profile template duplicate");
             }
-            
 
             try {
                 ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);

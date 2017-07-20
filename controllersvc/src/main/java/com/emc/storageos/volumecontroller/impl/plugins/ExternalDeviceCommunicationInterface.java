@@ -731,7 +731,7 @@ public class ExternalDeviceCommunicationInterface extends
     private void discoverCompressionCapabilityForStoragePool(StorageSystem driverStorageSystem,
                                                                StoragePool driverPool, com.emc.storageos.db.client.model.StoragePool dbPool) {
 
-        // Get the capabilities specified for the storage pool and process deduplication capability if reported by driver
+        // Get the capabilities specified for the storage pool and process compression capability if reported by driver
         List<CapabilityInstance> capabilities = driverPool.getCapabilities();
         if (capabilities == null) {
             return;

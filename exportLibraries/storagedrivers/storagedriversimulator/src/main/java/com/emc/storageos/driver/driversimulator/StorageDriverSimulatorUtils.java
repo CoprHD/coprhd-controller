@@ -23,6 +23,8 @@ import java.util.Map;
  */
 public class StorageDriverSimulatorUtils {
 
+    private static int count =0;
+
     public static CapabilityInstance getHostIOLimitsCapabilities(StorageCapabilities storageCapabilities) {
         // get hostio limits capability
         CapabilityInstance hostIOLimits = null;
@@ -45,12 +47,15 @@ public class StorageDriverSimulatorUtils {
 
     public static void addHostIOLimitsCapabilities(CommonStorageCapabilities commonCapabilities) {
 
+        int host_io_limits_iops;
+        host_io_limits_iops = ++count%2 == 0 ? 100 : 200;
+
         HostIOLimitsCapabilityDefinition capabilityDefinition = new HostIOLimitsCapabilityDefinition();
         Map<String, List<String>> capabilityProperties = new HashMap<>();
         capabilityProperties.put(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_BANDWIDTH.name(),
                 Collections.singletonList("100"));
         capabilityProperties.put(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_IOPS.name(),
-                Collections.singletonList("100"));
+                Collections.singletonList(Integer.toString(host_io_limits_iops)));
 
         CapabilityInstance hostIOLimitsCapability = new CapabilityInstance(capabilityDefinition.getId(),
                 capabilityDefinition.getId(), capabilityProperties);

@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.emc.storageos.driver.vmax3.SymConstants;
 import com.emc.storageos.driver.vmax3.restengine.RestEngine;
-import com.emc.storageos.driver.vmax3.smc.SymConstants;
 import com.emc.storageos.driver.vmax3.utils.UrlGenerator;
 
 public class DefaultManager {

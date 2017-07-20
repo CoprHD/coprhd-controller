@@ -18,7 +18,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
  * All the code is just fake code.
  *
  */
-public class ProvisioningHelper extends AbstractHelper {
+public class ProvisioningHelper extends DefaultHelper {
 
     /**
      * @param driverRegistry
@@ -28,6 +28,7 @@ public class ProvisioningHelper extends AbstractHelper {
         super(driverRegistry, lockManager, arrayId);
     }
 
+    // TODO: fake implementation
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "discover-storage-provider", UUID.randomUUID().toString());

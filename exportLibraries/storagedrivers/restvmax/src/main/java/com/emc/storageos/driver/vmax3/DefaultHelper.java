@@ -13,7 +13,7 @@ import com.emc.storageos.storagedriver.Registry;
  * @author fengs5
  *
  */
-public abstract class AbstractHelper {
+public class DefaultHelper {
     ManagerFactory managerFactory;
     AuthenticationInfo authenticationInfo;
     Registry driverRegistry;
@@ -24,9 +24,10 @@ public abstract class AbstractHelper {
     /**
      * 
      * @param driverRegistry
+     * @param lockManager
      * @param arrayId
      */
-    public AbstractHelper(Registry driverRegistry, LockManager lockManager, String arrayId) {
+    public DefaultHelper(Registry driverRegistry, LockManager lockManager, String arrayId) {
         super();
         this.driverRegistry = driverRegistry;
         this.lockManager = lockManager;
@@ -38,9 +39,11 @@ public abstract class AbstractHelper {
     }
 
     /**
-     * @param Registry
+     * 
+     * @param driverRegistry
+     * @param lockManager
      */
-    public AbstractHelper(Registry driverRegistry, LockManager lockManager) {
+    public DefaultHelper(Registry driverRegistry, LockManager lockManager) {
         super();
         this.driverRegistry = driverRegistry;
         this.lockManager = lockManager;

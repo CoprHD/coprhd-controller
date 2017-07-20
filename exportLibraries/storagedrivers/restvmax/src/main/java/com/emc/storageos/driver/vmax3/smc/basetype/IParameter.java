@@ -13,5 +13,5 @@ public interface IParameter {
      * 
      * @param viprPojo
      */
-    <T> void fromViprPojo(T viprPojo);
+    void fromViprPojo(Object viprPojo);
 }

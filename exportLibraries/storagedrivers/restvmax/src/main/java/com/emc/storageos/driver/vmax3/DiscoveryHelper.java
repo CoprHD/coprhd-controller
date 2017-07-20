@@ -20,7 +20,7 @@ import com.emc.storageos.storagedriver.model.StorageSystem;
  * All the code is just fake code.
  *
  */
-public class DiscoveryHelper extends AbstractHelper {
+public class DiscoveryHelper extends DefaultHelper {
 
     /**
      * 
@@ -46,6 +46,7 @@ public class DiscoveryHelper extends AbstractHelper {
         managerFactory = new ManagerFactory(authenticationInfo);
     }
 
+    // TODO: fake implementation
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "discover-storage-provider", UUID.randomUUID().toString());
@@ -60,6 +61,7 @@ public class DiscoveryHelper extends AbstractHelper {
         return task;
     }
 
+    // TODO: fake implementation
     public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "discover-storage-provider", UUID.randomUUID().toString());

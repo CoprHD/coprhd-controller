@@ -4,12 +4,10 @@
  */
 package com.emc.storageos.driver.vmax3.utils;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.driver.vmax3.smc.SymConstants;
+import com.emc.storageos.driver.vmax3.SymConstants;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 
 final public class UrlGenerator {
@@ -64,15 +62,4 @@ final public class UrlGenerator {
         return sb.toString();
     }
 
-    public static void main(String[] args) {
-        String LIST_VOLUME_URL = "/sloprovisioning/symmetrix/%s/volume";
-        String[] arr = { "11", "33", "44", "55" };
-        List<String> list = Arrays.asList(arr);
-        Map<String, String> params = new HashMap<String, String>();
-        params.put("aaa", "vaaa");
-        params.put("bbb", "vbbb");
-        AuthenticationInfo authenticationInfo = new AuthenticationInfo("https", "1.2.3.4", 1234, "user", "ppp");
-        UrlGenerator gen = new UrlGenerator(authenticationInfo);
-        System.out.println(gen.genUrl(LIST_VOLUME_URL, list, params));
-    }
 }

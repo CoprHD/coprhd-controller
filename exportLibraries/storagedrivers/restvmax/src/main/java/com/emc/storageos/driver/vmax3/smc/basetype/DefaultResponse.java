@@ -4,7 +4,8 @@
  */
 package com.emc.storageos.driver.vmax3.smc.basetype;
 
-import com.emc.storageos.driver.vmax3.smc.SymConstants;
+import com.emc.storageos.driver.vmax3.SymConstants;
+import com.emc.storageos.driver.vmax3.utils.TranslationTool;
 
 /**
  * @author fengs5
@@ -79,8 +80,7 @@ public class DefaultResponse implements IResponse {
      */
     @Override
     public <T> T toViprPojo(Class<T> clazz) {
-        // TODO Auto-generated method stub
-        return null;
+        return TranslationTool.toViprPojo(this, clazz);
     }
 
 }

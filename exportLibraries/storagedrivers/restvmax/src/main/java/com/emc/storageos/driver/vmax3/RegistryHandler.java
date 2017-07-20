@@ -52,7 +52,7 @@ public class RegistryHandler {
         attributes.put(REGISTRY_ATTRIBUTE_NAME_USERNAME, usernameList);
         passwordList.add(password);
         attributes.put(REGISTRY_ATTRIBUTE_NAME_PASSWORD, passwordList);
-        this.registry.setDriverAttributesForKey(SbDriverConstants.DRIVER_NAME, getAccessInfoKey(arrayId), attributes);
+        this.registry.setDriverAttributesForKey(SymConstants.DRIVER_NAME, getAccessInfoKey(arrayId), attributes);
     }
 
     /**
@@ -64,7 +64,7 @@ public class RegistryHandler {
      */
     public AuthenticationInfo getAccessInfo(String arrayId) {
         Map<String, List<String>> connectionInfo = this.registry.getDriverAttributesForKey(
-                SbDriverConstants.DRIVER_NAME, getAccessInfoKey(arrayId));
+                SymConstants.DRIVER_NAME, getAccessInfoKey(arrayId));
         if (connectionInfo.isEmpty()) {
             return null;
         }

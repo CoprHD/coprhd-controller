@@ -2,11 +2,13 @@
  * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.driver.vmax3.smc;
+package com.emc.storageos.driver.vmax3;
 
 public class SymConstants {
+    public final static String DRIVER_NAME = "unimax";
+
     private SymConstants() {
-        throw new IllegalAccessError("SbdriverConstants class");
+        throw new IllegalAccessError("SymConstants class");
     }
 
     public final static String HOST_FORMAT = "%s://%s:%d";

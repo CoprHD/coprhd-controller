@@ -9,13 +9,18 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.driver.vmax3.smc.SymConstants;
+import com.emc.storageos.driver.vmax3.SymConstants;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.vmax3.smc.basetype.DefaultManager;
 import com.emc.storageos.driver.vmax3.smc.basetype.EmptyResponse;
 import com.emc.storageos.driver.vmax3.smc.basetype.ResponseWrapper;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.CreateStorageGroupParameter;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.DynamicDistributionType;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupActionParam;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupParameter;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupSLOParam;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupWorkloadParam;
+import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.SetHostIOLimitsParam;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.StorageGroupResponse;
 
 public class StorageGroupManager extends DefaultManager {
@@ -76,18 +81,64 @@ public class StorageGroupManager extends DefaultManager {
         return responseBean;
     }
 
-    public EmptyResponse editSgWithSlo(String sgId, EditStorageGroupParameter param) {
+    /**
+     * Edit SG for SLO property.
+     * 
+     * @param sgId
+     * @param sloId
+     * @return
+     */
+    public EmptyResponse editSgWithSlo(String sgId, String sloId) {
+        EditStorageGroupSLOParam sloParam = new EditStorageGroupSLOParam(sloId);
+        EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
+        actionParam.setEditStorageGroupSLOParam(sloParam);
+        EditStorageGroupParameter param = new EditStorageGroupParameter();
+        param.setEditStorageGroupActionParam(actionParam);
         return editProperty4Sg(sgId, param, genUrlFillers(sgId), SgPropertyType.SLO);
     }
 
-    public EmptyResponse editSgWithWorkload(String sgId, EditStorageGroupParameter param) {
+    /**
+     * Edit SG for Workload property.
+     * 
+     * @param sgId
+     * @param workload
+     * @return
+     */
+    public EmptyResponse editSgWithWorkload(String sgId, String workload) {
+        EditStorageGroupWorkloadParam wlParam = new EditStorageGroupWorkloadParam(workload);
+        EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
+        actionParam.setEditStorageGroupWorkloadParam(wlParam);
+        EditStorageGroupParameter param = new EditStorageGroupParameter();
+        param.setEditStorageGroupActionParam(actionParam);
         return editProperty4Sg(sgId, param, genUrlFillers(sgId), SgPropertyType.WORK_LOAD);
     }
 
-    public EmptyResponse editSgWithHostIoLimit(String sgId, EditStorageGroupParameter param) {
+    /**
+     * Edit SG for host io limit properties.
+     * 
+     * @param sgId
+     * @param hostIoLimitMbSec
+     * @param hostIoLimitIoSec
+     * @param dynamicDistribution
+     * @return
+     */
+    public EmptyResponse editSgWithHostIoLimit(String sgId, String hostIoLimitMbSec, String hostIoLimitIoSec,
+            DynamicDistributionType dynamicDistribution) {
+        SetHostIOLimitsParam setHostIOLimitsParam = new SetHostIOLimitsParam(hostIoLimitMbSec, hostIoLimitIoSec, dynamicDistribution);
+        EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
+        actionParam.setSetHostIOLimitsParam(setHostIOLimitsParam);
+        EditStorageGroupParameter param = new EditStorageGroupParameter();
+        param.setEditStorageGroupActionParam(actionParam);
         return editProperty4Sg(sgId, param, genUrlFillers(sgId), SgPropertyType.HOST_IO_LIMIT);
     }
 
+    /**
+     * Create new volumes in SG.
+     * 
+     * @param sgId
+     * @param param EditStorageGroupParameter
+     * @return StorageGroupResponse
+     */
     public StorageGroupResponse createNewVolInSg(String sgId, EditStorageGroupParameter param) {
         return createNewVolInSg(sgId, param, genUrlFillers(sgId));
     }

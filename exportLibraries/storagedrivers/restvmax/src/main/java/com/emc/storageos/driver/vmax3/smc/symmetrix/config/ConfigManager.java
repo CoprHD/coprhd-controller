@@ -4,11 +4,11 @@
  */
 package com.emc.storageos.driver.vmax3.smc.symmetrix.config;
 
-import com.emc.storageos.driver.vmax3.smc.basetype.DefaultManager;
 import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
+import com.emc.storageos.driver.vmax3.smc.basetype.DefaultManager;
 
 /**
- * @author fengs5
+ * For SLO, SRP, Workload...
  *
  */
 public class ConfigManager extends DefaultManager {

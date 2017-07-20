@@ -22,10 +22,7 @@ import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.CreateStor
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.DynamicDistributionType;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupActionParam;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupParameter;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupSLOParam;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupWorkloadParam;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.ExpandStorageGroupParam;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.SetHostIOLimitsParam;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.VolumeAttributeType;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.VolumeIdentifierChoiceType;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.VolumeIdentifierType;
@@ -61,8 +58,8 @@ public class ManagerFunctionTest {
 
     @Test
     public void testCreateOneVolumeWithNewSg() {
-        String sgName = "stone_test_sg_auto_006";
-        String volumeNamePrefix = "stone_test_vol_006-";
+        String sgName = "stone_test_sg_auto_007";
+        String volumeNamePrefix = "stone_test_vol_007-";
         testCreateEmptySg(sgName);
         testEditSgSlo(sgName);
         testEditSgWithWorkload(sgName);
@@ -85,32 +82,17 @@ public class ManagerFunctionTest {
 
     private void testEditSgSlo(String sgName) {
 
-        EditStorageGroupSLOParam sloParam = new EditStorageGroupSLOParam("Bronze");
-        EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
-        actionParam.setEditStorageGroupSLOParam(sloParam);
-        EditStorageGroupParameter param = new EditStorageGroupParameter();
-        param.setEditStorageGroupActionParam(actionParam);
-        Assert.assertTrue(sgManager.editSgWithSlo(sgName, param).isSuccessfulStatus());
+        Assert.assertTrue(sgManager.editSgWithSlo(sgName, "Bronze").isSuccessfulStatus());
     }
 
     private void testEditSgWithWorkload(String sgName) {
 
-        EditStorageGroupWorkloadParam wlParam = new EditStorageGroupWorkloadParam("DSS");
-        EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
-        actionParam.setEditStorageGroupWorkloadParam(wlParam);
-        EditStorageGroupParameter param = new EditStorageGroupParameter();
-        param.setEditStorageGroupActionParam(actionParam);
-        Assert.assertTrue(sgManager.editSgWithSlo(sgName, param).isSuccessfulStatus());
+        Assert.assertTrue(sgManager.editSgWithWorkload(sgName, "DSS").isSuccessfulStatus());
     }
 
     private void testEditSgWithHostIoLimit(String sgName) {
 
-        SetHostIOLimitsParam setHostIOLimitsParam = new SetHostIOLimitsParam("10", "300", DynamicDistributionType.Never);
-        EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
-        actionParam.setSetHostIOLimitsParam(setHostIOLimitsParam);
-        EditStorageGroupParameter param = new EditStorageGroupParameter();
-        param.setEditStorageGroupActionParam(actionParam);
-        Assert.assertTrue(sgManager.editSgWithHostIoLimit(sgName, param).isSuccessfulStatus());
+        Assert.assertTrue(sgManager.editSgWithHostIoLimit(sgName, "10", "300", DynamicDistributionType.Never).isSuccessfulStatus());
     }
 
     private void testCreateNewVolInSg(String sgName, String volumeIdentifierName, long volumeNum) {

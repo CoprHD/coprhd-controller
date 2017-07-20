@@ -11,6 +11,7 @@ import com.emc.storageos.coordinator.client.model.StorageDriverMetaData;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
 import com.emc.storageos.storagedriver.util.DriverMetadataUtil;
+import com.sun.tools.javac.util.StringUtils;
 
 public final class StorageDriverMapper {
 
@@ -27,7 +28,7 @@ public final class StorageDriverMapper {
         rep.setDriverFileName(type.getDriverFileName());
         rep.setDriverStatus(type.getDriverStatus());
         rep.setDriverClassName(type.getDriverClassName());
-        rep.setMetaType(type.getMetaType());
+        rep.setMetaType(StringUtils.toUpperCase(type.getMetaType()));
         List<String> supportedTypes = new ArrayList<String>();
         supportedTypes.add(type.getStorageTypeDispName());
         rep.setSupportedTypes(supportedTypes);

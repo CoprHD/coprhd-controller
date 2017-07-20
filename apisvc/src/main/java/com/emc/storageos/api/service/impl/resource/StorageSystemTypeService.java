@@ -106,7 +106,7 @@ public class StorageSystemTypeService extends TaskResourceService {
             if (ssType.getStorageTypeId() == null) {
                 ssType.setStorageTypeId(ssType.getId().toString());
             }
-            if (StringUtils.equals(ALL_TYPE, type) || StringUtils.equals(type, ssType.getMetaType())) {
+            if (StringUtils.equalsIgnoreCase(ALL_TYPE, type) || StringUtils.equalsIgnoreCase(type, ssType.getMetaType())) {
                 list.getStorageSystemTypes().add(map(ssType));
             }
         }

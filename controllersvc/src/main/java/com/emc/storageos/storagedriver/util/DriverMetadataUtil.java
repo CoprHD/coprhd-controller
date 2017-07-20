@@ -162,7 +162,7 @@ public final class DriverMetadataUtil {
         // check meta type
         String metaType = props.getProperty(STORAGE_META_TYPE);
         precheckForMetaType(metaType);
-        metaData.setMetaType(metaType.toUpperCase());
+        metaData.setMetaType(metaType.toLowerCase());
         // check enable_ssl
         String enableSslStr = props.getProperty(ENABLE_SSL);
         if (StringUtils.isNotEmpty(enableSslStr)) {

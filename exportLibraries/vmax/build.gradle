@@ -1,5 +1,7 @@
 dependencies {
     compile project(":errorhandling"),
-        library(smooks),
-        library(httpclient4)
+            project(":serviceutils") ,
+            project(":dbsvc"),
+            library(smooks),
+            library(httpclient4)
 }

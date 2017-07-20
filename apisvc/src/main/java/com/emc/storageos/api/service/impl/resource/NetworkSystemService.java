@@ -14,9 +14,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -31,12 +34,12 @@ import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.api.mapper.functions.MapNetworkSystem;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
+import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
@@ -45,12 +48,17 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
@@ -63,6 +71,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.network.FCEndpointRestRep;
 import com.emc.storageos.model.network.FCEndpoints;
 import com.emc.storageos.model.network.FCZoneReferences;
@@ -103,9 +112,12 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
+import com.google.common.base.Joiner;
 
 /**
  * NetworkDevice resource implementation
@@ -122,10 +134,19 @@ public class NetworkSystemService extends TaskResourceService {
     private int _retry_attempts;
 
     private static final String EVENT_SERVICE_TYPE = "network";
+    
+    private static volatile BlockStorageScheduler _blockStorageScheduler;
 
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
+    }
+    
+    public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
+        if (_blockStorageScheduler == null) {
+            _blockStorageScheduler = blockStorageScheduler;
+        }
+
     }
 
     private static final String BROCADE_ZONE_NAME_EXP = "[a-zA-Z0-9_]+";
@@ -879,7 +900,73 @@ public class NetworkSystemService extends TaskResourceService {
             throw APIException.badRequests.illegalWWN(wwn);
         }
     }
-
+    
+    /**
+     * 
+     * @param param
+     * @param hostURI
+     * @param storageSystemId
+     * @return
+     * @throws InternalException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/create-san-zones")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep createSANZones(ExportPathParameters param, @PathParam("hostURI") URI hostURI,
+            @PathParam("storageId") URI storageSystemId) throws InternalException {
+        String task = UUID.randomUUID().toString();
+        List<URI> hostInitiatorNamesList = ExportUtils.getInitiatorsOfHost(hostURI, _dbClient);
+        
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorNamesList, true);
+        // TODO fix Null - I don't see any issues need to verify.
+        ExportPathParams pathParam = new ExportPathParams(param, null);
+        // Volumes has to be passed only for RP cases.
+        // TODO VArray calculation
+        // Calculate the zoning map based on the path parameters
+        
+       /** Set<String> initiatorVArrays = ConnectivityUtil.getInitiatorVarrays(initiators.get(0).getInitiatorPort(), _dbClient);
+        _log.info("Initiator Virtual Arrays {}", Joiner.on(",").join(initiatorVArrays));
+        List<URI> storagePortURIList = param.getStoragePorts();
+        List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIList);
+        Set<String>  portVArrays = new HashSet<String>();
+        for(StoragePort port : storagePorts) {
+            if(o)
+            if(null != port.getTaggedVirtualArrays())
+            portVArrays.addAll(port.getTaggedVirtualArrays());
+            
+        }
+        _log.info("Port Virtual Arrays {}", Joiner.on(",").join(portVArrays));
+        initiatorVArrays.retainAll(portVArrays);
+        _log.info("initiator and Ports are conencted through Virtual Arrays {}", Joiner.on(",").join(initiatorVArrays));
+        if(null == initiatorVArrays) {
+            //throw exception
+        }
+        
+        ConnectivityUtil.getStoragePortsVarrays(storagePorts);
+        URI varray = URIUtil.uri(initiatorVArrays.iterator().next());**/
+        
+        List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, param.getStoragePorts());
+        URI varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
+        _log.info("Selected Virtual Array {}",varray);
+        
+        Map<URI, List<URI>> generatedIniToStoragePort = _blockStorageScheduler.assignStoragePorts(system, varray, initiators, pathParam,
+                new StringSetMap(), null);
+        // Find existing zones for the given initiators.
+        
+        Operation op = _dbClient.createTaskOpStatus(NetworkSystem.class, system.getId(), task,
+                ResourceOperationTypeEnum.ADD_SAN_ZONE);
+        NetworkController controller = getNetworkController(system.getSystemType());
+        controller.createSanZones(hostInitiatorNamesList, generatedIniToStoragePort, task);
+        return toTask(system, task, op);
+        
+    }
+    
+   
+    
+    
     /**
      * Adds one or more SAN zones to the active zoneset of the VSAN or fabric specified on a network system.
      * This is an asynchronous call.

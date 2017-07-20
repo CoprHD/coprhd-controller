@@ -12,9 +12,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,19 +24,23 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCZoneReference;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -43,6 +49,7 @@ import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -56,6 +63,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.google.common.base.Joiner;
 
 public class ExportUtils {
 
@@ -126,6 +134,57 @@ public class ExportUtils {
             }
         }
         return initiatorPorts;
+    }
+    
+    /**
+     * Get initiators of Host from ViPR DB
+     *
+     * @param hostURI
+     * @return
+     */
+    public static List<URI> getInitiatorsOfHost(URI hostURI, DbClient dbClient) {
+        List<URI> initiatorURIList = new ArrayList<URI>();
+        List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(hostURI, Initiator.class, "iniport", "host",dbClient);
+        for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
+            initiatorURIList.add(dataObject.getId());
+        }
+        return initiatorURIList;
+    }
+
+    /**
+     * Get Initiators of Cluster
+     *
+     * @param clusterUri
+     * @return
+     */
+    public static Set<URI> getInitiatorsOfCluster(URI clusterUri, DbClient dbClient) {
+        Set<URI> clusterInis = new HashSet<URI>();
+        List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterUri, Host.class, "cluster");
+        
+        for (URI hostUri : hostUris) {
+            clusterInis.addAll(getInitiatorsOfHost(hostUri, dbClient));
+        }
+        return clusterInis;
+    }
+    
+    private static <T extends DataObject> List<NamedElementQueryResultList.NamedElement> listChildren(URI id, Class<T> clzz,
+            String nameField, String linkField, DbClient dbClient) {
+        @SuppressWarnings("deprecation")
+        List<URI> uris = dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField));
+        if (uris != null && !uris.isEmpty()) {
+            Iterator<T> dataObjects = dbClient.queryIterativeObjectField(clzz, nameField, uris);
+            List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>();
+            while (dataObjects.hasNext()) {
+                T dataObject = dataObjects.next();
+                Object name = DataObjectUtils.getPropertyValue(clzz, dataObject, nameField);
+                elements.add(NamedElementQueryResultList.NamedElement.createElement(
+                        dataObject.getId(), name == null ? "" : name.toString()));
+            }
+            return elements;
+        } else {
+            return new ArrayList<NamedElementQueryResultList.NamedElement>();
+        }
     }
 
     /**

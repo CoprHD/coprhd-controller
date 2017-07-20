@@ -368,6 +368,57 @@ public class NetworkScheduler {
             return networkFabricInfo;
         }
     }
+    
+    /**
+     * Generate Network Zone Info for the given initiator and storage port.
+     * @param initiatorPort
+     * @param storagePort
+     * @return
+     */
+    public NetworkFCZoneInfo generateNetworkFCZoneInfo(String initiatorPort, StoragePort storagePort, String hostName) {
+        
+        NetworkLite iniNet = NetworkUtil.getEndpointNetworkLite(initiatorPort, _dbClient);
+        NetworkLite portNet = getStoragePortNetwork(storagePort);
+     // Create a the list of end points -
+        List<String> endPoints = Arrays.asList(new String[] { initiatorPort, storagePort.getPortNetworkId() });
+        List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
+
+        if (networkSystems.isEmpty()) {
+            _log.info(String.format(
+                    "Could not find a network system with connection to storage port %s",
+                    storagePort.getPortNetworkId()));
+            throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToStoragePort(storagePort.getPortNetworkId());
+        }
+
+        // 2. Select the network system to use
+        NetworkSystem networkSystem = networkSystems.get(0);
+
+        // 3. identify an alternate network device, if any
+        _log.debug("Network system {} was selected to be the primary network system. " +
+                "Trying to select an alternate network system.", networkSystem.getNativeGuid());
+        NetworkSystem altNetworkSystem = networkSystem;
+        for (NetworkSystem system : networkSystems) {
+            if (altNetworkSystem != system) {
+                altNetworkSystem = system;
+                _log.debug("Network system {} was selected to be the alternate network system.", altNetworkSystem.getNativeGuid());
+                break;
+            }
+        }
+
+        // 4. create the response
+        NetworkFCZoneInfo networkFabricInfo = null;
+        if (networkSystem != null) {
+            networkFabricInfo = new NetworkFCZoneInfo(networkSystem.getId(),
+                    iniNet.getNativeId(), NetworkUtil.getNetworkWwn(iniNet));
+            networkFabricInfo.getEndPoints().addAll(endPoints);
+            networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
+            //TODO change Null value
+            networkFabricInfo.setExportGroup(null);
+            networkFabricInfo.setCanBeRolledBack(false);
+            nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
+        } 
+        return networkFabricInfo;
+    }
 
     /**
      * Looks at the varray to see if zoning is disabled, and looks to make

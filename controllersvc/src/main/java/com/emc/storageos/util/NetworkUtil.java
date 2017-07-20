@@ -76,6 +76,16 @@ public class NetworkUtil {
     public static NetworkLite getEndpointNetworkLite(String endpoint, DbClient dbClient) {
         return getEndpointNetworkLite(endpoint, dbClient, null);
     }
+    
+    public static NetworkSystem getNetworkDevice( Map<URI, List<NetworkFCZoneInfo>> networkSystemId2NetworkFabricInfos,
+            Map<URI, NetworkSystem> networkSystemId2NetworkSystem){
+        NetworkSystem device = null;
+        for (URI deviceId : networkSystemId2NetworkFabricInfos.keySet()) {
+             device = networkSystemId2NetworkSystem.get(deviceId);
+             break;
+        }
+        return device;
+    }
 
     /**
      * Get the network that has the endpoint

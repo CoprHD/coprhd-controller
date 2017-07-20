@@ -4,10 +4,12 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.consumer;
 
+import java.util.Date;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
@@ -31,6 +33,9 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
     public void consumeItem(DbConsistencyJob job, DistributedQueueItemProcessedCallback callback) throws Exception {
         DbConsistencyStatus status = dbChecker.getStatusFromZk();
         log.info("start db consistency check, current status:{}", status);
+
+        long beginMillis = new Date().getTime();
+
         if (isFreshStart(status)) {
             log.info("it's first time to run db consistency check, init status in zk");
             status = createStatusInZk();
@@ -59,6 +64,10 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         } finally {
             log.info("db consistency check done, persist final result {} in zk", status.getStatus());
             this.dbChecker.persistStatus(status);
+
+            log.info("db consistency check consumed: {}",
+                    DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginMillis));
+
             callback.itemProcessed();
             DbCheckerFileWriter.close();
         }

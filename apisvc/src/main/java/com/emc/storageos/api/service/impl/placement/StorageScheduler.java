@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -588,6 +589,13 @@ public class StorageScheduler implements Scheduler {
                     capabilities.getSupportsNotificationLimit());
         }
 
+        URI portGroupURI = capabilities.getPortGroup();
+        StoragePortGroup portGroup = null;
+        boolean usePortGroup = !NullColumnValueGetter.isNullURI(portGroupURI);
+        if (usePortGroup) {
+            portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+        }
+        
         if (!(VirtualPool.vPoolSpecifiesProtection(vpool) || VirtualPool.vPoolSpecifiesSRDF(vpool) ||
                 VirtualPool.vPoolSpecifiesHighAvailability(vpool) ||
                 VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool))) {
@@ -597,8 +605,36 @@ public class StorageScheduler implements Scheduler {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.ARRAY_AFFINITY, true);
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.array_affinity.name(), true);
             }
+        } 
+        
+        if (usePortGroup) {
+            if (!VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+                URI pgSystemURI = portGroup.getStorageDevice();
+                boolean setSystemMatcher = true;
+                if (consistencyGroup != null) {
+                    URI cgSystemURI = consistencyGroup.getStorageController();
+                    if (!NullColumnValueGetter.isNullURI(cgSystemURI)) {
+                        if (!cgSystemURI.equals(pgSystemURI)) {
+                            // consistency group and port group does not belong to the same storage system
+                            throw APIException.badRequests.cgPortGroupNotMatch(portGroupURI.toString(), 
+                                    consistencyGroup.getId().toString());
+                        } else {
+                            // system matcher has been set
+                            setSystemMatcher = false;
+                        }
+                    }
+                }
+                if (setSystemMatcher) {
+                    Set<String> storageSystemSet = new HashSet<String>();
+                    storageSystemSet.add(pgSystemURI.toString());
+                    provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+                }
+            } else {
+                // port group could be only specified for native vmax
+                throw APIException.badRequests.portGroupValidForVMAXOnly();
+            }
         }
-
+        
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
         if (optionalAttributes != null) {
             attributeMap.putAll(optionalAttributes);
@@ -1102,7 +1138,6 @@ public class StorageScheduler implements Scheduler {
                 inCG = true;
             }
         }
-
         // Handle array affinity placement
         // If inCG is true, it is similar to the array affinity case.
         // Only difference is that resources will not be placed to more than one preferred systems if inCG is true

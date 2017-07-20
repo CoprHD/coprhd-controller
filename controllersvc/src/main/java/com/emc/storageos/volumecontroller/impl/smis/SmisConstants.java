@@ -322,6 +322,7 @@ public interface SmisConstants {
     static final String CP_INITIATOR_PORT_IDS = "InitiatorPortIDs";
     static final String CP_PROTOCOL_CONTROLLERS = "ProtocolControllers";
     static final String CP_SE_STORAGE_HARDWARE_ID = "SE_StorageHardwareID";
+    static final String CP_SE_TARGET_MASKING_GROUP = "SE_TargetMaskingGroup";
     static final String CP_THE_ELEMENTS = "TheElements";
     static final String CP_THE_ELEMENT = "TheElement";
     static final String CP_OPERATION = "Operation";

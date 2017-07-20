@@ -170,11 +170,7 @@ import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.db.client.model.ExportPathParams;
-<<<<<<< HEAD
-=======
 
-import static com.emc.storageos.model.ResourceTypeEnum.*;
->>>>>>> be9bc17... Merge branch 'feature-feature-COP-26195-export-path-param-api' into feature-port-group-ui
 
 public class ResourceTypeMapping {
     private static final Logger _log = LoggerFactory
@@ -254,13 +250,10 @@ public class ResourceTypeMapping {
         classMapping.put(CATALOG_IMAGE, CatalogImage.class);
         classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
         classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
-<<<<<<< HEAD
         classMapping.put(CUSTOM_SERVICES_WORKFLOW, CustomServicesWorkflow.class);
         classMapping.put(CUSTOM_SERVICES_PRIMITIVES, CustomServicesPrimitiveModel.class);
         classMapping.put(CUSTOM_SERVICES_PRIMITIVE_RESOURCES, CustomServicesPrimitiveResourceModel.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
-=======
->>>>>>> be9bc17... Merge branch 'feature-feature-COP-26195-export-path-param-api' into feature-port-group-ui
         classMapping.put(EXPORT_PATH_PARAMETERS, ExportPathParams.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping

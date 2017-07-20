@@ -53,13 +53,11 @@ public class StorageSystemTypesInitUtils {
     private static final String CEPH = "ceph";
     private static final String UNITY = "unity";
     private static final String VNXFILE_SMIS = "vnxfile_smis";
-    private static final String DELLSCSYSTEM = "dellscsystem";
-    private static final String DELLSCPROVIDER = "dellscprovider";
 
     private static final Map<META_TYPE, List<String>> SYSTEMS_AND_PROVIDERS;
 
     private static final List<String> SSL_ENABLE_TYPE_LIST = asList(VNX_BLOCK, VMAX, SMIS, SCALEIOAPI, VPLEX,
-            VNX_FILE, UNITY, VNXe, IBMXIV, DELLSCSYSTEM, DELLSCPROVIDER);
+            VNX_FILE, UNITY, VNXe, IBMXIV);
     private static final List<String> MDM_ENABLE_LIST = asList(SCALEIO, SCALEIOAPI);
     private static final List<String> ONLY_MDM_LIST = asList(SCALEIOAPI);
     private static final List<String> ELEMENT_MANAGER_LIST = asList(SCALEIO);
@@ -78,13 +76,12 @@ public class StorageSystemTypesInitUtils {
 
     static {
         SYSTEMS_AND_PROVIDERS = new HashMap<META_TYPE, List<String>>();
-        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK, asList(VMAX, VNX_BLOCK, HITACHI, OPENSTACK, DATA_DOMAIN,
-                DELLSCSYSTEM));
+        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK, asList(VMAX, VNX_BLOCK, HITACHI, OPENSTACK, DATA_DOMAIN));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.FILE, asList(VNX_FILE, ISILON, NETAPP, NETAPPC));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.OBJECT, asList(ECS));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_AND_FILE, asList(UNITY, VNXe));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_PROVIDER, asList(SMIS, HITACHI_PROVIDER, CINDER,
-                DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH, SCALEIOAPI, DELLSCPROVIDER));
+                DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH, SCALEIOAPI));
 
         DISPLAY_NAME_MAP = new HashMap<String, String>();
         DISPLAY_NAME_MAP.put(VMAX, "EMC VMAX");
@@ -105,13 +102,11 @@ public class StorageSystemTypesInitUtils {
         DISPLAY_NAME_MAP.put(ECS, "EMC Elastic Cloud Storage");
         DISPLAY_NAME_MAP.put(UNITY, "EMC Unity");
         DISPLAY_NAME_MAP.put(CEPH, "Block Storage powered by Ceph");
-        DISPLAY_NAME_MAP.put(DELLSCSYSTEM, "Dell SC Storage");
 
         DISPLAY_NAME_MAP.put(SMIS, "Storage Provider for EMC VMAX or VNX Block");
         DISPLAY_NAME_MAP.put(HITACHI_PROVIDER, "Storage Provider for Hitachi storage systems");
         DISPLAY_NAME_MAP.put(CINDER, "Storage Provider for Third-party block storage systems");
         DISPLAY_NAME_MAP.put(DATA_DOMAIN_PROVIDER, "Storage Provider for Data Domain Management Center");
-        DISPLAY_NAME_MAP.put(DELLSCPROVIDER, "Storage Provider for Dell SC Storage");
 
         SSL_PORT_MAP = new HashMap<String, String>();
         SSL_PORT_MAP.put(VNX_FILE, "5989");
@@ -133,8 +128,6 @@ public class StorageSystemTypesInitUtils {
         SSL_PORT_MAP.put(VNXe, "443");
         SSL_PORT_MAP.put(VNXFILE_SMIS, "5989");
         SSL_PORT_MAP.put(UNITY, "443");
-        SSL_PORT_MAP.put(DELLSCSYSTEM, "3033");
-        SSL_PORT_MAP.put(DELLSCPROVIDER, "3033");
         SSL_PORT_MAP.put(CEPH, "6789");
 
         NON_SSL_PORT_MAP = new HashMap<String, String>();
@@ -174,7 +167,6 @@ public class StorageSystemTypesInitUtils {
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(IBMXIV, "Storage Provider for IBM XIV");
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(XTREMIO, "Storage Provider for EMC XtremIO");
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(CEPH, "Block Storage powered by Ceph");
-        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(DELLSCSYSTEM, "Storage Provider for Dell SC Storage");
     }
 
     public StorageSystemTypesInitUtils(DbClient dbClient) {

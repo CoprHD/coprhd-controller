@@ -8,3 +8,7 @@ dependencies {
 
     testCompile library(easymock)
 }
+
+jar {
+    from 'metadata.properties'
+}

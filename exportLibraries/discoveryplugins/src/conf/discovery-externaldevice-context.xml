@@ -7,8 +7,6 @@
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
-    
-    <bean id="dellsc" class="com.emc.storageos.driver.dellsc.DellSCStorageDriver"/>
 
     <bean id="unManagedVolumeDiscoverer" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer">
         <property name="networkDeviceController" ref="networkDeviceController"/>
@@ -28,8 +26,6 @@
                 <entry key="providersystem" value-ref="storageDriverSimulator"/>
                 <entry key="driverprovider" value-ref="storageDriverSimulator"/>
                 <entry key="hp3par" value-ref="hp3Par"/>
-                <entry key="dellscprovider" value-ref="dellsc"/>
-                <entry key="dellscsystem" value-ref="dellsc"/>
             </map>
         </property>
         <property name="capabilityDefinitions">

@@ -117,7 +117,7 @@ public class ExternalDeviceCommunicationInterface extends
         Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<>();
         while (it.hasNext()) {
             StorageSystemType type = it.next();
-            if (type.getIsNative() == null ||type.getIsNative()) {
+            if (type.getDriverClassName() == null) {
                 continue;
             }
             if (!StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {

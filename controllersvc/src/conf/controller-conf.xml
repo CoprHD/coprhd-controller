@@ -448,8 +448,6 @@
                 <entry key="providersystem" value-ref="storageDriverSimulator"/>
                 <entry key="driverprovider" value-ref="storageDriverSimulator"/>
                 <entry key="hp3par" value-ref="hp3Par"/>
-                <entry key="dellscprovider" value-ref="dellsc"/>
-                <entry key="dellscsystem" value-ref="dellsc"/>
             </map>
         </property>
     </bean>
@@ -462,8 +460,6 @@
     
      <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init">
     </bean>
-	
-    <bean id="dellsc" class="com.emc.storageos.driver.dellsc.DellSCStorageDriver"/>
 
     <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">
         <property name="dbClient" ref="dbclient"/>

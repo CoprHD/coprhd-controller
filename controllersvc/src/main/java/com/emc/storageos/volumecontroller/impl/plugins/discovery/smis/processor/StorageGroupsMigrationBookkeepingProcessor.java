@@ -61,21 +61,15 @@ public class StorageGroupsMigrationBookkeepingProcessor extends MaskingViewCompo
                     // Only remove if the MigrationStatus is NONE
                     if (MigrationStatus.NONE.name().equalsIgnoreCase(storageGroupInDB.getMigrationStatus())) {
                         logger.info("Marking storage group {} inactive as its migration status is NONE", sgLabel);
-                        storageGroupInDB.setInactive(true);
                         inactiveStorageGroups.add(storageGroupInDB);
                     }
                 }
             }
             if (!inactiveStorageGroups.isEmpty()) {
-                dbClient.updateObject(inactiveStorageGroups);
+                dbClient.markForDeletion(inactiveStorageGroups);
             }
         } catch (Exception e) {
             logger.error("Exception caught while trying to run bookkeeping on VMAX storage groups", e);
         }
-    }
-
-    @Override
-    protected void setPrerequisiteObjects(List<Object> inputArgs)
-            throws BaseCollectionException {
     }
 }

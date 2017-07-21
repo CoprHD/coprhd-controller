@@ -179,9 +179,10 @@ public class DbConsistencyCheckerHelper {
         int scannedRows = 0;
         long beginTime = System.currentTimeMillis();
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
-            boolean inactiveObject = false;
-            boolean hasInactiveColumn = false;
-            scannedRows++;
+            try {
+                boolean inactiveObject = false;
+                boolean hasInactiveColumn = false;
+                scannedRows++;
 
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
                 if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME)){
@@ -242,6 +243,9 @@ public class DbConsistencyCheckerHelper {
             	scannedRows = 0;
             	beginTime = System.currentTimeMillis();
             }
+            }catch(Exception e){
+                _log.warn("exception occurs when checking CF indexes", e);
+            }
         }
     }
 
@@ -280,6 +284,7 @@ public class DbConsistencyCheckerHelper {
         int scannedRows = 0;
         long beginTime = System.currentTimeMillis();
         for (Row<String, IndexColumnName> row : result.getResult()) {
+            try{
             RowQuery<String, IndexColumnName> rowQuery = indexAndCf.keyspace.prepareQuery(indexAndCf.cf).getKey(row.getKey())
                     .autoPaginate(true)
                     .withColumnRange(new RangeBuilder().setLimit(dbClient.DEFAULT_PAGE_SIZE).build());
@@ -341,6 +346,9 @@ public class DbConsistencyCheckerHelper {
                 	beginTime = System.currentTimeMillis();
                 }
             }
+        }catch(Exception e){
+            _log.warn("exception occurs when checking missing data objects", e);
+        }
         }
 
         // Detect whether the DataObject CFs have the records

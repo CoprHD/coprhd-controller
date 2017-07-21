@@ -1235,7 +1235,7 @@ public class StorageSystems extends ViprResourceController {
         }
 
         private boolean isStorageProviderManaged() {
-            return StorageSystemTypes.isStorageProvider(type) || nonNativeSystemProviderMap.containsKey(type);
+            return StorageSystemTypes.isVmax(type) || StorageSystemTypes.isStorageProvider(type) || nonNativeSystemProviderMap.containsKey(type);
         }
 
         private boolean isVnxFile() {

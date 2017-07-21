@@ -30,7 +30,7 @@ public class DeactivateQuotaDirectory extends WaitForTask<QuotaDirectoryRestRep>
     @Override
     protected Task<QuotaDirectoryRestRep> doExecute() throws Exception {
         QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam();
-        param.setForceDelete(true);
+        param.setForceDelete(false);
         return getClient().quotaDirectories().deleteQuotaDirectory(quotaDirectoryId, param);
     }
 }

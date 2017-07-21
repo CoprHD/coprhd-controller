@@ -17,26 +17,30 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import javax.ws.rs.core.UriBuilder;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRESTApiPrimitive;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.db.restapi.CustomServicesRESTApiPrimitive;
+import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.api.uri.UriBuilderImpl;
 
 
 
@@ -46,15 +50,16 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
     private final Map<String, List<String>> input;
     private final CustomServicesWorkflowDocument.Step step;
 
-    private final DbClient dbClient;
     private final CoordinatorClient coordinator;
+    private final CustomServicesRESTApiPrimitive primitive;
 
     public CustomServicesRESTExecution(final Map<String, List<String>> input,
-            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator,final DbClient dbClient) {
+            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator, final CustomServicesRESTApiPrimitive primitive) {
         this.input = input;
         this.step = step;
         this.coordinator = coordinator;
-        this.dbClient = dbClient;
+        this.primitive = primitive;
+
         provideDetailArgs(step.getId(), step.getFriendlyName());
     }
 
@@ -63,15 +68,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         try {
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId(), step.getFriendlyName());
 
-            final CustomServicesDBRESTApiPrimitive restPrimitive = dbClient.queryObject(CustomServicesDBRESTApiPrimitive.class,
-                    step.getOperation());
-            if (null == restPrimitive) {
-                logger.error("Error retrieving the REST primitive from DB. {} not found in DB", step.getOperation());
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
-                        "\"Error retrieving the REST primitive from DB.");
-                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(step.getOperation() + " not found in DB");
-            }
-            final Map<String, String> attrs = restPrimitive.getAttributes();
+            final Map<String, String> attrs = primitive.attributes();
 
             final String authType = attrs.get(CustomServicesConstants.AUTH_TYPE);
             if (StringUtils.isEmpty(authType)) {
@@ -81,9 +78,11 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot find Auth type");
             }
 
-            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, restPrimitive.getAttributes().get(CustomServicesConstants.PROTOCOL),
+            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, attrs.get(CustomServicesConstants.PROTOCOL),
                     AnsibleHelper.getOptions(CustomServicesConstants.USER, input), AnsibleHelper.getOptions(CustomServicesConstants.PASSWORD, input));
-            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(restPrimitive), null);
+            final Map<String, List<InputParameter>> inputKeys = primitive.input() == null ? Collections.emptyMap() : primitive.input();
+            final List<InputParameter> queryParams = inputKeys.get(CustomServicesConstants.QUERY_PARAMS);
+            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(primitive, queryParams).toString());
             final WebResource.Builder builder = BuildRestRequest.makeRequestBuilder(webResource, step, input);
 
             final CustomServicesConstants.RestMethods method =
@@ -93,7 +92,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             switch (method) {
                 case PUT:
                 case POST:
-                    final String body = RESTHelper.makePostBody(restPrimitive.getAttributes().get(CustomServicesConstants.BODY),0, input);
+                    final String body = RESTHelper.makePostBody(primitive.attributes().get(CustomServicesConstants.BODY),0, input);
 
                     result = executeRest(method, body, builder);
                     break;
@@ -135,16 +134,33 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         final String output = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
 
         logger.info("result is:{} headers:{}", output, response.getHeaders());
+        final boolean isSuccess = isSuccess(response.getStatus());
+        if (!isSuccess) {
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("Failed to Execute REST request");
+        }
 
         return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
     }
 
-    public String getUrl(final CustomServicesDBRESTApiPrimitive primitive) {
+    private boolean isSuccess( final int returnCode) {
+        if (!(returnCode >= 200 && returnCode < 300)) {
+            ExecutionUtils.currentContext().logError("customServicesService.logStatus",
+                    "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
+                            + " Operation Failed ReturnCode: " + returnCode);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    public URI getUrl(final CustomServicesRESTApiPrimitive primitive, final List<InputParameter> queryParams) {
 
         final String target = AnsibleHelper.getOptions(CustomServicesConstants.TARGET, input);
-        final String path = primitive.getAttributes().get(CustomServicesConstants.PATH);
+        final String path = primitive.attributes().get(CustomServicesConstants.PATH);
         String port = AnsibleHelper.getOptions(CustomServicesConstants.PORT, input);
-        final String protocol =  primitive.getAttributes().get(CustomServicesConstants.PROTOCOL);
+        final String protocol =  primitive.attributes().get(CustomServicesConstants.PROTOCOL);
 
 
         if (StringUtils.isEmpty(target) || StringUtils.isEmpty(path) || StringUtils.isEmpty(protocol)) {
@@ -158,6 +174,13 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             logger.debug("port is not set. use default port: {}", CustomServicesConstants.DEFAULT_HTTPS_PORT);
             port = CustomServicesConstants.DEFAULT_HTTPS_PORT;
         }
-        return String.format("%s://%s:%s/%s", protocol, target, port, RESTHelper.makePath(path, input, null));
+        
+        final UriBuilder builder = new UriBuilderImpl();
+        builder.path(RESTHelper.makePath(path, input));
+        builder.scheme(protocol);
+        builder.host(target);
+        builder.port(Integer.parseUnsignedInt(port));
+        RESTHelper.addQueryParams(builder, queryParams, input);
+        return builder.build();
     }
 }

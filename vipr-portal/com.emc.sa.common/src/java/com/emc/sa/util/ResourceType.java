@@ -48,6 +48,7 @@ public enum ResourceType {
     BUCKET("Bucket"),
     
     STORAGE_PORT("StoragePort"),
+    STORAGE_PORT_GROUP("StoragePortGroup"),
 
     UNKNOWN("Unknown");
 

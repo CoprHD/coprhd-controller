@@ -379,7 +379,7 @@ public class ValidationHelper {
         return EMPTY_STRING;
     }
 
-    private String checkOperationExists(final ModelClient client, final URI operation){
+    private String checkOperationExists(final ModelClient client, final URI operation) {
         if (operation != null) {
             final Class modelClass = URIUtil.getModelClass(operation);
             DataObject dataObject = client.findById(modelClass, operation);
@@ -476,48 +476,58 @@ public class ValidationHelper {
     }
 
     private String checkInputType(final String stepId, final Input input, final boolean cycleExists) {
-        String errorMessage;
         if (StringUtils.isBlank(input.getType())
                 || CustomServicesConstants.InputType.fromString(input.getType()).equals(CustomServicesConstants.InputType.INVALID)) {
             // Input type is required and should be one of valid values. if user does not want to set type, set it to "Disabled"
             final EnumSet<CustomServicesConstants.InputType> validInputTypes = EnumSet.allOf(CustomServicesConstants.InputType.class);
             validInputTypes.remove(CustomServicesConstants.InputType.INVALID);
-            errorMessage = String.format("%s - Valid Input Types %s", CustomServicesConstants.ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED,
+            return String.format("%s - Valid Input Types %s", CustomServicesConstants.ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED,
                     validInputTypes);
-        } else if (input.getRequired() && input.getType().equals(CustomServicesConstants.InputType.DISABLED.toString())) {
-            // Input type is required if the input is marked required
-            errorMessage = CustomServicesConstants.ERROR_MSG_INPUT_TYPE_IS_REQUIRED;
-        } else if (input.getType().equals(CustomServicesConstants.InputType.FROM_USER.toString())) {
-            errorMessage = checkUserInputType(input);
-        } else if (input.getType().equals(CustomServicesConstants.InputType.FROM_USER_MULTI.toString())
-                && StringUtils.isBlank(input.getDefaultValue()) && MapUtils.isEmpty(input.getOptions())) {
-            errorMessage = String.format("%s - %s", CustomServicesConstants.ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE,
-                    input.getType());
-        } else {
-            errorMessage = checkOtherInputType(stepId, input, cycleExists);
         }
-        return errorMessage;
+
+        switch (CustomServicesConstants.InputType.fromString(input.getType())) {
+            case DISABLED:
+                // Input type is required if the input is marked required
+                if (input.getRequired()) {
+                    return CustomServicesConstants.ERROR_MSG_INPUT_TYPE_IS_REQUIRED;
+                }
+                break;
+            case FROM_USER:
+                return checkUserInputType(input);
+            case FROM_USER_MULTI:
+                // TODO: remove the check for inventory file
+                if (StringUtils.equals(CustomServicesConstants.ANSIBLE_HOST_FILE, input.getName())) {
+                    if (MapUtils.isEmpty(input.getOptions())) {
+                        return CustomServicesConstants.ERROR_MSG_INVENTORY_FILE_NOT_MAPPED;
+                    }
+                } else if (StringUtils.isBlank(input.getDefaultValue())) {
+                    return String.format("%s - %s", CustomServicesConstants.ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE,
+                            input.getType());
+                }
+                break;
+            default:
+                return checkOtherInputType(stepId, input, cycleExists);
+        }
+        return EMPTY_STRING;
     }
 
-    private String validateOtherStepInput(final Step step, final String attribute) {
-        if (step.getInputGroups() == null
-                || step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS) == null
-                || step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup() == null) {
-            // TODO: currently the input params is only mapped to other steps. this might be changed
-            return CustomServicesConstants.ERROR_MSG_OTHER_STEP_INPUT_GROUP_OR_PARAM_NOT_DEFINED;
-
-        }
-
-        final List<Input> inputs = step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup();
-
-        for (final Input input : inputs) {
-            if (StringUtils.isNotBlank(input.getName()) && input.getName().equals(attribute)) {
-                return EMPTY_STRING;
+    private String validateOtherStepInput(final Step referredStep, final String attribute) {
+        if (referredStep.getInputGroups() != null) {
+            for (final String inputGroupKey : referredStep.getInputGroups().keySet()) {
+                if (!isInputEmpty(referredStep.getInputGroups(), inputGroupKey)) {
+                    final List<Input> inputs = referredStep.getInputGroups().get(inputGroupKey).getInputGroup();
+                    for (final Input input : inputs) {
+                        if (StringUtils.isNotBlank(input.getName()) && input.getName().equals(attribute)) {
+                            return EMPTY_STRING;
+                        }
+                    }
+                }
             }
         }
 
-        return String.format("%s %s(%s) - %s", CustomServicesConstants.ERROR_MSG_INPUT_NOT_DEFINED_IN_OTHER_STEP, step.getDescription(),
-                step.getId(), attribute);
+        return String.format("%s %s(%s) - %s", CustomServicesConstants.ERROR_MSG_INPUT_NOT_DEFINED_IN_OTHER_STEP,
+                referredStep.getDescription(),
+                referredStep.getId(), attribute);
     }
 
     private String checkOtherInputType(final String stepId, final Input input, final boolean cycleExists) {
@@ -647,7 +657,9 @@ public class ValidationHelper {
     }
 
     private String validateOtherStepOutput(final Step step, final String attribute) {
-
+        if (isRawOutput(step, attribute)) {
+            return EMPTY_STRING;
+        }
         if (step.getOutput() == null) {
             return String.format("%s for step %s(%s)", CustomServicesConstants.ERROR_MSG_OTHER_STEP_OUTPUT_NOT_DEFINED,
                     step.getDescription(),
@@ -663,5 +675,16 @@ public class ValidationHelper {
         return String.format("%s %s(%s) - %s",
                 CustomServicesConstants.ERROR_MSG_OUTPUT_NOT_DEFINED_IN_OTHER_STEP, step.getDescription(),
                 step.getId(), attribute);
+    }
+
+    private boolean isRawOutput(Step step, String attribute) {
+        switch (attribute) {
+            case CustomServicesConstants.OPERATION_OUTPUT:
+            case CustomServicesConstants.OPERATION_ERROR:
+            case CustomServicesConstants.OPERATION_RETURNCODE:
+                return true;
+            default:
+                return false;
+        }
     }
 }

@@ -27,7 +27,7 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomS
 public interface CustomServicesWorkflowManager {
 
     public CustomServicesWorkflow getById(final URI id);
-    public List<CustomServicesWorkflow> getByName(final String name);
+    public List<CustomServicesWorkflow> getByNameOrId(final String name);
     public List<NamedElement> list();
     public Iterator<CustomServicesWorkflow> getSummaries(final List<URI> ids);
     public void save(final CustomServicesWorkflow workflow);

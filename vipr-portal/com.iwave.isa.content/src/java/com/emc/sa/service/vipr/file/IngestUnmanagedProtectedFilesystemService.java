@@ -61,7 +61,8 @@ public class IngestUnmanagedProtectedFilesystemService extends ViPRService {
     public void execute() throws Exception {
         List<UnManagedFileSystemRestRep> unmanaged = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type));
 
-        execute(new IngestUnmanagedFilesystems(virtualPool, virtualArray, project, uris(fileSystemIds)));
+        execute(new IngestUnmanagedFilesystems(virtualPool, virtualArray, project, uris(fileSystemIds), targetVirtualArray, filePolicy,
+                true));
 
         // Requery and produce a log of what was ingested or not
         int failed = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type)).size();

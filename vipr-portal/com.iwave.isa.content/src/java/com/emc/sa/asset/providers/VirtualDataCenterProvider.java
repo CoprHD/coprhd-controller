@@ -400,7 +400,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    @Asset("unmanagedProtectedFileVirtualPool")
+    @Asset("protectedFileVirtualPool")
     @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType" })
     public List<AssetOption> getUnmanagedFileSystemProtectedVirtualPools(AssetOptionsContext ctx, URI storageSystem,
             URI virtualArray, String ingestExportType) {
@@ -451,7 +451,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("policyTemplate")
-    @AssetDependencies({ "unmanagedProtectedFileVirtualPool" })
+    @AssetDependencies({ "protectedFileVirtualPool" })
     public List<AssetOption> getFileProtectionTemplates(AssetOptionsContext ctx, URI unmanagedFileVirtualPool) {
         List<AssetOption> options = Lists.newArrayList();
         for (FilePolicyRestRep policy : listFSLevelReplicationPolicyTemplate(ctx)) {

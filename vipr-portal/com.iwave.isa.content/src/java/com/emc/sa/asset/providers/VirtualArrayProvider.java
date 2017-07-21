@@ -64,6 +64,11 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         return getVirtualArrayForStorageSystem(ctx, storageSystem);
     }
 
+    @Asset("targetVirtualArray")
+    public List<AssetOption> getTargetVirtualArray(AssetOptionsContext ctx) {
+        return createBaseResourceOptions(api(ctx).varrays().getByTenant(ctx.getTenant()));
+    }
+
     protected List<AssetOption> getVirtualArrayForStorageSystem(AssetOptionsContext context, URI storageSystem) {
         ViPRCoreClient client = api(context);
         Set<String> virtualArrayIds = Sets.newHashSet();

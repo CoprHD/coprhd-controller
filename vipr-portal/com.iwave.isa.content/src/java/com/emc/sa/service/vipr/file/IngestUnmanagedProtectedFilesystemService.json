@@ -26,7 +26,7 @@
     },
     
     targetVirtualArray:{
-      type:"assetType.vipr.virtualArray",
+      type:"assetType.vipr.targetVirtualArray",
       lockable: true
     },
 

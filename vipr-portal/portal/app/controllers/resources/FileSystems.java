@@ -17,24 +17,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import models.datatable.FilePolicySnapshotsDataTable;
-import models.datatable.FileSystemsDataTable;
-import models.datatable.NfsACLDataTable;
-import models.datatable.ShareACLDataTable;
-
 import org.apache.commons.lang.StringUtils;
-
-import play.data.binding.As;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.With;
-import util.BourneUtil;
-import util.FileUtils;
-import util.FileUtils.ExportRuleInfo;
-import util.MessagesUtils;
-import util.StringOption;
-import util.ValidationResponse;
-import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
@@ -82,6 +65,21 @@ import com.google.common.collect.Lists;
 import controllers.Common;
 import controllers.security.Security;
 import controllers.util.FlashException;
+import models.datatable.FilePolicySnapshotsDataTable;
+import models.datatable.FileSystemsDataTable;
+import models.datatable.NfsACLDataTable;
+import models.datatable.ShareACLDataTable;
+import play.data.binding.As;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.With;
+import util.BourneUtil;
+import util.FileUtils;
+import util.FileUtils.ExportRuleInfo;
+import util.MessagesUtils;
+import util.StringOption;
+import util.ValidationResponse;
+import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class FileSystems extends ResourceController {
@@ -297,6 +295,8 @@ public class FileSystems extends ResourceController {
                 + "~~~" + fsMountPath);
         renderArgs.put("permissionOptions", StringOption.options(new String[] {
                 "read", "write", "execute", "fullControl" }));
+        renderArgs.put("inheritFlagsOptions", StringOption.options(new String[] {
+                "object_inherit", "container_inherit", "no_prop_inherit", "inherit_only", "inherited_ace" }));
         ViPRCoreClient client = BourneUtil.getViprClient();
         NfsACLForm nfsACL = new NfsACLForm();
         FileShareRestRep restRep = client.fileSystems().get(uri(fileSystemId));
@@ -335,10 +335,11 @@ public class FileSystems extends ResourceController {
                 String name = ace.getUser();
                 String type = ace.getType();
                 String permissions = ace.getPermissions();
+                String inheritFlags = ace.getInheritFlags();
                 String domain = ace.getDomain();
                 String permissionType = ace.getPermissionType();
                 nfsAccessControlList.add(new NfsACLDataTable.NfsAclInfo(name,
-                        type, permissions, fileSystemId, subDir, domain,
+                        type, permissions, inheritFlags, fileSystemId, subDir, domain,
                         fsMountPath, permissionType));
             }
         }
@@ -390,6 +391,7 @@ public class FileSystems extends ResourceController {
         String fileSystem = NfsACLForm.extractFileSystemFromId(id);
         String subDir = NfsACLForm.extractSubDirFromId(id);
         String permissions = NfsACLForm.extractPermissionsFromId(id);
+        String inheritFlags = NfsACLForm.extractInheritFlagsFromId(id);
         String permissionType = NfsACLForm.extractPermissionTypeFromId(id);
         String fsMountPath = NfsACLForm.extractMounPathFromId(id);
         if ("null".equals(domain)) {
@@ -401,10 +403,14 @@ public class FileSystems extends ResourceController {
         nfsACL.name = name;
         nfsACL.domain = domain;
         String[] strPerm = permissions.replaceAll("/", ",").split(",");
+        String[] strInherit = inheritFlags.replaceAll("/", ",").split(",");
         nfsACL.permissions = new HashSet<String>(Arrays.asList(strPerm));
+        nfsACL.inheritFlags = new HashSet<String>(Arrays.asList(strInherit));
         nfsACL.permissionType = permissionType;
         renderArgs.put("permissionOptions", StringOption.options(new String[] {
                 "read", "write", "execute", "fullControl" }));
+        renderArgs.put("inheritFlagsOptions", StringOption.options(new String[] {
+                "object_inherit", "container_inherit", "no_prop_inherit", "inherit_only", "inherited_ace" }));
         renderArgs.put("permissionTypeOptions", StringOption.options(new String[] {
                 "allow", "deny" }));
         renderArgs.put("fileSystemId", uri(fileSystem));
@@ -427,8 +433,10 @@ public class FileSystems extends ResourceController {
         String fsMountPath = params.get("fsMountPath");
         String fileSystemId = params.get("fileSystemId");
         Set<String> permissions = nfsACL.permissions;
+        Set<String> inheritFlags = nfsACL.inheritFlags;
         String permissionType = nfsACL.permissionType;
         String strPer = "";
+        String strInherit = "";
         nfsACL.validate("nfsACL");
         if (Validation.hasErrors()) {
             Common.handleError();
@@ -438,12 +446,18 @@ public class FileSystems extends ResourceController {
             strPer = strPer + permission.toLowerCase() + ",";
         }
         strPer = strPer.substring(0, strPer.length() - 1);
+
+        for (String inheritFlag : inheritFlags) {
+            strInherit = strInherit + inheritFlag.toLowerCase() + ",";
+        }
+        strInherit = strInherit.substring(0, strInherit.length() - 1);
         List<NfsACE> aces = Lists.newArrayList();
         NfsACE nfsAce = new NfsACE();
 
         nfsAce.setType(type.toLowerCase());
         nfsAce.setUser(name);
         nfsAce.setPermissions(strPer);
+        nfsAce.setInheritFlags(strInherit);
         nfsAce.setPermissionType(permissionType);
         if (domain != null && !"".equals(domain) && !"null".equals(domain)) {
             nfsAce.setDomain(domain);
@@ -475,6 +489,7 @@ public class FileSystems extends ResourceController {
                 String name = NfsACLForm.extractNameFromId(id);
                 String domain = NfsACLForm.extractDomainFromId(id);
                 String permissions = NfsACLForm.extractPermissionsFromId(id);
+                String inheritFlags = NfsACLForm.extractInheritFlagsFromId(id);
                 String permissionType = NfsACLForm.extractPermissionTypeFromId(id);
                 fileSystem = NfsACLForm.extractFileSystemFromId(id);
                 subDir = NfsACLForm.extractSubDirFromId(id);
@@ -483,6 +498,7 @@ public class FileSystems extends ResourceController {
                 ace.setUser(name);
                 ace.setType(type);
                 ace.setPermissions(permissions.replaceAll("/", ","));
+                ace.setInheritFlags(inheritFlags.replaceAll("/", ","));
                 ace.setPermissionType(permissionType);
                 if (domain != null && !"".equals(domain)
                         && !"null".equals(domain)) {
@@ -570,7 +586,8 @@ public class FileSystems extends ResourceController {
             String uiName = uiData[1];
             String uiDomain = uiData[2];
             String uiPermissions = uiData[3];
-            String uiPermissiontype = uiData[4];
+            String uiInheritFlags = uiData[4];
+            String uiPermissiontype = uiData[5];
             NfsACE nfsAce = new NfsACE();
             nfsAce.setUser(uiName);
             if (uiDomain != null && !"".equals(uiDomain) && !"null".equals(uiDomain)) {
@@ -581,6 +598,9 @@ public class FileSystems extends ResourceController {
             }
             if (uiPermissions != null && !"".equals(uiPermissions) && !"null".equals(uiPermissions)) {
                 nfsAce.setPermissions(uiPermissions.replaceAll("/", ","));
+            }
+            if (uiInheritFlags != null && !"".equals(uiInheritFlags) && !"null".equals(uiInheritFlags)) {
+                nfsAce.setInheritFlags(uiInheritFlags.replaceAll("/", ","));
             }
             nfsAce.setPermissionType(uiPermissiontype);
 
@@ -1327,12 +1347,14 @@ public class FileSystems extends ResourceController {
         public String permissionType;
         @Required
         public Set<String> permissions;
+        public Set<String> inheritFlags;
 
         public NfsACLUpdateParams NfsACLUpdateParams() {
             NfsACE nfsAce = new NfsACE();
             nfsAce.setType(type.trim());
             nfsAce.setUser(name.trim());
             nfsAce.setPermissions(permissions.toString());
+            nfsAce.setInheritFlags(inheritFlags.toString());
             nfsAce.setPermissionType(permissionType);
             if (domain.trim() != null && !"".equals(domain.trim())) {
                 nfsAce.setDomain(domain.trim());
@@ -1350,16 +1372,16 @@ public class FileSystems extends ResourceController {
 
         public static String createId(String name, String type,
                 String fileSystem, String subDir, String domain,
-                String permissions, String fsMountPath, String permissionType) {
+                String permissions, String inheritFlags, String fsMountPath, String permissionType) {
             return name + ID_DELIMITER + type + ID_DELIMITER + fileSystem
                     + ID_DELIMITER + subDir + ID_DELIMITER + domain
-                    + ID_DELIMITER + permissions + ID_DELIMITER + fsMountPath + ID_DELIMITER + permissionType;
+                    + ID_DELIMITER + permissions + ID_DELIMITER + inheritFlags + ID_DELIMITER + fsMountPath + ID_DELIMITER + permissionType;
         }
 
         public static String extractNameFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 8) {
+                if (parts.length == 9) {
                     return parts[0];
                 } else {
                     return id;
@@ -1371,7 +1393,7 @@ public class FileSystems extends ResourceController {
         public static String extractTypeFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 8) {
+                if (parts.length == 9) {
                     return parts[1];
                 } else {
                     return id;
@@ -1383,7 +1405,7 @@ public class FileSystems extends ResourceController {
         public static String extractFileSystemFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 8) {
+                if (parts.length == 9) {
                     return parts[2];
                 } else {
                     return id;
@@ -1395,7 +1417,7 @@ public class FileSystems extends ResourceController {
         public static String extractSubDirFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 8) {
+                if (parts.length == 9) {
                     return parts[3];
                 } else {
                     return id;
@@ -1407,7 +1429,7 @@ public class FileSystems extends ResourceController {
         public static String extractDomainFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 8) {
+                if (parts.length == 9) {
                     return parts[4];
                 } else {
                     return id;
@@ -1419,8 +1441,20 @@ public class FileSystems extends ResourceController {
         public static String extractPermissionsFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 8) {
+                if (parts.length == 9) {
                     return parts[5];
+                } else {
+                    return id;
+                }
+            }
+            return null;
+        }
+
+        public static String extractInheritFlagsFromId(String id) {
+            if (StringUtils.isNotBlank(id)) {
+                String[] parts = id.split(ID_DELIMITER);
+                if (parts.length == 9) {
+                    return parts[6];
                 } else {
                     return id;
                 }
@@ -1431,8 +1465,8 @@ public class FileSystems extends ResourceController {
         public static String extractMounPathFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 8) {
-                    return parts[6];
+                if (parts.length == 9) {
+                    return parts[7];
                 } else {
                     return id;
                 }
@@ -1443,8 +1477,8 @@ public class FileSystems extends ResourceController {
         public static String extractPermissionTypeFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 8) {
-                    return parts[7];
+                if (parts.length == 9) {
+                    return parts[8];
                 } else {
                     return id;
                 }

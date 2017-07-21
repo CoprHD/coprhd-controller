@@ -72,7 +72,9 @@
    #{field 'nfsACL.permissions'}
     #{Form.selectManyControlGroup field:field, options:permissionOptions, select:nfsACL.permissions, cssClass:'span3' /}
   #{/field}
-    
+  #{field 'nfsACL.inheritFlags'}
+    #{Form.selectManyControlGroup field:field, options:inheritFlagsOptions, select:nfsACL.inheritFlags, cssClass:'span3' /}
+  #{/field} 
 
  #{Form.saveCancelButtonBar size:'large', cancelHref:@listNfsAcl(fileSystemId,fsMountPath,subDir)/}
 

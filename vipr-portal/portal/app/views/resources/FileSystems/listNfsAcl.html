@@ -43,6 +43,7 @@
                 <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'nfsACL.domain'}</strong></div>
                 <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'nfsACL.permissionType'}</strong></div>
                 <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'nfsACL.permissions'}</strong></div>
+                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'nfsACL.inheritFlags'}</strong></div>
                 <div class="pull-left col-md-1"></div>
            </div>
            <hr style="margin:5px;"/>
@@ -52,6 +53,7 @@
                <div class="pull-left col-md-2" v-field="info.domain"><input-text></input-text></div>
                <div class="pull-left col-md-2" v-field="info.permissionType" style="padding-right:0px;"><select-one options="permissionTypeOpt"></select-one></div>
                <div class="pull-left col-md-3" v-field="info.permission" style="padding-right:0px;"></<input><select-many options="permOpt"></select-many></div>
+               <div class="pull-left col-md-3" v-field="info.inheritFlags" style="padding-right:0px;"></<input><select-many options="inheritOpt"></select-many></div>
                <div class="pull-left col-md-1" style="padding-left:0px; margin-top:5px;"><button type="button" ng-click="deleteACE($index)" class="close">&times;</button></div>
            </div>
            <div class="row">

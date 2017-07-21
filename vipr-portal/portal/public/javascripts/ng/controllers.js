@@ -639,6 +639,12 @@ angular.module("portalApp").controller({
     	                  {id:'write', name:translate('resources.filesystem.nfsacl.write')}, 
     	                  {id:'execute', name:translate('resources.filesystem.nfsacl.execute')},
     	                  {id:'fullControl', name:translate('resources.filesystem.nfsacl.fullControl')},];
+    	                  
+        $scope.inheritOpt = [{id:'objectInheritFlag', name:translate('resources.filesystem.nfsacl.objectInheritFlag')}, 
+    	                  {id:'containerInheritFlag', name:translate('resources.filesystem.nfsacl.containerInheritFlag')}, 
+    	                  {id:'noPropInherit', name:translate('resources.filesystem.nfsacl.noPropInherit')},
+    	                  {id:'inheritOnlyFlag', name:translate('resources.filesystem.nfsacl.inheritOnlyFlag')},
+    	                  {id:'inheritedAceFlag', name:translate('resources.filesystem.nfsacl.inheritedAceFlag')},];
     	
     	var setData = function(data) {
     		$scope.acl = data;
@@ -663,7 +669,7 @@ angular.module("portalApp").controller({
     		var accessList = [];
     		angular.forEach($scope.acl.accesscontrols, function(obj) {
     			if (obj.name != '') {
-    				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission+"~~~"+obj.permissionType;
+    				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission+"~~~"+obj.inheritFlags+"~~~"+obj.permissionType;
     				val =val.split(",").join("/")
     				accessList.push(val);
     			}

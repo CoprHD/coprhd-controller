@@ -85,6 +85,7 @@ public class DataCollectionService {
 
         DiagutilsJob diagutilsJob = new DiagutilsJob();
         diagutilsJob.setOptions(options);
+        diagutilsJob.setUploadParam(diagutilParam.getUploadParam());
         //diagutilsJob.setLogEnable();
         jobProducer.enqueue(diagutilsJob);
         log.info("Diagutils job has been added to queue");
@@ -122,7 +123,8 @@ public class DataCollectionService {
 
     @GET
     @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
+    //@Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
+    @Produces({MediaType.APPLICATION_OCTET_STREAM})
     public Response getDiagutilData(@QueryParam("node_id") String nodeId, @QueryParam("file_name") String fileName) {
 
         if (nodeId == null || nodeId.length() == 0) {
@@ -181,7 +183,7 @@ public class DataCollectionService {
                 BufferedOutputStream bo = new BufferedOutputStream(output);
                 int n = 0;
                 try {
-                    byte[] buffer = new byte[1024 * 4];
+                    byte[] buffer = new byte[102400];
                     while ((n = fi.read(buffer)) != -1) {
                         bo.write(buffer, 0, n);
                     }
@@ -219,6 +221,7 @@ public class DataCollectionService {
     @Path("/upload")
     @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
     public Response uploadDiagutilData(UploadParam uploadParam) {
+
         return Response.status(Response.Status.ACCEPTED).build();
     }
 

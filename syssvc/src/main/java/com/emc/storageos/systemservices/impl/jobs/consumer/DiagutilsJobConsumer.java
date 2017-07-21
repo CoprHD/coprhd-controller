@@ -9,12 +9,17 @@ import com.emc.storageos.coordinator.client.model.DiagutilJobStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcessedCallback;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
+import com.emc.storageos.management.backup.util.BackupClient;
+import com.emc.storageos.management.backup.util.CifsClient;
+import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.resource.DataCollectionService;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.vipr.model.sys.diagutil.DiagutilInfo.*;
 import com.emc.vipr.model.sys.diagutil.DiagutilsJob;
+import com.emc.vipr.model.sys.diagutil.UploadParam;
+import com.emc.vipr.model.sys.diagutil.UploadParam.*;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.media.jfxmedia.Media;
 import org.apache.commons.io.FileUtils;
@@ -24,10 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Date;
 import java.util.List;
 
@@ -158,6 +160,46 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 //cancelled
                 return;
             }
+            //upload
+            UploadParam uploadParam = diagutilsJob.getUploadParam();
+            if (uploadParam == null) {
+                log.info("uploadParam is null,quit collect job consumer");
+                return;
+            }
+            BackupClient uploadClient = null;
+
+            if (!UploadParam.UploadType.download.equals(uploadParam.getUploadType())) {
+                String uri = uploadParam.getUploadFtpParam().getFtp();
+                String user = uploadParam.getUploadFtpParam().getUser();
+                String passwd = uploadParam.getUploadFtpParam().getPassword();
+                switch (uploadParam.getUploadType()) {
+                    case ftp:
+                        uploadClient = new FtpClient(uri, user, passwd);
+                        break;
+                    case sftp:
+                        uploadClient = new FtpClient(uri, user, passwd);
+                }
+                try ( OutputStream os = uploadClient.upload(subOutputDir + ".zip", 0);
+                      FileInputStream fis = new FileInputStream(dataFiledir + ".zip");) {
+                    int n = 0;
+                    byte [] buffer = new byte[102400];
+                    while ((n = fis.read(buffer)) != -1) {
+                        os.write(buffer, 0, n);
+                    }
+                } catch (Exception e ) {
+                    log.error("Upload got exception {}", e);
+                    jobStatus.setStatus(DiagutilStatus.UPLOADING_ERROR);
+                    updateJobInfoIfNotCancel(jobStatus);
+                    return ;
+                }
+
+                jobStatus.setStatus(DiagutilStatus.COMPLETE);
+                if (!updateJobInfoIfNotCancel(jobStatus)) {
+                    //cancelled
+                    return;
+                }
+            }
+
         }finally {
             callback.itemProcessed();
         }

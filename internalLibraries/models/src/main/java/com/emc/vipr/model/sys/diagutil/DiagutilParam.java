@@ -12,6 +12,7 @@ import java.util.List;
 public class DiagutilParam {
     private String logEnable="";
     private List<String> options;
+    private UploadParam uploadParam;
     private List<String> nodeIds;
     private List<String> nodeNames;
     private List<String> logNames;
@@ -22,13 +23,22 @@ public class DiagutilParam {
     private int maxCount;
 
     public DiagutilParam() {}
-    @XmlElement(name="options")
+    @XmlElement(name = "options")
     public List<String> getOptions() {
         return options;
     }
 
     public void setOptions(List<String> options) {
         this.options = options;
+    }
+
+    @XmlElement(name = "upload_param")
+    public UploadParam getUploadParam() {
+        return uploadParam;
+    }
+
+    public void setUploadParam(UploadParam uploadParam) {
+        this.uploadParam = uploadParam;
     }
 
     @XmlElement(name = "log_enable")

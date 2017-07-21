@@ -16,6 +16,7 @@ public class DiagutilsJob implements Serializable{
 
     private List<String> options ;
     private boolean logEnable;
+    private UploadParam uploadParam;
 
 
     public List<String> getOptions() {
@@ -34,6 +35,14 @@ public class DiagutilsJob implements Serializable{
         this.logEnable = logEnable;
     }
 
+    public UploadParam getUploadParam() {
+        return uploadParam;
+    }
+
+    public void setUploadParam(UploadParam uploadParam) {
+        this.uploadParam = uploadParam;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -43,6 +52,8 @@ public class DiagutilsJob implements Serializable{
             sb.append(",");
         }
         sb.append(logEnable);
+        sb.append("upload param: ");
+        sb.append(uploadParam.toString());
         return  sb.toString();
     }
 

@@ -4,15 +4,20 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.FileMapper.map;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -39,7 +44,11 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FileReplicaPolicyTarget;
+import com.emc.storageos.db.client.model.FileReplicaPolicyTargetMap;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.FileAccessState;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -47,11 +56,13 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.PhysicalNAS;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -66,6 +77,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -792,9 +804,11 @@ public class UnManagedFilesystemService extends TaggedResource {
                 throw APIException.internalServerErrors.virtualPoolNotMatchingVArray(param.getVarray());
             }
 
+            VirtualArray targetVArray = null;
+
             // Validate target virtual array
             if (param.getTargetVarrayId() != null) {
-                VirtualArray targetVArray = FileSystemIngestionUtil
+                targetVArray = FileSystemIngestionUtil
                         .getVirtualArrayForFileSystemCreateRequest(project, param.getTargetVarrayId(),
                                 _permissionsHelper, _dbClient);
                 // The virtual pool must contain the target array
@@ -842,15 +856,47 @@ public class UnManagedFilesystemService extends TaggedResource {
                     continue;
                 }
 
+                boolean ingestReplicationObjects = false;
+                UnManagedFileSystem targetUMFS = null;
+                FilePolicy filePolicy = null;
                 if (!validateUnmanagedFileSysem(unManagedFileSystem, project, cos, neighborhood, full_pools, full_systems)) {
                     _logger.warn("UnManaged FileSystem {} validation to ingest failed.Skipping Ingestion..",
                             unManagedFileSystem.getLabel());
                     continue;
-                } else if (ingestUnmangedFsAndDependents(unManagedFileSystem, project, cos, neighborhood, filesystems)) {
-                    _logger.warn(" FileSystem {}  and its dependents are ingested.", unManagedFileSystem.getLabel());
-                    // Delete unmanaged file system!!
-                    unManagedFileSystem.setInactive(true);
-                    unManagedFileSystems.add(unManagedFileSystem);
+                } else {
+                    // ingesting replication objects?
+                    ingestReplicationObjects = isFileSystemReplicationSource(unManagedFileSystem);
+                    if (ingestReplicationObjects) {
+                        filePolicy = _dbClient.queryObject(FilePolicy.class, param.getPolicyId());
+                        targetUMFS = validateAddGetTargetFileSystemDetails(unManagedFileSystem, targetVArray, filePolicy);
+                        if (targetUMFS != null) {
+                            if (!validateUnmanagedFileSysem(targetUMFS, project, cos, targetVArray, full_pools, full_systems)) {
+                                _logger.warn("Target UnManaged FileSystem {} validation to ingest failed.Skipping Ingestion..",
+                                        targetUMFS.getLabel());
+                                continue;
+                            }
+                        } else {
+                            _logger.warn("No target unmanaged file system found for source {}. Skipping Ingestion..",
+                                    unManagedFileSystem.getLabel());
+                            continue;
+                        }
+                    }
+                    // Ingest unmanged file system!!
+                    FileShare fileShare = ingestUnmangedFsAndDependents(unManagedFileSystem, project, cos, neighborhood, filesystems);
+                    if (fileShare != null) {
+                        // Ingest if there are any targets!!
+                        if (ingestReplicationObjects && targetUMFS != null) {
+                            FileShare targetFileShare = ingestUnmangedFsAndDependents(targetUMFS, project, cos, targetVArray, filesystems);
+                            // Set the source-target relation for the FSs
+                            if (targetFileShare != null) {
+                                setReplicationRelationAttributes(unManagedFileSystem, fileShare, targetFileShare, filePolicy);
+                            }
+                        }
+                        _logger.info(" FileSystem {}  and its dependents are ingested.", unManagedFileSystem.getLabel());
+                        // Delete unmanaged file system!!
+                        unManagedFileSystem.setInactive(true);
+                        unManagedFileSystems.add(unManagedFileSystem);
+                    }
                 }
 
             }
@@ -1598,11 +1644,13 @@ public class UnManagedFilesystemService extends TaggedResource {
         return true;
     }
 
-    private boolean ingestUnmangedFsAndDependents(UnManagedFileSystem unManagedFileSystem, Project project, VirtualPool vPool,
+    private FileShare ingestUnmangedFsAndDependents(UnManagedFileSystem unManagedFileSystem, Project project, VirtualPool vPool,
             VirtualArray varray, List<FileShare> filesystems) {
         long softLimit = 0;
         int softGrace = 0;
         long notificationLimit = 0;
+
+        FileShare filesystem = null;
 
         try {
             StringSetMap unManagedFileSystemInformation = unManagedFileSystem
@@ -1688,7 +1736,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                         new Object[] { dataMover.getAdapterName(), dataMover.getName(), dataMover.getLabel() });
             }
 
-            FileShare filesystem = new FileShare();
+            filesystem = new FileShare();
             filesystem.setId(URIUtil.createId(FileShare.class));
             filesystem.setNativeGuid(fsNativeGuid);
             filesystem.setCapacity(lcapcity);
@@ -1811,7 +1859,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             _logger.error("Unexpected exception:", e);
             throw APIException.internalServerErrors.genericApisvcError(e.getMessage(), e);
         }
-        return true;
+        return filesystem;
     }
 
     private boolean validateUnmanagedFileSysem(UnManagedFileSystem unManagedFileSystem, Project project, VirtualPool vPool,
@@ -1945,6 +1993,256 @@ public class UnManagedFilesystemService extends TaggedResource {
         }
 
         return true;
+    }
+
+    private StorageSystem getTagetStorageSystem(String targetHost, VirtualArray targetVarray) {
+
+        Set<URI> storageSystems = new HashSet<URI>();
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getVirtualArrayStoragePortConstraint(targetVarray.getId()),
+                storagePortURIs);
+
+        Iterator<URI> storagePortsIter = storagePortURIs.iterator();
+        while (storagePortsIter.hasNext()) {
+            URI storagePortURI = storagePortsIter.next();
+            StoragePort storagePort = _dbClient.queryObject(StoragePort.class,
+                    storagePortURI);
+            if (storagePort != null && !storagePort.getInactive() &&
+                    (TransportType.IP.name().equalsIgnoreCase(storagePort.getTransportType()))) {
+                storageSystems.add(storagePort.getStorageDevice());
+                // target cluster smart connect zone is matching???
+                if (targetHost.equalsIgnoreCase(storagePort.getPortName())) {
+                    return _dbClient.queryObject(StorageSystem.class, storagePort.getStorageDevice());
+                } else if (targetHost.equalsIgnoreCase(storagePort.getPortNetworkId())) {
+                    return _dbClient.queryObject(StorageSystem.class, storagePort.getStorageDevice());
+                }
+            }
+        } // while
+        Iterator<StorageSystem> systemIter = _dbClient.queryIterativeObjects(StorageSystem.class, storageSystems);
+        while (systemIter.hasNext()) {
+            StorageSystem system = systemIter.next();
+            if (system.getIpAddress().equalsIgnoreCase(targetHost)) {
+                return system;
+            }
+        }
+        return null;
+
+    }
+
+    private UnManagedFileSystem getTagetUnmanagedFileSystem(UnManagedFileSystem sourceUMFS, String targetHost, String targetFsPath,
+            VirtualArray targetVarray) {
+
+        StorageSystem targetSystem = getTagetStorageSystem(targetHost, targetVarray);
+        if (targetSystem != null && !targetSystem.getInactive()) {
+
+            String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                    targetSystem.getSystemType(),
+                    targetSystem.getSerialNumber(), targetFsPath);
+
+            UnManagedFileSystem targetFs = null;
+            URIQueryResultList result = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getFileSystemInfoNativeGUIdConstraint(fsNativeGuid), result);
+            List<URI> filesystemUris = new ArrayList<URI>();
+            Iterator<URI> iter = result.iterator();
+            while (iter.hasNext()) {
+                URI unFileSystemtURI = iter.next();
+                filesystemUris.add(unFileSystemtURI);
+            }
+
+            for (URI fileSystemURI : filesystemUris) {
+                targetFs = _dbClient.queryObject(UnManagedFileSystem.class,
+                        fileSystemURI);
+                if (targetFs != null && !targetFs.getInactive()) {
+                    // Make sure the fs is the right target for the source
+                    // verify the source details are valid!!
+                    StringSetMap unManagedFileSystemInformation = targetFs.getFileSystemInformation();
+                    String revTargetFsPath = PropertySetterUtil.extractValueFromStringSet(
+                            SupportedFileSystemInformation.TARGET_PATH.toString(),
+                            unManagedFileSystemInformation);
+                    if (sourceUMFS.getPath().equalsIgnoreCase(revTargetFsPath)) {
+                        return targetFs;
+                    }
+                }
+            }
+        } else {
+            _logger.warn("No target storage system found  in varray {} with policy target host {} ", targetVarray.getLabel(), targetHost);
+            return null;
+        }
+
+        return null;
+
+    }
+
+    private boolean isFileSystemReplicationSource(UnManagedFileSystem sourceUMFS) {
+        String umfsExportStatus = "False";
+        if (sourceUMFS.getFileSystemCharacterstics() != null) {
+            umfsExportStatus = sourceUMFS.getFileSystemCharacterstics().get(
+                    SupportedFileSystemCharacterstics.IS_MIRROR_SOURCE.toString());
+            if ("True".equalsIgnoreCase(umfsExportStatus)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private UnManagedFileSystem validateAddGetTargetFileSystemDetails(UnManagedFileSystem sourceUMFS, VirtualArray targetVarray,
+            FilePolicy filePolicy) {
+
+        StringSetMap unManagedFileSystemInformation = sourceUMFS
+                .getFileSystemInformation();
+
+        // Verify the policy is applied at fs level
+        // otherwise, do not ingest!!
+        String policyPath = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.POLICY_PATH.toString(),
+                unManagedFileSystemInformation);
+        if (sourceUMFS.getPath().equalsIgnoreCase(policyPath)) {
+            _logger.warn("File system path {}.  and policy path {} are different, So skipping ingestion", sourceUMFS.getPath(),
+                    policyPath);
+            return null;
+        }
+
+        String policySchedule = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.POLICY_SCHEDULE.toString(),
+                unManagedFileSystemInformation);
+        if (validatePolicyParams(filePolicy, policySchedule)) {
+            _logger.warn("Policy schedule {} is different than template , So skipping ingestion", policySchedule);
+            return null;
+        }
+
+        String targetHost = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.TARGET_HOST.toString(),
+                unManagedFileSystemInformation);
+
+        String targetFsPath = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.TARGET_PATH.toString(),
+                unManagedFileSystemInformation);
+
+        UnManagedFileSystem targetUMFS = getTagetUnmanagedFileSystem(sourceUMFS, targetHost, targetFsPath, targetVarray);
+        if (targetUMFS != null) {
+            _logger.warn("Found valid target UMFS {} for source fs {} ", targetUMFS.getPath(), sourceUMFS.getPath());
+            return targetUMFS;
+        }
+        return null;
+
+    }
+
+    private boolean validatePolicyParams(FilePolicy filePolicy, String policySchedule) {
+
+        /*
+         * // schedule validation
+         * String viprSchedule = getIsilonPolicySchedule(filePolicy);
+         * String isiSchedule = StringUtils.substringBefore(policySchedule, " between");
+         * if (!viprSchedule.equalsIgnoreCase(isiSchedule)) {
+         * _log.error("File policy schedule: {} is different compared to isilon SyncIQ schedule: {}", viprSchedule, isiSchedule);
+         * return false;
+         * }
+         */
+
+        return true;
+
+    }
+
+    private PolicyStorageResource updatePolicyStorageResource(FileShare sourceFS, FileShare targetFS, FilePolicy filePolicy,
+            String policyNativeId) {
+
+        PolicyStorageResource policyStorageResource = new PolicyStorageResource();
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
+        policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
+        policyStorageResource.setFilePolicyId(filePolicy.getId());
+        policyStorageResource.setStorageSystem(sourceFS.getStorageDevice());
+        policyStorageResource.setPolicyNativeId(policyNativeId);
+        policyStorageResource.setResourcePath(sourceFS.getPath());
+        policyStorageResource.setAppliedAt(sourceFS.getId());
+
+        NASServer nasServer = null;
+        URI nasUri = sourceFS.getVirtualNAS();
+        if (nasUri != null) {
+            if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))) {
+                nasServer = _dbClient.queryObject(VirtualNAS.class, nasUri);
+            } else {
+                nasServer = _dbClient.queryObject(PhysicalNAS.class, nasUri);
+            }
+        }
+        if (nasServer != null) {
+            policyStorageResource.setNasServer(nasServer.getId());
+            policyStorageResource.setNativeGuid(NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,
+                    nasServer.getNasName(), filePolicy.getFilePolicyType(), sourceFS.getPath(), NativeGUIDGenerator.FILE_STORAGE_RESOURCE));
+        }
+
+        if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicy.FilePolicyType.file_replication.name())) {
+            // Update the target resource details!!!
+            FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap = new FileReplicaPolicyTargetMap();
+            FileReplicaPolicyTarget target = new FileReplicaPolicyTarget();
+
+            NASServer targetNasServer = null;
+            URI targetNasUri = targetFS.getVirtualNAS();
+            if (targetNasUri != null) {
+                if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(targetNasUri))) {
+                    targetNasServer = _dbClient.queryObject(VirtualNAS.class, targetNasUri);
+                } else {
+                    targetNasServer = _dbClient.queryObject(PhysicalNAS.class, targetNasUri);
+                }
+            }
+
+            if (targetNasServer != null) {
+                target.setNasServer(targetNasServer.getId().toString());
+            }
+
+            target.setAppliedAt(filePolicy.getApplyAt());
+            target.setStorageSystem(targetFS.getStorageDevice().toString());
+            target.setPath(targetFS.getPath());
+            String key = target.getFileTargetReplicaKey();
+            fileReplicaPolicyTargetMap.put(key, target);
+            policyStorageResource.setFileReplicaPolicyTargetMap(fileReplicaPolicyTargetMap);
+        }
+
+        // Create policy storage resource
+        _dbClient.createObject(policyStorageResource);
+
+        // Link the policy storage resource to file policy template
+        // Update the assigned resources!!
+        filePolicy.addPolicyStorageResources(policyStorageResource.getId());
+        filePolicy.addAssignedResources(sourceFS.getId());
+        _dbClient.updateObject(filePolicy);
+
+        // Link the souce file system with policy template
+        sourceFS.addFilePolicy(filePolicy.getId());
+
+        _logger.info("PolicyStorageResource object created successfully for {} ",
+                system.getLabel() + policyStorageResource.getAppliedAt());
+        return policyStorageResource;
+    }
+
+    private void setReplicationRelationAttributes(UnManagedFileSystem unManagedFileSystem, FileShare sourceFS,
+            FileShare targetFS, FilePolicy filePolicy) {
+
+        StringSetMap unManagedFileSystemInformation = unManagedFileSystem
+                .getFileSystemInformation();
+
+        // Verify the policy is applied at fs level
+        // otherwise, do not ingest!!
+        String policyNativeId = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.POLICY_NATIVE_ID.toString(),
+                unManagedFileSystemInformation);
+
+        sourceFS.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
+        sourceFS.setAccessState(FileAccessState.READWRITE.name());
+        if (sourceFS.getMirrorfsTargets() == null) {
+            sourceFS.setMirrorfsTargets(new StringSet());
+        }
+        sourceFS.getMirrorfsTargets().add(targetFS.getId().toString());
+
+        targetFS.setPersonality(FileShare.PersonalityTypes.TARGET.toString());
+        targetFS.setAccessState(FileAccessState.READABLE.name());
+        targetFS.setParentFileShare(new NamedURI(sourceFS.getId(), sourceFS.getLabel()));
+
+        // Update the policy storage resource
+        updatePolicyStorageResource(sourceFS, targetFS, filePolicy, policyNativeId);
     }
 
     /**

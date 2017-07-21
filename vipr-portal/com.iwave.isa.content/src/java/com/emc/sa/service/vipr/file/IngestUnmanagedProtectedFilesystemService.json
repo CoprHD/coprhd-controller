@@ -10,7 +10,7 @@
       lockable: true
     },  
     
-    srcVirtualArray:{
+    sourceVirtualArray:{
       type:"assetType.vipr.virtualArray",
       lockable: true
     },
@@ -35,7 +35,7 @@
       lockable: true
     },
     
-    policyTemplate:{
+    filePolicy:{
       type:"assetType.vipr.policyTemplate",
       lockable: true
     },

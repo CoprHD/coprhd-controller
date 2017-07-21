@@ -6,6 +6,7 @@ package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
 import static com.emc.sa.service.ServiceParams.FILESYSTEM_TRGT_VARRAY;
+import static com.emc.sa.service.ServiceParams.FILE_POLICY;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEMS;
 import static com.emc.sa.service.ServiceParams.TYPE;
@@ -38,11 +39,14 @@ public class IngestUnmanagedProtectedFilesystemService extends ViPRService {
     @Param(PROJECT)
     protected URI project;
 
-    @Param(FILESYSTEM_TRGT_VARRAY)
-    protected URI targetVirtualArray;
+    @Param(FILE_POLICY)
+    protected URI filePolicy;
 
     @Param(value = TYPE, required = false)
     protected String type;
+
+    @Param(FILESYSTEM_TRGT_VARRAY)
+    protected URI targetVirtualArray;
 
     @Param(FILESYSTEMS)
     protected List<String> fileSystemIds;

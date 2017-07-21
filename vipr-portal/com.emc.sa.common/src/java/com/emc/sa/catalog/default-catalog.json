@@ -364,6 +364,10 @@
           "baseService": "DissociateFilePolicyFromFileSystem"
         },
         {
+          "image": "Service_Ingest_Unmanaged_Filesystems.png",
+          "baseService": "IngestUnmanagedProtectedFilesystems"
+        },
+        {
           "image": "icon_folder_CIFS_add.png",
           "baseService": "ShareFileSnapshot"
         },

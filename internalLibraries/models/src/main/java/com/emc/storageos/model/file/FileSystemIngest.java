@@ -32,6 +32,7 @@ public class FileSystemIngest {
     private URI project;
     private List<URI> unManagedFileSystems;
     private URI targetVarrayId;
+    private URI policyId;
     private boolean ingestTargetSystems;
 
     public FileSystemIngest() {
@@ -127,6 +128,19 @@ public class FileSystemIngest {
 
     public void setIngestTargetSystems(boolean ingestTargetSystems) {
         this.ingestTargetSystems = ingestTargetSystems;
+    }
+
+    /**
+     * URI representing the file policy template
+     * 
+     */
+    @XmlElement(required = false)
+    public URI getPolicyId() {
+        return policyId;
+    }
+
+    public void setPolicyId(URI policyId) {
+        this.policyId = policyId;
     }
 
 }

@@ -20,6 +20,7 @@ public class IngestUnmanagedFilesystems extends ViPRExecutionTask<List<NamedRela
     private URI varrayId;
     private List<URI> unmanagedFilesystemIds;
     private URI targetVarrayId;
+    private URI filePolicyId;
     private boolean ingestTargetSystems;
 
     public IngestUnmanagedFilesystems(String vpoolId, String varrayId, String projectId,
@@ -28,9 +29,9 @@ public class IngestUnmanagedFilesystems extends ViPRExecutionTask<List<NamedRela
     }
 
     public IngestUnmanagedFilesystems(String vpoolId, String varrayId, String projectId,
-            List<String> unmanagedFilesystemIds, String targetVarrayId, boolean ingestTargetSystems) {
+            List<String> unmanagedFilesystemIds, String targetVarrayId, String policyId, boolean ingestTargetSystems) {
         this(uri(vpoolId), uri(varrayId), uri(projectId), uris(unmanagedFilesystemIds),
-                uri(targetVarrayId), ingestTargetSystems);
+                uri(targetVarrayId), uri(policyId), ingestTargetSystems);
     }
 
     public IngestUnmanagedFilesystems(URI vpoolId, URI varrayId, URI projectId, List<URI> unmanagedFilesystemIds) {
@@ -42,14 +43,15 @@ public class IngestUnmanagedFilesystems extends ViPRExecutionTask<List<NamedRela
     }
 
     public IngestUnmanagedFilesystems(URI vpoolId, URI varrayId, URI projectId, List<URI> unmanagedFilesystemIds,
-            URI targetVarrayId, boolean ingestTargetSystems) {
+            URI targetVarrayId, URI policyId, boolean ingestTargetSystems) {
         this.vpoolId = vpoolId;
         this.varrayId = varrayId;
         this.projectId = projectId;
         this.unmanagedFilesystemIds = unmanagedFilesystemIds;
         this.targetVarrayId = targetVarrayId;
+        this.filePolicyId = policyId;
         this.ingestTargetSystems = ingestTargetSystems;
-        provideDetailArgs(vpoolId, projectId, varrayId, unmanagedFilesystemIds.size(), targetVarrayId, ingestTargetSystems);
+        provideDetailArgs(vpoolId, projectId, varrayId, unmanagedFilesystemIds.size(), targetVarrayId, policyId, ingestTargetSystems);
     }
 
     @Override
@@ -60,6 +62,9 @@ public class IngestUnmanagedFilesystems extends ViPRExecutionTask<List<NamedRela
         ingest.setVpool(vpoolId);
         if (targetVarrayId != null) {
             ingest.setTargetVarrayId(targetVarrayId);
+        }
+        if (filePolicyId != null) {
+            ingest.setPolicyId(filePolicyId);
         }
         ingest.setIngestTargetSystems(ingestTargetSystems);
         return ingestInChunks(ingest);

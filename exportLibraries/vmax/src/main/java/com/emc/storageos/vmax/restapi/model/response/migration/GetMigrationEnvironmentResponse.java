@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 DELL EMC
+ * All Rights Reserved
+ */
 package com.emc.storageos.vmax.restapi.model.response.migration;
 
 import java.util.List;

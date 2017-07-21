@@ -26,7 +26,7 @@ public class Vmax3StorageDriver extends DefaultStorageDriver {
      */
     @Override
     public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
-        return new DiscoveryHelper(this.driverRegistry, this.lockManager, storageSystem.getSerialNumber())
+        return new DiscoveryManager(this.driverRegistry, this.lockManager, storageSystem.getSerialNumber())
                 .discoverStorageSystem(storageSystem);
     }
 
@@ -44,7 +44,7 @@ public class Vmax3StorageDriver extends DefaultStorageDriver {
         int port = storageProvider.getPortNumber();
         String username = storageProvider.getUsername();
         String passwd = storageProvider.getPassword();
-        return new DiscoveryHelper(this.driverRegistry, this.lockManager, protocol, host, port, username, passwd).discoverStorageProvider(
+        return new DiscoveryManager(this.driverRegistry, this.lockManager, protocol, host, port, username, passwd).discoverStorageProvider(
                 storageProvider,
                 storageSystems);
     }
@@ -58,7 +58,7 @@ public class Vmax3StorageDriver extends DefaultStorageDriver {
     @Override
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
 
-        return new ProvisioningHelper(this.driverRegistry, this.lockManager, volumes.get(0).getStorageSystemId()).createVolumes(volumes,
+        return new ProvisioningManager(this.driverRegistry, this.lockManager, volumes.get(0).getStorageSystemId()).createVolumes(volumes,
                 capabilities);
     }
 

@@ -158,6 +158,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     // Block service implementations
     private Map<String, BlockServiceApi> _blockServiceApis;
 
+    // Migration service implementations
+    private Map<String, MigrationServiceApi> migrationServiceApis;
+
     /**
      * Setter for the placement manager.
      *
@@ -178,6 +181,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     public void setBlockServiceApis(final Map<String, BlockServiceApi> serviceInterfaces) {
         _blockServiceApis = serviceInterfaces;
+    }
+
+    /**
+     * Setter for the Migration BlockServiceApi called through Spring configuration.
+     *
+     * @param migrationServiceApis A reference to the migrationServiceApis.
+     */
+    public void setMigrationServiceApis(Map<String, MigrationServiceApi> migrationServiceApis) {
+        this.migrationServiceApis = migrationServiceApis;
     }
 
     private BlockServiceApi getBlockServiceImpl(final String type) {
@@ -212,6 +224,22 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             blockServiceApiImpl = getBlockServiceImpl(BLOCKSERVICEAPIIMPL_GROUP);
         }
         return blockServiceApiImpl;
+    }
+
+    private MigrationServiceApi getMigrationServiceImpl(String type) {
+        return migrationServiceApis.get(type);
+    }
+
+    /**
+     * Get the specific MigrationServiceApiImpl based on the storage system type.
+     *
+     * @param system The storage system instance
+     * @return MigrationServiceApiImpl for the storage system type.
+     */
+    private MigrationServiceApi getMigrationServiceImpl(BlockConsistencyGroup cg) {
+        StorageSystem system = _permissionsHelper.getObjectById(cg.getStorageController(),
+                StorageSystem.class);
+        return getMigrationServiceImpl(system.getSystemType());
     }
 
     @Override
@@ -2725,9 +2753,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateBlockConsistencyGroupForMigration(cg);
         validateBlockConsistencyGroupStatusForMigrationOperation(cg, "create");
 
-
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationCreate(id, param, taskId);
+
         // Create a task for the consistency group and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CREATE_MIGRATION);
@@ -2760,6 +2791,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationCutover(id, taskId);
+
         // Create a task for the consistency group and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CUTOVER);
@@ -2793,6 +2828,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationCommit(id, taskId);
+
         // Create a task for the consistency group and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_COMMIT);
@@ -2825,6 +2864,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationCancel(id, taskId);
+
         // Create a task for the consistency group and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CANCEL);
@@ -2852,6 +2895,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationRefresh(id, taskId);
+
         // Create a task for the consistency group and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_REFRESH);
@@ -2879,6 +2926,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationRecover(id, taskId);
+
         // Create a task for the consistency group and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_RECOVER);
@@ -2909,6 +2960,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationSyncStop(id, taskId);
+
         // Create a task for the consistency group and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_SYNCSTOP);
@@ -2939,6 +2994,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationSyncStart(id, taskId);
+
         // Create a task for the consistency group and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_SYNCSTART);

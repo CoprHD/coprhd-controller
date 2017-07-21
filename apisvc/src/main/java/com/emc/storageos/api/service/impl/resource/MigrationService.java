@@ -6,7 +6,6 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-import static com.emc.storageos.api.mapper.TaskMapper.toCompletedTask;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
@@ -67,7 +66,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
 import com.emc.storageos.vplexcontroller.VPlexController;
@@ -84,6 +82,9 @@ public class MigrationService extends TaskResourceService {
     // A reference to the BlockServiceApi for VPlex.
     VPlexBlockServiceApiImpl _vplexBlockServiceApi = null;
 
+    // Migration service implementations
+    private Map<String, MigrationServiceApi> migrationServiceApis;
+
     // A logger reference.
     private static final Logger s_logger = LoggerFactory
             .getLogger(MigrationService.class);
@@ -95,6 +96,30 @@ public class MigrationService extends TaskResourceService {
      */
     public void setVplexBlockServiceApi(VPlexBlockServiceApiImpl vplexBlockServiceApi) {
         _vplexBlockServiceApi = vplexBlockServiceApi;
+    }
+
+    /**
+     * Setter for the Migration BlockServiceApi called through Spring configuration.
+     *
+     * @param migrationServiceApis A reference to the migrationServiceApis.
+     */
+    public void setMigrationServiceApis(Map<String, MigrationServiceApi> migrationServiceApis) {
+        this.migrationServiceApis = migrationServiceApis;
+    }
+
+    private MigrationServiceApi getMigrationServiceImpl(String type) {
+        return migrationServiceApis.get(type);
+    }
+
+    /**
+     * Get the specific MigrationServiceApiImpl based on the storage system type.
+     *
+     * @param system The storage system instance
+     * @return MigrationServiceApiImpl for the storage system type.
+     */
+    private MigrationServiceApi getMigrationServiceImpl(StorageSystem system) {
+        String systemType = system.getSystemType();
+        return getMigrationServiceImpl(systemType);
     }
 
     /**
@@ -894,9 +919,12 @@ public class MigrationService extends TaskResourceService {
 
         StorageSystem srcSysytem = _dbClient.queryObject(StorageSystem.class, param.getSourceStorageSystem());
 
-
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(srcSysytem);
+        migrationApiImpl.migrationCreateEnvironment(param, taskId);
+
         // Create a task for the storage system and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, srcSysytem.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CREATE_ENV);
@@ -927,6 +955,10 @@ public class MigrationService extends TaskResourceService {
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(srcSysytem);
+        migrationApiImpl.migrationRemoveEnvironment(param, taskId);
+
         // Create a task for the storage system and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, srcSysytem.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_REMOVE_ENV);

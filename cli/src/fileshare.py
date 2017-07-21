@@ -1703,33 +1703,33 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         help='Add/Update/Delete ACLs rules for FileSystem ')
-    mandatory_args = nfs_acl_parser.add_argument_group(
-        'mandatory arguments')
-    mandatory_args.add_argument('-name', '-n',
+    nfs_ace_args = nfs_acl_parser.add_argument_group(
+        'nfs ace arguments')
+    nfs_ace_args.add_argument('-name', '-n',
                                 dest='name',
                                 metavar='<filesystemname>',
                                 help='Name of Filesystem',
                                 required=True)
-    mandatory_args.add_argument('-operation', '-op',
+    nfs_ace_args.add_argument('-operation', '-op',
                                 choices=["add", "update", "delete"],
                                 dest='operation',
                                 metavar='<acloperation>',
                                 help='nfs acl operation',
                                 required=True)
-    mandatory_args.add_argument('-permissions', '-perms',
+    nfs_ace_args.add_argument('-permissions', '-perms',
                                     dest='permissions',
                                     choices=["Read", "Write", "Execute","Read,write" ,"Read,Execute","Write,Execute","Read,Write,Execute","FullControl"],
                                     metavar='<permissions>',
                                     help='Provide permissions for Acl',
                                     required=True)
-    nfs_acl_parser.add_argument('-inheritflags', '-inherit',
+    nfs_ace_args.add_argument('-inheritflags', '-inherit',
                                     dest='inheritflags',
                                     choices=["object_inherit", "container_inherit", "no_prop_inherit", "inherit_only", "inherited_ace"],
                                     metavar='<inheritFlags>',
                                     help='Provide inheritflags for Acl',
                                     nargs='+',
                                     required=False)
-    mandatory_args.add_argument('-permissiontype', '-permtype',
+    nfs_ace_args.add_argument('-permissiontype', '-permtype',
                                     dest='permissiontype',
                                     choices=["allow", "deny"],
                                     metavar='<permission_type>',
@@ -1739,12 +1739,12 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                      metavar='<tenantname>',
                                      dest='tenant',
                                      help='Name of tenant')
-    mandatory_args.add_argument('-project', '-pr',
+    nfs_ace_args.add_argument('-project', '-pr',
                                 metavar='<projectname>',
                                 dest='project',
                                 help='Name of project',
                                 required=True)
-    mandatory_args.add_argument('-user', '-u',
+    nfs_ace_args.add_argument('-user', '-u',
                                     dest='user',
                                     metavar='<user>',
                                     help='User',

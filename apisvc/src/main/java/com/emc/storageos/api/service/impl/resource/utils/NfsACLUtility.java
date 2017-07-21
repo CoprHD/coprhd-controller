@@ -340,7 +340,9 @@ public class NfsACLUtility {
 
         dest.setDomain(orig.getDomain());
         dest.setPermissions(orig.getPermissions());
-
+        if (orig.getInheritFlags() != null ) {
+            dest.setInheritFlags(orig.getInheritFlags());
+        }
         dest.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
         if (orig.getPermissionType() != null && !orig.getPermissionType().isEmpty()) {
             dest.setPermissionType(orig.getPermissionType());

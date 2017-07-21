@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.NamedURI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +70,24 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
                             String updatedMessage = String.format("%s\n%s", originalMessage, additionMessage);
                             error.setMessage(updatedMessage);
                         }
+
+                        // if SRDF Protected Volume, then change it to a normal device.
+                        // in case of array locks, target volume deletions fail some times.
+                        // This fix, converts a RDF device to non-rdf device in ViPr, so that this volume is exposed to UI for deletion again.
+                        if (volume.checkForSRDF()) {
+                            volume.setPersonality(NullColumnValueGetter.getNullStr());
+                            volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
+                            volume.setLinkStatus(NullColumnValueGetter.getNullStr());
+                            if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
+                                volume.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
+                                volume.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
+                                volume.setSrdfGroup(NullColumnValueGetter.getNullURI());
+                            } else if (null != volume.getSrdfTargets()) {
+                                volume.getSrdfTargets().clear();
+                            }
+                        }
+                        dbClient.updateObject(volume);
+
                         dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
                         break;
                     default:

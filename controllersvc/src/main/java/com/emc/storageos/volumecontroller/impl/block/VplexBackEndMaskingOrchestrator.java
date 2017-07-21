@@ -98,11 +98,13 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param switchToPortNumber
      *            -- the number of port number to be allocated per switch per network
      * @param contextMap - PortAllocationContext map per network, for unit tests only
+     * @param errorMessages - error message Strings to be added to an Exception response
      * @return Set of PortGroups.
      */
     Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
-            Map<URI, Map<String, Integer>> switchToPortNumber, Map<URI, PortAllocationContext> contextMap);
+            Map<URI, Map<String, Integer>> switchToPortNumber, Map<URI, PortAllocationContext> contextMap, 
+            StringBuilder errorMessages);
 
     /**
      * Configure the zoning for an ExportMask given its PortGroup and InitiatorGroup.

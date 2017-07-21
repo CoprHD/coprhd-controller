@@ -20,14 +20,15 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
     private String name;
     private URI consistencyGroupId;
     private URI computeResource;
+    private URI portGroup;
 
     public CreateBlockVolume(String vpoolId, String varrayId, String projectId, String size, Integer count,
             String name, String consistencyGroupId) {
-        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, name, uri(consistencyGroupId), null);
+        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, name, uri(consistencyGroupId), null, null);
     }
 
     public CreateBlockVolume(URI vpoolId, URI varrayId, URI projectId, String size, Integer count, String name,
-            URI consistencyGroupId, URI computeResource) {
+            URI consistencyGroupId, URI computeResource, URI portGroup) {
         this.vpoolId = vpoolId;
         this.varrayId = varrayId;
         this.projectId = projectId;
@@ -36,6 +37,7 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
         this.name = name;
         this.consistencyGroupId = consistencyGroupId;
         this.computeResource = computeResource;
+        this.portGroup = portGroup;
         provideDetailArgs(name, size, vpoolId, varrayId, projectId);
     }
 
@@ -55,6 +57,9 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
         create.setConsistencyGroup(consistencyGroupId);
         if (computeResource != null) {
             create.setComputeResource(computeResource);
+        }
+        if (portGroup != null) {
+            create.setPortGroup(portGroup);
         }
 
         Tasks<VolumeRestRep> tasks = getClient().blockVolumes().create(create);

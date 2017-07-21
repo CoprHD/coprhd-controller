@@ -817,9 +817,10 @@ public class RecoverPointClient {
             // used to set the copy uid on the rset volume when adding rsets
             Map<Long, ConsistencyGroupCopyUID> productionCopiesUID = new HashMap<Long, ConsistencyGroupCopyUID>();
             Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID = new HashMap<Long, ConsistencyGroupCopyUID>();
+            Map<ConsistencyGroupCopyUID, String> cgCopyNames = new HashMap<ConsistencyGroupCopyUID, String>();
 
             FullConsistencyGroupPolicy fullConsistencyGroupPolicy = configureCGPolicy(request, prodSites, clusterIdCache,
-                    productionCopiesUID, nonProductionCopiesUID);
+                    productionCopiesUID, nonProductionCopiesUID, cgCopyNames);
 
             // create the CG with copies
             logger.info("Adding cg, copies and links for CG: " + request.getCgName());
@@ -1001,13 +1002,6 @@ public class RecoverPointClient {
         return 0;
     }
 
-    private boolean usingSnapShotTechnology(CGRequestParams request) {
-        if (getMaxNumberOfSnapShots(request.getCopies().get(0)) > 0) {
-            return true;
-        }
-        return false;
-    }
-
     /**
      * Determines and creates RecoverPointCGCopyType type based on passed int value
      *
@@ -1044,12 +1038,14 @@ public class RecoverPointClient {
     }
 
     /**
-     * @param request
-     * @param prodSites
-     * @param clusterIdCache
+     * Configures the consistency group settings change param.
+     *
+     * @param request the CG create request information
+     * @param prodSites the list of production clusters
+     * @param clusterIdCache the cached map of internal site names to clusters
      * @param attachAsClean attach as clean can be true if source and target are guaranteed to be the same (as in create
      *            new volume). for change vpool, attach as clean should be false
-     * @return
+     * @return the consistency group settings change param
      * @throws FunctionalAPIInternalError_Exception
      * @throws FunctionalAPIActionFailedException_Exception
      */
@@ -1142,13 +1138,14 @@ public class RecoverPointClient {
                     sourceWWNsInRset.add(volume.getWwn());
                     logger.info("Configuring production copy volume : \n" + volume.toString());
                     ConsistencyGroupCopyUID copyUID = productionCopiesUID.get(Long.valueOf(volSiteId.getId()));
+                    copyUID.setGroupUID(cgUID);
                     volSettings.setCopyUID(copyUID);
                 } else {
                     logger.info("Configuring non-production copy volume : \n" + volume.toString());
                     ConsistencyGroupCopyUID copyUID = nonProductionCopiesUID.get(Long.valueOf(volSiteId.getId()));
+                    copyUID.setGroupUID(cgUID);
                     volSettings.setCopyUID(copyUID);
                 }
-                volSettings.getCopyUID().setGroupUID(cgUID);
                 repSetSettings.getVolumesChanges().add(volSettings);
             }
             cgSettingsParam.getReplicationSetsChanges().add(repSetSettings);
@@ -1158,14 +1155,22 @@ public class RecoverPointClient {
     }
 
     /**
-     * @param request
-     * @return
-     * @throws FunctionalAPIInternalError_Exception
+     * Configure the entire consistency group policy.
+     *
+     * @param request the CG create request information
+     * @param prodSites the list of production clusters
+     * @param clusterIdCache the cached map of internal site names to clusters
+     * @param productionCopiesUID mapping of production clusters IDs to consistency group copy IDs
+     * @param nonProductionCopiesUID mapping of non-production clusters IDs to consistency group copy IDs
+     * @param cgCopyNames mapping of consistency group copy IDs to consistency group copy names
+     * @return the full consistency group policy
      * @throws FunctionalAPIActionFailedException_Exception
+     * @throws FunctionalAPIInternalError_Exception
      */
     private FullConsistencyGroupPolicy configureCGPolicy(CGRequestParams request, List<ClusterUID> prodSites,
             Map<String, ClusterUID> clusterIdCache, Map<Long, ConsistencyGroupCopyUID> productionCopiesUID,
-            Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID) throws FunctionalAPIActionFailedException_Exception,
+            Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID, Map<ConsistencyGroupCopyUID, String> cgCopyNames)
+            throws FunctionalAPIActionFailedException_Exception,
             FunctionalAPIInternalError_Exception {
 
         logger.info("Requesting preferred RPA for cluster " + prodSites.get(0).getId());
@@ -1197,6 +1202,8 @@ public class RecoverPointClient {
                     copyPolicy.setCopyPolicy(functionalAPI.getDefaultConsistencyGroupCopyPolicy());
                     copyPolicy.setCopyUID(cgCopyUID);
 
+                    cgCopyNames.put(cgCopyUID, copyParam.getName());
+
                     if (getMaxNumberOfSnapShots(copyParam) > 0) {
                         copyPolicy.getCopyPolicy().getSnapshotsPolicy().setNumOfDesiredSnapshots(getMaxNumberOfSnapShots(copyParam));
                     }
@@ -1219,54 +1226,76 @@ public class RecoverPointClient {
         }
 
         // set links between production and remote/local copies
-        configureLinkPolicies(fullConsistencyGroupPolicy, request);
+        configureLinkPolicies(fullConsistencyGroupPolicy, request, productionCopiesUID, nonProductionCopiesUID, cgCopyNames);
 
         return fullConsistencyGroupPolicy;
     }
 
     /**
-     * configure links between each production and each local and/or remote copy in a new CG
+     * Configure the valid links between each production and each local and/or remote copy in a new CG
      * configured links are added to fullConsistencyGroupPolicy
      *
-     * @param fullConsistencyGroupPolicy cg policy with copies populated
-     * @param copyType prod, local or remote
-     * @param request create cg request used for copy mode and rpo
+     * @param fullConsistencyGroupPolicy CG policy with copies populated
+     * @param request request create cg request used for copy mode and rpo
+     * @param productionCopiesUID the map of production copies
+     * @param targetCopiesUID the map of non-production copies
+     * @param cgCopyNames the map of CG copy UIDs to their actual names
+     * @throws FunctionalAPIInternalError_Exception
+     * @throws FunctionalAPIActionFailedException_Exception
      */
-    private void configureLinkPolicies(FullConsistencyGroupPolicy fullConsistencyGroupPolicy, CGRequestParams request) {
-        for (FullConsistencyGroupCopyPolicy copyPolicy : fullConsistencyGroupPolicy.getCopiesPolicies()) {
+    private void configureLinkPolicies(FullConsistencyGroupPolicy fullConsistencyGroupPolicy, CGRequestParams request,
+            Map<Long, ConsistencyGroupCopyUID> productionCopiesUID, Map<Long, ConsistencyGroupCopyUID> targetCopiesUID,
+            Map<ConsistencyGroupCopyUID, String> cgCopyNames)
+            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
 
-            if (!fullConsistencyGroupPolicy.getProductionCopies().contains(copyPolicy.getCopyUID())) {
+        for (Map.Entry<Long, ConsistencyGroupCopyUID> productionCopyEntry : productionCopiesUID.entrySet()) {
+            Long productionCopyClusterUID = productionCopyEntry.getKey();
+            ConsistencyGroupCopyUID productionCopyUID = productionCopyEntry.getValue();
+            String prodCopyName = cgCopyNames.get(productionCopyUID);
 
-                for (ConsistencyGroupCopyUID productionCopyUID : fullConsistencyGroupPolicy.getProductionCopies()) {
+            for (Map.Entry<Long, ConsistencyGroupCopyUID> nonProductionCopyEntry : targetCopiesUID.entrySet()) {
+                // Determine what links need to be configured based on known production and non-production copies.
+                // The production/non-production copy maps are keyed on ClusterUID. If a ClusterUID from the non-production
+                // copy map matches one from the production copy map, that is considered a local copy - so a single link will be configured
+                // between that production copy and the non-production copy matching the ClusterUID. If a ClusterUID
+                // from the non-production map doesn't match any ClusterUIDs from the production copy map, that copy is
+                // considered a remote copy - so links will be configured between all production copies and this remote copy. Based on that
+                // information we will configure the valid links between the production copies and the local/remote copies.
+                Long nonProductionCopyClusterUID = nonProductionCopyEntry.getKey();
+                ConsistencyGroupCopyUID nonProductionCopyUID = nonProductionCopyEntry.getValue();
+                String nonProdCopyName = cgCopyNames.get(nonProductionCopyUID);
 
-                    logger.info("Configuring link policy between production copy and local or remote copy on cluster(id) : "
-                            + copyPolicy.getCopyUID().getGlobalCopyUID().getClusterUID().getId());
-
+                // In order to configure a link between the current production copy and this non-production copy, one of two
+                // things needs to happen. The ClusterUID of the production copy matches the non-production - meaning this is a
+                // local copy. Or, the non-production ClusterUID doesn't match any production ClusterUIDs - this is a remote copy.
+                if (nonProductionCopyClusterUID.equals(productionCopyClusterUID)
+                        || !productionCopiesUID.containsKey(nonProductionCopyClusterUID)) {
                     ConsistencyGroupLinkUID linkUid = new ConsistencyGroupLinkUID();
                     linkUid.setFirstCopy(productionCopyUID.getGlobalCopyUID());
-                    linkUid.setSecondCopy(copyPolicy.getCopyUID().getGlobalCopyUID());
+                    linkUid.setSecondCopy(nonProductionCopyUID.getGlobalCopyUID());
 
-                    boolean isLocal = productionCopyUID.getGlobalCopyUID().getClusterUID()
-                            .equals(copyPolicy.getCopyUID().getGlobalCopyUID().getClusterUID());
-                    RecoverPointCGCopyType copyType = isLocal ? RecoverPointCGCopyType.LOCAL : RecoverPointCGCopyType.REMOTE;
+                    logger.info(String.format("Configuring a copy link between copies %s and %s", prodCopyName, nonProdCopyName));
+
+                    RecoverPointCGCopyType copyType = (productionCopyClusterUID == nonProductionCopyClusterUID) ? RecoverPointCGCopyType.LOCAL
+                            : RecoverPointCGCopyType.REMOTE;
 
                     ConsistencyGroupLinkPolicy linkPolicy = createLinkPolicy(copyType, request.getCgPolicy().getCopyMode(),
                             request.getCgPolicy().getRpoType(),
                             request.getCgPolicy().getRpoValue());
 
-                    if (copyPolicy.getCopyPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
+                    FullConsistencyGroupCopyPolicy copyPolicy = getCopyPolicy(fullConsistencyGroupPolicy, nonProductionCopyUID);
+
+                    // Set the snapshot policy on the link based off the existing non-production copy policy
+                    if (copyPolicy != null && copyPolicy.getCopyPolicy() != null && copyPolicy.getCopyPolicy().getSnapshotsPolicy() != null
+                            && copyPolicy.getCopyPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
                             copyPolicy.getCopyPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() > 0) {
                         SnapshotShippingPolicy snapPolicy = new SnapshotShippingPolicy();
                         snapPolicy.setIntervaInMinutes(1L);
                         snapPolicy.setMode(SnapshotShippingMode.PERIODICALLY);
                         linkPolicy.setSnapshotShippingPolicy(snapPolicy);
+                    } else {
+                    	logger.warn("Not setting the snapshot policy on link because there is no existing copy snapshot policy to base this off of.");
                     }
-
-                    ConsistencyGroupLinkSettings linkSettings = new ConsistencyGroupLinkSettings();
-                    linkSettings.setGroupLinkUID(linkUid);
-                    linkSettings.setLinkPolicy(linkPolicy);
-                    linkSettings.setLocalLink(isLocal);
-                    linkSettings.setTransferEnabled(false);
 
                     FullConsistencyGroupLinkPolicy fullLinkPolicy = new FullConsistencyGroupLinkPolicy();
                     fullLinkPolicy.setLinkPolicy(linkPolicy);
@@ -1276,7 +1305,23 @@ public class RecoverPointClient {
                 }
             }
         }
+    }
 
+    /**
+     * Utility method used to get the full CG copy policy.
+     *
+     * @param fullConsistencyGroupPolicy the full consistency group policy
+     * @param copyUID the consistency group copy for which the full CG copy policy is being obtained
+     * @return the full consistency group copy policy
+     */
+    private FullConsistencyGroupCopyPolicy getCopyPolicy(FullConsistencyGroupPolicy fullConsistencyGroupPolicy,
+            ConsistencyGroupCopyUID copyUID) {
+        for (FullConsistencyGroupCopyPolicy copyPolicy : fullConsistencyGroupPolicy.getCopiesPolicies()) {
+            if (RecoverPointUtils.copiesEqual(copyPolicy.getCopyUID(), copyUID)) {
+                return copyPolicy;
+            }
+        }
+        return null;
     }
 
     /**
@@ -1432,7 +1477,7 @@ public class RecoverPointClient {
                     for (RPSite rpSite : allSites) {
                         ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                         for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
-                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
+                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false);
                             if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {
                                 logger.info("Found site and volume ID for journal: " + volumeParam.getWwn() + " for copy: "
                                         + copy.getName());
@@ -1481,7 +1526,7 @@ public class RecoverPointClient {
                     for (RPSite rpSite : allSites) {
                         ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                         for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
-                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
+                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false);
                             if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {
                                 logger.info(String.format(
                                         "Found site and volume ID for volume: %s for replication set: %s on site: %s (%s)",
@@ -3800,5 +3845,27 @@ public class RecoverPointClient {
         logger.info(String.format("Access states for requested copies: %s", copyAccessStates));
 
         return copyAccessStates;
+    }
+    
+    public boolean doesReplicationSetExist(String cgName, String rsetName){
+        try {
+        	List<ConsistencyGroupSettings> cgsSettings = functionalAPI.getAllGroupsSettings();
+	        for (ConsistencyGroupSettings cgSettings : cgsSettings) {
+	        	if (cgSettings.getName().equalsIgnoreCase(cgName)) { 
+		            // See if it is a production source, or an RP target
+		            for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
+		            	if (rsSettings.getReplicationSetName().equalsIgnoreCase(rsetName)) {
+		            		return true;
+		            	}
+		            }
+	        	}
+	        }
+        } catch (Exception e) {
+            // Do Nothing.  If we fail trying to see if the replication set exists just return false.
+        	logger.warn(String.format("Failed searching for replication set %s in RecoverPoint consistency group %s. "
+        			+ "Returning false to indicate replication set could not be found."), e);
+        }       
+        
+        return false;
     }
 }

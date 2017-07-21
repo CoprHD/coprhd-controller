@@ -368,8 +368,13 @@
     	  	$('#storageArray_userNameControlGroup').show();
       		$('#storageArray_userPasswordControlGroup').show();
       		$('#storageArray_confirmPasswordControlGroup').show();
-  	  		$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.ipAddress')}"+":");
-  	  	    $('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.ipAddress.help')}");
+  	  	    if ( selectedType == 'isilon' || selectedType == 'unity' || selectedType == 'vnxfile') {
+				$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.fqdnIpAddress')}"+":");
+  	  	    	$('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.fqdnIpAddress.help')}");
+  	  	    } else {
+				$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.ipAddress')}"+":");	
+				$('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.ipAddress.help')}");
+  	  	    }
 //   			$('#storageArray_serialNumberControlGroup').show().addClass('required');    		
 // 	  		$('#storageArray_nameControlGroup').hide().removeClass('required');    		    	  
 	  		$('#storageArray_useSSLControlGroup').hide();

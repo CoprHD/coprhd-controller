@@ -205,6 +205,14 @@ public class StorageProviderService extends TaskResourceService {
         return new StorageProviderBulkRep(BulkList.wrapping(_dbIterator, MapStorageProvider.getInstance()));
     }
 
+    /**
+     * Register Storage Provider
+     * 
+     * @param param
+     * @brief Define a new storage provider
+     * @return TaskResponse
+     * @throws ControllerException
+     */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -346,6 +354,13 @@ public class StorageProviderService extends TaskResourceService {
         return taskList;
     }
 
+    /**
+     * Delete Storage Provider
+     * 
+     * @param id
+     * @brief Delete a storage provider
+     * @return
+     */
     @POST
     @Path("/{id}/deactivate")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -570,13 +585,13 @@ public class StorageProviderService extends TaskResourceService {
     }
 
     /**
-     * Allows the user to remove a storage system from the list of decommisioned resources
+     * Allows the user to add a storage system and rescans the provider.
      * After that corresponding provider should be able to be rescanned and add this system back to the list of managed systems.
      * 
      * @param id id the URN of a ViPR Storage provider
      * @param param The storage system details.
      * 
-     * @brief removes the storage system from the list of decommissioned systems and rescans the provider.
+     * @brief Add a new storage system and rescan the provider.
      * @return An asynchronous task corresponding to the scan job scheduled for the provider.
      * 
      * @throws BadRequestException When the system type is not valid or a

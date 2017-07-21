@@ -4,14 +4,15 @@
  */
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.services.util.StorageDriverManager;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import com.emc.storageos.services.util.StorageDriverManager;
 
 public class DiscoveredDataObject extends DataObject {
 
@@ -165,8 +166,20 @@ public class DiscoveredDataObject extends DataObject {
             return type.equals(vplex);
         }
 
+        static public boolean isVmaxStorageSystem(String storageType) {
+            Type type = Type.valueOf(storageType);
+            return  type.equals(vmax) ||
+                    type.equals(vmax3) ||
+                    type.equals(vmax3AFA);
+        }
+
         static public boolean isIBMXIVStorageSystem(Type type) {
             return type.equals(ibmxiv);
+        }
+
+        static public boolean isThinPoolSubscribedCheckNeeded(String storageType) {
+            Type type = Type.valueOf(storageType);
+            return (!xtremio.equals(type));
         }
 
         static public boolean isBlockStorageSystem(String storageType) {

@@ -14,6 +14,7 @@ import static com.emc.sa.service.ServiceParams.HOST_PASSWORD;
 import static com.emc.sa.service.ServiceParams.MANAGEMENT_NETWORK;
 import static com.emc.sa.service.ServiceParams.NETMASK;
 import static com.emc.sa.service.ServiceParams.NTP_SERVER;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -25,7 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.sa.engine.ExecutionException;
+import org.apache.commons.collections.CollectionUtils;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
@@ -33,19 +35,13 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnToIpTable;
-import com.emc.sa.service.vmware.VMwareSupport;
-import com.emc.sa.service.vmware.tasks.GetVcenter;
-import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.vmware.vim25.mo.ClusterComputeResource;
 
 @Service("AddHostToCluster")
 public class AddHostToClusterService extends ViPRService {
@@ -91,6 +87,9 @@ public class AddHostToClusterService extends ViPRService {
 
     @Param(HOST_PASSWORD)
     protected String rootPassword;
+    
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
 
     @Bindable(itemType = FqdnToIpTable.class)
     protected FqdnToIpTable[] fqdnToIps;
@@ -116,8 +115,9 @@ public class AddHostToClusterService extends ViPRService {
         if (cluster == null) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.no.cluster.exists"));
         }
+        acquireClusterLock(cluster);
 
-        preCheckErrors = verifyClusterInVcenter(cluster, preCheckErrors);
+        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
 
         if (hostNames == null || hostNames.isEmpty() || hostIps == null || hostIps.isEmpty()) {
             preCheckErrors.append(
@@ -246,6 +246,9 @@ public class AddHostToClusterService extends ViPRService {
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
+        for (Host host : hosts) {
+            acquireHostLock(host, cluster);
+        }
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
@@ -256,7 +259,7 @@ public class AddHostToClusterService extends ViPRService {
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
         // Export the boot volume, return a map of hosts and their EG IDs
-        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu, portGroup);
         logInfo("compute.cluster.exports.created",
                 hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
 
@@ -278,8 +281,7 @@ public class AddHostToClusterService extends ViPRService {
 
         try {
             if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-                pushToVcenter();
-                ComputeUtils.discoverHosts(hosts);
+                pushToVcenter(hosts);
             } else {
                 logWarn("compute.cluster.newly.provisioned.hosts.none");
             }
@@ -323,7 +325,7 @@ public class AddHostToClusterService extends ViPRService {
     }
 
     private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap, List<Host> createdHosts) {
-        List<OsInstallParam> osInstallParams = Lists.newArrayList();
+        Map<Host,OsInstallParam> osInstallParamMap = new HashMap<Host,OsInstallParam>();
 
         for (Host host : createdHosts) {
             if ((host != null) && (
@@ -343,23 +345,23 @@ public class AddHostToClusterService extends ViPRService {
                 param.setManagementNetwork(managementNetwork);
                 param.setNtpServer(ntpServer);
                 param.setRootPassword(rootPassword);
-                osInstallParams.add(param);
+                osInstallParamMap.put(host,param);
             }
             else {
-                osInstallParams.add(null);
+                osInstallParamMap.put(host,null);
             }
         }
 
         try {
             // Attempt an OS Install only on the list of hosts that are a part of the order
             // This does check if the hosts already have a OS before attempting the install
-            ComputeUtils.installOsOnHosts(createdHosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(osInstallParamMap);
         } catch (Exception e) {
             logError(e.getMessage());
         }
     }
 
-    private void pushToVcenter() {
+    private void pushToVcenter(List<Host> hosts) {
         // If the cluster has a datacenter associated with it,
         //it needs to be updated and push hosts to vcenter
         VcenterDataCenter dataCenter = null;
@@ -387,6 +389,9 @@ public class AddHostToClusterService extends ViPRService {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
                 throw e;
             }
+            ComputeUtils.discoverHosts(hosts);
+        } else if(CollectionUtils.isNotEmpty(hosts)) {
+            logInfo("compute.cluster.no.vcenter.manual.hostdiscover.message", hosts);
         }
     }
 
@@ -542,93 +547,4 @@ public class AddHostToClusterService extends ViPRService {
         this.copyOfHostNames = copyOfHostNames;
     }
 
-    /**
-     * Precheck to verify if cluster is associated to a datacenter and if it still
-     * on the same datacenter and vcenter.  Precheck fails the order if the cluster
-     * has datacenter association and is not found on the vcenter under the same datacenter
-     * If cluster does not have a datacenter association, then the cluster is
-     * a vipr cluster and precheck passes.
-     * @param cluster {@link Cluster} cluster instance
-     * @param preCheckErrors {@link StringBuilder} instance
-     * @return preCheckErrors
-     */
-    private StringBuilder verifyClusterInVcenter(Cluster cluster, StringBuilder preCheckErrors) {
-         //Precheck to verify if cluster has a datacenter and if the cluster still is on same datacenter in vcenter
-        //else fail order
-        if (!NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
-            VcenterDataCenter dataCenter = execute(new GetVcenterDataCenter(cluster.getVcenterDataCenter()));
-            if (dataCenter != null && !dataCenter.getInactive()) {
-                if (!NullColumnValueGetter.isNullURI(dataCenter.getVcenter())) {
-                    Vcenter vcenter = execute(new GetVcenter(dataCenter.getVcenter()));
-
-                    if (vcenter != null && !vcenter.getInactive()) {
-                        VMwareSupport vmware = null;
-                        try {
-                            vmware = new VMwareSupport();
-                            vmware.connect(vcenter.getId());
-                            ClusterComputeResource vcenterCluster = vmware.getCluster(dataCenter.getLabel(),
-                                    cluster.getLabel(), false);
-                            if (null != vcenterCluster) {
-                                ExecutionUtils.currentContext().logInfo(
-                                        "compute.cluster.precheck.cluster.VcenterDataCenter.found.in.vcenter",
-                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
-                            } else {
-                                preCheckErrors.append(ExecutionUtils.getMessage(
-                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
-                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));
-                            }
-
-                        } catch (ExecutionException e) {
-                            if (e.getCause() instanceof IllegalStateException) {
-                                ExecutionUtils.currentContext().logError(
-                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
-                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel());
-                                preCheckErrors.append(ExecutionUtils.getMessage(
-                                        "compute.cluster.precheck.cluster.VcenterDataCenter.notfound.in.vcenter",
-                                        cluster.getLabel(), dataCenter.getLabel(), vcenter.getLabel()));
-                            } else {
-                                // If it's anything other than the
-                                // IllegalStateException, re-throw the base
-                                // exception
-                                throw e;
-                            }
-                        } finally {
-                            if (vmware != null) {
-                                vmware.disconnect();
-                            }
-                        }
-                    } else {
-                        // If the vcenter isn't returned properly, not found in
-                        // DB, but the cluster has a reference to
-                        // it, there's an issue with the sync of the DB object.
-                        // Do not allow the validation to pass
-                        // until that's fixed.
-                        preCheckErrors.append(ExecutionUtils.getMessage(
-                                "compute.cluster.precheck.cluster.VcenterDataCenter.improper.vcenter",
-                                dataCenter.getVcenter()));
-                    }
-                } else {
-                    // If datacenter does not have reference to a vcenter then
-                    // there's an issue with the sync of the DB object. Do not allow the validation to pass
-                    // until that's fixed.
-                    preCheckErrors.append(
-                            ExecutionUtils.getMessage("compute.cluster.precheck.cluster.VcenterDataCenter.noVcenter",
-                                    dataCenter.getLabel()));
-                }
-            } else {
-                // If the datacenter isn't returned properly, not found in DB,
-                // but the cluster has a reference to
-                // it, there's an issue with the sync of the DB object. Do not
-                // allow the validation to pass
-                // until that's fixed.
-                preCheckErrors.append(ExecutionUtils.getMessage(
-                        "compute.cluster.precheck.cluster.improper.VcenterDataCenter", cluster.getVcenterDataCenter()));
-            }
-        } else {
-            // cluster is a vipr cluster only no need to check anything further.
-            ExecutionUtils.currentContext().logInfo("compute.cluster.precheck.cluster.noVCenterDataCenter",
-                    cluster.getLabel());
-        }
-        return preCheckErrors;
-    }
 }

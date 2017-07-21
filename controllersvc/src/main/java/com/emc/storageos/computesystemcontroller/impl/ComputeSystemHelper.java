@@ -202,11 +202,11 @@ public class ComputeSystemHelper {
         List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, host.getId());
         for (Initiator initiator : initiators) {
             initiator.setClusterName("");
-            dbClient.persistObject(initiator);
         }
+        dbClient.updateObject(initiators);
 
         host.setCluster(NullColumnValueGetter.getNullURI());
-        dbClient.persistObject(host);
+        dbClient.updateObject(host);
     }
 
     /**
@@ -602,7 +602,7 @@ public class ComputeSystemHelper {
         }
         List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, hostURI);
         for (Initiator initiator : initiators) {
-            initiator.setClusterName(cluster != null ? cluster.getLabel() : "null");
+            initiator.setClusterName(cluster != null ? cluster.getLabel() : "");
         }
         dbClient.updateObject(initiators);
     }

@@ -46,7 +46,7 @@ function storageDriverStatus(o, val) {
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
         <a class="btn btn-default btn-xs" ng-show="allowUpgrade" role="button" href="{{upgradeUrl}}">{{'storageDrivers.upgradeButton' | t}}</a>
-        <a class="btn btn-default btn-xs" ng-show="allowDelete" role="button" href="{{deleteUrl}}"onclick="if (!confirm('&{'storageDrivers.delete.confirm'}')){return false;}">{{'storageDrivers.deleteButton' | t}}</a>
+        <a class="btn btn-default btn-xs" ng-show="allowDelete" role="button" href="{{deleteUrl}}"onclick="if (!confirm('&{'storageDrivers.operation.confirm'}')){return false;}">{{'storageDrivers.deleteButton' | t}}</a>
     </div>
 </script>
 

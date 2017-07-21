@@ -93,6 +93,7 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
@@ -132,6 +133,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String DETACH_VCENTER_STORAGE_WF_NAME = "DETACH_VCENTER_STORAGE_WORKFLOW";
     private static final String DETACH_VCENTER_DATACENTER_STORAGE_WF_NAME = "DETACH_VCENTER_DATACENTER_STORAGE_WORKFLOW";
 
+    private static final String RESCAN_HOST_STORAGE_STEP = "RescanHostStorageStep";
+
     private static final String DELETE_EXPORT_GROUP_STEP = "DeleteExportGroupStep";
     private static final String UPDATE_EXPORT_GROUP_STEP = "UpdateExportGroupStep";
     private static final String UPDATE_FILESHARE_EXPORT_STEP = "UpdateFileshareExportStep";
@@ -153,6 +156,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private BlockStorageScheduler _blockScheduler;
 
     private Map<String, HostMountAdapter> _mountAdapters;
+
+    private int MAXIMUM_RESCAN_ATTEMPTS = 5;
+
+    private static long RESCAN_DELAY_MS = 10000; // 10 seconds
 
     public void setComputeDeviceController(ComputeDeviceController computeDeviceController) {
         this.computeDeviceController = computeDeviceController;
@@ -897,6 +904,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             newWaitFor = addStepsForRemoveHostFromExport(workflow, newWaitFor, hostIds, export.getId());
         }
 
+        if (isVcenter && !NullColumnValueGetter.isNullURI(vcenterDataCenter)) {
+            newWaitFor = this.rescanHostStorage(hostIds, vcenterDataCenter, newWaitFor, workflow);
+        }
+
         return newWaitFor;
     }
 
@@ -1401,8 +1412,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             if (exportGroup != null && exportGroup.getVolumes() != null) {
                 _log.info("Refreshing storage");
                 storageAPI.refreshStorage();
+                Set<BlockObject> blockObjects = Sets.newHashSet();
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+                    blockObjects.add(blockObject);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                             if (VMwareUtils.isDiskOff(entry)) {
@@ -1414,25 +1427,90 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             break;
                         }
                     }
+                }
+
+                int retries = 0;
+
+                while (retries++ < MAXIMUM_RESCAN_ATTEMPTS && !blockObjects.isEmpty()) {
+
+                    _log.info("Rescanning VMFS for host " + esxHost.getLabel());
 
                     storageAPI.getStorageSystem().rescanVmfs();
 
+                    _log.info("Waiting for {} milliseconds before checking for datastores", RESCAN_DELAY_MS);
+
+                    Thread.sleep(RESCAN_DELAY_MS);
+
+                    _log.info("Looking for datastores for {} volumes", blockObjects.size());
+
                     Map<String, Datastore> wwnDatastores = getWwnDatastoreMap(hostSystem);
 
-                    if (blockObject != null) {
+                    Iterator<BlockObject> objectIterator = blockObjects.iterator();
+                    while (objectIterator.hasNext()) {
+                        BlockObject blockObject = objectIterator.next();
+                        if (blockObject != null) {
 
-                        Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
-                        if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
-                            _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
-                            storageAPI.mountDatastore(datastore);
-
-                            // Test mechanism to invoke a failure. No-op on production systems.
-                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
+                            Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
+                            if (datastore != null && VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                                _log.info("Datastore {} is already mounted on {}", datastore.getName(), esxHost.getLabel());
+                                objectIterator.remove();
+                            } else if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                                _log.info("Mounting datastore {} on host {}", datastore.getName(), esxHost.getLabel());
+                                storageAPI.mountDatastore(datastore);
+                                objectIterator.remove();
+                                // Test mechanism to invoke a failure. No-op on production systems.
+                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
+                            }
                         }
                     }
-
                 }
             }
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error(ex.getMessage(), ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
+    }
+
+    /**
+     * Creates a workflow method to rescan HBAs for an ESX host
+     * 
+     * @param hostId the host id
+     * @param vcenter the vcenter id
+     * @param vcenterDatacenter the vcenter datacenter id
+     * @return workflow method
+     */
+    public Workflow.Method rescanHostStorageMethod(URI hostId, URI vcenter, URI vcenterDatacenter) {
+        return new Workflow.Method("rescanHostStorage", hostId, vcenter, vcenterDatacenter);
+    }
+
+    /**
+     * Rescans HBAs and storage system for an ESX host
+     * 
+     * @param hostId the host id
+     * @param vCenterId the vcenter id
+     * @param vcenterDatacenter the vcenter datacenter id
+     * @param stepId the workflow step
+     */
+    public void rescanHostStorage(URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+
+        try {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+            VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+            HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+
+            if (hostSystem == null) {
+                _log.info("Not able to find host {} in vCenter. Unable to refresh HBAs", esxHost.getLabel());
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+
+            HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+            storageAPI.refreshStorage();
+
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
@@ -1957,6 +2035,37 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
         return waitFor;
+    }
+
+    /**
+     * Creates workflow steps for rescanning HBAs and host storage for a list of ESX hosts
+     * 
+     * @param hostIds list of host ids
+     * @param virtualDataCenter the virtual datacenter id that the hosts belong to
+     * @param waitFor the step to wait on for this workflow step
+     * @param workflow the workflow
+     * @return the step id
+     */
+    private String rescanHostStorage(List<URI> hostIds, URI virtualDataCenter, String waitFor,
+            Workflow workflow) {
+        String newWaitFor = waitFor;
+        for (URI hostId : hostIds) {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            if (esxHost != null) {
+                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
+                if (vcenterDataCenter != null) {
+                    URI vCenterId = vcenterDataCenter.getVcenter();
+                    newWaitFor = workflow.createStep(RESCAN_HOST_STORAGE_STEP,
+                            String.format("Refreshing HBAs for host %s", esxHost.forDisplay()), newWaitFor,
+                            esxHost.getId(), esxHost.getId().toString(),
+                            this.getClass(),
+                            rescanHostStorageMethod(esxHost.getId(), vCenterId,
+                                    vcenterDataCenter.getId()),
+                            rollbackMethodNullMethod(), null);
+                }
+            }
+        }
+        return newWaitFor;
     }
 
     /**

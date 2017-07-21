@@ -154,7 +154,7 @@ class CreateVolumeSchedulingThread implements Runnable {
                 // Set the volumes to inactive
                 Volume volume = dbClient.queryObject(Volume.class, taskObj.getResource().getId());
                 volume.setInactive(true);
-                dbClient.updateAndReindexObject(volume);
+                dbClient.updateObject(volume);
             }
         }
     }

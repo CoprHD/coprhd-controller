@@ -13,6 +13,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -31,24 +32,12 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
 
     @Override
     public void precheck() throws Exception {
-        StringBuilder preCheckErrors = new StringBuilder();
-
         super.precheck();
         createBlockVolumeHelper.precheck();
         acquireHostLock();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
-
-        // If no volumes were found (or not all the volumes were found in our DB), indicate an error
-        if (vmware.findVolumesBackingDatastore(host, hostId, datastore) == null) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("extend.vmfs.datastore.notsamewwn", datastoreName) + " ");
-        }
-
+        vmware.verifyVolumesBackingDatastore(host, hostId, datastore);
         vmware.disconnect();
-
-        if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
-        }
     }
 
     @Override
@@ -61,7 +50,13 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
 
         connectAndInitializeHost();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+        artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_VMWARE_EXTEND_DATASTORE);
         vmware.extendVmfsDatastore(host, cluster, hostId, volume, datastore);
         vmware.setMultipathPolicy(host, cluster, multipathPolicy, volume);
+    }
+
+    @Override
+    public boolean checkClusterConnectivity() {
+        return false;
     }
 }

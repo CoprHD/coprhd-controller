@@ -43,6 +43,7 @@ public class ObjectNamespaceService extends TaggedResource {
     /**
      * Get IDs of all object storage namespaces
      * 
+     * @brief List namespace names and IDs
      * @return object namespace list
      */
     @GET
@@ -66,6 +67,7 @@ public class ObjectNamespaceService extends TaggedResource {
      * Get details of the object storage namespace specified
      * 
      * @param id object storage namespace id
+     * @brief Show details for a namespace
      * @return details of the namespace
      */
     @GET

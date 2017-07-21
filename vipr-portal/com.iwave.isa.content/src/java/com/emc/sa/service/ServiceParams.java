@@ -83,6 +83,7 @@ public interface ServiceParams {
     public String MIN_PATHS = "minPaths";
     public String MAX_PATHS = "maxPaths";
     public String PATHS_PER_INITIATOR = "pathsPerInitiator";
+    public String PORT_GROUP = "portGroup";
     public String COPIES = "copies";
     public String COPY = "copy";
     public String INGESTION_METHOD = "ingestionMethod";
@@ -177,4 +178,7 @@ public interface ServiceParams {
     public String FILESYSTEM_NAME = "fileSystemName";
     public String MOUNT_LIST = "mountList";
     public String FS_TYPE = "fsType";
+ 
+    public String ARTIFICIAL_FAILURE = "artificialFailure";
+    public String BYPASS_DNS_CHECK = "bypassDnsCheck";
 }

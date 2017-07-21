@@ -89,6 +89,7 @@
         <property name="matcherFramework" ref="matcherFramework"/>
         <property name="vplexScheduler" ref="vplexscheduler" />
         <property name="blockScheduler" ref="storagescheduler" />
+        <property name="maxThrottleAttempts" value="10"/>
     </bean>
 
     <bean id="srdfscheduler" class="com.emc.storageos.api.service.impl.placement.SRDFScheduler">
@@ -372,6 +373,7 @@
     
     <bean id ="multipleMaskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.MultipleMaskPerHostIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
     </bean>
     
     <bean id ="unexportedVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.UnexportedVolumeIngestOrchestrator">
@@ -800,8 +802,20 @@
                     <property name="ipsecConfig" ref="ipsecConfig" />
                     <property name="drUtil" ref="drUtil" />
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.StorageSystemDataCollectionService">
+                    <property name="scaleIORestClientFactory" ref="scaleIORestClientFactory"/>
+                </bean>
             </set>
         </property>
+    </bean>
+
+    <bean id="scaleIORestClientFactory"
+          class="com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory" init-method="init" >
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="maxConnections" value="300"/>
+        <property name="maxConnectionsPerHost" value="100"/>
+        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="needCertificateManager" value="true"/>
     </bean>
 
     <bean id="eventRetriever"  class="com.emc.storageos.api.service.impl.resource.utils.DbEventRetriever">

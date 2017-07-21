@@ -287,6 +287,7 @@ public class VolumeGroupService extends TaskResourceService {
      * Create a volume group
      * 
      * @param param Parameters for creating a volume group
+     * @brief Create new volume group
      * @return created volume group
      */
     @POST
@@ -333,6 +334,7 @@ public class VolumeGroupService extends TaskResourceService {
      * List a volume group
      * 
      * @param id volume group Id
+     * @brief Show details for a volume group
      * @return ApplicationRestRep
      */
     @GET
@@ -365,6 +367,7 @@ public class VolumeGroupService extends TaskResourceService {
     /**
      * List volume groups.
      * 
+     * @brief List all volume groups
      * @return A reference to VolumeGroupList.
      */
     @GET
@@ -407,6 +410,7 @@ public class VolumeGroupService extends TaskResourceService {
      * Get application volumes
      * 
      * @param id Application Id
+     * @brief List volumes for an application
      * @return NamedVolumesList
      */
     @GET
@@ -427,6 +431,7 @@ public class VolumeGroupService extends TaskResourceService {
      * Get application hosts
      * 
      * @param id Application Id
+     * @brief List hosts for an application
      * @return HostList
      */
     @GET
@@ -447,6 +452,7 @@ public class VolumeGroupService extends TaskResourceService {
      * Get application clusters
      * 
      * @param id Application Id
+     * @brief List clusters for an application
      * @return ClusterList
      */
     @GET
@@ -467,6 +473,7 @@ public class VolumeGroupService extends TaskResourceService {
      * Get the list of child volume groups
      * 
      * @param id
+     * @brief List the child volume groups
      * @return
      */
     @GET
@@ -529,11 +536,12 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * update a volume group
+     * Update a volume group
      * 
      * @param id volume group id
      * @param param volume group update parameters
-     * @return
+     * @brief Change information for volume group
+     * @return TaskList
      */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -2621,7 +2629,7 @@ public class VolumeGroupService extends TaskResourceService {
      *
      * @param volumeGroupId The URI of the volume group
      *
-     * @brief List snapsetLabels for a volume group
+     * @brief List snapset labels for a volume group
      * 
      * @return VolumeGroupCopySetList
      */

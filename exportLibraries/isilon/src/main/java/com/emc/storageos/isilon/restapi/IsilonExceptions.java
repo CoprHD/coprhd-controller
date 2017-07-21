@@ -41,13 +41,23 @@ public interface IsilonExceptions {
     public IsilonException createDirFailed(final String fspath, StatusType resp,
             final Throwable e);
 
+    @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)
+    public IsilonException failToDeleteFileSystem(final String path);
+
+    @DeclareServiceCode(ServiceCode.ISILON_DIR_ERROR)
+    public IsilonException deleteFileSystemNotSupported();
+
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public IsilonException invalidParameters();
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public IsilonException expandFsFailedinvalidParameters(final String path,
             final Long hardLimit);
-
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public IsilonException reduceFsFailedinvalidParameters(final String path,
+            final Long hardLimit);
+    
     @DeclareServiceCode(ServiceCode.ISILON_INFO_ERROR)
     public IsilonException unableToGetIsilonClusterInfo(final String msg, final Throwable cause);
 

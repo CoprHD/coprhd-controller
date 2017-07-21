@@ -487,7 +487,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             // go through that process.
             srcVolume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
             srcVolume.getSrdfTargets().add(volume.getId().toString());
-            _dbClient.persistObject(srcVolume);
+            _dbClient.updateObject(srcVolume);
 
             volume.setSrdfParent(new NamedURI(srcVolume.getId(), srcVolume.getLabel()));
             computeCapacityforSRDFV3ToV2(volume, vpool);
@@ -496,7 +496,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         if (newVolume) {
             _dbClient.createObject(volume);
         } else {
-            _dbClient.updateAndReindexObject(volume);
+            _dbClient.updateObject(volume);
         }
 
         return volume;

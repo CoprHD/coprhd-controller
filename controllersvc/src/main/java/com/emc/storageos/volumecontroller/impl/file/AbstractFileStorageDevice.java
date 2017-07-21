@@ -130,6 +130,12 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
             FileDeviceInputOutput fd) throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
+    
+    @Override
+    public BiosCommandResult doReduceFS(StorageSystem storage,
+            FileDeviceInputOutput fd) throws ControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
 
     @Override
     public BiosCommandResult doSnapshotFS(StorageSystem storage,

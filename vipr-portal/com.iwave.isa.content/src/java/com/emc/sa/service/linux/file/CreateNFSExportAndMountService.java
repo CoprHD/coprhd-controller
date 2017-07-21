@@ -65,6 +65,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
 
     protected MountNFSExportHelper mountNFSExportHelper;
 
+
     @Override
     public void init() throws Exception {
         super.init();
@@ -113,9 +114,10 @@ public class CreateNFSExportAndMountService extends ViPRService {
                 rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
             }
             FileStorageUtils.createFileSystemExportWithoutRollBack(fileSystemId, comment, exportList.get(0).getSecurity(),
-                    exportList.get(0).getPermission(), rootUserMapping, exportList.get(0).getExportHosts(), null);
+                    exportList.get(0).getPermission(), rootUserMapping, exportList.get(0).getExportHosts(), null, false);
             if (!exportList.isEmpty()) {
-                FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]));
+                FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]),
+                        false);
             }
         }
         // mount the exports

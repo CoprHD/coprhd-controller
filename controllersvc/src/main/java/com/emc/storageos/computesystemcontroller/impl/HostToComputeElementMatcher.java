@@ -26,8 +26,10 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Host.ProvisioningJobStatus;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 public final class HostToComputeElementMatcher {
 
@@ -51,6 +53,7 @@ public final class HostToComputeElementMatcher {
     private final static String FIELD_DN = "dn";
     private final static String FIELD_AVAIL = "available";
     private final static String FIELD_COMPUTE_SYSTEM = "computeSystem";
+    private final static String FIELD_PROVISIONING_STATUS = "provisioningStatus";
 
     private HostToComputeElementMatcher(){}
 
@@ -97,20 +100,20 @@ public final class HostToComputeElementMatcher {
 
         Collection<Host> allHosts = dbClient.queryObjectFields(Host.class,
                 Arrays.asList(FIELD_UUID, FIELD_COMPUTE_ELEMENT, FIELD_REG_STATUS,
-                        FIELD_HOST_NAME, FIELD_SERVICE_PROFILE, FIELD_LABEL),
-                getFullyImplementedCollection(hostIds));
+                        FIELD_HOST_NAME, FIELD_SERVICE_PROFILE, FIELD_LABEL, FIELD_PROVISIONING_STATUS),
+                ControllerUtils.getFullyImplementedCollection(hostIds));
 
         Collection<ComputeElement> allComputeElements =
                 dbClient.queryObjectFields(ComputeElement.class,
                         Arrays.asList(FIELD_UUID, FIELD_REG_STATUS, FIELD_DN, FIELD_AVAIL,
                                 FIELD_LABEL, FIELD_COMPUTE_SYSTEM),
-                        getFullyImplementedCollection(computeElementIds));
+                        ControllerUtils.getFullyImplementedCollection(computeElementIds));
 
         Collection<UCSServiceProfile> allUCSServiceProfiles =
                 dbClient.queryObjectFields(UCSServiceProfile.class,
                         Arrays.asList(FIELD_UUID, FIELD_REG_STATUS, FIELD_DN, FIELD_LABEL,
                                 FIELD_COMPUTE_SYSTEM),
-                        getFullyImplementedCollection(serviceProfileIds));
+                        ControllerUtils.getFullyImplementedCollection(serviceProfileIds));
 
         hostMap = makeUriMap(allHosts);
         computeElementMap = makeUriMap(allComputeElements);
@@ -418,17 +421,6 @@ public final class HostToComputeElementMatcher {
             return false;
         }
         return UUID_PATTERN.matcher(uuid).matches();
-    }
-
-    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
-        // Convert objects (like URIQueryResultList) that only implement iterator to
-        // fully implemented Collection
-        Collection<T> collectionOut = new ArrayList<>();
-        Iterator<T> iter = collectionIn.iterator();
-        while (iter.hasNext()) {
-            collectionOut.add(iter.next());
-        }
-        return collectionOut;
     }
 
     private static String reverseUuidBytes(String uuid) {

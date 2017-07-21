@@ -26,6 +26,8 @@ public class CreateBlockStorageForHostService extends ViPRService {
     
     protected List<CreateBlockVolumeForHostHelper> createBlockVolumeHelpers = Lists.newArrayList();
 
+    protected List<URI> volumeIds = Lists.newArrayList();
+
     @Override
     public void init() throws Exception {
         super.init();
@@ -49,9 +51,12 @@ public class CreateBlockStorageForHostService extends ViPRService {
     @Override
     public void execute() {
         if (!createBlockVolumeHelpers.isEmpty()) {
-            List<URI> volumeIds = Lists.newArrayList();
             volumeIds.addAll(BlockStorageUtils.createMultipleVolumes(createBlockVolumeHelpers));
             createBlockVolumeHelpers.get(0).exportVolumes(volumeIds);
         }
+    }
+
+    public List<URI> getVolumes() {
+        return this.volumeIds;
     }
 }

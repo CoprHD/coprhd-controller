@@ -66,10 +66,13 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.ExecutionLog.LogLevel;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.compute.ComputeElementRestRep;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
@@ -92,7 +95,6 @@ import com.vmware.vim25.mo.HostSystem;
 public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
-
 
    /**
     * Creates tasks to provision specified hosts to the given cluster.
@@ -1751,4 +1753,38 @@ public class ComputeUtils {
         }
         return errBuff.toString();
     }
+    
+    /**
+     * This method checks for the presence of image server on the compute system(s) 
+     * associated to the compute element(s) being used in the CVP.
+     * Returns > true if image server exists on all the Compute server(s) being used
+     * 		   > false if at-least one compute server is not configured with image server
+     * @param asd
+     * @return
+     */
+    public static boolean ComputeSystemHasImageServer(ViPRCoreClient client, 
+    		ComputeVirtualPoolRestRep cvp) {
+    	Map<URI, String> computeSystemMap = new HashMap<URI, String>();
+    	List<RelatedResourceRep> matchedComputeElements = cvp.getMatchedComputeElements(); 
+    	if (matchedComputeElements != null && !matchedComputeElements.isEmpty()) {
+            for (RelatedResourceRep matchedCeRelatedRep : matchedComputeElements ) {
+    		    ComputeElementRestRep computeElement = client.computeElements().get(matchedCeRelatedRep.getId());
+    		    RelatedResourceRep computeSystemRelatedRep = computeElement.getComputeSystem();
+    		    if (!computeSystemMap.containsKey(computeSystemRelatedRep.getId())) {
+    			    computeSystemMap.put(computeSystemRelatedRep.getId(), 
+    			    		client.computeSystems().get(computeSystemRelatedRep.getId()).getName());
+    		    }
+    	    }
+    		
+            for (Map.Entry<URI, String> computeSystemRelatedRep : computeSystemMap.entrySet()) {
+           	    ComputeSystemRestRep computeSystem = client.computeSystems().get(computeSystemRelatedRep.getKey());
+           	    if (NullColumnValueGetter.isNullValue(computeSystem.getComputeImageServer())) {
+           	    	return false;
+           	    }
+            }
+            return true;
+        }
+        return false;
+    }
+    
 }

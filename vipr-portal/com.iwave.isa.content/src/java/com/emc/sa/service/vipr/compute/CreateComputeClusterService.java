@@ -235,6 +235,10 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
         }
+        
+        if (!ComputeUtils.ComputeSystemHasImageServer(getClient(), cvp)) {
+        	preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.compute.system.image.server.null", " "));
+        }
 
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString() + 

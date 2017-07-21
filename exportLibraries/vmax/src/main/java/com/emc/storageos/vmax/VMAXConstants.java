@@ -6,6 +6,8 @@ package com.emc.storageos.vmax;
 
 public interface VMAXConstants {
 
+    String AUTH_TOKEN = "X-XIO-AUTH-TOKEN";
+    String AUTH_TOKEN_HEADER = "X-XIO-AUTH-TOKEN-HEADER";
     String HTTPS_URL = "https";
     String HTTP_URL = "http";
     String COLON = ":";

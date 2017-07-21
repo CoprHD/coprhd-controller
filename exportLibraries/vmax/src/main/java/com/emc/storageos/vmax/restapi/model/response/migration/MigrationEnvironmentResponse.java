@@ -1,4 +1,4 @@
-package com.emc.storageos.vmax.restapi.model.response;
+package com.emc.storageos.vmax.restapi.model.response.migration;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonRootName;
@@ -19,7 +19,7 @@ import com.google.gson.annotations.SerializedName;
  */
 
 @JsonRootName(value = "symmetrixMigrationEnvironment")
-public class NDMMigrationEnvironmentResponse {
+public class MigrationEnvironmentResponse {
 
 	@SerializedName("symmetrixId")
 	@JsonProperty(value = "symmetrixId")

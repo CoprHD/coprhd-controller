@@ -16,9 +16,7 @@ import com.emc.storageos.services.restutil.StandardRestClient;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.vmax.VMAXConstants;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
-import com.emc.storageos.vmax.restapi.model.response.NDMMigrationEnvironmentResponse;
-import com.emc.storageos.xtremio.restapi.XtremIOConstants;
-import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 import com.emc.storageos.xtremio.restapi.model.XtremIOAuthInfo;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -38,7 +36,7 @@ public class VMAXApiClient extends StandardRestClient {
 
     @Override
     protected Builder setResourceHeaders(WebResource resource) {
-        return resource.header(XtremIOConstants.AUTH_TOKEN, _authToken);
+        return resource.header(VMAXConstants.AUTH_TOKEN, _authToken);
     }
 
     @Override
@@ -57,11 +55,11 @@ public class VMAXApiClient extends StandardRestClient {
 
             if (response.getClientResponseStatus() != ClientResponse.Status.OK
                     && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
-                throw XtremIOApiException.exceptions.authenticationFailure(_base.toString());
+                throw VMAXException.exceptions.authenticationFailure(_base.toString());
             }
-            _authToken = response.getHeaders().getFirst(XtremIOConstants.AUTH_TOKEN_HEADER);
+            _authToken = response.getHeaders().getFirst(VMAXConstants.AUTH_TOKEN_HEADER);
         } catch (Exception e) {
-            throw XtremIOApiException.exceptions.authenticationFailure(_base.toString());
+            throw VMAXException.exceptions.authenticationFailure(_base.toString());
         } finally {
             closeResponse(response);
         }
@@ -74,21 +72,19 @@ public class VMAXApiClient extends StandardRestClient {
         if (errorCode >= 300) {
             JSONObject obj = null;
             String extraExceptionInfo = null;
-            int code = 0;
-            try {
-                obj = response.getEntity(JSONObject.class);
-                code = obj.getInt(XtremIOConstants.ERROR_CODE);
-            } catch (Exception e) {
-                extraExceptionInfo = e.getMessage();
-                log.error("Parsing the failure response object failed", e);
-            }
-            if (code == 0) {
-                code = errorCode;
-            }
+            /*
+             * try {
+             * obj = response.getEntity(JSONObject.class);
+             * code = obj.getInt(XtremIOConstants.ERROR_CODE);
+             * } catch (Exception e) {
+             * extraExceptionInfo = e.getMessage();
+             * log.error("Parsing the failure response object failed", e);
+             * }
+             */
 
-            if (code == 404 || code == 410) {
+            if (errorCode == 404 || errorCode == 410) {
                 throw VMAXException.exceptions.resourceNotFound(uri.toString());
-            } else if (code == 401) {
+            } else if (errorCode == 401) {
                 throw VMAXException.exceptions.authenticationFailure(uri.toString());
             } else {
                 // Sometimes the response object can be null, just set it to empty when it is null.
@@ -176,11 +172,11 @@ public class VMAXApiClient extends StandardRestClient {
         return null;
     }
 
-    public NDMMigrationEnvironmentResponse getMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber)
+    public MigrationEnvironmentResponse getMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber)
             throws Exception {
         ClientResponse clientResponse = get(
                 URI.create(VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber)));
-        NDMMigrationEnvironmentResponse environmentResponse = getResponseObject(NDMMigrationEnvironmentResponse.class, clientResponse);
+        MigrationEnvironmentResponse environmentResponse = getResponseObject(MigrationEnvironmentResponse.class, clientResponse);
         return environmentResponse;
     }
 

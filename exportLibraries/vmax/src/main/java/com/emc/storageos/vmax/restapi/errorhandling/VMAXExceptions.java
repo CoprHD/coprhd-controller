@@ -29,7 +29,7 @@ public interface VMAXExceptions {
     VMAXException resourceNotFound(String storageSystemForDisplay);
 
     @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
-    VMAXException invalidResponseFromHDS(final String message);
+    VMAXException invalidResponseFromUnisphere(final String message);
 
     @DeclareServiceCode(ServiceCode.UNISPHERE_API_ERROR)
     VMAXException internalError(String uri, String message);

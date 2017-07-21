@@ -14,7 +14,7 @@ import org.junit.Test;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.vmax.VMAXRestUtils;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
-import com.emc.storageos.vmax.restapi.model.response.NDMMigrationEnvironmentResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 
 public class VMAXRestClientTest {
 
@@ -41,7 +41,7 @@ public class VMAXRestClientTest {
     @Test
     public void apiGetMigrationEnvironmentTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
-        NDMMigrationEnvironmentResponse response = apiClient.getMigrationEnvironment("000195701430", "000196701405");
+        MigrationEnvironmentResponse response = apiClient.getMigrationEnvironment("000195701430", "000196701405");
         assertEquals("Not the correct state", "OK", response.getState());
         assertEquals("Not the correct symm id", "000195701430", response.getSymmetrixId());
         assertEquals("Not the correct other symm id", "000196701405", response.getOtherSymmetrixId());
@@ -52,7 +52,7 @@ public class VMAXRestClientTest {
     @Test(expected = VMAXException.class)
     public void apiGetMigrationEnvironmentNegativeTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
-        NDMMigrationEnvironmentResponse response = apiClient.getMigrationEnvironment("xyz", "abc");
+        MigrationEnvironmentResponse response = apiClient.getMigrationEnvironment("xyz", "abc");
 
     }
 

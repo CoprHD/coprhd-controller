@@ -235,6 +235,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                             null);
 
                 }
+            } else {
+                log.error("UCSServiceProfileTemplate is Null");
+                throw new IllegalArgumentException(
+                        "addStepsPreOsInstall method failed. Could not find UCS Service Profile Template id from computeElement "
+                		+ ce.getLabel());
+
             }
             // Set host to boot from lan
             waitFor = workflow.createStep(OS_INSTALL_SET_LAN_BOOT, "Set the host to boot from LAN", waitFor, cs.getId(),
@@ -313,9 +319,9 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             } else {
                     log.error("UCSServiceProfileTemplate is Null");
                     throw new IllegalArgumentException(
-                            "Couldn't rebind host to service profile template after OS install. "
-                                    + "UCSServiceProfileTemplate is Null.");
-                }
+                            "addStepsPostOsInstall method failed. Could not find UCS Service Profile Template id from computeElement "
+                    		+ ce.getLabel());
+            }
         } else {
             log.error("Serviceprofile ID attribute is null.");
             throw new IllegalArgumentException(

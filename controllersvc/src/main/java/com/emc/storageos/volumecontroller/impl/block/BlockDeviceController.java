@@ -145,6 +145,8 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskComp
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.StoragePortGroupCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.StoragePortGroupDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDetachCloneCompleter;
@@ -6953,5 +6955,31 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         return getDevice(system.getSystemType()).doInitiatorAliasGet(
                 system, initiator);
+    }
+    
+    @Override
+    public void createStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
+        TaskCompleter completer = new StoragePortGroupCreateCompleter(portGroupURI, opId);
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            WorkflowStepCompleter.stepExecuting(opId);
+            getDevice(system.getSystemType()).doCreateStoragePortGroup(system, portGroupURI, completer);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            completer.error(_dbClient, serviceError);
+        }
+    }
+    
+    @Override
+    public void deleteStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
+        TaskCompleter completer = new StoragePortGroupDeleteCompleter(portGroupURI, opId);
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            WorkflowStepCompleter.stepExecuting(opId);
+            getDevice(system.getSystemType()).doDeleteStoragePortGroup(system, portGroupURI, completer);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            completer.error(_dbClient, serviceError);   
+        }
     }
 }

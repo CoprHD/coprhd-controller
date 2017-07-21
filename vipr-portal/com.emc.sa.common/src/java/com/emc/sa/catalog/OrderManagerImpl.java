@@ -254,6 +254,7 @@ public class OrderManagerImpl implements OrderManager {
             case REMOTE_REPLICATION_SET:
             case REMOTE_REPLICATION_GROUP:
             case REMOTE_REPLICATION_PAIR:
+            case STORAGE_PORT_GROUP:
                 return true;
             default:
                 return false;
@@ -391,6 +392,9 @@ public class OrderManagerImpl implements OrderManager {
                     break;
                 case STORAGE_PORT:
                     dataObject = client.findById(StoragePort.class, id);
+                    break;
+                case STORAGE_PORT_GROUP:
+                    dataObject = client.findById(StoragePortGroup.class, id);
                     break;
                 case INITIATOR:
                     dataObject = client.findById(Initiator.class, id);

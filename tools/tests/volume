@@ -24,6 +24,10 @@ def volume_create(args):
     if (args.consistencyGroup):
     	cons_grp_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
 
+    port_group_uri = ''
+    if(args.portgroup):
+        port_group_uri = bourne.storageportgroup_query(args.portgroup)
+        
     volumeCount = 1
     if (args.count):
         volumeCount = args.count
@@ -34,7 +38,7 @@ def volume_create(args):
    
     start = time.time()
     tr_list = bourne.volume_create(args.label, project_uri, nh_uri, cos_uri, args.size, isThinVolume, volumeCount,
-                                  args.protocols, args.protection, cons_grp_uri, args.computeResource, args.remote_replication)
+                                  args.protocols, args.protection, cons_grp_uri, args.computeResource, port_group_uri, args.remote_replication)
     total = time.time() - start
     print "Volume create took", "{0:.2f}".format(total), "seconds to complete"
     #print 'Volume_create debug : ' + str(s)
@@ -432,6 +436,7 @@ create.add_argument('--consistencyGroup', help = 'add the volume to the specifie
 create.add_argument('--thinVolume', help = 'boolean indication if volume is thin or thick')
 create.add_argument('--computeResource', help = 'The name of a host or cluster to which the volume will be exported')
 create.add_argument('--remote_replication', help = 'Remote replication parameters: "replicationSet:replicationGroup:mode" ')
+create.add_argument('--portgroup',      help = 'The storage system name + port group name')
 
 # volume add_journal
 add_journal = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

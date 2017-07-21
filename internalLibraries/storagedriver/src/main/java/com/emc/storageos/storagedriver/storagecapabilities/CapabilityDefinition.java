@@ -17,7 +17,8 @@ public class CapabilityDefinition {
         deduplication,        // de-duplication
         replicationMode,      // replication mode capability
         remoteReplicationAttributes,   // remote replication attributes
-        hostIOLimits  // hostIO limits capability
+        hostIOLimits,  // hostIO limits capability
+        volumeCompression //volume compression
     }
 
     // The unique identifier for the capability definition.

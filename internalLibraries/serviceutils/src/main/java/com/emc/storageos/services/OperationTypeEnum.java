@@ -519,8 +519,6 @@ public enum OperationTypeEnum {
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "Storage system type is removed."),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "Schedule policy is created."),
     EXPORT_PATH_ADJUSTMENT("EXPORT PATH ADJUSTMENT", "", "Export path adjustment performed."),
-
-
     /* Remote Replication Operations */
     CREATE_REMOTE_REPLICATION_GROUP("CREATE REMOTE REPLICATION GROUP", "CreateRemoteReplicationGroupFailed", "create remote replication group"),
     FAILOVER_REMOTE_REPLICATION_GROUP_LINK("FAILOVER REMOTE REPLICATION GROUP LINK", "FailoverRemoteReplicationGroupLinkFailed", "failover remote replication group link"),
@@ -562,7 +560,10 @@ public enum OperationTypeEnum {
     SWAP_REMOTE_REPLICATION_CG_LINK("SWAP REMOTE REPLICATION CG LINK", "SwapRemoteReplicationCGLinkFailed", "swap remote replication cg link"),
     STOP_REMOTE_REPLICATION_CG_LINK("STOP REMOTE REPLICATION CG LINK", "StopRemoteReplicationCGLinkFailed", "stop remote replication cg link"),
     //
-    
+    REGISTER_STORAGE_PORT_GROUP("REGIESTER PORT GROUP", "", "Storage port group is registered"),
+    DEREGISTER_STORAGE_PORT_GROUP("DEREGIESTER PORT GROUP", "", "Storage port group is unregistered"),
+    CREATE_STORAGE_PORT_GROUP("CREATE STORAGE PORT GROUP", "", "Storage port group is created"),
+    DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "", "Storage port group is deleted"),
     /* Filesystem Mount Operations*/
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "NFS export is mounted."),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "NFS export is unmounted."),

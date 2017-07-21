@@ -7,6 +7,7 @@ package com.emc.sa.service.vipr.block;
 import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_GROUP;
 import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_MODE;
@@ -42,6 +43,9 @@ public class CreateBlockVolumeHelper {
 
     @Param(value = CONSISTENCY_GROUP, required = false)
     protected URI consistencyGroup;
+    
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
 
     @Param(value = REMOTE_REPLICATION_SET, required = false)
     public URI remoteReplicationSet;
@@ -54,7 +58,7 @@ public class CreateBlockVolumeHelper {
 
     public List<URI> createVolumes(URI computeResource) {
         List<URI> volumeIds = BlockStorageUtils.createVolumes(project, virtualArray, virtualPool, nameParam,
-                sizeInGb, count, consistencyGroup, computeResource);
+                sizeInGb, count, consistencyGroup, computeResource, portGroup);
         for (URI volumeId : volumeIds) {
             logInfo("create.block.volume.create.volume", volumeId);
         }
@@ -103,5 +107,9 @@ public class CreateBlockVolumeHelper {
     
     public URI getComputeResource(){
     	return null;
+    }
+    
+    public URI getPortGroup() {
+        return portGroup;
     }
 }

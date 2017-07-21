@@ -1201,7 +1201,7 @@ angular.module("portalApp")
     $scope.testWorkflow = function() {
     	if(wf.hasModifiedWorkflow()) {
     		var choose = confirm("You will be directed to a new location.\n" +
-				"Some workflows are modified but not saved yet.\nDo you want to proceed?") ;
+				"Some workflows have been modified but not saved.\nDo you want to proceed?") ;
     		if (choose === true){
     			wf.suppressUnload(true) ;
     		}else {
@@ -1217,7 +1217,7 @@ angular.module("portalApp")
     $scope.publishorkflow = function() {
     	if(wf.hasModifiedWorkflow()) {
     		var choose = confirm("You will be directed to a new location.\n" +
-    				"Some workflows are modified but not saved yet.\nDo you want to proceed?") ;
+    				"Some workflows have been modified but not saved.\nDo you want to proceed?") ;
     		if (choose === true){
     			wf.suppressUnload(true) ;
     		}else {
@@ -1227,7 +1227,6 @@ angular.module("portalApp")
         $scope.workflowData.state = 'PUBLISHING';
         $http.post(routes.Workflow_publish({workflowId : $scope.workflowData.id})).then(function (resp) {
             //redirect automatically on success
-        	$scope.workflowData.state = "PUBLISHED" ;
             var url = routes.ServiceCatalog_createServiceFromBase({baseService: resp.data.id});
             window.location.href = url;
         });

@@ -1831,13 +1831,13 @@ xtremio_export_test()
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1,$hostname/$pwwn2"
     run export_group show $exp
     run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
-    run export_group update $exp --remInits "$hostname/$pwwn1"
-    run export_group show $exp
     run export_group update $exp --remVols $vol2,$snap1,$snap2
+    run export_group show $exp
+    run export_group update $exp --remInits "$hostname/$pwwn1,$hostname/$pwwn1"
     run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then

@@ -1469,7 +1469,6 @@ setup() {
 
     run cos allow $VPOOL_BASE block $TENANT
     reset_system_props
-    run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
 }
 
 set_suspend_on_error() {
@@ -4674,12 +4673,10 @@ do
     elif [ "$1" = "-resetsim" ]
     then
 	if [ ${setup} -ne 1 ]; then
-	    echo "FAILURE: Setup not specified.  Not recommended to reset simulator in the middle of an active configuration.  Or put -resetsim after your -setup param"
-	    exit;
-	else
-	    RESET_SIM=1;
-	    shift
+	    echo "WARNING: Setup not specified.  Not recommended to reset simulator in the middle of an active configuration.  Or put -resetsim after your -setup param"
 	fi
+	RESET_SIM=1;
+	shift
     elif [ "$1" = "-setuponly" ]
     then
 	SETUP_ONLY=1

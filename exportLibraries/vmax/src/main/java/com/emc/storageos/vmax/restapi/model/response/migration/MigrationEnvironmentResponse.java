@@ -7,11 +7,11 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 /*
- https://lglw7150:8443/univmax/restapi/84/migration/symmetrix/000195701430/environment/000196701405
+ https://{unipshere-ip}:{portnumber}/univmax/restapi/84/migration/symmetrix/{array-serailnumber}/environment/{other-array-serialnumber}
  
   {
-  "symmetrixId": "000195701430",
-  "otherSymmetrixId": "000196701405",
+  "symmetrixId": "{array-serailnumber}",
+  "otherSymmetrixId": "{other-array-serialnumber}",
   "invalid": false,
   "state": "OK"
   }
@@ -21,57 +21,57 @@ import com.google.gson.annotations.SerializedName;
 @JsonRootName(value = "symmetrixMigrationEnvironment")
 public class MigrationEnvironmentResponse {
 
-	@SerializedName("symmetrixId")
-	@JsonProperty(value = "symmetrixId")
-	private String symmetrixId;
+    @SerializedName("symmetrixId")
+    @JsonProperty(value = "symmetrixId")
+    private String symmetrixId;
 
-	@SerializedName("otherSymmetrixId")
-	@JsonProperty(value = "otherSymmetrixId")
-	private String otherSymmetrixId;
+    @SerializedName("otherSymmetrixId")
+    @JsonProperty(value = "otherSymmetrixId")
+    private String otherSymmetrixId;
 
-	@SerializedName("invalid")
-	@JsonProperty(value = "invalid")
-	private boolean invalid;
+    @SerializedName("invalid")
+    @JsonProperty(value = "invalid")
+    private boolean invalid;
 
-	@SerializedName("state")
-	@JsonProperty(value = "state")
-	private String state;
+    @SerializedName("state")
+    @JsonProperty(value = "state")
+    private String state;
 
-	public String getSymmetrixId() {
-		return symmetrixId;
-	}
+    public String getSymmetrixId() {
+        return symmetrixId;
+    }
 
-	public void setSymmetrixId(String symmetrixId) {
-		this.symmetrixId = symmetrixId;
-	}
+    public void setSymmetrixId(String symmetrixId) {
+        this.symmetrixId = symmetrixId;
+    }
 
-	public String getOtherSymmetrixId() {
-		return otherSymmetrixId;
-	}
+    public String getOtherSymmetrixId() {
+        return otherSymmetrixId;
+    }
 
-	public void setOtherSymmetrixId(String otherSymmetrixId) {
-		this.otherSymmetrixId = otherSymmetrixId;
-	}
+    public void setOtherSymmetrixId(String otherSymmetrixId) {
+        this.otherSymmetrixId = otherSymmetrixId;
+    }
 
-	public boolean isInvalid() {
-		return invalid;
-	}
+    public boolean isInvalid() {
+        return invalid;
+    }
 
-	public void setInvalid(boolean invalid) {
-		this.invalid = invalid;
-	}
+    public void setInvalid(boolean invalid) {
+        this.invalid = invalid;
+    }
 
-	public String getState() {
-		return state;
-	}
+    public String getState() {
+        return state;
+    }
 
-	public void setState(String state) {
-		this.state = state;
-	}
+    public void setState(String state) {
+        this.state = state;
+    }
 
-	@Override
-	public String toString() {
-		return new Gson().toJson(this).toString();
-	}
+    @Override
+    public String toString() {
+        return new Gson().toJson(this).toString();
+    }
 
 }

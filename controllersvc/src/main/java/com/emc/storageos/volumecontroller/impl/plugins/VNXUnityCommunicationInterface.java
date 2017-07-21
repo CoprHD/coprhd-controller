@@ -414,7 +414,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             detailedStatusMessage = String.format("Discovery failed for VNX Unity %s: %s", storageSystemURI.toString(),
                     e.getLocalizedMessage());
             _logger.error(detailedStatusMessage, e);
-            throw VNXeException.exceptions.discoveryError("Discovery error", e);
+            throw VNXeException.exceptions.discoveryError(storageSystemURI.toString(), e);
         } finally {
             if (viprStorageSystem != null) {
                 try {

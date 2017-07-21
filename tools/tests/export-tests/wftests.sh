@@ -1143,29 +1143,31 @@ srdf_setup() {
     # Create the target first so it exists when we create the source vpool
     # Workaround for COP-25718, switch to use matchedPools once it is fixed
     run cos create block ${VPOOL_BASE}_SRDF_TARGET		          \
-	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
+      --description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 	--auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
 			 --provisionType 'Thin'	          \
 			 --neighborhoods $NH                      \
-                         --multiVolumeConsistency                  \
-                         --system_type vmax			
+                         --multiVolumeConsistency
     
     run cos update block ${VPOOL_BASE}_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${VPOOL_BASE}_SRDF_TARGET block $TENANT
 
     # As above, but without multivolume consistency
     run cos create block ${VPOOL_BASE_NOCG}_SRDF_TARGET		          \
-	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
+      --description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 	--auto_tiering_policy_name "${SRDF_V3_VMAXB_FAST_POLICY}" \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
 			 --provisionType 'Thin'	          \
-			 --neighborhoods $NH                      \
-                         --system_type vmax
+			 --neighborhoods $NH                     
 
     run cos update block ${VPOOL_BASE_NOCG}_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${VPOOL_BASE_NOCG}_SRDF_TARGET block $TENANT
@@ -1174,13 +1176,14 @@ srdf_setup() {
         async)
             echo "Setting up the virtual pool for SRDF async mode"
     	    run cos create block ${VPOOL_BASE}                 \
+        --system_type vmax                     \
+        --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
 			 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
                          --multiVolumeConsistency		\
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE}_SRDF_TARGET:ASYNCHRONOUS"
@@ -1190,13 +1193,14 @@ srdf_setup() {
 
            echo "Setting up the virtual pool for SRDF async mode (nocg)"
     	    run cos create block ${VPOOL_BASE_NOCG}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
 			 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE_NOCG}_SRDF_TARGET:ASYNCHRONOUS"
 
@@ -1206,13 +1210,14 @@ srdf_setup() {
 	sync)
         echo "Setting up the virtual pool for SRDF sync mode"
 	    run cos create block ${VPOOL_BASE}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
 		 	 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
                          --multiVolumeConsistency		\
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE}_SRDF_TARGET:SYNCHRONOUS"
@@ -1222,13 +1227,14 @@ srdf_setup() {
 
 	    echo "Setting up the virtual pool for SRDF sync mode (nocg)"
 	    run cos create block ${VPOOL_BASE_NOCG}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
 		 	 --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
-                         --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${VPOOL_BASE_NOCG}_SRDF_TARGET:SYNCHRONOUS"
 
@@ -1243,13 +1249,14 @@ srdf_setup() {
 
     echo "Setting up the virtual pool for VPool change (Add SRDF)"
     run cos create block ${VPOOL_CHANGE}                 \
+      --system_type vmax                     \
+      --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
          --description 'Source-Virtual-Pool-for-VPoolChange' false \
          --auto_tiering_policy_name "${SRDF_V3_VMAXA_FAST_POLICY}" \
          --protocols FC 		        \
          --numpaths 1				\
          --max_snapshots 10			\
          --provisionType 'Thin'	        \
-         --system_type vmax                     \
          --multiVolumeConsistency		\
          --neighborhoods $NH
 
@@ -1719,7 +1726,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation"
+    # failure_injections="failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete "
 
     if [ "${SS}" = "vplex" ]
     then
@@ -3967,13 +3974,15 @@ test_delete_srdf_cg_last_vol() {
     snap_db_esc=" | grep -Ev \"srdfLinkStatus = |^Volume\:|accessState = READWRITE|accessState = NOT_READY\""
     symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
 
+    failure_injections="${common_failure_injections}" 
+
     if [ "${SRDF_MODE}" = "async" ];
     then
       failure_injections="${common_failure_injections} ${async_only}"    
     fi
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
 
     for failure in ${failure_injections}
     do
@@ -3997,12 +4006,18 @@ test_delete_srdf_cg_last_vol() {
         set_artificial_failure ${failure}
 
         # Remove the volume
-        if [ "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ];
+        if [ "${failure}" = "failure_088_BlockDeviceController.after_doDeleteVolumes&1" -o \
+               "${failure}" = "failure_088_BlockDeviceController.after_doDeleteVolumes&2" -o \
+               "${failure}" = "failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData" -o \
+               "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o \
+               "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ]
         then
+          # Failure on GetDefaultReplicationSettingData is ignored.
+          # failure_90, failure_092 occurs at the idempotent-friendly SRDF phase, where enough has already happened for volume deletion to succeed.
+          # failure_088 is expected to pass due to the asynchronous job taking control of the completer status.
           runcmd volume delete ${PROJECT}/${volname} --wait
 
-          # Verify injected failures were hit
-          verify_failures ${failure}
+          set_artificial_failure none
         else
           fail volume delete ${PROJECT}/${volname} --wait
 
@@ -4012,13 +4027,14 @@ test_delete_srdf_cg_last_vol() {
           # Verify injected failures were hit
           verify_failures ${failure}
 
-          # Validate volume was left for retry
-          validate_db 1 2 ${cfs}
-
           set_artificial_failure none
 
-          # Retry the delete operation
-          runcmd volume delete ${PROJECT}/${volname} --wait
+          
+          # Retry the delete operation on remaining source volumes
+          for vol in `volume list $PROJECT | grep "SOURCE" | awk '{ print $7}'`
+          do
+            runcmd volume delete $vol --wait
+          done
         fi
 
         if [ "${SIM}" = "0" ]
@@ -4028,6 +4044,184 @@ test_delete_srdf_cg_last_vol() {
 
         runcmd blockconsistencygroup delete ${CGNAME}
         report_results "test_delete_srdf_cg_last_vol" ${failure}
+    done
+}
+
+# Test test_pause_single_srdf
+#
+# Test pausing individual SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Pause the SRDF volume
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry pause operation
+test_pause_single_srdf() {
+    echot "Test test_pause_single_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
+                               failure_095_SRDFDeviceController.before_doSuspendLink \
+                               failure_096_SRDFDeviceController.after_doSuspendLink"
+
+    cfs=("Volume")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections=""
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_pause_single_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [ "$failure" = "failure_096_SRDFDeviceController.after_doSuspendLink" ]
+      then
+        runcmd volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        runcmd volume change_link $PROJECT/$volname-1 resume $PROJECT/$volname-1-target-$NH srdf
+      else
+        fail volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 ${cfs}
+
+        set_artificial_failure none
+
+        runcmd volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
+        runcmd volume change_link $PROJECT/$volname-1 resume $PROJECT/$volname-1-target-$NH srdf
+      fi
+
+      report_results "test_pause_single_srdf" ${failure}
+    done
+}
+
+test_resume_single_srdf() {
+  _test_resume_or_restore_single_srdf "resume"
+}
+
+test_restore_single_srdf() {
+  _test_resume_or_restore_single_srdf "restore"
+}
+
+# Test test_resume_single_srdf
+#
+# Test resuming individual SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume
+# 2. Save off state of DB (1)
+# 3. Pause the SRDF volume
+# 4. Set artificial failure to fail the operation
+# 5. Resume the SRDF volume
+# 6. Save off the state of the DB (2)
+# 7. Compare state (1) and (2)
+# 8. Retry resume operation
+_test_resume_or_restore_single_srdf() {
+    op=$1
+    echot "Test test_${op}_single_srdf Begins"
+
+    if [ "$op" != "resume" -a "$op" != "restore" ]
+    then
+        echo "Supported operations are restore or resume"
+        return
+    fi
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization"
+
+    if [ "$op" = "resume" ]
+    then
+      op_injections="failure_097_SRDFDeviceController.before_performResume \
+        failure_098_SRDFDeviceController.after_performResume"
+    elif [ "$op" = "restore" ]
+    then
+      op_injections="failure_099_SRDFDeviceController.before_performSync \
+        failure_100_SRDFDeviceController.after_performSync"
+    fi
+
+    cfs=("Volume")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections} ${op_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_100_SRDFDeviceController.after_performSync"
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_${op}_single_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      runcmd volume change_link $PROJECT/$volname-1 pause $PROJECT/$volname-1-target-$NH srdf
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [[ $failure == *".after_perform"* ]]
+      then
+        runcmd volume change_link $PROJECT/$volname-1 $op $PROJECT/$volname-1-target-$NH srdf
+        verify_failures ${failure}
+      else
+        fail volume change_link $PROJECT/$volname-1 $op $PROJECT/$volname-1-target-$NH srdf
+        verify_failures ${failure}
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 ${cfs}
+
+        set_artificial_failure none
+
+        runcmd volume change_link $PROJECT/$volname-1 $op $PROJECT/$volname-1-target-$NH srdf
+      fi
+
+      report_results "test_${op}_single_srdf" ${failure}
     done
 }
 
@@ -4081,7 +4275,7 @@ test_delete_srdf_cg_vol() {
     fi
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_087_BlockDeviceController.before_doDeleteVolumes"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_RemoveMembers"
     
     random=${RANDOM}
     cgvolname=${VOLNAME}-${random}
@@ -4110,12 +4304,18 @@ test_delete_srdf_cg_vol() {
         set_artificial_failure ${failure}
 
         # Remove the volume
-        if [ "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ];
+        if [ "${failure}" = "failure_088_BlockDeviceController.after_doDeleteVolumes&1" -o \
+               "${failure}" = "failure_088_BlockDeviceController.after_doDeleteVolumes&2" -o \
+               "${failure}" = "failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData" -o \
+               "${failure}" = "failure_090_SRDFDeviceController.after_doSuspendLink" -o \
+               "${failure}" = "failure_092_SRDFDeviceController.after_doDetachLink" ]
         then
+          # Failure on GetDefaultReplicationSettingData is ignored.
+          # failure_90, failure_092 occurs at the idempotent-friendly SRDF phase, where enough has already happened for volume deletion to succeed.
+          # failure_088 is expected to pass due to the asynchronous job taking control of the completer status.
           runcmd volume delete ${PROJECT}/${volname} --wait
 
-          # Verify injected failures were hit
-          verify_failures ${failure}
+          set_artificial_failure none
         else
           fail volume delete ${PROJECT}/${volname} --wait
 
@@ -4124,14 +4324,24 @@ test_delete_srdf_cg_vol() {
 
           # Verify injected failures were hit
           verify_failures ${failure}
-
-          # Validate volume was left for retry
-          validate_db 1 2 ${cfs}
-
           set_artificial_failure none
 
-          # Retry the delete operation
-          runcmd volume delete ${PROJECT}/${volname} --wait
+          # No sense in validating db for failure_087, since source or target would have been deleted.
+          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" ]
+          then
+            # One volume from the pair would have been deleted, but we cannot determine which one because the workflow steps run in parallel.
+            # Ensure 1 volume from the pair remains, then delete it.
+            REMAINING_COUNT=`volume list $PROJECT | grep $item | wc -l`
+            secho "Ensure only 1 volume of SRDF pair remains..."
+            runcmd [ "$REMAINING_COUNT" -eq "1" ]
+            # Retry deleting the one remaining volume
+            runcmd volume delete `volume list $PROJECT | grep $item | awk '{ print $7 }'`
+          else
+            # Validate volume was left for retry
+            validate_db 1 2 ${cfs}
+            # Retry the delete operation
+            runcmd volume delete ${PROJECT}/${volname} --wait
+          fi
         fi
 
         if [ "${SIM}" = "0" ]
@@ -4141,8 +4351,13 @@ test_delete_srdf_cg_vol() {
 
         report_results "test_delete_srdf_cg_vol" ${failure}
     done
+
     #Cleanup the remaining CG vol and CG
     runcmd volume delete ${PROJECT}/${cgvolname} --wait
+    if [ "${SIM}" = "0" ]
+    then
+      symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+    fi
     runcmd blockconsistencygroup delete ${CGNAME}
 
 }

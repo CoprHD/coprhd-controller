@@ -312,6 +312,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             _log.info("Create FS: {}, {}, {}", params);
             StoragePool poolObj = _dbClient.queryObject(StoragePool.class, pool);
             fsObj = _dbClient.queryObject(FileShare.class, fs);
+//CR: NUll check for fsObj, vPool, storage and project
             VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, fsObj.getVirtualPool());
             fileObject = fsObj;
             FileDeviceInputOutput args = new FileDeviceInputOutput();
@@ -333,6 +334,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             acquireStepLock(storageObj, opId);
 
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateFS(storageObj, args);
+//CR: Null check for result?
             if (!result.getCommandPending()) {
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
             } else { // we need to add task completer
@@ -388,6 +390,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 isFile = true;
                 args.setForceDelete(forceDelete);
                 fsObj = _dbClient.queryObject(FileShare.class, uri);
+ //CR: Null check for fsObj
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 fileObject = fsObj;
                 args.addFileShare(fsObj);
@@ -406,6 +409,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     }
                 }
                 // In case of VNXe
+//CR: null check for result?
                 if (result.getCommandPending()) {
                     return;
                 }
@@ -485,9 +489,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             } else {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, uri);
+//CR: null check for snapshotObj
+
                 fileObject = snapshotObj;
                 args.addSnapshot(snapshotObj);
                 fsObj = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
+//CR: Null check for fsObj
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 args.addFileShare(fsObj);
                 args.setFileOperation(isFile);
@@ -495,6 +502,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 // Acquire lock for VNXFILE Storage System
                 acquireStepLock(storageObj, opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, args);
+//Null check for result?
                 if (result.getCommandPending()) {
                     return;
                 }
@@ -553,6 +561,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private List<QuotaDirectory> queryFileQuotaDirs(FileDeviceInputOutput args) {
         if (args.getFileOperation()) {
             FileShare fs = args.getFs();
+//CR: Null check for fs?
             _log.info("Querying all quota directories Using FsId {}", fs.getId());
             try {
                 ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory
@@ -589,12 +598,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+//CR: Null check for storageObj?
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             boolean isFile = false;
 
             if (URIUtil.isType(uri, FileShare.class)) {
                 isFile = true;
                 fs = _dbClient.queryObject(FileShare.class, uri);
+//CR: null check for fs and pool
                 fsObj = fs;
                 args.addFSFileObject(fs);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
@@ -602,6 +613,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 setVirtualNASinArgs(fs.getVirtualNAS(), args);
             } else {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, uri);
+//CR: Null check for snapshotObj and pool
                 fsObj = snapshotObj;
                 fs = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
                 args.addFileShare(fs);
@@ -619,6 +631,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 for (FileShareExport fileShareExport : exports) {
                     args.setBypassDnsCheck(fileShareExport.getBypassDnsCheck());
                     FileExport fExport = fileShareExport.getFileExport();
+//Null check for fExport?
                     fExport.setMountPoint(fileShareExport.getMountPath());
                     _log.info("FileExport:clients:" + fExport.getClients() + ":portName:" + fExport.getStoragePortName()
                             + ":port:" + fExport.getStoragePort() + ":rootMapping:" + fExport.getRootUserMapping()
@@ -635,7 +648,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             acquireStepLock(storageObj, opId);
             WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doExport(storageObj, args, fileExports);
-
+//Null cehck for result?
             if (result.getCommandPending()) {
                 return;
             }
@@ -644,7 +657,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             // Set Mount path info for the exports
             FSExportMap fsExports = fsObj.getFsExports();
-
+//CR: null check for fcExports
             // Per New model get the rules and see if any rules that are already saved and available.
             List<FileExportRule> existingRules = queryFileExports(args);
 
@@ -652,7 +665,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 Iterator it = fsExports.keySet().iterator();
                 while (it.hasNext()) {
                     String fsExpKey = (String) it.next();
+//CR: Null check for fsObj.getFsExports()?
                     FileExport fileExport = fsObj.getFsExports().get(fsExpKey);
+//CR: Null check for fileExport
                     if ((fileExport.getMountPath() != null) && (fileExport.getMountPath().length() > 0)) {
                         fileExport.setMountPoint(ExportUtils.getFileMountPoint(fileExport.getStoragePort(), fileExport.getMountPath()));
                     } else {
@@ -756,6 +771,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             for (int i = 0; i < exportSize; i++) {
                 List<String> clients = fExports.get(i).getClients();
+//CR: null check for clients
                 for (int j = 0; j < clients.size(); j++) {
                     strBuilder.append(clients.get(j));
                     if (j < clients.size() - 1) {
@@ -780,11 +796,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         StorageSystem storageObj = null;
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+//CR: Null check for storageObj
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             boolean isFile = false;
             if (URIUtil.isType(fileUri, FileShare.class)) {
                 isFile = true;
                 fs = _dbClient.queryObject(FileShare.class, fileUri);
+//Null check for fs and pool
                 setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 fsObj = fs;
                 args.addFSFileObject(fs);
@@ -792,6 +810,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addStoragePool(pool);
             } else {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, fileUri);
+//Null check for snasphsotObj , fs and pool
                 fsObj = snapshotObj;
                 fs = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
                 setVirtualNASinArgs(fs.getVirtualNAS(), args);
@@ -811,6 +830,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 for (FileShareExport fileShareExport : exports) {
                     FileExport fileExport = fileShareExport.getFileExport();
                     fileExports.add(fileExport);
+//CR: Null check for fileExport
                     _log.info("FileExport:" + fileExport.getClients() + ":" + fileExport.getStoragePortName()
                             + ":" + fileExport.getStoragePort() + ":" + fileExport.getRootUserMapping()
                             + ":" + fileExport.getPermissions() + ":" + fileExport.getProtocol()
@@ -829,7 +849,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doUnexport(storageObj, args, fileExports);
-
+//CR: null check for result?
             if (result.getCommandPending()) {
                 return;
             }
@@ -844,6 +864,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (result.isCommandSuccess()) {
                 // Remove Export
                 for (FileExport fileExport : fileExports) {
+//CR: Null check for fsObj.getFsExports() ?
                     fsObj.getFsExports().remove(fileExport.getFileExportKey());
                     _log.info("FileShareExport removed : " + fileExport.getFileExportKey());
                 }
@@ -877,6 +898,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 }
 
                 FSExportMap exportsMap = fsObj.getFsExports();
+//CR: Null Check for exportsMap
                 List<FileExport> fsExports = new ArrayList<FileExport>(exportsMap.values());
                 if (isFile) {
                     recordFileDeviceOperation(_dbClient, auditType, result.isCommandSuccess(), eventMsg,
@@ -920,8 +942,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fs = null;
         try {
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+//CR: Null cehck for storageObj
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             fs = _dbClient.queryObject(FileShare.class, uri);
+//CR: Null check for fs, pool and result
             args.addFSFileObject(fs);
             StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
             args.addStoragePool(pool);
@@ -992,6 +1016,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             acquireStepLock(storageObj, opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doReduceFS(storageObj, args);
+//Null checkfs for fs, pool, storageObj and result
             if (result.getCommandPending()) {
                 // async operation
                 return;
@@ -1036,6 +1061,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         Snapshot snapshotObj = null;
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+//CR: Null cehck for storageObj, smbShare
             _log.info(String.format(
                     "Create SMB share details --- name: %1$s, description: %2$s, permissionType: %3$s, permission: %4$s , maxUsers: %5$s",
                     smbShare.getName(), smbShare.getDescription(), smbShare.getPermissionType(),
@@ -1048,6 +1074,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (URIUtil.isType(uri, FileShare.class)) {
                 fsObj = _dbClient.queryObject(FileShare.class, uri);
+//CR: Null check for fsObj, result
                 fileObject = fsObj;
                 args.addFSFileObject(fsObj);
                 args.setFileOperation(true);
@@ -1081,6 +1108,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         eventMsg, getShareNameExtensions(shares), fsObj, smbShare);
             } else {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, uri);
+//CR: Null cehck for snapshotObj, fsObj and result
                 fileObject = snapshotObj;
                 args.addSnapshotFileObject(snapshotObj);
                 fsObj = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
@@ -1143,6 +1171,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         Snapshot snapshotObj = null;
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+//CR: Null cehck for storageObj, smbShare
             _log.info(String.format(
                     "Delete SMB share details --- name: %1$s, description: %2$s, permissionType: %3$s, permission: %4$s , maxUsers: %5$s ",
                     smbShare.getName(), smbShare.getDescription(), smbShare.getPermissionType(),
@@ -1155,6 +1184,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setOpId(opId);
             if (URIUtil.isType(uri, FileShare.class)) {
                 fsObj = _dbClient.queryObject(FileShare.class, uri);
+//CR: Null cehck for fsObj and result
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 fileObject = fsObj;
                 args.addFSFileObject(fsObj);
@@ -1189,6 +1219,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         eventMsg, getShareNameExtensions(shares), fsObj, smbShare);
             } else {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, uri);
+//CR: Null check for snashotObj, result
                 fileObject = snapshotObj;
                 args.addSnapshotFileObject(snapshotObj);
                 args.setFileOperation(false);
@@ -1207,11 +1238,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 _dbClient.updateObject(snapshotObj);
                 fsObj = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
+//NUll cehck for fsObj
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
                 List<SMBFileShare> shares = null;
                 if (result.isCommandSuccess()) {
                     SMBShareMap shareMap = snapshotObj.getSMBFileShares();
+//CR: Null check for shareMap
                     shares = new ArrayList<SMBFileShare>(shareMap.values());
                     deleteShareACLsFromDB(args);
                     WorkflowStepCompleter.stepSucceded(opId);
@@ -1299,6 +1332,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fs = null;
         try {
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+//CR: Null check for storageObj, fs, result
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             fs = _dbClient.queryObject(FileShare.class, fsuri);
             args.addFSFileObject(fs);
@@ -1321,6 +1355,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Set status
+//CR: Is null check for fs.getOpStatus() needed here?
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
             _dbClient.updateObject(fs);
 
@@ -1355,7 +1390,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, fsObj.getPool());
             args.addStoragePool(storagePool);
             args.setOpId(task);
-
+//CR: Null check for storageObj, fsObj, snapObj, storagePool
             // Acquire lock for VNXFILE Storage System
             acquireStepLock(storageObj, task);
             WorkflowStepCompleter.stepExecuting(task);
@@ -1383,7 +1418,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             _dbClient.updateObject(fsObj);
 
             fsObj = _dbClient.queryObject(FileShare.class, fs);
-
+//CR: Null Check
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT, result.isCommandSuccess(),
                     eventMsg, "", snapshotObj, fsObj);
@@ -1417,6 +1452,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             fsObj = _dbClient.queryObject(FileShare.class, fs);
             snapshotObj = _dbClient.queryObject(Snapshot.class, snapshot);
+//CR: Null cehcks
             args.addFileShare(fsObj);
             args.addSnapshot(snapshotObj);
             args.setOpId(opId);
@@ -1434,6 +1470,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 WorkflowStepCompleter.stepSucceded(opId);
             }
             op = result.toOperation();
+//Null cehck for snaoshotObj.getOpStatus() and fsObj.getOpStatus() ?
             snapshotObj.getOpStatus().updateTaskStatus(opId, op);
             fsObj.getOpStatus().updateTaskStatus(opId, op);
             _dbClient.updateObject(fsObj);
@@ -1479,6 +1516,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         while (results.iterator().hasNext()) {
             URI uri = results.iterator().next();
             Snapshot snapObj = _dbClient.queryObject(Snapshot.class, uri);
+//CR; Null cehck
             snapshotsInDB.put(snapObj.getName(), snapObj);
         }
 
@@ -1679,6 +1717,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileSMBShare smbShare = null;
         switch (opType) {
             case CREATE_FILE_SYSTEM:
+//CR: Null check for fs.getVirtualArray() ?
                 auditFile(dbClient, opType, opStatus, opStage,
                         fs.getLabel(), fs.getVirtualArray().toString(),
                         (fs.getProject() != null) ? fs.getProject().toString() : null);
@@ -1786,6 +1825,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             URI qtreeURI = quotaDir.getId();
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
+//CR: Null checks for storageObj, fsObj, quotaDirObj
             FileDeviceInputOutput args = new FileDeviceInputOutput();
 
             // Set up args
@@ -1794,6 +1834,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setOpId(task);
 
             FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
+//CR: Null check for nasDevice?
             BiosCommandResult result = nasDevice.doCreateQuotaDirectory(storageObj, args, quotaDirObj);
             if (result.getCommandPending()) {
                 return;
@@ -1855,6 +1896,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj = _dbClient.queryObject(FileShare.class, fs);
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir.getId());
+//CR: Null checks for fsObj, storageObj and quotaDirObj
             if (null != quotaDir.getSize()) {
                 quotaDirObj.setSize(quotaDir.getSize());
             }
@@ -1874,6 +1916,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setOpId(task);
 
             FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
+//CR: Null cehck for nasDevice?
             BiosCommandResult result = nasDevice.doUpdateQuotaDirectory(storageObj, args, quotaDirObj);
             if (result.getCommandPending()) {
                 return;
@@ -1888,7 +1931,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
 
             quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsObj.getName()));
-
+//CR: NUll cehck for fsObj.getOpStatus() and quotaDirObj.getOpStatus() ?
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
             quotaDirObj.getOpStatus().updateTaskStatus(task, result.toOperation());
             // save the task status into db
@@ -1931,6 +1974,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (fsExportMap != null && !fsExportMap.isEmpty()) {
             // check the quota directory is exported
             for (FileExport fileExport : fsExportMap.values()) {
+//CR: Null cehck for fileExport.getPath()?
                 if (quotaName.equals(fileExport.getSubDirectory()) &&
                         fileExport.getPath().endsWith(quotaName)) {
                     isExported = true;
@@ -1951,6 +1995,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<FileSMBShare> fileSMBShares = new ArrayList<FileSMBShare>();
             for (SMBFileShare smbFileShare : smbShareMap.values()) {
                 // check for quotaname in native fs path
+//CR: Null check for getPath() ?
                 if (true == (smbFileShare.getPath().endsWith(quotaName))) {
                     fileSMBShare = new FileSMBShare(smbFileShare);
                     _log.info("Delete the cifs sub directory path of quota directory {}",
@@ -1979,16 +2024,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             fsObj = _dbClient.queryObject(FileShare.class, fs);
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir);
+//CR: Null cehck for storageObj, fsObj, quotaDirObj
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             args.addFSFileObject(fsObj);
             args.addQuotaDirectory(quotaDirObj);
             args.setOpId(task);
 
             FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
+//CR: null check for nasDevice
             BiosCommandResult result = nasDevice.doDeleteQuotaDirectory(storageObj, args);
             if (result.getCommandPending()) {
                 return;
             }
+//CR: Null cehck for getOpStatus()?
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
             quotaDirObj.getOpStatus().updateTaskStatus(task, result.toOperation());
 
@@ -2039,7 +2087,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             StorageSystem storageObj = _dbClient.queryObject(
                     StorageSystem.class, storage);
-
+//CR: Null cehck for storageObj
             args.setSubDirectory(param.getSubDir());
             args.setAllExportRules(param);
             if(null != param.getBypassDnsCheck()) {
@@ -2054,6 +2102,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (URIUtil.isType(fsURI, FileShare.class)) {
                 isFile = true;
                 fs = _dbClient.queryObject(FileShare.class, fsURI);
+//CR: Null cehck for fs, pool
                 setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 fsObj = fs;
                 args.addFSFileObject(fs);
@@ -2072,6 +2121,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
                         fs.getPool());
+//CR: Null cehck for snapshot, fs , pool
                 args.addStoragePool(pool);
             }
 
@@ -2108,7 +2158,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Audit & Update the task status
             OperationTypeEnum auditType = null;
             auditType = (isFile) ? OperationTypeEnum.EXPORT_FILE_SYSTEM : OperationTypeEnum.EXPORT_FILE_SNAPSHOT;
-
+//CR: Null cehck?
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
@@ -2187,7 +2237,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     containmentConstraint);
 
             rules = new ArrayList<>();
-
+//CR: Null cehck needed for fileExportRules?
             for (FileExportRule fileExportRule : fileExportRules) {
                 ExportRule rule = new ExportRule();
                 getExportRule(fileExportRule, rule);
@@ -2286,6 +2336,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         // Figure out Storage Port Network id to build the mount point.
         StoragePort storagePort = _dbClient.queryObject(StoragePort.class, fs.getStoragePort());
+//CR:Null cehck for storagePort
         String mountPoint = ExportUtils.getFileMountPoint(storagePort.getPortNetworkId(), exportPath);
         dest.setMountPoint(mountPoint);
 
@@ -2318,6 +2369,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 // Filter for a specific Sub Directory export
                 _log.info("Doing CRUD Operations on DB FileExportRules Specific to SubDirectory {}", subDir);
                 for (FileExportRule rule : exports) {
+//CR: Null cehck for rule.getExportPath()?
                     if (rule.getExportPath().endsWith("/" + subDir)) {
                         _log.info("Deleting Subdiretcory export rule from DB having path {} - Rule :{}", rule.getExportPath(), rule);
                         rule.setInactive(true);
@@ -2327,10 +2379,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else {
                 // Filter for No SUBDIR - main export rules with no sub dirs
                 for (FileExportRule rule : exports) {
+//Null cehck for rule.getExportPath()?
+
                     if (args.getFileOperation() && rule.getExportPath().equalsIgnoreCase(args.getFsPath())) {
                         _log.info("Deleting export rule from DB having path {} - Rule :{}", rule.getExportPath(), rule);
                         rule.setInactive(true);
                         _dbClient.updateObject(rule);
+//CR: Null cehck for rule.getExportPath()?
                     } else if (args.getFileOperation() == false && rule.getExportPath().equalsIgnoreCase(args.getSnapshotPath())) {
                         _log.info("Deleting snapshot export rule from DB having path {} - Rule :{}", rule.getExportPath(), rule);
                         rule.setInactive(true);
@@ -2447,6 +2502,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 }
                 // Delete the ExportMap entry if there are no export rules for this file system or sub directory
                 FSExportMap fsNFSExportMap = fs.getFsExports();
+//CR: Null cehck for fsNFSExportMap
                 ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(fs.getId());
                 List<FileExportRule> fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
                         FileExportRule.class, containmentConstraint);
@@ -2456,6 +2512,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 while (keySetIterator.hasNext()) {
                     String fileExportMapKey = keySetIterator.next();
                     FileExport fileExport = fsNFSExportMap.get(fileExportMapKey);
+//CR: Null check for fileExport
                     boolean exportRuleExists = false;
                     for (FileExportRule fileExportRule : fileExportRules) {
                         if (fileExportRule.getExportPath().equals(fileExport.getMountPath())) {
@@ -2594,9 +2651,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addStoragePool(pool);
                 args.setAllDir(allDirs);
                 args.setSubDirectory(subDir);
-
+//Null check for storageObj, fs, pool
             } else {
                 // Snapshot
+//CR: Null cehck for fsObj, snapshotObj, pool
                 snapshotObj = _dbClient.queryObject(Snapshot.class, fileUri);
                 fsObj = snapshotObj;
                 fs = _dbClient.queryObject(FileShare.class,
@@ -2690,6 +2748,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // then remove keys
             _log.info("Removing all exports from the export map");
             for (String filexportKey : filexportKeys) {
+//NUll cehck for fsObj.getFsExports()
                 fsObj.getFsExports().remove(filexportKey);
                 _log.info("FileShareExport removed : " + filexportKey);
             }
@@ -2700,10 +2759,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Filter for a specific Sub Directory export
             // to avoid current exception, prepare seperate delete list
             for (FileExport fileExport : fileExports) {
+//CR: Null check for fileExport.getSubDirectory()
                 if (fileExport.getSubDirectory().equalsIgnoreCase(subDir)) {
                     filexportKeys.add(fileExport.getFileExportKey());
                 }
             }
+//CR: Null check for fsObj.getFsExports()
             for (String filexportKey : filexportKeys) {
                 fsObj.getFsExports().remove(filexportKey);
                 _log.info("FileShareExport removed : " + filexportKey);
@@ -2721,6 +2782,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             // remove the filesystem keys
             for (String filexportKey : filexportKeys) {
+//Null check
                 fsObj.getFsExports().remove(filexportKey);
                 _log.info("FileShareExport removed : " + filexportKey);
             }
@@ -2741,7 +2803,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             rule.setFileSystemId(uri);
         }
         rule.setSecFlavor(fileExport.getSecurityType());
-
+//CR: Null check for getPermissions() ?
         if (fileExport.getPermissions().equals(FileShareExport.Permissions.ro.name())
                 && fileExport.getClients() != null && !fileExport.getClients().isEmpty()) {
             rule.setReadOnlyHosts(new StringSet(fileExport.getClients()));
@@ -2798,7 +2860,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
                         fs.getPool());
                 args.addStoragePool(pool);
-
+//CR: Null checks for storageObj, fs, pool, snapshotObj
             } else {
                 // Snapshot
                 snapshotObj = _dbClient.queryObject(Snapshot.class, fsURI);
@@ -2842,7 +2904,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             OperationTypeEnum auditType = null;
             auditType = (isFile) ? OperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE_ACL
                     : OperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL;
-
+//NULL Check ?
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
@@ -2907,6 +2969,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                         copyPropertiesToSave(acl, dbShareAcl, fs, args);
                         CifsShareACL dbShareAclTemp = getExistingShareAclFromDB(dbShareAcl, args);
+//CR: Null check for dbShareAclTemp
                         dbShareAcl.setId(dbShareAclTemp.getId());
                         _log.info("Updating acl in DB: {}", dbShareAcl);
                         _dbClient.updateObject(dbShareAcl);
@@ -2924,6 +2987,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         CifsShareACL dbShareAcl = new CifsShareACL();
                         copyPropertiesToSave(acl, dbShareAcl, fs, args);
                         CifsShareACL dbShareAclTemp = getExistingShareAclFromDB(dbShareAcl, args);
+//CR: Null check for dbShareAclTemp
                         dbShareAcl.setId(dbShareAclTemp.getId());
                         dbShareAcl.setInactive(true);
                         _log.info("Marking acl inactive in DB: {}", dbShareAcl);
@@ -3062,10 +3126,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         URIQueryResultList result = new URIQueryResultList();
         if (isFile) {
             index = dbShareAcl.getFileSystemNfsACLIndex();
+//CR: Check index is not null?
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getFileSystemNfsACLConstraint(index), result);
         } else {
             index = dbShareAcl.getSnapshotNfsACLIndex();
+//CR: same as above
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getSnapshotNfsACLConstraint(index), result);
         }
@@ -3103,11 +3169,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             List<CifsShareACL> shareAclList = CustomQueryUtility.queryActiveResourcesByConstraint(
                     _dbClient, CifsShareACL.class, containmentConstraint);
-
+//CR: Null check for shareAclList?
             Iterator<CifsShareACL> shareAclIter = shareAclList.iterator();
             while (shareAclIter.hasNext()) {
 
                 CifsShareACL shareAcl = shareAclIter.next();
+//CR: Null check for args.getShareName() ?
                 if (shareAcl != null && args.getShareName().equals(shareAcl.getShareName())) {
                     acls.add(shareAcl);
                 }
@@ -3191,6 +3258,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         try {
             List<CifsShareACL> dbShareAclList = queryDBShareAcls(args);
+//CR: Null check for dbShareAclList
             Iterator<CifsShareACL> dbShareAclIter = dbShareAclList.iterator();
             while (dbShareAclIter.hasNext()) {
 
@@ -3262,7 +3330,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         fs.getPool());
                 args.addStoragePool(pool);
             }
-
+//CR: Null check for storageObj, fs, pool, snapshotObj
             args.setFileOperation(isFile);
             args.setOpId(opId);
             // query and setExistingShare ACL
@@ -3291,7 +3359,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             OperationTypeEnum auditType = null;
             auditType = (isFile) ? OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL
                     : OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE_ACL;
-
+//CR: Null cehck for getOpStatus?
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
@@ -3413,7 +3481,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         fs.getPool());
                 args.addStoragePool(pool);
             }
-
+//CR; Null cehcsk for objects retrieved from db
             args.setFileOperation(isFile);
             args.setOpId(opId);
 
@@ -3438,7 +3506,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             OperationTypeEnum auditType = null;
             auditType = (isFile) ? OperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL
                     : OperationTypeEnum.UPDATE_FILE_SNAPSHOT_NFS_ACL;
-
+//NUll check for getOpStatus
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
@@ -3579,12 +3647,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         fs.getPool());
                 args.addStoragePool(pool);
             }
-
+//CR: Null checks for objects retrieved from db
             args.setFileOperation(isFile);
             args.setOpId(opId);
 
             List<NfsACE> aceDeleteList = new ArrayList<NfsACE>();
             List<NFSShareACL> dbNfsAclTemp = queryAllNfsACLInDB(fs, subDir, args);
+//CR: Null cehck for dbNfsAclTemp
             makeNfsAceFromDB(aceDeleteList, dbNfsAclTemp);
             args.setNfsAclsToDelete(aceDeleteList);
 
@@ -3752,6 +3821,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         if (vNASURI != null) {
             VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
+//CR: Null cehck for vNAS
             args.setvNAS(vNAS);
         }
     }
@@ -3807,6 +3877,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 for (FileDescriptor descriptor : targetDescriptors) {
                     FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
                     FileShare fileShareSource = _dbClient.queryObject(FileShare.class, fileShare.getParentFileShare().getURI());
+//CR: Null check for db objects
                     if (fileShare.getParentFileShare() != null) {
                         waitFor = workflow.createStep(
                                 CREATE_FILESYSTEMS_STEP,
@@ -3837,14 +3908,16 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         // Segregate by device.
         Map<URI, List<FileDescriptor>> deviceMap = FileDescriptor.getDeviceMap(sourceDescriptors);
+//CR: Null cehck for deviceMao?
 
         // Add a step to delete the fileshares in each device.
         for (URI deviceURI : deviceMap.keySet()) {
             filesystems = deviceMap.get(deviceURI);
-
+//CR: Null cehck for filestsems?
             List<URI> fileshareURIs = FileDescriptor.getFileSystemURIs(filesystems);
             for (URI uriFile : fileshareURIs) {
                 FileShare fsObj = _dbClient.queryObject(FileShare.class, uriFile);
+//CR: Null check for fsObj
                 // unmount exports only if FULL delete
                 if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(filesystems.get(0).getDeleteType())) {
                     // get all the mounts and generate steps for unmounting them
@@ -3977,6 +4050,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             WorkflowStepCompleter.stepExecuting(opId);
             for (URI fileshareId : fileURIs) {
                 FileShare fileShare = _dbClient.queryObject(FileShare.class, fileshareId);
+//CR: Null check for fileShare
                 this.delete(systemURI, fileShare.getPool(), fileShare.getId(),
                         false, FileControllerConstants.DeleteTypeEnum.FULL.toString(), opId);
             }
@@ -3997,6 +4071,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private Workflow.Method deleteFileSharesMethod(URI systemURI, List<URI> fileShareURIs,
             boolean forceDelete, String deleteType, String taskId) {
         FileShare fsObj = _dbClient.queryObject(FileShare.class, fileShareURIs.get(0));
+//CR: Null check for fsObj
         return new Workflow.Method("delete", fsObj.getStorageDevice(), fsObj.getPool(), fsObj.getId(), forceDelete, deleteType);
     }
 
@@ -4016,7 +4091,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         for (FileDescriptor descriptor : fileDescriptors) {
             // Grab the fileshare, let's see if an expand is really needed
             FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
-
+//CR; Null check forfileShare
             // Only expand the fileshare if it's an existing fileshare (provisoned capacity is not null and not 0) and
             // new size > existing fileshare's provisioned capacity, otherwise we can ignore.
             if (fileShare.getCapacity() != null
@@ -4029,6 +4104,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         Workflow.Method expandMethod = null;
         for (Map.Entry<URI, Long> entry : filesharesToExpand.entrySet()) {
             _log.info("Creating WF step for Expand FileShare for  {}", entry.getKey().toString());
+//CR: Null check for db objects
             FileShare fileShareToExpand = _dbClient.queryObject(FileShare.class, entry.getKey());
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fileShareToExpand.getStorageDevice());
             Long fileSize = entry.getValue();
@@ -4062,7 +4138,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 filesharesToReduce.put(fileShare.getId(), descriptor.getFileSize());
             }
         }
-
+//CR: Null check for db objects
         Workflow.Method reduceMethod = null;
         for (Map.Entry<URI, Long> entry : filesharesToReduce.entrySet()) {
             _log.info("Creating WF step for Reduce FileShare for  {}", entry.getKey().toString());
@@ -4112,7 +4188,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         try {
             fs = _dbClient.queryObject(FileShare.class, fsURI);
             SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, policy);
-
+//CR: null cehck for dbObjects
             if (fs != null && fp != null) {
                 StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
@@ -4134,6 +4210,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 if (result.isCommandSuccess()) {
                     // Update FS database
                     StringSet fpolicies = fs.getFilePolicies();
+//CR: Need null cehck for fpolicies  and resources below?
                     fpolicies.add(fp.getId().toString());
                     fs.setFilePolicies(fpolicies);
 
@@ -4200,7 +4277,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addFilePolicy(fp);
                 args.setFileOperation(true);
                 args.setOpId(opId);
-
+//CR: Null cehck for db objects
                 // Do the Operation on device.
                 BiosCommandResult result = getDevice(storageObj.getSystemType())
                         .unassignFilePolicy(storageObj, args);
@@ -4305,7 +4382,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.setFileProtectionPolicy(fp);
                 args.setFileOperation(true);
                 args.setOpId(opId);
-
+//CR: Null check for dbobjects
                 // Do the Operation on device.
                 BiosCommandResult result = getDevice(storageObj.getSystemType())
                         .listSanpshotByPolicy(storageObj, args);
@@ -4335,7 +4412,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (filePolicy != null && policyResource != null) {
                 StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-
+//CR: Null check for dbobjects
                 _log.info("Updating File protection ile Policy  {}", policy);
                 args.setFileProtectionPolicy(filePolicy);
                 args.setPolicyStorageResource(policyResource);
@@ -4452,10 +4529,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList,
                 FileOperationUtils.getExportRules(fsId, false, subDir, _dbClient));
         for (MountInfo mount : mountList) {
+//CR: Null check for host before doing getHostName()
             String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
             if (StringUtils.isEmpty(subDir) && StringUtils.isEmpty(mount.getSubDirectory())
                     || (!StringUtils.isEmpty(mount.getSubDirectory()) && mount.getSubDirectory().equals(subDir))) {
                 for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
+//Null Check for rule.getValue() and rule.getKey().getSecFlavor()?
                     if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
                         unmountList.add(mount);
                     }
@@ -4470,6 +4549,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         _log.info("filtering export rules");
         for (ExportRule newExport : newExportList) {
             for (ExportRule oldExport : existingExportList) {
+//CR: Null cehck for newExport.getSecFlavor()
                 if (newExport.getSecFlavor().equalsIgnoreCase(oldExport.getSecFlavor())) {
                     List<String> hosts = new ArrayList<String>();
                     if (oldExport.getReadOnlyHosts() != null) {
@@ -4504,9 +4584,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
                     containmentConstraint);
             FileShare fs = _dbClient.queryObject(FileShare.class, fsId);
+//CR: Null check for fs
             for (FileMountInfo fsMount : fsDBMounts) {
                 LinuxMountUtils mountUtils = new LinuxMountUtils(_dbClient.queryObject(Host.class, fsMount.getHostId()));
                 ExportRule export = FileOperationUtils.findExport(fs, fsMount.getSubDirectory(), fsMount.getSecurityType(), _dbClient);
+//CR: Null check for export
                 if (mountUtils.verifyMountPoints(export.getMountPoint(), fsMount.getMountPath())) {
                     String errMsg = new String("delete file system from ViPR database failed because mounts exist for file system "
                             + fs.getLabel() + " and once deleted the mounts cannot be ingested into ViPR");
@@ -4576,6 +4658,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fsObj = null;
         StorageSystem storageObj = null;
         try {
+//CR: Null check for objects retrieved from db
             fsObj = _dbClient.queryObject(FileShare.class, sourceFS);
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fsObj.getVirtualPool());
             Project project = _dbClient.queryObject(Project.class, fsObj.getProject());
@@ -4613,6 +4696,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         String policyPath = policyResource.getResourcePath();
         // For replication policy
         // Remove the source - target relationship
+//CR: Null check for filePolicy.getFilePolicyType()
         if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())) {
             ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getStorageDeviceFileshareConstraint(storageSystem);
             List<FileShare> fileshares = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
@@ -4621,6 +4705,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             for (FileShare fileshare : fileshares) {
                 // All the file systems underneath the policy path
                 // should be decoupled!!!
+//CR: Null check for nativeId
                 if (fileshare.getNativeId().startsWith(policyPath)) {
                     if (fileshare.getPersonality() != null
                             && fileshare.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString())) {
@@ -4631,6 +4716,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             StringSet targets = fileshare.getMirrorfsTargets();
                             for (String strTargetFs : targets) {
                                 FileShare targetFs = _dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
+//Null check for targetFs
                                 targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
                                 targetFs.setAccessState(NullColumnValueGetter.getNullStr());
                                 targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
@@ -4664,7 +4750,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FilePolicy filePolicy = null;
         PolicyStorageResource policyRes = null;
         try {
-
+//CR: Null check for objects retrieved from db
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             filePolicy = _dbClient.queryObject(FilePolicy.class, policyURI);
@@ -4715,6 +4801,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
                 args.setvNAS(vNAS);
             }
+//CR: Null check for objects retrieved from db
             args.setFileProtectionPolicy(filePolicy);
             args.setVPool(vpool);
 
@@ -4747,7 +4834,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
             Project project = _dbClient.queryObject(Project.class, projectURI);
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
-
+//CR: Null check for objects from db
             if (vNASURI != null) {
                 VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
                 args.setvNAS(vNAS);
@@ -4790,7 +4877,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             VirtualArray targetVarray = _dbClient.queryObject(VirtualArray.class, targetVArrayURI);
             VirtualNAS sourceVNAS = null;
             VirtualNAS targetVNAS = null;
-
+//CR; Null check for db objects
             FileDeviceInputOutput sourceArgs = new FileDeviceInputOutput();
             FileDeviceInputOutput targetArgs = new FileDeviceInputOutput();
             targetArgs.setVarray(targetVarray);
@@ -4844,7 +4931,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             Project project = _dbClient.queryObject(Project.class, projectURI);
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
             VirtualArray targetVarray = _dbClient.queryObject(VirtualArray.class, targetVArrayURI);
-
+//CR: Null check fro db objects
             VirtualNAS sourceVNAS = null;
             VirtualNAS targetVNAS = null;
 
@@ -4895,6 +4982,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public void performFileReplicationOperation(URI storage, URI sourceFSURI, String opType, String opId) throws ControllerException {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
         FileShare fileShare = _dbClient.queryObject(FileShare.class, sourceFSURI);
+//CR: Null check for db objects
         TaskCompleter completer = null;
         BiosCommandResult result = new BiosCommandResult();
         WorkflowStepCompleter.stepExecuting(opId);
@@ -4950,7 +5038,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             FileShare fileShare = _dbClient.queryObject(FileShare.class, fileshareURI);
             WorkflowStepCompleter.stepExecuting(opId);
             _log.info("Execution of Failover Job Started");
-
+//CR: Null cehck for db objects
             BiosCommandResult cmdResult = getDevice(system.getSystemType()).doFailoverLink(system, fileShare, completer);
 
             if (cmdResult.getCommandSuccess()) {
@@ -4979,7 +5067,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyURI);
             args.setFileProtectionPolicy(filePolicy);
-
+//CR: Null check for db objects
             if (vpoolURI != null) {
                 VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
                 args.setVPool(vpool);

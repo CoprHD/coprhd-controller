@@ -26,7 +26,7 @@ public class StoragePortGroups extends AbstractResources<StoragePortGroupRestRep
     }
 
     /**
-     * Creates storage port group
+     * Create a storage port group
      * <p>
      * API call: <tt>POST /vdc/storage-systems/{storageSystemUri}/storage-port-groups</tt>
      * </p>
@@ -40,7 +40,7 @@ public class StoragePortGroups extends AbstractResources<StoragePortGroupRestRep
     }
 
     /**
-     * Registers a storage port group with the given storage system by ID.
+     * Register a storage port group.
      * <p>
      * API Call: <tt>POST /vdc/storage-systems/{storageSystemId}/storage-ports/{portId}/register</tt>
      * 
@@ -56,7 +56,7 @@ public class StoragePortGroups extends AbstractResources<StoragePortGroupRestRep
     }
 
     /**
-     * Deregisters a storage port group with the given storage system by ID.
+     * Deregister a storage port group.
      * <p>
      * API Call: <tt>POST /vdc/storage-systems/{storageSystemId}/storage-ports/{portId}/deregister</tt>
      * 
@@ -72,7 +72,7 @@ public class StoragePortGroups extends AbstractResources<StoragePortGroupRestRep
     }
 
     /**
-     * Delete a storage port group with the given storage system by ID.
+     * Delete a storage port group.
      * <p>
      * API Call: <tt>POST /vdc/storage-systems/{storageSystemId}/storage-ports/{portId}/deactivate</tt>
      * 
@@ -88,7 +88,7 @@ public class StoragePortGroups extends AbstractResources<StoragePortGroupRestRep
     }
 
     /**
-     * Get a storage port group with the given storage system by URI.
+     * Get a storage port group.
      * <p>
      * API Call: <tt>Get /vdc/storage-systems/{storageSystemUri}/storage-ports/{portGroupUri}</tt>
      * 
@@ -104,7 +104,7 @@ public class StoragePortGroups extends AbstractResources<StoragePortGroupRestRep
     }
 
     /**
-     * Get all storage port group in the given storage system by ID.
+     * Get all storage port group in the given storage system.
      * <p>
      * API Call: <tt>Get /vdc/storage-systems/{storageSystemId}/storage-ports/</tt>
      * 

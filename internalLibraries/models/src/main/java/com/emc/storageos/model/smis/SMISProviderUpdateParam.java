@@ -50,8 +50,8 @@ public class SMISProviderUpdateParam {
     /**
      * New mgmt Provider site
      */
-    @XmlElement
-    @Length(min = 2, max = 128)
+    @XmlElement(name = "site", nillable = true)
+    @Length(min = 0, max = 128)
     public String getSite() {
         return site;
     }

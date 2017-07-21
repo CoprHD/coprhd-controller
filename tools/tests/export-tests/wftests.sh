@@ -275,8 +275,9 @@ prerun_setup() {
 	# If there's no volume in the DB, create one and delete it to prime exports
 	volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
 	if [ $? -ne 0 ]; then
+	    secho "Priming ExportMask and ExportGroup for tests by creating and deleting a VPLEX volume"
 	    runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	    runcmd volume delete ${PROJECT}/${VOLNAME} --wait > /dev/null
+	    runcmd volume delete ${PROJECT}/${VOLNAME} --wait 
 	fi
     fi
 }

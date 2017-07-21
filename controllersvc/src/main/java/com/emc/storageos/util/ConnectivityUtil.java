@@ -1026,6 +1026,22 @@ public class ConnectivityUtil {
     }
     
     /**
+     * Get initiator Network
+     * @param initiator
+     * @param dbClient
+     * @return
+     */
+    public static URI getInitiatorNetwork(Initiator initiator, DbClient dbClient) {
+        NetworkLite networkLite = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
+        if (networkLite == null) {
+            _log.info(String.format(" Initiator is not associated with any network",
+                    initiator.getInitiatorPort()));
+            return null;
+        }
+        return networkLite.getId();
+    }
+    
+    /**
      * Pick the Virtual Array with most number of storage ports.
      * @param ports
      * @return

@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
@@ -902,61 +903,42 @@ public class NetworkSystemService extends TaskResourceService {
     }
     
     /**
-     * 
+     * Creates new zones based on given path parameters and storage ports.
+     * The code understands existing zones and creates the remaining if needed.
      * @param param
      * @param hostURI
      * @param storageSystemId
-     * @return
+     * @return 
      * @throws InternalException
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/create-san-zones")
+    @Path("/create-san-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep createSANZones(ExportPathParameters param, @PathParam("hostURI") URI hostURI,
-            @PathParam("storageId") URI storageSystemId) throws InternalException {
+    public TaskResourceRep createSANZones(ExportPathParameters param, @QueryParam("hostURI") URI hostURI,
+            @QueryParam("storageId") URI storageSystemId) throws InternalException {
+        ArgValidator.checkFieldUriType(hostURI, Host.class, "hostURI");
+        ArgValidator.checkFieldUriType(storageSystemId, StorageSystem.class, "storageId");
+        
         String task = UUID.randomUUID().toString();
         List<URI> hostInitiatorNamesList = ExportUtils.getInitiatorsOfHost(hostURI, _dbClient);
         
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemId);
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorNamesList, true);
-        // TODO fix Null - I don't see any issues need to verify.
-        ExportPathParams pathParam = new ExportPathParams(param, null);
-        // Volumes has to be passed only for RP cases.
-        // TODO VArray calculation
-        // Calculate the zoning map based on the path parameters
         
-       /** Set<String> initiatorVArrays = ConnectivityUtil.getInitiatorVarrays(initiators.get(0).getInitiatorPort(), _dbClient);
-        _log.info("Initiator Virtual Arrays {}", Joiner.on(",").join(initiatorVArrays));
-        List<URI> storagePortURIList = param.getStoragePorts();
-        List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIList);
-        Set<String>  portVArrays = new HashSet<String>();
-        for(StoragePort port : storagePorts) {
-            if(o)
-            if(null != port.getTaggedVirtualArrays())
-            portVArrays.addAll(port.getTaggedVirtualArrays());
-            
-        }
-        _log.info("Port Virtual Arrays {}", Joiner.on(",").join(portVArrays));
-        initiatorVArrays.retainAll(portVArrays);
-        _log.info("initiator and Ports are conencted through Virtual Arrays {}", Joiner.on(",").join(initiatorVArrays));
-        if(null == initiatorVArrays) {
-            //throw exception
-        }
+        ExportPathParams pathParam = new ExportPathParams(param);
         
-        ConnectivityUtil.getStoragePortsVarrays(storagePorts);
-        URI varray = URIUtil.uri(initiatorVArrays.iterator().next());**/
-        
+        // TODO the below code considers only storage ports for picking virtual
+        // Array, it assumes all the given storage ports are connected to all
+        // the initiators.
         List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, param.getStoragePorts());
         URI varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
-        _log.info("Selected Virtual Array {}",varray);
+        _log.info("Selected Virtual Array {}", varray);
         
-        Map<URI, List<URI>> generatedIniToStoragePort = _blockStorageScheduler.assignStoragePorts(system, varray, initiators, pathParam,
-                new StringSetMap(), null);
-        // Find existing zones for the given initiators.
-        
-        Operation op = _dbClient.createTaskOpStatus(NetworkSystem.class, system.getId(), task,
+        Map<URI, List<URI>> generatedIniToStoragePort = _blockStorageScheduler.assignStoragePorts(system, varray, initiators,
+                pathParam, new StringSetMap(), null);
+        Operation op = _dbClient.createTaskOpStatus(Host.class, hostURI, task,
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
         controller.createSanZones(hostInitiatorNamesList, generatedIniToStoragePort, task);

@@ -77,6 +77,7 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.util.NetworkLite;
@@ -351,6 +352,8 @@ public class NetworkDeviceController implements NetworkController {
      * @throws ControllerException
      */
     public void createSanZones(List<URI> initiatorUris,  Map<URI, List<URI>> generatedIniToStoragePort, String taskId) throws ControllerException {
+        
+        //Storage System URI I have to pass because the Dispatcher expects a top level system URI. More over this system URI is used 
         //Find existing zones.
         Map<String, Initiator> iniToObjectMapping = new HashMap<String, Initiator>();
         //Ease of use generate a map of URis to initiator objects.
@@ -358,6 +361,7 @@ public class NetworkDeviceController implements NetworkController {
         for (Initiator initiator :  initiators) {
             iniToObjectMapping.put(initiator.getId().toString(), initiator);
         }
+        URI networkDevice = ConnectivityUtil.getInitiatorNetwork(initiators.get(0), _dbClient);
        
         //Get all existing zones for the given initiators.
         Map<String, List<Zone>> initiatorToExistingZones =  getInitiatorsZones(initiators);
@@ -415,6 +419,12 @@ public class NetworkDeviceController implements NetworkController {
                 
             }
         }
+        
+        if(networkFCZoneInfoList.isEmpty()) {
+            _log.info("Required Zones are already available. New zones will not be created.");
+            setStatus(NetworkSystem.class, networkDevice, taskId, true, null); 
+            return;
+        }
         //Invoke add and remove zones which creates the required zones.
         _log.info("Invoking Create Zones..");
         //Generate info per fabric
@@ -424,10 +434,9 @@ public class NetworkDeviceController implements NetworkController {
         generateNetworkSystemToFabricMapping(networkFCZoneInfoList, netSystemId2System, netSystemId2FabricInfos);
         //Invoke Add zones for each fabric.
         BiosCommandResult result =  invokeAddZonesForEachfabric(netSystemId2FabricInfos, netSystemId2System, taskId);
-        //If any one of the fabric fails, then status will be updated to failure.
-        NetworkSystem device = NetworkUtil.getNetworkDevice(netSystemId2FabricInfos, netSystemId2System);
-        setStatus(NetworkSystem.class, device.getId(), taskId, result.isCommandSuccess(), result.getServiceCoded());
-        
+       
+        setStatus(NetworkSystem.class, networkDevice, taskId, result.isCommandSuccess(), result.getServiceCoded());
+        _log.info("Zone Operations Completed..");
     }
     
     /**

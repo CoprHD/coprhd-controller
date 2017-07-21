@@ -51,7 +51,7 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                         while (snapshotItr.hasNext()) {
                             Checkpoint point = (Checkpoint) snapshotItr.next();
                             _logger.debug("searching snapshot: {}", point.getName());
-                            if (point.getName().equalsIgnoreCase(snapName)) {
+                            if (point.getName().equals(snapName)) {
                                 id = point.getCheckpoint();
                                 _logger.info("Found matching snapshot: {}", id);
                                 isSnapshotFound = true;

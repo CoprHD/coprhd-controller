@@ -2,7 +2,7 @@
  * Copyright (c) 2017 DELL EMC
  * All Rights Reserved
  */
-package com.emc.storageos.vmax;
+package com.emc.storageos.vmax.restapi.errorhandling;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
@@ -21,6 +21,16 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 @MessageBundle
 public interface VMAXExceptions {
-	@DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
-    public VMAXException invalidResponseFromHDS(final String message);
+
+    @DeclareServiceCode(ServiceCode.UNISPHERE_PROVIDER_UNAVAILABLE)
+    VMAXException authenticationFailure(String storageSystemForDisplay);
+
+    @DeclareServiceCode(ServiceCode.UNISPHERE_API_ERROR)
+    VMAXException resourceNotFound(String storageSystemForDisplay);
+
+    @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
+    VMAXException invalidResponseFromUnisphere(final String message);
+
+    @DeclareServiceCode(ServiceCode.UNISPHERE_API_ERROR)
+    VMAXException internalError(String uri, String message);
 }

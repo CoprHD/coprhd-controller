@@ -248,6 +248,11 @@ public class DbConsistencyCheckerHelper {
     public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult) throws ConnectionException {
         checkIndexingCF(indexAndCf, toConsole, checkResult, false);
     }
+    
+	public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel)
+			throws ConnectionException {
+		checkIndexingCF(indexAndCf, toConsole, checkResult, false, null);
+	}
 
     /**
      * Scan all the indices and related data object records, to find out
@@ -256,7 +261,7 @@ public class DbConsistencyCheckerHelper {
      * @return number of the corrupted rows in this index CF
      * @throws ConnectionException
      */
-    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel) throws ConnectionException {
+    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel, DataObjectType doType) throws ConnectionException {
         initSchemaVersions();
         String indexCFName = indexAndCf.cf.getName();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
@@ -288,6 +293,11 @@ public class DbConsistencyCheckerHelper {
                     if (objEntry == null) {
                         continue;
                     }
+                    
+                    if (doType != null && !doType.getDataObjectClass().getSimpleName().equals(objEntry.getClassName())) {
+                    	continue;
+                    }
+                    
                     ColumnFamily<String, CompositeColumnName> objCf = objCfs
                             .get(objEntry.getClassName());
 
@@ -826,8 +836,8 @@ public class DbConsistencyCheckerHelper {
     }
     
     protected boolean isDataObjectRemoved(Class<? extends DataObject> clazz, String key) {
-        DataObject dataObject = dbClient.queryObject(URI.create(key));
-        return dataObject == null || dataObject.getInactive();
+    	List<? extends DataObject> dataObjects = dbClient.queryObjectField(clazz, "inactive", Lists.newArrayList(URI.create(key)));
+    	return dataObjects == null || dataObjects.isEmpty() || dataObjects.get(0).getInactive();
     }
     
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {

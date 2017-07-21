@@ -154,6 +154,7 @@ public class FileStorageScheduler implements Scheduler {
         // should not be considered for file provisioning!!!
         List<VirtualNAS> invalidNasServers = new ArrayList<VirtualNAS>();
 
+        //CR: It may be useful to log why provisioningOnVirtualNAS is changing from default value of true to false, if it does.
         boolean provisioningOnVirtualNAS = true;
         VirtualNAS sourcevNAsServer = null;
         if (capabilities.getPersonality() != null
@@ -180,6 +181,7 @@ public class FileStorageScheduler implements Scheduler {
 
             VirtualNAS currvNAS = null;
             if (!vNASPoolMap.isEmpty()) {
+               //CR: Log the else case where map is empty
                 for (Entry<VirtualNAS, List<StoragePool>> eachVNASEntry : vNASPoolMap.entrySet()) {
                     // If No storage pools recommended!!!
                     if (eachVNASEntry.getValue().isEmpty()) {
@@ -263,6 +265,7 @@ public class FileStorageScheduler implements Scheduler {
                     fileRecommendations.addAll(recommendations);
                 }
             }
+           //CR: else log that there are no physical nas server recommendations?
         }
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
@@ -418,6 +421,7 @@ public class FileStorageScheduler implements Scheduler {
                     _log.error(MessageFormat
                             .format("There are no active and registered storage ports assigned to virtual array {0}",
                                     fs.getVirtualArray()));
+                   //CR: exception and error message here should be different from that in that case of lines 394 to 398 ?
                     throw APIException.badRequests
                             .noStoragePortFoundForVArray(fs.getVirtualArray()
                                     .toString());
@@ -481,7 +485,7 @@ public class FileStorageScheduler implements Scheduler {
                     vArrayURI);
             vNASList = getUnassignedVNASServers(vArrayURI, vPool, project, invalidNasServers);
         }
-
+        //If no vNASList is empty at this point, the map returned will be empty sicne there are no suitable vnas servers. Log it here or log it in caller of getRecommendedVirtualNASBasedOnCandidatePools method at line 184 
         if (vNASList != null && !vNASList.isEmpty()) {
 
             boolean meteringEnabled = Boolean.parseBoolean(configInfo.get(ENABLE_METERING));
@@ -521,6 +525,7 @@ public class FileStorageScheduler implements Scheduler {
             if (!storagePools.isEmpty()) {
                 map.put(vNAS, storagePools);
             }
+            //iCR: Else case: Log that this vnas is being filtered out because its pools do not match the vpool's storage pools?
         }
 
         return map;
@@ -677,6 +682,7 @@ public class FileStorageScheduler implements Scheduler {
             _log.info("Got  {} un-assigned vNas servers in the vArray {}",
                     vNASList.size(), vArrayURI);
         }
+        //CR: SHould you log the esle case where there are no suitable un-assigned vnas servers ?
         return vNASList;
     }
 
@@ -729,7 +735,7 @@ public class FileStorageScheduler implements Scheduler {
 
             }
         }
-
+  //CR: Does this not need to depend on whether metering is enabled?
         if (spList != null && !spList.isEmpty()) {
             Collections.sort(spList, new Comparator<StoragePort>() {
 
@@ -822,7 +828,9 @@ public class FileStorageScheduler implements Scheduler {
             _log.info(
                     "Got {} assigned VNAS servers for project {}",
                     vNASList.size(), project);
-        }
+        
+	}
+        //CR: Should you log that there are no assigned vnas servers for this project?
         return vNASList;
 
     }
@@ -901,6 +909,10 @@ public class FileStorageScheduler implements Scheduler {
      * @param ports
      *            the list of available ports.
      */
+    /*CR: Shouldnt this method have returned an new list of storagePorts that meet the criteria?
+            if the protocol specified is invalid the ports list will be the unfiletered list. How will caller know that the list was unfiltered and these ports do not match the protocol?
+    */
+    
     private void getPortsWithFileSharingProtocol(String protocol,
             List<StoragePort> ports) {
 
@@ -979,7 +991,7 @@ public class FileStorageScheduler implements Scheduler {
         for (Recommendation recommendation : poolRecommends) {
             FileRecommendation rec = new FileRecommendation(recommendation);
             URI storageUri = recommendation.getSourceStorageSystem();
-
+ //CR: Need a null check for storageUri  here?
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
                     storageUri);
             // Same check for VNXe will be done here.
@@ -989,6 +1001,7 @@ public class FileStorageScheduler implements Scheduler {
             // For unity, file system can be created only on vNas. There is no reason to find a matching HADomain if no
             // vnas servers were
             // found
+//CR: Check null for storage here
             if (storage.getSystemType().equals(Type.unity.toString())) {
                 continue;
             }
@@ -1021,6 +1034,7 @@ public class FileStorageScheduler implements Scheduler {
                 }
 
                 foundValidPort = true;
+//CR:foundValidPort being set to true early. The next check may find this to be invalid
                 _log.debug("Looking for port {}", port.getLabel());
                 URI haDomainUri = port.getStorageHADomain();
                 // Data Domain does not have a filer entity.
@@ -1061,6 +1075,7 @@ public class FileStorageScheduler implements Scheduler {
 
             // select storage port randomly from all candidate ports (to
             // minimize collisions).
+//CR: Check for storagePorts is not empty instead of foundValidPorts?
             if (foundValidPort) {
                 Collections.shuffle(storagePorts);
                 rec.setStoragePorts(storagePorts);

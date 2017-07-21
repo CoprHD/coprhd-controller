@@ -87,6 +87,7 @@ public class FileMirrorScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         List<FileRecommendation> recommendations = null;
+        //CR: can capabilities.getFileReplicationType() be null? If so check for it
         if (capabilities.getFileReplicationType().equalsIgnoreCase(VirtualPool.FileReplicationType.REMOTE.name())) {
             recommendations = getRemoteMirrorRecommendationsForResources(varray, project, vpool, capabilities);
         } else {
@@ -357,6 +358,7 @@ public class FileMirrorScheduler implements Scheduler {
             for (URI targetVirtualArray : VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient)
                     .keySet()) {
                 VirtualArray nh = dbClient.queryObject(VirtualArray.class, targetVirtualArray);
+                //CR: Check for nh = null here
                 targetVirtualArrays.add(nh);
                 permissionHelper.checkTenantHasAccessToVirtualArray(
                         project.getTenantOrg().getURI(), nh);

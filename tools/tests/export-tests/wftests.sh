@@ -271,6 +271,13 @@ prerun_setup() {
     	exportAddInitiatorsDeviceStep=VPlexDeviceController.storageViewAddInitiators
     	exportRemoveInitiatorsDeviceStep=VPlexDeviceController.storageViewRemoveInitiators
     	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
+
+	# If there's no volume in the DB, create one and delete it to prime exports
+	volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+	if [ $? -ne 0 ]; then
+	    runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+	    runcmd volume delete ${PROJECT}/${VOLNAME} --wait > /dev/null
+	fi
     fi
 }
 
@@ -1552,8 +1559,6 @@ test_0_srdf() {
     runcmd volume delete ${PROJECT}/${volname} --wait        
 }
 
-
-
 snap_db() {
     slot=$1
     column_families=$2
@@ -2080,6 +2085,7 @@ test_3() {
     else
       cfs=("Volume")
     fi
+
 
     for failure in ${failure_injections}
     do

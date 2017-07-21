@@ -161,7 +161,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         ComputeElement ce = null;
         ComputeSystem cs = null;
         Host host = _dbClient.queryObject(Host.class, hostId);
-        // COP-28960 check for null -- host, ce, etc.
         if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
 
@@ -215,7 +214,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
         Host host = _dbClient.queryObject(Host.class, hostId);
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-        // COP-28960 check for null ce
        
         log.info("sptId:" + ce.getSptId());
 
@@ -225,7 +223,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             computeElementId = ce.getId();
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
-            // COP-28960 check template not null
             if (template != null) {
                 log.info("is updating:" + template.getUpdating());
                 if (template.getUpdating()) {
@@ -301,12 +298,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 new Workflow.Method("setNoBootStep", computeSystemId, computeElementId, hostId), null);
 
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, computeElementId);
-        // COP-28960 check for ce not null
 
         if (ce != null && ce.getSptId() != null) {
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
-            // COP-28960 check for template not null
             if (template != null) {
                 if (template.getUpdating()) {
                     waitFor = workflow.createStep(REBIND_HOST_TO_TEMPLATE,

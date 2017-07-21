@@ -1724,10 +1724,8 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                     required=True)
     nfs_ace_args.add_argument('-inheritflags', '-inherit',
                                     dest='inheritflags',
-                                    choices=["object_inherit", "container_inherit", "no_prop_inherit", "inherit_only", "inherited_ace"],
                                     metavar='<inheritFlags>',
-                                    help='Provide inheritflags for Acl',
-                                    nargs='+',
+                                    help='Comma separated inheritflags for NFS Acl.Valid flags are object_inherit,container_inherit,no_prop_inherit,inherit_only,inherited_ace',
                                     required=False)
     nfs_ace_args.add_argument('-permissiontype', '-permtype',
                                     dest='permissiontype',

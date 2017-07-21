@@ -13,16 +13,16 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 
-public class VMAXApiRestClientFactory extends RestClientFactory{
+public class VMAXApiClientFactory extends RestClientFactory{
 	
-	private static VMAXApiRestClientFactory singleton = new VMAXApiRestClientFactory();
+	private static VMAXApiClientFactory singleton = new VMAXApiClientFactory();
 	private static boolean isInitiated = false;
 	
-	private VMAXApiRestClientFactory(){
+	private VMAXApiClientFactory(){
 		
 	}
 	
-	public static VMAXApiRestClientFactory getInstance(){
+	public static VMAXApiClientFactory getInstance(){
 		return singleton;
 	}
 	

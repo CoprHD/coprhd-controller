@@ -16,8 +16,8 @@ import com.emc.storageos.services.restutil.StandardRestClient;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.vmax.VMAXConstants;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
+import com.emc.storageos.vmax.restapi.model.VMAXAuthInfo;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
-import com.emc.storageos.xtremio.restapi.model.XtremIOAuthInfo;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -43,7 +43,7 @@ public class VMAXApiClient extends StandardRestClient {
     protected void authenticate() {
         ClientResponse response = null;
         try {
-            XtremIOAuthInfo authInfo = new XtremIOAuthInfo();
+            VMAXAuthInfo authInfo = new VMAXAuthInfo();
             authInfo.setPassword(_password);
             authInfo.setUsername(_username);
 

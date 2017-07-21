@@ -11,7 +11,6 @@ import static org.junit.Assert.assertNotNull;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.vmax.VMAXRestUtils;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
@@ -22,7 +21,7 @@ public class VMAXRestClientTest {
 
     @BeforeClass
     public static void setup() throws Exception {
-        VMAXApiRestClientFactory apiClientFactory = VMAXApiRestClientFactory.getInstance();
+        VMAXApiClientFactory apiClientFactory = VMAXApiClientFactory.getInstance();
         apiClientFactory.setConnectionTimeoutMs(30000);
         apiClientFactory.setConnManagerTimeout(60000);
         apiClientFactory.setMaxConnections(300);
@@ -31,11 +30,14 @@ public class VMAXRestClientTest {
         apiClientFactory.setSocketConnectionTimeoutMs(3600000);
 
         apiClientFactory.init();
-        StorageProvider provider = new StorageProvider();
-        provider.setUseSSL(true);
-        provider.setIPAddress("lglw7150.lss.emc.com");
-        provider.setPortNumber(8443);
-        apiClient = (VMAXApiClient) apiClientFactory.getRESTClient(VMAXRestUtils.getUnisphereRestServerInfo(provider), "smc", "smc", true);
+        /*
+         * StorageProvider provider = new StorageProvider();
+         * provider.setUseSSL(true);
+         * provider.setIPAddress("lglw7150.lss.emc.com");
+         * provider.setPortNumber(8443);
+         */
+        apiClient = (VMAXApiClient) apiClientFactory
+                .getRESTClient(VMAXRestUtils.getUnisphereRestServerInfo("lglw7150.lss.emc.com", 8443, true), "smc", "smc", true);
     }
 
     @Test

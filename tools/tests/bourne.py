@@ -373,6 +373,9 @@ URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjus
 URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment' 
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
+URI_EXPORTPATHPARAMETERS_LIST	= URI_SERVICES_BASE   + '/block/export-path-parameters'
+URI_EXPORTPATHPARAMETERS_INSTANCE = URI_SERVICES_BASE   + '/block/export-path-parameters/{0}'
+
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
 URI_HOST                        = URI_SERVICES_BASE   + '/compute/hosts/{0}'
 URI_HOST_DEACTIVATE             = URI_HOST            + '/deactivate?detach_storage={1}'
@@ -5330,6 +5333,30 @@ class Bourne:
 	except:
 	    print o
         return (o, s)
+
+    def export_path_parameters_list(self):
+        results =  self.api('GET', URI_EXPORTPATHPARAMETERS_LIST.format())
+        resources = results['path_param']
+        pathparams = []
+        for resource in resources:
+            pathparams.append(resource['id'])
+        return pathparams
+
+    def export_path_parameters_get(self, id):
+        result = self.api('GET', URI_EXPORTPATHPARAMETERS_INSTANCE.format(id))
+        return result
+
+    def export_path_parameters_create(self, path_params):
+        result = self.api('POST', URI_EXPORTPATHPARAMETERS_LIST, path_params)
+        print result
+
+    def export_path_parameters_delete(self, id):
+        result = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_EXPORTPATHPARAMETERS_INSTANCE.format(id)))
+        print result
+
+    def export_path_parameters_update(self, id, path_params):
+        result = self.api('PUT', URI_EXPORTPATHPARAMETERS_INSTANCE.format(id), path_params)
+        print result
 
     #
     # block snapshot

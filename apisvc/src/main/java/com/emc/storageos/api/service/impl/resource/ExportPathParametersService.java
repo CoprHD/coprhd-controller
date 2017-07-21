@@ -11,7 +11,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -27,8 +26,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.functions.MapExportPathParams;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -42,10 +39,15 @@ import com.emc.storageos.model.block.export.ExportPathUpdateParams;
 import com.emc.storageos.model.block.export.StoragePorts;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
+import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.Lists;
 
+@Path("/block/export-path-parameters")
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        readAcls = { ACL.USE },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ExportPathParametersService extends TaggedResource {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockVirtualPoolService.class);

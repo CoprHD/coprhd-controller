@@ -837,7 +837,7 @@ public class DbConsistencyCheckerHelper {
     
     protected boolean isDataObjectRemoved(Class<? extends DataObject> clazz, String key) {
     	List<? extends DataObject> dataObjects = dbClient.queryObjectField(clazz, "inactive", Lists.newArrayList(URI.create(key)));
-    	return dataObjects == null || dataObjects.size() == 0 || dataObjects.get(0).getInactive();
+    	return dataObjects == null || dataObjects.isEmpty() || dataObjects.get(0).getInactive();
     }
     
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {

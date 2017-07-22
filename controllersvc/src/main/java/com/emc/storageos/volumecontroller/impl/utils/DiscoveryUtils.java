@@ -1031,7 +1031,8 @@ public class DiscoveryUtils {
      * would end up as the object label (name) after ingestion, but this filter is not
      * guaranteed to be used the same (or at all) on all storage array platforms.
      * 
-     * @param propertyToFilter the object property String to check against the system unmanaged discovery filter Regex pattern
+     * @param propertyToFilter the object property String to check against the system unmanaged discovery filter Regex pattern.
+     *                         if the property to filter is null or empty, this method will return false because it can't be matched.
      * @return true if the property String is a match and the object should be processed for unmanaged discovery
      */
     public static boolean isUnmanagedVolumeFilterMatching(String propertyToFilter) {
@@ -1046,6 +1047,9 @@ public class DiscoveryUtils {
                             propertyToFilter, systemFilterString);
                     return false;
                 }
+            } else {
+                // if property is null or empty, return false as it can't be matched
+                return false;
             }
         } else {
             _log.error("Bean wiring error: Coordinator not set, therefore unmanaged volume discovery name filter has no effect.");

@@ -24,7 +24,7 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.vmax.VMAXException;
 import com.emc.storageos.vmax.restapi.VMAXApiClient;
-import com.emc.storageos.vmax.restapi.VMAXApiRestClientFactory;
+import com.emc.storageos.vmax.restapi.VMAXApiClientFactory;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
@@ -38,16 +38,16 @@ public class VMAXCommunicationInterface extends ExtendedCommunicationInterfaceIm
 
     // Reference to the VMAX unisphere client factory allows us to get a VMAX unisphere
     // client and execute requests to the VMAX storage system.
-    private VMAXApiRestClientFactory clientFactory;
+    private VMAXApiClientFactory clientFactory;
 
     public VMAXCommunicationInterface() {
     }
 
-    public VMAXApiRestClientFactory getClientFactory() {
+    public VMAXApiClientFactory getClientFactory() {
         return clientFactory;
     }
 
-    public void setClientFactory(VMAXApiRestClientFactory clientFactory) {
+    public void setClientFactory(VMAXApiClientFactory clientFactory) {
         this.clientFactory = clientFactory;
     }
 
@@ -66,7 +66,7 @@ public class VMAXCommunicationInterface extends ExtendedCommunicationInterfaceIm
 
         _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
         try {
-            VMAXApiClient apiClient = clientFactory.getClient(accessProfile.getIpAddress(), accessProfile.getPortNumber(),
+            VMAXApiClient apiClient = (VMAXApiClient) clientFactory.getClient(accessProfile.getIpAddress(), accessProfile.getPortNumber(),
                     Boolean.parseBoolean(accessProfile.getSslEnable()), accessProfile.getUserName(), accessProfile.getPassword());
             detectSystems(apiClient, provider);
         } catch (Exception e) {

@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.vmax.restapi.VMAXApiClient;
-import com.emc.storageos.vmax.restapi.VMAXApiRestClientFactory;
+import com.emc.storageos.vmax.restapi.VMAXApiClientFactory;
 
 public class VMAXUtils {
     private static final Logger logger = LoggerFactory.getLogger(VMAXUtils.class);
@@ -23,11 +23,11 @@ public class VMAXUtils {
      * @return the list of active providers
      */
     public static List<URI> refreshConnections(final List<StorageProvider> providerList,
-            DbClient dbClient, VMAXApiRestClientFactory clientFactory) {
+            DbClient dbClient, VMAXApiClientFactory clientFactory) {
         List<URI> activeProviders = new ArrayList<>();
         for (StorageProvider provider : providerList) {
             try {
-                VMAXApiClient apiClient = clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(),
+                VMAXApiClient apiClient = (VMAXApiClient) clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(),
                         provider.getUserName(), provider.getPassword());
                 if (apiClient.getApiVersion() != null) {
                     // update provider status based on connection live check

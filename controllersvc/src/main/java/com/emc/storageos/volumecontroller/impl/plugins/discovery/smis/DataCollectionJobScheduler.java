@@ -55,7 +55,7 @@ import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.storageos.vmax.restapi.VMAXApiRestClientFactory;
+import com.emc.storageos.vmax.restapi.VMAXApiClientFactory;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
@@ -108,7 +108,7 @@ public class DataCollectionJobScheduler {
     private HDSApiFactory hdsApiFactory;
     private DataDomainClientFactory ddClientFactory;
     private XtremIOClientFactory xioClientFactory;
-    private VMAXApiRestClientFactory vmaxClientFactory;
+    private VMAXApiClientFactory vmaxClientFactory;
     private PortMetricsProcessor _portMetricsProcessor;
     private LeaderSelector computePortMetricsSelector;
 
@@ -1141,7 +1141,7 @@ public class DataCollectionJobScheduler {
         this.xioClientFactory = xioClientFactory;
     }
 
-    public void setVmaxClientFactory(VMAXApiRestClientFactory vmaxClientFactory) {
+    public void setVmaxClientFactory(VMAXApiClientFactory vmaxClientFactory) {
         this.vmaxClientFactory = vmaxClientFactory;
     }
 

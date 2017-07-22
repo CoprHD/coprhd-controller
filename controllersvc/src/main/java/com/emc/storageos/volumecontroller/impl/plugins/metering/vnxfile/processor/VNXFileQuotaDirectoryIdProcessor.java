@@ -49,7 +49,7 @@ public class VNXFileQuotaDirectoryIdProcessor extends VNXFileProcessor {
                         while (quotaDirItr.hasNext()) {
                             TreeQuota quotaDir = (TreeQuota) quotaDirItr.next();
                             _logger.debug("searching quota dir: {}", quotaDir.getTree());
-                            if (quotaDir.getPath().equalsIgnoreCase(quotaDirPath)) {
+                            if (quotaDir.getPath().equals(quotaDirPath)) {
                                 String id = quotaDir.getTree();
                                 _logger.info("Found matching quota dir: {}", id);
                                 keyMap.put(VNXFileConstants.QUOTA_DIR_ID, id);
@@ -59,8 +59,7 @@ public class VNXFileQuotaDirectoryIdProcessor extends VNXFileProcessor {
                                 break;
                             }
                         }
-                        if (!isQuotaDirFound)
-                        {
+                        if (!isQuotaDirFound) {
                             _logger.error("Error in getting the quota dir information.");
                         }
                     } else {

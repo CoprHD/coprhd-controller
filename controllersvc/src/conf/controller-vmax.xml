@@ -7,7 +7,7 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-	<bean id="vmaxClientFactory" class="com.emc.storageos.vmax.restapi.VMAXApiRestClientFactory"
+	<bean id="vmaxClientFactory" class="com.emc.storageos.vmax.restapi.VMAXApiClientFactory"
 		init-method="init" >
         <property name="connectionTimeoutMs" value="30000"/>
         <property name="maxConnections" value="300"/>

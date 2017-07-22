@@ -100,6 +100,14 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Autowired
     private CoordinatorClient coordinator;
 
+    /**
+     * Lists the workflows 
+     * 
+     * @brief List workflows
+     * @param status the status of the workflow
+     * @param primitiveId the ID of the primitive
+     * @return
+     */
     @GET
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -122,6 +130,13 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         return mapList(elements);
     }
 
+    /**
+     * Get the workflow details
+     * 
+     * @brief Show workflow
+     * @param id the ID of the workflow to be retrieved
+     * @return
+     */
     @GET
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}")
@@ -130,12 +145,23 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         return map(getCustomServicesWorkflow(id));
     }
 
+    /**
+     * Add the workflow
+     * 
+     * @brief Add workflow
+     * @param workflow workflow details
+     * @return
+     */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep addWorkflow(final CustomServicesWorkflowCreateParam workflow) {
         if (StringUtils.isNotBlank(workflow.getDocument().getName())) {
-            checkForDuplicateName(workflow.getDocument().getName().trim(), CustomServicesWorkflow.class);
+            final String label = workflow.getDocument().getName().trim();
+            checkForDuplicateName(label, CustomServicesWorkflow.class);
+            if (customServicesWorkflowManager.hasCatalogServices(label)) {
+                throw APIException.badRequests.duplicateLabel(label + " (Workflow name cannot be same as the existing Catalog Base Service)");
+            }
         } else {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
         }
@@ -151,6 +177,14 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         return map(newWorkflow);
     }
 
+    /**
+     * Update the workflow
+     * 
+     * @brief Update workflow
+     * @param id the ID of the workflow to be updated
+     * @param workflow workflow details
+     * @return
+     */
     @PUT
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}")
@@ -173,6 +207,9 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                         final String label = workflow.getDocument().getName().trim();
                         if (!label.equalsIgnoreCase(customServicesWorkflow.getLabel())) {
                             checkForDuplicateName(label, CustomServicesWorkflow.class);
+                            if (customServicesWorkflowManager.hasCatalogServices(label)) {
+                                throw APIException.badRequests.duplicateLabel(label + " (Workflow name cannot be same as the existing Catalog Base Service)");
+                            }
                         }
                     }
 
@@ -194,6 +231,13 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         return map(customServicesWorkflow);
     }
 
+    /**
+     * Deactivate the workflow
+     * 
+     * @brief Deactivate workflow
+     * @param id the ID of the workflow to be deactivated
+     * @return
+     */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/deactivate")
@@ -211,6 +255,13 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         }
     }
 
+    /**
+     * Publish the workflow
+     * 
+     * @brief Publish workflow
+     * @param id the ID of the workflow to be published
+     * @return
+     */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/publish")
@@ -233,6 +284,12 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         }
     }
 
+    /**
+     * Unpublish the workflow
+     * 
+     * @brief Unpublish workflow
+     * @param id the ID of the workflow to be unpublished
+     */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/unpublish")
@@ -246,7 +303,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 return map(customServicesWorkflow);
             case PUBLISHED:
                 // Check if there are any existing services created from this WF
-                if (customServicesWorkflowManager.hasCatalogServices(customServicesWorkflow.getLabel())) {
+                if (customServicesWorkflowManager.hasCatalogServices(URIUtil.asString(customServicesWorkflow.getId()))) {
                     throw APIException.methodNotAllowed
                             .notSupportedWithReason("Cannot unpublish workflow. It has associated catalog services");
                 }
@@ -260,6 +317,13 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         }
     }
 
+    /**
+     * Validate the workflow
+     * 
+     * @brief Validate workflow
+     * @param id the ID of the workflow to be validated
+     * @return
+     */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/validate")
@@ -280,6 +344,13 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         }
     }
 
+    /**
+     * List the workflows for the given IDs
+     * 
+     * @brief List data of workflow resources
+     * @param ids the IDs of the workflows to be retrieved
+     * @return
+     */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/bulk")
@@ -288,6 +359,14 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         return (CustomServicesWorkflowBulkRep) super.getBulkResources(ids);
     }
 
+    /**
+     * Import the workflow
+     * 
+     * @brief Import workflow
+     * @param request HTTP request
+     * @param directory ID of the directory/folder
+     * @return
+     */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
@@ -313,9 +392,10 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     }
 
     /**
-     * Download the resource and set it in the response header
+     * Export the workflow
      * 
-     * @param id The ID of the resource to download
+     * @brief Export workflow
+     * @param id The ID of the workflow to be exported
      * @param response HttpServletResponse the servlet response to update with the file octet stream
      * @return Response containing the octet stream of the primitive resource
      */

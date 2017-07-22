@@ -4,16 +4,19 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.consumer;
 
+import java.util.Date;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcessedCallback;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
+import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.common.DbSchemaChecker;
 import com.emc.storageos.model.db.DbConsistencyStatusRestRep.Status;
@@ -30,6 +33,9 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
     public void consumeItem(DbConsistencyJob job, DistributedQueueItemProcessedCallback callback) throws Exception {
         DbConsistencyStatus status = dbChecker.getStatusFromZk();
         log.info("start db consistency check, current status:{}", status);
+
+        long beginMillis = new Date().getTime();
+
         if (isFreshStart(status)) {
             log.info("it's first time to run db consistency check, init status in zk");
             status = createStatusInZk();
@@ -58,7 +64,12 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         } finally {
             log.info("db consistency check done, persist final result {} in zk", status.getStatus());
             this.dbChecker.persistStatus(status);
+
+            log.info("db consistency check consumed: {}",
+                    DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginMillis));
+
             callback.itemProcessed();
+            DbCheckerFileWriter.close();
         }
     }
 
@@ -81,6 +92,11 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         if (status.getInconsistencyCount() > 0) {
             log.info("there are {} inconsistency found, mark result as fail", status.getInconsistencyCount());
             status.markResult(Status.FAILED);
+
+            log.info(String.format(
+                    "Inconsistent data found. Clean up files [%s] are created. please read into them for further operations.",
+                    DbCheckerFileWriter.getGeneratedFileNames()));
+
         } else {
             log.info("no inconsistency record found, mark result as successful");
             status.markResult(Status.SUCCESS);

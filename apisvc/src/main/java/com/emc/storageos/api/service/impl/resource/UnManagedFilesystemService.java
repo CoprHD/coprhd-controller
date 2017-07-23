@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.FileReplicaPolicyTarget;
 import com.emc.storageos.db.client.model.FileReplicaPolicyTargetMap;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.FileAccessState;
+import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -882,11 +883,13 @@ public class UnManagedFilesystemService extends TaggedResource {
                         }
                     }
                     // Ingest unmanged file system!!
-                    FileShare fileShare = ingestUnmangedFsAndDependents(unManagedFileSystem, project, cos, neighborhood, filesystems);
+                    FileShare fileShare = ingestUnmangedFsAndDependents(unManagedFileSystem, project, cos, neighborhood,
+                            filesystems, false);
                     if (fileShare != null) {
                         // Ingest if there are any targets!!
                         if (ingestReplicationObjects && targetUMFS != null) {
-                            FileShare targetFileShare = ingestUnmangedFsAndDependents(targetUMFS, project, cos, targetVArray, filesystems);
+                            FileShare targetFileShare = ingestUnmangedFsAndDependents(targetUMFS, project, cos, targetVArray,
+                                    filesystems, true);
                             // Set the source-target relation for the FSs
                             if (targetFileShare != null) {
                                 setReplicationRelationAttributes(unManagedFileSystem, fileShare, targetFileShare, filePolicy);
@@ -1645,7 +1648,7 @@ public class UnManagedFilesystemService extends TaggedResource {
     }
 
     private FileShare ingestUnmangedFsAndDependents(UnManagedFileSystem unManagedFileSystem, Project project, VirtualPool vPool,
-            VirtualArray varray, List<FileShare> filesystems) {
+            VirtualArray varray, List<FileShare> filesystems, boolean isTargetFs) {
         long softLimit = 0;
         int softGrace = 0;
         long notificationLimit = 0;
@@ -1770,7 +1773,9 @@ public class UnManagedFilesystemService extends TaggedResource {
             fsSupportedProtocols.retainAll(pool.getProtocols());
             fsSupportedProtocols.retainAll(vPool.getProtocols());
             filesystem.getProtocol().addAll(fsSupportedProtocols);
-            filesystem.setLabel(null == deviceLabel ? "" : deviceLabel);
+            String fsLabel = FileSystemIngestionUtil.validateAndGetFileShareLabel(_dbClient, project.getId(), deviceLabel, filesystems,
+                    isTargetFs);
+            filesystem.setLabel(fsLabel);
             filesystem.setName(null == fsName ? "" : fsName);
             filesystem.setTenant(new NamedURI(project.getTenantOrg().getURI(), filesystem.getLabel()));
             filesystem.setProject(new NamedURI(project.getId(), filesystem.getLabel()));
@@ -2070,13 +2075,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (targetFs != null && !targetFs.getInactive()) {
                     // Make sure the fs is the right target for the source
                     // verify the source details are valid!!
-                    unManagedFileSystemInformation = targetFs.getFileSystemInformation();
-                    String revTargetFsPath = PropertySetterUtil.extractValueFromStringSet(
-                            SupportedFileSystemInformation.TARGET_PATH.toString(),
-                            unManagedFileSystemInformation);
-                    if (fsPath.equalsIgnoreCase(revTargetFsPath)) {
-                        return targetFs;
-                    }
+                    // <TODO>
+                    return targetFs;
                 }
             }
         } else {
@@ -2255,6 +2255,9 @@ public class UnManagedFilesystemService extends TaggedResource {
             sourceFS.setMirrorfsTargets(new StringSet());
         }
         sourceFS.getMirrorfsTargets().add(targetFS.getId().toString());
+        // <TODO>
+        // Set the right mirror status in UMFS discovery!!
+        sourceFS.setMirrorStatus(MirrorStatus.UNKNOWN.name());
 
         targetFS.setPersonality(FileShare.PersonalityTypes.TARGET.toString());
         targetFS.setAccessState(FileAccessState.READABLE.name());

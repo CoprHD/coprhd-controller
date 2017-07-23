@@ -440,11 +440,12 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
             for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
-                // Get the replicated source file systems only!!
-                if (!UnmanagedHelper.isReplicationSource(umfs.getFileSystemCharacteristics())) {
-                    continue;
+                // Get the replicated source file systems
+                // and replication at FS level only!!
+                if (UnmanagedHelper.isReplicationSource(umfs.getFileSystemCharacteristics())
+                        && isReplicationAtFsLevel(umfs)) {
+                    options.add(toReplicationAssetOption(umfs));
                 }
-                options.add(toReplicationAssetOption(umfs));
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
@@ -521,6 +522,18 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
             String resource = "file.unmanaged.filesystem";
             return newAssetOption(umfs.getId(), resource, deviceLabel, path,
                     SizeUtils.humanReadableByteCount(provisionedSize));
+        }
+    }
+
+    private boolean isReplicationAtFsLevel(UnManagedFileSystemRestRep umfs) {
+
+        String path = getInfoField(umfs, SupportedFileSystemInformation.PATH.toString());
+        String policyPath = getInfoField(umfs, SupportedFileSystemInformation.POLICY_PATH.toString());
+
+        if (path != null && path.equalsIgnoreCase(policyPath)) {
+            return true;
+        } else {
+            return false;
         }
     }
 

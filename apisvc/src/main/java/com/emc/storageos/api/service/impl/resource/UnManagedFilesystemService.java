@@ -2033,6 +2033,13 @@ public class UnManagedFilesystemService extends TaggedResource {
     private UnManagedFileSystem getTagetUnmanagedFileSystem(UnManagedFileSystem sourceUMFS, String targetHost, String targetFsPath,
             VirtualArray targetVarray) {
 
+        StringSetMap unManagedFileSystemInformation = sourceUMFS
+                .getFileSystemInformation();
+
+        String fsPath = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.PATH.toString(),
+                unManagedFileSystemInformation);
+
         StorageSystem targetSystem = getTagetStorageSystem(targetHost, targetVarray);
         if (targetSystem != null && !targetSystem.getInactive()) {
 
@@ -2057,11 +2064,11 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (targetFs != null && !targetFs.getInactive()) {
                     // Make sure the fs is the right target for the source
                     // verify the source details are valid!!
-                    StringSetMap unManagedFileSystemInformation = targetFs.getFileSystemInformation();
+                    unManagedFileSystemInformation = targetFs.getFileSystemInformation();
                     String revTargetFsPath = PropertySetterUtil.extractValueFromStringSet(
                             SupportedFileSystemInformation.TARGET_PATH.toString(),
                             unManagedFileSystemInformation);
-                    if (sourceUMFS.getPath().equalsIgnoreCase(revTargetFsPath)) {
+                    if (fsPath.equalsIgnoreCase(revTargetFsPath)) {
                         return targetFs;
                     }
                 }
@@ -2099,9 +2106,13 @@ public class UnManagedFilesystemService extends TaggedResource {
         String policyPath = PropertySetterUtil.extractValueFromStringSet(
                 SupportedFileSystemInformation.POLICY_PATH.toString(),
                 unManagedFileSystemInformation);
-        if (sourceUMFS.getPath().equalsIgnoreCase(policyPath)) {
-            _logger.warn("File system path {}.  and policy path {} are different, So skipping ingestion", sourceUMFS.getPath(),
-                    policyPath);
+
+        String fsPath = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.PATH.toString(),
+                unManagedFileSystemInformation);
+
+        if (fsPath.equalsIgnoreCase(policyPath)) {
+            _logger.warn("File system path {}.  and policy path {} are different, So skipping ingestion", fsPath, policyPath);
             return null;
         }
 

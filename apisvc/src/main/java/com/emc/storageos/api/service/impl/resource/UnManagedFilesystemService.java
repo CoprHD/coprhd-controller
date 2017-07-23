@@ -2118,8 +2118,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                 SupportedFileSystemInformation.PATH.toString(),
                 unManagedFileSystemInformation);
 
-        if (fsPath.equalsIgnoreCase(policyPath)) {
-            _logger.warn("File system path {}.  and policy path {} are different", fsPath, policyPath);
+        if (!fsPath.equalsIgnoreCase(policyPath)) {
+            _logger.warn("File system path {} and policy path {} are different", fsPath, policyPath);
             return null;
         }
 

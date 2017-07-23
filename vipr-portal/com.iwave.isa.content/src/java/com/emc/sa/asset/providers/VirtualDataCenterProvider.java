@@ -463,7 +463,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "protectedFileVirtualPool" })
     public List<AssetOption> getUnmanagedProtectedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
             URI virtualArray, String fileIngestExportType, URI protectedFileVirtualPool) {
-        return getUMFSByStorageSystemVirtualPool(ctx, fileStorageSystem, virtualArray,
+        return getReplicatedUMFSByStorageSystemVirtualPool(ctx, fileStorageSystem, virtualArray,
                 fileIngestExportType, protectedFileVirtualPool);
     }
 

@@ -434,6 +434,23 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return getVolumeSublist(VOLUME_PAGE_ALL, options);
     }
 
+    private List<AssetOption> getReplicatedUMFSByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
+            URI virtualArray, String fileIngestExportType, URI unmanagedFileVirtualPool) {
+        List<AssetOption> options = Lists.newArrayList();
+        FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
+        if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
+            for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
+                // Get the replicated source file systems only!!
+                if (!UnmanagedHelper.isReplicationSource(umfs.getFileSystemCharacteristics())) {
+                    continue;
+                }
+                options.add(toReplicationAssetOption(umfs));
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return getVolumeSublist(VOLUME_PAGE_ALL, options);
+    }
+
     @Asset("unmanagedFileSystemsByStorageSystemVirtualPool")
     @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool" })
     public List<AssetOption> getUnmanagedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
@@ -480,6 +497,31 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         }
         return newAssetOption(umfs.getId(), resource, deviceLabel, path,
                 SizeUtils.humanReadableByteCount(provisionedSize));
+    }
+
+    protected AssetOption toReplicationAssetOption(UnManagedFileSystemRestRep umfs) {
+
+        String path = getInfoField(umfs, SupportedFileSystemInformation.PATH.toString());
+        String capacity = getInfoField(umfs, SupportedFileSystemInformation.PROVISIONED_CAPACITY.toString());
+        String deviceLabel = getInfoField(umfs, SupportedFileSystemInformation.DEVICE_LABEL.toString());
+        String targetHost = getInfoField(umfs, SupportedFileSystemInformation.TARGET_HOST.toString());
+        String targetPath = getInfoField(umfs, SupportedFileSystemInformation.TARGET_PATH.toString());
+        String policySchedule = getInfoField(umfs, SupportedFileSystemInformation.POLICY_SCHEDULE.toString());
+
+        Long provisionedSize = 0L;
+        if (capacity != null && !capacity.isEmpty()) {
+            provisionedSize = Long.valueOf(capacity);
+        }
+
+        if (UnmanagedHelper.isReplicationSource(umfs.getFileSystemCharacteristics())) {
+            String resource = "file.unmanaged.filesystemSourceTarget";
+            return newAssetOption(umfs.getId(), resource, deviceLabel, path,
+                    SizeUtils.humanReadableByteCount(provisionedSize), targetHost, targetPath);
+        } else {
+            String resource = "file.unmanaged.filesystem";
+            return newAssetOption(umfs.getId(), resource, deviceLabel, path,
+                    SizeUtils.humanReadableByteCount(provisionedSize));
+        }
     }
 
     private String getPolicySchedule(ScheduleRestRep schedule) {

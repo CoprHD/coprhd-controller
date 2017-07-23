@@ -2003,6 +2003,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 ContainmentConstraint.Factory.getVirtualArrayStoragePortConstraint(targetVarray.getId()),
                 storagePortURIs);
 
+        // Verify the target host is the storage port from target varray!!
         Iterator<URI> storagePortsIter = storagePortURIs.iterator();
         while (storagePortsIter.hasNext()) {
             URI storagePortURI = storagePortsIter.next();
@@ -2019,11 +2020,15 @@ public class UnManagedFilesystemService extends TaggedResource {
                 }
             }
         } // while
-        Iterator<StorageSystem> systemIter = _dbClient.queryIterativeObjects(StorageSystem.class, storageSystems);
-        while (systemIter.hasNext()) {
-            StorageSystem system = systemIter.next();
-            if (system.getIpAddress().equalsIgnoreCase(targetHost)) {
-                return system;
+          // Verify the target host is storage system IP?
+        if (!storageSystems.isEmpty()) {
+            Iterator<StorageSystem> systemIter = _dbClient.queryIterativeObjects(StorageSystem.class, storageSystems);
+            while (systemIter.hasNext()) {
+                StorageSystem system = systemIter.next();
+                // <TODO> Need to extend this to verify using IPaddrUtils
+                if (system.getIpAddress().equalsIgnoreCase(targetHost)) {
+                    return system;
+                }
             }
         }
         return null;
@@ -2040,6 +2045,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 SupportedFileSystemInformation.PATH.toString(),
                 unManagedFileSystemInformation);
 
+        // Get the target storage system for target port/host
         StorageSystem targetSystem = getTagetStorageSystem(targetHost, targetVarray);
         if (targetSystem != null && !targetSystem.getInactive()) {
 
@@ -2074,10 +2080,11 @@ public class UnManagedFilesystemService extends TaggedResource {
                 }
             }
         } else {
-            _logger.warn("No target storage system found  in varray {} with policy target host {} ", targetVarray.getLabel(), targetHost);
+            _logger.info("No target storage system found  in varray {} with policy target host {} ", targetVarray.getLabel(), targetHost);
             return null;
         }
 
+        _logger.info("No valid target UMFS with path {} found  in target system {} ", targetFsPath, targetHost);
         return null;
 
     }
@@ -2112,14 +2119,14 @@ public class UnManagedFilesystemService extends TaggedResource {
                 unManagedFileSystemInformation);
 
         if (fsPath.equalsIgnoreCase(policyPath)) {
-            _logger.warn("File system path {}.  and policy path {} are different, So skipping ingestion", fsPath, policyPath);
+            _logger.warn("File system path {}.  and policy path {} are different", fsPath, policyPath);
             return null;
         }
 
         String policySchedule = PropertySetterUtil.extractValueFromStringSet(
                 SupportedFileSystemInformation.POLICY_SCHEDULE.toString(),
                 unManagedFileSystemInformation);
-        if (validatePolicyParams(filePolicy, policySchedule)) {
+        if (!validatePolicyParams(filePolicy, policySchedule)) {
             _logger.warn("Policy schedule {} is different than template , So skipping ingestion", policySchedule);
             return null;
         }
@@ -2134,11 +2141,12 @@ public class UnManagedFilesystemService extends TaggedResource {
 
         UnManagedFileSystem targetUMFS = getTagetUnmanagedFileSystem(sourceUMFS, targetHost, targetFsPath, targetVarray);
         if (targetUMFS != null) {
-            _logger.warn("Found valid target UMFS {} for source fs {} ", targetUMFS.getPath(), sourceUMFS.getPath());
+            _logger.info("Found valid target UMFS {}  from target system {} for source fs {} ", targetFsPath, targetHost, fsPath);
             return targetUMFS;
+        } else {
+            _logger.info("No valid target UMFS {} in DB from taget system {} ", targetFsPath, targetHost);
+            return null;
         }
-        return null;
-
     }
 
     private boolean validatePolicyParams(FilePolicy filePolicy, String policySchedule) {

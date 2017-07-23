@@ -33,4 +33,13 @@ public interface VMAXExceptions {
 
     @DeclareServiceCode(ServiceCode.UNISPHERE_API_ERROR)
     VMAXException internalError(String uri, String message);
+
+    @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
+    public VMAXException unsupportedVersion(final String version, final String minimumVersion);
+
+    @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
+    public VMAXException scanFailed(String ip, Throwable t);
+
+    @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
+    public VMAXException discoveryNotSupported();
 }

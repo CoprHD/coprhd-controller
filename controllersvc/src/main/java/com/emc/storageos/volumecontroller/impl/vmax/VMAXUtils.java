@@ -27,7 +27,7 @@ public class VMAXUtils {
         List<URI> activeProviders = new ArrayList<>();
         for (StorageProvider provider : providerList) {
             try {
-                VMAXApiClient apiClient = (VMAXApiClient) clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(),
+                VMAXApiClient apiClient = clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(),
                         provider.getUserName(), provider.getPassword());
                 if (apiClient.getApiVersion() != null) {
                     // update provider status based on connection live check

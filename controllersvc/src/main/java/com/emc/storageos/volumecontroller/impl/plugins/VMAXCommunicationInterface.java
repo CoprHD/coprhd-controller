@@ -19,12 +19,13 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatu
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.util.VersionChecker;
-import com.emc.storageos.vmax.VMAXException;
 import com.emc.storageos.vmax.restapi.VMAXApiClient;
 import com.emc.storageos.vmax.restapi.VMAXApiClientFactory;
+import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
@@ -61,23 +62,43 @@ public class VMAXCommunicationInterface extends ExtendedCommunicationInterfaceIm
     @Override
     public void scan(AccessProfile accessProfile) throws BaseCollectionException {
         logger.info("Starting scan of Unity StorageProvider. IP={}", accessProfile.getIpAddress());
+        StorageProvider provider = null;
+        String detailedStatusMessage = "Unknown Status";
         StorageProvider.ConnectionStatus cxnStatus = StorageProvider.ConnectionStatus.CONNECTED;
-        StorageProvider provider = _dbClient.queryObject(StorageProvider.class, accessProfile.getSystemId());
-
         _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
+        VMAXApiClient apiClient = null;
+
         try {
-            VMAXApiClient apiClient = (VMAXApiClient) clientFactory.getClient(accessProfile.getIpAddress(), accessProfile.getPortNumber(),
+            provider = _dbClient.queryObject(StorageProvider.class, accessProfile.getSystemId());
+            apiClient = clientFactory.getClient(accessProfile.getIpAddress(), accessProfile.getPortNumber(),
                     Boolean.parseBoolean(accessProfile.getSslEnable()), accessProfile.getUserName(), accessProfile.getPassword());
             detectSystems(apiClient, provider);
+            // scan succeeds
+            detailedStatusMessage = String.format("Scan job completed successfully for " +
+                    "Unisphere REST API provider: %s", accessProfile.getIpAddress());
         } catch (Exception e) {
+            detailedStatusMessage = String.format("Scan job failed for Unisphere REST API provider: %s because %s",
+                    accessProfile.getIpAddress(), e.getMessage());
+            logger.error(detailedStatusMessage, e);
             cxnStatus = StorageProvider.ConnectionStatus.NOTCONNECTED;
-            logger.error(String.format("Exception was encountered when attempting to scan VMAX Instance %s",
-                    accessProfile.getIpAddress()), e);
             throw VMAXException.exceptions.scanFailed(accessProfile.getIpAddress(), e);
         } finally {
-            provider.setConnectionStatus(cxnStatus.name());
-            _dbClient.updateObject(provider);
-            logger.info("Completed scan of Unity StorageProvider. IP={}", accessProfile.getIpAddress());
+            if (provider != null) {
+                try {
+                    // set detailed message
+                    provider.setLastScanStatusMessage(detailedStatusMessage);
+                    provider.setConnectionStatus(cxnStatus.name());
+                    _dbClient.updateObject(provider);
+                } catch (DatabaseException ex) {
+                    logger.error("Error while persisting object to DB", ex);
+                }
+            }
+
+            if (apiClient != null) {
+                apiClient.close();
+            }
+
+            logger.info("Completed scan with Unity REST API. IP={}", accessProfile.getIpAddress());
             _locker.releaseLock(accessProfile.getIpAddress());
         }
     }
@@ -102,9 +123,26 @@ public class VMAXCommunicationInterface extends ExtendedCommunicationInterfaceIm
         return;
     }
 
-    private void detectSystems(VMAXApiClient apiClient, StorageProvider provider) throws VMAXException {
+    /**
+     * Detect local storage systems
+     *
+     * @param apiClient
+     * @param provider
+     * @throws Exception
+     */
+    private void detectSystems(VMAXApiClient apiClient, StorageProvider provider) throws Exception {
         URI providerId = provider.getId();
-        String version = apiClient.getApiVersion();
+        String version = "";
+
+        try {
+            version = apiClient.getApiVersion();
+        } catch (Exception e) {
+            logger.error("Exception on get Unishpere REST API version", e);
+            provider.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.toString());
+            _dbClient.updateObject(provider);
+            throw VMAXException.exceptions.scanFailed(provider.getIPAddress(), e);
+        }
+
         // Get supported version from Coordinator
         String minimumSupportedVersion = ControllerUtils.getPropertyValueFromCoordinator(_coordinator, UNISPHERE_VERSION);
         logger.info("Verifying version details : Minimum Supported Version {} - Discovered Unisphere REST API Version {}",
@@ -123,7 +161,7 @@ public class VMAXCommunicationInterface extends ExtendedCommunicationInterfaceIm
 
         // get all storage systems in DB, and update their REST API provider URI
         try {
-            Set<String> discoveredSystems = apiClient.getLocalStorageSystems();
+            Set<String> discoveredSystems = apiClient.getLocalSystems();
             List<URI> storageSystemURIList = _dbClient.queryByType(StorageSystem.class, true);
             List<StorageSystem> storageSystemsList = _dbClient.queryObject(StorageSystem.class, storageSystemURIList);
             Iterator<StorageSystem> systemItr = storageSystemsList.iterator();
@@ -149,6 +187,7 @@ public class VMAXCommunicationInterface extends ExtendedCommunicationInterfaceIm
             }
         } catch (Exception e) {
             logger.error("Exception occured while finding storage systems", e);
+            throw e;
         }
     }
 }

@@ -19,6 +19,7 @@ public interface VMAXConstants {
 
     static final String UNIVMAX_MIGRATION_BASE_URI = UNIVMAX_BASE_URI + "/84/migration/symmetrix";
     static final String VALIDATE_ENVIRONMENT_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/environment/%2$s";
+    static final String GET_MIGRATION_ENVIRONMENT_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/environment";
 
     public static String getValidateEnvironmentURI(String sourceSymmetrixId, String targetSymmetrixId) {
         return String.format(VALIDATE_ENVIRONMENT_URI, sourceSymmetrixId, targetSymmetrixId);
@@ -34,5 +35,9 @@ public interface VMAXConstants {
 
     public static String getSystemGetURI(String symmId) {
         return String.format(UNIVMAX_SYSTEM_SYMM_GET_URI, symmId);
+    }
+
+    public static String getMigrationEnvironmentURI(String sourceSymmetrixId) {
+        return String.format(GET_MIGRATION_ENVIRONMENT_URI, sourceSymmetrixId);
     }
 }

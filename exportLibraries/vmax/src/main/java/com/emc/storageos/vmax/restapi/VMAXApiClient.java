@@ -22,6 +22,7 @@ import com.emc.storageos.vmax.VMAXConstants;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 import com.emc.storageos.vmax.restapi.model.Symmetrix;
 import com.emc.storageos.vmax.restapi.model.VMAXAuthInfo;
+import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.GetSymmetrixResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.ListSymmetrixResponse;
@@ -184,6 +185,14 @@ public class VMAXApiClient extends StandardRestClient {
         return null;
     }
 
+    /**
+     * Returns migration environment status if environment is available between source and target.
+     * 
+     * @param sourceArraySerialNumber Source Array Serial number
+     * @param targetArraySerialNumber Target Array Serial number
+     * @return
+     * @throws Exception
+     */
     public MigrationEnvironmentResponse getMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber)
             throws Exception {
         ClientResponse clientResponse = get(
@@ -231,5 +240,12 @@ public class VMAXApiClient extends StandardRestClient {
         }
 
         return localSystems;
+    }
+
+    public GetMigrationEnvironmentResponse getMigrationEnvironmentList(String sourceArraySerialNumber) throws Exception {
+        ClientResponse clientResponse = get(
+                URI.create(VMAXConstants.getMigrationEnvironmentURI(sourceArraySerialNumber)));
+        GetMigrationEnvironmentResponse environmentResponse = getResponseObject(GetMigrationEnvironmentResponse.class, clientResponse);
+        return environmentResponse;
     }
 }

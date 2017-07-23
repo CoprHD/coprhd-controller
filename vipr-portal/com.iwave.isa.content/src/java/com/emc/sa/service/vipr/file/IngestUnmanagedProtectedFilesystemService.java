@@ -27,11 +27,11 @@ import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 @Service("IngestUnmanagedProtectedFilesystems")
 public class IngestUnmanagedProtectedFilesystemService extends ViPRService {
 
-    @Param(VIRTUAL_ARRAY)
-    protected URI virtualArray;
-
     @Param(STORAGE_SYSTEMS)
     protected URI storageSystem;
+
+    @Param(VIRTUAL_ARRAY)
+    protected URI virtualArray;
 
     @Param(VIRTUAL_POOL)
     protected URI virtualPool;

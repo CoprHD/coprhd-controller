@@ -10,7 +10,7 @@
       lockable: true
     },  
     
-    sourceVirtualArray:{
+    virtualArray:{
       type:"assetType.vipr.virtualArray",
       lockable: true
     },

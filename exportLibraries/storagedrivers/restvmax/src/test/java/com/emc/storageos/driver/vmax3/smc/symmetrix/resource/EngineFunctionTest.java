@@ -59,8 +59,8 @@ public class EngineFunctionTest {
 
     @Test
     public void testCreateOneVolumeWithNewSg() {
-        String sgName = "stone_test_sg_auto_011";
-        String volumeNamePrefix = "stone_test_vol_010-";
+        String sgName = "stone_test_sg_auto_012";
+        String volumeNamePrefix = "stone_test_vol_012-";
         testCreateEmptySg(sgName);
         testEditSgSlo(sgName);
         testEditSgWithWorkload(sgName);

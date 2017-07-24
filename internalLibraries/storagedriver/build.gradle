@@ -1,4 +1,8 @@
 dependencies {
     compile library(slf4j),
-            library(commons_lang)
+            library(commons_lang),
+            library(google_gson),
+            library(httpclient4),
+            library(json_sanitizer),
+            library(jersey)
 }

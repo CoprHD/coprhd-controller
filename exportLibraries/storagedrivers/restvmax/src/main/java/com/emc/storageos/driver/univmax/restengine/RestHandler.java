@@ -44,7 +44,7 @@ import com.sun.jersey.client.urlconnection.HTTPSProperties;
 import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
 
 public class RestHandler {
-    private static final Logger LOG = LoggerFactory.getLogger(RestClient_old.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RestClient.class);
     private static final String TLS = "TLS";
     private AuthenticationInfo authenticationInfo;
     private boolean isVerifyCertificate = true;

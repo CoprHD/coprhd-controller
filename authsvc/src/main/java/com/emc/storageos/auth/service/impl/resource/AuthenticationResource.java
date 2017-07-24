@@ -14,6 +14,7 @@ import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
@@ -129,7 +130,23 @@ public class AuthenticationResource {
             try {
                 br = new BufferedReader(new InputStreamReader(is));
                 while ((line = br.readLine()) != null) {
-                    sb.append(line);
+			if (line.contains("navbar-brand") || line.contains("copyright")) {
+				Locale locale = Locale.getDefault();
+				String currCountry = locale.getCountry();
+
+				/**
+				 * Check if the Locale Country and Language is not China
+				 * and Chinese then return "Dell EMC  ViPR Controller"
+				 * else just "EMC ViPR Controller"
+				 */
+				if (!currCountry.equals("CN")) {
+					if (line.contains("navbar-brand"))
+						line = "<div class=\"navbar-brand\">Dell EMC ViPR Controller</div>";
+					else if (line.contains("copyright"))
+						line = "<div id=\"copyright\" style=\"padding-top: 10px;\">&copy; 2016 Dell EMC Corporation. All Rights Reserved.</div>";
+				}
+			}
+			sb.append(line);
                 }
                 loginPage = sb.toString();
                 int beforeIndex = loginPage.indexOf(AUTH_FORM_LOGIN_PAGE_ACTION);

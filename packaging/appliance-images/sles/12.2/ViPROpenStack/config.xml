@@ -171,6 +171,7 @@
     <package name="wodim"/>
     <!-- ICC packages -->
     <package name="adg-firstboot"/>
+    <package name="adg-security"/>
     <package name="apache2"/>
     <package name="apache2-prefork"/>
     <package name="apache2-utils"/>
@@ -223,6 +224,8 @@
     <package name="java"/>
     <package name="keepalived"/> 
     <package name="nginx"/>
+    <package name="ndisc6"/>
+    <package name="python-cjson"/>
   </packages>
   <packages type="image" profiles="appliance">
     <package name="openstack-keystone"/>

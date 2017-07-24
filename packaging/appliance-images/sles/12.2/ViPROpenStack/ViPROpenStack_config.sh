@@ -73,6 +73,7 @@ adg_kernelMessage
 adg_motd
 fix_alias
 fix_atop
+fix_adg_security
 fix_audit
 fix_bootfs
 fix_cacerts

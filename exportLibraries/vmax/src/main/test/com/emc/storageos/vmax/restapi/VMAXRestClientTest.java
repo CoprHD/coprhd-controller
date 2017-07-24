@@ -13,6 +13,7 @@ import org.junit.Test;
 
 import com.emc.storageos.vmax.VMAXRestUtils;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
+import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 
@@ -24,12 +25,12 @@ import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironm
 public class VMAXRestClientTest {
 
     private static VMAXApiClient apiClient;
-    private static final String unisphereIp = "xxxxxx";
-    private static String userName = "username";
-    private static String password = "password";
+    private static final String unisphereIp = "lglw7150.lss.emc.com";
+    private static String userName = "smc";
+    private static String password = "smc";
     private static int portNumber = 8443;
-    private static final String sourceArraySerialNo = "000195701430";
-    private static final String targetArraySerialNumber = "000196701405";
+    private static final String sourceArraySerialNumber = "000195702161";
+    private static final String targetArraySerialNumber = "000196800794";
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -53,12 +54,23 @@ public class VMAXRestClientTest {
     }
 
     @Test
+    public void craeteMigrationEnvironmentTest() throws Exception {
+        assertNotNull("Api Client object is null", apiClient);
+        CreateMigrationEnvironmentResponse response = apiClient.createMigrationEnvironment(sourceArraySerialNumber,
+                targetArraySerialNumber);
+        assertNotNull("Response object is null", response);
+        assertEquals("ArrayId is not correct", targetArraySerialNumber, response.getArrayId());
+        assertFalse("Invalid status", !response.isLocal());
+        assertEquals("Invalid Migration session count", 1, response.getMigrationSessionCount());
+    }
+
+    @Test
     public void apiGetMigrationEnvironmentTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
 
-        MigrationEnvironmentResponse response = apiClient.getMigrationEnvironment(sourceArraySerialNo, targetArraySerialNumber);
+        MigrationEnvironmentResponse response = apiClient.getMigrationEnvironment(sourceArraySerialNumber, targetArraySerialNumber);
         assertEquals("Not the correct state", "OK", response.getState());
-        assertEquals("Not the correct symm id", sourceArraySerialNo, response.getSymmetrixId());
+        assertEquals("Not the correct symm id", sourceArraySerialNumber, response.getSymmetrixId());
         assertEquals("Not the correct other symm id", targetArraySerialNumber, response.getOtherSymmetrixId());
         assertFalse("Not the correct status", response.isInvalid());
         // fail("Not yet implemented");
@@ -73,11 +85,26 @@ public class VMAXRestClientTest {
     @Test
     public void getMigrationEnvironmentTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
-        GetMigrationEnvironmentResponse response = apiClient.getMigrationEnvironmentList(sourceArraySerialNo);
+        GetMigrationEnvironmentResponse response = apiClient.getMigrationEnvironmentList(sourceArraySerialNumber);
         assertNotNull("Response object is null", response);
         assertNotNull("ArrayIdList object is null", response.getArrayIdList());
         assertEquals("Invalid size ", 2, response.getArrayIdList().size());
 
+    }
+
+    @Test
+    public void deletMigrationEnvironmentTest() throws Exception {
+        assertNotNull("Api Client object is null", apiClient);
+        GetMigrationEnvironmentResponse response = apiClient.getMigrationEnvironmentList(sourceArraySerialNumber);
+        assertNotNull("Response object is null", response);
+        assertNotNull("ArrayIdList object is null", response.getArrayIdList());
+        assertEquals("Invalid size ", 1, response.getArrayIdList().size());
+        apiClient.deleteMigrationEnvironment(sourceArraySerialNumber, targetArraySerialNumber);
+
+        response = apiClient.getMigrationEnvironmentList(sourceArraySerialNumber);
+        assertNotNull("Response object is null", response);
+        assertNotNull("ArrayIdList object is null", response.getArrayIdList());
+        assertEquals("Invalid size ", 0, response.getArrayIdList().size());
     }
 
 }

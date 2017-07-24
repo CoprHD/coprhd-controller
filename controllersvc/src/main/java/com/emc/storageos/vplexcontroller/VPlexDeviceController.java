@@ -9962,7 +9962,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         throw DeviceControllerException.exceptions.operationDeprecated(
                 "Change Export Path Parameters via Change Virtual Pool", 
                 vplex.getSystemType().toUpperCase(), 
-                "Use the 'Export Path Adjustment' catalog service instead.");
+                "Use the \"Export Path Adjustment\" catalog service instead.");
     }
 
     @Override

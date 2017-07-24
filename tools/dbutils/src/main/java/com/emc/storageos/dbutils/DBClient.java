@@ -1488,7 +1488,8 @@ public class DBClient {
                 }
                 
 				Iterator<Column<CompositeColumnName>> it = objectRow.getColumns().iterator();
-				Method method = MethodUtils.getAccessibleMethod(newObject.getClass(), "setChanged", String.class);
+				Method method = DataObject.class.getDeclaredMethod("setChanged", String.class);
+				method.setAccessible(true);
 				while (it.hasNext()) {
 					method.invoke(newObject, it.next().getName().getOne());
 				}

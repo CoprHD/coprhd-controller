@@ -46,7 +46,7 @@ ssh_execute_with_output() {
     local viprNode="${1}"
     local command="${2}"
     local password="${3}"
-    local result=`echo "${password}" | sudo -S ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${password}' | sudo -S $command"`
+    local result=`echo "${password}" | sudo -S ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${password}' | sudo -S $command" 2>/dev/null`
     echo ${result}
 }
 
@@ -62,7 +62,7 @@ finish_message() {
     echo "Restore ${RESTORE_RESULT}!"
     if [ "${RESTORE_RESULT}" == "failed" ]; then
         echo "Please check bkutils.log for the details."
-        exit 1
+        return
     fi
     echo "Note: nodes will reboot if there is any change of property in this cluster."
     if [[ ${IS_CONNECTED_VDC} == true ]]; then
@@ -77,6 +77,9 @@ finish_message() {
 # local backup includes:
 # 1. The backup created locally
 # 2. The downloaded backup
+#
+# Determine if a backup is local from collected backup info in all vipr nodes
+#
 # params:
 # $1=backup folder
 
@@ -89,12 +92,14 @@ is_local_backup() {
         return
     fi
 
-    local command="test -d ${backup} && echo 0 || echo 1"
-    for i in $(seq 1 ${NODE_COUNT})
+    if [ ${#BACKUP_INFO[@]} == 0 ]; then
+        echo "false"
+        return
+    fi
+
+    for info in ${BACKUP_INFO[@]}
     do
-        local viprNode=$(get_nodeid)
-        local result=`ssh_execute_with_output "${viprNode}" "${command}" "${ROOT_PASSWORD}"`
-        if [ ${result} == 0 ]; then
+        if [ "${info}" != "" ]; then
             echo "true"
             return
         fi
@@ -104,23 +109,43 @@ is_local_backup() {
     return
 }
 
-is_vdc_connected() {
-    local command="ls -1 ${RESTORE_DIR}/*geodb*.zip |head -1"
 
+# $1=backup folder
+get_backup_info_from_nodes() {
+    # if info already exists, skip the collecting process
+    if [ ${#BACKUP_INFO[@]} != 0 ]; then
+        return
+    fi
+
+    set +e
+    local backup=$1
+    local ls_command="ls ${backup}"
+    local test_command="test -d ${backup}"
     for i in $(seq 1 ${NODE_COUNT})
     do
         local viprNode=$(get_nodeid)
-        local result=`ssh_execute_with_output "${viprNode}" "${command}" "${ROOT_PASSWORD}"`
+        ssh_execute "${viprNode}" "${test_command}" "${ROOT_PASSWORD}"
+        if [ `echo $?` == 0 ]; then
+            local result=`ssh_execute_with_output "${viprNode}" "${ls_command}" "${ROOT_PASSWORD}"`
+            BACKUP_INFO[$i]=${result}
+        fi
+    done
+}
 
-        # get type of the zip file
-        geodb_type=${result#*_}
-        geodb_type=${geodb_type%%_*}
-        if [ "$geodb_type" == "geodb" ]; then
-            IS_CONNECTED_VDC=false
-            return
-        elif [ "$geodb_type" == "geodbmultivdc" ]; then
-            IS_CONNECTED_VDC=true
-            return
+
+is_vdc_connected() {
+    for info in ${BACKUP_INFO[@]}
+    do
+        if [[ ${info} =~ "geodb" ]]; then
+            geodb_type=${info#*_}
+            geodb_type=${geodb_type%%_*}
+            if [ "$geodb_type" == "geodb" ]; then
+                IS_CONNECTED_VDC=false
+                return
+            elif [ "$geodb_type" == "geodbmultivdc" ]; then
+                IS_CONNECTED_VDC=true
+                return
+            fi
         fi
     done
     echo -e "\nInvalid geodb type: $geodb_type, exiting.."

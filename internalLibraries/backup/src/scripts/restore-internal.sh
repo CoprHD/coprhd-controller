@@ -20,7 +20,6 @@ start_service() {
     local command="/etc/storageos/storageos start"
     loop_execute "${command}" "true"
     echo "done"
-    finish_message
 }
 
 stop_service() {
@@ -104,6 +103,10 @@ restore_data() {
             restore_node "${viprNode}" "onlysiteid"
         fi
         if [ $? != 0 ]; then
+            if [[ "$(is_local_backup ${RESTORE_ORIGIN})" == "true" ]] && [[ `echo ${#BACKUP_INFO[@]} | grep ${viprNode}` == "" ]] ; then
+                   echo "This is incomplete backup, and skip ${viprNode} as it is the missing one."
+                   continue
+            fi
             echo "Failed on ${viprNode}.."
             RESTORE_RESULT="failed"
         fi
@@ -115,8 +118,22 @@ restore_data() {
 # $1=node name
 restore_node() {
     local viprNode=${1}
-    cd ${RESTORE_DIR}
-    local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
+    # get backupTag from ${BACKUP_INFO}
+
+    local backupTag=""
+    for info in ${BACKUP_INFO[@]}
+    do
+        if [[ ${info} =~ "_info.properties" ]]; then
+            backupTag=${info%%_*}
+            break
+        fi
+    done
+
+    if [ "${backupTag}" == "" ]; then
+        echo "Cannot find propeties file! "
+        exit 1
+    fi
+
     local command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag'"
     if [ "$RESTORE_GEO_FROM_SCRATCH" == "true" ]; then
         command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag' -f"
@@ -152,6 +169,9 @@ if [ "${LOG_FILE}" != "" ] ; then
 fi
 TEMP_DIR=$(mktemp -d)
 RESTORE_DIR="${TEMP_DIR}/backup"
+
+get_backup_info_from_nodes ${RESTORE_ORIGIN}
+
 cmd="ln -s "${RESTORE_ORIGIN}" "${RESTORE_DIR}""
 loop_execute "mkdir $TEMP_DIR" "true"
 loop_execute "chmod 755 $TEMP_DIR" "true"
@@ -165,7 +185,11 @@ sleep 5s
 
 stop_service
 restore_data
+
+exit_code=0
 if [[ "${RESTORE_RESULT}" == "failed" ]]; then
    finish_message
+   exit_code=1
 fi
 start_service
+exit ${exit_code}

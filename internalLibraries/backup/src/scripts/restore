@@ -24,16 +24,6 @@ usage() {
 }
 
 validate_parameters() {
-    if [ -d "${RESTORE_ORIGIN}" ]; then
-        if [[ $(is_local_backup "${RESTORE_ORIGIN}") == "false" ]]; then
-            echo "The ${RESTORE_ORIGIN} is not a local backup"
-            exit 3
-        fi
-    elif [ ! -f "${RESTORE_ORIGIN}" ]; then
-        echo "${RESTORE_ORIGIN} not exist"
-        exit 2
-    fi
-
     echo "This operation will erase existing db and zk data from the cluster."
     user_confirm "Are you sure you want to continue?"
 }
@@ -200,18 +190,21 @@ RESTORE_DIR="/data/restore-`date +%s`"
 NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
 LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
-RESTORE_ORIGIN=$(readlink -f "$1")
-if [ -d "$RESTORE_ORIGIN" ] ; then
-    RESTORE_DIR=${RESTORE_ORIGIN}
-fi
+input_password
 
 trap clean_up EXIT
+
+get_backup_info_from_nodes "${RESTORE_ORIGIN}"
+
+RESTORE_ORIGIN=$(readlink -f "$1")
+
+if [[ "$(is_local_backup ${RESTORE_ORIGIN})" == "true" ]] ; then
+    RESTORE_DIR=${RESTORE_ORIGIN}
+fi
 
 check_standby
 
 validate_parameters
-
-input_password
 
 upload_backup
 

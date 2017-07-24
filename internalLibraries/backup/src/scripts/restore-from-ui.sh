@@ -28,4 +28,6 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
+get_backup_info_from_nodes "$1"
+
 nohup ${DIR}/restore-internal.sh "$1" "$2" "$3" "$4"& 

@@ -9,7 +9,9 @@ if [[ -z "$workspace" || -z "$sanity_conf" || -z "$test_type" ]]; then
    exit 1
 fi
 
-if [ ! -d "${workspace}/vipr-portal/com.iwave.isa.content/src/java/com/emc/sa/service/sample" ]; then
+cd $workspace
+
+if [[ "$test_type" = "all" || "$test_type" = "catalog" ]]; then
     echo "Adding SampleService to the catalog"
     mkdir ${workspace}/vipr-portal/com.iwave.isa.content/src/java/com/emc/sa/service/sample/
     cp ${workspace}/vipr-portal/com.iwave.isa.content/src/test/com/emc/sa/service/sample/SampleService.j* ${workspace}/vipr-portal/com.iwave.isa.content/src/java/com/emc/sa/service/sample/
@@ -25,7 +27,7 @@ fi
 set > setvars.log
 source ${sanity_conf} 
 set > setvars2.log
-for line in `diff setvars.log setvars2.log | cut -c3-1000 | egrep "$[A-Z]*"`; do export ${line}; done
+for line in `diff setvars.log setvars2.log | cut -c3-1000 | egrep "$[A-Z]*"`; do export ${line} > /dev/null 2>&1; done
 source ${sanity_conf} 
 
 rm setvars.log setvars2.log

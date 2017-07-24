@@ -7020,9 +7020,10 @@ sbsdk_remote_replication_setup_once1()
 {
     storagedevice show $SBSDK_DRIVER_SYS_TARGET_NAME &> /dev/null && return $?
 
-    echo "**** Creating storage system type for driver simulator *******"
-    run remotereplicationgroup create_storage_type $SIMULATOR_STORAGE_TYPE --type block --is_provider false --support_ssl true \
-             --port 789 --ssl_port 8798 --driver_class dummy.java
+    # This type is added when CoprHD bootstapping itself.
+    #echo "**** Creating storage system type for driver simulator *******"
+    #run remotereplicationgroup create_storage_type $SIMULATOR_STORAGE_TYPE --type block --is_provider false --support_ssl true \
+    #         --port 789 --ssl_port 8798 --driver_class dummy.java
 
     #Discover the SB SDK simulator storage systems
     echo "***** Creating SB SDK simulator remote replication target storage system ${SBSDK_DRIVER_SYS_TARGET_NAME} *****"

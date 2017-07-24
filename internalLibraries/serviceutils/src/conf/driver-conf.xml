@@ -7,8 +7,8 @@
        <bean id="storageDriverManager" class="com.emc.storageos.services.util.StorageDriverManager">
            <property name="storageSystemsMap">
               <map>
-                 <entry key="Simulator" value="driversystem"/>
-                 <entry key="SimulatorToo" value="providersystem"/>
+                 <!--entry key="Simulator" value="driversystem"/-->
+                 <!--entry key="SimulatorToo" value="providersystem"/-->
                  <entry key="ScaleioDriver" value="scaleiosystem"/>
                  <entry key="HP3ParDriver" value="hp3par"/>
               </map>
@@ -16,25 +16,25 @@
 
             <property name="supportedStorageProfiles">
                 <map>
-                    <entry key="Simulator">
+                    <!--entry key="Simulator">
                         <set>
                             <value>BLOCK</value>
                             <value>REMOTE_REPLICATION_FOR_BLOCK</value>
                         </set>
-                    </entry>
+                    </entry-->
                 </map>
             </property>
 
            <property name="storageProvidersMap">
                <map>
-                   <entry key="Simulator" value="driverprovider"/>
+                   <!--entry key="Simulator" value="driverprovider"/-->
                </map>
            </property>
 
            <!-- Set of block storage systems managed by drivers -->
            <property name="blockSystems">
                <set>
-                   <value>driversystem</value> <!-- simulator -->
+                   <!--value>driversystem</value--> <!-- simulator -->
                    <value>scaleiosystem</value>
                    <value>hp3par</value> <!-- HP3Par Driver-->
                </set>
@@ -50,7 +50,7 @@
            <!-- Set of storage systems managed through providers (proxy management model) -->
            <property name="providerManaged">
                <set>
-                         <value>providersystem</value>
+                         <!--value>providersystem</value-->
                    <!--      <value>scaleiosystem</value>  -->
 
                </set>
@@ -59,7 +59,7 @@
            <!-- Set of storage systems managed through direct connection from client -->
            <property name="directlyManaged">
                <set>
-                   <value>driversystem</value>
+                   <!--value>driversystem</value-->
                    <value>scaleiosystem</value>
                    <value>hp3par</value> <!-- HP3Par Driver-->
                </set>

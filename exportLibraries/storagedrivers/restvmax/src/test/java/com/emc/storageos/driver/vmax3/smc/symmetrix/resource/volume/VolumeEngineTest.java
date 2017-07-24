@@ -14,10 +14,11 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.driver.vmax3.smc.EngineFactory;
-import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
+import com.emc.storageos.driver.univmax.smc.EngineFactory;
+import com.emc.storageos.driver.univmax.smc.basetype.AuthenticationInfo;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.VolumeEngine;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.model.VolumeType;
 import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.StorageGroupEngineTest;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.model.VolumeType;
 
 /**
  * @author fengs5

@@ -14,20 +14,21 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.driver.vmax3.smc.EngineFactory;
-import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.StorageGroupEngine;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.AddVolumeParamType;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.CreateStorageGroupParameter;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.DynamicDistributionType;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupActionParam;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.EditStorageGroupParameter;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.ExpandStorageGroupParam;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.VolumeAttributeType;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.VolumeIdentifierChoiceType;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.model.VolumeIdentifierType;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.VolumeEngine;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume.model.VolumeType;
+import com.emc.storageos.driver.univmax.smc.EngineFactory;
+import com.emc.storageos.driver.univmax.smc.basetype.AuthenticationInfo;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.CapacityUnitType;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.StorageGroupEngine;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.AddVolumeParamType;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.CreateStorageGroupParameter;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.DynamicDistributionType;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.EditStorageGroupActionParam;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.EditStorageGroupParameter;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.ExpandStorageGroupParam;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.VolumeAttributeType;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.VolumeIdentifierChoiceType;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.VolumeIdentifierType;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.VolumeEngine;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.model.VolumeType;
 
 /**
  * @author fengs5

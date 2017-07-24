@@ -10,9 +10,9 @@ import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.net.URI;
 
-import com.emc.storageos.driver.vmax3.restengine.RestClient;
-import com.emc.storageos.driver.vmax3.restengine.RestHandler;
-import com.emc.storageos.driver.vmax3.smc.basetype.AuthenticationInfo;
+import com.emc.storageos.driver.univmax.restengine.RestClient;
+import com.emc.storageos.driver.univmax.restengine.RestHandler;
+import com.emc.storageos.driver.univmax.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.restcli.Util;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

@@ -8,8 +8,8 @@ package com.emc.storageos.restcli.command;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.driver.vmax3.Vmax3StorageDriver;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.CapacityUnitType;
+import com.emc.storageos.driver.univmax.UnivmaxStorageDriver;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.CapacityUnitType;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
@@ -40,7 +40,7 @@ public class VolumeCommand extends CliCommand {
 
     public void run(String[] args) {
         this.parseRestArgs(args);
-        Vmax3StorageDriver driver = new Vmax3StorageDriver();
+        UnivmaxStorageDriver driver = new UnivmaxStorageDriver();
         // connection
         StorageProvider provider = new StorageProvider();
         provider.setProviderHost(providerHost);

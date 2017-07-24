@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.iwave.ext.windows.winrm.Pair;
 import org.apache.commons.collections.CollectionUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -235,9 +236,9 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
         }
-        
-        if (!ComputeUtils.ComputeSystemHasImageServer(getClient(), cvp)) {
-        	preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.compute.system.image.server.null", " "));
+        Pair<Boolean, String> status = new Pair<Boolean, String>();
+        if (ComputeUtils.checkComputeSystemsHaveImageServer(getClient(), cvp, status).getFirstElement().equals(false)) {
+        	preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.compute.system.image.server.null", status.getSecondElement()));
         }
 
         if (preCheckErrors.length() > 0) {

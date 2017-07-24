@@ -1,0 +1,89 @@
+#!/bin/sh
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/init.d/boot.InstallSimulator
+#
+# 
+# To run the simulator install script "/aio-simulators/AIO_scripts/simulatorInstall.sh" on the firstboot
+#
+### BEGIN INIT INFO
+# Provides:          boot.InstallSimulator
+# Required-Start:    boot.localfs $network
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Description:       Run the simulator install script
+### END INIT INFO
+
+export PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+# Execute the script only if "/data/simulators" is not existed yet..
+if [ ! -d /data/simulators ]; then
+   # Run the simulator install script
+   chmod 777 /aio-simulators/AIO_scripts/simulatorInstall.sh
+   /aio-simulators/AIO_scripts/simulatorInstall.sh /aio-simulators
+   
+   # General change:
+   mv /data/simulators/vplex-sim_2/vplex_config_2.properties /data/simulators/vplex-sim_2/vplex_config.properties
+   rm -f /data/simulators/vplex-sim/vplex_config_2.properties
+   mv /data/simulators/ecom462/providers/OSLSProvider.conf.462 /data/simulators/ecom462/providers/OSLSProvider.conf
+   rm -f /data/simulators/ecom80/providers/OSLSProvider.conf.462
+   cp /data/simulators/ecom462/conf/Port_settings2.xml /data/simulators/ecom462/conf/Port_settings.xml
+   sed -i "s|standalone\tstandalone|standalone winhost1 winhost2 winhost3 winhost4 winhost5|g" /etc/hosts
+   ln -s /data/simulators/cisco-sim /cisco-sim
+   cp /data/simulators/cisco-sim/bashrc /root/.bashrc
+   cp /data/simulators/cisco-sim/db/fcns.db.rp /data/simulators/cisco-sim/db/fcns.db
+   sed -i "s|port(5989)|port(6989)|g" /data/simulators/hds-sim/conf/serverConfig.groovy
+fi
+
+# This is to allocate less memory for vipr java process and allow sims to run 
+sed -i "s|Xmx\$(_get_mem_fraction_mb 9.8m 0.1267)m|Xmx128m|g" /opt/storageos/bin/geodbsvc
+sed -i "s|Xmx\$(_get_mem_fraction_mb 19.7m 0.2535)m|Xmx256m|g" /opt/storageos/bin/dbsvc
+systemctl restart storageos-geodb.service
+systemctl restart storageos-db.service
+
+# Install UNIT files for systemd
+chmod -R 777 /aio-simulators/AIO_scripts/intitScripts
+cp -p /aio-simulators/AIO_scripts/intitScripts/* /etc/init.d/
+
+for file in `/bin/ls /aio-simulators/AIO_scripts/unit_files/*`; do
+        fileName=${file##*/}
+        cp $file /usr/lib/systemd/system/$fileName || exit 1
+        chmod 777 /usr/lib/systemd/system/$fileName
+        /usr/bin/systemctl enable ${fileName%.*} || exit 1
+done
+sed -i "s/#DefaultTimeoutStartSec=90s/DefaultTimeoutStartSec=180s/" /etc/systemd/system.conf
+/usr/bin/systemctl daemon-reload
+
+# Change IP on the configuration files
+sleep 60
+IP4Addr=`/sbin/ifconfig | egrep -A 1 "ens|eth0" | tail -1 | awk -F":" '{print $2}' | awk -F" " '{print $1}'`
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vplex-sim/vplex_config.properties
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vplex-sim_2/vplex_config.properties
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/xio/xio_config.properties
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/xio_2/xio_config.properties
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/rp-sim/rp_config.properties
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vmware/vmw_config.properties
+sed -i "s|0.0.0.0\/cimom|$IP4Addr\/cimom|g" /data/simulators/hds-sim/conf/serverConfig.groovy 
+
+# Start all the simulator services
+systemctl restart CISCO
+systemctl restart HDS
+systemctl restart RP
+systemctl restart VMWARE
+systemctl restart VPLEX
+systemctl restart VPLEX2
+systemctl restart WIN
+systemctl restart XIO
+systemctl restart XIO2 
+systemctl restart ECOM462
+systemctl restart ECOM80

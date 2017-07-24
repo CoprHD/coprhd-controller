@@ -219,5 +219,4 @@ public class PathConstants {
 
     public static final String STORAGE_PORT_GROUP_URL = STORAGE_SYSTEM_URL
             + "/{storageSystemId}/storage-port-groups";
->>>>>>> master
 }

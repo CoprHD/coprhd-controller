@@ -383,6 +383,7 @@ public class DbConsistencyCheckerHelper {
     private void processBatchIndexObjects(IndexAndCf indexAndCf, boolean toConsole,
             Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck, CheckResult checkResult) throws ConnectionException {
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
+            try{
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
 
             _log.info("query {} data object from CF {} for index CF {}", objKeysIdxEntryMap.keySet().size(), objCf.getName(), indexAndCf.cf.getName());
@@ -428,6 +429,9 @@ public class DbConsistencyCheckerHelper {
                     }
                 }
             }
+        }catch(Exception e){
+            _log.warn("exception occurs when processing batch index objects", e);
+        }
         }
     }
 

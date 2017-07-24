@@ -144,7 +144,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * Create host using the specified params
      *
      * @param csId
-     *            {@link URI} computesystem Id
+     *            {@link URI} computeElement Id
      * @param vcpoolId
      *            {@link URI} vcpoolId
      * @param varray
@@ -155,19 +155,19 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      *            (@link String} operation Id
      */
     @Override
-    public void createHost(URI csId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException {
+    public void createHost(URI ceId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException {
         log.info("createHost");
 
         Host host = _dbClient.queryObject(Host.class, hostId);
         //TODO COP-28960 check for null -- host, ce, etc.
-        ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+        ComputeElement ce = _dbClient.queryObject(ComputeElement.class, ceId);
 
         ComputeVirtualPool vcp = _dbClient.queryObject(ComputeVirtualPool.class, vcpoolId);
         VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, varray);
 
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
-        TaskCompleter tc = new ComputeHostCompleter(hostId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
-        getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
+        TaskCompleter tc = new ComputeHostCompleter(hostId, ceId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
+        getDevice(cs.getSystemType()).createHost(ce, host, vcp, vArray, tc);
     }
 
     /**

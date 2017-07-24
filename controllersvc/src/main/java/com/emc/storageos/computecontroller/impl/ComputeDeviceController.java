@@ -35,7 +35,7 @@ public interface ComputeDeviceController extends Controller {
      * @param opId
      *            (@link String} operation Id
      */
-    public void createHost(URI csId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException;
+    public void createHost(URI ceId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException;
 
     /**
      * Create/Add Pre-OS install steps to the workflow.
@@ -47,8 +47,8 @@ public interface ComputeDeviceController extends Controller {
      *            Dispatcher until the Step or StepGroup indicated by the
      *            waitFor has completed. The waitFor may either be a string
      *            representation of a Step UUID, or the name of a StepGroup.
-     * @param computeSystemId
-     *            {@link URI} computeSystem Id
+     * @param computeElementId
+     *            {@link URI} computeElement Id
      * @param hostId
      *            {@link URI} host Id
      * @param prepStepId

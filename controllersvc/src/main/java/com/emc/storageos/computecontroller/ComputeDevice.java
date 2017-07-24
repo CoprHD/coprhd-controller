@@ -10,6 +10,7 @@ import java.util.Map;
 import com.emc.cloud.platform.clientlib.ClientGeneralException;
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.model.ComputeSystem;
+import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -39,7 +40,7 @@ public interface ComputeDevice extends Controller {
      *            (@link VirtualArray} virtual array
      * @param completer {@link TaskCompleter} completer
      */
-    public void createHost(ComputeSystem computeSystem, Host host, ComputeVirtualPool vcp, VirtualArray varray, TaskCompleter completer)
+    public void createHost(ComputeElement computeElement, Host host, ComputeVirtualPool vcp, VirtualArray varray, TaskCompleter completer)
             throws InternalException;
 
     /**

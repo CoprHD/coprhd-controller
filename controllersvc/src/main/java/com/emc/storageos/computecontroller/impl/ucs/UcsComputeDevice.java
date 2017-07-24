@@ -397,14 +397,15 @@ public class UcsComputeDevice implements ComputeDevice {
     }
 
     @Override
-    public void createHost(ComputeSystem computeSystem, Host host, ComputeVirtualPool vcp, VirtualArray varray,
+    public void createHost(ComputeElement computeElement, Host host, ComputeVirtualPool vcp, VirtualArray varray,
             TaskCompleter taskCompleter) throws InternalException {
         LOGGER.info("create Host : " + host.getLabel());
         LOGGER.info("Host ID: " + host.getId());
         try {
+  
             Workflow workflow = workflowService.getNewWorkflow(this, CREATE_HOST_WORKFLOW, true,
                     taskCompleter.getOpId());
-
+            ComputeSystem computeSystem = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem()); 
             String sptDn = getSptDNFromVCP(computeSystem, vcp);
 
             /**
@@ -440,7 +441,7 @@ public class UcsComputeDevice implements ComputeDevice {
             bindSPStepId = workflow.createStep(BIND_SERVICE_PROFILE_TO_BLADE_STEP,
                     "bind a service profile to the blade represented by the Compute Element associated with the Host",
                     modifySpBootToken, computeSystem.getId(), computeSystem.getSystemType(), this.getClass(),
-                    new Workflow.Method("bindServiceProfileToBlade", computeSystem, host.getId(),
+                    new Workflow.Method("bindServiceProfileToBlade", computeElement, host.getId(),
                             createSpToken),
                     new Workflow.Method("unbindServiceProfile", computeSystem, createSpToken),
                     bindSPStepId);
@@ -785,12 +786,12 @@ public class UcsComputeDevice implements ComputeDevice {
         }
     }
 
-    public void bindServiceProfileToBlade(ComputeSystem computeSystem, URI hostURI, String contextStepId,
+    public void bindServiceProfileToBlade(ComputeElement computeElement, URI hostURI, String contextStepId,
             String stepId) {
 
-        ComputeElement computeElement = null;
         LsServer serviceProfile = null;
         String spDn = null;
+        ComputeSystem computeSystem = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
 
@@ -801,9 +802,12 @@ public class UcsComputeDevice implements ComputeDevice {
             }
 
             Host host = _dbClient.queryObject(Host.class, hostURI);
+            computeSystem = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
 
-            computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-
+            if (computeSystem == null){
+                throw new Exception("Compute Systemis null; cannot bind service profile to blade!");
+            }
+ 
             if (computeElement != null) {
                 LOGGER.info("Binding Service Profile : " + spDn + " to blade : " + computeElement.getLabel());
                 StringBuilder errorMessage = new StringBuilder();
@@ -843,10 +847,17 @@ public class UcsComputeDevice implements ComputeDevice {
             }
         } catch (Exception e) {
             LOGGER.error("Step : " + BIND_SERVICE_PROFILE_TO_BLADE_STEP + " Failed...", e);
-            WorkflowStepCompleter.stepFailed(
+            if (computeSystem!=null) {
+                WorkflowStepCompleter.stepFailed(
+                       stepId,
+                       ComputeSystemControllerException.exceptions.unableToProvisionHost(spDn,
+                               computeSystem.getNativeGuid(), e));
+            } else {
+                WorkflowStepCompleter.stepFailed(
                     stepId,
                     ComputeSystemControllerException.exceptions.unableToProvisionHost(spDn,
-                            computeSystem.getNativeGuid(), e));
+                            computeElement.getLabel(), e));
+            }
         }
     }
 
@@ -872,7 +883,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
         WorkflowStepCompleter.stepExecuting(stepId);
         try {
-            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+           // if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
 
                 Map<Network, List<String>> networkToInitiatorMap = Collections
                         .synchronizedMap(new HashMap<Network, List<String>>());
@@ -950,7 +961,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
                     handleEndpointsAdded(network, networkToInitiatorMap.get(network), _dbClient, _coordinator);
                 }
-            }
+           // }
 
             WorkflowStepCompleter.stepSucceded(stepId);
             LOGGER.info("Done adding host ports to networks in Varray : " + varray.getLabel() + "for Host: "

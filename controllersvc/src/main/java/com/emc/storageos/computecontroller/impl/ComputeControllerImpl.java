@@ -6,6 +6,7 @@ package com.emc.storageos.computecontroller.impl;
 
 import java.net.URI;
 import java.util.Set;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,26 +65,37 @@ public class ComputeControllerImpl extends AbstractDiscoveredSystemController im
     }
 
     @Override
-    public void createHosts(URI varray, URI vcpoolId, AsyncTask[] tasks) throws InternalException {
+    public void createHosts(URI varray, URI vcpoolId,Map<Host,URI> hostsMap, AsyncTask[] tasks) throws InternalException {
         _log.info("createHosts");
-
         for (AsyncTask task : tasks) {
 
             Host host = _dbClient.queryObject(Host.class, task._id);
+            URI ceURI = null;
 
             if (host != null) {
-                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                if (hostsMap != null || !hostsMap.isEmpty()) {
+                   for (Host h : hostsMap.keySet()){
+                       _log.info("Host: "+ h.getLabel() + "CE: "+ hostsMap.get(h).toString());
+                       if (h.getId().equals(host.getId())) {
+                           ceURI = hostsMap.get(h);
+                       }
+                   }
+                } 
+
+
+                if (!NullColumnValueGetter.isNullURI(ceURI)) {
                     ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class,
-                            host.getComputeElement());
-                    execCompute("createHost", computeElement.getComputeSystem(), vcpoolId, varray, task._id, task._opId);
+                            ceURI);
+                    execCompute("createHost", vcpoolId, varray, computeElement, task._id, task._opId);
                 } else {
                     _dbClient.error(Host.class, task._id, task._opId, ComputeSystemControllerException.exceptions
                             .noComputeElementAssociatedWithHost(host.getNativeGuid().toString(), host.getId()
                                     .toString(), null));
                 }
             } else {
-                // TODO Better treat this failure! Right now, can't do anything
-                // if the host comes out to be null... Skipping for now
+                // This should not ever occur! but logging and skipping for now
+                // if the host comes out to be null
+                _log.error("CreateHost task does not reference any valid Host! -- Skipping");
                 continue;
             }
         }

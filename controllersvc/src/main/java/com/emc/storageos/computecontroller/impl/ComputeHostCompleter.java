@@ -23,6 +23,16 @@ public class ComputeHostCompleter extends TaskCompleter {
 
     private OperationTypeEnum opType = null;
     private String serviceType = null;
+    private URI computeElementId = null;
+
+    public ComputeHostCompleter(URI id, URI ceId, String opId, OperationTypeEnum opType,
+            String serviceType) {
+        super(Host.class, id, opId);
+        this.computeElementId = ceId;
+        this.opType = opType;
+        this.serviceType = serviceType;
+
+    }
 
     public ComputeHostCompleter(URI id, String opId, OperationTypeEnum opType,
             String serviceType) {
@@ -36,8 +46,8 @@ public class ComputeHostCompleter extends TaskCompleter {
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         Host host = dbClient.queryObject(Host.class, getId());
         ComputeElement ce = null;
-        if (host != null) {
-            ce = dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+        if (this.computeElementId != null) { 
+            ce = dbClient.queryObject(ComputeElement.class, this.computeElementId);
         }
 
         AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
@@ -45,7 +55,8 @@ public class ComputeHostCompleter extends TaskCompleter {
         switch (status) {
             case ready:
                 if (host != null) {
-                    if (ce != null) {
+                    if (ce != null){ 
+                        host.setComputeElement(ce.getId());
                         host.setUuid(ce.getUuid());
                         host.setBios(ce.getBios());
                     }

@@ -1494,13 +1494,13 @@ public class HostService extends TaskResourceService {
             unlockBladeReservation(lock);
         }
 
-        Set<Host> hosts = new HashSet<Host>();
+        Map<Host,URI> hostsMap = new HashMap<Host,URI>();
         for (int i = 0; i < param.getHostNames().size(); i++) {
             Host host = populateHost(tenant, param.getHostNames().get(i), ceList.get(i), param.getCluster(), cvp.getId());
-            hosts.add(host);
+            hostsMap.put(host,URI.create(ceList.get(i)));
             _dbClient.createObject(host);
         }
-        return createHostTasks(hosts, param.getComputeVpool(), param.getVarray());
+        return createHostTasks(hostsMap, param.getComputeVpool(), param.getVarray());
     }
 
     private InterProcessLock lockBladeReservation() {
@@ -1545,11 +1545,12 @@ public class HostService extends TaskResourceService {
         }
     }
 
-    private TaskList createHostTasks(Set<Host> hosts, URI cvpUri, URI varray) {
+    private TaskList createHostTasks(Map<Host,URI> hostsMap, URI cvpUri, URI varray) {
         TaskList tl = new TaskList();
         Set<AsyncTask> tasks = new HashSet<AsyncTask>();
+        Set<Host> hosts = new HashSet<Host>();
 
-        for (Host host : hosts) {
+        for (Host host : hostsMap.keySet()) {
             String taskId = UUID.randomUUID().toString();
             AsyncTask task = new AsyncTask(Host.class, host.getId(), taskId);
             Operation op = new Operation();
@@ -1561,6 +1562,7 @@ public class HostService extends TaskResourceService {
             host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
 
             auditOp(OperationTypeEnum.CREATE_HOST, true, AuditLogManager.AUDITOP_BEGIN, host.auditParameters());
+            hosts.add(host);
         }
 
         /*
@@ -1571,7 +1573,7 @@ public class HostService extends TaskResourceService {
          * Dispatch the request to the controller
          */
         ComputeController computeController = getController(ComputeController.class, null);
-        computeController.createHosts(varray, cvpUri, tasks.toArray(new AsyncTask[0]));
+        computeController.createHosts(varray, cvpUri,hostsMap, tasks.toArray(new AsyncTask[0]));
 
         return tl;
     }
@@ -2143,7 +2145,7 @@ public class HostService extends TaskResourceService {
     }
 
     private Host populateHost(TenantOrg t, String name, String ceId, URI clusterId, URI cvpId) {
-        URI ceUri = URI.create(ceId);
+       // URI ceUri = URI.create(ceId);
         Host host = new Host();
         host.setId(URIUtil.createId(Host.class));
         host.setTenant(t.getId());
@@ -2152,7 +2154,7 @@ public class HostService extends TaskResourceService {
         host.setType(Host.HostType.No_OS.name());
         host.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.CREATED.name());
         host.setDiscoverable(false);
-        host.setComputeElement(ceUri);
+        //host.setComputeElement(ceUri);
         host.setComputeVirtualPoolId(cvpId);
         if (clusterId != null) {
             host.setCluster(clusterId);

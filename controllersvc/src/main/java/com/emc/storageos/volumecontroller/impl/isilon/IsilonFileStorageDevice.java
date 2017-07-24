@@ -2758,8 +2758,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (!targetfileUris.isEmpty()) {
                 targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
             } else {
-                ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverFileSystem(
-                        system.getIpAddress(), "Unable to get target filesystem for source filesystem " + fs.getName());
+                ServiceError serviceError = DeviceControllerErrors.isilon.unableToGetTargetFileSystem(sourceFS.getLabel());
                 return BiosCommandResult.createErrorResult(serviceError);
             }
         }
@@ -2935,7 +2934,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
-     * Failover on target mirror policy
+     * Failover on target mirror policy that enable write on source system.
      * 
      * @param sourceSystem - source system
      * @param policyName - source to target policy
@@ -2960,6 +2959,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         policy = mirrorOperations.getIsilonSyncTargetPolicy(targetSystem, policyName);
 
         // if mirror has already "write_enabled" the skip the step
+        // always source policy should be in 'resync_policy_create' state
         if (JobState.finished.equals(policy.getLastJobState()) &&
                 FOFB_STATES.resync_policy_created.equals(policy.getFoFbState()) &&
                 JobState.finished.equals(mirrorPolicy.getLastJobState()) &&
@@ -2978,6 +2978,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return getSyncPolicyErrorReport(targetSystem, policy);
         } else {
             // call isilon api
+            // failover action mirror policy that sync data from target to source.
+            // on failover of target mirror policy, the target local policy will be "writes enabled"
             return mirrorOperations.doFailover(sourceSystem, mirrorPolicyName, completer);
         }
     }
@@ -3045,8 +3047,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 targetfileUris.addAll(fs.getMirrorfsTargets());
                 targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
             } else {
-                ServiceError serviceError = DeviceControllerErrors.isilon.unableToFailoverFileSystem(
-                        sourceFS.getLabel(), "Unable to get target filesystem for source filesystem " + fs.getName());
+                ServiceError serviceError = DeviceControllerErrors.isilon.unableToGetTargetFileSystem(
+                        sourceFS.getLabel());
                 return BiosCommandResult.createErrorResult(serviceError);
             }
         }
@@ -3071,7 +3073,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
-     * 'resync-prep' call on source policy
+     * 'resync-prep' call on source policy will create new "*_mirror" policy
      * 
      * @param sourceSystem - source system
      * @param targetSystem - target system
@@ -3119,7 +3121,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
-     * 'resync-prep' call on mirror policy of target system
+     * 'resync-prep' call on mirror policy of target system that enable source policy.
+     * the target will be writes_disable and source will allow the writes.
      * 
      * @param targetSystem - target system
      * @param mirrorPolicy - mirror policy name from target to source.

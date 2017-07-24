@@ -79,4 +79,7 @@ public interface IsilonErrors {
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToGetPolicy(final String storageSystem, String msg);
 
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToGetTargetFileSystem(final String fileSystemName);
+
 }

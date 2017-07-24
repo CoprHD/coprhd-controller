@@ -142,7 +142,15 @@ public class IsilonMirrorOperations {
         return BiosCommandResult.createSuccessfulResult();
     }
 
-    IsilonSyncTargetPolicy getIsilonSyncTargetPolicy(StorageSystem system, String policyName) throws IsilonException {
+    /**
+     * get the local target policy details
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonSyncTargetPolicy getIsilonSyncTargetPolicy(StorageSystem system, String policyName) throws IsilonException {
         IsilonApi isi = getIsilonDevice(system);
         return isi.getTargetReplicationPolicy(policyName);
 
@@ -318,7 +326,7 @@ public class IsilonMirrorOperations {
     }
 
     /**
-     * Call to device to stop policy
+     * Call to Isilon device api to stop policy
      * 
      * @param system
      * @param policyName
@@ -366,7 +374,7 @@ public class IsilonMirrorOperations {
     }
 
     /**
-     * Test Replication Connection and policy
+     * Test Replication Connection and policy details
      * 
      * @param system
      * @param policyName
@@ -494,6 +502,15 @@ public class IsilonMirrorOperations {
         return errorMessage;
     }
 
+    /**
+     * Update Mirror policy details
+     * 
+     * @param system
+     * @param source
+     * @param policyName
+     * @return
+     * @throws DeviceControllerException
+     */
     public BiosCommandResult doRefreshMirrorFileShareLink(StorageSystem system, FileShare source, String policyName)
             throws DeviceControllerException {
 
@@ -516,14 +533,14 @@ public class IsilonMirrorOperations {
             }
             if (policy.getLastStarted() == null) {
                 source.setMirrorStatus(MirrorStatus.UNKNOWN.toString());
-            } else if (!policy.getEnabled() && localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled) ||
+            } else if (!policy.getEnabled() && null != localTarget && localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled) ||
                     policy.getLastJobState().equals(JobState.paused)) {
                 source.setMirrorStatus(MirrorStatus.PAUSED.toString());
-            } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled) ||
+            } else if (null != localTarget && localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled) ||
                     localTarget.getFoFbState().equals(FOFB_STATES.resync_policy_created)) {
                 source.setMirrorStatus(MirrorStatus.FAILED_OVER.toString());
             } else if (policy.getEnabled() && policy.getLastJobState().equals(JobState.finished) &&
-                    localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled)) {
+                    null != localTarget && localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled)) {
                 source.setMirrorStatus(MirrorStatus.SYNCHRONIZED.toString());
             } else if (policy.getLastJobState().equals(JobState.running)) {
                 source.setMirrorStatus(MirrorStatus.IN_SYNC.toString());

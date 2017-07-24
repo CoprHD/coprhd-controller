@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.Task;
@@ -885,6 +886,18 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
             ColumnField field = doType.getColumnField("storageDevice");
             return new ContainmentConstraintImpl(storageSystemId, BlockConsistencyGroup.class, field);
+        }
+
+        public static ContainmentConstraint getStorageDevicePortGroupConstraint(URI device) {
+            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(device, StoragePortGroup.class, field);
+        }
+        
+        public static ContainmentConstraint getStoragePortPortGroupConstraint(URI id) {
+            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
+            ColumnField field = doType.getColumnField("storagePorts");
+            return new ContainmentConstraintImpl(id, StoragePortGroup.class, field);
         }
     }
 }

@@ -775,6 +775,7 @@ CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.configType.HostResourceMaximumNumberOfArrays=Maximum Number Of Arrays That Resources Can be Placed For A Host/Cluster
 CustomConfigs.configType.IsilonPathCustomization=File System Directory Path
+CustomConfigs.configType.VMAXUsePortGroupEnabled=Use Existing Port Group
 CustomConfigs.no_dir.description=Do not use any directory. Example: {dir_name}={no_dir} 
 CustomConfigs.dir_name.description=A directory is used for system access zone namespace. Example: {dir_name}=MyOrg
 CustomConfigs.configType.IsilonSystemAccessZoneNameSpace=System Access Zone Directory
@@ -1116,9 +1117,9 @@ system.healthdashboard.nodeReboot=Reboot %s
 #Database Consistency Dashboard
 health.start=Start time
 health.end=End time
-dbstatus.lastCompletionTime=Last Completed Database Check: 
-dbstatus.progress=Percentage completed: 
-dbstatus.startTime=Start Time of Database Repair: 
+dbstatus.lastCompletionTime=Last Completed Database Check: %s
+dbstatus.progress=Percentage completed: %s
+dbstatus.startTime=Start Time of Database Repair: %s
 dbstatus.status=Status
 dbstatus.inprogress.info=Normal Provisioning is not affected when Database Housekeeping status is "In Progress"
 
@@ -3788,7 +3789,7 @@ resources.filesystem.deactivate=Created task to delete file system.
 resources.filesystem.notfound=File System Not Found
 resources.filesystem=File System
 resources.filesystem.image=assets/Folder.png
-resources.filesystem.capacity_gb=Size
+resources.filesystem.capacity_gb=Size (GB)
 resources.filesystem.varray=Virtual Array
 resources.filesystem.mount_path=Mount Path
 resources.filesystem.vpool=Virtual Pool
@@ -4753,9 +4754,9 @@ renderFunctions.storageDriver.status.upgrading=Upgrading
 renderFunctions.storageDriver.status.inUse=In Use
 renderFunctions.storageDriver.status.unknown=Unknown
 
-renderFunctions.recovery.result.done=Last node recovery was successfully completed at 
-renderFunctions.recovery.result.failed=Latest recover status have error at 
-renderFunctions.recovery.result.reason=The reason was: 
+renderFunctions.recovery.result.done=Last node recovery was successfully completed at %s.
+renderFunctions.recovery.result.failed=Latest recover status have error at %s.
+renderFunctions.recovery.result.reason=The reason was: %s.
 renderFunctions.recovery.error.repair=Database repair failed
 renderFunctions.recovery.error.sync=Database rebuild failed
 renderFunctions.recovery.error.internal=Internal error

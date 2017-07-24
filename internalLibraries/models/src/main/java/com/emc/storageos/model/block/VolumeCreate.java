@@ -26,7 +26,9 @@ public class VolumeCreate {
     private URI project;
     private URI consistencyGroup;
     private URI computeResource;
+
     private RemoteReplicationParameters remoteReplicationParameters;
+    private URI portGroup;
 
     public VolumeCreate() {
     }
@@ -172,5 +174,18 @@ public class VolumeCreate {
 
     public void setRemoteReplicationParameters(RemoteReplicationParameters remoteReplicationParameters) {
         this.remoteReplicationParameters = remoteReplicationParameters;
+    }
+	
+	/**
+     * The port group which the volume is exported through
+     * @return
+     */
+	@XmlElement(name = "port_group")
+    public URI getPortGroup() {
+        return portGroup;
+    }
+
+    public void setPortGroup(URI portGroup) {
+        this.portGroup = portGroup;
     }
 }

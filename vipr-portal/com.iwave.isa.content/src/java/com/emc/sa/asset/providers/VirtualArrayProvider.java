@@ -97,9 +97,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         return getVirtualArray(context, windowsHostOrCluster);
     }
 
-    @Asset("virtualArray")
-    @AssetDependencies({ "host" })
-    public List<AssetOption> getVirtualArray(AssetOptionsContext context, URI hostOrClusterId) {
+    protected List<AssetOption> getVirtualArray(AssetOptionsContext context, URI hostOrClusterId) {
         ViPRCoreClient client = api(context);
         List<URI> hostIds = HostProvider.getHostIds(client, hostOrClusterId);
         Map<URI, VirtualArrayRestRep> virtualArrays = null;
@@ -216,7 +214,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
 
     @Asset("virtualArray")
     @AssetDependencies({ "host" })
-    public List<AssetOption> getVirtualArrayforMultipleHost(AssetOptionsContext context, String hostOrClusterIds) {
+    public List<AssetOption> getVirtualArrayForHost(AssetOptionsContext context, String hostOrClusterIds) {
         Set<AssetOption> result = Sets.newConcurrentHashSet();
         if (hostOrClusterIds != null && !hostOrClusterIds.isEmpty()) {
             info("Host/Cluster ids selected by user: %s", hostOrClusterIds);
@@ -230,8 +228,8 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
 
     @Asset("virtualArray")
     @AssetDependencies({ "cluster" })
-    public List<AssetOption> getVirtualArrayForMultipleCluster(AssetOptionsContext context, String clusterIds) {
-        return getVirtualArrayforMultipleHost(context, clusterIds);
+    public List<AssetOption> getVirtualArrayForCluster(AssetOptionsContext context, String clusterIds) {
+        return getVirtualArrayForHost(context, clusterIds);
     }
 
     @Asset("objectVirtualArray")

@@ -248,6 +248,7 @@ public class OrderManagerImpl implements OrderManager {
             case BLOCK_CONTINUOUS_COPY:
             case VPLEX_CONTINUOUS_COPY:
             case STORAGE_PORT:
+            case STORAGE_PORT_GROUP:
                 return true;
             default:
                 return false;
@@ -385,6 +386,9 @@ public class OrderManagerImpl implements OrderManager {
                     break;
                 case STORAGE_PORT:
                     dataObject = client.findById(StoragePort.class, id);
+                    break;
+                case STORAGE_PORT_GROUP:
+                    dataObject = client.findById(StoragePortGroup.class, id);
                     break;
                 case INITIATOR:
                     dataObject = client.findById(Initiator.class, id);

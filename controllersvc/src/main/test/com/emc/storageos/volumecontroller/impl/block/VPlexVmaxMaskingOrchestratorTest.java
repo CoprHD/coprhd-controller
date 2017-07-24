@@ -75,7 +75,7 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
         // orca.getInitiatorGroups(directorToInitiators, initiatorIdToNetwork, initiatorMap);
         Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(
-                allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null);
+                allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null, null);
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
         context.reinitialize();
@@ -88,7 +88,7 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
                 "net1", "net0", null, null);
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
-        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null, null);
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
         context.reinitialize();
@@ -101,7 +101,7 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
                 "net3", "net4", null, null);
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
-        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null, null);
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
         context.reinitialize();
@@ -115,7 +115,7 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
                 "net3", "net4", "net4X", null);
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
-        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null, null);
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
         context.reinitialize();
@@ -128,7 +128,7 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
                 "net5", "net6", null, null);
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
-        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null, null);
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
         context.reinitialize();
@@ -141,7 +141,7 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
                 "net7", "net8", null, null);
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
-        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null, null);
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
         context.reinitialize();
@@ -154,7 +154,7 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
                 "net573A", "net573B", null, null);
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
-        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null, null);
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap); 
         
         // switch affinity tests
@@ -173,7 +173,7 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
         portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(),
-                getSwitchToPortNumber(networkMap.keySet(), 2), contextMap);
+                getSwitchToPortNumber(networkMap.keySet(), 2), contextMap, null);
         makeExportMasksSA(arrayURI, orca, portGroups, initiatorGroups, networkMap, initiatorSwitchMap, portSwitchMap);
     }
 

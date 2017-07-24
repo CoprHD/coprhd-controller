@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio [quick|hlu|quick hlu] | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity | portgroup'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -103,7 +103,7 @@ if [ ${SS} = "vplex" ]; then
     VPLEX_INGEST_PARAM=${5:-'noingest'}
     if [ "$VPLEX_INGEST_PARAM" != 'noingest' ]; then
         # all, exported, or unexported
-        VPLEX_INGEST_PARAM=${6}
+        VPLEX_INGEST_PARAM=${5}
         shift
     fi
     echo "VPLEX_QUICK_PARAM is $VPLEX_QUICK_PARAM"
@@ -225,7 +225,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity|portgroup)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -656,22 +656,22 @@ RP_REMOVE_BAD_CHARS_HOSTNAME=${HOSTNAME//[^a-zA-Z0-9]/}
 RP_MODIFIED_HOSTNAME=${RP_REMOVE_BAD_CHARS_HOSTNAME:0:8}
 RP_SANITY_RANDOM=$((RANDOM % 999))
 
-RP_VOLUME=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
-RP_CONSISTENCY_GROUP=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
+RP_VOLUME=rp-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
+RP_CONSISTENCY_GROUP=rp-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
 
-RP_VPLEX_VOLUME=rpvpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
-RP_VPLEX_CONSISTENCY_GROUP=rpvplexSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
+RP_VPLEX_VOLUME=rpvp-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
+RP_VPLEX_CONSISTENCY_GROUP=rpvp-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
 
-RP_METROPOINT_VOLUME=rpmpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
-RP_METROPOINT_CONSISTENCY_GROUP=rpmpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
+RP_METROPOINT_VOLUME=mp-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
+RP_METROPOINT_CONSISTENCY_GROUP=mp-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
 
-RP_XIO_VOLUME=rpxioSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
-RP_XIO_CONSISTENCY_GROUP=rpxioSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
+RP_XIO_VOLUME=rpx-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
+RP_XIO_CONSISTENCY_GROUP=rpx-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
 
-RP_UNITY_VOLUME=rpUnitySanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
-RP_UNITY_CONSISTENCY_GROUP=rpUnitySanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
+RP_UNITY_VOLUME=rpu-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
+RP_UNITY_CONSISTENCY_GROUP=rpu-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
 
-RP_EXPORT_GROUP=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}
+RP_EXPORT_GROUP=rp-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}
 RP_EXPORT_GROUP_HOST=host${hostseed}.sanity.com
 
 #
@@ -802,6 +802,7 @@ BLK_HOSTID=sanity-host-${HOSTNAME}-${seed}
 export BOURNE_IPADDR="$BOURNE_IP"
 
 source sanity_utils
+source subs/zones
 
 # search configuration
 TAG=$(tr -dc A-Za-z0-9_ < /dev/urandom | head -c 4)
@@ -816,6 +817,14 @@ secho()
 {
     echo "*** " `date` " $*"
 }
+
+# General header echo output
+hecho()
+{
+    echo "********************************************"
+    echo $1
+    echo "********************************************"
+}    
 
 #
 # run commands and check for exit status
@@ -929,6 +938,7 @@ brocade_setup_once()
     secho "Discovering brocade ..."
     run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     sleep 30
+    export NETWORK_SYSTEM=$BROCADE_NETWORK
 
     run transportzone assign FABRIC_losam082-fabric $NH
     run transportzone assign FABRIC_vplex154nbr2 $NH2
@@ -945,6 +955,7 @@ cisco_mds_quick_setup_once()
     # Do once - Discover Cisco MDS simulator switch
     secho "Discover Cisco MDS simulator switch"
     run networksystem create CiscoMdsSimulator  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
+    export NETWORK_SYSTEM="CiscoMdsSimulator"
 
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_clone_zoneset true
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_allow_zoneset_commit true
@@ -2147,8 +2158,10 @@ srdf_setup_once()
     project show $SRDF_PROJECT &> /dev/null && return $?
     run project create $SRDF_PROJECT --tenant $TENANT
 
-    run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
-    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
+    # Letter at the end of the CG name denotes SRDF mode
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}S
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}A
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}M
     
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
     run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
@@ -2554,7 +2567,7 @@ srdf_basic_sync_test()
    #run volume delete $PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    srdf_sleep
-   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}S
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
@@ -2564,9 +2577,9 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
-   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}A
    srdf_sleep
-   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}A
    echo "Created 2 volumes... now going to sleep..."
    srdf_sleep
    echo "Deleting volumes..."
@@ -2594,9 +2607,9 @@ srdf_basic_active_test()
    # rediscover storage systems for RDF group mode getting updated
    echo "Rediscovering storage systems"
    run storagedevice discover_all --ignore_error
-   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
+   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}M
    srdf_sleep
-   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
+   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}M
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}3 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}4 --wait
@@ -2881,14 +2894,10 @@ vplex_cos_setup()
         if [ $VPLEX_USE_XIO -eq 1 ]; then
         run cos update block cosvplexlocal --storage $VPLEX_XIO1_NATIVEGUID
         else 
-        run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
+        run cos update block cosvplexlocal --storage $VPLEX_VNXU_NATIVEGUID
         fi
         if [ "$AUTH" != 'ipv6' ] ; then
-                if [ $VPLEX_USE_XIO -eq 1 ]; then
-                run cos update block cosvplexlocal --storage $VPLEX_XIO2_NATIVEGUID
-                else
-                run cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
-                fi
+            run cos update block cosvplexlocal --storage $VPLEX_XIO2_NATIVEGUID
         fi
         run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
@@ -2935,7 +2944,7 @@ vplex_cos_setup()
         if [ $VPLEX_USE_XIO -eq 1 ]; then
             run cos update block cosvplexdist --storage $VPLEX_XIO1_NATIVEGUID
         else
-            run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
+            run cos update block cosvplexdist --storage $VPLEX_VNXU_NATIVEGUID
         fi
         run cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
     fi
@@ -2949,8 +2958,8 @@ vplex_setup()
 vplex_sim_variable_setup()
 {
     VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
-    VPLEX_VNX1_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
-    VPLEX_VNX2_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
+    VPLEX_VNXU_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
+    VPLEX_XIO2_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
     VPLEX_VMAX_NATIVEGUID=$VPLEX_SIM_VMAX5_NATIVEGUID
     CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
 }
@@ -2965,7 +2974,7 @@ vplex_setup_once()
         run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
         run storagedevice discover_all
         storagedevice list
-        storageport list $VPLEX_VNX1_NATIVEGUID
+        storageport list $VPLEX_VNXU_NATIVEGUID
         storageport list $VPLEX_VMAX_NATIVEGUID
         storageport list $VPLEX_GUID
 
@@ -2975,7 +2984,7 @@ vplex_setup_once()
         run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
         run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
         # The arrays are assigned to individual varrays as well.
-        run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+        run storageport update $VPLEX_VNXU_NATIVEGUID FC --addvarrays $NH
         run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
     elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
         echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
@@ -3022,12 +3031,12 @@ vplex_setup_once()
 
         if [ $VPLEX_USE_XIO -eq 1 ]; then
             run storageprovider create $VPLEX_XIO1_SMIS_DEV_NAME $VPLEX_XIO1_SMIS_IP $VPLEX_XIO1_SMIS_PORT $VPLEX_XIO1_SMIS_USER "$VPLEX_XIO1_SMIS_PASSWD" xtremio
-            run storageprovider create $VPLEX_XIO2_SMIS_DEV_NAME $VPLEX_XIO2_SMIS_IP $VPLEX_XIO2_SMIS_PORT $VPLEX_XIO2_SMIS_USER "$VPLEX_XIO2_SMIS_PASSWD" xtremio
         else
-            run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
-            run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
-            storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+            run discoveredsystem create $VPLEX_VNXU_SMIS_DEV_NAME unity $VPLEX_VNXU_IP $VPLEX_VNXU_PORT $VPLEX_VNXU_USER $VPLEX_VNXU_PW --serialno=$VPLEX_VNXU_NATIVEGUID
         fi
+
+        run storageprovider create $VPLEX_XIO2_SMIS_DEV_NAME $VPLEX_XIO2_SMIS_IP $VPLEX_XIO2_SMIS_PORT $VPLEX_XIO2_SMIS_USER "$VPLEX_XIO2_SMIS_PASSWD" xtremio
+        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
 
         run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
         run storagedevice discover_all
@@ -3037,9 +3046,9 @@ vplex_setup_once()
             storageport list $VPLEX_XIO1_NATIVEGUID --v
             storageport list $VPLEX_XIO2_NATIVEGUID --v
         else
-            storageport list $VPLEX_VNX1_NATIVEGUID --v
+            storageport list $VPLEX_VNXU_NATIVEGUID --v
             storageport list $VPLEX_VMAX_NATIVEGUID --v
-            storageport list $VPLEX_VNX2_NATIVEGUID --v
+            storageport list $VPLEX_XIO2_NATIVEGUID --v
         fi
 
         storageport list $VPLEX_VMAX_NATIVEGUID --v
@@ -3057,8 +3066,8 @@ vplex_setup_once()
             run storageport update $VPLEX_XIO1_NATIVEGUID FC --addvarrays $NH
             run storageport update $VPLEX_XIO2_NATIVEGUID FC --addvarrays $NH
         else
-            run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-            run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $NH
+            run storageport update $VPLEX_VNXU_NATIVEGUID FC --addvarrays $NH
+            run storageport update $VPLEX_XIO2_NATIVEGUID FC --addvarrays $NH
         fi
 
         run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2
@@ -3178,19 +3187,21 @@ vplex_tests()
         run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
         run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
         run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
-        if [ $VPLEX_USE_XIO -eq 0 ]; then
-            run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
-        else
-            echo "****** Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******"
-        fi
+
+        # Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******
+        # Also skipping for Unity backend because an extra snapshot with a timestamp label is created - need
+        # to figure out how to get the extra snapshot's label so that it can deleted
+        # run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
 
         echo "**** Deleting VPLEX volume snapshots"
         run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot
         run blocksnapshot delete $PROJECT/$distVolume1/$distSnapshot
 
         echo "**** Deleting VPLEX local mirror for local volume $localVolume2"
-        run blockmirror deactivate $PROJECT/$localVolume2 $localMirror2$sourceSideSuffix
-    
+        if [ "$VPLEX_INGEST_PARAM" != "exported" ] ; then
+            run blockmirror deactivate $PROJECT/$localVolume2 $localMirror2$sourceSideSuffix
+        fi
+        
         echo "**** Deleting local mirror for the VPLEX Distributed volume $distVolume2"
         run blockmirror deactivate $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
 
@@ -3209,6 +3220,12 @@ vplex_tests()
 
         run volume delete $PROJECT/$distVolume1 --wait
         run volume delete $PROJECT/$distVolume2 --wait
+        
+        if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+            echo "**** Checking no remaining zones"
+            fabricid=`echo ${CLUSTER1NET_NAME} | sed 's/VSAN_//'`
+            run_noundo verifynozones ${fabricid} ${host}
+        fi
 
         echo "**** Deleting Host"
         hosts delete $hostLbl
@@ -3255,8 +3272,8 @@ vplex_ingest_unexported() {
     # run_noundo blocksnapshot delete ${PROJECT}/${distVolume1}/${distSnapshot} --vipronly
 
     echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
-    run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
-    run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VNXU_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_XIO2_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
@@ -3306,8 +3323,8 @@ vplex_ingest_exported() {
     #run_noundo volume delete $PROJECT/$distVolume2 --vipronly --force
 
     echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
-    run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
-    run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VNXU_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_XIO2_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
@@ -3316,17 +3333,26 @@ vplex_ingest_exported() {
     echo "**** saving off UnManagedExportMask data for debug purposes to /tmp/vipr_exported_unmanaged_export_masks.txt"
     /opt/storageos/bin/dbcli list UnManagedExportMask > /tmp/vipr_exported_unmanaged_export_masks.txt
 
+    #echo "exiting"
+    #exit 0
+
+
     #echo "**** Ingesting Exported $localVolume2 (has backend snapshot)"
     #run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1" --host $hostLbl
     echo "**** Ingesting Exported $localVolume2$sourceSideSuffix (has backend mirror)"
-    run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2$sourceSideSuffix" --host $hostLbl
+    run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2" --host $hostLbl
     echo "**** Ingesting Exported $localVolume3$sourceSideSuffix"
-    run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume3$sourceSideSuffix" --host $hostLbl
+    run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume3" --host $hostLbl
     #echo "**** Ingesting Exported $distVolume1"
     #run unmanagedvolume ingest_export ${NH} cosvplexdist $PROJECT --volspec "$distVolume1" --host $hostLbl
     #echo "**** Ingesting Exported $distVolume2"
     #run unmanagedvolume ingest_export ${NH} cosvplexdist $PROJECT --volspec "$distVolume2" --host $hostLbl
 
+    # Remove the export group that was used for ingestion and re-export because they have different names
+    run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2
+    run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume3
+    run export_group delete $PROJECT/$host
+    
     echo "**** Completed VPLEX Exported Volume Ingestion Tests......."
 }
 
@@ -3386,11 +3412,11 @@ vnxblock_discovery()
 # RecoverPoint can be run in a simulated and physical environment.
 #
 
-#########################
-# RecoverPoint Vpool create
-#########################
+#############################
+# RecoverPoint Vpool create #
+#############################
 
-# All varrays for regular targets
+# RP Targets
 rp_targets()
 {
     run cos create block rp_targets$1 $POOLS_AUTO_MATCH \
@@ -3418,6 +3444,7 @@ rp_targets()
     fi
 }
 
+# RP XIO Targets
 rpxio_targets()
 {
     run cos create block rpxio_targets$1 $POOLS_AUTO_MATCH \
@@ -3453,6 +3480,7 @@ rpvplex_targets()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
+        --multiVolumeConsistency \
         --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10 \
         --highavailability vplex_local
@@ -3478,6 +3506,7 @@ rpvplex_targets()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
+        --multiVolumeConsistency \
         --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10 \
         --highavailability vplex_local
@@ -3563,11 +3592,12 @@ rp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rp_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
-        --rp_rpo_type MINUTES
+        --rp_rpo_type MINUTES \
+        --sourceJournalSize 0.25x
 
     run cos create block rp_cdp$1-sync $POOLS_AUTO_MATCH \
         --description 'RP-Source-CDP-with-Sync'  \
@@ -3577,16 +3607,18 @@ rp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rp_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
-        --rp_rpo_type MINUTES
+        --rp_rpo_type MINUTES \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-
-        run cos update block rp_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rp_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rp_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rp_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -3600,11 +3632,12 @@ rpxio_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpxio_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
-        --rp_rpo_type MINUTES
+        --rp_rpo_type MINUTES \
+        --sourceJournalSize 0.25x
 
     run cos create block rpxio_cdp$1-sync $POOLS_AUTO_MATCH \
         --description 'RP-XIO-Source-CDP-with-Sync'  \
@@ -3613,11 +3646,12 @@ rpxio_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpxio_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
-        --rp_rpo_type MINUTES
+        --rp_rpo_type MINUTES \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
@@ -3716,14 +3750,15 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --journalVpool rpvplex_targets \
         --journalVarray $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_local
+        --highavailability vplex_local \
+        --sourceJournalSize 0.25x
 
     run cos create block rpvplex_cdp$1-sync $POOLS_AUTO_MATCH \
         --description 'RP+VPLEX-Source-CDP'  \
@@ -3733,14 +3768,15 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --journalVpool rpvplex_targets \
         --journalVarray $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_local
+        --highavailability vplex_local \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
@@ -3757,14 +3793,15 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --journalVpool rpvplex_targets-migrate \
         --journalVarray $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_local
+        --highavailability vplex_local \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
@@ -3784,7 +3821,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
         --rp_rpo_value 5 \
@@ -3802,7 +3839,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3827,7 +3864,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
         --rp_rpo_value 5 \
@@ -3855,7 +3892,7 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3874,7 +3911,7 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3900,7 +3937,7 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3929,7 +3966,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1,$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY2':rpvplex_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3938,7 +3975,8 @@ rpmp_cdp()
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha \
         --metropoint true \
-        --activeProtectionAtHASite false
+        --activeProtectionAtHASite false \
+        --sourceJournalSize 0.25x
 
     run cos create block rpmp_cdp$1-sync $POOLS_AUTO_MATCH \
         --description 'MetroPoint-Source-CDP'  \
@@ -3948,7 +3986,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1,$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY2':rpvplex_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3957,7 +3995,8 @@ rpmp_cdp()
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha \
         --metropoint true \
-        --activeProtectionAtHASite false
+        --activeProtectionAtHASite false \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
@@ -3974,7 +4013,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:0.25x:'$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3983,7 +4022,8 @@ rpmp_cdp()
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha-migrate \
         --metropoint true \
-        --activeProtectionAtHASite false
+        --activeProtectionAtHASite false \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
@@ -4042,7 +4082,7 @@ rpmp_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -4084,7 +4124,7 @@ rpmp_crr()
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
             run cos update block rpmp_crr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
         fi
-    fi
+    fi 
 }
 
 # MetroPoint CLR
@@ -4262,6 +4302,14 @@ rpvplexdist_noprotection()
     fi
 }
 
+#
+# End RP vpool create
+#
+
+#
+# Start RP setup functions
+#
+
 rp_vpool_setup()
 {
     rp_targets
@@ -4325,10 +4373,23 @@ rp_network_setup()
         # Do once
         nsys=`networksystem list | wc -l`
         [ "$nsys" -gt 0 ] && return;
-
-        #Discover the Brocade SAN switch.
+        #Discover the Brocade SAN switches.
         secho "RecoverPoint network setup"
-        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+
+        run networksystem create $RECOVERPOINT_BROCADE_NETWORK brocade \
+            --smisip $RECOVERPOINT_BROCADE_NETWORK_PROVIDER \
+            --smisport $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PORT \
+            --smisuser $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_USERNAME \
+            --smispw $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PASSWORD \
+            --smisssl $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_SSL
+        
+        run networksystem create $RECOVERPOINT_BROCADE_NETWORK2 brocade \
+            --smisip $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER \
+            --smisport $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_PORT \
+            --smisuser $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_USERNAME \
+            --smispw $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_PASSWORD \
+            --smisssl $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_SSL
+            
         secho "Sleeping 30 seconds..."
         sleep 30
     fi
@@ -4523,461 +4584,11 @@ rp_isolate_rpa_clusters()
         secho 'RecoverPoint isolate RPA clusters'
         if [ "${RPXIO_TESTS}" = "0" ]; then
             run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
-            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY2
-            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4 --addvarrays $RECOVERPOINT_VARRAY3
+            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER2 --addvarrays $RECOVERPOINT_VARRAY2
+            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY3
         else
             run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_XIORPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
         fi
-    fi
-}
-
-recoverpoint_exports_tests()
-{
-    rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
-    blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
-    rpexport=$PROJECT/$RP_EXPORT_GROUP
-
-    #Create RP/Block snapshots
-    secho 'Create snapshots'
-    run blocksnapshot create ${PROJECT}/${rpvolume} ${rpsnap} --type rp
-    run blocksnapshot create ${PROJECT}/${rpvolume} ${blocksnap}
-    run blocksnapshot activate ${PROJECT}/${rpvolume}/${blocksnap}
-    run blocksnapshot delete ${PROJECT}/${rpvolume}/${blocksnap}
-    run blocksnapshot create ${PROJECT}/${rpvolume}-target-${rp_src_varray} ${blocksnap}-${rp_src_varray}
-    run blocksnapshot delete ${PROJECT}/${rpvolume}-target-${rp_src_varray}/${blocksnap}-${rp_src_varray}-${rp_src_varray}
-
-    PWWN1=`pwwn 6F`;
-    NWWN1=`pwwn 7F`;
-    run hosts create ${RP_EXPORT_GROUP_HOST} $TENANT Windows ${RP_EXPORT_GROUP_HOST} --port 8111 --username $RP_HOST_USER --password '$RP_HOST_PW' --osversion 1.0
-    run initiator create ${RP_EXPORT_GROUP_HOST} FC $PWWN1 --node $NWWN1
-
-    if [ "$PARAM" = "vmaxblock" ]; then
-        run transportzone add ${rp_src_varray}/${RP_VMAXB_VSAN} $PWWN1
-    elif [ "$PARAM" = "vnxblock" ]; then
-        run transportzone add ${rp_src_varray}/${RP_VNXB_VSAN} $PWWN1
-    else
-        # simulators being used
-        run transportzone add ${rp_src_varray}/${SIMULATOR_VSAN_11} $PWWN1
-    fi
-
-    sleep 20
-
-    secho 'recoverpoint exports'
-    run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --volspec ${PROJECT}/${rpvolume}/${rpsnap}-${rp_src_varray} --inits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
-    run export_group show ${rpexport}
-    run export_group update ${rpexport} --remVol ${PROJECT}/${rpvolume}/${rpsnap}-${rp_src_varray}
-    run export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${rp_src_varray}
-    run export_group show ${rpexport}
-    # CTRL-4638: --remInits will not call RP device controller to disable bookmark.
-    #run export_group update ${rpexport} --remInits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
-    #run export_group update ${rpexport} --addInits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
-    run export_group show ${rpexport}
-    run export_group delete ${rpexport}
-
-    # currently having a volume and an RP snap in the same export group and deleting that export group doesn't work (CTRL?)
-    #echo 'Running export of RP snapshot when volume already exists in mask'
-    #run export_group create $PROJECT ${RP_EXPORT_GROUP}2 $NH --volspec ${PROJECT}/${rpvolume} --inits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
-    #run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-    #run export_group update ${rpexport}2 --remVol ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-    #run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-    #run export_group delete ${rpexport}2
-
-    secho 'done with RP exports, cleaning up'
-    run blocksnapshot delete ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-    run hosts delete ${RP_EXPORT_GROUP_HOST}
-    secho 'done with recoverpoint exports cleanup'
-}
-
-recoverpoint_export_bookmark_tests()
-{
-    if [ "$RP_EXPORT_BOOKMARK_TESTS" = "1" ]; then
-        secho 'Running RecoverPoint Export Bookmark Tests'
-
-        # The source source volume - an arbitrary source volume from the CG
-        volume=${1}
-        # The virtual array corresonding to the source volume (src_volume)
-        rp_src_varray=${2}
-        # The target virtual arrays
-        rp_tgt_varrays=${3}
-        # The virtual pool
-        vpool=${4}
-        # RP type
-        rptype=${5}
-
-        rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
-        blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
-        rpexport=$PROJECT/$RP_EXPORT_GROUP
-
-        # Have to account for "-1" being added to volume name if
-        # volume count is greater than 1.
-        volume_name_modifier=''
-        if [ "$RP_VOLUME_COUNT" = "1" ]; then
-            volume_name_modifier=''
-        else
-            volume_name_modifier='-1'
-        fi
-
-        #Create RP/Block snapshots (only create for the first volume if there is more than 1)
-        secho 'Creating RP bookmarks for each source volume'
-	
-        all_bookmarks=()
-  
-        for i in `seq $RP_VOLUME_COUNT`
-        do
-            #Create/show the snapshot/bookmark that was created for each target virtual array
-        
-            #If we only have a single volume we do not want to append anything to volume name.  Otherwise we want to
-            #append a volume count identifier.
-            volume_identifier=''
-            if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
-                volume_identifier='-'${i}
-            fi    
-        
-            run blocksnapshot create ${PROJECT}/${volume}${volume_identifier} ${rpsnap} --type rp
-	    for tgt_varray in ${rp_tgt_varrays}
-	    do
-                #NOTE: RP bookmarks get created with for each target copy (virtual array)
-                all_bookmarks=("${all_bookmarks[@]}" "${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}")
-                blocksnapshot show ${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}
-	    done
-        done
-
-        recoverpoint_export_host_setup ${vpool} ${rptype}
-
-        sleep 20
-	
-        secho 'Running export RP bookmark failure tests'
-
-        if [ "$RP_VOLUME_COUNT" -gt "1" ]; then	
-            secho 'Adding multiple bookmarks for the same target during export group create - expected failure'
-            #join the list of all the bookmarks created with commas
-            volspec="$(printf "%s,"  ${all_bookmarks[@]} | cut -d "," -f 1-${#all_bookmarks[@]})"
-            fail export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${volspec} --hosts "${RP_HOSTNAME}1"
-        fi
-
-        secho 'Creating 2 RP bookmarks for the same volume.'
-        run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest1 --type rp
-        blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]}
-        run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest2 --type rp
-        blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
-    
-        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
-        secho 'Verifying the access state of the target volume is set to READWRITE'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE        
-
-        export_group show ${rpexport}
-        secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
-        fail export_group update ${rpexport} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
-        export_group show ${rpexport}
-
-        secho 'Attempting to perform a swap of a consistency group when a bookmark is exported - expected failure'
-        fail volume change_link ${PROJECT}/${volume}${volume_name_modifier} swap ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} rp 
-
-        run export_group delete ${rpexport}
-        secho 'Verifying the access state of the target volume is set to NOT_READY'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY   
-
-        secho 'Finished running export RP bookmark failure tests'
-
-        secho 'Exporting RP bookmark to 2 different hosts'
-        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
-        run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}2"        
-
-        secho 'Verifying the access state of the target volume is set to READWRITE'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
-
-        secho 'Unexport RP bookmark from host '${RP_HOSTNAME}2
-        run export_group delete ${rpexport}2
-
-        secho 'Verifying the access state of the target volume is set to READWRITE'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
-
-        secho 'Unexport RP bookmark from host '${RP_HOSTNAME}1
-        run export_group delete ${rpexport}
-
-        secho 'Verifying the access state of the target volume is set to NOT_READY'
-        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY
-
-        secho 'Finished with export RP bookmark tests, cleaning up'
-
-        blocksnapshot delete ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]}
-        blocksnapshot delete ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
-
-        for i in ${RP_VOLUME_COUNT}
-        do
-            for tgt_varray in ${rp_tgt_varrays}
-            do
-                volume_identifier=''
-                if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
-                    volume_identifier='-'${i}
-                fi
-                blocksnapshot delete ${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}
-            done
-        done
-
-        secho 'Deleting host '${RP_HOSTNAME}1
-        run hosts delete ${RP_HOSTNAME}1
-        secho 'Deleting host '${RP_HOSTNAME}2
-        run hosts delete ${RP_HOSTNAME}2
-        secho 'Done with RecoverPoint bookmark export cleanup'
-    else
-        secho 'Skipping RecoverPoint Export Bookmark Tests'
-    fi
-}
-
-recoverpoint_export_host_setup()
-{
-    vpool=${1}
-    rptype=${2}
-
-    if [ "${vpool}" = "rp${rptype}_cdp" ]; then
-        PWWN1=`pwwn D5`
-        WWNN1=`nwwn D5`
-        PWWN2=`pwwn D6`
-        WWNN2=`nwwn D6`
-        PWWN3=`pwwn D7`
-        WWNN3=`nwwn D7`
-        PWWN4=`pwwn D8`
-        WWNN4=`nwwn D8`
-        PWWN5="30:02:42:74:E2:26:D5:A1"
-        WWNN5="40:02:42:74:E2:26:D5:A1"
-        PWWN6="30:02:42:74:E2:26:D6:A1"
-        WWNN6="40:02:42:74:E2:26:D6:A1"
-        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
-    elif [ "${vpool}" = "rp${rptype}_crr" ]; then
-        PWWN1=`pwwn E5`
-        WWNN1=`nwwn E5`
-        PWWN2=`pwwn E6`
-        WWNN2=`nwwn E6`
-        PWWN3=`pwwn E7`
-        WWNN3=`nwwn E7`
-        PWWN4=`pwwn E8`
-        WWNN4=`nwwn E8`
-        PWWN5="30:02:42:74:E2:26:E5:A1"
-        WWNN5="40:02:42:74:E2:26:E5:A1"
-        PWWN6="30:02:42:74:E2:26:E6:A1"
-        WWNN6="40:02:42:74:E2:26:E6:A1"
-        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
-    elif [ "${vpool}" = "rp${rptype}_clr" ]; then
-        PWWN1=`pwwn F5`
-        WWNN1=`nwwn F5`
-        PWWN2=`pwwn F6`
-        WWNN2=`nwwn F6`
-        PWWN3=`pwwn F7`
-        WWNN3=`nwwn F7`
-        PWWN4=`pwwn F8`
-        WWNN4=`nwwn F8`
-        PWWN5="30:02:42:74:E2:26:F5:A1"
-        WWNN5="40:02:42:74:E2:26:F5:A1"
-        PWWN6="30:02:42:74:E2:26:F6:A1"
-        WWNN6="40:02:42:74:E2:26:F6:A1"
-        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
-    fi
-
-    run hosts create ${RP_HOSTNAME}1 $TENANT Windows ${RP_HOSTNAME}1 --port 8111 --username user --password 'password' --osversion 1.0
-    run hosts create ${RP_HOSTNAME}2 $TENANT Windows ${RP_HOSTNAME}2 --port 8111 --username user --password 'password' --osversion 1.0
-  
-    run initiator create ${RP_HOSTNAME}1 FC ${PWWN1} --node ${WWNN1}
-    run initiator create ${RP_HOSTNAME}2 FC ${PWWN2} --node ${WWNN2}
-
-    if [ "$RP_QUICK_PARAM" == "quick" ]; then
-        # Creating additional initiator for sanity quick
-        run initiator create ${RP_HOSTNAME}1 FC ${PWWN3} --node ${WWNN3}
-        run initiator create ${RP_HOSTNAME}2 FC ${PWWN4} --node ${WWNN4}      
-
-        run initiator create ${RP_HOSTNAME}1 FC ${PWWN5} --node ${WWNN5}
-        run initiator create ${RP_HOSTNAME}2 FC ${PWWN6} --node ${WWNN6}
-
-        run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN1}
-        run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN2}  
-
-        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_12 ${PWWN3}
-        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_12 ${PWWN4}
-
-        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_13 ${PWWN5}
-        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN6}
-    else
-        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN1}
-        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN2}     
-    fi
-}
-
-#
-# filepolicy tests configuration
-#
-SNAPSHOT_TYPE="file_snapshot"
-REPLICATION_TYPE="file_replication"
-APPLY_AT_VPOOL="vpool"
-APPLY_AT_PROJECT="project"
-REPLICATION_CONFIGURATION='false'
-SNAPSHOT_EXPIRE_TYPE="days"
-SNAPSHOT_EXPIRE_VALUE=3
-POLICY_SCHEDULE_FREQUENCY="days"
-POLICY_SCHEDULE_REPEAT=2
-POLICY_SCHEDULE_TIME="03:00"
-LOCAL_REPLICATION_TYPE="LOCAL"
-REMOTE_REPLICATION_TYPE="REMOTE"
-REPLICATION_COPY_MODE="ASYNC"
-APPLY_ON_TARGET_SITE="false"
-
-#
-# filepolicy tests
-#
-filepolicy_tests()
-{
-    echo "File policy tests started"
-    ISI_PROJECT=isiproject
-    run project create $ISI_PROJECT
-    cos=$1; shift
-    fpname=$SNAPSHOT_TYPE$APPLY_AT_VPOOL
-    echo $fpname
-    
-    echo "Creating snapshot file policy $fpname"
-    run filepolicy create_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL \
-                          --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE \
-                          --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE \
-                          --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
-                          --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
-                          --policyscheduletime $POLICY_SCHEDULE_TIME
-	
-	run filepolicy show $fpname
-	
-	echo "Assigning filepolicy $fpname to vpool $cos"
-	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE --assign_to_vpools $cos
-	
-	echo "Unassigning filepolicy $fpname from vpool $cos"
-    run filepolicy vpool_unassign $fpname $cos
-	
-	echo "Deleting the file policy $fpname"
-	run filepolicy delete $fpname
-
-
-	fpname=$REPLICATION_TYPE$APPLY_AT_PROJECT
-    echo $fpname
-    
-    echo "Creating replication file policy $fpname"
-	
-	run filepolicy create_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT \
-                          --replicationtype $REMOTE_REPLICATION_TYPE \
-                          --replicationcopymode $REPLICATION_COPY_MODE \
-                          --replicationconfiguration $REPLICATION_CONFIGURATION \
-                          --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
-                          --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
-                          --policyscheduletime $POLICY_SCHEDULE_TIME \
-                          --is_access_to_tenants true
-	
-	sleep 15
-	run filepolicy show $fpname
-	
-	echo "Assigning filepolicy $fpname to project $ISI_PROJECT"
-	run filepolicy project_assign $fpname  \
-                         --apply_on_target_site true \
-                          --project_assign_vpool $cos \
-                          --assign_to_projects $ISI_PROJECT \
-                          --source_varray $REMOTE_NH \
-                          --target_varrays $NH	
-						  
-	datetime=`date +%m%d%y%H%M%S`
-	fsname=FilePolicyTest-$cos-$datetime
-	
-	echo "Creating filesystem $fsname"
-	run fileshare create $fsname $ISI_PROJECT $REMOTE_NH $cos $FS_SIZEMB
-	
-    sleep 15
-	echo "Displaying the filesystem created"
-	run fileshare show $ISI_PROJECT/$fsname 
-	
-	sleep 15
-	echo "Deleting the filesystem"
-	run fileshare delete $ISI_PROJECT/$fsname
-	
-    echo "Unassigning filepolicy $fpname from project $PROJECT"
-    run filepolicy project_unassign $fpname $ISI_PROJECT
-    
-    echo "Deleting the file policy $fpname"
-	run filepolicy delete $fpname
-	
-	echo "File Policy Test Completed."
-
-}
-recoverpoint_auto_snapshot_cleanup_test()
-{
-    if [ "$RP_AUTO_SNAP_CLEANUP_TESTS" = "1" ]; then    
-        secho 'Running RecoverPoint Auto Snapshot Cleanup Tests'
-        rpsnap=rpsnap_for_cleanup-${RP_MODIFIED_HOSTNAME}-${RANDOM}
-        blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
-
-        src_volume=${1}
-        tgt_volume=${2}
-        tgt_varray=${3}
-        cg_name=${4}
-        tgt2_volume=${5}
-
-        # Create RP/Block snapshot
-        secho 'Create snapshot'
-        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
-        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
-        run protectionsystem discover $RECOVERPOINT
-
-        secho 'Unaffected RP bookmark is being checked after RP discovery to ensure it is still active'
-        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
-
-        secho 'Stopping protection for the copy and then re-enabling'
-        run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt_volume} rp
-    
-        sleep 15
-        run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt_volume} rp
-
-        if [ "${tgt2_volume}" != "" ]; then
-            secho 'Stopping protection for the copy and then re-enabling'
-            run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt2_volume} rp
-            sleep 15
-            run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt2_volume} rp
-        fi
-
-        secho 'Re-run discovery, RP bookmark should be cleaned up automatically'
-        sleep 10
-        run protectionsystem discover $RECOVERPOINT
-
-        secho 'Removed RP bookmark is being checked after RP discovery to ensure it is no longer active'
-        # Use "fail" instead of run because we expect this bookmark to fail.
-        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
-
-        secho 'Creating RP bookmark'
-        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap}2 --type rp
-        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray} | grep inactive | grep false       
-
-        # do a restore before swap to show that the lock is removed after restore
-        secho 'Performing restore of RP bookmark'
-        run blocksnapshot restore ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray}
-        sleep 10
-
-        secho 'Performing swap operation to verify auto snapshot cleanup'
-        run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
-
-        secho 'Verifying that RP bookmark was removed after swap'
-        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray}
-
-        secho 'Performing swap back'
-        run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
-
-        # Removing the tests below because of COP-25080
-        #sleep 10
-
-        #secho 'Creating RP bookmark'
-        #run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
-        #blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
-
-        #secho 'Performing consistency group swap operation to verify auto snapshot cleanup'
-        #run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
-
-        #secho 'Verifying that RP bookmark was removed after consistency group swap'
-        #fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
- 
-        #secho 'Performing consistency group swap back'
-        #run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $RECOVERPOINT_VARRAY1
-    else
-        secho 'Skipping RecoverPoint Auto Snapshot Cleanup Tests'
     fi
 }
 
@@ -5115,6 +4726,523 @@ recoverpoint_ingest_discovery()
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 }
 
+recoverpoint_export_host_setup()
+{
+    vpool=${1}
+    rptype=${2}
+
+    if [ "${vpool}" = "rp${rptype}_cdp" ]; then
+        PWWN1=`pwwn D5`
+        WWNN1=`nwwn D5`
+        PWWN2=`pwwn D6`
+        WWNN2=`nwwn D6`
+        PWWN3=`pwwn D7`
+        WWNN3=`nwwn D7`
+        PWWN4=`pwwn D8`
+        WWNN4=`nwwn D8`
+        PWWN5="30:02:42:74:E2:26:D5:A1"
+        WWNN5="40:02:42:74:E2:26:D5:A1"
+        PWWN6="30:02:42:74:E2:26:D6:A1"
+        WWNN6="40:02:42:74:E2:26:D6:A1"
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
+    elif [ "${vpool}" = "rp${rptype}_crr" ]; then
+        PWWN1=`pwwn E5`
+        WWNN1=`nwwn E5`
+        PWWN2=`pwwn E6`
+        WWNN2=`nwwn E6`
+        PWWN3=`pwwn E7`
+        WWNN3=`nwwn E7`
+        PWWN4=`pwwn E8`
+        WWNN4=`nwwn E8`
+        PWWN5="30:02:42:74:E2:26:E5:A1"
+        WWNN5="40:02:42:74:E2:26:E5:A1"
+        PWWN6="30:02:42:74:E2:26:E6:A1"
+        WWNN6="40:02:42:74:E2:26:E6:A1"
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
+    elif [ "${vpool}" = "rp${rptype}_clr" ]; then
+        PWWN1=`pwwn F5`
+        WWNN1=`nwwn F5`
+        PWWN2=`pwwn F6`
+        WWNN2=`nwwn F6`
+        PWWN3=`pwwn F7`
+        WWNN3=`nwwn F7`
+        PWWN4=`pwwn F8`
+        WWNN4=`nwwn F8`
+        PWWN5="30:02:42:74:E2:26:F5:A1"
+        WWNN5="40:02:42:74:E2:26:F5:A1"
+        PWWN6="30:02:42:74:E2:26:F6:A1"
+        WWNN6="40:02:42:74:E2:26:F6:A1"
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
+    fi
+
+    run hosts create ${RP_HOSTNAME}1 $TENANT Windows ${RP_HOSTNAME}1 --port 8111 --username user --password 'password' --osversion 1.0
+    run hosts create ${RP_HOSTNAME}2 $TENANT Windows ${RP_HOSTNAME}2 --port 8111 --username user --password 'password' --osversion 1.0
+  
+    run initiator create ${RP_HOSTNAME}1 FC ${PWWN1} --node ${WWNN1}
+    run initiator create ${RP_HOSTNAME}2 FC ${PWWN2} --node ${WWNN2}
+
+    if [ "$RP_QUICK_PARAM" == "quick" ]; then
+        # Creating additional initiator for sanity quick
+        run initiator create ${RP_HOSTNAME}1 FC ${PWWN3} --node ${WWNN3}
+        run initiator create ${RP_HOSTNAME}2 FC ${PWWN4} --node ${WWNN4}      
+
+        run initiator create ${RP_HOSTNAME}1 FC ${PWWN5} --node ${WWNN5}
+        run initiator create ${RP_HOSTNAME}2 FC ${PWWN6} --node ${WWNN6}
+
+        run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN1}
+        run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN2}  
+
+        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_12 ${PWWN3}
+        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_12 ${PWWN4}
+
+        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_13 ${PWWN5}
+        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN6}
+    else
+        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN1}
+        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN2}     
+    fi
+}
+
+recoverpoint_simulator_varsetup() {
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
+        # VPLEX
+        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
+        VPLEX_IP=$SIMULATOR_IP
+        RECOVERPOINT_VPLEX_A=${VPLEX_DEV_NAME}-local
+        RECOVERPOINT_VPLEX_B=${VPLEX_DEV_NAME}-remote
+        RECOVERPOINT_VPLEX_A_GUID=${VPLEX1_SIMULATOR_GUID}
+        RECOVERPOINT_VPLEX_B_GUID=${VPLEX2_SIMULATOR_GUID}
+        RECOVERPOINT_STORAGE_ARRAY_A_GUID=${VMAX1_SIMULATOR_NATIVEGUID}
+        RECOVERPOINT_STORAGE_ARRAY_B_GUID=${VMAX2_SIMULATOR_NATIVEGUID}
+        RECOVERPOINT_STORAGE_ARRAY_C_GUID=${VMAX3_SIMULATOR_NATIVEGUID}
+        RECOVERPOINT_STORAGE_ARRAY_D_GUID=${VMAX4_SIMULATOR_NATIVEGUID}
+    fi
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        RECOVERPOINT_XTREMIO_GUID=${XIO_4X_SIM_NATIVEGUID}
+    fi
+}
+
+# Simulator setup
+recoverpoint_simulator_setup()
+{
+    secho 'RecoverPoint Simulator running'
+    RECOVERPOINT_STORAGE_ARRAY_A_GUID=$VMAX1_SIMULATOR_NATIVEGUID
+    RECOVERPOINT_STORAGE_ARRAY_B_GUID=$VMAX2_SIMULATOR_NATIVEGUID
+    RECOVERPOINT_STORAGE_ARRAY_C_GUID=$VMAX3_SIMULATOR_NATIVEGUID
+    RECOVERPOINT_STORAGE_ARRAY_D_GUID=$VMAX4_SIMULATOR_NATIVEGUID
+    
+    project_setup
+    rp_varray_setup
+
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
+
+    # Simulators being used
+    run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
+    run smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP $RP_VMAX_SMIS_SIM_PORT $SMIS_USER "$SMIS_PASSWD" false
+    
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
+        storageprovider show ${RECOVERPOINT_VPLEX_A} &> /dev/null && return $?
+        run storageprovider create ${RECOVERPOINT_VPLEX_A} $VPLEX_IP ${VPLEX1_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
+        if [ "${RP_CRR}" = "1" -o "${RP_CLR}" = "1" ]; then
+            run storageprovider create ${RECOVERPOINT_VPLEX_B} $VPLEX_IP ${VPLEX2_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
+        fi        
+    fi
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        run storageprovider create xtremeio1 $XIO_SIMULATOR_IP ${XIO_4X_SIMULATOR_PORT} root root xtremio
+    fi
+
+    run storagedevice discover_all
+    
+    rp_port_setup
+    
+    # For the time being, use implicit network assignments for the varrays instead of
+    # explicit assignments.
+    #run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
+    #run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
+    #run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
+
+    RECOVERPOINT_IP=$RP_SIMULATOR_IP
+    rp_protection_system_setup
+
+    # RPA Isolation
+    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_1rp1 --addvarrays $RECOVERPOINT_VARRAY1
+    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_2rp1 --addvarrays $RECOVERPOINT_VARRAY2
+    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_3rp1 --addvarrays $RECOVERPOINT_VARRAY3
+
+    run storagepool update $VMAX1_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
+    run storagepool update $VMAX2_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY2 --type block
+    run storagepool update $VMAX3_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY3 --type block
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
+    fi
+}
+
+recoverpoint_common_setup()
+{
+    project_setup
+    rp_network_setup
+    rp_varray_setup
+    rp_storage_setup
+    rp_port_setup
+    rp_protection_system_setup
+    rp_isolate_rpa_clusters
+}
+
+recoverpoint_setup()
+{
+    # Either we are using real arrays or arrays from the simulator.
+    # Default is using real arrays.
+    STORAGE_ARRAY_1_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
+    STORAGE_ARRAY_2_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
+    STORAGE_ARRAY_3_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
+    STORAGE_ARRAY_4_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_D_GUID
+
+    # Var to determine whether or not to use auto-matching
+    # storgae pools on the vpools or to use manual selection
+    # for storage pools.
+    POOLS_AUTO_MATCH=true
+    # To properly test migrations always set this variable as the
+    # opposite of POOLS_AUTO_MATCH for migrations.
+    POOLS_AUTO_MATCH_MIGRATE=false
+
+    if [ "$RP_QUICK_PARAM" = "quick" ]; then
+        recoverpoint_simulator_varsetup
+        if [ "$RP_RUN_SETUP" = "1" ]; then
+            # Using simulator arrays
+            STORAGE_ARRAY_1_NATIVEGUID=$VMAX1_SIMULATOR_NATIVEGUID
+            STORAGE_ARRAY_2_NATIVEGUID=$VMAX2_SIMULATOR_NATIVEGUID
+            STORAGE_ARRAY_3_NATIVEGUID=$VMAX3_SIMULATOR_NATIVEGUID
+            STORAGE_ARRAY_4_NATIVEGUID=$VMAX4_SIMULATOR_NATIVEGUID
+
+            # Best to use auto match false for simulator
+            POOLS_AUTO_MATCH=false
+            POOLS_AUTO_MATCH_MIGRATE=true
+
+            secho 'RecoverPoint Simulator setup'
+            recoverpoint_simulator_setup
+        else
+            # This is intentionally a local-only execution for now.  Regular sanity for RP should always have RP_RUN_SETUP turned on.
+            RP_SANITY_RANDOM=`/opt/storageos/bin/dbutils list UnManagedVolume | grep label | awk '{print $3}' | cut -c10-12 | head -1`
+            secho "Determine existing volume label uses random value: ${RP_SANITY_RANDOM}"
+        fi
+    elif [ "$RP_RUN_SETUP" = "1" ]; then
+        secho 'RecoverPoint setup'
+        recoverpoint_common_setup
+    fi
+
+    if [ "$RP_RUN_SETUP" = "1" ]; then
+        # Setup RP vpools
+        rp_vpool_setup
+    fi
+}
+
+##########################
+# End RP setup functions #
+##########################
+
+###########################
+# Start RP test functions #
+###########################
+recoverpoint_exports_tests()
+{
+    hecho 'Running RecoverPoint Export Tests'
+    
+    rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+    blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+    rpexport=$PROJECT/$RP_EXPORT_GROUP
+
+    #Create RP/Block snapshots
+    secho 'Create snapshots'
+    run blocksnapshot create ${PROJECT}/${rpvolume} ${rpsnap} --type rp
+    run blocksnapshot create ${PROJECT}/${rpvolume} ${blocksnap}
+    run blocksnapshot activate ${PROJECT}/${rpvolume}/${blocksnap}
+    run blocksnapshot delete ${PROJECT}/${rpvolume}/${blocksnap}
+    run blocksnapshot create ${PROJECT}/${rpvolume}-target-${rp_src_varray} ${blocksnap}-${rp_src_varray}
+    run blocksnapshot delete ${PROJECT}/${rpvolume}-target-${rp_src_varray}/${blocksnap}-${rp_src_varray}-${rp_src_varray}
+
+    PWWN1=`pwwn 6F`;
+    NWWN1=`pwwn 7F`;
+    run hosts create ${RP_EXPORT_GROUP_HOST} $TENANT Windows ${RP_EXPORT_GROUP_HOST} --port 8111 --username $RP_HOST_USER --password '$RP_HOST_PW' --osversion 1.0
+    run initiator create ${RP_EXPORT_GROUP_HOST} FC $PWWN1 --node $NWWN1
+
+    if [ "$PARAM" = "vmaxblock" ]; then
+        run transportzone add ${rp_src_varray}/${RP_VMAXB_VSAN} $PWWN1
+    elif [ "$PARAM" = "vnxblock" ]; then
+        run transportzone add ${rp_src_varray}/${RP_VNXB_VSAN} $PWWN1
+    else
+        # simulators being used
+        run transportzone add ${rp_src_varray}/${SIMULATOR_VSAN_11} $PWWN1
+    fi
+
+    sleep 20
+
+    secho 'recoverpoint exports'
+    run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --volspec ${PROJECT}/${rpvolume}/${rpsnap}-${rp_src_varray} --inits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
+    run export_group show ${rpexport}
+    run export_group update ${rpexport} --remVol ${PROJECT}/${rpvolume}/${rpsnap}-${rp_src_varray}
+    run export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${rp_src_varray}
+    run export_group show ${rpexport}
+    # CTRL-4638: --remInits will not call RP device controller to disable bookmark.
+    #run export_group update ${rpexport} --remInits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
+    #run export_group update ${rpexport} --addInits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
+    run export_group show ${rpexport}
+    run export_group delete ${rpexport}
+
+    # currently having a volume and an RP snap in the same export group and deleting that export group doesn't work (CTRL?)
+    #echo 'Running export of RP snapshot when volume already exists in mask'
+    #run export_group create $PROJECT ${RP_EXPORT_GROUP}2 $NH --volspec ${PROJECT}/${rpvolume} --inits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
+    #run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
+    #run export_group update ${rpexport}2 --remVol ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
+    #run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
+    #run export_group delete ${rpexport}2
+
+    secho 'done with RP exports, cleaning up'
+    run blocksnapshot delete ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
+    run hosts delete ${RP_EXPORT_GROUP_HOST}
+    secho 'done with recoverpoint exports cleanup'
+}
+
+recoverpoint_export_bookmark_tests()
+{
+    if [ "$RP_EXPORT_BOOKMARK_TESTS" = "1" ]; then
+        hecho 'Running RecoverPoint Export Bookmark Tests'
+
+        # The source source volume - an arbitrary source volume from the CG
+        volume=${1}
+        # The virtual array corresonding to the source volume (src_volume)
+        rp_src_varray=${2}
+        # The target virtual arrays
+        rp_tgt_varrays=${3}
+        # The virtual pool
+        vpool=${4}
+        # RP type
+        rptype=${5}
+
+        rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        rpexport=$PROJECT/$RP_EXPORT_GROUP
+
+        # Have to account for "-1" being added to volume name if
+        # volume count is greater than 1.
+        volume_name_modifier=''
+        if [ "$RP_VOLUME_COUNT" = "1" ]; then
+            volume_name_modifier=''
+        else
+            volume_name_modifier='-1'
+        fi
+
+        #Create RP/Block snapshots (only create for the first volume if there is more than 1)
+        secho 'Creating RP bookmarks for each source volume'
+	
+        all_bookmarks=()
+  
+        for i in `seq $RP_VOLUME_COUNT`
+        do
+            #Create/show the snapshot/bookmark that was created for each target virtual array
+        
+            #If we only have a single volume we do not want to append anything to volume name.  Otherwise we want to
+            #append a volume count identifier.
+            volume_identifier=''
+            if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
+                volume_identifier='-'${i}
+            fi    
+        
+            run blocksnapshot create ${PROJECT}/${volume}${volume_identifier} ${rpsnap} --type rp
+            for tgt_varray in ${rp_tgt_varrays}
+            do
+                #NOTE: RP bookmarks get created for each target copy (virtual array)
+                all_bookmarks=("${all_bookmarks[@]}" "${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}")
+                foundbookmark=`blocksnapshot show ${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray} | grep snapset_label`
+                if [[ "${foundbookmark}" = "" ]]; then
+                    echo "+++ FAILURE - Bookmark ${rpsnap}-${tgt_varray} not created."
+                    exit 1
+                else
+                    echo "+++ SUCCESS - Bookmark ${rpsnap}-${tgt_varray} created."   
+                fi
+	       done
+        done
+
+        recoverpoint_export_host_setup ${vpool} ${rptype}
+
+        sleep 20
+	
+        secho 'Running export RP bookmark failure tests'
+
+        if [ "$RP_VOLUME_COUNT" -gt "1" ]; then	
+            secho 'Adding multiple bookmarks for the same target during export group create - expected failure'
+            #join the list of all the bookmarks created with commas
+            volspec="$(printf "%s,"  ${all_bookmarks[@]} | cut -d "," -f 1-${#all_bookmarks[@]})"
+            fail export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${volspec} --hosts "${RP_HOSTNAME}1"
+        fi
+
+        secho 'Creating 2 RP bookmarks for the same volume.'
+        
+        # Fail test bookmark 1
+        run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest1 --type rp        
+        foundbookmark=`blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} | grep snapset_label`
+        if [[ "${foundbookmark}" = "" ]]; then
+            echo "+++ FAILURE - Bookmark ${rpsnap}-failtest1-${rp_tgt_varrays[0]} not created."
+            exit 1
+        else
+            echo "+++ SUCCESS - Bookmark ${rpsnap}-failtest1-${rp_tgt_varrays[0]} created."   
+        fi        
+        
+        # Fail test bookmark 2
+        run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest2 --type rp
+        blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
+        foundbookmark=`blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]} | grep snapset_label`
+        if [[ "${foundbookmark}" = "" ]]; then
+            echo "+++ FAILURE - Bookmark ${rpsnap}-failtest2-${rp_tgt_varrays[0]} not created."
+            exit 1
+        else
+            echo "+++ SUCCESS - Bookmark ${rpsnap}-failtest2-${rp_tgt_varrays[0]} created."   
+        fi 
+    
+        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state READWRITE        
+
+        export_group show ${rpexport}
+        secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
+        fail export_group update ${rpexport} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
+        export_group show ${rpexport}
+
+        secho 'Attempting to perform a swap of a consistency group when a bookmark is exported - expected failure'
+        fail volume change_link ${PROJECT}/${volume}${volume_name_modifier} swap ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} rp 
+
+        run export_group delete ${rpexport}
+        secho 'Verifying the access state of the target volume is set to NOT_READY'
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state NOT_READY   
+
+        secho 'Finished running export RP bookmark failure tests'
+
+        secho 'Exporting RP bookmark to 2 different hosts'
+        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
+        run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}2"        
+
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state READWRITE
+
+        secho 'Unexport RP bookmark from host '${RP_HOSTNAME}2
+        run export_group delete ${rpexport}2
+
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state READWRITE
+
+        secho 'Unexport RP bookmark from host '${RP_HOSTNAME}1
+        run export_group delete ${rpexport}
+
+        secho 'Verifying the access state of the target volume is set to NOT_READY'
+        run volume verify ${PROJECT}/${volume}${volume_name_modifier}-target-${rp_tgt_varrays[0]} access_state NOT_READY
+
+        secho 'Finished with export RP bookmark tests, cleaning up'
+
+        blocksnapshot delete ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]}
+        blocksnapshot delete ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
+
+        for i in ${RP_VOLUME_COUNT}
+        do
+            for tgt_varray in ${rp_tgt_varrays}
+            do
+                volume_identifier=''
+                if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
+                    volume_identifier='-'${i}
+                fi
+                blocksnapshot delete ${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}
+            done
+        done
+
+        secho 'Deleting host '${RP_HOSTNAME}1
+        run hosts delete ${RP_HOSTNAME}1
+        secho 'Deleting host '${RP_HOSTNAME}2
+        run hosts delete ${RP_HOSTNAME}2
+        secho 'Done with RecoverPoint bookmark export cleanup'
+    else
+        secho 'Skipping RecoverPoint Export Bookmark Tests'
+    fi
+}
+
+recoverpoint_auto_snapshot_cleanup_test()
+{
+    if [ "$RP_AUTO_SNAP_CLEANUP_TESTS" = "1" ]; then    
+        hecho 'Running RecoverPoint Auto Snapshot Cleanup Tests'
+        rpsnap=rpsnap_for_cleanup-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+
+        src_volume=${1}
+        tgt_volume=${2}
+        tgt_varray=${3}
+        cg_name=${4}
+        tgt2_volume=${5}
+
+        # Create RP/Block snapshot
+        secho 'Create snapshot'
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+        run protectionsystem discover $RECOVERPOINT
+
+        secho 'Unaffected RP bookmark is being checked after RP discovery to ensure it is still active'
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+
+        secho 'Stopping protection for the copy and then re-enabling'
+        run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt_volume} rp
+    
+        sleep 15
+        run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt_volume} rp
+
+        if [ "${tgt2_volume}" != "" ]; then
+            secho 'Stopping protection for the copy and then re-enabling'
+            run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt2_volume} rp
+            sleep 15
+            run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt2_volume} rp
+        fi
+
+        secho 'Re-run discovery, RP bookmark should be cleaned up automatically'
+        sleep 10
+        run protectionsystem discover $RECOVERPOINT
+
+        secho 'Removed RP bookmark is being checked after RP discovery to ensure it is no longer active'
+        # Use "fail" instead of run because we expect this bookmark to fail.
+        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+
+        secho 'Creating RP bookmark'
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap}2 --type rp
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray} | grep inactive | grep false       
+
+        # do a restore before swap to show that the lock is removed after restore
+        secho 'Performing restore of RP bookmark'
+        run blocksnapshot restore ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray}
+        sleep 10
+
+        secho 'Performing swap operation to verify auto snapshot cleanup'
+        run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
+
+        secho 'Verifying that RP bookmark was removed after swap'
+        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray}
+
+        secho 'Performing swap back'
+        run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
+
+        # Removing the tests below because of COP-25080
+        #sleep 10
+
+        #secho 'Creating RP bookmark'
+        #run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
+        #blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+
+        #secho 'Performing consistency group swap operation to verify auto snapshot cleanup'
+        #run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
+
+        #secho 'Verifying that RP bookmark was removed after consistency group swap'
+        #fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+ 
+        #secho 'Performing consistency group swap back'
+        #run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $RECOVERPOINT_VARRAY1
+    else
+        secho 'Skipping RecoverPoint Auto Snapshot Cleanup Tests'
+    fi
+}
+
 recoverpoint_snapshot_test()
 {
     srcvolume=$1
@@ -5129,7 +5257,7 @@ recoverpoint_snapshot_test()
     return
 
     # Create RP/Block snapshots
-    secho 'Create snapshots'
+    hecho 'Running RecoverPoint Create Snapshots Tests'
 
     # Create array-based snapshot off of the RP target
     run_noundo blocksnapshot create ${PROJECT}/${srcvolume}-target-${tgtvarray} ${blocksnapname}-${tgtvarray}
@@ -5150,10 +5278,9 @@ recoverpoint_snapshot_test()
     run_noundo blocksnapshot delete ${PROJECT}/${srcvolume}/${rpsnapname}-${tgtvarray}
 }
 
-
 recoverpoint_ingest_test()
 {
-    secho 'RP ingest tests'
+    hecho 'Running RecoverPoint Ingest Test'
 
     vpool=${1}
 
@@ -5422,7 +5549,7 @@ recoverpoint_ingest_test()
 
 recoverpoint_ingest_export_test()
 {
-    secho 'RP ingest export tests'
+    hecho 'Running RecoverPoint Ingest Export Tests'
 
     # Some more thought needs to go into this, how to integrate this into the regular test suite
     # and efficiently take into the account the test variables for RP.
@@ -5580,12 +5707,12 @@ recoverpoint_ingest_export_test()
     run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
 }
 
-recoverpoint_ingest()
+recoverpoint_ingest_tests()
 {
     rptypetag=${1}
 
     # Ingest specific tests
-    secho "RP ingest ${rptypetag} volumes"
+    hecho "RP ingest ${rptypetag} volumes"
 
     if [ "$RP_CDP" = "1" ] ; then
         recoverpoint_ingest_test rp${rptypetag}_cdp
@@ -5612,7 +5739,7 @@ recoverpoint_ingest()
 recoverpoint_failover_test()
 {
     if [ "$RP_FAILOVER_TESTS" = "1" ]; then
-        secho 'Running RecoverPoint Failover Tests'
+        hecho 'Running RecoverPoint Failover Tests'
 
         src_volume=${1}
         tgt_volume=${2}
@@ -5701,7 +5828,7 @@ recoverpoint_failover_test()
 recoverpoint_cg_failover_test()
 {
     if [ "$RP_CG_FAILOVER_TESTS" = "1" ]; then
-        secho 'Running RecoverPoint Failover CG Tests'
+        hecho 'Running RecoverPoint Failover CG Tests'
 
         # The name of the consistency group to swap
         cg_name=${1}
@@ -5847,7 +5974,7 @@ recoverpoint_cg_failover_test()
 recoverpoint_direct_access_test()
 {
     if [ "$RP_DIRECT_ACCESS_TESTS" = "1" ]; then
-        secho 'Running RecoverPoint Direct Access Tests'
+        hecho 'Running RecoverPoint Direct Access Tests'
 
         # The source source volume - an arbitrary source volume from the CG
         src_volume=${1}
@@ -5912,12 +6039,11 @@ recoverpoint_direct_access_test()
         done	 
 
         # Test creating snapshots after target copy is in direct access mode
-
         if [ "${#rp_tgt_varrays[@]}" -eq "1" ]; then
-            echo 'Attempt to create a RP bookmark on CG with single copy in direct access mode - expected failure'
+            secho 'Attempt to create a RP bookmark on CG with single copy in direct access mode - expected failure'
             fail blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark} --type rp
         else 
-            echo 'Creating RP bookmark when 1 CG copy is in direct access mode'
+            secho 'Creating RP bookmark when 1 CG copy is in direct access mode'
             run blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark}-2 --type rp
 
             for tgt_varray in ${rp_tgt_varrays[@]}
@@ -5932,13 +6058,15 @@ recoverpoint_direct_access_test()
             done
         fi
 
-        if [ "$rp_type" = "" || "$RP_VOLUME_COUNT" = "1" ]; then
+        if [[ "$rp_type" = "" || "$RP_VOLUME_COUNT" = "1" ]]; then
             # Only run these tests for single volume tests or non-VPlex.  RP+VPlex with multiple volumes creates unpredicable
             # local array snapshot names so it's hard to match up the source volume name with the snapshot name
             secho 'Creating local array snapshot of source volume when one target copy is in direct access mode'
             run blocksnapshot create ${PROJECT}/${src_volume} ${array_snapshot} --type native
             secho 'Verifying the local array snapshot of the source volume was created'
             run blocksnapshot show ${PROJECT}/${src_volume}/${array_snapshot}-1
+            secho 'Removing array snapshot after it has been verified'
+            run blocksnapshot delete ${PROJECT}/${src_volume}/${array_snapshot}-1
         fi
 
         for tgt_varray in ${rp_tgt_varrays[@]}
@@ -5951,8 +6079,8 @@ recoverpoint_direct_access_test()
                 run blocksnapshot create ${PROJECT}/${src_volume}-target-${tgt_varray} ${array_snapshot} --type native 
                 secho 'Verifying that the array snapshot associated with target copy NOT in direct access mode exists'
                 run blocksnapshot show ${PROJECT}/${src_volume}-target-${tgt_varray}/${array_snapshot}-1
-                #secho 'Removing array snapshot after it has been verified'
-                #run blocksnapshot delete ${PROJECT}/${src_volume}/${array_snapshot}
+                secho 'Removing array snapshot after it has been verified'
+                run blocksnapshot delete ${PROJECT}/${src_volume}-target-${tgt_varray}/${array_snapshot}-1
             fi 
         done 
 
@@ -5965,14 +6093,19 @@ recoverpoint_direct_access_test()
             secho 'Remove replication set from consistency group while a copy is in direct access mode (failover) - expected failure'		
             fail volume delete $PROJECT/${new_volume} --wait
         fi
-
-        secho 'Expand source volume when one of the RP target copies is in direct access mode'
-        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+       
+	    if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then 
+            secho 'Expand source volume when one of the RP target copies is in direct access mode - expected failure'
+            fail volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+        else
+            secho 'Expand source volume when RP target copy is in direct access mode'
+            volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+        fi
 
         secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
         recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}
         sleep 20
-        run export_group create ${PROJECT} ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${tgt_volume} --hosts "${RP_HOSTNAME}1"
+        run export_group create ${PROJECT} ${RP_EXPORT_GROUP} ${direct_access_mode_varray} --type Host --volspec ${PROJECT}/${tgt_volume} --hosts "${RP_HOSTNAME}1"
         run export_group delete ${PROJECT}/${RP_EXPORT_GROUP}
 
         secho 'Removing export host '${RP_HOSTNAME}1
@@ -6010,7 +6143,7 @@ recoverpoint_direct_access_test()
         secho 'Setting access mode to direct access'
         run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
  
-        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
+        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${direct_access_mode_varray}
         run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
 
         secho 'Verify the current state of the source and target vols'
@@ -6022,12 +6155,12 @@ recoverpoint_direct_access_test()
         run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 
         secho 'Failover using consistency group API'
-        run blockconsistencygroup failover $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]}
+        run blockconsistencygroup failover $consistency_group --copyType rp --targetVarray ${direct_access_mode_varray}
         secho 'Setting access mode to direct access using consistency group API'
-        run blockconsistencygroup accessmode $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]} --am DIRECT_ACCESS
+        run blockconsistencygroup accessmode $consistency_group --copyType rp --targetVarray ${direct_access_mode_varray} --am DIRECT_ACCESS
 
-        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
-        run blockconsistencygroup failover_cancel $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]}
+        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${direct_access_mode_varray}
+        run blockconsistencygroup failover_cancel $consistency_group --copyType rp --targetVarray ${direct_access_mode_varray}
 
         secho 'Verify the current state of the source and target vols'
         run volume verify ${PROJECT}/${src_volume} personality SOURCE
@@ -6050,8 +6183,8 @@ recoverpoint_change_vpool_test()
     #  3. Upgrade to MP (only in the case of MP CRR tests - for now)
     #  4. VPLEX Data Migrations (only for RP+VPLEX and MP volumes)
 
-    if [ "$RP_CHANGE_VPOOL_TESTS" = "1" ]; then
-        secho 'Running RecoverPoint Change Virtual Pool Tests'
+    if [ "$RP_CHANGE_VPOOL" = "1" ]; then
+        hecho 'Running RecoverPoint Change Virtual Pool Tests'
 
         base_volume=${1}
         noprotection_vpool=${2}
@@ -6096,7 +6229,7 @@ recoverpoint_change_vpool_test()
 recoverpoint_vpool_change_replication_mode_test()
 {
     if [ "$RP_CHANGE_REPLICATION_MODE_TESTS" = "1" ]; then
-        secho 'Running RecoverPoint Change Replication Mode Tests'
+        hecho 'Running RecoverPoint Change Replication Mode Tests'
 
         base_volume=${1}
         target_vpool=${2}
@@ -6108,10 +6241,10 @@ recoverpoint_vpool_change_replication_mode_test()
     fi
 }
 
-recoverpoint_add_journal_volume()
+recoverpoint_add_journal_volume_test()
 {
     if [ "$RP_ADD_JOURNAL_TESTS" = "1" ]; then    
-        secho 'Running RecoverPoint Add Journal Volume Tests'
+        hecho 'Running RecoverPoint Add Journal Volume Tests'
 
         copy_name=${1}
         journ_varray=${2} 
@@ -6122,132 +6255,6 @@ recoverpoint_add_journal_volume()
         run volume add_journal ${copy_name} $PROJECT ${journ_varray} ${journ_vpool} 10GB --consistencyGroup ${rp_cg} --count=1  
     else
         secho 'Skipping RecoverPoint Add Journal Volume Tests'
-    fi
-}
-
-recoverpoint_simulator_varsetup() {
-    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
-        # VPLEX
-        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
-        VPLEX_IP=$SIMULATOR_IP
-        RECOVERPOINT_VPLEX_A=${VPLEX_DEV_NAME}-local
-        RECOVERPOINT_VPLEX_B=${VPLEX_DEV_NAME}-remote
-        RECOVERPOINT_VPLEX_A_GUID=${VPLEX1_SIMULATOR_GUID}
-        RECOVERPOINT_VPLEX_B_GUID=${VPLEX2_SIMULATOR_GUID}
-        RECOVERPOINT_STORAGE_ARRAY_A_GUID=${VMAX1_SIMULATOR_NATIVEGUID}
-        RECOVERPOINT_STORAGE_ARRAY_B_GUID=${VMAX2_SIMULATOR_NATIVEGUID}
-        RECOVERPOINT_STORAGE_ARRAY_C_GUID=${VMAX3_SIMULATOR_NATIVEGUID}
-        RECOVERPOINT_STORAGE_ARRAY_D_GUID=${VMAX4_SIMULATOR_NATIVEGUID}
-    fi
-    if [ "${RPXIO_TESTS}" = "1" ]; then
-        RECOVERPOINT_XTREMIO_GUID=${XIO_4X_SIM_NATIVEGUID}
-    fi
-}
-
-# Simulator setup
-recoverpoint_simulator_setup()
-{
-    secho 'RecoverPoint Simulator running'
-    project_setup
-    rp_varray_setup
-
-    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
-
-    # Simulators being used
-    run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
-    run smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP $RP_VMAX_SMIS_SIM_PORT $SMIS_USER "$SMIS_PASSWD" false
-    
-    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
-        storageprovider show ${RECOVERPOINT_VPLEX_A} &> /dev/null && return $?
-        run storageprovider create ${RECOVERPOINT_VPLEX_A} $VPLEX_IP ${VPLEX1_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
-        if [ "${RP_CRR}" = "1" -o "${RP_CLR}" = "1" ]; then
-            run storageprovider create ${RECOVERPOINT_VPLEX_B} $VPLEX_IP ${VPLEX2_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
-        fi
-        rp_port_setup
-    fi
-    if [ "${RPXIO_TESTS}" = "1" ]; then
-        run storageprovider create xtremeio1 $XIO_SIMULATOR_IP ${XIO_4X_SIMULATOR_PORT} root root xtremio
-    fi
-
-    run storagedevice discover_all
-    run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
-    run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
-    run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
-
-    RECOVERPOINT_IP=$RP_SIMULATOR_IP
-    rp_protection_system_setup
-
-    # Make sure all of the pools are updated and matched
-    run storagedevice discover_all
-
-    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_1rp1 --addvarrays $RECOVERPOINT_VARRAY1
-    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_2rp1 --addvarrays $RECOVERPOINT_VARRAY2
-    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_3rp1 --addvarrays $RECOVERPOINT_VARRAY3
-
-    run storagepool update $VMAX1_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
-    run storagepool update $VMAX2_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY2 --type block
-    run storagepool update $VMAX3_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY3 --type block
-    if [ "${RPXIO_TESTS}" = "1" ]; then
-        run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
-    fi
-}
-
-recoverpoint_common_setup()
-{
-    project_setup
-    rp_network_setup
-    rp_varray_setup
-    rp_storage_setup
-    rp_port_setup
-    rp_protection_system_setup
-    rp_isolate_rpa_clusters
-}
-
-recoverpoint_setup()
-{
-    # Either we are using real arrays or arrays from the simulator.
-    # Default is using real arrays.
-    STORAGE_ARRAY_1_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
-    STORAGE_ARRAY_2_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
-    STORAGE_ARRAY_3_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
-    STORAGE_ARRAY_4_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_D_GUID
-
-    # Var to determine whether or not to use auto-matching
-    # storgae pools on the vpools or to use manual selection
-    # for storage pools.
-    POOLS_AUTO_MATCH=true
-    # To properly test migrations always set this variable as the
-    # opposite of POOLS_AUTO_MATCH for migrations.
-    POOLS_AUTO_MATCH_MIGRATE=false
-
-    if [ "$RP_QUICK_PARAM" = "quick" ]; then
-        recoverpoint_simulator_varsetup
-        if [ "$RP_RUN_SETUP" = "1" ]; then
-            # Using simulator arrays
-            STORAGE_ARRAY_1_NATIVEGUID=$VMAX1_SIMULATOR_NATIVEGUID
-            STORAGE_ARRAY_2_NATIVEGUID=$VMAX2_SIMULATOR_NATIVEGUID
-            STORAGE_ARRAY_3_NATIVEGUID=$VMAX3_SIMULATOR_NATIVEGUID
-            STORAGE_ARRAY_4_NATIVEGUID=$VMAX4_SIMULATOR_NATIVEGUID
-
-            # Best to use auto match false for simulator
-            POOLS_AUTO_MATCH=false
-            POOLS_AUTO_MATCH_MIGRATE=true
-
-            secho 'RecoverPoint Simulator setup'
-            recoverpoint_simulator_setup
-        else
-            # This is intentionally a local-only execution for now.  Regular sanity for RP should always have RP_RUN_SETUP turned on.
-            RP_SANITY_RANDOM=`/opt/storageos/bin/dbutils list UnManagedVolume | grep label | awk '{print $3}' | cut -c10-12 | head -1`
-            secho "Determine existing volume label uses random value: ${RP_SANITY_RANDOM}"
-        fi
-    elif [ "$RP_RUN_SETUP" = "1" ]; then
-        secho 'RecoverPoint setup'
-        recoverpoint_common_setup
-    fi
-
-    if [ "$RP_RUN_SETUP" = "1" ]; then
-        # Setup RP vpools
-        rp_vpool_setup
     fi
 }
 
@@ -6288,11 +6295,17 @@ recoverpoint_cleanup_cgs()
         fi
     fi
 }
+#########################
+# End RP test functions #
+#########################
 
+#########################
+# Main RP test function #
+#########################
 recoverpoint_tests()
 {
     if [ "$RP_RUN_TESTS" = "1" ]; then
-        secho 'Run RP tests'
+        hecho 'Run RP tests'
 
         # Setup CGs
         rp_cg_setup
@@ -6312,7 +6325,7 @@ recoverpoint_tests()
         rp_type=''
 
         if [ "$RP_CDP" = "1" ]; then
-            secho 'RP CDP Tests'
+            hecho 'RP CDP Tests'
             rp_type='cdp'
 
             # RP
@@ -6340,7 +6353,7 @@ recoverpoint_tests()
         fi
 
         if [ "$RP_CRR" = "1" ]; then
-            secho 'RP CRR Tests'
+            hecho 'RP CRR Tests'
             rp_type='crr'
 
             # RP
@@ -6366,7 +6379,7 @@ recoverpoint_tests()
         fi
 
         if [ "$RP_CLR" = "1" ]; then
-            secho 'RP CLR Tests'
+            hecho 'RP CLR Tests'
             rp_type='clr'
 
             # RP
@@ -6391,48 +6404,57 @@ recoverpoint_tests()
             rpxio_tgt_vpool='rpxio_targets'
         fi
 
+        # Have to account for "-1" being added to volume name if
+        # volume count is greater than 1.
+        volume_name_modifier=''
+        if [ "$RP_VOLUME_COUNT" = "1" ]; then
+            volume_name_modifier=''
+        else
+            volume_name_modifier='-1'
+        fi
+
         # RP
         rp_src_vpool='rp_'$rp_type
         rp_src_vpool_sync=${rp_src_vpool}'-sync'
         rpvolume=${RP_VOLUME}
-        rpvolumetarget=${rpvolume}'-target-'${rp_tgt_varray}
+        rpvolumetarget=${rpvolume}${volume_name_modifier}'-target-'${rp_tgt_varray}
 
         # RP+VPLEX
         rpvplex_src_vpool='rpvplex_'$rp_type
         rpvplex_src_vpool_sync=${rpvplex_src_vpool}'-sync'
         rpvplex_migrate_vpool=${rpvplex_src_vpool}'-migrate'
         rpvplexvolume=${RP_VPLEX_VOLUME}
-        rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
+        rpvplexvolumetarget=${rpvplexvolume}${volume_name_modifier}'-target-'${rpvplex_tgt_varray}
 
         # MP
         rpmp_src_vpool='rpmp_'$rp_type
         rpmp_src_vpool_sync=${rpmp_src_vpool}'-sync'
         rpmp_migrate_vpool=${rpmp_src_vpool}'-migrate'
         rpmpvolume=${RP_METROPOINT_VOLUME}
-        rpmpvolumetarget=${mpvolume}'-target-'${rpmp_active_tgt_varray}
+        rpmpvolumetarget=${mpvolume}${volume_name_modifier}'-target-'${rpmp_active_tgt_varray}
 
         # XIO
         rpxio_src_vpool='rpxio_'$rp_type
         rpxio_src_vpool_sync=${rpxio_src_vpool}'-sync'
         rpxiovolume=${RP_XIO_VOLUME}
-        rpxiovolumetarget=${xiovolume}'-target-'${rpxio_active_tgt_varray}
+        rpxiovolumetarget=${xiovolume}${volume_name_modifier}'-target-'${rpxio_active_tgt_varray}
 
         # Ingestion Tests
         if [ "$RP_INGESTTESTS" = "1" ]; then
             if [ "$RP_TESTS" = "1" ]; then
-                recoverpoint_ingest ""
+                recoverpoint_ingest_tests ""
             fi
 
             if [ "$RPVPLEX_TESTS" = "1" ]; then
-                recoverpoint_ingest "vplex"
+                recoverpoint_ingest_tests "vplex"
             fi
             
             if [ "${RPMP_TESTS}" = "1" ]; then
-                recoverpoint_ingest "mp"
+                recoverpoint_ingest_tests "mp"
             fi
 
             if [ "${RPXIO_TESTS}" = "1" ]; then
-                recoverpoint_ingest "xio"
+                recoverpoint_ingest_tests "xio"
             fi
             
             # For now, if ingestion is turned on, complete the tests.  Once everything is stable, ingestion should just be part of normal RP testing.
@@ -6458,15 +6480,6 @@ recoverpoint_tests()
         if [ "$RPXIO_TESTS" = "1" ]; then
             secho 'XIO volume create...'
             run volume create ${rpxiovolume} $PROJECT ${rpxio_src_varray} ${rpxio_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_XIO_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-        fi
-
-        # Have to account for "-1" being added to volume name if
-        # volume count is greater than 1.
-        volume_name_modifier=''
-        if [ "$RP_VOLUME_COUNT" = "1" ]; then
-            volume_name_modifier=''
-        else
-            volume_name_modifier='-1'
         fi
 
         # Compile a list of target volume names that have been created for RP
@@ -6500,7 +6513,7 @@ recoverpoint_tests()
                 recoverpoint_change_vpool_test ${rpvolume}${volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
 
                 # Add Journal Test
-                recoverpoint_add_journal_volume ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
+                recoverpoint_add_journal_volume_test ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
                 
                 # Snapshot/Bookmark Test
                 if [ "${RP_CLR}" = "1" ]; then
@@ -6510,7 +6523,7 @@ recoverpoint_tests()
                 fi
 
                 # Failover Test
-                recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
+                recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]}
 
                 # Direct Access Failover Test
                 recoverpoint_direct_access_test ${rpvolume}${volume_name_modifier} ${rp_tgt_varrays} ${rp_src_varray} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP} "" 
@@ -6539,13 +6552,13 @@ recoverpoint_tests()
                 fi
 
                 # Add Journal Test
-                recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                recoverpoint_add_journal_volume_test ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
 
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]} ${rpvplex_tgt_varrays[0]} ${RP_VPLEX_CONSISTENCY_GROUP}
 
                 # Failover Test
-                recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
+                recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]}
 
                 # Direct Access Failover Test
                 recoverpoint_direct_access_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_tgt_varrays} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} "vplex"
@@ -6570,13 +6583,13 @@ recoverpoint_tests()
                 recoverpoint_change_vpool_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP} ${rpmp_migrate_vpool}
 
                 # Add Journal Test
-                recoverpoint_add_journal_volume ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+                recoverpoint_add_journal_volume_test ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]} ${rpmp_tgt_varrays[0]} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
                 # Failover Test
-                recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}${volume_name_modifier}
+                recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]}
 
                 # Direct Access Failover Test
                 recoverpoint_direct_access_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_varrays} ${rpmp_src_varray} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP} "mp"
@@ -6601,7 +6614,7 @@ recoverpoint_tests()
                 recoverpoint_change_vpool_test ${rpxiovolume}${volume_name_modifier} ${rpxio_noprotection_vpool} ${rpxio_src_vpool} ${RP_XIO_CONSISTENCY_GROUP}
 
                 # Add Journal Test
-                recoverpoint_add_journal_volume ${rpxio_tgt_varray} ${rpxio_tgt_varray} ${rpxio_tgt_vpool} ${RP_XIO_CONSISTENCY_GROUP}
+                recoverpoint_add_journal_volume_test ${rpxio_tgt_varray} ${rpxio_tgt_varray} ${rpxio_tgt_vpool} ${RP_XIO_CONSISTENCY_GROUP}
                 
                 # Snapshot/Bookmark Test
                 if [ "${RP_CLR}" = "1" ]; then
@@ -6611,7 +6624,7 @@ recoverpoint_tests()
                 fi
 
                 # Failover Test
-                recoverpoint_failover_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier}
+                recoverpoint_failover_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}
 
                 # CG Failover/Swap Test
                 recoverpoint_cg_failover_test ${RP_XIO_CONSISTENCY_GROUP} ${rpxiovolume}${volume_name_modifier} ${rpxio_src_varray} ${rpxio_tgt_volumes} ${rpxio_tgt_varrays}
@@ -6623,14 +6636,13 @@ recoverpoint_tests()
 
                 # RP Export Bookmark Test
                 recoverpoint_export_bookmark_tests ${rpxiovolume} $RECOVERPOINT_VARRAY1 ${rpxio_tgt_varrays} ${rpxio_src_vpool} "xio"
-
             fi
         fi
 
         ### End RecoverPoint test cases ###
 
         if [ "$RP_CLEANUP_VOLUMES" = "1" ]; then
-            secho 'RP cleanup'
+            hecho 'RP cleanup'
 
             if [ "$RP_TESTS" = "1" ]; then
                 secho 'RP volume cleanup...'
@@ -6652,10 +6664,9 @@ recoverpoint_tests()
             fi
 
             secho 'CG cleanup...'
-            recoverpoint_cleanup_cgs
-
-            secho 'RP tests done'
+            recoverpoint_cleanup_cgs            
         fi
+        hecho 'RP tests done'
     fi
 }
 
@@ -6663,6 +6674,105 @@ recoverpoint_tests()
 #
 #
 ######################### End of RecoverPoint ############################
+
+#
+# filepolicy tests configuration
+#
+SNAPSHOT_TYPE="file_snapshot"
+REPLICATION_TYPE="file_replication"
+APPLY_AT_VPOOL="vpool"
+APPLY_AT_PROJECT="project"
+REPLICATION_CONFIGURATION='false'
+SNAPSHOT_EXPIRE_TYPE="days"
+SNAPSHOT_EXPIRE_VALUE=3
+POLICY_SCHEDULE_FREQUENCY="days"
+POLICY_SCHEDULE_REPEAT=2
+POLICY_SCHEDULE_TIME="03:00"
+LOCAL_REPLICATION_TYPE="LOCAL"
+REMOTE_REPLICATION_TYPE="REMOTE"
+REPLICATION_COPY_MODE="ASYNC"
+APPLY_ON_TARGET_SITE="false"
+
+#
+# filepolicy tests
+#
+filepolicy_tests()
+{
+    echo "File policy tests started"
+    ISI_PROJECT=isiproject
+    run project create $ISI_PROJECT
+    cos=$1; shift
+    fpname=$SNAPSHOT_TYPE$APPLY_AT_VPOOL
+    echo $fpname
+    
+    echo "Creating snapshot file policy $fpname"
+    run filepolicy create_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL \
+                          --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE \
+                          --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE \
+                          --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
+                          --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
+                          --policyscheduletime $POLICY_SCHEDULE_TIME
+    
+    run filepolicy show $fpname
+    
+    echo "Assigning filepolicy $fpname to vpool $cos"
+    run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE --assign_to_vpools $cos
+    
+    echo "Unassigning filepolicy $fpname from vpool $cos"
+    run filepolicy vpool_unassign $fpname $cos
+    
+    echo "Deleting the file policy $fpname"
+    run filepolicy delete $fpname
+
+
+    fpname=$REPLICATION_TYPE$APPLY_AT_PROJECT
+    echo $fpname
+    
+    echo "Creating replication file policy $fpname"
+    
+    run filepolicy create_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT \
+                          --replicationtype $REMOTE_REPLICATION_TYPE \
+                          --replicationcopymode $REPLICATION_COPY_MODE \
+                          --replicationconfiguration $REPLICATION_CONFIGURATION \
+                          --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
+                          --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
+                          --policyscheduletime $POLICY_SCHEDULE_TIME \
+                          --is_access_to_tenants true
+    
+    sleep 15
+    run filepolicy show $fpname
+    
+    echo "Assigning filepolicy $fpname to project $ISI_PROJECT"
+    run filepolicy project_assign $fpname  \
+                         --apply_on_target_site true \
+                          --project_assign_vpool $cos \
+                          --assign_to_projects $ISI_PROJECT \
+                          --source_varray $REMOTE_NH \
+                          --target_varrays $NH  
+                          
+    datetime=`date +%m%d%y%H%M%S`
+    fsname=FilePolicyTest-$cos-$datetime
+    
+    echo "Creating filesystem $fsname"
+    run fileshare create $fsname $ISI_PROJECT $REMOTE_NH $cos $FS_SIZEMB
+    
+    sleep 15
+    echo "Displaying the filesystem created"
+    run fileshare show $ISI_PROJECT/$fsname 
+    
+    sleep 15
+    echo "Deleting the filesystem"
+    run fileshare delete $ISI_PROJECT/$fsname
+    
+    echo "Unassigning filepolicy $fpname from project $PROJECT"
+    run filepolicy project_unassign $fpname $ISI_PROJECT
+    
+    echo "Deleting the file policy $fpname"
+    run filepolicy delete $fpname
+    
+    echo "File Policy Test Completed."
+
+}
 
 hds_cos_setup()
 {
@@ -6830,12 +6940,16 @@ sbsdk_setup()
     echo "***** Creating virtual pool $SBSDK_DRIVER_SYS_VPOOL_NAME *****"
     run cos create block $SBSDK_DRIVER_SYS_VPOOL_NAME true     \
                      --description 'SBSDK-sanity-virtual-pool' \
+                     --systemtype $SBSDK_DRIVER_SYS_TYPE       \
                      --protocols FC                            \
                      --numpaths 2                              \
                      --provisionType 'Thin'                    \
                      --neighborhoods $NH                       \
                      --max_snapshots 1                         \
                      --max_mirrors 1                           \
+                     --host_io_limit_bandwidth 100             \
+                     --host_io_limit_iops 200                  \
+                     --compressionEnabled true                 \
                      --expandable false 
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
@@ -7482,18 +7596,18 @@ vmaxblock_setup_once()
 {
     # do this only once
     smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
-
+ 
     if [ $QUICK -eq 0 ]; then
        run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
        if [ $VMAX3_COMPRESSION -eq 1 ]; then
-       	  run smisprovider create $VMAX3_SMIS_AFA_DEV $VMAX3_SMIS_AFA_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL 
+       	  run smisprovider create $VMAX3_SMIS_AFA_DEV $VMAX3_SMIS_AFA_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL       	   
        fi
-    else
-	if [ "$SIMULATOR_VMAX_SMIS_PORT" = "" ]; then
-	    # This can be removed in the skywalker release
-	    echo "Update your sanity.conf to the latest version and rerun, please."
-	    exit -1
-	fi
+       else
+        if [ "$SIMULATOR_VMAX_SMIS_PORT" = "" ]; then
+            # This can be removed in the skywalker release
+            echo "Update your sanity.conf to the latest version and rerun, please."
+            exit -1
+        fi
        run smisprovider create $VMAX_SMIS_DEV $SIMULATOR_SMIS_IP $SIMULATOR_VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" false
     fi
 
@@ -8286,17 +8400,24 @@ file_tests()
 	    run fileshare delete $PROJECT/${fs2}
     fi
 
-    run fileshare delete $PROJECT/$fsname --forceDelete true
+    run fileshare delete $PROJECT/$fsname
 
     if [ $cos = $COS_VNXFILE ] ; then
-        fsForceDelete="forceDeleteTestVNX"
-        echo "--Force Delete tests for VNXFile--"
+        fsForceDelete="deleteTestVNX"
+        echo "--Delete tests for VNXFile--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run fileshare export $PROJECT/$fsForceDelete $exp_args
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
         run snapshot export $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete $SNAPEXP_DEFAULT_EPS
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot unexport $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare unexport $PROJECT/$fsForceDelete
+        run fileshare delete $PROJECT/$fsForceDelete
+        
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8305,12 +8426,16 @@ file_tests()
 
 
     if [ $cos = $COS_NETAPP ] ; then
-        fsForceDelete="forceDeleteTestNETAPP"
-        echo "--Force Delete tests for NETAPP--"
+        fsForceDelete="deleteTestNETAPP"
+        echo "--Delete tests for NETAPP--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8318,12 +8443,16 @@ file_tests()
     fi
 
     if [ $cos = $COS_NETAPPC ] ; then
-        fsForceDelete="forceDeleteTestNETAPPC"
-        echo "--Force Delete tests for NETAPPC--"
+        fsForceDelete="deleteTestNETAPPC"
+        echo "--Delete tests for NETAPPC--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
         # duplicate label Test - Should fail
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         # run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8331,12 +8460,16 @@ file_tests()
     fi
 
     if [ $cos = $COS_ISIFILE ] ; then
-        fsForceDelete="forceDeleteTestISILON"
-        echo "--Force Delete tests for ISILON--"
+        fsForceDelete="deleteTestISILON"
+        echo "--delete tests for ISILON--"
         run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime
         run snapshot create $PROJECT/$fsForceDelete $fsForceDelete-$datetime-2
-        run fileshare delete $PROJECT/$fsForceDelete --forceDelete true
+        # force delete is not supported from release 3.6.2
+        # so, delete configuration on snapshot and snapshots explicitly
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime $PROJECT/$fsForceDelete 
+        run snapshot delete $PROJECT/$fsForceDelete-$datetime-2 $PROJECT/$fsForceDelete 
+        run fileshare delete $PROJECT/$fsForceDelete
 	# duplicate label Test - Should fail
 	# run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
 	# run fileshare create $fsForceDelete $PROJECT $NH $cos $FS_SIZE
@@ -8344,14 +8477,14 @@ file_tests()
 
     # Force Delete test for Data Domain
     if [ $cos = $COS_DDFILE ] ; then
-        fsForceDelete="forceDeleteTestDATADOMAIN"
+        fsForceDelete="deleteTestDATADOMAIN"
         #File systems (mtrees) are not deleted from DDMC, just marked inactive
         #until the GC runs.  To avoid conflict with the previous run, we attach
         #a timestamp to FS name.
         fsForceDeleteTimed=$fsForceDelete-$datetime
-        echo "--Force Delete tests for DATADOMAIN--"
+        echo "--Delete tests for DATADOMAIN--"
         run fileshare create $fsForceDeleteTimed $PROJECT $NH $cos $FS_SIZE
-        run fileshare delete $PROJECT/$fsForceDeleteTimed --forceDelete true
+        run fileshare delete $PROJECT/$fsForceDeleteTimed
     fi
 
     # File System Quota directory ops.
@@ -8365,8 +8498,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8380,7 +8513,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8394,8 +8528,8 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs" 
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
     
     # File System Quota directory ops.
@@ -8411,8 +8545,9 @@ file_tests()
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
         run fileshare update_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --sec "ntfs"
         run fileshare show_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
-        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2 --forceDelete true
-        run fileshare delete $PROJECT/$fsQuotaDir --forceDelete true
+        run fileshare delete_quota_dir $PROJECT/$fsQuotaDir $quotaDir2
+        run fileshare unexport $PROJECT/$fsQuotaDir
+        run fileshare delete $PROJECT/$fsQuotaDir
     fi
 
 }
@@ -14517,6 +14652,130 @@ arrayaffinity_tests()
     arrayaffinity_cleanup
 
     secho "Completed array affinity tests"
+}
+
+COS_PORTGROUP=cos_portgroup
+HOST_PORTGROUP=hostpg
+portgroup_setup_once()
+{
+    # do this only once
+    smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
+
+    run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
+
+    sleep 15
+
+    secho "VMAX storage pool update"
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+    
+    echo "Enabling use port group"
+    customconfig create VMAXUsePortGroupEnabled true systemType vmax --register true
+}
+
+portgroup_cos_setup()
+{
+    secho "setting up port group block virtual pool"
+
+    run cos create block $COS_PORTGROUP \
+        --description 'Virtual-Pool-for-portgroup' true \
+                         --protocols FC \
+                         --numpaths 2 \
+                         --max_snapshots 10 \
+                         --system_type vmax \
+                         --provisionType 'Thin' \
+                         --expandable true \
+                         --neighborhoods $NH \
+                         --multiVolumeConsistency 
+
+    run cos update block $COS_PORTGROUP --storage $VMAX_NATIVEGUID
+
+}
+
+portgroup_host_setup()
+{
+    portwwn1=10:a1:b1:c1:d1:e1:f1:01
+    nodewwn1=20:a1:b1:c1:d1:e1:f1:01
+    portwwn2=10:a2:b2:c2:d2:e2:f2:02
+    portwwn3=10:a3:b3:c3:d3:e3:f3:03
+    portwwn4=10:a4:b4:c4:d4:e4:f4:04
+    fctz=${NH}/FABRIC_losam082-fabric
+    host1=hostpg
+    echo "Creating host with name $HOST_PORTGROUP"
+    run hosts create ${HOST_PORTGROUP} $TENANT Other ${HOST_PORTGROUP} --port 8111 --username user --password 'password' --osversion 1.0
+    run initiator create ${HOST_PORTGROUP} FC $portwwn1 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn2 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn3 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn4 --node $nodewwn1
+    echo "Adding WWNs to Network"
+    run transportzone add $fctz $portwwn1
+    run transportzone add $fctz $portwwn2
+    run transportzone add $fctz $portwwn3
+    run transportzone add $fctz $portwwn4
+
+    echo "Getting host URI"
+    HOST_PORTGROUP_URI=`hosts list ${TENANT} | grep ${HOST_PORTGROUP} | awk '{print $4}'`
+    echo "Host URI is ${HOST_PORTGROUP_URI}"
+}
+
+portgroup_setup()
+{
+    secho "Run port group tests setup"
+    portgroup_setup_once
+    portgroup_cos_setup
+    portgroup_host_setup
+    secho "Completed port group setup"
+}
+
+portgroup_operations_tests()
+{
+    echo "Executing port group tests"
+    portgroup=portgroup-${RANDOM}
+    storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-2D:8' 'FA-1D:8' 'FA-3D:8' 'FA-4D:8'
+    storageportgroup show $VMAX_NATIVEGUID/$portgroup
+    storageportgroup deregister ${VMAX_NATIVEGUID}/${portgroup}
+    storageportgroup register ${VMAX_NATIVEGUID}/${portgroup}
+    
+    vol1=volpg1-${RANDOM}
+    vol2=volpg2-${RANDOM}
+
+    echo "Creating volume with name $vol1 $vol2"
+    run volume create $vol1 $PROJECT $NH $COS_PORTGROUP $BLK_SIZE --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+    run volume create $vol2 $PROJECT $NH $COS_PORTGROUP $BLK_SIZE --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+
+    eg=egpg-${RANDOM}
+    run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $HOST_PORTGROUP --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+    run export_group update ${PROJECT}/$eg --addVolspec "${PROJECT}/${vol2}"
+
+    echo "Deleting volume $vol1"
+    run export_group delete ${PROJECT}/${eg}
+    run volume delete ${PROJECT}/${vol1} --wait
+    run volume delete ${PROJECT}/${vol2} --wait
+    storageportgroup delete ${VMAX_NATIVEGUID}/${portgroup}
+
+    echo "**** Done port group operations tests"
+}
+
+portgroup_cleanup()
+{
+    echo "Deleting VPools"
+
+    # delete cos so that test can be executed again
+    run cos delete $COS_PORTGROUP block
+    echo "Deleting host ${HOST_PORTGROUP}"
+    run hosts delete ${HOST_PORTGROUP}
+}
+
+# Port group tests command: "sanity sanity.conf viprIP portgroup"
+portgroup_tests()
+{
+    secho "Executing portgroup tests"
+
+    portgroup_operations_tests
+    portgroup_cleanup
+
+    secho "Completed portgroup tests"
 }
 
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run

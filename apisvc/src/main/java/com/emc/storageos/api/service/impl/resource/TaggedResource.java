@@ -20,12 +20,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.util.TagUtils;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
 import org.apache.commons.lang.StringUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +32,8 @@ import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -51,6 +48,7 @@ import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
 import com.emc.storageos.security.authorization.InheritCheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.InvokeTestFailure;
 
 /**
  * Base class for all resources with
@@ -91,6 +89,9 @@ public abstract class TaggedResource extends ResourceService {
     public Tags assignTags(@PathParam("id") URI id, TagAssignment assignment) {
         DataObject object = queryResource(id);
         ArgValidator.checkEntityNotNull(object, id, isIdEmbeddedInURL(id));
+
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_082);
+
         ScopedLabelSet tagSet = object.getTag();
         if (tagSet == null) {
             tagSet = new ScopedLabelSet();

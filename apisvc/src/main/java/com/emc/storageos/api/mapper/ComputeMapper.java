@@ -20,10 +20,12 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -82,7 +84,7 @@ public class ComputeMapper {
         return to;
     }
 
-    public static ComputeElementRestRep map(ComputeElement from) {
+    public static ComputeElementRestRep map(ComputeElement from, Host host, Cluster cluster) {
         if (from == null) {
             return null;
         }
@@ -100,6 +102,14 @@ public class ComputeMapper {
         to.setComputeSystem(toRelatedResource(ResourceTypeEnum.COMPUTE_SYSTEM,
                 from.getComputeSystem()));
         to.setRegistrationStatus(from.getRegistrationStatus());
+        if (host!=null) {
+           StringBuffer hostName = new StringBuffer();
+           if (cluster!=null){
+              hostName.append(cluster.getLabel()+": ");
+           }
+           hostName.append(host.getLabel());
+           to.setHostName(hostName.toString());
+        }
         return to;
     }
 

@@ -82,6 +82,12 @@ public class TrustStoreResource {
         this.coordConfigStoringHelper = coordConfigStoringHelper;
     }
 
+    /**
+     * Get Trusted Certificates
+     * 
+     * @brief List certificates
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
@@ -118,6 +124,13 @@ public class TrustStoreResource {
         return certs;
     }
 
+    /**
+     * Add Or Remove Trusted Certificate
+     * 
+     * @param changes
+     * @brief Add or delete certificates
+     * @return
+     */
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -250,6 +263,12 @@ public class TrustStoreResource {
         }
     }
 
+    /**
+     * Get Truststore Settings
+     * 
+     * @brief Show truststore
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
@@ -260,6 +279,13 @@ public class TrustStoreResource {
         return settings;
     }
 
+    /**
+     * Update Truststore Settings
+     * 
+     * @param changes
+     * @brief Update truststore	
+     * @return
+     */
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

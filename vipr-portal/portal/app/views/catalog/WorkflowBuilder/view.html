@@ -1,0 +1,150 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.workflowBuilder'] /}
+
+#{script 'jquery.panzoom.js'/}
+#{script 'jquery-ui.js'/}
+#{script 'jsPlumb-2.1.7.js'/}
+#{script 'workflowbuilder.js'/}
+#{script 'jstree.min.js'/}
+#{createShellPrimitive /}
+#{createLocalAnsiblePrimitive/}
+#{createRestAPIPrimitive/}
+#{createRemoteAnsiblePrimitive/}
+#{importWorkflow/}
+
+<style>
+    .dl-horizontal dt
+    {
+        text-align: left;
+        padding-bottom: 10px;
+    }
+    .dl-horizontal dd
+    {
+        padding-bottom: 10px;
+    }
+    .modal-body {
+        height:250px;
+        overflow:auto;
+    }
+    .importBody {
+        height:100px;
+        overflow:auto;
+    }
+    .modal-footer {
+        border-top: none;
+    }
+
+    .jstree-anchor {
+        width: 300px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
+    .dropdown-menu {
+        min-width: 0px !important;
+    }
+
+    .input-group-btn select {
+        border-color: #ccc;
+        margin-top: 0px;
+        margin-bottom: 0px;
+        padding-top: 7px;
+        padding-bottom: 7px;
+    }
+
+    /* modify contentArea element only on this page */
+    /* this cannot be added to workflowbuilder.less or it will be added to all pages */
+    #contentArea {
+        position: absolute;
+        overflow: scroll;
+        top: 0px;
+        margin-top: 40px;
+        left: 0;
+        bottom: 0;
+        right: 0;
+    }
+
+</style>
+<div id="row-main" class="row">
+    <div ng-controller="treeController" class="tree-controller">
+        <div id="libSidebar" style="padding-right:0px; padding-left:5px;">
+            <div id="theSidebar" class="home-sidebar" >
+                <div style="font-size: 20px;padding: 15px;">
+                    &{'wfBuilder.library.header'}
+                </div>
+                <div id="wfAlertsDiv">#{alerts/}</div>
+                <div class="input-group">
+                    <input style="float:left;width:300px;"  class="search-input form-control" placeholder="Search..."></input>
+                    <span class="input-group-btn">
+                        <div class="btn-group" style="padding-right:5px;">
+                            <button id="addWorkflow" type="button" class="btn btn-xs btn-success dropdown-toggle" title="Add" data-toggle="dropdown">
+                                <span class="glyphicon glyphicon-plus"></span> <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu">
+                                <li class="dropdown-header">&{'wfBuilder.menu.operations'}</li>
+                                <li><a href="#" ng-click="openShellScriptModal();">&{'wfBuilder.menu.addShellScript'}</a></li>
+                                <li><a href="#" ng-click="openLocalAnsibleModal();">&{'wfBuilder.menu.addLocalAnsible'}</a></li>
+                                <li><a href="#" ng-click="openRemoteAnsibleModal();">&{'wfBuilder.menu.addRemoteAnsible'}</a></li>
+                                <li><a href="#" ng-click="openRestAPIModal();">&{'wfBuilder.menu.addRestAPI'}</a></li>
+                                <li role="separator" class="divider"></li>
+                                <li><a href="#" ng-click="addWorkflow();">&{'wfBuilder.menu.addWorkflow'}</a></li>
+                                <li><a href="#" ng-click="importWorkflow();">&{'wfBuilder.menu.import'}</a></li>
+                                <li role="separator" class="divider"></li>
+                                <li><a href="#" ng-click="addFolder();">&{'wfBuilder.menu.addFolder'}</a></li>
+
+                            </ul>
+                        </div>
+                    </span>
+                </div>
+                <div class="jstree-container">
+                    <div id="jstree_demo" style="padding-top:10px;">
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <button class="lib-slider-button"  ng-click="toggleLib();">
+                    <span ng-class="{'glyphicon-chevron-left':libOpen,'glyphicon-chevron-right':!libOpen}" class="glyphicon" style="width:8px;font-size:10px;"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workflow Tabs -->
+    <div id="builderController" ng-controller="builderController">
+        <div class="builder-column">
+            <div ng-show="isWorkflowTabsEmpty()" style="height:100%;">
+                <div class="homeTab">
+                        <div>
+                            &{'wfBuilder.tab.home.message'}
+                        </div>
+                </div>
+            </div>
+
+            <ul id="wftabs" class="nav nav-tabs workflow-nav-tabs" role="tablist" ng-hide="isWorkflowTabsEmpty()">
+                <li ng-repeat="workflowTab in workflowTabs" class="">
+                    <a class="workflow-tab" href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{(isTabModified(workflowTab)? '*' : '') + workflowTab.name}}
+                        <button class="close tab-close" ng-click="closeTab(workflowTab)" type="button" title="Close tab" style="margin: -2px 0 0 5px;">&times;</button>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content builder-tab-content" style="padding: 0px;">
+                #{workflowDesigner/}
+            </div>
+        </div>
+    </div>
+
+    <div style="display: none">
+        #{form @exportWorkflow(), id:'exportWorkflowForm'}
+            <input type="hidden" id="exportWorkflowId" name="workflowId" />
+        #{/form}
+    </div>
+    <div style="display: none">
+        #{form @deletePrimitive(), id:'deletePrimitiveForm'}
+            <input type="hidden" id="deletePrimitiveId" name="primitiveId" />
+            <input type="hidden" id="deleteDirId" name="dirID" />
+        #{/form}
+    </div>
+
+</div>

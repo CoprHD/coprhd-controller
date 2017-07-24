@@ -398,6 +398,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 existingSession, _dbClient);
 
         for (Volume volume : volumes) {
+            // this may be the case if there is a snapshot on only one leg of a VPLEX volume (the backend storage device ids won't match)
+            if (volume != null && !URIUtil.identical(volume.getStorageController(), existingSession.getStorageController())) {
+                log.info("existing block snapshot session storage device id (%s) doesn't match volume storage device id (%s), skipping.", 
+                        existingSession.getStorageController(), volume.getStorageController());
+                continue;
+            }
+
             // delete the new session object at the end from DB
             BlockSnapshotSession session = prepareSnapshotSessionFromSource(volume, existingSession);
             log.info("adding snapshot session create step for volume {}", volume.getLabel());
@@ -601,6 +608,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
         NamedURI project = volume.getProject();
+
         // if this volume is a backend volume for VPLEX virtual volume,
         // get the project from VPLEX volume as backend volume have different project set with internal flag.
         if (Volume.checkForVplexBackEndVolume(_dbClient, volume)) {

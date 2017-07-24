@@ -229,7 +229,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             if (null != accessProfile.getnamespace() && (accessProfile.getnamespace()
                     .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())
                     || accessProfile.getnamespace()
-                            .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()))) {
+                    .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()))) {
                 discoverUnmanagedObjects(accessProfile);
             } else {
                 // Get the VNX Unity storage system from the database.
@@ -414,7 +414,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             detailedStatusMessage = String.format("Discovery failed for VNX Unity %s: %s", storageSystemURI.toString(),
                     e.getLocalizedMessage());
             _logger.error(detailedStatusMessage, e);
-            throw VNXeException.exceptions.discoveryError("Discovery error", e);
+            throw VNXeException.exceptions.discoveryError(storageSystemURI.toString(), e);
         } finally {
             if (viprStorageSystem != null) {
                 try {
@@ -578,7 +578,8 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             }
 
             long totalTime = System.currentTimeMillis() - startTime;
-            _logger.info(String.format("Array Affinity discovery of Storage System %s took %f seconds", systemURI.toString(), (double) totalTime
+            _logger.info(String.format("Array Affinity discovery of Storage System %s took %f seconds", systemURI.toString(),
+                    (double) totalTime
                     / (double) 1000));
         }
     }
@@ -711,7 +712,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     for (Disk disk : disks) {
                         if (disk.getDiskTechnologyEnum() != null) {
                             diskTypes.add(disk.getDiskTechnologyEnum().name());
-                        } 
+                        }
                     }
                 }
                 pool.setSupportedDriveTypes(diskTypes);
@@ -803,6 +804,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             if ((nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION)
                     || nasServer.getIsReplicationDestination()) {
                 _logger.debug("Found a replication destination NasServer");
+                // On failover the existing Nas server becomes the destination. So changing state to unknown as it
+                // should not be picked for provisioning.
+                VirtualNAS vNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, nasServer.getId());
+                if (vNas != null) {
+                    vNas.setNasState(VirtualNasState.UNKNOWN.name());
+                    existingVirtualNas.add(vNas);
+                }
                 continue;
             }
 
@@ -891,7 +899,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 }
             }
 
-            VirtualNAS vNas = findvNasByNativeId(system, nasServer.getId());
+            VirtualNAS vNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, nasServer.getId());
 
             // If the nasServer was not previously discovered
             if (vNas == null) {
@@ -1041,7 +1049,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
             // Associate Storage Port to Virtual NAS
 
-            VirtualNAS vNas = findvNasByNativeId(system, nasServerId);
+            VirtualNAS vNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, nasServerId);
             if (vNas != null) {
                 if (vNas.getStoragePorts() != null && !vNas.getStoragePorts().isEmpty()) {
                     if (vNas.getStoragePorts().contains(port.getId())) {
@@ -1065,38 +1073,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         storagePorts.put(NEW, newStoragePorts);
         storagePorts.put(EXISTING, existingStoragePorts);
         return storagePorts;
-    }
-
-    /**
-     * Find the Virtual NAS by Native ID for the specified VNX unity storage
-     * array
-     * 
-     * @param system
-     *            storage system information including credentials.
-     * @param Native
-     *            id of the specified Virtual NAS
-     * @return Virtual NAS Server
-     */
-    private VirtualNAS findvNasByNativeId(StorageSystem system, String nativeId) {
-        URIQueryResultList results = new URIQueryResultList();
-        VirtualNAS vNas = null;
-
-        // Set storage port details to vNas
-        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, nativeId, NativeGUIDGenerator.VIRTUAL_NAS);
-
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualNASByNativeGuidConstraint(nasNativeGuid), results);
-        Iterator<URI> iter = results.iterator();
-        while (iter.hasNext()) {
-            VirtualNAS tmpVnas = _dbClient.queryObject(VirtualNAS.class, iter.next());
-
-            if (tmpVnas != null && !tmpVnas.getInactive()) {
-                vNas = tmpVnas;
-                _logger.info("found virtual NAS {}", tmpVnas.getNativeGuid() + ":" + tmpVnas.getNasName());
-                break;
-            }
-        }
-        return vNas;
-
     }
 
     /**
@@ -1551,7 +1527,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     // skip system nasServer
                     continue;
                 }
-                VirtualNAS virtualNAS = findvNasByNativeId(storageSystem, nasServer.getId());
+                VirtualNAS virtualNAS = DiscoveryUtils.findvNasByNativeId(_dbClient, storageSystem, nasServer.getId());
                 if (virtualNAS != null) {
                     _logger.info("Process db metrics for nas server : {}", nasServer.getName());
                     StringMap dbMetrics = virtualNAS.getMetrics();

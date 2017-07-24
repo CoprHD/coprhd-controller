@@ -62,10 +62,10 @@ public class SRDFTaskCompleter extends TaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
         setDbClient(dbClient);
-        setStatus(dbClient, status, coded);
-        updateWorkflowStatus(status, coded);
         updateVolumeStatus(dbClient, status);
         updateConsistencyGroupTasks(dbClient, status, coded);
+        setStatus(dbClient, status, coded);
+        updateWorkflowStatus(status, coded);    // Advances workflow, so do this last.
     }
 
     protected void setDbClient(DbClient dbClient) {
@@ -162,7 +162,6 @@ public class SRDFTaskCompleter extends TaskCompleter {
 
             recordBourneSRDFEvent(dbClient, getId(), evType, status, evDesc);
 
-            String id = (String) extParam[0];
             switch (opType) {
                 case CREATE_SRDF_LINK:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);

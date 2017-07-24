@@ -1,0 +1,21 @@
+{
+  baseKey:"NasReduceFileSystem.File",
+  serviceId:"NasReduceFileSystem",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileFilesystem"
+    },
+
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    }
+  }
+}

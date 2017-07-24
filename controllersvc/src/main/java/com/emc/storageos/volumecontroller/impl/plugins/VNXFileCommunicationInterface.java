@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.nas.vnxfile.xmlapi.TreeQuota;
+import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -42,6 +43,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -72,7 +74,6 @@ import com.emc.storageos.vnx.xmlapi.VNXDataMoverIntf;
 import com.emc.storageos.vnx.xmlapi.VNXException;
 import com.emc.storageos.vnx.xmlapi.VNXFileSshApi;
 import com.emc.storageos.vnx.xmlapi.VNXFileSystem;
-import com.emc.storageos.vnx.xmlapi.VNXQuotaTree;
 import com.emc.storageos.vnx.xmlapi.VNXStoragePool;
 import com.emc.storageos.vnx.xmlapi.VNXVdm;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
@@ -82,6 +83,7 @@ import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileDiscExecutor;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileExecutor;
+import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
@@ -188,6 +190,31 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
 
         return "";
+    }
+
+    /**
+     * Check and add valid SMIS connection for storage system to ConnectionManager.
+     * 
+     * @param accessProfile
+     *            : AccessProfile for the providers
+     * @param StorageSystem
+     *            : Storage system
+     * @return boolean : true if connection can be establish
+     */
+    private boolean getVnxFileSMISConnection(AccessProfile accessProfile, StorageSystem system) {
+        try {
+            final CIMConnectionFactory connectionFactory = (CIMConnectionFactory) accessProfile
+                    .getCimConnectionFactory();
+            // getConnection method also add the valid connection to connection manager.
+            CimConnection cxn = connectionFactory.getConnection(system);
+            if (cxn != null && connectionFactory.checkConnectionliveness(cxn)) {
+                return true;
+            }
+        } catch (final Exception ex) {
+            _logger.error("Not able to get CIMOM Client instance for provider ip {} due to ",
+                    system.getSmisProviderIP(), ex);
+        }
+        return false;
     }
 
     /**
@@ -299,6 +326,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     storageSystem.getPassword());
             String model = sshDmApi.getModelInfo();
             storageSystem.setModel(model);
+
+            boolean connectionStatus = getVnxFileSMISConnection(accessProfile, storageSystem);
+            if (connectionStatus) {
+                storageSystem.setSmisConnectionStatus(ConnectionStatus.CONNECTED.toString());
+            } else {
+                storageSystem.setSmisConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
+            }
 
             _dbClient.persistObject(storageSystem);
             if (!storageSystem.getReachableStatus()) {
@@ -1531,6 +1565,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             StringSet umfsIds = new StringSet();
             if (discoveredFS != null) {
                 for (VNXFileSystem fs : discoveredFS) {
+
+                    if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getFsName())) {
+                        // skipping this file system because the filter doesn't match
+                        continue;
+                    }
+
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                             storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), fs.getFsId() + "");

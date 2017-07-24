@@ -24,6 +24,10 @@ def volume_create(args):
     if (args.consistencyGroup):
     	cons_grp_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
 
+    port_group_uri = ''
+    if(args.portgroup):
+        port_group_uri = bourne.storageportgroup_query(args.portgroup)
+        
     volumeCount = 1
     if (args.count):
         volumeCount = args.count
@@ -34,7 +38,7 @@ def volume_create(args):
    
     start = time.time()
     tr_list = bourne.volume_create(args.label, project_uri, nh_uri, cos_uri, args.size, isThinVolume, volumeCount,
-                                  args.protocols, args.protection, cons_grp_uri, args.computeResource)
+                                  args.protocols, args.protection, cons_grp_uri, args.computeResource, port_group_uri)
     total = time.time() - start
     print "Volume create took", "{0:.2f}".format(total), "seconds to complete"
     #print 'Volume_create debug : ' + str(s)
@@ -431,6 +435,7 @@ create.add_argument('--protection',     help = 'data protection level for this v
 create.add_argument('--consistencyGroup', help = 'add the volume to the specified consistency group for snapshot operations')
 create.add_argument('--thinVolume', help = 'boolean indication if volume is thin or thick')
 create.add_argument('--computeResource', help = 'The name of a host or cluster to which the volume will be exported')
+create.add_argument('--portgroup',      help = 'The storage system name + port group name')
 
 # volume add_journal
 add_journal = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -440,7 +445,7 @@ add_journal.add_argument('neighborhood',	help = 'neighborhood where journal volu
 add_journal.add_argument('cos',		help = 'cos name for journal volume')
 add_journal.add_argument('size',		help = 'size of journal volume')
 add_journal.add_argument('--count',		help = 'Number of journal volumes to create')
-add_journal.add_argument('--consistencyGroup', help = 'add the journal volume to the specified consistancy group')
+add_journal.add_argument('--consistencyGroup', help = 'add the journal volume to the specified consistency group')
 
 # volume full_copy label name
 full_copy = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -482,7 +487,6 @@ change_cos.add_argument('name',	help = 'names of all the volumes to change cos')
 change_cos.add_argument('cos', help = 'name of the new cos')
 change_cos.add_argument('--consistencyGroup', help = 'use the specified consistency group for the change cos operation')
 change_cos.add_argument('--suspend', action='store_true', help = 'suspend the workflow before commit and delete of original source volume')
-
 
 # volume change_cos_matches
 change_cos_matches = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

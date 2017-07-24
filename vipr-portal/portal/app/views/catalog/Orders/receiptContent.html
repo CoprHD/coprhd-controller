@@ -55,6 +55,9 @@
         Receipt.watchDisplay('#affectedResources');
         Receipt.watchValue('#affectedResources .content');
         
+        Receipt.watchDisplay('#taskWarningMessages');
+        Receipt.watchValue('#taskWarningMessages .content');
+        
         Receipt.watchDisplay('#Order_executionLogs');
         Receipt.watchDisplay('#Order_executionLogs table');
         Receipt.watchChildren('#Order_executionLogs table > tbody', 'tr');
@@ -211,7 +214,18 @@
     #{Services.executionWindow details.catalogService/}
   #{/if}
   </div>
-  
+    
+  <div id="taskWarningMessages" #{if !details.viprTaskWarningMessages}style="display:none"#{/if}>
+    <div class="section-header"><h1>&{'order.taskWarningMessages'}</h1></div>
+    <div class="content">
+      <div class="task-warning-messages">
+        #{list details.viprTaskWarningMessages, as:'message'}
+          <p>${message}</p>
+        #{/list}
+      </div>
+    </div>
+  </div>
+   
   <div id="affectedResources" #{if !details.affectedResources}style="display:none"#{/if}>
     <div class="section-header"><h1>&{'order.affectedResources'}</h1></div>
     <div class="content">

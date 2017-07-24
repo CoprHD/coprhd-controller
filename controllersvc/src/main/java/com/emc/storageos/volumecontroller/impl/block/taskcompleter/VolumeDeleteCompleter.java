@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
@@ -13,12 +12,9 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Stat;
-import com.emc.storageos.db.client.model.StatTimeSeries;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -84,8 +80,6 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
                 // Generate Zero Metering Record only after successful deletion
                 if (Operation.Status.ready == status) {
                     if (null != volume) {
-                        generateZeroStatisticsRecord(dbClient, volume);
-
                         removeDeletedVolumeReference(dbClient, volume);
                     }
                 }
@@ -106,43 +100,6 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
                             .toString(), getOpId()), e);
         } finally {
             super.complete(dbClient, status, coded);
-        }
-    }
-
-    /**
-     * Generate Zero Statistics Record for successfully deleted Volumes
-     * 
-     * @param dbClient
-     * @param volume
-     * @throws IOException
-     */
-    private void generateZeroStatisticsRecord(DbClient dbClient, Volume volume) {
-        try {
-            Stat zeroStatRecord = new Stat();
-            zeroStatRecord.setTimeInMillis(System.currentTimeMillis());
-            zeroStatRecord.setTimeCollected(System.currentTimeMillis());
-            zeroStatRecord.setServiceType(Constants._Block);
-            zeroStatRecord.setAllocatedCapacity(0);
-            zeroStatRecord.setProvisionedCapacity(0);
-            zeroStatRecord.setBandwidthIn(0);
-            zeroStatRecord.setBandwidthOut(0);
-            zeroStatRecord.setTotalIOs(0);
-            zeroStatRecord.setIdleTimeCounter(0);
-            zeroStatRecord.setQueueLength(0);
-            zeroStatRecord.setWriteIOs(0);
-            zeroStatRecord.setReadIOs(0);
-            zeroStatRecord.setKbytesTransferred(0);
-            zeroStatRecord.setIoTimeCounter(0);
-            zeroStatRecord.setNativeGuid(volume.getNativeGuid());
-            zeroStatRecord.setSnapshotCapacity(0);
-            zeroStatRecord.setSnapshotCount(0);
-            zeroStatRecord.setResourceId(volume.getId());
-            zeroStatRecord.setVirtualPool(volume.getVirtualPool());
-            zeroStatRecord.setProject(volume.getProject().getURI());
-            zeroStatRecord.setTenant(volume.getTenant().getURI());
-            dbClient.insertTimeSeries(StatTimeSeries.class, zeroStatRecord);
-        } catch (Exception e) {
-            _log.error("Zero Stat Record Creation failed for Volume : {}", volume.getId());
         }
     }
 }

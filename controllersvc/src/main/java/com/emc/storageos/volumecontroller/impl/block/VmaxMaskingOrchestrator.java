@@ -823,7 +823,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
                 initiatorToComputeResourceMap, matchingMasks,
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
-        
+
         /**
          * COP-28674: During Vblock boot volume export, if existing masking views are found then check for existing volumes
          * If found throw exception. This condition is valid only for boot volume vblock export.
@@ -853,6 +853,26 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         } else {
             _log.info("VBlock Boot volume Export Validation : Skipping");
+        }
+
+        /**
+         * To support multiple export for VMAX3 volumes with Host IO Limit, same Storage Group and
+         * Port Group should be used to create a new masking view. Re-using same storage group will
+         * lead to problems as it could have additional volumes. Also reusing a child storage group
+         * in a masking view to another masking view is not supported.
+         */
+        if (storage.checkIfVmax3() && ExportUtils.checkIfvPoolHasHostIOLimitSet(_dbClient, volumeMap)) {
+            _log.info("Volumes have Host IO Limit set in virtual pools. Validating for multiple export..");
+            Map<String, List<URI>> storageGroupToVolumes =
+                    getDevice().groupVolumesByStorageGroupWithHostIOLimit(storage, volumeMap.keySet());
+            if (!storageGroupToVolumes.isEmpty()) {
+                ExportOrchestrationTask completer = new ExportOrchestrationTask(exportGroup.getId(), token);
+                ServiceError serviceError = DeviceControllerException.errors.cannotMultiExportVolumesWithHostIOLimit(
+                        Joiner.on(",").join(storageGroupToVolumes.keySet()),
+                        Joiner.on(",").join(storageGroupToVolumes.values()));
+                completer.error(_dbClient, serviceError);
+                return false;
+            }
         }
 
         findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
@@ -887,7 +907,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, ExportMaskPolicy> policyCache = new HashMap<>();
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
                     + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}", Joiner.on(",")
-                    .join(initiatorHelper.getPortNames()), Joiner.on(",").join(initiatorToExportMaskPlacementMap.keySet()), Joiner
+                    .join(initiatorHelper.getPortNames()), Joiner.on(",").join(initiatorToExportMaskPlacementMap.values()), Joiner
                     .on(",").join(initiatorHelper.getPortNameToInitiatorURI().entrySet())));
             // There are some initiators that already exist. We need to create a
             // workflow that create new masking containers or updates masking
@@ -974,6 +994,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         // "new" exports will never see the light of day.
                         _log.info("New export mask will be created for initiator {}", initiatorURI);
                         initiatorsForNewExport.add(initiatorURI);
+                        // remove this mask from policyCache
+                        policyCache.remove(mask.getId());
                         continue;
                     }
 
@@ -1644,13 +1666,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // and it's using cascading storage groups.
                             if (rule == 2) {
                                 // if it is a cascaded SG, mask need to be selected
-                                if (!policy.simpleMask) {
+                                // VMAX3: Phantom SGs are not created for VMAX3, so ignore the mask
+                                if (!policy.simpleMask && checkIfRule2SatisfiesForVMAX3(isVMAX3, policy)) {
                                     _log.info("Pre-existing mask Matched rule 2A: volume has FAST policy and masking view has cascaded storage group");
-                                    // No need to check for phantom SGs for VMAX3
-                                    // Host IO limits cannot be associated to
-                                    // phantom SGs, hence verify if IO limit set on the SG within MV if not we need to create a new Masking
-                                    // view.
-                                    if (!isVMAX3 && ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType())) {
+                                    // VMAX2: Host IO limits cannot be associated to phantom SGs,
+                                    // hence verify if IO limit set on the SG within MV if not we need to create a new Masking view.
+                                    if (ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType())) {
                                         if (virtualPool != null) {
                                             if (HostIOLimitsParam.isEqualsLimit(policy.getHostIOLimitBandwidth(),
                                                     virtualPool.getHostIOLimitBandwidth())
@@ -1764,6 +1785,19 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
+        return true;
+    }
+
+    /**
+     * Check if rule-2 satisfies for VMAX3.
+     * If it is not simple mask, it could either be cascaded or Phantom SG.
+     * Phantom SGs are not created for VMAX3, so rule-2 does not satisfy for this case.
+     */
+    private boolean checkIfRule2SatisfiesForVMAX3(boolean isVMAX3, ExportMaskPolicy policy) {
+        if (isVMAX3 &&
+                ExportMaskPolicy.EXPORT_TYPE.PHANTOM.name().equalsIgnoreCase(policy.getExportType())) {
+            return false;
+        }
         return true;
     }
 

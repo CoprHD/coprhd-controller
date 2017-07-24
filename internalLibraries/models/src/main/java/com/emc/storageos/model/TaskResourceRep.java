@@ -40,6 +40,7 @@ public class TaskResourceRep extends DataObjectRestRep {
     private Calendar queuedStartTime;
     private String queueName;
     private String allowedOperations;
+    private List<String> warningMessages;
 
     private RelatedResourceRep workflow;
 
@@ -263,6 +264,16 @@ public class TaskResourceRep extends DataObjectRestRep {
 
     public void setQueueName(String queueName) {
         this.queueName = queueName;
+    }
+
+    @XmlElementWrapper(name = "warning_messages")
+    @XmlElement(name = "warning_message")
+    public List<String> getWarningMessages() {
+    	return warningMessages;
+    }
+
+    public void setWarningMessages(List<String> warningMessages) {
+    	this.warningMessages = warningMessages;
     }
 
 }

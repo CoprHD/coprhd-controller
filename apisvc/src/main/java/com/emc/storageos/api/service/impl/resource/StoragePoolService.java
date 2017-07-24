@@ -426,7 +426,7 @@ public class StoragePoolService extends TaggedResource {
      * 
      * @param id the URN of a ViPR storage pool to be removed.
      * 
-     * @brief remove storage pool from ViPR
+     * @brief Remove storage pool from ViPR
      * @return Status indicating success or failure.
      */
     @POST

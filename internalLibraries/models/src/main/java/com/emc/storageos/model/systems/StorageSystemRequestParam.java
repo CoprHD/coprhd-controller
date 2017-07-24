@@ -47,8 +47,8 @@ public class StorageSystemRequestParam {
      * Site of the storage system
      * 
      */
-    @XmlElement(name = "site")
-    @Length(min = 2, max = 128)
+    @XmlElement(name = "site", nillable = true)
+    @Length(min = 0, max = 128)
     public String getSite() {
         return site;
     }

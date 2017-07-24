@@ -1366,4 +1366,10 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
 	public boolean isCapableOfRouting(NetworkSystem networkSystem) {
 		return true;
 	}
+
+	@Override
+	public void determineRoutedNetworks(NetworkSystem networkSystem) {	
+		//Currently, this method just returns for Brocade as there is nothing to compute here.
+		return;
+	}
 }

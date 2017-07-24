@@ -1775,7 +1775,6 @@ public class VirtualArrayService extends TaggedResource {
                 }
             }
         }
-
         
         for (URI portURI : portURIs) {
             // Get port groups for each port

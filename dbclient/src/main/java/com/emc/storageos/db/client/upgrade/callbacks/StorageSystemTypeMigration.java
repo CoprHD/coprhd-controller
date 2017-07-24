@@ -8,6 +8,7 @@ import static com.emc.storageos.db.client.model.util.StorageSystemTypeUtils.getS
 
 import java.net.URI;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,9 @@ import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException
  */
 public class StorageSystemTypeMigration extends BaseCustomMigrationCallback {
 
+    private static final String DELLSCSYSTEM = "dellscsystem";
+    private static final String DELLSCPROVIDER = "dellscprovider";
+
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeMigration.class);
 
     @Override
@@ -34,10 +38,21 @@ public class StorageSystemTypeMigration extends BaseCustomMigrationCallback {
         DbClient dbClient = getDbClient();
         for (URI typeUri : dbClient.queryByType(StorageSystemType.class, true)) {
             StorageSystemType type = dbClient.queryObject(StorageSystemType.class, typeUri);
-            if (type.getIsNative() != null && !type.getIsNative()) {
+            String typeName = type.getStorageTypeName();
+            // Delete dell sc storage and provider types, controller service will insert these types
+            // when starting
+            if (StringUtils.equals(typeName, DELLSCSYSTEM)
+                    || StringUtils.equals(typeName, DELLSCPROVIDER)) {
+                dbClient.removeObject(type);
+                log.info("Removed StorageSystemType: {}", typeName);
                 continue;
             }
-            String typeName = type.getStorageTypeName();
+            if (type.getIsNative() != null && !type.getIsNative()) {
+                // CoprHD does not know what storage profiles a out-of-tree driver supported
+                // storage system type supports, so leave it as it is without any processing.
+                log.info("Bypassed StorageSystemType: {}", typeName);
+                continue;
+            }
             META_TYPE metaType = Enum.valueOf(META_TYPE.class, type.getMetaType().toUpperCase());
             StringSet profiles = getSupportedStorageProfiles(typeName, metaType);
             type.setSupportedStorageProfiles(profiles);

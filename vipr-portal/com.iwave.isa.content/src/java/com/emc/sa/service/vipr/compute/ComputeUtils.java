@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.model.compute.ComputeElementListRestRep;
+import com.iwave.ext.windows.winrm.Pair;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 
 import com.emc.sa.engine.ExecutionException;
@@ -1752,38 +1755,75 @@ public class ComputeUtils {
         }
         return errBuff.toString();
     }
-    
+
+    /**
+     * Get matched compute elements from given CVP uri
+     * @param client {@link ViPRCoreClient} instance
+     * @param cvp {@link URI} compute virtual pool uri
+     * @return {@link ComputeElementListRestRep}
+     */
+    public static ComputeElementListRestRep getMatchedComputeElements(ViPRCoreClient client, URI cvp) {
+        return client.computeVpools().getMatchedComputeElements(cvp);
+    }
+
+    /**
+     * Get compute system from given Compute system URI
+     * @param client {@link ViPRCoreClient} instance
+     * @param csURI {@link URI} compute system URI
+     * @return {@link ComputeSystemRestRep}
+     */
+    private static ComputeSystemRestRep getComputeSystem(ViPRCoreClient client, URI csURI) {
+        return client.computeSystems().get(csURI);
+    }
+
+    /**
+     * For a given compute virtual pool, find and return compute system details to which the matched
+     * compute elements belong to.
+     * @param client {@link ViPRCoreClient} instance
+     * @param computeVirtualPool {@link URI} compute virtual pool uri
+     * @return {@link Map} of compute system URI and corresponding compute system details.
+     */
+    public static Map<URI, ComputeSystemRestRep> getComputeSystemsFromCVP(ViPRCoreClient client, URI computeVirtualPool) {
+        ComputeElementListRestRep computeElementsListRep = ComputeUtils.getMatchedComputeElements(client, computeVirtualPool);
+        Map<URI, ComputeSystemRestRep> computeSystemMap = new HashMap<URI,ComputeSystemRestRep>();
+        if (null != computeElementsListRep && CollectionUtils.isNotEmpty(computeElementsListRep.getList())) {
+            for (ComputeElementRestRep computeElement : computeElementsListRep.getList()) {
+                URI csURI = computeElement.getComputeSystem().getId();
+                if(!computeSystemMap.containsKey(csURI)) {
+                    ComputeSystemRestRep csRestRep = ComputeUtils.getComputeSystem(client, csURI);
+                    computeSystemMap.put(csURI, csRestRep);
+                }
+            }
+        }
+        return computeSystemMap;
+    }
+
     /**
      * This method checks for the presence of image server on the compute system(s) 
-     * associated to the compute element(s) being used in the CVP.
-     * Returns > true if image server exists on all the Compute server(s) being used
-     * 		   > false if at-least one compute server is not configured with image server
-     * @param asd
-     * @return
+     * associated to the compute element(s) used in the CVP.
+     *
+     * @param client {@link ViPRCoreClient} instance
+     * @param cvp {@link ComputeVirtualPoolRestRep}
+     * @param status {@link Pair} place holder
+     * @return {@link Pair} Boolean and/or Compute System
      */
-    public static boolean ComputeSystemHasImageServer(ViPRCoreClient client, 
-    		ComputeVirtualPoolRestRep cvp) {
-    	Map<URI, String> computeSystemMap = new HashMap<URI, String>();
-    	List<RelatedResourceRep> matchedComputeElements = cvp.getMatchedComputeElements(); 
-    	if (matchedComputeElements != null && !matchedComputeElements.isEmpty()) {
-            for (RelatedResourceRep matchedCeRelatedRep : matchedComputeElements ) {
-    		    ComputeElementRestRep computeElement = client.computeElements().get(matchedCeRelatedRep.getId());
-    		    RelatedResourceRep computeSystemRelatedRep = computeElement.getComputeSystem();
-    		    if (!computeSystemMap.containsKey(computeSystemRelatedRep.getId())) {
-    			    computeSystemMap.put(computeSystemRelatedRep.getId(), 
-    			    		client.computeSystems().get(computeSystemRelatedRep.getId()).getName());
-    		    }
-    	    }
-    		
-            for (Map.Entry<URI, String> computeSystemRelatedRep : computeSystemMap.entrySet()) {
-           	    ComputeSystemRestRep computeSystem = client.computeSystems().get(computeSystemRelatedRep.getKey());
-           	    if (NullColumnValueGetter.isNullValue(computeSystem.getComputeImageServer())) {
-           	    	return false;
-           	    }
+    public static Pair<Boolean, String> checkComputeSystemsHaveImageServer(ViPRCoreClient client,
+                                                                           ComputeVirtualPoolRestRep cvp,
+                                                                           Pair<Boolean, String> status) {
+        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(client, cvp.getId());
+        if (null != computeSystemMap) {
+            for (Map.Entry<URI, ComputeSystemRestRep> computeSystemRestRep : computeSystemMap.entrySet()) {
+                if (NullColumnValueGetter.isNullValue(computeSystemRestRep.getValue().getComputeImageServer())) {
+                    status.setFirstElement(false);
+                    status.setSecondElement(computeSystemRestRep.getValue().toString());
+                    return status;
+                }
             }
-            return true;
+            status.setFirstElement(true);
+            return status;
         }
-        return false;
+        status.setFirstElement(false);
+        status.setSecondElement("");
+        return status;
     }
-    
 }

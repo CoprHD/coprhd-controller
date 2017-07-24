@@ -15,18 +15,15 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
-import com.emc.storageos.util.CinderQosUtil;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
-import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGeneratorInterface {
     private static Logger log = LoggerFactory.getLogger(VplexVarrayGenerator.class);
@@ -117,19 +114,26 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             }
 
             // Persist things.
-            if (existingVA1 == varray1) {
-                dbClient.updateObject(varray1);
-                log.info("Updated virtual array: " + varray1.getLabel());
-            } else {
-                dbClient.createObject(varray1);
-                log.info("Created virtual array: " + varray1.getLabel());
+            boolean hasCluster1 = !cluster1Ports.isEmpty();
+            boolean hasCluster2 = !cluster2Ports.isEmpty();
+            boolean hasBothClusters = (hasCluster1 && hasCluster2);
+            if (hasCluster1) {
+                if (existingVA1 == varray1) {
+                    dbClient.updateObject(varray1);
+                    log.info("Updated virtual array: " + varray1.getLabel());
+                } else {
+                    dbClient.createObject(varray1);
+                    log.info("Created virtual array: " + varray1.getLabel());
+                }
             }
-            if (existingVA2 == varray2) {
-                dbClient.updateObject(varray2);
-                log.info("Updated virtual array: " + varray2.getLabel());
-            } else {
-                dbClient.createObject(varray2);
-                log.info("Created virtual array: " + varray2.getLabel());
+            if (hasCluster2) {
+                if (existingVA2 == varray2) {
+                    dbClient.updateObject(varray2);
+                    log.info("Updated virtual array: " + varray2.getLabel());
+                } else {
+                    dbClient.createObject(varray2);
+                    log.info("Created virtual array: " + varray2.getLabel());
+                }
             }
             updatePorts(portsToUpdate);
             updateNetworks(networksToUpdate);
@@ -149,10 +153,10 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             
             VpoolGenerator vpoolGenerator = new VpoolGenerator(dbClient, coordinator);
             Set<String> varrayURIs = new HashSet<String>();
-            if (varray1 != null) {
+            if (varray1 != null && hasCluster1) {
                 varrayURIs.add(varray1.getId().toString());
             }
-            if (varray2 != null) {
+            if (varray2 != null && hasCluster2) {
                 varrayURIs.add(varray2.getId().toString());
             }
             
@@ -172,11 +176,11 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                     vplexClusterForSite = ((cluster1Ports.size() >= cluster2Ports.size()) ? ConnectivityUtil.CLUSTER1 : ConnectivityUtil.CLUSTER2);
                 }
                     
-                if (vplexClusterForSite.equals(ConnectivityUtil.CLUSTER2)) {
+                if (vplexClusterForSite.equals(ConnectivityUtil.CLUSTER2) && hasCluster2) {
                     siteVarray = buildVarray(system, siteVarrayName, cluster2Ports, cluster2Nets);
                     varrayURIs.add(siteVarray.getId().toString());
                     setExplicitArrayPorts(cluster2BackendNets, siteVarray, siteName);
-                } else {
+                } else if (hasCluster1){
                     siteVarray = buildVarray(system, siteVarrayName, cluster1Ports, cluster1Nets);
                     varrayURIs.add(siteVarray.getId().toString());
                     setExplicitArrayPorts(cluster1BackendNets, siteVarray, siteName);
@@ -184,11 +188,11 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                 // Now create the alternate EGO for VPLEX HA
                 siteVarrayName = String.format("%s VPLEX-HA", siteVarrayName);
                 altSiteVarray = getVirtualArray(siteVarrayName);
-                if (!vplexClusterForSite.equals(ConnectivityUtil.CLUSTER2)) {
+                if (!vplexClusterForSite.equals(ConnectivityUtil.CLUSTER2) && hasCluster2) {
                     altSiteVarray = buildVarray(system, siteVarrayName, cluster2Ports, cluster2Nets);
                     varrayURIs.add(altSiteVarray.getId().toString());
                     setExplicitArrayPorts(cluster2BackendNets, altSiteVarray, siteName);
-                } else {
+                } else if (hasCluster1) {
                     altSiteVarray = buildVarray(system, siteVarrayName, cluster1Ports, cluster1Nets);
                     varrayURIs.add(altSiteVarray.getId().toString());
                     setExplicitArrayPorts(cluster1BackendNets, altSiteVarray, siteName);
@@ -214,7 +218,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                 if (template.getAttribute("highAvailability").equals("vplex_local")) {
                     String name = template.getAttribute("label");
                     makeVpool(vpoolGenerator, template, name, varrayURIs, null, null);
-                } else if (template.getAttribute("highAvailability").equals("vplex_distributed")) {
+                } else if (hasBothClusters && template.getAttribute("highAvailability").equals("vplex_distributed")) {
                     String type = template.getSystemType();
                     type = "none";  // BUG: can't seem to handle HA vpools selecting specific array type
                     String haVpool = null;

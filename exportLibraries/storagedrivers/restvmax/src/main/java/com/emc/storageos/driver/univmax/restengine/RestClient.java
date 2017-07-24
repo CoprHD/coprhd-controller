@@ -7,6 +7,8 @@ package com.emc.storageos.driver.univmax.restengine;
 import java.net.URI;
 import java.util.Base64;
 
+import javax.ws.rs.core.MediaType;
+
 import com.emc.storageos.storagedriver.restutil.StandardRestClient;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -20,7 +22,6 @@ import com.sun.jersey.api.client.WebResource.Builder;
 public class RestClient extends StandardRestClient {
     private static final String AUTHORIZATION = "Authorization";
     private static final String BASIC = "Basic ";
-    private static final String APPLICATION_JSON = "application/json";
     private static final String CONTENT_TYPE = "Content-Type";
     private static final String ACCEPT = "Accept";
 
@@ -45,8 +46,9 @@ public class RestClient extends StandardRestClient {
      */
     @Override
     protected Builder setResourceHeaders(WebResource resource) {
-        return resource.header(CONTENT_TYPE, APPLICATION_JSON)
-                .header(ACCEPT, APPLICATION_JSON)
+        return resource.header(CONTENT_TYPE, MediaType.APPLICATION_JSON)
+                .header(ACCEPT, MediaType.APPLICATION_JSON)
+                .type(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION, getAuthFieldValue());
     }
 

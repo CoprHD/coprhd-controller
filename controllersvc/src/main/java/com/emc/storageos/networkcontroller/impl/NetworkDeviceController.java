@@ -351,91 +351,107 @@ public class NetworkDeviceController implements NetworkController {
      * @param generatedIniToStoragePort Generated Initiator to Storage Port pairs based on path parameters
      * @throws ControllerException
      */
-    public void createSanZones(List<URI> initiatorUris,  Map<URI, List<URI>> generatedIniToStoragePort, String taskId) throws ControllerException {
+    public void createSanZones(List<URI> initiatorUris, Map<URI, List<URI>> generatedIniToStoragePort, String taskId)
+            throws ControllerException {
         
-        //Storage System URI I have to pass because the Dispatcher expects a top level system URI. More over this system URI is used 
-        //Find existing zones.
-        Map<String, Initiator> iniToObjectMapping = new HashMap<String, Initiator>();
-        //Ease of use generate a map of URis to initiator objects.
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorUris);
-        for (Initiator initiator :  initiators) {
-            iniToObjectMapping.put(initiator.getId().toString(), initiator);
-        }
-        URI networkDevice = ConnectivityUtil.getInitiatorNetwork(initiators.get(0), _dbClient);
-       
-        //Get all existing zones for the given initiators.
-        Map<String, List<Zone>> initiatorToExistingZones =  getInitiatorsZones(initiators);
-        List<NetworkFCZoneInfo> networkFCZoneInfoList = new ArrayList<NetworkFCZoneInfo>();
-        
-        /**
-         *  For given initiator to storage port pair,
-         *  if the existing Zones contains the initiator, then get the list of storage ports from the zones.
-         *  This generates List of Storage Ports which already contains the zones.
-         *  Compare the expected ports with the ports already having zones, and zones are created for 
-         *  the left over ports.
-         * 
-         */
-        for (Entry<URI, List<URI>> entry : generatedIniToStoragePort.entrySet()) {
-           
-            List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, entry.getValue());
-            Map<String, StoragePort> addressToPortMapping = new HashMap<String, StoragePort>();
-            for (StoragePort port : storagePorts) {
-                addressToPortMapping.put(port.getPortNetworkId(), port);
+        URI networkDevice = URIUtil.uri("null");
+        try {
+            // Storage System URI I have to pass because the Dispatcher expects
+            // a top level system URI. More over this system URI is used
+            // Find existing zones.
+            Map<String, Initiator> iniToObjectMapping = new HashMap<String, Initiator>();
+            // Ease of use generate a map of URis to initiator objects.
+            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorUris);
+            for (Initiator initiator : initiators) {
+                iniToObjectMapping.put(initiator.getId().toString(), initiator);
             }
-            Set<String> expectedPortAddressSet = new HashSet<String>(addressToPortMapping.keySet());
-            _log.info("Expected Port Addressess :", com.google.common.base.Joiner.on(",").join(expectedPortAddressSet));
-            Initiator initiator = iniToObjectMapping.get(entry.getKey().toString());
-            //If the initiator wwn is not available in existing zones, then we have to create new zones for the initiator-port pairs.
+            networkDevice = ConnectivityUtil.getInitiatorNetwork(initiators.get(0), _dbClient);
             
-            if (!initiatorToExistingZones.containsKey(initiator.getInitiatorPort())) {
-                _log.info("Existing zones doesn't contain the initiator {}-->{}", initiator.getId(), initiator.getInitiatorPort());
-                for (StoragePort port : storagePorts) {
-                    _log.info("Creating NetworkZone Info for initiator {}--> {}", initiator.getId(),port.getPortNetworkId());
-                    networkFCZoneInfoList.add(_networkScheduler.generateNetworkFCZoneInfo(initiator.getInitiatorPort(), port, initiator.getHostName()));
-                }
+            // Get all existing zones for the given initiators.
+            Map<String, List<Zone>> initiatorToExistingZones = getInitiatorsZones(initiators);
+            List<NetworkFCZoneInfo> networkFCZoneInfoList = new ArrayList<NetworkFCZoneInfo>();
+            
+            /**
+             * For given initiator to storage port pair, if the existing Zones
+             * contains the initiator, then get the list of storage ports from
+             * the zones. This generates List of Storage Ports which already
+             * contains the zones. Compare the expected ports with the ports
+             * already having zones, and zones are created for the left over
+             * ports.
+             * 
+             */
+            for (Entry<URI, List<URI>> entry : generatedIniToStoragePort.entrySet()) {
                 
-            } else {
-                _log.info("Existing zones contain the initiator {}-->{}", initiator.getId(), initiator.getInitiatorPort());
-                List<Zone> zones = initiatorToExistingZones.get(initiator.getInitiatorPort());
-                Set<String> portsHavingZones = new HashSet<String>();
-                for (Zone zone : zones) {
-                    List<ZoneMember> zoneMemberList = zone.getMembers();
-                    for (ZoneMember member : zoneMemberList) {
-                        if(!member.getAddress().equalsIgnoreCase(initiator.getInitiatorPort())) {
-                            portsHavingZones.add(member.getAddress());
-                        } else {
-                            _log.info("Skipping initiator {} Address", member.getAddress());
-                            //Member is the initiator skipping..
+                List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, entry.getValue());
+                Map<String, StoragePort> addressToPortMapping = new HashMap<String, StoragePort>();
+                for (StoragePort port : storagePorts) {
+                    addressToPortMapping.put(port.getPortNetworkId(), port);
+                }
+                Set<String> expectedPortAddressSet = new HashSet<String>(addressToPortMapping.keySet());
+                _log.info("Expected Port Addressess :", com.google.common.base.Joiner.on(",").join(expectedPortAddressSet));
+                Initiator initiator = iniToObjectMapping.get(entry.getKey().toString());
+                // If the initiator wwn is not available in existing zones, then
+                // we have to create new zones for the initiator-port pairs.
+                
+                if (!initiatorToExistingZones.containsKey(initiator.getInitiatorPort())) {
+                    _log.info("Existing zones doesn't contain the initiator {}-->{}", initiator.getId(),
+                            initiator.getInitiatorPort());
+                    for (StoragePort port : storagePorts) {
+                        _log.info("Creating NetworkZone Info for initiator {}--> {}", initiator.getId(), port.getPortNetworkId());
+                        networkFCZoneInfoList.add(_networkScheduler.generateNetworkFCZoneInfo(initiator.getInitiatorPort(), port,
+                                initiator.getHostName()));
+                    }
+                    
+                } else {
+                    _log.info("Existing zones contain the initiator {}-->{}", initiator.getId(), initiator.getInitiatorPort());
+                    List<Zone> zones = initiatorToExistingZones.get(initiator.getInitiatorPort());
+                    Set<String> portsHavingZones = new HashSet<String>();
+                    for (Zone zone : zones) {
+                        List<ZoneMember> zoneMemberList = zone.getMembers();
+                        for (ZoneMember member : zoneMemberList) {
+                            if (!member.getAddress().equalsIgnoreCase(initiator.getInitiatorPort())) {
+                                portsHavingZones.add(member.getAddress());
+                            } else {
+                                _log.info("Skipping initiator {} Address", member.getAddress());
+                                // Member is the initiator skipping..
+                            }
                         }
                     }
+                    _log.info("List of Ports {} having existing zones for initiator {}.", com.google.common.base.Joiner.on(",")
+                            .join(portsHavingZones), initiator.getId());
+                    expectedPortAddressSet.removeAll(portsHavingZones);
+                    _log.info("List of Ports {} need zoning for initiator {}.",
+                            com.google.common.base.Joiner.on(",").join(expectedPortAddressSet), initiator.getId());
+                    for (String key : expectedPortAddressSet) {
+                        _log.info("Creating NetworkZone Info for initiator {}--> {}", initiator.getId(), key);
+                        networkFCZoneInfoList.add(_networkScheduler.generateNetworkFCZoneInfo(initiator.getInitiatorPort(),
+                                addressToPortMapping.get(key), initiator.getHostName()));
+                    }
+                    
                 }
-                _log.info("List of Ports {} having existing zones for initiator {}.", com.google.common.base.Joiner.on(",").join(portsHavingZones), initiator.getId());
-                expectedPortAddressSet.removeAll(portsHavingZones);
-                _log.info("List of Ports {} need zoning for initiator {}.", com.google.common.base.Joiner.on(",").join(expectedPortAddressSet), initiator.getId());
-                for (String key : expectedPortAddressSet) {
-                    _log.info("Creating NetworkZone Info for initiator {}--> {}", initiator.getId(),key);
-                    networkFCZoneInfoList.add(_networkScheduler.generateNetworkFCZoneInfo(initiator.getInitiatorPort(), addressToPortMapping.get(key), initiator.getHostName()));
-                }
-                
             }
+            
+            if (networkFCZoneInfoList.isEmpty()) {
+                _log.info("Required Zones are already available. New zones will not be created.");
+                setStatus(NetworkSystem.class, networkDevice, taskId, true, null);
+                return;
+            }
+            // Invoke add and remove zones which creates the required zones.
+            _log.info("Invoking Create Zones..");
+            // Generate info per fabric
+            Map<URI, NetworkSystem> netSystemId2System = new HashMap<URI, NetworkSystem>();
+            Map<URI, List<NetworkFCZoneInfo>> netSystemId2FabricInfos = new HashMap<>();
+            // generate required Mapping
+            generateNetworkSystemToFabricMapping(networkFCZoneInfoList, netSystemId2System, netSystemId2FabricInfos);
+            // Invoke Add zones for each fabric.
+            BiosCommandResult result = invokeAddZonesForEachfabric(netSystemId2FabricInfos, netSystemId2System, taskId);
+            
+            setStatus(NetworkSystem.class, networkDevice, taskId, result.isCommandSuccess(), result.getServiceCoded());
+        } catch (Exception ex) {
+            ServiceError serviceError = NetworkDeviceControllerException.errors
+                    .addSanZonesFailedExc(networkDevice.toString(), ex);
+            _dbClient.error(NetworkSystem.class, networkDevice, taskId, serviceError);
         }
-        
-        if(networkFCZoneInfoList.isEmpty()) {
-            _log.info("Required Zones are already available. New zones will not be created.");
-            setStatus(NetworkSystem.class, networkDevice, taskId, true, null); 
-            return;
-        }
-        //Invoke add and remove zones which creates the required zones.
-        _log.info("Invoking Create Zones..");
-        //Generate info per fabric
-        Map<URI, NetworkSystem> netSystemId2System = new HashMap<URI, NetworkSystem>();
-        Map<URI, List<NetworkFCZoneInfo>> netSystemId2FabricInfos = new HashMap<>(); 
-        //generate required Mapping
-        generateNetworkSystemToFabricMapping(networkFCZoneInfoList, netSystemId2System, netSystemId2FabricInfos);
-        //Invoke Add zones for each fabric.
-        BiosCommandResult result =  invokeAddZonesForEachfabric(netSystemId2FabricInfos, netSystemId2System, taskId);
-       
-        setStatus(NetworkSystem.class, networkDevice, taskId, result.isCommandSuccess(), result.getServiceCoded());
         _log.info("Zone Operations Completed..");
     }
     

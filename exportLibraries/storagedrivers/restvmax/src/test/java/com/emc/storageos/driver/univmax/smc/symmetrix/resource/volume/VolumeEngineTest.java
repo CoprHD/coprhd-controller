@@ -2,7 +2,7 @@
  * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.driver.vmax3.smc.symmetrix.resource.volume;
+package com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume;
 
 import java.util.HashMap;
 import java.util.List;
@@ -16,9 +16,9 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.univmax.smc.EngineFactory;
 import com.emc.storageos.driver.univmax.smc.basetype.AuthenticationInfo;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.StorageGroupEngineTest;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.VolumeEngine;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.model.VolumeType;
-import com.emc.storageos.driver.vmax3.smc.symmetrix.resource.sg.StorageGroupEngineTest;
 
 /**
  * @author fengs5

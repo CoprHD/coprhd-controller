@@ -2,7 +2,7 @@
  * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.driver.vmax3.smc.symmetrix.resource;
+package com.emc.storageos.driver.univmax.smc.symmetrix.resource;
 
 import java.util.HashMap;
 import java.util.List;

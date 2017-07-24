@@ -157,6 +157,11 @@ prerun_setup() {
     # Reset system properties
     reset_system_props
 
+    # Reset the simulator if requested.
+    if [ ${RESET_SIM} = "1" ]; then
+	reset_simulator;
+    fi
+
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
@@ -167,7 +172,7 @@ prerun_setup() {
     if [ $? -eq 0 ]; then
 	   PROJECT=`project list --tenant emcworld | grep YES | head -1 | awk '{print $1}'`
 	   echo PROJECT ${PROJECT}
-	   echo "Seeing if there's an existing base of volumes"
+	   echo "Seeing if there's an existing base of hosts"
 	   BASENUM=`hosts list emcworld | grep wfhost1export | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
     else
 	   BASENUM=""
@@ -175,7 +180,7 @@ prerun_setup() {
 
     if [ "${BASENUM}" != "" ]
     then
-       echo "Volumes were found!  Base number is: ${BASENUM}"
+       echo "Hosts were found!  Base number is: ${BASENUM}"
        VOLNAME=wftest${BASENUM}
        EXPORT_GROUP_NAME=export${BASENUM}
        HOST1=wfhost1export${BASENUM}
@@ -271,13 +276,13 @@ prerun_setup() {
     	exportAddInitiatorsDeviceStep=VPlexDeviceController.storageViewAddInitiators
     	exportRemoveInitiatorsDeviceStep=VPlexDeviceController.storageViewRemoveInitiators
     	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
+    fi
 
-	# If there's no volume in the DB, create one and delete it to prime exports
-	volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
-	if [ $? -ne 0 ]; then
-	    secho "Priming ExportMask and ExportGroup for tests by creating a VPLEX volume"
-	    runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
-	fi
+    # If there's no volume in the DB, create one and delete it to prime exports
+    volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+    if [ $? -ne 0 ]; then
+	secho "Priming ExportMask and ExportGroup for tests by creating a VPLEX volume"
+	runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
     fi
 }
 
@@ -1400,12 +1405,6 @@ setup() {
     storage_type=$1;
     if [ "${SS}" = "srdf" ]; then
         storage_type="vmax3";
-    fi
-
-
-    # Reset the simulator if requested.
-    if [ ${RESET_SIM} = "1" ]; then
-	reset_simulator;
     fi
 
     syssvc $SANITY_CONFIG_FILE localhost setup
@@ -4767,17 +4766,15 @@ fi
 
 cleanup_previous_run_artifacts
 
-if [ "${SS}" = "vplex" ]; then
-    # If there's a volume in the DB, we can clean it up here.
-    volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
-    if [ $? -eq 0 ]; then
-	if [ "${SIM}" = "1" ]; then
-	    secho "Removing created volume, inventory-only since it's a simulator..."
-	    runcmd volume delete --project ${PROJECT} --wait --vipronly
-	else
-	    secho "Removing created volume, full delete since it's hardware..."
-	    runcmd volume delete --project ${PROJECT} --wait
-	fi
+# If there's a volume in the DB, we can clean it up here.
+volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+if [ $? -eq 0 ]; then
+    if [ "${SIM}" = "1" ]; then
+	secho "Removing created volume, inventory-only since it's a simulator..."
+	runcmd volume delete --project ${PROJECT} --wait --vipronly
+    else
+	secho "Removing created volume, full delete since it's hardware..."
+	runcmd volume delete --project ${PROJECT} --wait
     fi
 fi
 

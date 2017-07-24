@@ -81,8 +81,8 @@ public class VMAXApiClient extends StandardRestClient {
             try {
                 // obj = response.getEntity(JSONObject.class);
                 ErrorResponse errorResponse = getResponseObject(ErrorResponse.class, response);
+                log.error("Error Response received from Unisphere :{}", errorResponse);
                 extraExceptionInfo = errorResponse.getMessage();
-                System.out.println(errorResponse);
                 // xtremIOCode = obj.getInt(XtremIOConstants.ERROR_CODE);
             } catch (Exception e) {
                 extraExceptionInfo = e.getMessage();
@@ -90,7 +90,7 @@ public class VMAXApiClient extends StandardRestClient {
             }
 
             if (errorCode == 404 || errorCode == 410) {
-                throw VMAXException.exceptions.resourceNotFound(uri.toString());
+                throw VMAXException.exceptions.resourceNotFound(uri.toString(), extraExceptionInfo);
             } else if (errorCode == 401) {
                 throw VMAXException.exceptions.authenticationFailure(uri.toString());
             } else {

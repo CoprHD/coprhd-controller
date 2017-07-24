@@ -315,6 +315,11 @@ public final class DriverMetadataUtil {
         }
     }
 
+    /**
+     * New version should be higher than old version, otherwise exception is thrown
+     * @param oldVersionStr
+     * @param newVersionStr
+     */
     private static void compareVersion(String oldVersionStr, String newVersionStr) {
         String[] oldVersionSegs = oldVersionStr.split("\\.");
         String[] newVersionSegs = newVersionStr.split("\\.");
@@ -330,11 +335,11 @@ public final class DriverMetadataUtil {
                 return;
             } else if (newVersion < oldVersion) {
                 throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(String.format(
-                        "new version (%s) should be later than the old one (%s)", newVersionStr, oldVersionStr));
+                        "new version (%s) should be higher than the old one (%s)", newVersionStr, oldVersionStr));
             }
         }
         throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(String.format(
-                "new version (%s) should be later than the old one (%s)", newVersionStr, oldVersionStr));
+                "new version (%s) should be higher than the old one (%s)", newVersionStr, oldVersionStr));
     }
 
     private static void precheckForDriverName(String name) {

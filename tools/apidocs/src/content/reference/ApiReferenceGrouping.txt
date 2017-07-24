@@ -35,6 +35,7 @@ ComputeImageServerService
 AuthnConfigurationService
 AutoTieringService
 BlockVirtualPoolService
+ExportPathParametersService
 EventService
 FileVirtualPoolService
 MigrationService

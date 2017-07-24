@@ -765,7 +765,7 @@ public class StorageSystems extends ViprResourceController {
         PortSelectionDataTable portSelectionDataTable = dataTable.new PortSelectionDataTable();
         renderArgs.put("storageSystemId", storageSystemId);
         renderNumPathsArgs();
-        //ExportPathParametersRestRep resp =getViprClient().exportPathParameters().create(input, "true");
+        //ExportPathParametersRestRep resp =getViprClient().exportPathParameters().create(input);
         ///editPortGroup(resp.getId().toString(),storageSystemId);
         render("@editPortGroup",portGroup, portDataTable, portSelectionDataTable);
        
@@ -817,7 +817,7 @@ public class StorageSystems extends ViprResourceController {
         if (portGroup.isNew()) {
             
             ExportPathParameters input = createExportPathParams(portGroup);
-            getViprClient().exportPathParameters().create(input, "true");
+            getViprClient().exportPathParameters().create(input);
         } else {
             ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(portGroup.id));
             ExportPathUpdateParams input = updateExportPathParams(portGroup);
@@ -858,7 +858,7 @@ public class StorageSystems extends ViprResourceController {
             ExportPathParameters input = new ExportPathParameters();
             input.setName(pgName);
             input.setDescription(pgDesc);
-            ExportPathParametersRestRep rep = getViprClient().exportPathParameters().create(input, "true");
+            ExportPathParametersRestRep rep = getViprClient().exportPathParameters().create(input);
             pathParamId = rep.getId().toString();
         }
         String [] ids = portIds.split(",");

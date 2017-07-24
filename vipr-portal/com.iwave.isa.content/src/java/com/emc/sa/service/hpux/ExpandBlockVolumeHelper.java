@@ -9,6 +9,8 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logWarn;
 
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.hpux.HpuxSystem;
 import com.emc.hpux.model.MountPoint;
 import com.emc.hpux.model.RDisk;
@@ -21,6 +23,10 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 
 public class ExpandBlockVolumeHelper {
+    private static final int MAX_RESIZE_RETRIES = 3;
+
+    private static final long EXPAND_RETRY_DELAY = 5000;
+	
     private final HpuxSupport hpuxSupport;
 
     private MountPoint mountPoint;
@@ -66,6 +72,34 @@ public class ExpandBlockVolumeHelper {
 
         hpuxSupport.rescan();
 
+        String initialBlockSize = hpuxSupport.getFilesystemBlockSize(rdisk.getDevicePath());
+        logInfo("expand.block.volume.partition.size", initialBlockSize);        
+        
+        boolean fileSystemExpanded = false;
+        int resizeAttempts = 0;
+        while (!fileSystemExpanded) {
+            resizeAttempts++;
+            logInfo("expand.block.volume.resize.partition", volume.getName());
+            hpuxSupport.extendFilesystem(rdisk.getDevicePath());
+            //TODO: Create new artificial failure 
+            //ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_HPUX_EXPAND_VOLUME_AFTER_EXTEND_FILESYSTEM);
+            String currentBlockSize = hpuxSupport.getFilesystemBlockSize(rdisk.getDevicePath());
+            logInfo("expand.block.volume.partition.size", currentBlockSize);
+
+            if (initialBlockSize == null || currentBlockSize == null || !StringUtils.equalsIgnoreCase(initialBlockSize, currentBlockSize)) {
+                fileSystemExpanded = true;
+            } else if (resizeAttempts >= MAX_RESIZE_RETRIES) {
+                fileSystemExpanded = true;
+                logWarn("expand.block.volume.unable.to.determine.resize");
+            } else {
+                try {
+                    Thread.sleep(EXPAND_RETRY_DELAY);
+                } catch (InterruptedException e) {
+                    logWarn("expand.block.volume.resize.sleep.failure");
+                }
+            }
+        }
+        
         logInfo("expand.block.volume.remounting", hpuxSupport.getHostName(), mountPoint.getPath());
         hpuxSupport.mount(rdisk.getDevicePath(), mountPoint.getPath());
         ExecutionUtils.clearRollback();

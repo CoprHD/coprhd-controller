@@ -12,6 +12,7 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.hpux.HpuxSystem;
+import com.emc.hpux.command.ExtendFilesystemCommand;
 import com.emc.hpux.model.MountPoint;
 import com.emc.hpux.model.RDisk;
 import com.emc.sa.engine.ExecutionUtils;
@@ -21,12 +22,14 @@ import com.emc.sa.service.hpux.tasks.AddToFSTab;
 import com.emc.sa.service.hpux.tasks.CheckForPowerPath;
 import com.emc.sa.service.hpux.tasks.CreateDirectory;
 import com.emc.sa.service.hpux.tasks.DeleteDirectory;
+import com.emc.sa.service.hpux.tasks.ExtendFilesystem;
 import com.emc.sa.service.hpux.tasks.FileSystemCheck;
 import com.emc.sa.service.hpux.tasks.FindDevicePathForVolume;
 import com.emc.sa.service.hpux.tasks.FindMountPoint;
 import com.emc.sa.service.hpux.tasks.FindMountPointsForVolumes;
 import com.emc.sa.service.hpux.tasks.FindRDiskForVolume;
 import com.emc.sa.service.hpux.tasks.GetDirectoryContents;
+import com.emc.sa.service.hpux.tasks.GetFilesystemBlockSize;
 import com.emc.sa.service.hpux.tasks.HpuxExecutionTask;
 import com.emc.sa.service.hpux.tasks.ListMountPoints;
 import com.emc.sa.service.hpux.tasks.MakeFilesystem;
@@ -36,12 +39,18 @@ import com.emc.sa.service.hpux.tasks.Rescan;
 import com.emc.sa.service.hpux.tasks.UnmountPath;
 import com.emc.sa.service.hpux.tasks.UpdatePowerPathEntries;
 import com.emc.sa.service.hpux.tasks.VerifyMountPoint;
+import com.emc.sa.service.linux.tasks.FindMultiPathEntryForDmName;
+import com.emc.sa.service.linux.tasks.GetMultipathPrimaryPartitionDeviceParentDmName;
+import com.emc.sa.service.linux.tasks.GetPowerpathPrimaryPartitionDeviceParent;
+import com.emc.sa.service.linux.tasks.RescanPartitionMap;
+import com.emc.sa.service.linux.tasks.ResizePartition;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockVolumeMachineTag;
 import com.emc.sa.service.vipr.block.tasks.SetBlockVolumeMachineTag;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.iwave.ext.linux.model.MultiPathEntry;
 
 public class HpuxSupport {
 
@@ -226,5 +235,24 @@ public class HpuxSupport {
                     mountPoint.getPath(),
                     mountPoint.getDevice());
         }
+    }
+    
+    /**
+     * Get the block size of the given filesystem device.
+     * 
+     * @param device the device to check the partition size
+     * @return block size of the device or null if not found
+     */
+    public String getFilesystemBlockSize(String device) {
+        return execute(new GetFilesystemBlockSize(device));
+    }     
+
+    /**
+     * Extend a given filesystem device.
+     * 
+     * @param device the device to check the partition size
+     */
+    public void extendFilesystem(String device) {
+        execute(new ExtendFilesystem(device));
     }
 }

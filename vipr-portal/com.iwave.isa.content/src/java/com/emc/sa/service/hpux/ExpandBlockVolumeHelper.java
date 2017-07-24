@@ -73,18 +73,18 @@ public class ExpandBlockVolumeHelper {
         hpuxSupport.rescan();
 
         String initialBlockSize = hpuxSupport.getFilesystemBlockSize(rdisk.getDevicePath());
-        logInfo("expand.block.volume.partition.size", initialBlockSize);        
+        logInfo("expand.block.volume.filesystem.size", initialBlockSize);        
         
         boolean fileSystemExpanded = false;
         int resizeAttempts = 0;
         while (!fileSystemExpanded) {
             resizeAttempts++;
-            logInfo("expand.block.volume.resize.partition", volume.getName());
+            logInfo("expand.block.volume.extend.filesystem", rdisk.getDevicePath());
             hpuxSupport.extendFilesystem(rdisk.getDevicePath());
             //TODO: Create new artificial failure 
             //ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_HPUX_EXPAND_VOLUME_AFTER_EXTEND_FILESYSTEM);
             String currentBlockSize = hpuxSupport.getFilesystemBlockSize(rdisk.getDevicePath());
-            logInfo("expand.block.volume.partition.size", currentBlockSize);
+            logInfo("expand.block.volume.filesystem.size", currentBlockSize);
 
             if (initialBlockSize == null || currentBlockSize == null || !StringUtils.equalsIgnoreCase(initialBlockSize, currentBlockSize)) {
                 fileSystemExpanded = true;

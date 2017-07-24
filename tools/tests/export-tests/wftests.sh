@@ -168,7 +168,7 @@ prerun_setup() {
 	   PROJECT=`project list --tenant emcworld | grep YES | head -1 | awk '{print $1}'`
 	   echo PROJECT ${PROJECT}
 	   echo "Seeing if there's an existing base of volumes"
-	   BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
+	   BASENUM=`hosts list emcworld | grep wfhost1export | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
     else
 	   BASENUM=""
     fi
@@ -275,9 +275,8 @@ prerun_setup() {
 	# If there's no volume in the DB, create one and delete it to prime exports
 	volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
 	if [ $? -ne 0 ]; then
-	    secho "Priming ExportMask and ExportGroup for tests by creating and deleting a VPLEX volume"
-	    runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	    runcmd volume delete ${PROJECT}/${VOLNAME} --wait 
+	    secho "Priming ExportMask and ExportGroup for tests by creating a VPLEX volume"
+	    runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
 	fi
     fi
 }
@@ -4767,6 +4766,20 @@ then
 fi    
 
 cleanup_previous_run_artifacts
+
+if [ "${SS}" = "vplex" ]; then
+    # If there's a volume in the DB, we can clean it up here.
+    volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+	if [ "${SIM}" = "1" ]; then
+	    secho "Removing created volume, inventory-only since it's a simulator..."
+	    runcmd volume delete --project ${PROJECT} --wait --vipronly
+	else
+	    secho "Removing created volume, full delete since it's hardware..."
+	    runcmd volume delete --project ${PROJECT} --wait
+	fi
+    fi
+fi
 
 echo There were $VERIFY_COUNT verifications
 echo There were $VERIFY_FAIL_COUNT verification failures

@@ -1049,6 +1049,7 @@ public class DiscoveryUtils {
                 }
             } else {
                 // if property is null or empty, return false as it can't be matched
+                _log.debug("property for matching is null or empty");
                 return false;
             }
         } else {

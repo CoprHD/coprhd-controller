@@ -3943,6 +3943,10 @@ class Bourne:
         if (am):
             copy['accessMode'] = am
 
+        if (operation == 'restore'):
+            operation = 'sync'
+            copy['syncDirection'] = 'TARGET_TO_SOURCE'
+
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
 

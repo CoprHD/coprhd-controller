@@ -5,13 +5,16 @@
 package com.emc.storageos.volumecontroller.impl.validators.vplex;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExceptionContext;
 
 public abstract class AbstractVplexValidator {
     private DbClient dbClient;
     private ValidatorConfig config;
     private ValidatorLogger logger;
+    private ExceptionContext exceptionContext;
 
     public AbstractVplexValidator(DbClient dbClient, ValidatorConfig config, ValidatorLogger logger) {
         this.dbClient = dbClient;
@@ -44,6 +47,22 @@ public abstract class AbstractVplexValidator {
      */
     public ValidatorLogger getValidatorLogger() {
         return logger;
+    }
+    
+    public void setExceptionContext(ExceptionContext exceptionContext) {
+        this.exceptionContext = exceptionContext;
+    }
+
+    
+    public void checkForErrors() {
+        if (getValidatorLogger().hasErrors() && shouldThrowException()) {
+            throw DeviceControllerException.exceptions.validationError(
+                    "Export Mask", getValidatorLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+        }
+    }
+
+    private boolean shouldThrowException() {
+        return getValidatorConfig().isValidationEnabled() && (exceptionContext == null || exceptionContext.isAllowExceptions());
     }
 
 }

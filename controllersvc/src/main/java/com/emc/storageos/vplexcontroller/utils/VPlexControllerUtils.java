@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.vplexcontroller.utils;
 
+import static com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils.getDataObject;
 import static com.google.common.collect.Collections2.transform;
 
 import java.net.URI;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.cinder.CinderConstants;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -31,6 +33,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -39,15 +42,20 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
@@ -57,6 +65,8 @@ import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexTargetInfo;
+import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 
@@ -940,5 +950,306 @@ public class VPlexControllerUtils {
         }
 
         log.info("Stale Export Mask cleanup complete.");
+    }
+    
+    /**
+     * Convenience method for ensuring that the step is terminated properly, regardless of
+     * completer state.
+     * 
+     * @param completer
+     *            completer, can be null
+     * @param stepId
+     *            step ID
+     * @param sc
+     *            service coded error
+     * @param dbClient 
+     * 			  a reference to the database client     
+     *       
+     */
+    public static void failStep(TaskCompleter completer, String stepId, ServiceCoded sc, DbClient dbClient) {
+        if (completer != null) {
+            completer.error(dbClient, sc);
+        } else {
+            WorkflowStepCompleter.stepFailed(stepId, sc);
+        }
+    }
+    
+
+
+    public static VPlexApiClient getVPlexAPIClient(VPlexApiFactory vplexApiFactory,
+            URI vplexUri, DbClient dbClient, CoordinatorClient coordinator) throws URISyntaxException {
+        VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        updateTimeoutValues(coordinator);
+        return client;
+    }
+
+    public static VPlexApiClient getVPlexAPIClient(VPlexApiFactory vplexApiFactory,
+            StorageSystem vplexSystem, DbClient dbClient, CoordinatorClient coordinator) throws URISyntaxException {
+        VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
+        updateTimeoutValues(coordinator);
+        return client;
+    }
+    
+    public static VPlexApiClient getVPlexAPIClient(VPlexApiFactory vplexApiFactory,
+            StorageProvider vplexMnmgtSvr, DbClient dbClient, CoordinatorClient coordinator) throws URISyntaxException {
+        VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexMnmgtSvr, dbClient);
+        updateTimeoutValues(coordinator);
+        return client;
+    }
+
+    public static void updateTimeoutValues(CoordinatorClient coordinator) {
+        if (null == coordinator) {
+            return;
+        }
+
+        // Update the timeout values
+        int maxAsyncPollingRetries = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator,
+                "controller_vplex_max_async_polls"));
+        VPlexApiClient.setMaxAsyncPollingRetries(maxAsyncPollingRetries);
+        int maxMigrationAsyncPollingRetries = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator,
+                "controller_vplex_migration_max_async_polls"));
+        VPlexApiClient.setMaxMigrationAsyncPollingRetries(maxMigrationAsyncPollingRetries);
+    }
+    
+    /**
+     * Get the registered initiator names for the given initiators on the given VPLEX cluster.
+     * 
+     * If the registered initiator name cannot be found in the Initiator.initiatorNames map in
+     * the database, then the VPLEX API will be checked and the Initiator object will be updated
+     * with the value from the VPLEX API, if found.  If the name is still not found, that means 
+     * it's unregistered and no name for the initiator will be returned in the list.
+     * 
+     * This will also update the Initiator.initiatorMap if the registered name has been
+     * manually changed on the VPLEX since the last system discovery (but cache has refreshed).
+     * 
+     * The auto discovery process would update it when it refreshes all Initiators 
+     * in the database (see VPlexCommunicationInterface.updateHostInitiators).
+     * 
+     * @param vplexSerialNumber the VPLEX system serial number
+     * @param vplexClusterName the VPLEX cluster name to look at
+     * @param client the VPLEX api client
+     * @param initiators an iterator of Initiator objects to check
+     * @param doRefresh an out flag to indicate whether refresh has been done 
+     *                  (will be updated to false after first call to getInitiatorNameForWwn)
+     * @return a List of initiator names registered on the VPLEX for the initiators given (any
+     *              initiators that are not currently registered will not be returned in the list).
+     */
+    public static List<String> getInitiatorNames(String vplexSerialNumber, String vplexClusterName, VPlexApiClient client, 
+            Iterator<Initiator> initiators, Boolean[] doRefresh, DbClient dbClient) {
+        List<String> initiatorNames = new ArrayList<String>();
+        List<Initiator> initsToUpdate = new ArrayList<Initiator>();
+        // this is the key to look up the name saved in the Initiator.initiatorNames map
+        String initiatorNameMapKey = vplexSerialNumber + VPlexApiConstants.INITIATOR_CLUSTER_NAME_DELIM + vplexClusterName;
+        while (initiators.hasNext()) {
+            Initiator initiator = initiators.next();
+            String portWwn = initiator.getInitiatorPort();
+            String viprInitiatorName = initiator.getInitiatorNames().get(initiatorNameMapKey);
+            String vplexInitiatorName = client.getInitiatorNameForWwn(
+                    vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefresh);
+            // if the initiator name couldn't be found in the Initiator.initiatorNames map, use the one from the VPLEX API
+            if (viprInitiatorName == null || !viprInitiatorName.equals(vplexInitiatorName)) {
+                if (null != vplexInitiatorName) {
+                    // if a new initiator name was found, update the Initiator map.
+                    log.info("mapping new initiator name {} to storage system key {}", vplexInitiatorName, initiatorNameMapKey);
+                    initiator.mapInitiatorName(initiatorNameMapKey, vplexInitiatorName);
+                    initsToUpdate.add(initiator);
+                    viprInitiatorName = vplexInitiatorName;
+                }
+            }
+            if (viprInitiatorName != null && !viprInitiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
+                initiatorNames.add(viprInitiatorName);
+            }
+        }
+
+        dbClient.updateObject(initsToUpdate);
+        log.info("initiator names are " + initiatorNames);
+        return initiatorNames;
+    }
+    
+    /**
+     * Gets the VPLEX initiator type for the passed initiator.
+     *
+     * @param initiator
+     *            A reference to an initiator.
+     *
+     * @return The VPLEX initiator type.
+     */
+    public static String getVPlexInitiatorType(Initiator initiator, DbClient dbClient) {
+        Initiator_Type initiatorType = Initiator_Type.DEFAULT;
+        URI initiatorHostURI = initiator.getHost();
+        if (!NullColumnValueGetter.isNullURI(initiatorHostURI)) {
+            Host initiatorHost = getDataObject(Host.class, initiatorHostURI, dbClient);
+            if (initiatorHost != null) {
+                // The only ViPR host type that maps to a VPLEX initiator type
+                // is HPUX, otherwise the type is the default for VPLEX. Note
+                // that it is required to specify the HPUX initiator type when
+                // registering an HPUX initiator in VPLEX.
+                if (Host.HostType.HPUX.name().equals(initiatorHost.getType())) {
+                    initiatorType = Initiator_Type.HPUX;
+                } else if ((Host.HostType.AIX.name().equals(initiatorHost.getType()))
+                        || (Host.HostType.AIXVIO.name().equals(initiatorHost.getType()))) {
+                    initiatorType = Initiator_Type.AIX;
+                } else if (Host.HostType.SUNVCS.name().equals(initiatorHost.getType())) {
+                    initiatorType = Initiator_Type.SUN_VCS;
+                }
+            }
+        }
+
+        return initiatorType.getType();
+    }
+    
+    /**
+     * For a given ExportGroup and ExportMask, this method filters out the ExportGroup's volumes
+     * that are present in other ExportGroups referencing this ExportMask,
+     * or contained in the ExportMask's ExistingVolumes collection. Basically it
+     * results in a list of volumes that are in the ExportGroup, but should
+     * no longer be in the ExportMask.
+     *
+     * @param exportGroup
+     *            the ExportGroup for the source volumes
+     * @param exportMask
+     *            the ExportMask
+     * @param otherExportGroups
+     *            a list of other ExportGroups referencing the ExportMask
+     * @param volumeURIList
+     *            a list of volume URIs that needs to be filter
+     * @return a list of volume URIs
+     */
+    public static List<URI> getVolumeListDiff(ExportGroup exportGroup, ExportMask exportMask, List<ExportGroup> otherExportGroups,
+            List<URI> volumeURIs, DbClient dbClient) {
+
+        List<URI> volumeURIList = new ArrayList<URI>();
+        if (volumeURIs == null) {
+            log.warn("volumeURIs is null, returning empty list");
+            return volumeURIList;
+        } else {
+            volumeURIList.addAll(volumeURIs);
+        }
+        log.info("filtering volume list from ExportGroup " + exportGroup.getLabel()
+                + " ExportMask " + exportMask.getMaskName());
+
+        if (volumeURIList != null && !volumeURIList.isEmpty()) {
+
+            log.info("volume list is " + volumeURIList);
+            for (ExportGroup otherGroup : otherExportGroups) {
+                log.info("looking at other export group: " + otherGroup.getLabel());
+                // Here we partition the other ExportGroup's volume into those it would export in
+                // each Varray. Then we remove the volumes in the other group's set for the
+                // Varray matching the Varray of our ExportMask.
+                // This is done because the other ExportGroup might have volumes it isn't allowed to
+                // export to this Varray because autoCrossConnectExport == false for those volumes.
+                if (null != otherGroup.getVolumes()) {
+                    List<URI> otherGroupVolumes = StringSetUtil.stringSetToUriList(otherGroup.getVolumes().keySet());
+                    Map<URI, Set<URI>> varrayToVolumesMap = VPlexUtil.mapBlockObjectsToVarrays(dbClient,
+                            otherGroupVolumes, exportMask.getStorageDevice(), otherGroup);
+                    for (URI varray : varrayToVolumesMap.keySet()) {
+                        if (ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varray)) {
+                            log.info("volume list from other group is " + varrayToVolumesMap.get(varray).toString());
+                            volumeURIList.removeAll(varrayToVolumesMap.get(varray));
+                        }
+                    }
+                }
+                // if (otherGroup.getVolumes() != null) {
+                //
+                // List<URI> otherVolumeUris = new ArrayList<URI>();
+                // for (String volUri : otherGroup.getVolumes().keySet()) {
+                // otherVolumeUris.add(URI.create(volUri));
+                // }
+                //
+                // _log.info("volume list from other group is " + volumeURIList);
+                // volumeURIList.removeAll(otherVolumeUris);
+                // }
+            }
+            log.info("volume list after filter is " + volumeURIList);
+        }
+
+        log.info("volume list before removing existing volumes is " + volumeURIList);
+        if (exportMask.getExistingVolumes() != null) {
+            for (String existingVolWwn : exportMask.getExistingVolumes().keySet()) {
+                // Remove any volumes that match the WWN
+                URIQueryResultList results = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeWwnConstraint(existingVolWwn.toUpperCase()), results);
+                if (results != null) {
+                    Iterator<URI> resultsIter = results.iterator();
+                    if (resultsIter.hasNext()) {
+                        volumeURIList.remove(resultsIter.next());
+                    }
+                }
+                // Remove any block snapshots that match the WWN
+                // This happens on RP bookmarks.
+                results = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getBlockSnapshotWwnConstraint(existingVolWwn.toUpperCase()), results);
+                if (results != null) {
+                    Iterator<URI> resultsIter = results.iterator();
+                    if (resultsIter.hasNext()) {
+                        volumeURIList.remove(resultsIter.next());
+                    }
+                }
+            }
+        }
+
+        List<URI> volumesNotInMask = new ArrayList<URI>();
+        for (URI volumeURI : volumeURIList) {
+            if (!exportMask.getVolumes().keySet().contains(volumeURI.toString())) {
+                volumesNotInMask.add(volumeURI);
+            }
+        }
+        log.info("volumes removed because not in mask: " + volumesNotInMask);
+        volumeURIList.removeAll(volumesNotInMask);
+
+        log.info("final volume list is " + volumeURIList);
+
+        return volumeURIList;
+    }
+
+    /**
+     * Given an ExportGroup and a hostURI, finds all the ExportMasks in the ExportGroup (if any)
+     * corresponding to that host.
+     *
+     * @param exportGroup
+     *            -- ExportGroup object
+     * @param hostURI
+     *            -- URI of host
+     * @param vplexURI
+     *            -- URI of VPLEX StorageSystem
+     * @return List<ExportMask> or empty list if not found
+     * @throws Exception
+     */
+    public static List<ExportMask> getExportMaskForHost(ExportGroup exportGroup, URI hostURI, URI vplexURI, DbClient dbClient) throws Exception {
+        List<ExportMask> results = new ArrayList<ExportMask>();
+        if (exportGroup == null || exportGroup.getExportMasks() == null) {
+            return null;
+        }
+        // Create a list of sharedExportMask URIs for the src varray and ha varray if its set in the altVirtualArray
+        // in the exportGroup
+        List<URI> sharedExportMaskURIs = new ArrayList<URI>();
+        ExportMask sharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, dbClient, exportGroup.getVirtualArray(),
+                null, null);
+        if (sharedExportMask != null) {
+            sharedExportMaskURIs.add(sharedExportMask.getId());
+        }
+        if (exportGroup.hasAltVirtualArray(vplexURI.toString())) {
+            URI haVarray = URI.create(exportGroup.getAltVirtualArrays().get(vplexURI.toString()));
+            ExportMask haSharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, dbClient, haVarray,
+                    null, null);
+            if (haSharedExportMask != null) {
+                sharedExportMaskURIs.add(haSharedExportMask.getId());
+            }
+        }
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
+        for (ExportMask exportMask : exportMasks) {
+            boolean shared = false;
+            if (!sharedExportMaskURIs.isEmpty()) {
+                if (sharedExportMaskURIs.contains(exportMask.getId())) {
+                    shared = true;
+                }
+            }
+            if (VPlexUtil.getExportMaskHosts(dbClient, exportMask, shared).contains(hostURI)) {
+                results.add(exportMask);
+            }
+        }
+        return results;
     }
 }

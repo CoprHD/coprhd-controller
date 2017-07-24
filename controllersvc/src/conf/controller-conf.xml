@@ -809,6 +809,30 @@
         <property name="validator" ref="validatorFactory"/>
     </bean>
     
+    <bean id="vplexMaskingOrchestrator" class="com.emc.storageos.vplexcontroller.VPlexMaskingOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="networkDeviceController" ref="networkDeviceController" />
+        <property name="blockScheduler" ref="blockscheduler"/>        
+        <property name="vplexApiFactory" ref="vplexapifactory" />
+        <property name="vplexApiLockManager" ref="vplexlockmgr" />
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    
+    <bean id="vplexMaskingWorkflowEntryPoints" class="com.emc.storageos.vplexcontroller.VPlexMaskingWorkflowEntryPoints">
+        <property name="name" value="vplexMaskingWorkflowEntryPoints"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+        <property name="blockScheduler" ref="blockscheduler"/>        
+    </bean>
+    
+    <bean id="vplexExportOperationHelper" class="com.emc.storageos.vplexcontroller.VPlexExportOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vplexApiFactory" ref="vplexapifactory" />
+        <property name="vplexApiLockManager" ref="vplexlockmgr" />
+        <property name="validator" ref="validatorFactory"/>
+    </bean>
+    
     <bean id="vplexlockmgr" class="com.emc.storageos.vplexcontroller.VPlexApiLockManager">
         <property name="coordinator" ref="coordinator"/>
     </bean>
@@ -1046,7 +1070,7 @@
                 <entry key="vnxblock" value-ref="vnxMaskingOrchestrator"/>
                 <entry key="vnxe" value-ref="vnxeMaskingOrchestrator"/>
                 <entry key="unity" value-ref="vnxunityMaskingOrchestrator"/>
-                <entry key="vplex" value-ref="vplexDeviceController"/>
+                <entry key="vplex" value-ref="vplexMaskingOrchestrator"/>
                 <entry key="hds" value-ref="hdsMaskingOrchestrator"/>
                 <entry key="openstack" value-ref="cinderMaskingOrchestrator"/>
                 <entry key="ibmxiv" value-ref="xivMaskingOrchestrator"/>
@@ -1070,6 +1094,7 @@
                 <ref bean="rpProtection"/>
                 <ref bean="vplexDeviceController"/>
                 <ref bean="maskingWorkflowEntryPoints"/>
+                <ref bean="vplexMaskingWorkflowEntryPoints"/>
                 <ref bean="blockDeviceExportController"/>
                 <ref bean="exportWorkflowEntryPoints"/>
                 <ref bean="blockOrchestrationDeviceController"/>

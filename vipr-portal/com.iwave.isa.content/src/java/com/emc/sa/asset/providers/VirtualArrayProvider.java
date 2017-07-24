@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.sa.util.TextUtils;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -21,6 +20,7 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.sa.util.TextUtils;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
@@ -214,7 +214,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
     }
 
-    @Asset("virtualArrayForMultipleComputeResource")
+    @Asset("virtualArray")
     @AssetDependencies({ "host" })
     public List<AssetOption> getVirtualArrayforMultipleHost(AssetOptionsContext context, String hostOrClusterIds) {
         Set<AssetOption> result = Sets.newConcurrentHashSet();
@@ -228,7 +228,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         return Lists.newArrayList(result);
     }
 
-    @Asset("virtualArrayForMultipleComputeResource")
+    @Asset("virtualArray")
     @AssetDependencies({ "cluster" })
     public List<AssetOption> getVirtualArrayForMultipleCluster(AssetOptionsContext context, String clusterIds) {
         return getVirtualArrayforMultipleHost(context, clusterIds);

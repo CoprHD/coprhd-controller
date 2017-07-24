@@ -23,7 +23,8 @@ public class ExportPathParameters {
     private Integer pathsPerInitiator;
     private Integer minPaths;
     private List<URI> storagePorts;
-    
+    private URI portGroup;
+
     @XmlElement(name = "max_paths")
     @Range(min = 1, max = 65535)
     /**
@@ -32,10 +33,11 @@ public class ExportPathParameters {
     public Integer getMaxPaths() {
         return maxPaths;
     }
+
     public void setMaxPaths(Integer maxPaths) {
         this.maxPaths = maxPaths;
     }
-    
+
     @XmlElement(name = "paths_per_initiator")
     @Range(min = 1, max = 65535)
     /**
@@ -44,10 +46,11 @@ public class ExportPathParameters {
     public Integer getPathsPerInitiator() {
         return pathsPerInitiator;
     }
+
     public void setPathsPerInitiator(Integer pathsPerInitiator) {
         this.pathsPerInitiator = pathsPerInitiator;
     }
-    
+
     @XmlElement(name = "min_paths")
     @Range(min = 1, max = 65535)
     /**
@@ -57,11 +60,12 @@ public class ExportPathParameters {
     public Integer getMinPaths() {
         return minPaths;
     }
+
     public void setMinPaths(Integer minPaths) {
         this.minPaths = minPaths;
     }
-    
-    @XmlElementWrapper(name="storage_ports", required=false)
+
+    @XmlElementWrapper(name = "storage_ports", required = false)
     /**
      * Optional list of storage ports to be used for the export.
      * Any ports that are listed must also be available in the applicable
@@ -72,10 +76,10 @@ public class ExportPathParameters {
     public List<URI> getStoragePorts() {
         return storagePorts;
     }
+
     public void setStoragePorts(List<URI> storagePorts) {
         this.storagePorts = storagePorts;
     }
-    
     public void log(Logger log) {
     	String maxPathsString = getMaxPaths() != null ? getMaxPaths().toString() : "null";
     	String minPathsString = getMinPaths() != null ? getMinPaths().toString() : "null";
@@ -88,6 +92,15 @@ public class ExportPathParameters {
     		log.info("Ports not specified");
     	}
     	
+    }
+
+    @XmlElement(name = "port_group")
+    public URI getPortGroup() {
+        return portGroup;
+    }
+
+    public void setPortGroup(URI portGroup) {
+        this.portGroup = portGroup;
     }
 
 }

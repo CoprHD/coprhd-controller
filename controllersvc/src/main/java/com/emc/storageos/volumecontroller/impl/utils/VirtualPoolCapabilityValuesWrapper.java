@@ -66,6 +66,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SOURCE_VIRTUAL_NAS_SERVER = "source_virtual_nas_server";
     public static final String TARGET_NAS_SERVER = "target_nas_server";
     public static final String TARGET_STORAGE_SYSTEM = "target_storage_system";
+    public static final String PORT_GROUP = "portGroup";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -271,6 +272,9 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.put(REMOTE_REPLICATION_GROUP, capabilities.getRemoteReplicationGroup());
         }
 
+        if (capabilities.contains(PORT_GROUP)) {
+            _vpoolCapabilities.put(PORT_GROUP, capabilities.getPortGroup());
+        }
     }
 
     public String getVirtualArrays() {
@@ -556,5 +560,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public boolean getAllSourceRecommnedations() {
         Object value = _vpoolCapabilities.get(GET_ALL_SOURCE_RECOMMENDATIONS);
         return value != null ? (Boolean) value : false;
+    }
+    
+    public URI getPortGroup() {
+        Object value = _vpoolCapabilities.get(PORT_GROUP);
+        return value != null ? (URI) value : null;
     }
 }

@@ -16,7 +16,10 @@ import com.emc.storageos.services.restutil.StandardRestClient;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.vmax.VMAXConstants;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
+import com.emc.storageos.vmax.restapi.model.ErrorResponse;
 import com.emc.storageos.vmax.restapi.model.VMAXAuthInfo;
+import com.emc.storageos.vmax.restapi.model.request.migration.CreateMigrationEnvironmentRequest;
+import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 import com.sun.jersey.api.client.Client;
@@ -71,17 +74,20 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode();
         if (errorCode >= 300) {
+
             JSONObject obj = null;
             String extraExceptionInfo = null;
-            /*
-             * try {
-             * obj = response.getEntity(JSONObject.class);
-             * code = obj.getInt(XtremIOConstants.ERROR_CODE);
-             * } catch (Exception e) {
-             * extraExceptionInfo = e.getMessage();
-             * log.error("Parsing the failure response object failed", e);
-             * }
-             */
+
+            try {
+                // obj = response.getEntity(JSONObject.class);
+                ErrorResponse errorResponse = getResponseObject(ErrorResponse.class, response);
+                extraExceptionInfo = errorResponse.getMessage();
+                System.out.println(errorResponse);
+                // xtremIOCode = obj.getInt(XtremIOConstants.ERROR_CODE);
+            } catch (Exception e) {
+                extraExceptionInfo = e.getMessage();
+                log.error("Parsing the failure response object failed", e);
+            }
 
             if (errorCode == 404 || errorCode == 410) {
                 throw VMAXException.exceptions.resourceNotFound(uri.toString());
@@ -188,16 +194,36 @@ public class VMAXApiClient extends StandardRestClient {
     public MigrationEnvironmentResponse getMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber)
             throws Exception {
         ClientResponse clientResponse = get(
-                URI.create(VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber)));
+                VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber));
         MigrationEnvironmentResponse environmentResponse = getResponseObject(MigrationEnvironmentResponse.class, clientResponse);
+        log.info("Response -> :{}", environmentResponse);
         return environmentResponse;
     }
 
     public GetMigrationEnvironmentResponse getMigrationEnvironmentList(String sourceArraySerialNumber) throws Exception {
         ClientResponse clientResponse = get(
-                URI.create(VMAXConstants.getMigrationEnvironmentURI(sourceArraySerialNumber)));
+                VMAXConstants.getMigrationEnvironmentURI(sourceArraySerialNumber));
         GetMigrationEnvironmentResponse environmentResponse = getResponseObject(GetMigrationEnvironmentResponse.class, clientResponse);
+        log.info("Response -> :{}", environmentResponse);
         return environmentResponse;
+    }
+
+    public void deleteMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber) throws Exception {
+        delete(VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber));
+        log.info("Deleted migration environment between {} and {}", sourceArraySerialNumber, targetArraySerialNumber);
+    }
+
+    public CreateMigrationEnvironmentResponse createMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber)
+            throws InternalException, Exception {
+        log.info("Started Create Migration environment call between {} and {}", sourceArraySerialNumber, targetArraySerialNumber);
+        CreateMigrationEnvironmentRequest createMigrationEnvironmentRequest = new CreateMigrationEnvironmentRequest();
+        createMigrationEnvironmentRequest.setOtherArrayId(targetArraySerialNumber);
+        ClientResponse clientResponse = post(VMAXConstants.createMigrationEnvornmentURI(sourceArraySerialNumber),
+                getJsonForEntity(createMigrationEnvironmentRequest));
+        CreateMigrationEnvironmentResponse response = getResponseObject(CreateMigrationEnvironmentResponse.class, clientResponse);
+        log.info("Response -> :{}", response);
+        log.info("Successfullt created migration environment between {} and {}", sourceArraySerialNumber, targetArraySerialNumber);
+        return response;
     }
 
 }

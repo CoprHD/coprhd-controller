@@ -13,30 +13,29 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 
-public class VMAXApiClientFactory extends RestClientFactory{
-	
-	private static VMAXApiClientFactory singleton = new VMAXApiClientFactory();
-	private static boolean isInitiated = false;
-	
-	private VMAXApiClientFactory(){
-		
-	}
-	
-	public static VMAXApiClientFactory getInstance(){
-		return singleton;
-	}
-	
-	@Override
+public class VMAXApiClientFactory extends RestClientFactory {
+
+    private static VMAXApiClientFactory singleton = new VMAXApiClientFactory();
+    private static boolean isInitiated = false;
+
+    private VMAXApiClientFactory() {
+
+    }
+
+    public static VMAXApiClientFactory getInstance() {
+        return singleton;
+    }
+
+    @Override
     public void init() {
         if (!isInitiated) {
-            synchronized(this) {
+            synchronized (this) {
                 super.init();
                 isInitiated = true;
             }
         }
     }
-    
-    
+
     public RestClientItf getRESTClient(URI endpoint, String username, String password, String version, boolean authFilter) {
         // removed caching RestClient session as it is not actually a session, just a java RestClient object
         // RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password + ":" + model);
@@ -48,22 +47,20 @@ public class VMAXApiClientFactory extends RestClientFactory{
         RestClientItf clientApi = createNewRestClient(endpoint, username, password, version, jerseyClient);
         return clientApi;
     }
-    
+
     protected RestClientItf createNewRestClient(URI endpoint, String username,
             String password, String version, Client client) {
-    	VMAXApiClient apiClient = new VMAXApiClient(endpoint, username, password, client);
-    	return apiClient;
+        VMAXApiClient apiClient = new VMAXApiClient(endpoint, username, password, client);
+        return apiClient;
     }
 
-    
-    
     public RestClientItf getClient(String ipAddress, int port, boolean isSSL, String username, String password) {
-        return getRESTClient(URI.create(VMAXConstants.getBaseURI(ipAddress, port, isSSL)), username, password, true);
+        return getRESTClient(VMAXConstants.getBaseURI(ipAddress, port, isSSL), username, password, true);
     }
 
-	@Override
-	protected RestClientItf createNewRestClient(URI endpoint, String username, String password, Client client) {
-		return new VMAXApiClient(endpoint, username, password, client);
-	}
+    @Override
+    protected RestClientItf createNewRestClient(URI endpoint, String username, String password, Client client) {
+        return new VMAXApiClient(endpoint, username, password, client);
+    }
 
 }

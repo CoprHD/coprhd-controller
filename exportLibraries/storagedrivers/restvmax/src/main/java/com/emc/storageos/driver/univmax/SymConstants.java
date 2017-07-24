@@ -13,8 +13,6 @@ public class SymConstants {
 
     public final static String HOST_FORMAT = "%s://%s:%d";
     public final static String BASE_URL = "/univmax/restapi";
-    public final static String END_POINT_SLO_PROVISIONING = "/sloprovisioning";
-    public final static String END_POINT_SYMMETRIX = "/symmetrix";
 
     public static class StatusCode {
         public final static int EXCEPTION = -1;// Has exception and no response got from vmax3

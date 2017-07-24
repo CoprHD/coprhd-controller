@@ -9,7 +9,7 @@ if [[ -z "$workspace" || -z "$sanity_conf" || -z "$test_type" ]]; then
    exit 1
 fi
 
-cd $workspace
+cd ${workspace}
 
 if [[ "$test_type" = "all" || "$test_type" = "catalog" ]]; then
     echo "Adding SampleService to the catalog"

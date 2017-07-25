@@ -9,7 +9,7 @@ var remoteAnsibleNodeType = "remote_ansible"
 var ASSET_TYPE_OPTIONS;
 
 angular.module("portalApp")
-.factory("workflow" , ['$window' , function($win){
+.factory("workflow" , ['$window' , function($win){//NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 	return (function(){
 		
 		var suppressUnloadEvent = false ;
@@ -25,7 +25,8 @@ angular.module("portalApp")
 			if (info.relatedData === undefined) {
 	    		return false ;
 	    	}else {
-	    		return info.relatedData.modified ;
+	    		return info.relatedData.modified && 
+	    					info.relatedData.workflowData.state !== 'PUBLISHED';
 	    	}
 	    }
 	    

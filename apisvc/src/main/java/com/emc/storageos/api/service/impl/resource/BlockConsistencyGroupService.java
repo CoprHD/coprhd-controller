@@ -2940,7 +2940,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
-     * Sync – Controls the replication from the target side devices to the source side devices
+     * Sync - Controls the replication from the target side devices to the source side devices
      * after a cutover is done and all data has been migrated to the target side.
      * Sync Stop - Stops the writes to the source volumes during a migration.
      * 
@@ -2974,7 +2974,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
-     * Sync – Controls the replication from the target side devices to the source side devices
+     * Sync - Controls the replication from the target side devices to the source side devices
      * after a cutover is done and all data has been migrated to the target side.
      * Sync Start - Synchronizes the source volumes with target volumes during a migration.
      * 

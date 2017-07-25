@@ -823,7 +823,8 @@
         <property name="name" value="vplexMaskingWorkflowEntryPoints"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
-        <property name="blockScheduler" ref="blockscheduler"/>        
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="vplexExportOperationsHelper" ref="vplexExportOperationHelper"/>        
     </bean>
     
     <bean id="vplexExportOperationHelper" class="com.emc.storageos.vplexcontroller.VPlexExportOperations">

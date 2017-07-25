@@ -63,7 +63,7 @@ public class VPlexMaskingWorkflowEntryPoints  implements Controller{
         _blockScheduler = storageScheduler;
     }
     
-    public void setVPlexExportOperations(VPlexExportOperations exportOperationsHelper) {
+    public void setVplexExportOperations(VPlexExportOperations exportOperationsHelper) {
     	vplexExportOperationsHelper = exportOperationsHelper;
     }
     

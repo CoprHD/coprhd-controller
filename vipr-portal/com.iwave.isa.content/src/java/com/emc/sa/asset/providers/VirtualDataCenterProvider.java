@@ -75,6 +75,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     @Asset("unmanagedBlockStorageSystem")
     public List<AssetOption> getUnmanagedBlockStorageSystem(AssetOptionsContext ctx) {
         BLOCK = new StorageSystemTypeFilter(getStorageSystemType(ctx, "block"));
+        BLOCK.addType("driversystem"); // to make driversystem systems visible for selection if present in db
         return createBaseResourceOptions(
                 api(ctx).storageSystems().getAll(BLOCK.and(REGISTERED).and(INCOMPATIBLE.not())));
     }

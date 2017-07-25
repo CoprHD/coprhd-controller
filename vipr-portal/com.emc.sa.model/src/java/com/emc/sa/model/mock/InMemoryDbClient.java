@@ -6,6 +6,7 @@ package com.emc.sa.model.mock;
 
 import java.net.URI;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -151,6 +152,20 @@ public class InMemoryDbClient implements DBClientWrapper {
             }
         }
         return results;
+    }
+    
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T extends DataObject> Iterator<T> findAllFields(Class<T> clazz, final List<URI> ids, final List<String> columnFields) throws DataAccessException {
+        LOG.debug("findAllIds(" + clazz.getSimpleName() + ")");
+        List<T> results = Lists.newArrayList();
+        for (Map.Entry<URI, DataObject> entry : data.entrySet()) {
+            if (entry.getValue().getClass() == clazz) {
+                LOG.debug(" - " + entry.getKey());
+                results.add((T) entry);
+            }
+        }
+        return results.iterator();
     }
 
     @Override

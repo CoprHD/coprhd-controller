@@ -181,7 +181,7 @@ class ExportGroup(object):
                         except SOSError as e:
                             raise e
                         parms['hosts'] = [host_uri]
-
+                                    
                 body = json.dumps(parms)
                 (s, h) = common.service_json_request(self.__ipAddr,
                                                      self.__port, "POST",
@@ -337,7 +337,8 @@ class ExportGroup(object):
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 maxpaths, minpaths, pathsperinitiator,
-                                projectname, volumenames, snapshots=None,
+                                projectname, volumenames, storage_device_name, serial_number,
+                                storage_device_type, portgroupname, snapshots=None,
                                 cg=None, blockmirror=None,synctimeout=0, varray=None):
 
         varrayuri = None
@@ -404,9 +405,24 @@ class ExportGroup(object):
             path_parameters['min_paths'] = minpaths
         if(pathsperinitiator is not None):
             path_parameters['paths_per_initiator'] = pathsperinitiator
-        
-        if(maxpaths):
-            parms['path_parameters'] = path_parameters
+
+        from storageportgroup import Storageportgroup
+        if(portgroupname):
+            storage_system = StorageSystem(self.__ipAddr, self.__port)
+            storage_system_uri = None
+
+            if(serial_number):
+                storage_system_uri \
+                    = storage_system.query_by_serial_number_and_type(
+                    serial_number, storage_device_type)
+            elif(storage_device_name):
+                storage_system_uri = storage_system.query_by_name_and_type(
+                    storage_device_name, storage_device_type)
+            portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
+            pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
+            path_parameters['port_group'] = pguri
+        if(maxpaths or portgroupname):
+            parms['path_parameters'] = path_parameters    
         parms['volume_changes'] = volChanges
        
         o = self.send_json_request(exportgroup_uri, parms)
@@ -1297,7 +1313,23 @@ def add_volume_parser(subcommand_parsers, common_parser):
                                dest='pathsperinitiator',
                                type=int)
     
-
+    add_volume_parser.add_argument('-portgroup', '-pgname',
+                                   help='Name of Storageportgroup',
+                                   metavar='<portgroupname>',
+                                   dest='portgroupname')
+    add_volume_parser.add_argument('-storagesystem', '-ss',
+                                  help='Name of Storagesystem',
+                                  dest='storagesystem',
+                                  metavar='<storagesystemname>')
+    add_volume_parser.add_argument('-serialnumber', '-sn',
+                                  metavar="<serialnumber>",
+                                  help='Serial Number of the storage system',
+                                  dest='serialnumber')
+    add_volume_parser.add_argument('-t', '-type',
+                                   choices=StorageSystem.SYSTEM_TYPE_LIST,
+                                   dest='type',
+                                   metavar="<storagesystemtype>",
+                               help='Type of storage system')
     add_volume_parser.add_argument('-synchronous', '-sync',
                                    dest='sync',
                                    help='Execute in synchronous mode',
@@ -1321,7 +1353,9 @@ def exportgroup_add_volumes(args):
             args.sync, args.name, args.tenant,
             args.maxpaths,
             args.minpaths, args.pathsperinitiator,
-            args.project, args.volume, args.snapshot, args.consistencygroup, args.blockmirror,args.synctimeout, args.varray)
+            args.project, args.volume, args.storagesystem,
+            args.serialnumber, args.type, args.portgroupname,
+            args.snapshot, args.consistencygroup, args.blockmirror,args.synctimeout, args.varray)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_vol", "exportgroup",
                                               e.err_text, e.err_code)

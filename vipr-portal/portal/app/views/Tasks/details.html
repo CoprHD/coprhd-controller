@@ -106,6 +106,19 @@ margin-bottom: 5px;
     {{task.serviceCode_message.trim()}}<br/>
    </div>
 
+   <div ng-show="task.warningMessages != null && task.warningMessages.length != 0">
+     <div class="section-header"><h1>&{'tasks.warningMessages'}</h1></div>
+     <table class="table table-condensed dataTable">
+       <tbody>
+         <tr ng-repeat="message in task.warningMessages">
+           <td>
+             {{message}}
+           </td>
+         </tr>
+       </tbody>
+     </table>
+   </div>
+
    <div ng-show="task.steps.length != 0">
         <div class="section-header"><h1>Steps</h1></div>
         <table class="table table-condensed dataTable">

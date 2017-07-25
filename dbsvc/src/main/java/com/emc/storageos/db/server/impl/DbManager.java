@@ -83,7 +83,7 @@ public class DbManager implements DbManagerMBean {
 
     // Max retry times after a db repair failure
     private int repairRetryTimes = 5;
-    private ScheduledExecutorService executor = new NamedScheduledThreadPoolExecutor("DbRepairPool", 2);
+    private ScheduledExecutorService executor = new NamedScheduledThreadPoolExecutor("DbRepairPool", 3);
     
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;

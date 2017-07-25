@@ -57,6 +57,16 @@ public interface FileOrchestrationController extends Controller {
      */
     public abstract void expandFileSystem(List<FileDescriptor> fileDescriptors, String taskId)
             throws ControllerException;
+    
+    /**
+     * Reduces a single fileshare
+     * 
+     * @param fileDescriptors
+     * @param taskId
+     * @throws ControllerException
+     */
+    public abstract void reduceFileSystem(List<FileDescriptor> fileDescriptors, String taskId)
+            throws ControllerException;
 
     /**
      * create mirror copies for existing file system

@@ -198,7 +198,7 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     /**
-     * @brief Create File Snapshot, Replication Policy
+     * @brief Create file policy for file snapshot, file replication or file quota
      * 
      * @param param
      *            FilePolicyCreateParam
@@ -366,12 +366,13 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     /**
-     * @brief Assign File Policy to vpool, project, file system
+     * Assign File Policy
      * 
      * @param id
      *            of the file policy.
      * @param param
      *            FilePolicyAssignParam
+     * @brief Assign file policy to vpool, project, file system
      * @return FilePolicyAssignResp
      */
     @POST
@@ -402,10 +403,12 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     /**
-     * @brief Unassign File Policy from vpool, project, file system.
+     * Unassign File Policy
+     * 
      * @param id
      *            of the file policy.
      * @param FilePolicyUnAssignParam
+     * @brief Unassign file policy from vpool, project, file system
      * @return TaskResourceRep
      */
     @POST
@@ -503,7 +506,7 @@ public class FilePolicyService extends TaskResourceService {
      * 
      * @param id
      *            the URI of a ViPR FilePolicy
-     * @brief Show ACL entries for File policy
+     * @brief Show ACL entries for file policy
      * @return ACL Assignment details
      */
     @GET
@@ -1159,8 +1162,10 @@ public class FilePolicyService extends TaskResourceService {
                 }
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
                         targetVArrays);
+
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
                         vPool.getId());
+
             } else {
                 errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName() + ". ");
                 return false;
@@ -1262,7 +1267,7 @@ public class FilePolicyService extends TaskResourceService {
             // only single replication policy per vpool-project combination.
             if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
                     && FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, projectURI, vpool.getId())) {
-                errorMsg.append("Virtual pool " + filePolicy.getFilePolicyVpool().toString() + " project " + project.getLabel()
+                errorMsg.append("Virtual pool " + vpool.getLabel() + " project " + project.getLabel()
                         + "pair is already assigned with replication policy.");
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());

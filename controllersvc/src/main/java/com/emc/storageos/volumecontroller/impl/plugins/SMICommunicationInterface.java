@@ -84,7 +84,6 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             _logger.info("CIMClient initialized successfully");
             executor.setKeyMap(_keyMap);
             executor.execute(_ns);
-            _logger.info("Started Injection of Stats to Cassandra");
             dumpStatRecords();
             injectStats();
         } catch (Exception e) {
@@ -360,6 +359,11 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
             else {
                 initEMCDiscoveryKeyMap(accessProfile);
+                if (Type.vmax.name().equals(accessProfile.getSystemType())) {
+                    // discover port group
+                    _keyMap.put(Constants.PORTGROUP, CimObjectPathCreator.createInstance(
+                            Constants.SE_TARGETMASKINGGROUP, accessProfile.getInteropNamespace()));
+                }
             }
 
             executor.setKeyMap(_keyMap);

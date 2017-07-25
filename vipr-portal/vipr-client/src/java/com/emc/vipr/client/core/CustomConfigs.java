@@ -15,6 +15,7 @@ import com.emc.storageos.model.customconfig.CustomConfigTypeList;
 import com.emc.storageos.model.customconfig.CustomConfigTypeRep;
 import com.emc.storageos.model.customconfig.CustomConfigUpdateParam;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
+import com.emc.storageos.model.customconfig.SimpleValueRep;
 import com.emc.storageos.model.search.SearchResults;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
@@ -76,6 +77,11 @@ public class CustomConfigs extends AbstractBulkResources<CustomConfigRestRep> {
 
     public CustomConfigTypeRep getCustomConfigType(String configType) {
         return client.get(CustomConfigTypeRep.class, PathConstants.CUSTOM_CONFIG_TYPE_URL + "/{config_type}", configType);
+    }
+
+    public SimpleValueRep getCustomConfigTypeValue(String configType, String scope) {
+        URI uri = client.uriBuilder(PathConstants.CUSTOM_CONFIG_TYPE_URL + "/{config_type}").queryParam("scope", scope).build(configType);
+        return client.getURI(SimpleValueRep.class, uri);
     }
 
     public CustomConfigPreviewRep getCustomConfigPreviewValue(CustomConfigPreviewParam param) {

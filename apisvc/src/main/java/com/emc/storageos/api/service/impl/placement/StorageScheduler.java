@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -413,12 +414,18 @@ public class StorageScheduler implements Scheduler {
 
         List<StoragePool> storagePools = new ArrayList<StoragePool>();
         String varrayId = varray.getId().toString();
+        StringBuffer errorMessage = new StringBuffer();
 
-        // Verify that if the VirtualPool is assigned to one or more VirtualArrays
+        // Verify that if the VirtualPool has been assigned one or more VirtualArrays,
         // there is a match with the passed VirtualArray.
         StringSet vpoolVarrays = vpool.getVirtualArrays();
         if ((vpoolVarrays != null) && (!vpoolVarrays.contains(varrayId))) {
-            _log.error("VirtualPool {} is not in virtual array {}", vpool.getId(), varrayId);
+            String message = String.format("Virtual Array %s is not assigned to Virtual Pool %s. ", varray.forDisplay(), vpool.forDisplay());
+            errorMessage.append(message);
+            _log.error(message);
+            if (optionalAttributes != null) {
+                optionalAttributes.put(AttributeMatcher.ERROR_MESSAGE, errorMessage);
+            }
             return storagePools;
         }
         // Get pools for VirtualPool and VirtualArray
@@ -582,6 +589,13 @@ public class StorageScheduler implements Scheduler {
                     capabilities.getSupportsNotificationLimit());
         }
 
+        URI portGroupURI = capabilities.getPortGroup();
+        StoragePortGroup portGroup = null;
+        boolean usePortGroup = !NullColumnValueGetter.isNullURI(portGroupURI);
+        if (usePortGroup) {
+            portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+        }
+        
         if (!(VirtualPool.vPoolSpecifiesProtection(vpool) || VirtualPool.vPoolSpecifiesSRDF(vpool) ||
                 VirtualPool.vPoolSpecifiesHighAvailability(vpool) ||
                 VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool))) {
@@ -591,14 +605,41 @@ public class StorageScheduler implements Scheduler {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.ARRAY_AFFINITY, true);
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.array_affinity.name(), true);
             }
+        } 
+        
+        if (usePortGroup) {
+            if (!VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+                URI pgSystemURI = portGroup.getStorageDevice();
+                boolean setSystemMatcher = true;
+                if (consistencyGroup != null) {
+                    URI cgSystemURI = consistencyGroup.getStorageController();
+                    if (!NullColumnValueGetter.isNullURI(cgSystemURI)) {
+                        if (!cgSystemURI.equals(pgSystemURI)) {
+                            // consistency group and port group does not belong to the same storage system
+                            throw APIException.badRequests.cgPortGroupNotMatch(portGroupURI.toString(), 
+                                    consistencyGroup.getId().toString());
+                        } else {
+                            // system matcher has been set
+                            setSystemMatcher = false;
+                        }
+                    }
+                }
+                if (setSystemMatcher) {
+                    Set<String> storageSystemSet = new HashSet<String>();
+                    storageSystemSet.add(pgSystemURI.toString());
+                    provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+                }
+            } else {
+                // port group could be only specified for native vmax
+                throw APIException.badRequests.portGroupValidForVMAXOnly();
+            }
         }
-
+        
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
         if (optionalAttributes != null) {
             attributeMap.putAll(optionalAttributes);
         }
         _log.info("Populated attribute map: {}", attributeMap);
-        StringBuffer errorMessage = new StringBuffer();
         // Execute basic precondition check to verify that vArray has active storage pools in the vPool.
         // We will return a more accurate error condition if this basic check fails.
         List<StoragePool> matchedPools = _matcherFramework.matchAttributes(
@@ -1097,7 +1138,6 @@ public class StorageScheduler implements Scheduler {
                 inCG = true;
             }
         }
-
         // Handle array affinity placement
         // If inCG is true, it is similar to the array affinity case.
         // Only difference is that resources will not be placed to more than one preferred systems if inCG is true

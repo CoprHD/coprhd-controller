@@ -190,7 +190,7 @@ public class FileStorageScheduler implements Scheduler {
                     if (currvNAS != null) {
                         if (capabilities.getPersonality() != null
                                 && capabilities.getPersonality()
-                                .equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)) {
+                                        .equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)) {
                             if (sourcevNAsServer != null
                                     && sourcevNAsServer.getBaseDirPath().equalsIgnoreCase(currvNAS.getBaseDirPath())) {
                                 _log.info("Target Nas server path {} is similar to source nas server {}, so considering this nas server",
@@ -419,8 +419,8 @@ public class FileStorageScheduler implements Scheduler {
                             .format("There are no active and registered storage ports assigned to virtual array {0}",
                                     fs.getVirtualArray()));
                     throw APIException.badRequests
-                    .noStoragePortFoundForVArray(fs.getVirtualArray()
-                            .toString());
+                            .noStoragePortFoundForVArray(fs.getVirtualArray()
+                                    .toString());
                 }
             }
         }
@@ -711,18 +711,18 @@ public class FileStorageScheduler implements Scheduler {
                         || storagePort.getTaggedVirtualArrays() == null
                         || !storagePort.getTaggedVirtualArrays().contains(
                                 vArrayURI.toString())
-                                || !RegistrationStatus.REGISTERED.toString()
+                        || !RegistrationStatus.REGISTERED.toString()
                                 .equalsIgnoreCase(
                                         storagePort.getRegistrationStatus())
-                                        || (StoragePort.OperationalStatus.valueOf(storagePort
-                                                .getOperationalStatus()))
-                                .equals(StoragePort.OperationalStatus.NOT_OK)
-                                                || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
-                                                .name().equals(
-                                                        storagePort.getCompatibilityStatus())
-                                                        || !DiscoveryStatus.VISIBLE.name().equals(
-                                                                storagePort.getDiscoveryStatus())
-                                                                || (storagePort.getTag() != null && storagePort.getTag().contains("dr_port"))) {
+                        || (StoragePort.OperationalStatus.valueOf(storagePort
+                                .getOperationalStatus()))
+                                        .equals(StoragePort.OperationalStatus.NOT_OK)
+                        || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
+                                .name().equals(
+                                        storagePort.getCompatibilityStatus())
+                        || !DiscoveryStatus.VISIBLE.name().equals(
+                                storagePort.getDiscoveryStatus())
+                        || (storagePort.getTag() != null && storagePort.getTag().contains("dr_port"))) {
 
                     iterator.remove();
                 }
@@ -841,11 +841,11 @@ public class FileStorageScheduler implements Scheduler {
                 || virtualNAS.getAssignedVirtualArrays().isEmpty()
                 || !RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
                         virtualNAS.getRegistrationStatus())
-                        || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+                || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
                         .equals(virtualNAS.getCompatibilityStatus())
-                        || !VirtualNasState.LOADED.name().equals(virtualNAS.getVNasState())
-                        || !DiscoveryStatus.VISIBLE.name().equals(
-                                virtualNAS.getDiscoveryStatus())) {
+                || !VirtualNasState.LOADED.name().equals(virtualNAS.getVNasState())
+                || !DiscoveryStatus.VISIBLE.name().equals(
+                        virtualNAS.getDiscoveryStatus())) {
             return false;
         }
         return true;
@@ -876,16 +876,16 @@ public class FileStorageScheduler implements Scheduler {
                     || temp.getTaggedVirtualArrays() == null
                     || !temp.getTaggedVirtualArrays().contains(
                             varray.toString())
-                            || !RegistrationStatus.REGISTERED.toString()
+                    || !RegistrationStatus.REGISTERED.toString()
                             .equalsIgnoreCase(temp.getRegistrationStatus())
-                            || (StoragePort.OperationalStatus.valueOf(temp
-                                    .getOperationalStatus()))
-                            .equals(StoragePort.OperationalStatus.NOT_OK)
-                                    || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
-                                    .name().equals(temp.getCompatibilityStatus())
-                                    || !DiscoveryStatus.VISIBLE.name().equals(
-                                            temp.getDiscoveryStatus())
-                                            || (temp.getTag() != null && temp.getTag().contains("dr_port"))) {
+                    || (StoragePort.OperationalStatus.valueOf(temp
+                            .getOperationalStatus()))
+                                    .equals(StoragePort.OperationalStatus.NOT_OK)
+                    || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
+                            .name().equals(temp.getCompatibilityStatus())
+                    || !DiscoveryStatus.VISIBLE.name().equals(
+                            temp.getDiscoveryStatus())
+                    || (temp.getTag() != null && temp.getTag().contains("dr_port"))) {
                 itr.remove();
             }
         }
@@ -1146,19 +1146,25 @@ public class FileStorageScheduler implements Scheduler {
 
         // Now check whether the label used in the storage system or not
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
-        List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
-                PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
-        if (fileShareList != null && !fileShareList.isEmpty()) {
-            for (FileShare fs : fileShareList) {
-                if (fs.getStorageDevice() != null) {
-                    if (fs.getStorageDevice().equals(system.getId())) {
+        /*
+         * We have same project same filesystem name check present at API service
+         * Isilon file systems are path based. So Same fs name can exist at different path
+         * Unity allow same filesystem name in different NAS servers.
+         * For Isilon, duplicate name based on path is handled at driver level.
+         */
+        if (!allowDuplicateFilesystemNameOnStorage(system.getSystemType())) {
+            List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                    PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
+            if (fileShareList != null && !fileShareList.isEmpty()) {
+                for (FileShare fs : fileShareList) {
+                    if (fs.getStorageDevice() != null && fs.getStorageDevice().equals(system.getId())) {
                         _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
                         throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
+
                     }
                 }
             }
         }
-
         // Set the storage pool
         StoragePool pool = null;
         if (null != placement.getSourceStoragePool()) {
@@ -1182,6 +1188,23 @@ public class FileStorageScheduler implements Scheduler {
         _dbClient.updateObject(fileShare);
         // finally set file share id in recommendation
         placement.setId(fileShare.getId());
+    }
+
+    /**
+     * To check fileSystem with same name is allowed or not
+     * currently we allowed it for Isilon and Unity as Array do not have these restriction.
+     * 
+     * @param systemType
+     * @return true if allowed , false otherwise
+     */
+    private static boolean allowDuplicateFilesystemNameOnStorage(String systemType) {
+        boolean allow = false;
+        if (StorageSystem.Type.isilon.name().equals(systemType)) {
+            allow = true;
+        } else if (StorageSystem.Type.unity.name().equals(systemType)) {
+            allow = true;
+        }
+        return allow;
     }
 
     /**

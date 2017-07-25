@@ -832,21 +832,35 @@ public class VPlexApiDiscoveryManager {
      */
     VPlexDistributedDeviceInfo findDistributedDevice(String deviceName)
             throws VPlexApiException {
-        return findDistributedDevice(deviceName, false);
+        s_logger.info(String.format("Find distributed device with name %s", deviceName));
+        VPlexDistributedDeviceInfo distributedDeviceInfo = null;       
+        try {                
+            // Perform a direct search for the distributed device
+            VPlexDistributedDeviceInfo deviceInfo = getDistributedDeviceInfo(deviceName);
+            if (deviceInfo != null) {                    
+                s_logger.info(String.format("Found distributed device %s", deviceName));
+                distributedDeviceInfo = deviceInfo;
+            }                                               
+        } catch (Exception e) {                
+            s_logger.error(String.format("Exception finding distributed device %s", deviceName), e);
+            throw e;                
+        } 
+
+        return distributedDeviceInfo;
     }
 
     /**
-     * Finds the distributed device with the passed name.
+     * Finds the distributed device with the passed name. Called mainly to find newly
+     * created distributed devices as the VPLEX will not always return the new 
+     * device the first time it is asked, so a retry loop is used.
      * 
      * @param deviceName The name of the distributed device to find.
-     * @param retry Indicates retry should occur if the first attempt to find
-     *            the distributed device fails.
      * 
      * @return A reference to the distributed device info or null if not found.
      * 
      * @throws VPlexApiException When an error occurs finding the device.
      */
-    VPlexDistributedDeviceInfo findDistributedDevice(String deviceName, boolean retry)
+    VPlexDistributedDeviceInfo findNewDistributedDevice(String deviceName)
             throws VPlexApiException {
 
         s_logger.info("Find distributed device with name {}", deviceName);
@@ -865,7 +879,7 @@ public class VPlexApiDiscoveryManager {
                     }
                 }
 
-                if ((distributedDeviceInfo != null) || (!retry) ||
+                if ((distributedDeviceInfo != null) ||
                         (retryCount >= VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
                     break;
                 } else {
@@ -874,7 +888,7 @@ public class VPlexApiDiscoveryManager {
                     VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
                 }
             } catch (VPlexApiException vae) {
-                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                if (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
                     s_logger.error(String.format("Exception finding distributed device on try %d of %d",
                             retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES), vae);
                     VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
@@ -882,7 +896,7 @@ public class VPlexApiDiscoveryManager {
                     throw vae;
                 }
             } catch (Exception e) {
-                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                if (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
                     s_logger.error(String.format("Exception finding distributed device on try %d of %d",
                             retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES), e);
                     VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
@@ -1689,9 +1703,10 @@ public class VPlexApiDiscoveryManager {
                 if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
                     _vplexApiClient.waitForCompletion(response);
                 } else {
+                    String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw new VPlexApiException(String.format(
-                            "Request initiator discovery failed with Status: %s",
-                            response.getStatus()));
+                            "Request initiator discovery failed with Status %s: %s",
+                            response.getStatus(), cause));
                 }
             }
         } catch (VPlexApiException vae) {
@@ -2508,7 +2523,7 @@ public class VPlexApiDiscoveryManager {
                 URI.create(uriBuilder.toString()));
         s_logger.info("Get consistency groups request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
-
+        s_logger.debug("Get consistency groups response is {}", response);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
@@ -3004,10 +3019,10 @@ public class VPlexApiDiscoveryManager {
             throws VPlexApiException {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
                 VPlexApiConstants.URI_DISTRIBUTED_DEVICES);
-        s_logger.info("Distributed devices Request URI is {}", requestURI.toString());
+        s_logger.info("Distributed devices request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.debug("Response is {}", responseStr);
+        s_logger.debug("Distributed devices response is {}", responseStr);
         int status = response.getStatus();
         response.close();
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
@@ -3025,7 +3040,55 @@ public class VPlexApiDiscoveryManager {
             throw VPlexApiException.exceptions.failedGettingDistributedDevices(e);
         }
     }
+    
+    /**
+     * Gets the distributed device for the VPLEX using the distributed device name
+     * and populates all relevant attributes from the response.
+     * 
+     * @param distributedDeviceName Is the name of the distributed device to find 
+     *                              on the VPLEX.
+     * @return VPlexDistributedDeviceInfo representing the distributed device
+     *         or null if not found.
+     * 
+     * @throws VPlexApiException When an error occurs getting the distributed
+     *             device information.
+     */
+    VPlexDistributedDeviceInfo getDistributedDeviceInfo(String distributedDeviceName)
+            throws VPlexApiException {
+        StringBuilder uriBuilder = new StringBuilder();
+        uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES);
+        uriBuilder.append(distributedDeviceName);
+        
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+        s_logger.info("Distributed device request URI is {}", requestURI.toString());
+        ClientResponse response = _vplexApiClient.get(requestURI);
+        String responseStr = response.getEntity(String.class);
+        s_logger.debug("Distributed device response is {}", responseStr);
+        int status = response.getStatus();
+        response.close();
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            throw VPlexApiException.exceptions
+                    .failureGettingDistributedDevicesStatus(String.valueOf(status));
+        }
 
+        try {
+            VPlexDistributedDeviceInfo distributedDeviceInfo = new VPlexDistributedDeviceInfo();
+            // Set path context from request
+            distributedDeviceInfo.setPath(uriBuilder.toString().substring(VPlexApiConstants.VPLEX_PATH
+                    .length()));
+            // Populate attributes from response
+            VPlexApiUtils.setAttributeValues(responseStr, distributedDeviceInfo);
+            if (distributedDeviceInfo.getName() == null) {
+                // Name attribute was not populated from response so the device
+                // was not actually found.
+                return null;
+            }            
+            return distributedDeviceInfo;
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.failedGettingDistributedDevices(e);
+        }
+    }
+    
     /**
      * Discovers and sets the supporting components (i.e., top level local
      * devices) for the passed distributed device.
@@ -3270,8 +3333,12 @@ public class VPlexApiDiscoveryManager {
             storageVolumeInfo.setClusterId(extentInfo.getClusterId());
             extentInfo.setStorageVolumeInfo(storageVolumeInfo);
         } else {
-            throw VPlexApiException.exceptions.moreThanOneComponentForExtent(extentInfo
-                    .getPath());
+            if (componentInfoList.isEmpty()) {
+                throw VPlexApiException.exceptions.noComponentForExtent(extentInfo.getPath());
+            } else {
+                throw VPlexApiException.exceptions.moreThanOneComponentForExtent(extentInfo
+                        .getPath());
+            }
         }
     }
 

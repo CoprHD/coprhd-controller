@@ -76,8 +76,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_040 = "failure_040_XtremIOStorageDeviceController.doDeleteVolume_before_delete_volume";
     public static final String ARTIFICIAL_FAILURE_041 = "failure_041_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume";
     public static final String ARTIFICIAL_FAILURE_042 = "failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences";
-    public static final String ARTIFICIAL_FAILURE_043 = "failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation";
-    public static final String ARTIFICIAL_FAILURE_044 = "failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation";
+    public static final String ARTIFICIAL_FAILURE_043 = "failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation";
+    public static final String ARTIFICIAL_FAILURE_044 = "failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_after_operation";
     public static final String ARTIFICIAL_FAILURE_045 = "failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation";
     public static final String ARTIFICIAL_FAILURE_046 = "failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation";
     public static final String ARTIFICIAL_FAILURE_047 = "failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone";
@@ -107,7 +107,33 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_071 = "failure_071_ComputeDeviceControllerImpl.addStepsPreOsInstall_prepareOsInstallNetworkStep";
     public static final String ARTIFICIAL_FAILURE_072 = "failure_072_ComputeDeviceControllerImpl.addStepsPostOsInstall_setSanBootTargetStep";
     public static final String ARTIFICIAL_FAILURE_073 = "failure_073_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate";
-    public static final String ARTIFICIAL_FAILURE_074 = "failure_074_VPlexDeviceController_deleteStorageView_before_delete";
+    public static final String ARTIFICIAL_FAILURE_074 = "failure_074_SRDFDeviceController.createSRDFVolumePairStep_before_link_create";
+    public static final String ARTIFICIAL_FAILURE_075 = "failure_075_SRDFDeviceController.createSRDFVolumePairStep_after_link_create";
+    public static final String ARTIFICIAL_FAILURE_076 = "failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback";
+    public static final String ARTIFICIAL_FAILURE_077 = "failure_077_SRDFDeviceController.rollbackSRDFLinksStep_after_link_rollback";
+    public static final String ARTIFICIAL_FAILURE_078 = "failure_078_SRDFDeviceController.createSrdfCgPairsStep_before_cg_pairs_create";
+    public static final String ARTIFICIAL_FAILURE_079 = "failure_079_SRDFDeviceController.createSrdfCgPairsStep_after_cg_pairs_create";
+    public static final String ARTIFICIAL_FAILURE_080 = "failure_080_BlockDeviceController.expandVolume_before_device_expand";
+    public static final String ARTIFICIAL_FAILURE_082 = "failure_082_set_resource_tag";
+    public static final String ARTIFICIAL_FAILURE_083 = "failure_083_VPlexDeviceController_late_in_add_targets_to_view";
+    public static final String ARTIFICIAL_FAILURE_084 = "failure_084_VPlexDeviceController_deleteStorageView_before_delete";
+    public static final String ARTIFICIAL_FAILURE_085 = "failure_085_VPlexApiDiscoveryManager_find_consistency_group";
+    public static final String ARTIFICIAL_FAILURE_086 = "failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete";
+    public static final String ARTIFICIAL_FAILURE_087 = "failure_087_BlockDeviceController.before_doDeleteVolumes";
+    public static final String ARTIFICIAL_FAILURE_088 = "failure_088_BlockDeviceController.after_doDeleteVolumes";
+    public static final String ARTIFICIAL_FAILURE_089 = "failure_089_SRDFDeviceController.before_doSuspendLink";
+    public static final String ARTIFICIAL_FAILURE_090 = "failure_090_SRDFDeviceController.after_doSuspendLink";
+    public static final String ARTIFICIAL_FAILURE_091 = "failure_091_SRDFDeviceController.before_doDetachLink";
+    public static final String ARTIFICIAL_FAILURE_092 = "failure_092_SRDFDeviceController.after_doDetachLink";
+    public static final String ARTIFICIAL_FAILURE_093 = "failure_093_SRDFDeviceController.before_doRemoveDeviceGroups";
+    public static final String ARTIFICIAL_FAILURE_094 = "failure_094_SRDFDeviceController.after_doRemoveDeviceGroups";
+    public static final String ARTIFICIAL_FAILURE_095 = "failure_095_SRDFDeviceController.before_doSuspendLink";
+    public static final String ARTIFICIAL_FAILURE_096 = "failure_096_SRDFDeviceController.after_doSuspendLink";
+    public static final String ARTIFICIAL_FAILURE_097 = "failure_097_SRDFDeviceController.before_performResume";
+    public static final String ARTIFICIAL_FAILURE_098 = "failure_098_SRDFDeviceController.after_performResume";
+    public static final String ARTIFICIAL_FAILURE_099 = "failure_099_SRDFDeviceController.before_performSync";
+    public static final String ARTIFICIAL_FAILURE_100 = "failure_100_SRDFDeviceController.after_performSync";
+
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 
@@ -255,7 +281,7 @@ public final class InvokeTestFailure {
             if (!Strings.isNullOrEmpty(failOnMethodName)
                     && (failOnMethodName.equalsIgnoreCase(methodName) || failOnMethodName.equalsIgnoreCase("*"))) {
                 log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
-                throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
+                throw new WBEMException("Artificially Thrown Exception: " + failureKey + methodName + ", CIM_ERROR_FAILED (Unable to connect)");
             }
         }
     }

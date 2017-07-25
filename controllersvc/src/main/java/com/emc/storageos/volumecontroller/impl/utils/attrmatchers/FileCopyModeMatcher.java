@@ -47,7 +47,7 @@ public class FileCopyModeMatcher extends AttributeMatcher {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         String copyMode = SupportedCopyModes.ASYNCHRONOUS.toString();
         if (attributeMap.get(Attributes.remote_copy_mode.toString()) != null) {
-            copyMode = (String) attributeMap.get(Attributes.file_replication_copy_mode.toString());
+            copyMode = (String) attributeMap.get(Attributes.remote_copy_mode.toString());
         }
         String copyType = getPoolCopyTypeFromCopyModes(copyMode);
         String sourceSystem = null;
@@ -69,8 +69,8 @@ public class FileCopyModeMatcher extends AttributeMatcher {
                 matchedPools.add(pool);
             }
         }
-        
-        if(CollectionUtils.isEmpty(matchedPools)){
+
+        if (CollectionUtils.isEmpty(matchedPools)) {
             errorMessage.append(String.format("No matching storage pool found for copy mode %s and copy type %s. ", copyMode, copyType));
             _logger.error(errorMessage.toString());
         }

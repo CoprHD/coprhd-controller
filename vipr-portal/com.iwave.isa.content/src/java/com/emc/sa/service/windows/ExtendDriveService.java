@@ -18,9 +18,10 @@ public class ExtendDriveService extends WindowsService {
     protected List<String> volumeIds;
     private List<ExtendDriveHelper> extendDriveHelpers;
 
+    @Override
     public void init() throws Exception {
         super.init();
-        extendDriveHelpers = ExtendDriveHelper.createHelpers(windowsSystems, 0);
+        extendDriveHelpers = ExtendDriveHelper.createHelpers(hostId, windowsSystems, 0);
     }
 
     @Override

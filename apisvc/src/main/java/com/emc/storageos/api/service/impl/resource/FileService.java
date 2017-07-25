@@ -4819,7 +4819,6 @@ public class FileService extends TaskResourceService {
         }
 
         // Querying the storageSystem if its IP Address
-        queryResult.clear();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByIpAddressConstraint(address.getHostAddress()),
                 queryResult);
         while (iter.hasNext()) {
@@ -4831,7 +4830,6 @@ public class FileService extends TaskResourceService {
         }
 
         // Querying the storageSystem if its FQDN
-        queryResult.clear();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByIpAddressConstraint(address.getHostName()),
                 queryResult);
         iter = queryResult.iterator();

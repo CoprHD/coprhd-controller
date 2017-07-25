@@ -4364,11 +4364,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private void setReplicationInfoInExtension(FileShare sourceFileShare, String targetHost, String path) {
         String targetInfo = String.format("%s:%s", targetHost, path);
         if (sourceFileShare != null) {
-           if(!sourceFileShare.getExtensions().containsKey("ReplicationInfo")){
-               sourceFileShare.getExtensions().put("ReplicationInfo", targetInfo);
-           } else {
-               sourceFileShare.getExtensions().replace("ReplicationInfo", targetInfo);
-           }
+            sourceFileShare.getExtensions().put("ReplicationInfo", targetInfo);
             _dbClient.updateObject(sourceFileShare);
         } else {
             throw DeviceControllerException.exceptions.replicationInfoSettingFailed( "Failed to set the replication attribute to source FS ");

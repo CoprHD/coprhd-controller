@@ -494,6 +494,8 @@ public class ControllerServiceImpl implements ControllerService {
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
 
+        // This must be put before invoking initDriverInfo method, where we instantiate driver
+        // instances and load driver info., which depend on metadata inserted by this method
         initIntreeDriverMetadata();
 
         initDriverInfo();

@@ -121,7 +121,7 @@ public class ExternalDeviceCommunicationInterface extends
             if (type.getDriverClassName() == null) {
                 continue;
             }
-            if (!StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
+            if (!StringUtils.equalsIgnoreCase(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
                 continue;
             }
             String typeName = type.getStorageTypeName();

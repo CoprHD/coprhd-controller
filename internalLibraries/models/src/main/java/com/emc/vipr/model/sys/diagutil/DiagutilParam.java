@@ -120,4 +120,15 @@ public class DiagutilParam {
     public void setMsgRegex(String msgRegex) {
         this.msgRegex = msgRegex;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("options: ");
+        sb.append(options);
+        sb.append("upload_param: ");
+        sb.append(uploadParam);
+
+        return sb.toString();
+    }
 }

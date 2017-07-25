@@ -14,15 +14,15 @@ import java.io.Serializable;
 @XmlRootElement(name = "upload_param")
 public class UploadParam implements Serializable {
     private static final Logger log = LoggerFactory.getLogger(UploadParam.class);
-    private String uploadType;
+    private UploadType uploadType;
     private UploadFtpParam uploadFtpParam;
 
     @XmlElement(name = "upload_type")
-    public String getUploadType() {
+    public UploadType getUploadType() {
         return uploadType;
     }
 
-    public void setUploadType(String uploadType) {
+    public void setUploadType(UploadType uploadType) {
         this.uploadType = uploadType;
     }
 

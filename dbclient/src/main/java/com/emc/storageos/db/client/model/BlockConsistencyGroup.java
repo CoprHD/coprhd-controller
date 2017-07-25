@@ -62,6 +62,17 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     private StringSet requestedTypes;
 
     /**
+     * Migration Status of the StorageGroup on array (VMAX).
+     */
+    private String migrationStatus;
+
+    /**
+     * List of known initiators belonging to the masking view to which this
+     * storage group is attached to.
+     */
+    private StringSet initiators;
+
+    /**
      * Alternate label used in SRDF.
      */
     private String alternateLabel;
@@ -99,7 +110,22 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         /* VPlex consistency group type. */
         VPLEX,
         /* Array-based consistency group type. */
-        LOCAL
+        LOCAL,
+        /* Migration-Only */
+        MIGRATION
+    }
+
+    public static enum MigrationStatus {
+        NONE,
+        MIGRATIONREADY,
+        CREATED,
+        MIGRATEINPROGESS,
+        MIGRATIONFAILED,
+        MIGRATED,
+        COMMITINPROGRESS,
+        COMMITFAILED,
+        COMMITCOMPLETED,
+        OTHER
     }
 
     @Name("nativeId")
@@ -254,6 +280,30 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         for (String type : addedTypes) {
             getRequestedTypes().add(type);
         }
+    }
+
+    @Name("migrationStatus")
+    public String getMigrationStatus() {
+        return migrationStatus;
+    }
+
+    public void setMigrationStatus(String migrationStatus) {
+        this.migrationStatus = migrationStatus;
+        setChanged("migrationStatus");
+    }
+
+    @Name("initiators")
+    @AlternateId("BlockConsistencyGroupInitiators")
+    public StringSet getInitiators() {
+        if (initiators == null) {
+            initiators = new StringSet();
+        }
+        return initiators;
+    }
+
+    public void setInitiators(StringSet initiators) {
+        this.initiators = initiators;
+        setChanged("initiators");
     }
 
     @Name("systemConsistencyGroups")

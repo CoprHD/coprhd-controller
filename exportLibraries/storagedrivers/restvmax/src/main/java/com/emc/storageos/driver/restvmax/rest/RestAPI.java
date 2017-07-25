@@ -73,7 +73,7 @@ public class RestAPI implements AutoCloseable {
         this.pathVendorPrefix = pathVendorPrefix;
     }
 
-    private static ClientConfig configureClient(boolean verify) {
+    private static ClientConfig configureClient(boolean verifyCA) {
         TrustManager[] certs = new TrustManager[] {
                 new X509TrustManager() {
                     @Override
@@ -104,7 +104,12 @@ public class RestAPI implements AutoCloseable {
         ClientConfig config = new DefaultClientConfig();
         try {
             config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES,
-                    new HTTPSProperties((s, sslSession) -> verify, context));
+                    new HTTPSProperties(new HostnameVerifier() {
+                        @Override
+                        public boolean verify(String s, SSLSession sslSession) {
+                            return verifyCA;
+                        }
+                    }, context));
         } catch (Exception e) {
             LOG.error("Failed to set HTTPS properties.");
             return null;

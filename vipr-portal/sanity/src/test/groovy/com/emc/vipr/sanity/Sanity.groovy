@@ -55,7 +55,7 @@ class Sanity {
         blockTests,
         protectionTests,
         vmwareTests
-        //,remoteReplicationTests  // omit RR tests so catalog testing does not dependent on it
+        //do not include remoteReplicationTests, which are run separately
     ] as Class[]
 
     public static void main(String[] args) {

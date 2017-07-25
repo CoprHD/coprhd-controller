@@ -1805,7 +1805,6 @@ public class ComputeUtils {
      *
      * @param client {@link ViPRCoreClient} instance
      * @param cvp {@link ComputeVirtualPoolRestRep}
-<<<<<<< HEAD
      * @param preCheckErrors {@link StringBuilder}
      * @return {@link StringBuilder} preCheckErrors with appropriate messages
      */
@@ -1826,33 +1825,6 @@ public class ComputeUtils {
             }
         }
         return preCheckErrors;
-=======
-     * @param status {@link Pair} place holder
-     * @return {@link Pair} Boolean and/or Compute System
-     */
-    public static Pair<Boolean, Map<URI, String>> checkComputeSystemsHaveImageServer(ViPRCoreClient client,
-                                                                           ComputeVirtualPoolRestRep cvp,
-                                                                           Pair<Boolean, Map<URI, String>> status) {
-        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(client, cvp.getId());
-        Map<URI, String> computeSystemsWithoutImageServerMap = new HashMap<URI, String>();
-        if (null != computeSystemMap) {
-            for (Map.Entry<URI, ComputeSystemRestRep> computeSystemRestRep : computeSystemMap.entrySet()) {
-                if (NullColumnValueGetter.isNullValue(computeSystemRestRep.getValue().getComputeImageServer())) {
-                    status.setFirstElement(false);
-                    computeSystemsWithoutImageServerMap.put(computeSystemRestRep.getValue().getId(),
-                            computeSystemRestRep.getValue().getName());
-                    status.setSecondElement(computeSystemsWithoutImageServerMap);
-                }
-            }
-            if (status.getFirstElement().equals(false)){
-                return status;
-            } else {
-                status.setFirstElement(true);
-                return status;
-            }
-        }
-        status.setFirstElement(false);
-        return status;
->>>>>>> cbc099a6edea335a4059317a59dd1d18de2314e5
+
     }
 }

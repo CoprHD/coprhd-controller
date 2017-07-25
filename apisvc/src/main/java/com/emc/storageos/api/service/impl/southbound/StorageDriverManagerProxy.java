@@ -63,7 +63,7 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
     }
     private void refreshInfo() {
         clearInfo();
-        List<StorageSystemType> types = listNonNativeTypes();
+        List<StorageSystemType> types = listNonDriverManagedTypes();
         for (StorageSystemType type : types) {
             String typeName = type.getStorageTypeName();
             String driverName = type.getDriverName();
@@ -91,13 +91,13 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
         }
     }
 
-    private List<StorageSystemType> listNonNativeTypes() {
+    private List<StorageSystemType> listNonDriverManagedTypes() {
         List<StorageSystemType> result = new ArrayList<StorageSystemType>();
         List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
         Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         while (it.hasNext()) {
             StorageSystemType type = it.next();
-            if (type.getIsNative() == null || type.getIsNative()) {
+            if (type.getDriverClassName() == null) {
                 continue;
             }
             if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {

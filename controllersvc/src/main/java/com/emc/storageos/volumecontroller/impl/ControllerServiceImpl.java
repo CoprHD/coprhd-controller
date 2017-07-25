@@ -671,7 +671,7 @@ public class ControllerServiceImpl implements ControllerService {
         for (StorageSystemType type : types) {
             String typeName = type.getStorageTypeName();
             String metaType = type.getMetaType();
-            if (!StringUtils.equals(metaType, StorageSystemType.META_TYPE.BLOCK.toString())) {
+            if (!StringUtils.equalsIgnoreCase(metaType, StorageSystemType.META_TYPE.BLOCK.toString())) {
                 // TODO for now it seems that we only support block type driver
                 // In future, to support file/object or other type, we need add more codes here
                 _log.info("Skip load info of {}, for its type is {} which is not supported for now", typeName, metaType);

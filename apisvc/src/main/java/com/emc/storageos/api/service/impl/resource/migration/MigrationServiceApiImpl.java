@@ -39,7 +39,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             controller.migrationCreateEnvironment(srcSysytem.getId(), tgtSysytemId, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to create migration environment between source and target systems. "
-                    + "Source system: %s, target system: %s", param.getSourceStorageSystem(), param.getTargetStorageSystem());
+                    + "Source system: %s, Target system: %s", param.getSourceStorageSystem(), param.getTargetStorageSystem());
             logger.error(errorMsg, e);
         }
     }
@@ -174,7 +174,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             controller.migrationRemoveEnvironment(srcSysytem.getId(), tgtSysytemId, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to remove migration environment between source and target systems. "
-                    + "Source system: %s, target system: %s", param.getSourceStorageSystem(), param.getTargetStorageSystem());
+                    + "Source system: %s, Target system: %s", param.getSourceStorageSystem(), param.getTargetStorageSystem());
             logger.error(errorMsg, e);
         }
     }

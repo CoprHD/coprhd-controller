@@ -365,6 +365,11 @@
         <property name="findProviderFactory" ref="vnxFindProviderFactory"/>
     </bean>
 
+   <bean id="vmaxRestStorageDevice" class="com.emc.storageos.volumecontroller.impl.vmax.VMAXRestStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vmaxClientFactory" ref="vmaxClientFactory"/>
+    </bean>
+
     <bean id="cinderStorageDevice" class="com.emc.storageos.volumecontroller.impl.cinder.CinderStorageDevice">
         <property name="cinderApiFactory" ref="cinderapifactory" />
         <property name="nameGenerator" ref="defaultNameGenerator"/>
@@ -896,11 +901,7 @@
     <bean id="vmaxMigrationController" class="com.emc.storageos.migrationcontroller.VMAXMigrationController">
         <property name="dbClient" ref="dbclient" />
         <property name="workflowService" ref="workflowService" />
-        <property name="devices">
-            <map>
-                <entry key="vmax" value-ref="vmaxSmisDevice"/>
-            </map>
-        </property>
+        <property name="vmaxRestStorageDevice" ref="vmaxRestStorageDevice" />
     </bean>
 
     <bean id="migrationController" class="com.emc.storageos.migrationcontroller.MigrationControllerImpl">

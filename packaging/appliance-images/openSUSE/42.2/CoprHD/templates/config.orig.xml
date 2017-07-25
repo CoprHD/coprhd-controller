@@ -181,6 +181,10 @@
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>
+        <package name="systemd"/>
+        <package name="kmod"/>
+        <package name="suse-module-tools"/>
+        <package name="systemd-sysvinit"/>
         <package name="filesystem"/>
         <package name="glibc-locale"/>
         <package name="cracklib-dict-full"/>

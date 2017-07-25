@@ -1721,7 +1721,7 @@ xtremio_blockconsistency_tests()
     blockconsistencygroup_bulk_test
     ### Delete volume from consistency group
     echo "Deleting volume from consistency group"
-    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP}
+    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP} --wait
 }
 
 xtremio_blockconsistencygroup_add_volume_test()
@@ -1762,7 +1762,7 @@ xtremio_blockconsistencygroup_snapshot_tests()
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot
 
     echo "Deleting volume in snapshot consistency group"
-    run volume delete $PROJECT/volume-${cg_name}   
+    run volume delete $PROJECT/volume-${cg_name} --wait   
 }
 
 VERIFY_EXPORT_COUNT=0

@@ -12,6 +12,9 @@ public class MountPoint {
 
     private String options;
 
+    public MountPoint() {
+    }
+
     public MountPoint(String path, String device, String options) {
         this.path = path;
         this.device = device;

@@ -40,10 +40,6 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorRollbackCompleter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +51,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -65,6 +62,8 @@ import com.emc.storageos.db.client.model.Volume.LinkStatus;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -75,6 +74,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailO
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStartCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStopCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorRollbackCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisSRDFCreateMirrorJob;
@@ -416,6 +416,12 @@ public class SRDFOperations implements SmisConstants {
             // after volumes are deleted .group gets removed
             if (cgSourceCleanUpRequired || cgTargetCleanUpRequired) {
                 SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId(), isVpoolChange, dbClient);
+                // When deleting SRDF async CG volumes, if there is an error after the SRDF operations, then retry of delete is throwing an
+                // error.
+                // This is because the CG has been deleted on the array side but the ViPR target volume still has the reference to the CG.
+                // So clean up CG reference from the target volume after the target CG has been deleted.
+                target.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                dbClient.updateObject(target);
             }
 
         } catch (Exception e) {

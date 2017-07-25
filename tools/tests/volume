@@ -532,7 +532,7 @@ export_args.add_argument('--v', action='store_true',	help = 'verbose listing.')
 # volume change_link
 change_link = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 change_link.add_argument('name',		help = 'URI or full pathname of volume')
-change_link.add_argument('operation',	help = 'operation: stop, start, failover, failover_test, pause, resume')
+change_link.add_argument('operation',	help = 'operation: stop, start, failover, failover_test, pause, resume, restore')
 change_link.add_argument('copyURI', help = 'URI of copy to perform operation on')
 change_link.add_argument('type', help = 'type of protection for the source volume')
 change_link.add_argument('--am', help = 'access mode')

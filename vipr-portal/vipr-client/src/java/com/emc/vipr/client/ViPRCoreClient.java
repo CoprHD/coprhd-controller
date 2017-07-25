@@ -55,6 +55,7 @@ import com.emc.vipr.client.core.SchedulePolicies;
 import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StorageDriver;
 import com.emc.vipr.client.core.StoragePools;
+import com.emc.vipr.client.core.StoragePortGroups;
 import com.emc.vipr.client.core.StoragePorts;
 import com.emc.vipr.client.core.StorageProviders;
 import com.emc.vipr.client.core.StorageSystemType;
@@ -349,6 +350,10 @@ public class ViPRCoreClient {
         return new VirtualNasServers(this, client);
     }
 
+    public StoragePortGroups storagePortGroups() {
+        return new StoragePortGroups(this, client);
+    }
+    
     public StorageTiers storageTiers() {
         return new StorageTiers(this, client);
     }

@@ -674,7 +674,7 @@ public class FileService extends TaskResourceService {
     private void verifyExports(FileShare fs, FileExportUpdateParam param, String permissions, String securityType, String rootUserMapping,
             String path) {
 
-        // Check to see if th permission passed in is valid
+        // Check to see if the permission passed in is valid
         Boolean allowedPermission = false;
         for (Permissions me : Permissions.values()) {
             if (me.name().equalsIgnoreCase(permissions)) {
@@ -1110,6 +1110,7 @@ public class FileService extends TaskResourceService {
         FileSystemShareList fileShareListResponse = new FileSystemShareList();
 
         if (fileShare.getInactive()) {
+            _log.info(String.format("File system: %1$s is inactive state", id));
             return fileShareListResponse;
         }
 
@@ -1118,6 +1119,9 @@ public class FileService extends TaskResourceService {
         Collection<SMBFileShare> smbShares = new ArrayList<SMBFileShare>();
         if (smbShareMap != null) {
             smbShares = smbShareMap.values();
+        } else {
+            _log.info(String.format("No SMBShare for file system: %1$s", id));
+
         }
 
         // Process each share from the map and add its data to shares in response list.
@@ -1166,8 +1170,6 @@ public class FileService extends TaskResourceService {
 
         SMBFileShare smbShare = null;
 
-        FileSystemShareList fileShareListResponse = new FileSystemShareList();
-
         SmbShareResponse shareParam = null;
 
         if (fileShare.getSMBFileShares() != null) {
@@ -1192,6 +1194,9 @@ public class FileService extends TaskResourceService {
                 shareParam.setMountPoint(smbShare.getMountPoint());
                 shareParam.setPath(smbShare.getPath());
             }
+        } else {
+            _log.info(String.format("No SMBShare for file system: %1$s", id));
+
         }
 
         return shareParam;
@@ -1582,11 +1587,13 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public SnapshotList getSnapshots(@PathParam("id") URI id) {
-        List<URI> snapIDList = _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id));
+        URIQueryResultList snapIDList = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id), snapIDList);
         _log.debug("getSnapshots: FS {}: {} ", id.toString(), snapIDList.toString());
-        List<Snapshot> snapList = _dbClient.queryObject(Snapshot.class, snapIDList);
         SnapshotList list = new SnapshotList();
-        for (Snapshot snap : snapList) {
+        while (snapIDList.iterator().hasNext()) {
+            URI uri = snapIDList.iterator().next();
+            Snapshot snap = _dbClient.queryObject(Snapshot.class, uri);
             list.getSnapList().add(toNamedRelatedResource(snap));
         }
         return list;
@@ -1648,7 +1655,7 @@ public class FileService extends TaskResourceService {
         snap.getOpStatus().createTaskStatus(task, op);
         fs.getOpStatus().createTaskStatus(task, op);
         _dbClient.createObject(snap);
-        _dbClient.persistObject(fs);
+        _dbClient.updateObject(fs);
         // find storageport for fs and based on protocol
         if (null == fs.getStoragePort()) {
             StoragePort storagePort;
@@ -1674,7 +1681,7 @@ public class FileService extends TaskResourceService {
             fileServiceApi.snapshotFS(device.getId(), snap.getId(), fs.getId(), task);
         } catch (InternalException e) {
             snap.setInactive(true);
-            _dbClient.persistObject(snap);
+            _dbClient.updateObject(snap);
 
             // treating all controller exceptions as internal error for now. controller
             // should discriminate between validation problems vs. internal errors
@@ -1800,7 +1807,7 @@ public class FileService extends TaskResourceService {
             op = fs.getOpStatus().get(task);
             op.error(e);
             fileShare.getOpStatus().updateTaskStatus(task, op);
-            _dbClient.persistObject(fs);
+            _dbClient.updateObject(fs);
             throw e;
         }
 
@@ -2092,7 +2099,7 @@ public class FileService extends TaskResourceService {
         quotaDirectory.getOpStatus().createTaskStatus(task, op);
         fs.getOpStatus().createTaskStatus(task, op);
         _dbClient.createObject(quotaDirectory);
-        _dbClient.persistObject(fs);
+        _dbClient.updateObject(fs);
 
         // Create an object of type "FileShareQuotaDirectory" to be passed into the south-bound layers.
         FileShareQuotaDirectory qt = new FileShareQuotaDirectory(quotaDirectory);
@@ -2104,7 +2111,7 @@ public class FileService extends TaskResourceService {
             controller.createQuotaDirectory(device.getId(), qt, fs.getId(), task);
         } catch (InternalException e) {
             quotaDirectory.setInactive(true);
-            _dbClient.persistObject(quotaDirectory);
+            _dbClient.updateObject(quotaDirectory);
 
             // treating all controller exceptions as internal error for now. controller
             // should discriminate between validation problems vs. internal errors

@@ -373,8 +373,9 @@ URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjus
 URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment' 
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
-URI_EXPORTPATHPARAMETERS_LIST	= URI_SERVICES_BASE   + '/block/export-path-parameters'
-URI_EXPORTPATHPARAMETERS_INSTANCE = URI_SERVICES_BASE   + '/block/export-path-parameters/{0}'
+URI_EXPORTPATHPOLICIES_LIST	= URI_SERVICES_BASE   + '/block/export-path-policies'
+URI_EXPORTPATHPOLICIES_LIST_QUERY = URI_SERVICES_BASE + '/block/export-path-policies' + '?list_all={0}'
+URI_EXPORTPATHPOLICIES_INSTANCE = URI_SERVICES_BASE   + '/block/export-path-policies/{0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
 URI_HOST                        = URI_SERVICES_BASE   + '/compute/hosts/{0}'
@@ -5338,28 +5339,28 @@ class Bourne:
 	    print o
         return (o, s)
 
-    def export_path_parameters_list(self):
-        results =  self.api('GET', URI_EXPORTPATHPARAMETERS_LIST.format())
-        resources = results['path_param']
+    def export_path_policies_list(self, all):
+        results =  self.api('GET', URI_EXPORTPATHPOLICIES_LIST_QUERY.format(all))
+        resources = results['export_path_policy']
         pathparams = []
         for resource in resources:
             pathparams.append(resource['id'])
         return pathparams
 
-    def export_path_parameters_get(self, id):
-        result = self.api('GET', URI_EXPORTPATHPARAMETERS_INSTANCE.format(id))
+    def export_path_policies_get(self, id):
+        result = self.api('GET', URI_EXPORTPATHPOLICIES_INSTANCE.format(id))
         return result
 
-    def export_path_parameters_create(self, path_params):
-        result = self.api('POST', URI_EXPORTPATHPARAMETERS_LIST, path_params)
+    def export_path_policies_create(self, path_params):
+        result = self.api('POST', URI_EXPORTPATHPOLICIES_LIST, path_params)
         print result
 
-    def export_path_parameters_delete(self, id):
-        result = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_EXPORTPATHPARAMETERS_INSTANCE.format(id)))
+    def export_path_policies_delete(self, id):
+        result = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_EXPORTPATHPOLICIES_INSTANCE.format(id)))
         print result
 
-    def export_path_parameters_update(self, id, path_params):
-        result = self.api('PUT', URI_EXPORTPATHPARAMETERS_INSTANCE.format(id), path_params)
+    def export_path_policies_update(self, id, path_params):
+        result = self.api('PUT', URI_EXPORTPATHPOLICIES_INSTANCE.format(id), path_params)
         print result
 
     #
@@ -5711,6 +5712,8 @@ class Bourne:
             uri = URI_IPINTERFACE.format(id)
         elif resource_type == "initiator":
             uri = URI_INITIATOR.format(id)
+        elif resource_type == "export_path_policy":
+            uri = URI_EXPORTPATHPOLICIES_INSTANCE.format(id)
         else:
             raise Exception('Unknown resource type ' + resource_type)
         return uri + '/tags'

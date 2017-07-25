@@ -11,26 +11,26 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.BulkRestRep;
 
-@XmlRootElement(name = "bulk_path_param")
-public class ExportPathParametersBulkRep extends BulkRestRep {
+@XmlRootElement(name = "bulk_export_path_policies")
+public class ExportPathPoliciesBulkRep extends BulkRestRep {
 
-    private List<ExportPathParametersRestRep> exportPathParamsList;
+    private List<ExportPathPolicyRestRep> exportPathParamsList;
 
-    public ExportPathParametersBulkRep() {
+    public ExportPathPoliciesBulkRep() {
 
     }
 
-    public ExportPathParametersBulkRep(List<ExportPathParametersRestRep> exportPathParamsList) {
+    public ExportPathPoliciesBulkRep(List<ExportPathPolicyRestRep> exportPathParamsList) {
         super();
         this.exportPathParamsList = exportPathParamsList;
     }
 
     @XmlElement(name = "path_param")
-    public List<ExportPathParametersRestRep> getExportPathParamsList() {
+    public List<ExportPathPolicyRestRep> getExportPathParamsList() {
         return exportPathParamsList;
     }
 
-    public void setExportPathParamsList(List<ExportPathParametersRestRep> exportPathParamsList) {
+    public void setExportPathParamsList(List<ExportPathPolicyRestRep> exportPathParamsList) {
         this.exportPathParamsList = exportPathParamsList;
     }
 

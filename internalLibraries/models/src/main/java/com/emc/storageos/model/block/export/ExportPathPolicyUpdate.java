@@ -9,8 +9,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.valid.Range;
 
-@XmlRootElement(name = "path_param")
-public class ExportPathUpdateParams {
+@XmlRootElement(name = "export_path_policy")
+public class ExportPathPolicyUpdate {
     
     private Integer maxPaths;
     private Integer pathsPerInitiator;

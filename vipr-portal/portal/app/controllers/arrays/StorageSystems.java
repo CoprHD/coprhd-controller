@@ -29,6 +29,10 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
+import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
+import com.emc.storageos.model.block.export.StoragePorts;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.pools.StoragePoolUpdate;
 import com.emc.storageos.model.ports.StoragePortRequestParam;
@@ -70,9 +74,6 @@ import models.datatable.StorageSystemDataTable;
 import models.datatable.StorageSystemDataTable.StorageSystemInfo;
 import models.datatable.VirtualNasServerDataTable;
 import models.datatable.VirtualNasServerDataTable.VirtualNasServerInfo;
-
-import org.apache.commons.lang.StringUtils;
-
 import play.Logger;
 import play.data.binding.As;
 import play.data.validation.Max;
@@ -93,38 +94,6 @@ import util.TenantUtils;
 import util.VCenterUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
-
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.util.EndpointUtility;
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.block.export.ExportPathParameters;
-import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
-import com.emc.storageos.model.block.export.ExportPathUpdateParams;
-import com.emc.storageos.model.block.export.StoragePorts;
-import com.emc.storageos.model.pools.StoragePoolRestRep;
-import com.emc.storageos.model.pools.StoragePoolUpdate;
-import com.emc.storageos.model.ports.StoragePortRequestParam;
-import com.emc.storageos.model.ports.StoragePortRestRep;
-import com.emc.storageos.model.ports.StoragePortUpdate;
-import com.emc.storageos.model.project.ProjectRestRep;
-import com.emc.storageos.model.project.VirtualNasParam;
-import com.emc.storageos.model.smis.StorageProviderRestRep;
-import com.emc.storageos.model.systems.StorageSystemRequestParam;
-import com.emc.storageos.model.systems.StorageSystemRestRep;
-import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
-import com.emc.storageos.model.valid.Endpoint;
-import com.emc.storageos.model.vnas.VirtualNASRestRep;
-import com.emc.vipr.client.Task;
-import com.google.common.collect.Lists;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-import controllers.Common;
-import controllers.arrays.StorageProviders.StorageProviderForm;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
-import controllers.util.FlashException;
-import controllers.util.ViprResourceController;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -739,9 +708,9 @@ public class StorageSystems extends ViprResourceController {
 
     public static void portGroupsJson(String storageId) {
         List<ExportPathParamsDataTable.ExportPathParamsModel> results = Lists.newArrayList();
-        List<ExportPathParametersRestRep> portGroups = getViprClient().exportPathParameters().getPortGroups();
+        List<ExportPathPolicyRestRep> portGroups = getViprClient().exportPathParameters().getPortGroups();
 
-        for (ExportPathParametersRestRep portGroup : portGroups) {
+        for (ExportPathPolicyRestRep portGroup : portGroups) {
             results.add(new ExportPathParamsDataTable.ExportPathParamsModel(portGroup.getId(), portGroup.getName(), portGroup
                     .getDescription()));
         }
@@ -773,7 +742,7 @@ public class StorageSystems extends ViprResourceController {
     
     //@FlashException(value = "portGroups", keep = true)
     public static void editPortGroup(String id, String storageSystemId) {
-        ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(id));
+        ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(id));
         renderArgs.put("storageSystemId", storageSystemId);
         renderArgs.put("pathParamId", id);
         renderNumPathsArgs();
@@ -819,8 +788,8 @@ public class StorageSystems extends ViprResourceController {
             ExportPathParameters input = createExportPathParams(portGroup);
             getViprClient().exportPathParameters().create(input);
         } else {
-            ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(portGroup.id));
-            ExportPathUpdateParams input = updateExportPathParams(portGroup);
+            ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(portGroup.id));
+            ExportPathPolicyUpdate input = updateExportPathParams(portGroup);
             getViprClient().exportPathParameters().update(exportPathParametersRestRep.getId(), input);
         }
         flash.success(MessagesUtils.get("portGroup.saved", portGroup.name));
@@ -840,8 +809,8 @@ public class StorageSystems extends ViprResourceController {
         return pathParam;
     }
     
-    public static ExportPathUpdateParams updateExportPathParams( PortGroupForm portGroup ) {
-        ExportPathUpdateParams pathParam = new ExportPathUpdateParams();
+    public static ExportPathPolicyUpdate updateExportPathParams( PortGroupForm portGroup ) {
+        ExportPathPolicyUpdate pathParam = new ExportPathPolicyUpdate();
         pathParam.setName(portGroup.name.trim());
         pathParam.setDescription(portGroup.description.trim());
         pathParam.setMaxPaths(portGroup.maxPaths);
@@ -858,11 +827,11 @@ public class StorageSystems extends ViprResourceController {
             ExportPathParameters input = new ExportPathParameters();
             input.setName(pgName);
             input.setDescription(pgDesc);
-            ExportPathParametersRestRep rep = getViprClient().exportPathParameters().create(input);
+            ExportPathPolicyRestRep rep = getViprClient().exportPathParameters().create(input);
             pathParamId = rep.getId().toString();
         }
         String [] ids = portIds.split(",");
-        ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
+        ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
         List<URI> portsInDb = exportPathParametersRestRep.getStoragePorts();
             List<URI> portsToAdd = Lists.newArrayList();
             for (String value : ids) {
@@ -872,7 +841,7 @@ public class StorageSystems extends ViprResourceController {
                     }   
                 }
             }
-            ExportPathUpdateParams pathParam = new ExportPathUpdateParams();
+            ExportPathPolicyUpdate pathParam = new ExportPathPolicyUpdate();
             StoragePorts  storagePorts = new StoragePorts(); 
             if (!portsToAdd.isEmpty()) {
                 storagePorts.setStoragePorts(portsToAdd);
@@ -887,7 +856,7 @@ public class StorageSystems extends ViprResourceController {
     @FlashException(referrer = { "editPortGroup" })
     public static void deletePorts(String pathParamId,String storageSystemId, @As(",") String[] ids) {
         
-        ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
+        ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
         List<URI> portsInDb = exportPathParametersRestRep.getStoragePorts();
             List<URI> portsToRemove = Lists.newArrayList();
             for (String value : ids) {
@@ -897,7 +866,7 @@ public class StorageSystems extends ViprResourceController {
                     }   
                 }
             }
-            ExportPathUpdateParams pathParam = new ExportPathUpdateParams();
+            ExportPathPolicyUpdate pathParam = new ExportPathPolicyUpdate();
             StoragePorts  storagePorts = new StoragePorts(); 
             if (!portsToRemove.isEmpty()) {
                 storagePorts.setStoragePorts(portsToRemove);
@@ -911,7 +880,7 @@ public class StorageSystems extends ViprResourceController {
         List<StoragePortInfo> results = Lists.newArrayList();
         
         if (pathParamId != null && !"null".equals(pathParamId)) {
-            ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
+            ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
             List<URI> storagePortUris = exportPathParametersRestRep.getStoragePorts();
             
             List<StoragePortRestRep> storagePorts = StoragePortUtils
@@ -937,7 +906,7 @@ public class StorageSystems extends ViprResourceController {
         List<StoragePortRestRep> storagePorts = StoragePortUtils.getStoragePorts(systemId);
 
         if (pathParamId != null && !"null".equals(pathParamId)) {
-            ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
+            ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
             List<URI> storagePortUris = exportPathParametersRestRep.getStoragePorts();
             List<StoragePortRestRep> portsNotForSelection = StoragePortUtils.getStoragePorts(storagePortUris);
             storagePorts.removeAll(portsNotForSelection);
@@ -1668,7 +1637,7 @@ public class StorageSystems extends ViprResourceController {
         public List<URI> storagePorts;
         public Integer maxInitiatorsPerPort;
 
-        public PortGroupForm form(ExportPathParametersRestRep restRep){
+        public PortGroupForm form(ExportPathPolicyRestRep restRep){
             this.id = restRep.getId().toString();
             this.name = restRep.getName();
             this.description = restRep.getDescription();

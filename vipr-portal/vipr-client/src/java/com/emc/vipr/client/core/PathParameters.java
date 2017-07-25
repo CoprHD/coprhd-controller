@@ -9,21 +9,21 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.block.export.ExportPathParametersBulkRep;
-import com.emc.storageos.model.block.export.ExportPathParametersList;
-import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
-import com.emc.storageos.model.block.export.ExportPathUpdateParams;
 import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.model.block.export.ExportPathPoliciesBulkRep;
+import com.emc.storageos.model.block.export.ExportPathPoliciesList;
+import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
+import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 import com.google.common.collect.Lists;
 
-public class PathParameters extends AbstractCoreBulkResources<ExportPathParametersRestRep> {
+public class PathParameters extends AbstractCoreBulkResources<ExportPathPolicyRestRep> {
 
     public PathParameters(ViPRCoreClient parent, RestClient client) {
 
-        super(parent, client, ExportPathParametersRestRep.class, PathConstants.EXPORT_PATH_PARAMS_URL);
+        super(parent, client, ExportPathPolicyRestRep.class, PathConstants.EXPORT_PATH_PARAMS_URL);
     }
 
     /**
@@ -47,10 +47,10 @@ public class PathParameters extends AbstractCoreBulkResources<ExportPathParamete
      *            the Export Path Params.
      * @return the newly created Export Path Params.
      */
-    public ExportPathParametersRestRep create(ExportPathParameters input) {
+    public ExportPathPolicyRestRep create(ExportPathParameters input) {
         URI targetUri = client.uriBuilder(baseUrl).build();
-        ExportPathParametersRestRep element = client
-                .postURI(ExportPathParametersRestRep.class, input, targetUri);
+        ExportPathPolicyRestRep element = client
+                .postURI(ExportPathPolicyRestRep.class, input, targetUri);
         return get(element.getId());
     }
 
@@ -62,30 +62,30 @@ public class PathParameters extends AbstractCoreBulkResources<ExportPathParamete
      * @param id
      *            the ID of Export Path Params to deactivate.
      */
-    public void update(URI id, ExportPathUpdateParams input) {
+    public void update(URI id, ExportPathPolicyUpdate input) {
         client.put(String.class, input, PathConstants.EXPORT_PATH_PARAMS_BY_ID_URL, id);
     }
 
     @Override
-    protected List<ExportPathParametersRestRep> getBulkResources(BulkIdParam input) {
-        ExportPathParametersBulkRep response = client.post(ExportPathParametersBulkRep.class, input, getBulkUrl());
+    protected List<ExportPathPolicyRestRep> getBulkResources(BulkIdParam input) {
+        ExportPathPoliciesBulkRep response = client.post(ExportPathPoliciesBulkRep.class, input, getBulkUrl());
         return defaultList(response.getExportPathParamsList());
     }
 
-    public List<ExportPathParametersRestRep> getPortGroups() {
+    public List<ExportPathPolicyRestRep> getPortGroups() {
 
         return get("true");
     }
 
-    public List<ExportPathParametersRestRep> getExportPathParamsList() {
+    public List<ExportPathPolicyRestRep> getExportPathParamsList() {
 
         return get("flase");
     }
 
-    private List<ExportPathParametersRestRep> get(String isPortGroup) {
+    private List<ExportPathPolicyRestRep> get(String isPortGroup) {
         UriBuilder builder = client.uriBuilder(baseUrl);
         builder.queryParam("is-port-group", isPortGroup);
-        ExportPathParametersList paramList = client.getURI(ExportPathParametersList.class, builder.build());
+        ExportPathPoliciesList paramList = client.getURI(ExportPathPoliciesList.class, builder.build());
         List<NamedRelatedResourceRep> namedResourceList = paramList.getPathParamsList();
         List<URI> uris = Lists.newArrayList();
         for (NamedRelatedResourceRep rep : namedResourceList) {

@@ -11,7 +11,7 @@ import json
 from bourne import Bourne
 
 #----------------------------------------------------------------------
-# pathparams cli functions
+# pathpolicies cli functions
 #----------------------------------------------------------------------
 
 def pathparams_create(args):
@@ -23,13 +23,16 @@ def pathparams_create(args):
     path_param['paths_per_initiator'] = args.pathsperinitiator
     if (args.description):
         path_param['description'] = args.description
-    bourne.export_path_parameters_create(path_param)
+    bourne.export_path_policies_create(path_param)
 
 def pathparams_update(args):
+    list_all='false'
+    if args.list_all:
+        list_all=args.list_all
     bourne.connect(args.ip)
-    res = bourne.export_path_parameters_list()
+    res = bourne.export_path_policies_list(list_all)
     for id in res:
-        pathparam = bourne.export_path_parameters_get(id)
+        pathparam = bourne.export_path_policies_get(id)
         if (pathparam['name'] == args.name):
             path_param = dict()
             path_param['name'] = args.name
@@ -40,23 +43,29 @@ def pathparams_update(args):
             if (args.maxinitperport):
                 path_param['max_initiators_per_port'] = args.maxinitperport
             path_param['paths_per_initiator'] = args.pathsperinitiator
-            bourne.export_path_parameters_update(id, path_param)
+            bourne.export_path_policies_update(id, path_param)
 
 def pathparameters_list(args):
+    list_all='false'
+    if args.list_all:
+        list_all=args.list_all
     bourne.connect(args.ip)
-    res = bourne.export_path_parameters_list()
+    res = bourne.export_path_policies_list(list_all)
     path_display_hdr()
     for id in res:
-        pathparam = bourne.export_path_parameters_get(id)
+        pathparam = bourne.export_path_policies_get(id)
         path_display(pathparam)
 
 def pathparameters_delete(args):
+    list_all='false'
+    if args.list_all:
+        list_all=args.list_all
     bourne.connect(args.ip)
-    res = bourne.export_path_parameters_list()
+    res = bourne.export_path_policies_list(list_all)
     for id in res:
-        pathparam = bourne.export_path_parameters_get(id)
+        pathparam = bourne.export_path_policies_get(id)
         if (pathparam['name'] == args.name):
-            bourne.export_path_parameters_delete(id)
+            bourne.export_path_policies_delete(id)
 
 #
 # display path parameters in list form
@@ -83,13 +92,14 @@ except:
     bourne_ip = 'localhost'
 
 # pathparams <cmd> <cmd_args>  [--ip ipaddr]
-parser = argparse.ArgumentParser(description = 'Bourne pathparams cli usage.')
+parser = argparse.ArgumentParser(description = 'Bourne pathpolicies cli usage.')
 parser.add_argument('cmd', help = 'cmd = (create|update|delete|list|show)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+parser.add_argument('--list_all', help='list implicitly created also')
 
 # pathparams create label minpaths maxpaths pathsperinitiator
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-create.add_argument('name', help = 'name for this set of parameters')
+create.add_argument('name', help = 'name for this policy')
 create.add_argument('minpaths', help = 'minimum paths')
 create.add_argument('maxpaths', help = 'maximum paths')
 create.add_argument('pathsperinitiator', help = 'paths per initiator')
@@ -97,7 +107,7 @@ create.add_argument('--description', help='description')
 
 # pathparams update name 
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-update.add_argument('name', help = 'name for this set of parameters')
+update.add_argument('name', help = 'name for this policy')
 update.add_argument('minpaths', help = 'minimum paths')
 update.add_argument('maxpaths', help = 'maximum paths')
 update.add_argument('pathsperinitiator', help = 'paths per initiator')
@@ -106,7 +116,7 @@ update.add_argument('--maxinitperport', help='description')
 
 # pathparams delete name
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-delete.add_argument('name',	help = 'name of parameters to be deleted')
+delete.add_argument('name',	help = 'name of policy to be deleted')
 
 # pathparams list 
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

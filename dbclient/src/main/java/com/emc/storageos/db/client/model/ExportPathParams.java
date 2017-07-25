@@ -149,6 +149,7 @@ public class ExportPathParams extends DataObject {
     }
     
     @Name("explicitlyCreated")
+    @AlternateId("ExplicitlyCreatedIndex")
     public Boolean getExplicitlyCreated() {
         return explicitlyCreated;
     }
@@ -159,6 +160,7 @@ public class ExportPathParams extends DataObject {
 
     public void setExplicitlyCreated(Boolean explicitlyCreated) {
         this.explicitlyCreated = explicitlyCreated;
+        setChanged("explicitlyCreated");
     }
 
     @Name("exportGroupType")
@@ -174,7 +176,8 @@ public class ExportPathParams extends DataObject {
     }
 
     public void setExportGroupType(String exportGroupType) {
-                this.exportGroupType = exportGroupType;
+        this.exportGroupType = exportGroupType;
+        setChanged("exportGroupType");
     }
 
     @Transient

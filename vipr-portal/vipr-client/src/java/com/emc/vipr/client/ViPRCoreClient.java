@@ -6,6 +6,7 @@ package com.emc.vipr.client;
 
 import java.net.URI;
 
+import com.emc.storageos.model.block.export.ExportPathPolicy;
 import com.emc.storageos.model.tenant.TenantResponse;
 import com.emc.storageos.model.user.UserInfo;
 import com.emc.vipr.client.core.ApplicationSupport;

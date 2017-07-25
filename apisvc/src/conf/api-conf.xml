@@ -479,7 +479,7 @@
         <property name="openStackSynchronizationTask" ref="openStackSynchronizationTask"/>
     </bean>
     
-    <bean id ="exportPathParametersService" class="com.emc.storageos.api.service.impl.resource.ExportPathParametersService">
+    <bean id ="exportPathPolicyService" class="com.emc.storageos.api.service.impl.resource.ExportPathPolicyService">
         <property name="dbClient" ref="dbclient"/>
     	<property name="coordinator" ref="coordinator"/>
     </bean>
@@ -546,7 +546,7 @@
                 <ref bean="volumeGroupService"/>
                 <ref bean="storageSystemTypeService"/>
                 <ref bean="authnConfigurationService" />
-                <ref bean="exportPathParametersService" />
+                <ref bean="exportPathPolicyService" />
 
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>

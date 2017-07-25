@@ -42,7 +42,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TypedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
-import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
+import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.customconfig.CustomConfigRestRep;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
@@ -326,11 +326,11 @@ public class DbObjectMapper {
         return to;
     }
     
-    public static ExportPathParametersRestRep map(ExportPathParams from) {
+    public static ExportPathPolicyRestRep map(ExportPathParams from) {
         if (from == null) {
             return null;
         }
-        ExportPathParametersRestRep to = new ExportPathParametersRestRep();
+        ExportPathPolicyRestRep to = new ExportPathPolicyRestRep();
         
         to.setId(from.getId());
         to.setName(from.getLabel());

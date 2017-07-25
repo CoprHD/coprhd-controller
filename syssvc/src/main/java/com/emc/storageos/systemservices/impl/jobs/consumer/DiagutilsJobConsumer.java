@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.*;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -55,14 +56,15 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
     public void consumeItem(DiagutilsJob diagutilsJob, DistributedQueueItemProcessedCallback callback) throws Exception {
         try {
             List<String> options = diagutilsJob.getOptions();
-            DiagutilJobStatus jobStatus = dataCollectionService.queryJobInfo();
+            DiagutilJobStatus jobStatus = coordinatorClientExt.getCoordinatorClient().queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class);
             if (jobStatus == null) {
                 log.info("jobStatus is null,quit consumer");
                 return;
             }
-            Date startTime = jobStatus.getStartTime();
+            log.info("jobStatus in zk is {}",jobStatus);
+            String startTime = jobStatus.getStartTime();
             log.info("diagutilsJob startTime is {}", startTime);
-            String subOutputDir = _DIAGUTIL + "-" + startTime.toString();
+            String subOutputDir = _DIAGUTIL + "-" + startTime;
 
             //pre-check
             jobStatus.setStatus(DiagutilStatus.PRECHECK_IN_PROGRESS);
@@ -71,14 +73,16 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             }
             FileUtils.deleteQuietly(new File(_DIAGUTIL_COLLECT_DIR)); //clean up left data in collection dir
 
-            final String[] precheckCmd = {_OPT_DIR + _DIAGUTIL, _DIAGUTIL_GUI, _DIAGUTIL_PRECHECK};
-            log.info("Executing cmd {}",precheckCmd);
+            final String[] precheckCmd = {_DIAGUTIL, _DIAGUTIL_GUI, _DIAGUTIL_PRECHECK};
+            log.info("Executing cmd {}", Arrays.toString(precheckCmd));
             Exec.Result result = Exec.sudo(COMMAND_TIMEOUT, precheckCmd);
             if (!result.exitedNormally() || result.getExitValue() != 0) {
+                log.error("Executing precheck error {},stdOutput: {}, stdError:{}",result.getExitValue(),result.getStdOutput(),result.getStdError());
                 jobStatus.setStatus(DiagutilStatus.PRECHECK_ERROR);
                 updateJobInfoIfNotCancel(jobStatus);
                 return;
             }
+            log.info("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
 /*            jobStatus.setStatus(DiagutilStatus.PRECHECK_SUCCESS);
             if (!updateJobInfoIfNotCancel(jobStatus)) {
                 return;
@@ -94,15 +98,18 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     return;
                 }
                 log.info("Collecting {}...", option);
-                String[] collectCmd = {_OPT_DIR + _DIAGUTIL, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, option};
-                log.info("Executing cmd {}", collectCmd);
+                String[] collectCmd = {_DIAGUTIL, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, "-" + option};
+                log.info("Executing cmd {}", Arrays.toString(collectCmd));
                 result = Exec.sudo(COMMAND_TIMEOUT, collectCmd);
                 if (!result.exitedNormally() || result.getExitValue() != 0) {
                     jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
-                    log.info("Collecting {} error {}", option, result.getExitValue());
+                    log.error("Collecting {} error {}", option, result.getExitValue());
+                    log.error("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
                     updateJobInfoIfNotCancel(jobStatus);
                     return;
-                } /*else {
+                }
+                log.info("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
+                /*else {
                 log.info("Collecting {} done", option);
                 jobStatus.setStatus(DiagutilStatus.COLLECTING_SUCCESS);
                 if (!updateJobInfoIfNotCancel(jobStatus)) {
@@ -140,15 +147,17 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 //cancelled
                 return;
             }
-            final String[] archiveCmd = {_OPT_DIR + _DIAGUTIL, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, _DIAGUTIL_ARCHIVE};
-            log.info("Executing cmd {}", archiveCmd);
+            final String[] archiveCmd = {_DIAGUTIL, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, _DIAGUTIL_ARCHIVE};
+            log.info("Executing cmd {}", Arrays.toString(archiveCmd));
             result = Exec.sudo(COMMAND_TIMEOUT, archiveCmd);
             if (!result.exitedNormally() || result.getExitValue() != 0) {
-                log.info("Collecting failed at archive error {}", result.getExitValue());
+                log.error("Collecting failed at archive error {}", result.getExitValue());
+                log.error("stdOutput: {}, stdError:{}",result.getStdOutput(),result.getStdError());
                 jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
                 updateJobInfoIfNotCancel(jobStatus);
                 return;
             }
+            log.info("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
 
             //record output file location and collect success.
             //String dataFiledir = _DIAGUTIL_COLLECT_DIR + subOutputDir +".zip";
@@ -172,13 +181,13 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 String uri = uploadParam.getUploadFtpParam().getFtp();
                 String user = uploadParam.getUploadFtpParam().getUser();
                 String passwd = uploadParam.getUploadFtpParam().getPassword();
-                switch (uploadParam.getUploadType()) {
+/*                switch (uploadParam.getUploadType()) {
                     case ftp:
                         uploadClient = new FtpClient(uri, user, passwd);
                         break;
                     case sftp:
                         uploadClient = new FtpClient(uri, user, passwd);
-                }
+                }*/
                 try ( OutputStream os = uploadClient.upload(subOutputDir + ".zip", 0);
                       FileInputStream fis = new FileInputStream(dataFiledir + ".zip");) {
                     int n = 0;
@@ -211,6 +220,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
 
 
     private boolean updateJobInfoIfNotCancel(DiagutilJobStatus jobstatus) throws Exception{
+        log.info("Updating DiagutilJobStatus to {}",jobstatus);
         CoordinatorClient coordinatorClient = coordinatorClientExt.getCoordinatorClient();
         InterProcessLock lock = coordinatorClient.getLock(DataCollectionService.DIAGUTIL_JOB_LOCK);
         lock.acquire();

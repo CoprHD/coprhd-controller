@@ -73,16 +73,20 @@ public class DataCollectionService {
         if (isCollectDiagnosticDataJobRunning()) {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Collecting Diagnostic Data");
         }
+        log.info("print out query job info {}",queryJobInfo());
         Date currentTime = TimeUtils.getDateTimestamp(Long.toString(System.currentTimeMillis()));
-        DiagutilJobStatus jobStatus = new DiagutilJobStatus(currentTime, null, DiagutilStatus.INITIALIZE, null, null, null);
+        DiagutilJobStatus jobStatus = new DiagutilJobStatus(currentTime.toString(), null, DiagutilStatus.INITIALIZE, null, null, null);
+        //DiagutilJobStatus jobStatus = new DiagutilJobStatus(Long.toString(System.currentTimeMillis()), null, DiagutilStatus.INITIALIZE, DiagutilStatusDesc.COLLECTING_DB, null, null);
         try {
             saveJobInfo(jobStatus);
         } catch (Exception e) {
             log.error("Failed to save job info, e={}", e);
             throw APIException.internalServerErrors.createObjectError("diagutil job", e);
         }
-        log.info("diagutil job status {} saved in zk.{}", jobStatus);
-
+        log.info("diagutil job status {} saved in zk.", jobStatus);
+        //log.info("print out query job info {}",queryJobInfo());
+        log.info("paramter is options {},DiagutilParam {}",options, diagutilParam);
+        log.info("paramter is UploadParam {}",diagutilParam.getUploadParam());
         DiagutilsJob diagutilsJob = new DiagutilsJob();
         diagutilsJob.setOptions(options);
         diagutilsJob.setUploadParam(diagutilParam.getUploadParam());

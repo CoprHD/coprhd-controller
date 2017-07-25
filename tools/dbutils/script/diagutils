@@ -18,6 +18,7 @@ DISK_USED_PERCENTAGE_WARNING_LIMIT=50
 DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
 MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StorageProvider StoragePool StoragePort StorageSystem Vcenter VirtualArray VirtualDataCenter VirtualPool Volume)
 LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc controllersvc-discovery controllersvc-metering controllersvc-vplex-api syssvc sasvc geodbsvc)
+EXECUTED_FROM_GUI=false
 
 
 #This script is used to help user to restore a backupset simply
@@ -274,7 +275,7 @@ upload_to_ftp() {
 }
 
 precheck_status() {
-    precheck_disk_status
+    precheck_disk_status ${EXECUTED_FROM_GU}
     precheck_node_cluster_status
     set_max_current_job_number
 }
@@ -433,8 +434,9 @@ precheck_node_cluster_status() {
 }
 
 precheck_disk_status() {
+    local gui_command=$1
     local dataUsedPercentage=$(df -km ${DIAGCOLLECT_DIR} | grep -v "Used" | awk -F ' ' '{print $5}')
-    if [[ ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_TERMINATION_LIMIT ]]; then
+    if [[ $gui_command == false && ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_TERMINATION_LIMIT ]]; then
         echo_stdout_log "Data disk used percentage(${dataUsedPercentage}) is over than ${DISK_USED_PERCENTAGE_TERMINATION_LIMIT}%, can not execute this tool."
         exit 1
     elif [[ ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_WARNING_LIMIT ]]; then
@@ -631,6 +633,13 @@ for i in $(seq 1 $#)
 do
     eval param=\${${i}}
     case $param in
+         -gui)
+             EXECUTED_FROM_GUI=true
+             ;;
+         -output_dir)
+             if [[ $i -lt $# ]]; then
+                 eval DIAGCOLLECT_MAME=\${$[i+1]}
+             fi ;;
         -all|-quick)
             genaral_param_count=$[genaral_param_count+1]
             ;;
@@ -638,7 +647,7 @@ do
             plain_param_count=$[plain_param_count+1]
             cf_param_count=$[cf_param_count+1]
             ;;
-        -zk|-logs|-properties|-health)
+        -zk|-logs|-properties|-health|-pre_check|-archive)
             plain_param_count=$[plain_param_count+1]
             ;;
         -backup)
@@ -691,7 +700,9 @@ validate_parameters
 # Diag Collect Begin
 ###################
 init
-precheck_status
+if [[ ${EXECUTED_FROM_GUI} != true ]]; then
+    precheck_status
+fi
 
 trap clean_up EXIT
 
@@ -708,10 +719,13 @@ do
         -logs) collect_logs ;;
         -properties) collect_properties ;;
         -health) collect_health ;;
+        -pre_check) precheck_disk_status ${EXECUTED_FROM_GUI};;
+        -archive) create_archive;;
     esac
 done
-
-create_archive 2>>${DIAGCOLLECT_LOG}
+if [[ ${EXECUTED_FROM_GUI} != true ]]; then
+    create_archive 2>>${DIAGCOLLECT_LOG}
+fi
 
 if [[ ${ftp_param_count} -eq 3 ]]; then
     upload_to_ftp "${FTP}" "${USER}" "${PASSWORD}" 2>>${DIAGCOLLECT_LOG}

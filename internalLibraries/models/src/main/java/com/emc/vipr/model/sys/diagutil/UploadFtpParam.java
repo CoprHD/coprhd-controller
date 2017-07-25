@@ -4,9 +4,16 @@
  */
 package com.emc.vipr.model.sys.diagutil;
 
-import javax.xml.bind.annotation.XmlElement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class UploadFtpParam {
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.io.Serializable;
+
+@XmlRootElement(name = "ftp_param")
+public class UploadFtpParam implements Serializable{
+    private static final Logger log = LoggerFactory.getLogger(UploadFtpParam.class);
     private String ftp = "";
     private String user = "";
     private String password = "";
@@ -43,12 +50,16 @@ public class UploadFtpParam {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
+        log.info("begin");
         sb.append("ftp address:");
         sb.append(ftp);
+        log.info("append ftp1");
         sb.append(",user:");
         sb.append(user);
+        log.info("append ftp2");
         sb.append(",password");
         sb.append(password);
+        log.info("append ftp3");
         return sb.toString();
     }
 }

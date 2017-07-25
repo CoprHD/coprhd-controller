@@ -47,13 +47,17 @@ public class DiagutilsJob implements Serializable{
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("options:");
+        log.info("tostring options");
         for(String option : options) {
             sb.append(option);
             sb.append(",");
         }
+        log.info("tostring options finished");
         sb.append(logEnable);
+        log.info("tostring logenable");
         sb.append("upload param: ");
         sb.append(uploadParam.toString());
+        log.info("tostring upload");
         return  sb.toString();
     }
 

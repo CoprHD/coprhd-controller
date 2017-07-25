@@ -517,7 +517,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         if (UnmanagedHelper.isReplicationSource(umfs.getFileSystemCharacteristics())) {
             String resource = "file.unmanaged.filesystemSourceTarget";
             return newAssetOption(umfs.getId(), resource, deviceLabel, path,
-                    SizeUtils.humanReadableByteCount(provisionedSize), targetHost, targetPath);
+                    SizeUtils.humanReadableByteCount(provisionedSize), targetHost, targetPath, policySchedule);
         } else {
             String resource = "file.unmanaged.filesystem";
             return newAssetOption(umfs.getId(), resource, deviceLabel, path,

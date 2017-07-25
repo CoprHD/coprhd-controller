@@ -2375,22 +2375,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
          // setting if the create fs step is needed.
             boolean isTargetExisting = false;
-            if (!CollectionUtils.isEmpty(sourceFS.getExtensions()) && sourceFS.getExtensions().containsKey("ReplicationInfo")) {
-                FileShare targetFs = null;
-                String targetInfo = sourceFS.getExtensions().get("ReplicationInfo");
-                if (targetInfo != null) {
-                    String targetPath = targetInfo;
-                    URIQueryResultList queryResult = new URIQueryResultList();
-                    s_dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharePathConstraint(targetPath), queryResult);
-                    Iterator<URI> iter = queryResult.iterator();
-                    while (iter.hasNext()) {
-                        URI fsURI = iter.next();
-                        targetFs = s_dbClient.queryObject(FileShare.class, fsURI);
-                    }
-                    if(targetFs != null){
-                        isTargetExisting = true;
-                    }
-                }
+            if (!CollectionUtils.isEmpty(sourceFS.getMirrorfsTargets())) {
+                isTargetExisting = true;
             }
 
             // 1. If policy to be applied is of type replication and source file system doesn't have any target,

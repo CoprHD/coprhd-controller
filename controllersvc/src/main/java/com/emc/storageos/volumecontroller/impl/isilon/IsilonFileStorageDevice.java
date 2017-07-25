@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller.impl.isilon;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.net.InetAddress;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -96,7 +98,6 @@ import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
@@ -117,6 +118,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private static final String IFS_ROOT = "/ifs";
     private static final String FW_SLASH = "/";
     private static final String VIPR_DIR = "vipr";
+    private static final String FILESYSTEM = "FILESYSTEM";
 
     private static final String QUOTA = "quota";
 
@@ -4336,40 +4338,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("IsilonFileStorageDevice checkForExistingSyncPolicyAndTarget for FS {} - start", args.getFsName());
             FilePolicy filePolicy = args.getFileProtectionPolicy();
             if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
-                String sourcePath = generatePathForPolicy(filePolicy, srcFs, args);
+                String sourcePath = srcFs.getPath();
                 IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
                 if (isiSynIQPolicy != null) {
                     String targetPath = isiSynIQPolicy.getTargetPath();
-                    FileShare targetFs = null;
-                    // Check if the target FS in the islon syncIQ policy exitst in ViPR DB
-                    URIQueryResultList queryResult = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharePathConstraint(targetPath), queryResult);
-                    Iterator<URI> iter = queryResult.iterator();
-                    while (iter.hasNext()) {
-                        URI fsURI = iter.next();
-                        targetFs = _dbClient.queryObject(FileShare.class, fsURI);
-                    }
-                    // TargetFs exists so we shall not create the FS but set the extension so as to handle it in controller side.
-                    if (targetFs != null) {
-                        _log.info("TargetFileSystem already exists in database with {}", targetFs.getId(), targetFs.getName());
-                        StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
-                        boolean validPolicy = validateIsilonReplicationPolicy(isiSynIQPolicy, filePolicy, targetFs.getNativeId(),
-                                targetSystem, system);
-                        if (validPolicy) {
-                            setReplicationInfoInExtension(srcFs, targetPath);
-                        } else {
-                            throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
-                                    filePolicy.getApplyAt(), "File policy and Isilon syncIQ policy differs for attributes");
-                        }
-                        
-                    } else {
-                        throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
-                                filePolicy.getApplyAt(), "File Policy is already applied on isilon and the target FS with path "
-                                        + targetPath.toString() + " is not ingested");
-                    }
+                    //assuming that the file policy is valid setting the replication extension with the target info.
+                    setReplicationInfoInExtension(srcFs, targetPath);
                 }
             }
-            
             // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
             task.ready();
             task.setProgress(100);

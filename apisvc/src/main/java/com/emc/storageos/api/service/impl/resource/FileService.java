@@ -9,8 +9,10 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.FileMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -195,6 +197,7 @@ public class FileService extends TaskResourceService {
     private static final Long MINUTES_PER_HOUR = 60L;
     private static final Long HOURS_PER_DAY = 24L;
     protected static final String SEPARATOR = "::";
+    private static final String FILESYSTEM = "FILESYSTEM";
 
     @Override
     public String getServiceType() {
@@ -4575,8 +4578,8 @@ public class FileService extends TaskResourceService {
 
         // Create task to check if any replication policy is existing in backend if yes, then to check if the target fs already
         // in database.
-        StorageSystem targetSystem;
         FileShare targetFs = null;
+        StorageSystem targetSystem = null;
         String checkingTask = UUID.randomUUID().toString();
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         FileController controller = getController(FileController.class, device.getSystemType());
@@ -4594,20 +4597,43 @@ public class FileService extends TaskResourceService {
             } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()));
 
             if (taskObject == null || taskObject.isError()) {
+                _log.error("Task to get the existing policy and target information failed.");
                 throw APIException.badRequests
                         .unableToProcessRequest("Error occured while getting replication policy due to" + taskObject.getMessage());
             } else if (taskObject.isReady()) {
                 fs = _dbClient.queryObject(FileShare.class, fs.getId());
                 if (fs.getExtensions().containsKey("ReplicationInfo")) {
                     String targetInfo = fs.getExtensions().get("ReplicationInfo");
-                    if (targetInfo != null) {
-                        String targetPath = targetInfo;
-                        URIQueryResultList queryResult = new URIQueryResultList();
-                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSharePathConstraint(targetPath), queryResult);
-                        Iterator<URI> iter = queryResult.iterator();
-                        while (iter.hasNext()) {
-                            URI fsURI = iter.next();
-                            targetFs = _dbClient.queryObject(FileShare.class, fsURI);
+                    if (targetInfo == null) {
+                        notSuppReasonBuff.append(String.format(
+                                "File system - %s given in request has a replication policy already exist at the backend but unable to get the target Info. Please retry operation after sometime",
+                                fs.getLabel()));
+                        _log.error(notSuppReasonBuff.toString());
+                        throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+                    } else {
+                        String[] token = targetInfo.split(":");
+                        if(token[0].equalsIgnoreCase("localhost")) {
+                            targetSystem = device;
+                        } else {
+                            targetSystem = getTargetStorageSystem(token[0]);
+                        }
+                        
+                        if(targetSystem != null && !targetSystem.getInactive()){
+                            targetFs = getTargetFileSystem(targetSystem, token[1]);
+                        } else {
+                            notSuppReasonBuff.append(String.format(
+                                    "File system - %s given in request has a replication policy already exist at the backend and target is not managed. Please discover target %s",
+                                    fs.getLabel(), token[0]));
+                            _log.error(notSuppReasonBuff.toString());
+                            throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+                        }
+                        
+                        if (targetFs == null) {
+                            notSuppReasonBuff.append(String.format(
+                                    "File system - %s given in request has a replication policy already exist at the backend and target is not ingested. Please ingest target %s",
+                                    fs.getLabel(), targetInfo));
+                            _log.error(notSuppReasonBuff.toString());
+                            throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
                         }
                     }
                 }
@@ -4659,14 +4685,12 @@ public class FileService extends TaskResourceService {
             List recommendations = new ArrayList<>();
 
             boolean validTarget = false;
+            
             if (targetFs != null) {
-                targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
-                if (targetSystem != null && !targetSystem.getInactive()) {
-                    validTarget = validateTarget(targetFs, projectURI, targertVarrayURIs);
-                }
+                validTarget = validateTarget(targetFs, projectURI, targertVarrayURIs);
             }
 
-            if (!validTarget && targetFs == null) {
+            if (targetFs == null) {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
                 if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
@@ -4728,14 +4752,15 @@ public class FileService extends TaskResourceService {
                 }
                 recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
                         vpool, capabilities);
-            } else if (!validTarget && targetFs != null) {
-                _log.error("The target Fs validation failed");
-                return getFailureResponse(targetFs, task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM, "Error occured while validating the target FS");
-            } else {
-                // skipping the recommendation as we have a targetFs in database
+            } else if (validTarget) {
+             // skipping the recommendation as we have a targetFs in database
                 _log.info("Skipping the placement as we have a targetFs");
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
+            } else {
+                _log.error("The target Fs validation failed");
+                return getFailureResponse(targetFs, task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM, "Error occured while validating the target FS");
+            
             }
             FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,
@@ -4749,6 +4774,76 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
         return fileShareTask;
+    }
+
+    private FileShare getTargetFileSystem(StorageSystem targetSys, String filePath) {
+        FileShare targetFs = null;
+        String fileShareNativeGuid = String.format("%s+" + FILESYSTEM + "+%s", targetSys.getNativeGuid(), filePath);
+
+        // Check if the target FS in the islon syncIQ policy exitst in ViPR DB
+        URIQueryResultList queryResult = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSystemNativeGUIdConstraint(fileShareNativeGuid), queryResult);
+        Iterator<URI> iter = queryResult.iterator();
+        while (iter.hasNext()) {
+            URI fsURI = iter.next();
+            targetFs = _dbClient.queryObject(FileShare.class, fsURI);
+        }
+        return targetFs;
+    }
+
+    private StorageSystem getTargetStorageSystem(String targetStorage) {
+        // Querying the storageSystem if its storagePort
+        StorageSystem targetSys = null;
+        URIQueryResultList queryResult = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(targetStorage), queryResult);
+        Iterator<URI> iter = queryResult.iterator();
+        while (iter.hasNext()) {
+            URI storagePortURI = iter.next();
+            StoragePort sPort = _dbClient.queryObject(StoragePort.class, storagePortURI);
+            if (sPort != null) {
+                targetSys = _dbClient.queryObject(StorageSystem.class, sPort.getStorageDevice());
+            }
+        }
+        if (targetSys != null) {
+            return targetSys;
+        }
+        InetAddress address = null;
+        try {
+            address = InetAddress.getByName(targetStorage);
+        } catch (UnknownHostException e) {
+            _log.error("getTargetHostSystem Failed with the exception", e);
+        }
+        if (address == null) {
+            _log.error("getTargetHostSystem Failed as the target address in invalid");
+            return null;
+        }
+
+        // Querying the storageSystem if its IP Address
+        queryResult.clear();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByIpAddressConstraint(address.getHostAddress()),
+                queryResult);
+        while (iter.hasNext()) {
+            URI storageURI = iter.next();
+            targetSys = _dbClient.queryObject(StorageSystem.class, storageURI);
+        }
+        if (targetSys != null) {
+            return targetSys;
+        }
+
+        // Querying the storageSystem if its FQDN
+        queryResult.clear();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByIpAddressConstraint(address.getHostName()),
+                queryResult);
+        iter = queryResult.iterator();
+        while (iter.hasNext()) {
+            URI storageURI = iter.next();
+            targetSys = _dbClient.queryObject(StorageSystem.class, storageURI);
+        }
+        if (targetSys == null) {
+            _log.error("getTargetHostSystem is not found as the target system is not managed.");
+            return null;
+        }
+        return targetSys;
     }
 
     private boolean validateTarget(FileShare targetFs, URI project, Set<URI> targertVarrayURIs) {

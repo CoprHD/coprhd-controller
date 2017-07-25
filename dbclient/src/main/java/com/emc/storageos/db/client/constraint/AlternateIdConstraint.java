@@ -103,11 +103,6 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("mountPath"), altId);
         }
-        
-        public static AlternateIdConstraint getFileSharePathConstraint(String path) {
-            DataObjectType doType = TypeMap.getDoType(FileShare.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("path"), path);
-        }
 
         public static AlternateIdConstraint getVolumeNativeGuidConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
@@ -259,6 +254,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getStorageSystemByMgmtAccessPointConstraint(String mgmtAccessPoint) {
             DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("mgmtAccessPoint"), mgmtAccessPoint);
+        }
+        
+        public static AlternateIdConstraint getStorageSystemByIpAddressConstraint(String ipAddress) {
+            DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("ipAddress"), ipAddress);
         }
 
         public static AlternateIdConstraint getStorageSystemByNativeGuidConstraint(String nativeGuid) {

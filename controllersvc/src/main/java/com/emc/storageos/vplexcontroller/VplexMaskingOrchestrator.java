@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
@@ -84,6 +86,7 @@ import com.google.common.collect.Collections2;
 
 public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
+	private static final Logger log = LoggerFactory.getLogger(VplexMaskingOrchestrator.class);
 	private VPlexApiFactory _vplexApiFactory;
 	private static CoordinatorClient coordinator;
     private VPlexApiLockManager _vplexApiLockManager;

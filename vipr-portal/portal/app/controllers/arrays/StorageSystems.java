@@ -786,7 +786,7 @@ public class StorageSystems extends ViprResourceController {
         if (portGroup.isNew()) {
             
             ExportPathParameters input = createExportPathParams(portGroup);
-            getViprClient().exportPathParameters().create(input);
+            getViprClient().exportPathParameters().create(input); // FIXME: had "true" second arg
         } else {
             ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(portGroup.id));
             ExportPathPolicyUpdate input = updateExportPathParams(portGroup);
@@ -827,7 +827,7 @@ public class StorageSystems extends ViprResourceController {
             ExportPathParameters input = new ExportPathParameters();
             input.setName(pgName);
             input.setDescription(pgDesc);
-            ExportPathPolicyRestRep rep = getViprClient().exportPathParameters().create(input);
+            ExportPathPolicyRestRep rep = getViprClient().exportPathParameters().create(input);  // FIXME: had "true" second arg
             pathParamId = rep.getId().toString();
         }
         String [] ids = portIds.split(",");

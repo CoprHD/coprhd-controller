@@ -1805,31 +1805,25 @@ public class ComputeUtils {
      *
      * @param client {@link ViPRCoreClient} instance
      * @param cvp {@link ComputeVirtualPoolRestRep}
-     * @param status {@link Pair} place holder
-     * @return {@link Pair} Boolean and/or Compute System
+     * @param preCheckErrors {@link StringBuilder}
+     * @return {@link StringBuilder} preCheckErrors with appropriate messages
      */
-    public static Pair<Boolean, Map<URI, String>> checkComputeSystemsHaveImageServer(ViPRCoreClient client,
-                                                                           ComputeVirtualPoolRestRep cvp,
-                                                                           Pair<Boolean, Map<URI, String>> status) {
+    public static StringBuilder checkComputeSystemsHaveImageServer(ViPRCoreClient client,
+                                                            ComputeVirtualPoolRestRep cvp,
+                                                            StringBuilder preCheckErrors) {
         Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(client, cvp.getId());
-        Map<URI, String> computeSystemsWithoutImageServerMap = new HashMap<URI, String>();
+        StringBuilder computeSystemsWithoutImageServer = new StringBuilder();
         if (null != computeSystemMap) {
             for (Map.Entry<URI, ComputeSystemRestRep> computeSystemRestRep : computeSystemMap.entrySet()) {
-                if (NullColumnValueGetter.isNullValue(computeSystemRestRep.getValue().getComputeImageServer())) {
-                    status.setFirstElement(false);
-                    computeSystemsWithoutImageServerMap.put(computeSystemRestRep.getValue().getId(),
-                            computeSystemRestRep.getValue().getName());
-                    status.setSecondElement(computeSystemsWithoutImageServerMap);
+                if (NullColumnValueGetter.isNullValue(computeSystemRestRep.getValue().getComputeImageServer())){
+                    computeSystemsWithoutImageServer.append(computeSystemRestRep.getValue().getComputeImageServer());
                 }
             }
-            if (status.getFirstElement().equals(false)){
-                return status;
-            } else {
-                status.setFirstElement(true);
-                return status;
+            if (computeSystemsWithoutImageServer.length() > 0){
+                preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.compute.system.image.server.null",
+                        computeSystemsWithoutImageServer));
             }
         }
-        status.setFirstElement(false);
-        return status;
+        return preCheckErrors;
     }
 }

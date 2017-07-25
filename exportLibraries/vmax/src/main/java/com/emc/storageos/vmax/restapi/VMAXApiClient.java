@@ -202,7 +202,7 @@ public class VMAXApiClient extends StandardRestClient {
     }
 
     /**
-     * Get Unishpere REST API version
+     * Get Unisphere REST API version
      *
      * @return API version
      * @throws Exception

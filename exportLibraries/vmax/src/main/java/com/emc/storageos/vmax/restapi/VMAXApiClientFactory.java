@@ -37,8 +37,8 @@ public class VMAXApiClientFactory extends RestClientFactory{
         }
     }
     
-    
-    public RestClientItf getRESTClient(URI endpoint, String username, String password, String version, boolean authFilter) {
+    @Override
+    public RestClientItf getRESTClient(URI endpoint, String username, String password, boolean authFilter) {
         // removed caching RestClient session as it is not actually a session, just a java RestClient object
         // RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password + ":" + model);
 
@@ -46,14 +46,8 @@ public class VMAXApiClientFactory extends RestClientFactory{
         if (authFilter) {
             jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
         }
-        RestClientItf clientApi = createNewRestClient(endpoint, username, password, version, jerseyClient);
+        RestClientItf clientApi = createNewRestClient(endpoint, username, password, jerseyClient);
         return clientApi;
-    }
-    
-    protected RestClientItf createNewRestClient(URI endpoint, String username,
-            String password, String version, Client client) {
-    	VMAXApiClient apiClient = new VMAXApiClient(endpoint, username, password, client);
-    	return apiClient;
     }
 
 	@Override

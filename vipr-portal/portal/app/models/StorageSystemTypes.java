@@ -60,7 +60,7 @@ public class StorageSystemTypes {
     public static final String[] BLOCK_TYPES = { VMAX, VNX_BLOCK, VPLEX, HITACHI, OPENSTACK, SCALEIO, SCALEIOAPI, XTREMIO, VNXe, IBMXIV, CEPH, UNITY, HP3PAR };
     public static final String[] FILE_TYPES = { ISILON, VNX_FILE, NETAPP, DATA_DOMAIN, VNXe, UNITY, NETAPPC };
     public static final String[] STORAGE_PROVIDER_TYPES = { SMIS, UNISPHERE, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO, CEPH, DELLSCSYSTEM};
-    public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, UNITY, NETAPPC, ECS };
+    public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, UNITY, NETAPPC, ECS, UNISPHERE };
     public static final String[] ALL_FLASH_STORAGE_TYPES = { XTREMIO, VMAX, UNITY };
 
     public static boolean isNone(String type) {
@@ -178,10 +178,6 @@ public class StorageSystemTypes {
 
         for (StorageSystemTypeRestRep type : typeMap.values()) {
             String typeName = type.getStorageTypeName();
-            // VMAX_UNISPHERE is an internal type only
-            if (StringUtils.equals(VMAX_UNISPHERE, typeName)) {
-                continue;
-            }
 
             if (type.isNative()) {
                 // ignore SMIS providers except VPLEX, SCALEIO, IBMXIV, XTREMIO

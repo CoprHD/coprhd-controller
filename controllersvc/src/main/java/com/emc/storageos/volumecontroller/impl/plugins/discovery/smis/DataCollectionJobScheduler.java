@@ -1069,6 +1069,11 @@ public class DataCollectionJobScheduler {
                     CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                             _dbClient, StorageProvider.InterfaceType.ceph.name()),
                     _dbClient));
+        } else if (StorageProvider.InterfaceType.unisphere.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(VMAXUtils.refreshConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.unisphere.name()),
+                    _dbClient, vmaxClientFactory));
         } else  {
             activeProviderURIs.addAll(ExternalDeviceUtils.refreshProviderConnections(_dbClient));
         }

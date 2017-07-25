@@ -28,7 +28,7 @@ public class StorageProviderTypes {
 
     public static final String HITACHI = "hicommand";
     public static final String SMIS = "smis";
-    public static final String UNISPHERE = "unishpere";
+    public static final String UNISPHERE = "unisphere";
     public static final String VPLEX = "vplex";
     public static final String CINDER = "cinder";
     public static final String SCALEIO = "scaleio";
@@ -112,7 +112,7 @@ public class StorageProviderTypes {
         List<StringOption> allproviders = new ArrayList<StringOption>();
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
-            if (storagetypeRest.getIsDefaultSsl() && !storagetypeRest.getStorageTypeName().equals("unishpere") && !storagetypeRest.getStorageTypeName().equals("vmaxmigration")) {
+            if (storagetypeRest.getIsDefaultSsl()) {
                 allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
                         storagetypeRest.getStorageTypeDispName()));
     }
@@ -125,7 +125,7 @@ public class StorageProviderTypes {
         List<StringOption> allproviders = new ArrayList<StringOption>();
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
-            if (!storagetypeRest.getIsDefaultSsl() && !storagetypeRest.getStorageTypeName().equals("unishpere") && !storagetypeRest.getStorageTypeName().equals("vmaxmigration")) {
+            if (!storagetypeRest.getIsDefaultSsl()) {
                 allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
                         storagetypeRest.getStorageTypeDispName()));
             }

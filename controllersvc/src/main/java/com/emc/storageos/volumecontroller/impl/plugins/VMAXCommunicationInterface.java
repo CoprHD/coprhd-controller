@@ -112,7 +112,7 @@ public class VMAXCommunicationInterface extends ExtendedCommunicationInterfaceIm
      */
     @Override
     public void discover(AccessProfile accessProfile) throws VMAXException {
-        logger.info("Discovery using Unishpere REST API is not supported. Access Profile Details :  IpAddress : {}, PortNumber : {}",
+        logger.info("Discovery using Unisphere REST API is not supported. Access Profile Details :  IpAddress : {}, PortNumber : {}",
                 accessProfile.getIpAddress(),
                 accessProfile.getPortNumber());
         throw VMAXException.exceptions.discoveryNotSupported();
@@ -137,12 +137,13 @@ public class VMAXCommunicationInterface extends ExtendedCommunicationInterfaceIm
         try {
             version = apiClient.getApiVersion();
         } catch (Exception e) {
-            logger.error("Exception on get Unishpere REST API version", e);
+            logger.error("Exception on get Unisphere REST API version", e);
             provider.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.toString());
             _dbClient.updateObject(provider);
             throw VMAXException.exceptions.scanFailed(provider.getIPAddress(), e);
         }
 
+        provider.setVersionString(version);
         // Get supported version from Coordinator
         String minimumSupportedVersion = ControllerUtils.getPropertyValueFromCoordinator(_coordinator, UNISPHERE_VERSION);
         logger.info("Verifying version details : Minimum Supported Version {} - Discovered Unisphere REST API Version {}",

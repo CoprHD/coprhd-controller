@@ -26,8 +26,9 @@ public class VMAXUtils {
             DbClient dbClient, VMAXApiClientFactory clientFactory) {
         List<URI> activeProviders = new ArrayList<>();
         for (StorageProvider provider : providerList) {
+            VMAXApiClient apiClient = null;
             try {
-                VMAXApiClient apiClient = clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(),
+                apiClient = clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(),
                         provider.getUserName(), provider.getPassword());
                 if (apiClient.getApiVersion() != null) {
                     // update provider status based on connection live check
@@ -43,8 +44,12 @@ public class VMAXUtils {
                 provider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.toString());
             } finally {
                 dbClient.updateObject(provider);
+                if (apiClient != null) {
+                    apiClient.close();
+                }
             }
         }
+
         return activeProviders;
     }
 }

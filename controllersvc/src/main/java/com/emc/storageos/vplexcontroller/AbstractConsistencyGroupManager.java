@@ -42,6 +42,7 @@ import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexConsistencyGroupInfo;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController.VPlexTaskCompleter;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;

@@ -75,7 +75,7 @@ ifeq ($(USE_CACHE),false)
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-seife --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_Leap_42.2 suse-42.2-seife
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_Leap_42.2 suse-42.2-python
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-network --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_Leap_42.2 suse-42.2-network
-	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.1-filesystems-ceph --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph/openSUSE_Leap_42.1 suse-42.1-filesystems-ceph
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-filesystems-ceph --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph/openSUSE_Leap_42.2 suse-42.2-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-electronics --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_Leap_42.2 suse-42.2-electronics
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-containers --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_Leap_42.2 suse-42.2-containers
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  3 suse-42.2-oss
@@ -84,7 +84,7 @@ ifeq ($(USE_CACHE),false)
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-42.2-seife
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.2-python
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.2-network
-	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.1-filesystems-ceph
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.2-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.2-electronics
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.2-containers
 	zypper $(ZYPPER_PARAMS) refresh
@@ -92,7 +92,7 @@ ifeq ($(USE_CACHE),false)
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-oss-update --no-gpgcheck http://download.opensuse.org/update/leap/42.2/oss suse-42.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-42.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-host-kmp-default
+	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-host-kmp-default systemd suse-module-tools systemd-sysvinit
 endif
 	$(call targetLog,-)
 

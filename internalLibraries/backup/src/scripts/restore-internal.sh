@@ -161,6 +161,7 @@ RESTORE_ORIGIN="$1"
 ROOT_PASSWORD="$2"
 RESTORE_GEO_FROM_SCRATCH="$3"
 LOG_FILE="$4"
+BACKUP_INFO="$5"
 
 # if the log file is given, write the stdout/stderr
 # to the log file
@@ -170,15 +171,13 @@ fi
 TEMP_DIR=$(mktemp -d)
 RESTORE_DIR="${TEMP_DIR}/backup"
 
-get_backup_info_from_nodes ${RESTORE_ORIGIN}
-
 cmd="ln -s "${RESTORE_ORIGIN}" "${RESTORE_DIR}""
 loop_execute "mkdir $TEMP_DIR" "true"
 loop_execute "chmod 755 $TEMP_DIR" "true"
 loop_execute "$cmd" "true"
 copy_zk_data ${RESTORE_ORIGIN}
 copy_properties_file ${RESTORE_ORIGIN}
-is_vdc_connected ${RESTORE_DIR}
+is_vdc_connected "${BACKUP_INFO}"
 
 # make sure to direct to maintenance page
 sleep 5s

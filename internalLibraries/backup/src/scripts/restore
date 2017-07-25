@@ -62,8 +62,8 @@ create_restore_folder() {
 extract_backup_files() {
     cd ${RESTORE_DIR}
     unzip "${RESTORE_ORIGIN}" >/dev/null
-
-    is_vdc_connected ${RESTORE_DIR}
+    BACKUP_INFO=`get_backup_info_from_nodes "${RESTORE_DIR}"`
+    is_vdc_connected "${BACKUP_INFO}"
 
     validate_backup_files
 }
@@ -194,9 +194,11 @@ input_password
 
 trap clean_up EXIT
 
-get_backup_info_from_nodes "${RESTORE_ORIGIN}"
-
 RESTORE_ORIGIN=$(readlink -f "$1")
+
+BACKUP_INFO=`get_backup_info_from_nodes "${RESTORE_ORIGIN}"`
+
+LOG_FILE=""
 
 if [[ "$(is_local_backup ${RESTORE_ORIGIN})" == "true" ]] ; then
     RESTORE_DIR=${RESTORE_ORIGIN}
@@ -212,4 +214,4 @@ confirm_vdc_status
 
 trap - EXIT #remove the handler since the restore-internal.sh will reset it
 
-${DIR}/restore-internal.sh "${RESTORE_DIR}" "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}"
+${DIR}/restore-internal.sh "${RESTORE_DIR}" "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}" "${LOG_FILE}" "${BACKUP_INFO}"

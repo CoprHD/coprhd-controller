@@ -112,11 +112,6 @@ is_local_backup() {
 
 # $1=backup folder
 get_backup_info_from_nodes() {
-    # if info already exists, skip the collecting process
-    if [ ${#BACKUP_INFO[@]} != 0 ]; then
-        return
-    fi
-
     set +e
     local backup=$1
     local ls_command="ls ${backup}"
@@ -130,11 +125,13 @@ get_backup_info_from_nodes() {
             BACKUP_INFO[$i]=${result}
         fi
     done
+    echo ${BACKUP_INFO[@]}
 }
 
 
 is_vdc_connected() {
-    for info in ${BACKUP_INFO[@]}
+    BACKUP_INFO="$1"
+    for info in ${BACKUP_INFO}
     do
         if [[ ${info} =~ "geodb" ]]; then
             geodb_type=${info#*_}

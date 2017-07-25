@@ -19,6 +19,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,7 @@ import com.sun.jersey.client.urlconnection.HTTPSProperties;
 import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
 
 public class RestHandler {
-    private static final Logger LOG = LoggerFactory.getLogger(RestClient.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RestHandler.class);
     private static final String TLS = "TLS";
     private AuthenticationInfo authenticationInfo;
     private boolean isVerifyCertificate = true;
@@ -54,11 +55,10 @@ public class RestHandler {
      * @param authenticationInfo
      */
     public RestHandler(AuthenticationInfo authenticationInfo) {
-        super();
         this.authenticationInfo = authenticationInfo;
         ClientHandler handler = new URLConnectionClientHandler();
         Client client = new Client(handler, configureClient());
-        this.restClient = new RestClient(authenticationInfo.getUserName(), authenticationInfo.getPassword(), client);
+        this.restClient = new RestClient(this.authenticationInfo.getUserName(), this.authenticationInfo.getPassword(), client);
     }
 
     public RestClient getRestClient() {
@@ -74,15 +74,17 @@ public class RestHandler {
                 new X509TrustManager() {
                     @Override
                     public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+                        // Do nothing
                     }
 
                     @Override
                     public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+                        // Do nothing
                     }
 
                     @Override
                     public X509Certificate[] getAcceptedIssuers() {
-                        return null;
+                        return new X509Certificate[0];
                     }
                 }
         };
@@ -114,7 +116,7 @@ public class RestHandler {
      */
     public <T extends IResponse> ResponseWrapper<T> get(String url, Class<T> clazz) {
         ClientResponse response = null;
-        ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
+        ResponseWrapper<T> responseWrapper = new ResponseWrapper<>();
         try {
             LOG.debug("request url as :GET {}", url);
             response = restClient.get(URI.create(url));
@@ -131,13 +133,13 @@ public class RestHandler {
 
     }
 
-    public <T extends IResponse> ResponseWrapper<T> list(String url, Class<T> clazz, Type responseClazzType) {
+    public <T extends IResponse> ResponseWrapper<T> list(String url, Type responseClazzType) {
         ClientResponse response = null;
-        ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
+        ResponseWrapper<T> responseWrapper = new ResponseWrapper<>();
         try {
             LOG.debug("request url as :LIST {}", url);
             response = restClient.get(URI.create(url));
-            processIteratorResponse(url, response, clazz, responseClazzType, responseWrapper);
+            processIteratorResponse(url, response, responseClazzType, responseWrapper);
 
         } catch (Exception e) {
             LOG.error("Exception happened during calling get rest call {}", e);
@@ -160,7 +162,7 @@ public class RestHandler {
      */
     public <T extends IResponse> ResponseWrapper<T> post(String url, IParameter params, Class<T> clazz) {
         ClientResponse response = null;
-        ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
+        ResponseWrapper<T> responseWrapper = new ResponseWrapper<>();
         try {
             LOG.debug("request url as :POST {}", url);
             response = restClient.post(URI.create(url), params.bean2Json());
@@ -187,9 +189,10 @@ public class RestHandler {
      */
     public <T extends IResponse> ResponseWrapper<T> put(String url, IParameter params, Class<T> clazz) {
         ClientResponse response = null;
-        ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
+        ResponseWrapper<T> responseWrapper = new ResponseWrapper<>();
         try {
             LOG.debug("request url as :PUT {}", url);
+            LOG.info("Body: {}", params.bean2Json());
             response = restClient.put(URI.create(url), params.bean2Json());
             processResponse(url, response, clazz, responseWrapper);
 
@@ -213,7 +216,7 @@ public class RestHandler {
      */
     public <T extends IResponse> ResponseWrapper<T> delete(String url, Class<T> clazz) {
         ClientResponse response = null;
-        ResponseWrapper<T> responseWrapper = new ResponseWrapper<T>();
+        ResponseWrapper<T> responseWrapper = new ResponseWrapper<>();
         try {
             LOG.debug("request url as :DELETE {}", url);
             response = restClient.delete(URI.create(url));
@@ -237,23 +240,23 @@ public class RestHandler {
             responseWrapper.setException(new NullResponseException(String.format("Null Response meet during calling %s", url)));
             return;
         }
-        String respnseString = response.getEntity(String.class);
+        JSONObject respnseJson = response.getEntity(JSONObject.class);
         int status = response.getStatus();
-        T bean = JsonParser.parseJson2Bean((respnseString), clazz);
+        T bean = JsonParser.parseJson2Bean((respnseJson.toString()), clazz);
         bean.setHttpStatusCode(status);
         responseWrapper.setResponseBean(bean);
     }
 
-    private <T extends IResponse> void processIteratorResponse(String url, ClientResponse response, Class<T> clazz, Type responseClazzType,
+    private <T extends IResponse> void processIteratorResponse(String url, ClientResponse response, Type responseClazzType,
             ResponseWrapper<T> responseWrapper) {
         LOG.debug("response as :{}", response);
         if (response == null) {
             responseWrapper.setException(new NullResponseException(String.format("Null Response meet during calling %s", url)));
             return;
         }
-        String respnseString = response.getEntity(String.class);
+        JSONObject respnseJson = response.getEntity(JSONObject.class);
         int status = response.getStatus();
-        IteratorType<T> beanIterator = new Gson().fromJson(sanitize(respnseString), responseClazzType);
+        IteratorType<T> beanIterator = new Gson().fromJson(sanitize(respnseJson.toString()), responseClazzType);
         beanIterator.setHttpStatusCode(status);
         responseWrapper.setResponseBeanIterator(beanIterator);
     }

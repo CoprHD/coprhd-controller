@@ -45,7 +45,7 @@ public class VolumeEngine extends DefaultResEngine {
         String url = urlGenerator.genUrl(EndPointHolder.LIST_VOLUME_URL, urlFillers, filters);
         Type responseClazzType = new TypeToken<IteratorType<VolumeListResultType>>() {
         }.getType();
-        ResponseWrapper<VolumeListResultType> responseWrapper = engine.list(url, VolumeListResultType.class, responseClazzType);
+        ResponseWrapper<VolumeListResultType> responseWrapper = engine.list(url, responseClazzType);
         IteratorType<VolumeListResultType> responseBeanIterator = responseWrapper.getResponseBeanIterator();
         if (responseWrapper.getException() != null) {
             LOG.error("Exception happened during listing volumes:{}", responseWrapper.getException());

@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.univmax.smc.EngineFactory;
 import com.emc.storageos.driver.univmax.smc.basetype.AuthenticationInfo;
-import com.emc.storageos.driver.univmax.smc.symmetrix.resource.CapacityUnitType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.StorageGroupEngine;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.AddVolumeParamType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.CreateStorageGroupParameter;
@@ -59,8 +58,8 @@ public class EngineFunctionTest {
 
     @Test
     public void testCreateOneVolumeWithNewSg() {
-        String sgName = "stone_test_sg_auto_013";
-        String volumeNamePrefix = "stone_test_vol_013-";
+        String sgName = "stone_test_sg_auto_024";
+        String volumeNamePrefix = "stone_test_vol_024-";
         testCreateEmptySg(sgName);
         testEditSgSlo(sgName);
         testEditSgWithWorkload(sgName);

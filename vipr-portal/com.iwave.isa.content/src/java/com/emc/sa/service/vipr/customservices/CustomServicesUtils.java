@@ -34,7 +34,7 @@ import com.sun.jersey.api.client.ClientResponse;
 //TODO: move log messages to separate file (for internationalization)
 
 public class CustomServicesUtils {
-
+    
     private CustomServicesUtils() {
         // no public constructor allwoed for utility classes
     }
@@ -51,7 +51,7 @@ public class CustomServicesUtils {
             throw e;
         }
     }
-
+    
     public static Map<URI, String> waitForTasks(final List<URI> tasksStartedByOe, final ViPRCoreClient client) throws InternalServerErrorException {
         if (tasksStartedByOe.isEmpty()) {
 		    throw InternalServerErrorException.internalServerErrors.customServiceNoTaskFound("No tasks to wait for");

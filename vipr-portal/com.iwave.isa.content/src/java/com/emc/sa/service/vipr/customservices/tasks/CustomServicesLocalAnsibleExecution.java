@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -48,6 +47,7 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Ste
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Runs CustomServices Operation: Ansible Playbook.
@@ -211,7 +211,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
 
         }
 
-        return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
+        return new CustomServicesShellTaskResult(step.getOutput(), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     private void uncompressArchive(final byte[] ansibleArchive, final List<String> fileList, final List<String> pathList) {

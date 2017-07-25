@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -42,14 +41,11 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesExecutors;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesScriptTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
 import com.emc.sa.service.vipr.customservices.tasks.RESTHelper;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
@@ -451,36 +447,7 @@ public class CustomServicesService extends ViPRService {
         out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
         out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
         out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
-        
-        switch(step.getType()) {
-            case CustomServicesConstants.VIPR_PRIMITIVE_TYPE:
-                try {
-                    out.putAll(updateViproutput(step, res.getOut()));
-                } catch (Exception e) {
-                    logger.warn("StepId:{} Could not parse ViPR REST Output properly:{}", step.getId(), e);
-                }
-            break;
-            default:
-                final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
-                if( null != output ) {
-                    for (final CustomServicesWorkflowDocument.Output o : output) {
-                        if (isScript(step)) {
-                            final String outToParse = ((CustomServicesScriptTaskResult)res).getScriptOut();
-                            logger.info("Parse non vipr output:{}", outToParse);
-                            out.put(o.getName(), evaluateAnsibleOut(outToParse, o.getName()));
-                        } else if (step.getType().equals(StepType.REST.toString())) {
-                            final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
-                            final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
-                            for (final Map.Entry<String, List<String>> entry : headers) {
-                                if (entry.getKey().equals(o.getName())) {
-                                    out.put(o.getName(), entry.getValue());
-                                }
-                            }
-                        }
-                    }
-                }
-           break;
-        }
+        out.putAll(res.getOutput());
         
         outputPerStep.put(step.getId(), out);
     }

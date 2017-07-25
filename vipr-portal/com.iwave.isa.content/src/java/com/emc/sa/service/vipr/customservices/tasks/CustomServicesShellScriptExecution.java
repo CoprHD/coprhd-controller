@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
@@ -130,7 +129,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Shell Script execution Failed");
         }
 
-        return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
+        return new CustomServicesShellTaskResult(step.getOutput(), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     // Execute Shell Script resource

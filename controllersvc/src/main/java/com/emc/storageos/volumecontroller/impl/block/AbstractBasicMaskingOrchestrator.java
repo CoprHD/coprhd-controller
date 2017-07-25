@@ -1386,7 +1386,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
         } catch (Exception ex) {
             _log.error("ExportGroup Orchestration failed.", ex);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(ex.getMessage(), ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             taskCompleter.error(_dbClient, serviceError);
         }
     }
@@ -1395,6 +1395,13 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     public void increaseMaxPaths(Workflow workflow, StorageSystem storageSystem,
             ExportGroup exportGroup, ExportMask exportMask, List<URI> newInitiators, String token)
                     throws Exception {
+        if (DiscoveredDataObject.Type.isVmaxStorageSystem(storageSystem.getSystemType())) {
+            throw DeviceControllerException.exceptions.operationDeprecated(
+                    "Change Export Path Parameters via Change Virtual Pool", 
+                    storageSystem.getSystemType().toUpperCase(), 
+                    "Use the \"Export Path Adjustment\" catalog service instead.");
+        }
+
         // Increases the MaxPaths for a given ExportMask if it has Initiators that are not
         // currently zoned to ports. The method generateExportMaskAddInitiatorsWorkflow will
         // allocate additional ports for the newInitiators to be processed.

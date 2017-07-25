@@ -162,6 +162,9 @@ ROOT_PASSWORD="$2"
 RESTORE_GEO_FROM_SCRATCH="$3"
 LOG_FILE="$4"
 BACKUP_INFO="$5"
+if [ "${BACKUP_INFO}" == "" ]; then
+    BACKUP_INFO=`get_backup_info_from_nodes "${RESTORE_ORIGIN}"`
+fi
 
 # if the log file is given, write the stdout/stderr
 # to the log file

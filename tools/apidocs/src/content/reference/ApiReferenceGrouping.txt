@@ -3,6 +3,7 @@ BlockService
 BlockConsistencyGroupService
 BlockSnapshotService
 ExportGroupService
+ExportPathParametersService
 BlockFullCopyService
 BlockSnapshotSessionService
 

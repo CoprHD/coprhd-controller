@@ -33,7 +33,7 @@ public final class DriverMetadataUtil {
     private static final Logger log = LoggerFactory.getLogger(DriverMetadataUtil.class);
 
     private static final int MAX_DISPLAY_STRING_LENGTH = 50;
-    private static final int MAX_DRIVER_NUMBER = 25;
+    private static final int MAX_NON_NATIVE_DRIVER_NUMBER = 25;
     private static final int DRIVER_VERSION_NUM_SIZE = 4;
     private static final String DRIVER_NAME = "driver_name";
     private static final String DRIVER_VERSION = "driver_version";
@@ -232,7 +232,7 @@ public final class DriverMetadataUtil {
         return drivers;
     }
 
-    private static List<StorageSystemType> getTypesByDriverName(String driverName, DbClient dbClient) {
+    public static List<StorageSystemType> getTypesByDriverName(String driverName, DbClient dbClient) {
         List<StorageSystemType> types = new ArrayList<>();
         for (StorageSystemType type : listStorageSystemTypes(dbClient)) {
             if (StringUtils.equals(driverName, type.getDriverName())) {
@@ -277,13 +277,12 @@ public final class DriverMetadataUtil {
     }
 
     public static void precheckForMetaData(StorageDriverMetaData metaData, DbClient dbClient) {
-        
         precheckForMetaData(metaData, dbClient, false, false);
     }
 
     public static void precheckForMetaData(StorageDriverMetaData metaData, DbClient dbClient,
             boolean upgrade, boolean force) {
-        Set<String> drivers = new HashSet<String>();
+        Set<String> nonNativeDrivers = new HashSet<String>();
         boolean driverNameExists = false;
         List<StorageSystemType> types = listStorageSystemTypes(dbClient);
         for (StorageSystemType type : types) {
@@ -303,15 +302,18 @@ public final class DriverMetadataUtil {
                 precheckForDupField(type.getDriverClassName(), metaData.getDriverClassName(), "driver class name");
             }
             precheckForDupField(type.getDriverFileName(), metaData.getDriverFileName(), "driver file name");
-            drivers.add(type.getDriverName());
+
+            if (type.getIsNative() != null && type.getIsNative() == false) {
+                nonNativeDrivers.add(type.getDriverName());
+            }
         }
         if (upgrade && !driverNameExists) {
             throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(
                     String.format("Can't find specified driver name: %s", metaData.getDriverName()));
         }
-        if (!upgrade && drivers.size() >= MAX_DRIVER_NUMBER) {
+        if (!upgrade && nonNativeDrivers.size() >= MAX_NON_NATIVE_DRIVER_NUMBER) {
             throw APIException.internalServerErrors.installDriverPrecheckFailed(String
-                    .format("Can't install more drivers as max driver number %s has been reached", MAX_DRIVER_NUMBER));
+                    .format("Can't install more drivers as max driver number %s has been reached", MAX_NON_NATIVE_DRIVER_NUMBER));
         }
     }
 

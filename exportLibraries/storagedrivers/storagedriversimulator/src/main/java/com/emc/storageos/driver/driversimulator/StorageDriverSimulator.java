@@ -66,6 +66,11 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 public class StorageDriverSimulator extends DefaultStorageDriver implements BlockStorageDriver {
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
+
+    public static final List<String> METADATA_FILES = Arrays.asList(
+            "direct_type_metadata.properties",
+            "provider_type_metadata.properties");
+
     public static final String DRIVER_NAME = "SimulatorDriver";
     private static final int NUMBER_OF_VOLUME_PAGES = 1;
     private static final int NUMBER_OF_VOLUMES_ON_PAGE = 3;

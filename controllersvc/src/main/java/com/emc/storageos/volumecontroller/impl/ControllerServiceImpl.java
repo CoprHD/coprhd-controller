@@ -30,6 +30,7 @@ import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
+import com.emc.storageos.coordinator.client.model.StorageDriverMetaData;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
@@ -46,6 +47,7 @@ import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.driver.driversimulator.StorageDriverSimulator;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
@@ -609,7 +611,7 @@ public class ControllerServiceImpl implements ControllerService {
     }
 
     /**
-     * Scan and insert meta data of in-tree drivers.
+     * Scan and insert meta data of in-tree drivers (including simulator driver).
      */
     private void initIntreeDriverMetadata() {
         InterProcessLock lock = null;
@@ -629,6 +631,31 @@ public class ControllerServiceImpl implements ControllerService {
                 _log.info("Meta props: {}", props.toString());
                 propsStream.close();
                 DriverMetadataUtil.insertDriverMetadata(props, driverFileName, _dbClient);
+            }
+            // Insert simulator metadata
+            for (String metadataFile : StorageDriverSimulator.METADATA_FILES) {
+                URL resource =getClass().getClassLoader().getResource(metadataFile);
+                String driverFileName = extractJarName(resource.getPath());
+                _log.info("Parsing simulator meta data from {} ...", driverFileName);
+                InputStream propsStream = resource.openStream();
+                Properties props = new Properties();
+                props.load(propsStream);
+                _log.info("Meta props of simulator: {}", props.toString());
+                propsStream.close();
+                StorageDriverMetaData metaData = DriverMetadataUtil.parseMetadata(props, driverFileName);
+                List<StorageSystemType> types = DriverMetadataUtil.getTypesByDriverName(metaData.getDriverName(), _dbClient);
+                if (!types.isEmpty()) {
+                    _dbClient.removeObject((StorageSystemType[])types.toArray());
+                }
+                types = new ArrayList<>();
+                for (StorageSystemType type : DriverMetadataUtil.map(metaData)) {
+                    type.setDriverStatus(StorageSystemType.STATUS.ACTIVE.toString());
+                    type.setIsNative(true);
+                    types.add(type);
+                    _log.info("Preparing inserting meta data of type {}.", type.getStorageTypeName());
+                }
+                _dbClient.createObject(types);
+                _log.info("All simulator meta data have been inserted");
             }
         } catch (Exception e) {
             _log.warn("Exception happened when initializing in-tree driver meta data:", e);

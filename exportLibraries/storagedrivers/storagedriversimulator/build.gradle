@@ -4,7 +4,3 @@ dependencies {
             library(spring),
             library(commons_lang)
 }
-
-jar {
-    from 'metadata.properties'
-}

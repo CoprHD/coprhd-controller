@@ -75,7 +75,7 @@ public class DataCollectionService {
         }
         log.info("print out query job info {}",queryJobInfo());
         Date currentTime = TimeUtils.getDateTimestamp(Long.toString(System.currentTimeMillis()));
-        DiagutilJobStatus jobStatus = new DiagutilJobStatus(currentTime.toString(), null, DiagutilStatus.INITIALIZE, null, null, null);
+        DiagutilJobStatus jobStatus = new DiagutilJobStatus(Long.toString(System.currentTimeMillis()), null, DiagutilStatus.INITIALIZE, null, null, null);
         //DiagutilJobStatus jobStatus = new DiagutilJobStatus(Long.toString(System.currentTimeMillis()), null, DiagutilStatus.INITIALIZE, DiagutilStatusDesc.COLLECTING_DB, null, null);
         try {
             saveJobInfo(jobStatus);

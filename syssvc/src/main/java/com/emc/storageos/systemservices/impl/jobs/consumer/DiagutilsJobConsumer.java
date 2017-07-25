@@ -37,7 +37,8 @@ import java.util.List;
 public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob> {
     private static final Logger log = LoggerFactory.getLogger(DiagutilsJobConsumer.class);
     private static final String _OPT_DIR = "/opt/storageos/bin/";
-    private static final String _DIAGUTIL = _OPT_DIR + "diagutils";
+    private static final String _DIAGUTIL = "diagutils";
+    private static final String _DIAGUTIL_CMD = _OPT_DIR + "diagutils";
     private static final String _DIAGUTIL_GUI = "-gui";
     private static final String _DIAGUTIL_OUTPUT = "-output_dir";
     private static final String _DIAGUTIL_PRECHECK = "-pre_check";
@@ -65,7 +66,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             String startTime = jobStatus.getStartTime();
             log.info("diagutilsJob startTime is {}", startTime);
             String subOutputDir = _DIAGUTIL + "-" + startTime;
-
+            String dataFiledir = _DIAGUTIL_COLLECT_DIR + subOutputDir;
             //pre-check
             jobStatus.setStatus(DiagutilStatus.PRECHECK_IN_PROGRESS);
             if (!updateJobInfoIfNotCancel(jobStatus)) { //job cancelled
@@ -73,7 +74,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             }
             FileUtils.deleteQuietly(new File(_DIAGUTIL_COLLECT_DIR)); //clean up left data in collection dir
 
-            final String[] precheckCmd = {_DIAGUTIL, _DIAGUTIL_GUI, _DIAGUTIL_PRECHECK};
+            final String[] precheckCmd = {_DIAGUTIL_CMD, _DIAGUTIL_GUI, _DIAGUTIL_PRECHECK};
             log.info("Executing cmd {}", Arrays.toString(precheckCmd));
             Exec.Result result = Exec.sudo(COMMAND_TIMEOUT, precheckCmd);
             if (!result.exitedNormally() || result.getExitValue() != 0) {
@@ -98,7 +99,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     return;
                 }
                 log.info("Collecting {}...", option);
-                String[] collectCmd = {_DIAGUTIL, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, "-" + option};
+                String[] collectCmd = {_DIAGUTIL_CMD, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, "-" + option};
                 log.info("Executing cmd {}", Arrays.toString(collectCmd));
                 result = Exec.sudo(COMMAND_TIMEOUT, collectCmd);
                 if (!result.exitedNormally() || result.getExitValue() != 0) {
@@ -131,7 +132,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 try {
                     //to be modified to saved in each service file,and split
                     ClientResponse response = SysClientFactory.getSysClient(coordinatorClientExt.getNodeEndpoint(myId)).get(SysClientFactory.URI_LOGS, ClientResponse.class, MediaType.APPLICATION_XML);
-                    File file = new File(_DIAGUTIL_COLLECT_DIR + subOutputDir + "/logs");
+                    File file = new File(dataFiledir + "/logs");
                     FileUtils.copyInputStreamToFile(response.getEntityInputStream(), file);
                 } catch (Exception e) {
                     jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
@@ -147,7 +148,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 //cancelled
                 return;
             }
-            final String[] archiveCmd = {_DIAGUTIL, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, _DIAGUTIL_ARCHIVE};
+            final String[] archiveCmd = {_DIAGUTIL_CMD, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, _DIAGUTIL_ARCHIVE};
             log.info("Executing cmd {}", Arrays.toString(archiveCmd));
             result = Exec.sudo(COMMAND_TIMEOUT, archiveCmd);
             if (!result.exitedNormally() || result.getExitValue() != 0) {
@@ -161,7 +162,6 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
 
             //record output file location and collect success.
             //String dataFiledir = _DIAGUTIL_COLLECT_DIR + subOutputDir +".zip";
-            String dataFiledir = _DIAGUTIL_COLLECT_DIR + subOutputDir;
 
             jobStatus.setLocation(dataFiledir);
             jobStatus.setStatus(DiagutilStatus.COLLECTING_SUCCESS);

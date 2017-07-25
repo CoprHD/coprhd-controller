@@ -200,6 +200,7 @@ public class BlockProviderUtils {
     public static boolean isLocalMirrorSupported(BlockVirtualPoolRestRep virtualPool) {
         boolean supported = (virtualPool.getProtection() != null) &&
                 (virtualPool.getProtection().getContinuousCopies() != null) &&
+                virtualPool.getProtection().getContinuousCopies().getMaxMirrors() != null &&
                 (virtualPool.getProtection().getContinuousCopies().getMaxMirrors() > 0);
 
         if (virtualPool.getHighAvailability() != null &&
@@ -207,7 +208,8 @@ public class BlockProviderUtils {
                 virtualPool.getProtection() != null &&
                 virtualPool.getProtection().getContinuousCopies() != null) {
 
-            supported = ((virtualPool.getProtection().getContinuousCopies().getMaxMirrors() > 0 &&
+            supported = ((virtualPool.getProtection().getContinuousCopies().getMaxMirrors() != null &&
+                    virtualPool.getProtection().getContinuousCopies().getMaxMirrors() > 0 &&
                     virtualPool.getProtection().getContinuousCopies().getVpool() != null) ||
                     (virtualPool.getProtection().getContinuousCopies().getHaMaxMirrors() != null &&
                             virtualPool.getProtection().getContinuousCopies().getHaMaxMirrors() > 0 &&

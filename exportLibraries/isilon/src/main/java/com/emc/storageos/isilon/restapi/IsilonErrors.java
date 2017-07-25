@@ -27,12 +27,18 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public interface IsilonErrors {
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError doExpandFSFailed(final URI id);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError doReduceFSFailed(final URI id);
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToUpdateFileSystem(final URI id);
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToExpandFileSystem();
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToReduceFileSystem();
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToCreateFileShare();
@@ -54,4 +60,17 @@ public interface IsilonErrors {
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToCreateReplicationPolicy(final String storageSystem);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableUpdateQuotaDirectory(String msg);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToFailoverReplicationPolicy(final String storageSystem, String policyName, String msg);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToFailbackReplicationPolicy(final String storageSystem, String policyName, String msg);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToFailoverFileSystem(final String storageSystem, String msg);
+    
 }

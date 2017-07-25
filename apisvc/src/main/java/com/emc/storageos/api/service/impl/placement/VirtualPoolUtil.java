@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolValidator;
 import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.AutoTieringPolicyValidator;
+import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.CompressionValidator;
 import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.DriveTypeValidator;
 import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.ExpansionValidator;
 import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.HighAvailabilityValidator;
@@ -60,6 +61,7 @@ public class VirtualPoolUtil {
     private static final Logger _log = LoggerFactory.getLogger(VirtualPoolUtil.class);
 
     private static VirtualPoolValidator autoTieringPolicyValidator = null;
+    private static VirtualPoolValidator compressionValidator = null;
     // private static VirtualPoolValidator blockNameValidator = null;
     // private static VirtualPoolValidator blockDescriptionValidator = null;
     private static VirtualPoolValidator blockDriveTypeValidator = null;
@@ -87,6 +89,7 @@ public class VirtualPoolUtil {
         blockSystemTypeValidator = new SystemTypeValidator();
         blockProvisioningValidator = new ProvisioningTypeValidator();
         autoTieringPolicyValidator = new AutoTieringPolicyValidator();
+        compressionValidator = new CompressionValidator();
         blockDriveTypeValidator = new DriveTypeValidator();
         blockRaidLevelValidator = new RaidLevelValidator();
         blockExpansionValidator = new ExpansionValidator();
@@ -101,7 +104,8 @@ public class VirtualPoolUtil {
         // blockDescriptionValidator.setNextValidator(blockSystemTypeValidator);
         blockSystemTypeValidator.setNextValidator(blockProvisioningValidator);
         blockProvisioningValidator.setNextValidator(autoTieringPolicyValidator);
-        autoTieringPolicyValidator.setNextValidator(blockDriveTypeValidator);
+        autoTieringPolicyValidator.setNextValidator(compressionValidator);
+        compressionValidator.setNextValidator(blockDriveTypeValidator);
         blockDriveTypeValidator.setNextValidator(blockExpansionValidator);
         blockExpansionValidator.setNextValidator(highAvailabilityValidator);
         highAvailabilityValidator.setNextValidator(blockRaidLevelValidator);

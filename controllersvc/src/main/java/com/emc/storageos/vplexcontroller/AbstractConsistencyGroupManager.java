@@ -30,6 +30,8 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
@@ -199,13 +201,12 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
                 for (Map.Entry<String, String> vplexCg : vplexCgsToDelete.entrySet()) {
                     String stepId = workflow.createStepId();
-                    Workflow.Method deletCGRollbackMethod = rollbackDeleteCGMethod(cgURI, stepId);
                     // Create the steps in the workflow to delete the consistency
                     // group. Note that we assume the consistency group does not
                     // contain any volumes. Currently, the API service does not allow
                     // this, and so this should never be called otherwise.
                     returnWaitFor = addStepForRemoveVPlexCG(workflow, stepId, returnWaitFor, storageSystem,
-                            cgURI, vplexCg.getKey(), vplexCg.getValue(), markInactive, deletCGRollbackMethod);
+                            cgURI, vplexCg.getKey(), vplexCg.getValue(), markInactive, rollbackMethodNullMethod());
                 }
             }
         }
@@ -260,6 +261,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
      */
     public void deleteCG(URI vplexSystemURI, URI cgUri, String cgName,
             String clusterName, Boolean setInactive, String stepId) throws WorkflowException {
+        StorageSystem vplexSystem = null;
         try {
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -270,25 +272,26 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
             log.info("Got VPlex API client for VPlex system {}", vplexSystemURI);
 
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_085);
+
             // Make a call to the VPlex API client to delete the consistency group.
             client.deleteConsistencyGroup(cgName);
             log.info(String.format("Deleted consistency group %s", cgName));
-
-            // Create the rollback data in case this needs to be recreated.
-            VPlexCGRollbackData rbData = new VPlexCGRollbackData();
-            rbData.setVplexSystemURI(vplexSystemURI);
-            rbData.setCgName(cgName);
-            rbData.setClusterName(clusterName);
-            rbData.setIsDistributed(new Boolean(getIsCGDistributed(client, cgName, clusterName)));
-            workflowService.storeStepData(stepId, rbData);
-
             cleanUpVplexCG(vplexSystemURI, cgUri, cgName, setInactive);
 
             // Update step status to success.
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
-            log.error("Exception deleting consistency group: " + vae.getMessage(), vae);
-            WorkflowStepCompleter.stepFailed(stepId, vae);
+            if (vae.getServiceCode().getCode() == ServiceCode.VPLEX_CG_NOT_FOUND.getCode()) {
+                log.info(String.format("Consistency group %s not found on storage system: %s.  Assumed already deleted.",
+                        clusterName + ":" + cgName,
+                        (vplexSystem != null && vplexSystem.forDisplay() != null) ? vplexSystem.forDisplay() : vplexSystemURI));
+                cleanUpVplexCG(vplexSystemURI, cgUri, cgName, setInactive);
+                WorkflowStepCompleter.stepSucceded(stepId);
+            } else {
+                log.error("Exception deleting consistency group: " + vae.getMessage(), vae);
+                WorkflowStepCompleter.stepFailed(stepId, vae);
+            }
         } catch (Exception ex) {
             log.error("Exception deleting consistency group: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP.getName();
@@ -473,77 +476,6 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
         }
 
         return isDistributed;
-    }
-
-    /**
-     * Create the workflow method to rollback a CG deletion on a VPLEX system.
-     *
-     * @param cgURI The consistency group URI
-     * @param deleteStepId The step that deleted the CG.
-     *
-     * @return A reference to the workflow method
-     */
-    private Workflow.Method rollbackDeleteCGMethod(URI cgURI, String deleteStepId) {
-        return new Workflow.Method(RB_DELETE_CG_METHOD_NAME, cgURI, deleteStepId);
-    }
-
-    /**
-     * Method call when we need to rollback the deletion of a consistency group.
-     *
-     * @param cgURI The consistency group URI
-     * @param deleteStepId The step that deleted the CG.
-     * @param stepId The step id.
-     */
-    public void rollbackDeleteCG(URI cgURI, String deleteStepId, String stepId) {
-        try {
-            // Update step state to executing.
-            WorkflowStepCompleter.stepExecuting(stepId);
-            log.info("Updated workflow step to executing");
-
-            // Get the rollback data.
-            Object rbDataObj = workflowService.loadStepData(deleteStepId);
-            if (rbDataObj == null) {
-                // Update step state to done.
-                log.info("CG was not deleted, nothing to do.");
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            }
-            VPlexCGRollbackData rbData = (VPlexCGRollbackData) rbDataObj;
-
-            // Get the VPlex API client.
-            URI vplexSystemURI = rbData.getVplexSystemURI();
-            StorageSystem vplexSystem = VPlexControllerUtils.getDataObject(StorageSystem.class,
-                    vplexSystemURI, dbClient);
-            VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexSystem,
-                    dbClient);
-            log.info("Got VPlex API client for VPlex system {}", vplexSystemURI);
-
-            // Recreate the consistency group on the VPLEX.
-            String cgName = rbData.getCgName();
-            String clusterName = rbData.getClusterName();
-            client.createConsistencyGroup(cgName, clusterName, rbData.getIsDistributed()
-                    .booleanValue());
-            log.info("Recreated CG {} on system {}", cgName, vplexSystemURI);
-
-            // Update the consistency group in the database.
-            BlockConsistencyGroup cg = VPlexControllerUtils.getDataObject(BlockConsistencyGroup.class, cgURI,
-                    dbClient);
-            cg.addSystemConsistencyGroup(vplexSystemURI.toString(),
-                    BlockConsistencyGroupUtils.buildClusterCgName(clusterName, cgName));
-            dbClient.persistObject(cg);
-            log.info("Updated consistency group in database");
-
-            // Update step state to done.
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (VPlexApiException vae) {
-            log.error("Exception rolling back VPLEX consistency group deletion: " + vae.getMessage(), vae);
-            WorkflowStepCompleter.stepFailed(stepId, vae);
-        } catch (Exception ex) {
-            log.error("Exception rolling back VPLEX consistency group deletion: " + ex.getMessage(), ex);
-            String opName = ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP.getName();
-            ServiceError serviceError = VPlexApiException.errors.rollbackDeleteCGFailed(opName, ex);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
-        }
     }
 
     /**

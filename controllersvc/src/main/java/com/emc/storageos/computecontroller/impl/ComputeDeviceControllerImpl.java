@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +29,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
@@ -160,16 +158,34 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     public void createHost(URI csId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException {
         log.info("createHost");
 
+        ComputeElement ce = null;
+        ComputeSystem cs = null;
         Host host = _dbClient.queryObject(Host.class, hostId);
-        //TODO COP-28960 check for null -- host, ce, etc.
-        ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
 
-        ComputeVirtualPool vcp = _dbClient.queryObject(ComputeVirtualPool.class, vcpoolId);
-        VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, varray);
-
-        ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
-        TaskCompleter tc = new ComputeHostCompleter(hostId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
-        getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
+            ComputeVirtualPool vcp = _dbClient.queryObject(ComputeVirtualPool.class, vcpoolId);
+            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, varray);
+            if (ce != null && !NullColumnValueGetter.isNullURI(ce.getComputeSystem())) {
+                cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
+            } else {
+                log.error("Compute Element is Null!");
+                throw new IllegalArgumentException(
+                        "createHost Failed. Could not find Compute Element");
+            }
+            TaskCompleter tc = new ComputeHostCompleter(hostId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
+            if (cs != null) {
+                getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
+            } else {
+                log.error("Compute System is Null!");
+                throw new IllegalArgumentException(
+                        "Create Host failed. Could not find Compute System");
+            }
+        } else {
+            log.error("Host is null!");
+            throw new IllegalArgumentException(
+                    "Create Host failed, Could not find Host from the provided hostId");
+        }
     }
 
     /**
@@ -194,27 +210,36 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     public String addStepsPreOsInstall(Workflow workflow, String waitFor, URI computeSystemId, URI hostId,
             String prepStepId) {
         log.info("addStepsPreOsInstall");
-
+        URI computeElementId = null;
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
         Host host = _dbClient.queryObject(Host.class, hostId);
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-        //TODO COP-28960 check for null ce
-        URI computeElementId = ce.getId();
+       
         log.info("sptId:" + ce.getSptId());
 
-        if (ce.getSptId() != null) {
+        if (ce != null 
+                && NullColumnValueGetter.isNotNullValue(ce.getSptId()) 
+                && !NullColumnValueGetter.isNullURI(ce.getId())) {
+            computeElementId = ce.getId();
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
-            //TODO COP-28960 check template not null
-            log.info("is updating:" + template.getUpdating());
-            if (template.getUpdating()) {
+            if (template != null) {
+                log.info("is updating:" + template.getUpdating());
+                if (template.getUpdating()) {
 
-                waitFor = workflow.createStep(UNBIND_HOST_FROM_TEMPLATE,
-                        "prepare host for os install by unbinding it from service profile template",
-                        waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
-                        new Workflow.Method("unbindHostFromTemplateStep", computeSystemId, hostId),
-                        new Workflow.Method("rollbackUnbindHostFromTemplate", computeSystemId, hostId),
-                        null);
+                    waitFor = workflow.createStep(UNBIND_HOST_FROM_TEMPLATE,
+                            "prepare host for os install by unbinding it from service profile template",
+                            waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
+                            new Workflow.Method("unbindHostFromTemplateStep", computeSystemId, hostId),
+                            new Workflow.Method("rollbackUnbindHostFromTemplate", computeSystemId, hostId),
+                            null);
+
+                }
+            } else {
+                log.error("UCSServiceProfileTemplate is Null");
+                throw new IllegalArgumentException(
+                        "addStepsPreOsInstall method failed. Could not find UCS Service Profile Template id from computeElement "
+                		+ ce.getLabel());
 
             }
             // Set host to boot from lan
@@ -279,23 +304,28 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 new Workflow.Method("setNoBootStep", computeSystemId, computeElementId, hostId), null);
 
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, computeElementId);
-        //TODO COP-28960 check for ce not null
 
-        if (ce.getSptId() != null) {
+        if (ce != null && ce.getSptId() != null) {
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
-            //TODO COP-28960 check for template not null
-            if (template.getUpdating()) {
-                waitFor = workflow.createStep(REBIND_HOST_TO_TEMPLATE,
-                        "Rebind host to service profile template after OS install", waitFor, cs.getId(),
-                        cs.getSystemType(), this.getClass(),
-                        new Workflow.Method("rebindHostToTemplateStep", computeSystemId, hostId),
-                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+            if (template != null) {
+                if (template.getUpdating()) {
+                    waitFor = workflow.createStep(REBIND_HOST_TO_TEMPLATE,
+                            "Rebind host to service profile template after OS install", waitFor, cs.getId(),
+                            cs.getSystemType(), this.getClass(),
+                            new Workflow.Method("rebindHostToTemplateStep", computeSystemId, hostId),
+                            new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                } 
+            } else {
+                    log.error("UCSServiceProfileTemplate is Null");
+                    throw new IllegalArgumentException(
+                            "addStepsPostOsInstall method failed. Could not find UCS Service Profile Template id from computeElement "
+                    		+ ce.getLabel());
             }
         } else {
             log.error("Serviceprofile ID attribute is null.");
             throw new IllegalArgumentException(
-                    "addStepsPostOsInstall method failed.  Could not find Serviceprofile template id from computeElement "
+                    "addStepsPostOsInstall method failed. Could not find Serviceprofile template id from computeElement "
                             + ce.getLabel());
         }
 
@@ -1058,7 +1088,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 return;
             }
             
-            String task = UUID.randomUUID().toString();
+            String task = stepId;
 
             URI bootVolumeId = getBootVolumeIdFromDescriptors(volumeDescriptors, host);
             Volume bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
@@ -1080,31 +1110,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 // Mark this workflow as created/executed so we don't do it
                 // again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(task, workflowKey);
-
-                while (true) {
-                    Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
-                    bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
-
-                    switch (Status.toStatus(bootVolume.getOpStatus().get(task).getStatus())) {
-                        case ready:
-                            WorkflowStepCompleter.stepSucceded(stepId);
-                            return;
-                        case error:
-                            log.warn("Unable to delete block volume associated with Host...",
-                                    ComputeSystemControllerException.exceptions
-                                    .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(),
-                                            host.getId().toASCIIString(),
-                                            bootVolumeId.toASCIIString(),
-                                            bootVolume.getOpStatus().get(task).getMessage()));
-                            WorkflowStepCompleter.stepFailed(stepId, ComputeSystemControllerException.exceptions
-                                    .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(),
-                                            host.getId().toASCIIString(), bootVolumeId.toASCIIString(),
-                                            bootVolume.getOpStatus().get(task).getMessage()));
-                            return;
-                        case pending:
-                            break;
-                    }
-                }
             }
         } catch (Exception exception) {
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
@@ -1334,35 +1339,20 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_068);
-            String taskId = UUID.randomUUID().toString();
+            String taskId = stepId;
             Operation op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.UPDATE_VCENTER_CLUSTER);
             _dbClient.createTaskOpStatus(VcenterDataCenter.class, host.getVcenterDataCenter(), taskId, op);
             AsyncTask task = new AsyncTask(VcenterDataCenter.class, host.getVcenterDataCenter(), taskId);
-            vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
 
-            log.info("Monitor remove host " + host.getHostName() + " update vCenter task...");
-
-            // VBDU TODO: COP-28456, Anti pattern - completers are responsible for updating step status.
-            while (true) {
-                Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
-                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
-                        host.getVcenterDataCenter());
-
-                switch (Status.toStatus(vcenterDataCenter.getOpStatus().get(taskId).getStatus())) {
-                case ready:
-                    log.info("vCenter update request succeeded");
-                    WorkflowStepCompleter.stepSucceded(stepId);
-                    return;
-                case error:
-                    log.info("vCenter update request failed - Best effort only so consider success");
-                    WorkflowStepCompleter.stepSucceded(stepId); // Only best
-                    // effort
-                    return;
-                case pending:
-                    break;
-                }
+            final String workflowKey = "updateVcenterCluster";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(taskId, workflowKey)) {
+                vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
+                // Mark this workflow as created/executed so we don't do it
+                // again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(taskId, workflowKey);
             }
+
         } catch (VcenterControllerException e) {
             log.warn("VcenterControllerException when trying to removeHostFromVcenterCluster: " + e.getMessage(), e);
             if (e.getCause() instanceof VcenterObjectNotFoundException) {

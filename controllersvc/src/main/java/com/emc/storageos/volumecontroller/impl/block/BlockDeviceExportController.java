@@ -837,7 +837,6 @@ public class BlockDeviceExportController implements BlockExportController {
                 }
             }
 
-            VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
             VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolURI);
             for (URI exportMaskURI : exportMaskToVolumeMap.keySet()) {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);

@@ -132,7 +132,7 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
         for (Entry<String, BlockObjectRestRep> entry : datastoreVolumeMap.entrySet()) {
             Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, entry.getValue(), entry.getKey());
             vmware.setMultipathPolicy(host, cluster, multipathPolicy, entry.getValue());
-            vmware.setStorageIOControl(datastore, storageIOControl);
+            vmware.setStorageIOControl(datastore, storageIOControl, true);
         }
 
         vmware.disconnect();

@@ -454,6 +454,7 @@ public class MDSDialog extends SSHDialog {
                         // set alias field as well
                         if (!excludeAliases && groups.length >= 2 && groups[1] != null) {
                             member.setAlias(groups[1].replace("[", "").replace("]", ""));
+                            member.setAliasType(true); // indicate member type of alias
                         }
                     } else if (index == 3) {
                         // matched "device-alias <alias>
@@ -1452,7 +1453,7 @@ public class MDSDialog extends SSHDialog {
         List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId);
         _log.info("Creating new zoneset clone : " + newZoneset	);
         
-        boolean retryNeeded = false;
+        boolean retryNeeded = true;
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
         for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
             lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
@@ -1981,7 +1982,7 @@ public class MDSDialog extends SSHDialog {
                     zoneset.getZones().add(zone);
                     break;
                 case 2:
-                    member = new IvrZoneMember(groups[0] + groups[2], Integer.valueOf(groups[3]));
+                    member = new IvrZoneMember(groups[0], Integer.valueOf(groups[3]));
                     zone.getMembers().add(member);
                     break;
             }

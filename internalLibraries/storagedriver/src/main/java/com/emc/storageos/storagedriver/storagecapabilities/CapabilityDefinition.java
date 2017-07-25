@@ -16,7 +16,9 @@ public class CapabilityDefinition {
         autoTieringPolicy,    // auto tiering capability
         deduplication,        // de-duplication
         replicationMode,      // replication mode capability
-        remoteReplicationAttributes   // remote replication attributes
+        remoteReplicationAttributes,   // remote replication attributes
+        hostIOLimits,  // hostIO limits capability
+        volumeCompression //volume compression
     }
 
     // The unique identifier for the capability definition.

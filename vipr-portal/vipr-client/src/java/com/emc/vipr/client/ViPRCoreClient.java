@@ -43,6 +43,7 @@ import com.emc.vipr.client.core.Networks;
 import com.emc.vipr.client.core.ObjectBuckets;
 import com.emc.vipr.client.core.ObjectNamespaces;
 import com.emc.vipr.client.core.ObjectVirtualPools;
+import com.emc.vipr.client.core.OpenStackTenants;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
@@ -50,6 +51,7 @@ import com.emc.vipr.client.core.SchedulePolicies;
 import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StorageDriver;
 import com.emc.vipr.client.core.StoragePools;
+import com.emc.vipr.client.core.StoragePortGroups;
 import com.emc.vipr.client.core.StoragePorts;
 import com.emc.vipr.client.core.StorageProviders;
 import com.emc.vipr.client.core.StorageSystemType;
@@ -70,7 +72,6 @@ import com.emc.vipr.client.core.VirtualDataCenter;
 import com.emc.vipr.client.core.VirtualDataCenters;
 import com.emc.vipr.client.core.VirtualNasServers;
 import com.emc.vipr.client.core.Workflows;
-import com.emc.vipr.client.core.OpenStackTenants;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.system.IPsec;
 
@@ -329,6 +330,10 @@ public class ViPRCoreClient {
         return new VirtualNasServers(this, client);
     }
 
+    public StoragePortGroups storagePortGroups() {
+        return new StoragePortGroups(this, client);
+    }
+    
     public StorageTiers storageTiers() {
         return new StorageTiers(this, client);
     }
@@ -439,5 +444,9 @@ public class ViPRCoreClient {
 
     public StorageDriver storageDriver() {
         return new StorageDriver(client);
+    }
+
+    public RestClient getRestClient() {
+        return client;
     }
 }

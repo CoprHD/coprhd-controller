@@ -9,6 +9,8 @@
         <property name="connectionTimeoutMs" value="30000"/>
         <property name="connManagerTimeout" value="60000"/>
         <property name="socketConnectionTimeoutMs" value="7200000" />
+        <property name="maxConnections" value="300"/>
+        <property name="maxConnectionsPerHost" value="100"/>
      </bean>
           
     <bean id="hdsStorageDevice" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSStorageDevice">
@@ -30,6 +32,7 @@
     <bean id="hdsExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="hdsApiFactory" ref="hdsApiFactory" />
+        <property name="validator" ref="validatorFactory"/>
     </bean>
     
     <bean id="vplexHDSMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VPlexHDSMaskingOrchestrator">

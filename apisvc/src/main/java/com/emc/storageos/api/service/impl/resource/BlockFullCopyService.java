@@ -211,6 +211,8 @@ public class BlockFullCopyService extends TaskResourceService {
     }
 
     /**
+     * Start Full Copy
+     * 
      * Generates a group synchronized between volume Replication group
      * and clone Replication group.
      * 
@@ -219,6 +221,7 @@ public class BlockFullCopyService extends TaskResourceService {
      * 
      * @param fullCopyURI The URI of the full copy volume.
      * 
+     * @brief Start replication group synchronization between volume and clone
      * @return TaskList
      */
     @POST

@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,6 +48,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.Host;
@@ -83,6 +85,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -305,9 +308,24 @@ public class ComputeVirtualPoolService extends TaggedResource {
         if (cvp.getMatchedComputeElements() != null) {
             Collection<ComputeElement> computeElements = _dbClient.queryObject(ComputeElement.class,
                     toUriList(cvp.getMatchedComputeElements()));
+            Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
+            Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+                Arrays.asList("label", "computeElement", "cluster"), ControllerUtils.getFullyImplementedCollection(hostIds));
             for (ComputeElement computeElement : computeElements) {
-                ComputeElementRestRep rest = map(computeElement);
-                if (rest != null) {
+                if (computeElement!=null) {
+                    Host associatedHost = null;
+                    for (Host host : hosts){
+                        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(computeElement.getId())) {
+                            associatedHost = host;
+                            break;
+                        }
+                    }
+                    Cluster cluster = null;
+                    if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
+                        cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
+                    }
+
+                    ComputeElementRestRep rest = map(computeElement, associatedHost, cluster);
                     result.getList().add(rest);
                 }
             }
@@ -316,11 +334,11 @@ public class ComputeVirtualPoolService extends TaggedResource {
     }
 
     /**
-     * Get compute elements that match the Compute Virtual Pool criteria
+     * Get compute elements that match the compute virtual pool criteria
      * 
-     * @brief Get compute elements that match the Compute Virtual Pool criteria
-     * @param param The Compute Virtual Pool create spec containing the criteria
-     * @return ComputeElementListRestRep collection of Compute Elements
+     * @brief Get compute elements that match the compute virtual pool criteria
+     * @param The compute virtual pool create spec containing the criteria
+     * @return ComputeElementListRestRep collection of compute Elements
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1646,8 +1664,8 @@ public class ComputeVirtualPoolService extends TaggedResource {
     /**
      * Assign Compute Elements to the Compute Virtual Pool
      * 
-     * @brief Assign Compute Elements to the compute virtual pool
      * @param param The Compute Virtual Pool Compute Elements to be added and removed
+     * @brief Assign compute elements to the compute virtual pool
      * @return ComputeVirtualPoolRestRep The updated Compute Virtual Pool
      */
     @PUT

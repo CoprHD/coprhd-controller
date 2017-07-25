@@ -8,7 +8,8 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
     <!-- Import the CIM adapter Spring config file so that the ConnnectionManager bean -->
-    <!-- can be referenced.                                                            -->
+    <!-- can be referenced. 
+    <import resource="classpath:controller-custom-config-info.xml"/>                                                           -->
     <import resource="classpath:controller-configinfo.xml"/>
     <import resource="CimAdapterSpringContext.xml"/>
     <import resource="classpath:dbclient-conf.xml"/>
@@ -20,7 +21,6 @@
     <import resource="classpath:controller-hds-prov.xml"/>
     <import resource="classpath:controller-scaleio-prov.xml"/>
     <import resource="classpath:controller-xtremio-prov.xml"/>
-    <import resource="classpath:controller-custom-config-info.xml"/>
     <import resource="classpath:controller-unity.xml"/>
 
 	<context:property-placeholder location="classpath:isilon.properties" ignore-unresolvable="true"/>
@@ -999,7 +999,6 @@
     <bean id="maskingWorkflowEntryPoints" class="com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints">
         <property name="name" value="maskingWorkflowEntryPoints"/>
         <property name="dbClient" ref="dbclient"/>
-        <property name="networkDeviceController" ref="networkDeviceController"/>
         <property name="blockScheduler" ref="blockscheduler"/>
         <property name="devices">
             <map>
@@ -1128,6 +1127,10 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
 
+    <bean id="discoveryUtils" class="com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
     <bean id="workflowScrubber" class="com.emc.storageos.workflow.WorkflowScrubberExecutor">
         <property name="dbClient" ref="dbclient"/>
     </bean>
@@ -1241,7 +1244,7 @@
         <property name="vcenterController" ref="vcenterController"/>
     </bean>
 
-    <bean id="ucsDevice" class="com.emc.storageos.computecontroller.impl.ucs.UcsComputeDevice">
+    <bean id="ucsDevice" class="com.emc.storageos.computecontroller.impl.ucs.UcsComputeDevice" depends-on="coordinator" init-method="initializeDefaults">
     	<property name="dbClient" ref="dbclient"/>
     	<!-- Device Operation TimeOut in Seconds -->
     	<property name="deviceOperationTimeOut" value="600"/>
@@ -1447,6 +1450,7 @@
                 <property name="localContext" ref="dbclientcontext"/>
                 <property name="geoContext" ref="geodbclientcontext"/>
                 <property name="drUtil" ref="drUtil"/>
+                <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
             </bean>
         </property>
         <property name="coordinator" ref="coordinator" />
@@ -1757,6 +1761,12 @@
         <property name="config" ref="validatorConfig"/>
         <property name="cimPath" ref="vnxCIMObjectPathFactoryAdapter"/>
     </bean>
+    
+    <bean id="hdsValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.hds.HDSSystemValidatorFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="config" ref="validatorConfig"/>
+        <property name="clientFactory" ref="hdsApiFactory"/>
+    </bean>
 
     <bean id="validatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory">
         <property name="dbClient" ref="dbclient"/>
@@ -1768,6 +1778,7 @@
                 <entry key="unity" value-ref="vnxeValidatorFactory"/>
                 <entry key="vplex" value-ref="vplexValidatorFactory"/>
                 <entry key="vnxblock" value-ref="vnxValidatorFactory"/>
+                <entry key="hds" value-ref="hdsValidatorFactory"/>
             </map>
         </property>
     </bean>

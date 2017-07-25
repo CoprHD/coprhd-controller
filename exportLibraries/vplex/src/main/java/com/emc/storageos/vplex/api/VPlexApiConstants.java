@@ -312,7 +312,7 @@ public class VPlexApiConstants {
 
     // Cluster ids
     public static final String CLUSTER_1_ID = "1";
-    public static final String CLUSTER_2_ID = "2";
+    public static final String CLUSTER_2_ID = "2";    
     public static final Integer VPLEX_LOCAL_ASSEMBLY_COUNT = 1;
     public static final Integer VPLEX_METRO_ASSEMBLY_COUNT = 2;
 
@@ -329,7 +329,7 @@ public class VPlexApiConstants {
     public static final int FIND_NEW_ARTIFACT_SLEEP_TIME_MS = 10000;
 
     // VPLEX API error response fragment used to check if
-    // the failure were due to duplicate storage view
+    // the failure was due to duplicate storage view
     public static final String DUPLICATE_STORAGE_VIEW_ERROR_FRAGMENT = "failed with Status 537: Duplicate view";
 
     // VPLEX API error response fragment used to check Consistency Group read-only flag not supported

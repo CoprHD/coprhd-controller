@@ -1477,7 +1477,7 @@ public class RecoverPointClient {
                     for (RPSite rpSite : allSites) {
                         ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                         for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
-                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
+                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false);
                             if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {
                                 logger.info("Found site and volume ID for journal: " + volumeParam.getWwn() + " for copy: "
                                         + copy.getName());
@@ -1526,7 +1526,7 @@ public class RecoverPointClient {
                     for (RPSite rpSite : allSites) {
                         ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                         for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
-                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
+                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false);
                             if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {
                                 logger.info(String.format(
                                         "Found site and volume ID for volume: %s for replication set: %s on site: %s (%s)",
@@ -3845,5 +3845,27 @@ public class RecoverPointClient {
         logger.info(String.format("Access states for requested copies: %s", copyAccessStates));
 
         return copyAccessStates;
+    }
+    
+    public boolean doesReplicationSetExist(String cgName, String rsetName){
+        try {
+        	List<ConsistencyGroupSettings> cgsSettings = functionalAPI.getAllGroupsSettings();
+	        for (ConsistencyGroupSettings cgSettings : cgsSettings) {
+	        	if (cgSettings.getName().equalsIgnoreCase(cgName)) { 
+		            // See if it is a production source, or an RP target
+		            for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
+		            	if (rsSettings.getReplicationSetName().equalsIgnoreCase(rsetName)) {
+		            		return true;
+		            	}
+		            }
+	        	}
+	        }
+        } catch (Exception e) {
+            // Do Nothing.  If we fail trying to see if the replication set exists just return false.
+        	logger.warn(String.format("Failed searching for replication set %s in RecoverPoint consistency group %s. "
+        			+ "Returning false to indicate replication set could not be found."), e);
+        }       
+        
+        return false;
     }
 }

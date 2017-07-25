@@ -71,7 +71,7 @@ def cos_create(args):
 			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
                             args.protectionCoS, args.multiVolumeConsistency,
                             args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
-                            args.long_term_retention, args.drive_type, args.system_type, args.srdf, args.auto_tiering_policy_name, 
+                            args.long_term_retention, args.drive_type, args.system_type, args.srdf, autotierPolicy,
                             args.host_io_limit_bandwidth, args.host_io_limit_iops, args.auto_cross_connect, args.placement_policy,
                             args.compressionEnabled, args.schedule_snapshot, args.replication_support, args.filepolicy_at_project, args.filepolicy_at_fs)
     

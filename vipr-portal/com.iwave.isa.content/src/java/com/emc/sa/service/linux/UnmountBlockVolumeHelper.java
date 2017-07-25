@@ -100,6 +100,8 @@ public class UnmountBlockVolumeHelper {
         }
         linux.ensureVolumesAreMounted(volumes);
         findRelatedVolumes();
+        linux.verifyVolumeMount(volumes, usePowerPath);
+        linux.verifyVolumeFilesystemMount(volumes, usePowerPath);
     }
 
     /**
@@ -130,20 +132,12 @@ public class UnmountBlockVolumeHelper {
             linux.unmountPath(volume.mountPoint.getPath());
 
             // remove from fstab
-            linux.removeFromFSTab(volume.mountPoint.getPath());
+            linux.removeFromFSTab(volume.mountPoint);
 
             // remove mount point tag from all volumes for this mount point
             for (BlockObjectRestRep mountedVolume : volume.relatedVolumes) {
                 linux.removeVolumeMountPointTag(mountedVolume);
                 untaggedVolumeIds.add(mountedVolume.getId());
-            }
-
-            // remove multipath/powerpath entries
-            if (usePowerPath) {
-                linux.removePowerPathDevices(volume.powerpathDevices);
-            }
-            else {
-                linux.removeMultipathEntries(volume.multipathEntries);
             }
 
             // delete the directory entry if it's empty
@@ -187,4 +181,17 @@ public class UnmountBlockVolumeHelper {
         return StringUtils.upperCase(wwn);
     }
 
+    /**
+     * Removes dead paths for the volumes that were unmounted
+     */
+    public void removeDevices() {
+        // remove multipath/powerpath entries
+        for (VolumeSpec volume : volumes) {
+            if (usePowerPath) {
+                linux.removePowerPathDevices(volume.powerpathDevices);
+            } else {
+                linux.removeMultipathEntries(volume.multipathEntries);
+            }
+        }
+    }
 }

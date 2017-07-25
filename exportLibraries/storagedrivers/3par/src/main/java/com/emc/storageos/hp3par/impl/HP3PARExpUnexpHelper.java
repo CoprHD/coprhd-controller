@@ -810,29 +810,28 @@ public class HP3PARExpUnexpHelper {
         // Supporting from lower OS versions; 
         switch (hostType) {
             case Windows:
-            case Linux:
-            case SUNVCS:
-                persona = 1;
+                persona = 11;
                 break;
 
             case HPUX:
-                persona = 7;
+                persona = 10;
                 break;
 
             case Esx:
-                persona = 11;
+                persona = 8;
                 break;
 
             case AIX:
             case AIXVIO:
-                persona = 8;
+                persona = 5;
                 break;
 
-                // persona 3 is by experimentation, doc is not up-to-date
             case No_OS:
+            case Linux:
+            case SUNVCS:
             case Other:
             default:
-                persona = 3;
+                persona = 1;
                 break;
         }
         return persona;

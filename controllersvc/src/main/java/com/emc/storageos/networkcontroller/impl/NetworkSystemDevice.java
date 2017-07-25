@@ -253,4 +253,15 @@ public interface NetworkSystemDevice {
      * @return  - Always true for Brocade switches, True for Cisco MDS if IVR feature is enabled, false otherwise
      */
     public boolean isCapableOfRouting(NetworkSystem networkSystem);
+    
+    /**
+     * For Brocade Network systems, this method returns nothing. 
+     * For Cisco Network systems, routed networks are calculated based on the "show ivr vsan-topology" CLI command. 
+     * For every switch that is returned by the topology map, all the networks on those switches are routable to each other. 
+     * In addition, all the networks on that switch are routable to all the other networks for other switches that show up on that list. 
+     * The command "show ivr vsan-topology" lists all the IVR enabled switches connected to each other. 
+     * @param networkSystem
+     * @throws NetworkDeviceControllerException
+     */
+    public void determineRoutedNetworks(NetworkSystem networkSystem) throws NetworkDeviceControllerException; 
 }

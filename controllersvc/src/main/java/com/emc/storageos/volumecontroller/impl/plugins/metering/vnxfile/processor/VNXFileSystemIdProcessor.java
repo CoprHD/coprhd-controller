@@ -5,22 +5,24 @@
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
-import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
-import com.emc.nas.vnxfile.xmlapi.Status;
-import com.emc.nas.vnxfile.xmlapi.Severity;
-import com.emc.nas.vnxfile.xmlapi.FileSystem;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-import com.emc.storageos.plugins.BaseCollectionException;
-import com.emc.storageos.plugins.common.domainmodel.Operation;
-import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
-import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
-import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import com.emc.nas.vnxfile.xmlapi.FileSystem;
+import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
+import com.emc.nas.vnxfile.xmlapi.Severity;
+import com.emc.nas.vnxfile.xmlapi.Status;
+import com.emc.storageos.plugins.BaseCollectionException;
+import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
+import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
 /**
  *
@@ -85,7 +87,7 @@ public class VNXFileSystemIdProcessor extends VNXFileProcessor {
                 while (iterator.hasNext()) {
                     FileSystem fileSystem = (FileSystem) iterator.next();
 
-                    if (fileSystem.getName().equalsIgnoreCase(fsName) ||
+                    if (fileSystem.getName().equals(fsName) ||
                             fileSystem.getFileSystem().equals(fsId)) {
                         String id = fileSystem.getFileSystem();
                         _logger.info("Found matching file system: {}", id);

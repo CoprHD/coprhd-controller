@@ -108,6 +108,7 @@ public enum ResourceOperationTypeEnum {
     FILE_PROTECTION_ACTION_REFRESH("FILE PROTECTION ACTION REFRESH", "refresh the replication link between source and target"),
     UPDATE_EXPORT_RULES_FILE_SYSTEM("UPDATE EXPORT RULES FILESYSTEM", "Update export rules filesystem operation"),
     EXPAND_FILE_SYSTEM("EXPAND FILESYSTEM", "expand filesystem operation"),
+    REDUCE_FILE_SYSTEM("REDUCE FILESYSTEM", "reduce filesystem operation"),
     CREATE_FILE_SYSTEM_SHARE("CREATE FILESHARE", "create fileshare operation"),
     CREATE_FILE_SYSTEM_SNAPSHOT("SNAPSHOT FILESYSTEM", "snapshot filesystem"),
     UPDATE_FILE_SYSTEM_SHARE_ACL("UPDATE CIFS SHARE ACL", "update filesystem share ACLs"),
@@ -170,7 +171,7 @@ public enum ResourceOperationTypeEnum {
     UPDATE_SMISPROVIDER("UPDATE SMIS PROVIDER", "update smis provider"),
     SCAN_SMISPROVIDER("SCAN SMIS PROVIDER", "scan smis provider"),
     SCAN_STORAGEPROVIDER("SCAN STORAGE PROVIDER", "scan storage provider"),
-    REGISTER_STORAGE_SYSTEM("REGISTER SMIS SYSTEM", "register sims system"),
+    REGISTER_STORAGE_SYSTEM("REGISTER SMIS SYSTEM", "register smis system"),
     REGISTER_STORAGEPROVIDER("REGISTER STORAGE PROVIDER", "register storage provider"),
     UPDATE_STORAGE_POOL("UPDATE STORAGEPOOL", "update storage pool"),
     DELETE_STORAGE_POOL("DELETE STORAGEPOOL", "delete storage pool"),
@@ -186,10 +187,10 @@ public enum ResourceOperationTypeEnum {
     DELETE_STORAGE_SYSTEM("DELETE STORAGESYSTEM", "delete a storage system"),
     ADD_STORAGE_SYSTEM("ADD STORAGESYSTEM", "add a storage system"),
     DISCOVER_ALL_STORAGE_SYSTEM("DISCOVER ALL STORAGESYSTEMS", "discover all storage systems"),
-    DISCOVER_STORAGE_SYSTEM("DISCOVER STORAGESYSTEM", "discover a storage systems"),
+    DISCOVER_STORAGE_SYSTEM("DISCOVER STORAGESYSTEM", "discover a storage system"),
     METERING_STORAGE_SYSTEM("METERING STORAGE SYSTEM", "obtain metering information on a storage system"),
     ARRAYAFFINITY_STORAGE_SYSTEM("DISCOVER ARRAY AFFINITY", "obtain array affinity information on a storage system"),
-    DEREGISTER_STORAGE_SYSTEM("UNREGISTER STORAGESYSTEM", "unregister a storage systems"),
+    DEREGISTER_STORAGE_SYSTEM("UNREGISTER STORAGESYSTEM", "unregister a storage system"),
     CREATE_STORAGE_POOL("CREATE STORAGEPOOL", "create storagepool operation"),
     CREATE_STORAGE_PORT("CREATE STORAGEPORT", "create storageport operation"),
     ASSIGN_STORAGE_SYSTEM_TAG("TAG STORAGESYSTEM", "tag a storage system"),
@@ -362,7 +363,9 @@ public enum ResourceOperationTypeEnum {
     EXPORT_PATHS_ADJUSTMENT("EXPORT PATHS ADJUSTMENT", "export paths adjustment operation"),
     ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource"),
     UPDATE_FILE_PROTECTION_POLICY("UPDATE FILE PROTECTION POLICY", "Update file protection policy"),
-    ASSIGN_FILE_POLICY_TO_FILE_SYSTEM("ASSIGN FILE POLICY TO FILE SYSTEM", "assign file policy to existing file system");
+    ASSIGN_FILE_POLICY_TO_FILE_SYSTEM("ASSIGN FILE POLICY TO FILE SYSTEM", "assign file policy to existing file system"),
+    CREATE_STORAGE_PORT_GROUP("CREATE STORAGE PORT GROUP", "create storage port group"),
+    DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "delete storage port group");
 
     private final String name;
     private final String description;

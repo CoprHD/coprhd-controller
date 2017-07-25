@@ -18,7 +18,7 @@ public class FindPowerpathBlockDevicesCommand extends LinuxResultsCommand<List<S
     public FindPowerpathBlockDevicesCommand(String powerPathDevice) {
         this.powerPathDevice = powerPathDevice;
         StringBuilder sb = new StringBuilder();
-        sb.append("pp_inq -parent -no_dots | grep ").append(powerPathDevice);
+        sb.append("pp_inq -parent -no_dots | grep -v PARENT | grep ").append(powerPathDevice);
         setCommand(sb.toString());
         setRunAsRoot(true);
     }

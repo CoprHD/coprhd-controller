@@ -6,7 +6,9 @@ package com.emc.sa.service.vipr.block.tasks;
 
 import java.net.URI;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.MachineTagUtils;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 
 public class SetBlockVolumeMachineTag extends ViPRExecutionTask<Void> {
@@ -27,6 +29,11 @@ public class SetBlockVolumeMachineTag extends ViPRExecutionTask<Void> {
 
     @Override
     public void execute() throws Exception {
-        MachineTagUtils.setBlockVolumeTag(getClient(), volumeId, tagName, tagValue);
+        try {
+            MachineTagUtils.setBlockVolumeTag(getClient(), volumeId, tagName, tagValue);
+        } catch (Exception ex) {
+            String command = BlockStorageUtils.getVolumeTagCommand(volumeId, tagName, tagValue);
+            ExecutionUtils.fail("failTask.SetBlockVolumeMachineTag", new Object [] { volumeId, tagName, tagValue }, command);
+        }
     }
 }

@@ -391,7 +391,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
                 _log.info("processChildren(): Created lock zNode {} for Queue {}", child, _queuePath);
                 spawnWork(child);
             } catch (KeeperException.NodeExistsException nee) {
-                _log.info("processChildren(): For Queue: {}, ZNodes already exist", _queuePath, nee);
+                _log.info("processChildren(): For Queue: {}, ZNodes already exist", _queuePath);
             } catch (KeeperException ke) {
                 _log.info("processChildren(): For Queue: {}, Problem while creating ZNodes: {}",
                         new Object[] { _queuePath, lockPath }, ke);

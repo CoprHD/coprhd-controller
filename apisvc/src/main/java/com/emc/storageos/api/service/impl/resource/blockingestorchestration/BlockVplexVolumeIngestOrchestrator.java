@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
@@ -731,6 +732,31 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 }
             }
         } else {
+
+            Map<String, ExportGroup> possibleExportGroups = new HashMap<String, ExportGroup>();
+            Set<String> initiatorUris = new HashSet<String>();
+            for (Initiator initiator : initiators) {
+                // Determine all the possible existing Export Groups
+                List<ExportGroup> groups = ExportUtils.getInitiatorExportGroups(initiator, _dbClient);
+                for (ExportGroup group : groups) {
+                    if (!possibleExportGroups.containsKey(group.getId().toString())) {
+                        possibleExportGroups.put(group.getId().toString(), group);
+                    }
+                }
+                initiatorUris.add(initiator.getId().toString());
+            }
+
+            // If there are possible Export Groups, look for one with that matches on inits, varray, project, and tenant.
+            for (ExportGroup group : possibleExportGroups.values()) {
+                if (URIUtil.identical(group.getVirtualArray(), virtualArrayURI)
+                        && URIUtil.identical(group.getProject().getURI(), projectURI)
+                        && URIUtil.identical(group.getTenant().getURI(), tenantURI)) {
+                    if (group.getInitiators().containsAll(initiatorUris)) {
+                        _logger.info(String.format("Returning existing ExportGroup %s from database.", group.getLabel()));
+                        return group;
+                    }
+                }
+            }
 
             // No existing group has the mask, let's create one.
             exportGroup = new ExportGroup();

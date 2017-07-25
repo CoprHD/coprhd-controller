@@ -767,30 +767,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 }
                 
                 for (String name : allVirtualVolumes.keySet()) {
+
+                    if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(name)) {
+                        // skipping this volume because the filter doesn't match
+                        continue;
+                    }
+
                     timer = System.currentTimeMillis();
                     s_logger.info("Discovering Virtual Volume {}", name);
 
-                    // UnManagedVolume discover does a pretty expensive
-                    // iterative call into the VPLEX API to get extended details
-                    String discoveryKillSwitch = ControllerUtils
-                            .getPropertyValueFromCoordinator(
-                                    _coordinator, VplexBackendIngestionContext.DISCOVERY_KILL_SWITCH);
-                    if ("stop".equals(discoveryKillSwitch)) {
-                        s_logger.warn("discovery kill switch was set to stop, "
-                                + "so discontinuing unmanaged volume discovery");
-                        return;
-                    }
-                    // on every volume in each cluster. First it gets all the
-                    // volume names/paths (the inexpensive "lite" call), then
-                    // iterates through them getting the details to populate the
-                    String discoveryFilter = ControllerUtils
-                            .getPropertyValueFromCoordinator(
-                                    _coordinator, VplexBackendIngestionContext.DISCOVERY_FILTER);
-                    if ((discoveryFilter != null && !discoveryFilter.isEmpty())
-                            && !(name.matches(discoveryFilter))) {
-                        s_logger.warn("name {} doesn't match discovery filter {}", name, discoveryFilter);
-                        continue;
-                    }
                     // VPlexVirtualVolumeInfo objects with extended details
                     VPlexVirtualVolumeInfo info = allVirtualVolumes.get(name);
                     // needed for unmanaged volume discovery.
@@ -2592,7 +2577,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             report.append("\tstorage view data fetch: ").append(storageViewFetch).append("ms\n");
             report.append("\tconsistency group data fetch: ").append(consistencyGroupFetch).append("ms\n");
             report.append("\tunmanaged volume processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
-            report.append("\tvpool matching processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
+            report.append("\tvpool matching processing time: ").append(vpoolMatching).append("ms\n");
 
             volumeTimeResults = sortByValue(volumeTimeResults);
             report.append("\nTop 20 Longest-Running Volumes...\n");

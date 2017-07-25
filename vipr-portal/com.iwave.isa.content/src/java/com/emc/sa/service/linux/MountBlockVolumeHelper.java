@@ -64,6 +64,7 @@ public class MountBlockVolumeHelper {
         linuxSupport.verifyMountPoint(mountPoint);
         usePowerPath = linuxSupport.checkForMultipathingSoftware();
         linuxSupport.checkForFileSystemCompatibility(fsType);
+        linuxSupport.checkDirectoryDoesNotExist(mountPoint);
     }
 
     public void verifyMountConfiguration(BlockObjectRestRep volume) {

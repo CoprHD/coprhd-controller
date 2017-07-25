@@ -1,0 +1,328 @@
+%{
+nameDescTabID = 'nameDescRestContent';
+callDetailsTabID = 'callContent';
+inputOutputTabID = 'inputOutputRestContent';
+}%
+
+<div ng-controller="restAPIPrimitiveController" id="restAPIModal">
+    #{Modal.dialog id:'restAPIPrimitiveDialog', cssClass:'wide', titleKey:'{{modalTitle}}'}
+    <div class="row">
+        #{form @saveRestAPIPrimitive(), id:'restAPIPrimitiveForm', enctype:'multipart/form-data', class:'form form-horizontal',
+        autocomplete:"off"}
+        <input type="hidden" name="restAPIPrimitive.wfDirID" id="restAPIPrimitive_wfDirID" ng-value="restAPIPrimitive.wfDirID"/>
+        <input type="hidden" name="restAPIPrimitive.id" id="restAPIPrimitive_id" ng-value="restAPIPrimitive.id"/>
+
+        <div class="col-md-3 tabbable restTabbable">
+            <ul class="nav nav-pills nav-stacked primitivesNav">
+                <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
+                    &{'primitive.menu.nameDescription'}</a></li>
+                <li class=""><a href="${'#'+callDetailsTabID}" data-toggle="tab"><span class="badge">2</span>
+                    &{'primitive.menu.restCallDetails'}</a>
+                </li>
+                <li class=""><a href="${'#'+inputOutputTabID}" data-toggle="tab"><span class="badge">3</span>
+                    &{'restAPIPrimitive.menu.inputsOutputs'}</a></li>
+            </ul>
+        </div>
+        <div class="col-md-9">
+            <div class="tab-content">
+                <div class="tab-pane active" id="${nameDescTabID}">
+                    #{Modal.body}
+                    <control-group v-field='restAPIPrimitive.name' labelWidth="1" required >
+                        <input-text class="initialFocus" maxlength="50"></input-text>
+                    </control-group>
+                    <control-group v-field='restAPIPrimitive.description' labelWidth="1" >
+                        <input-text maxlength="200"></input-text>
+                    </control-group>
+                    #{/Modal.body}
+                </div>
+                <div class="tab-pane" id="${callDetailsTabID}">
+                    #{Modal.body}
+                    <div>
+                        <div class="input-group">
+                            <span class="input-group-btn">
+                                <select id="restAPIPrimitive.method" name="restAPIPrimitive.method" class="btn" title="Method" ng-model="restAPIPrimitive.method">
+                                  <option>GET</option>
+                                  <option>POST</option>
+                                  <option>PUT</option>
+                                    <option>DELETE</option>
+                                </select>
+                            </span>
+                            <input id="restAPIPrimitive_requestURL" name="restAPIPrimitive.requestURL" type="text" class="form-control" placeholder="Enter path" ng-model="restAPIPrimitive.requestURL">
+                        </div>
+
+                        <ul id="" class="nav nav-tabs" role="tablist" style="padding-top:15px;">
+                            <li class="active"><a href="#authContent" role="tab" data-toggle="tab">&nbsp;&{'restAPIPrimitive.tabs.auth'}</a>
+                            </li>
+                            <li><a href="#headersContent" role="tab" data-toggle="tab">&nbsp;&{'restAPIPrimitive.tabs.headers'}</a>
+                            </li>
+                            <li><a href="#queryParamsContent" role="tab" data-toggle="tab">&nbsp;&{'restAPIPrimitive.tabs.queryParams'}</a>
+                            </li>
+                            <li ng-if="restAPIPrimitive.method != 'GET'"><a href="#requestBodyContent" role="tab" data-toggle="tab">&nbsp;&{'restAPIPrimitive.tabs.requestBody'}</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content">
+                            <!--Authorization-->
+                            <div class="tab-pane active" id="authContent">
+                                <control-group v-field='restAPIPrimitive.authType'>
+                                    <select-one options="restCallAuthTypes" auto-default v-disabled='locked'></select-one>
+                                </control-group>
+                            </div>
+                            <!--Query Params-->
+                            <div class="tab-pane" id="queryParamsContent" style="width: 300px;">
+                                <div class="row" ng-repeat="info in scriptIOs.queryParams" style="margin-bottom:5px;">
+                                    <div class="pull-left col-sm-11" v-field="info.queryParam">
+                                        <input-text></input-text>
+                                    </div>
+                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                        <button type="button" ng-click="deleteQueryParam($index)" class="close">&times;</button>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="pull-left col-sm-11">
+                                        <button type="button" ng-click="addQueryParam()" class="btn btn-sm btn-success"><i
+                                                v-icon=plus></i> &{'button.add'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--Headers-->
+                            <div class="tab-pane" id="headersContent" style="width: 300px;">
+                                <div class="row" ng-repeat="info in scriptIOs.headers" style="margin-bottom:5px;">
+                                    <div class="pull-left col-sm-11" v-field="info.header">
+                                        <input-text></input-text>
+                                    </div>
+                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                        <button type="button" ng-click="deleteHeader($index)" class="close">&times;</button>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="pull-left col-sm-11">
+                                        <button type="button" ng-click="addHeader()" class="btn btn-sm btn-success"><i
+                                                v-icon=plus></i> &{'button.add'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--Request Body-->
+                            <div class="tab-pane" id="requestBodyContent" >
+                                <textarea id="restAPIPrimitive_rawBody" name="restAPIPrimitive.rawBody" class="form-control input-sm" rows="5" ng-model="restAPIPrimitive.rawBody"></textarea>
+                            </div>
+                            <input type="hidden" name="restAPIPrimitive.queryParams" ng-value="queryParams"/>
+                            <input type="hidden" name="restAPIPrimitive.headers" ng-value="headers"/>
+
+                        </div>
+                    </div>
+                    #{/Modal.body}
+
+                </div>
+                <div class="tab-pane" id="${inputOutputTabID}">
+                    #{Modal.body}
+                    <div>
+                        <ul class="nav nav-tabs" role="tablist">
+                            <li class="active"><a href="#outputRestContent" role="tab" data-toggle="tab">&nbsp;&{'restAPIPrimitive.tabs.output'}</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="outputRestContent" style="width: 300px;">
+                                <!-- Output Tab -->
+                                <span class="help-block">&{'restAPIPrimitive.output.help'}</span>
+                                <div class="row" ng-repeat="info in scriptIOs.outputs" style="margin-bottom:5px;">
+                                    <div class="pull-left col-sm-11" v-field="info.output">
+                                        <input-text></input-text>
+                                    </div>
+                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                        <button type="button" ng-click="deleteOutput($index)" class="close">&times;</button>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="pull-left col-sm-11">
+                                        <button type="button" ng-click="addOutput()" class="btn btn-sm btn-success"><i
+                                                v-icon=plus></i> &{'button.add'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="restAPIPrimitive.outputs" ng-value="outputs"/>
+                        </div>
+                    </div>
+                    #{/Modal.body}
+
+                </div>
+            </div>
+
+            #{Modal.footer}
+            #{Form.button name:'button.back', id:'backButtonRest', icon:'arrow-left'/}
+            #{Form.button name:'button.next', id:'nextButtonRest', class:'primary', icon:'arrow-right'/}
+            #{Form.button name:'button.finish', id:'finishButtonRest', class:'primary', icon:'check',
+            submit:'restAPIPrimitiveForm'/}
+
+            #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+            #{/Modal.footer}
+        </div>
+        #{/form}
+    </div>
+    #{/Modal.dialog}
+</div>
+
+<script>
+    function checkRestFinish() {
+        var complete = true;
+        if (isBlank($('#restAPIPrimitive_name').val())) {
+            complete = false;
+        }
+        else if (isBlank($('#restAPIPrimitive_requestURL').val())) {
+            complete = false;
+        }
+
+        // If form is complete, enable FINISH button
+        if (complete) {
+            $('#finishButtonRest').prop('disabled', false);
+        }
+        else {
+            $('#finishButtonRest').prop('disabled', true);
+        }
+    }
+
+    $(function() {
+        // Reset data on modal close
+        $('#restAPIPrimitiveDialog').on('hidden.bs.modal', function(e) {
+            $('#restAPIPrimitiveForm')[0].reset();
+            // Select first tab
+            $('.restTabbable a:first').tab('show')
+        });
+
+        //on start hiding finish and back buttons
+        $('#finishButtonRest').hide();
+        $('#backButtonRest').hide();
+
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var activeTabID = $(e.target).attr('href');
+            if (activeTabID.indexOf("${nameDescTabID}") >=0 ) {
+                $('#backButtonRest').hide();
+                $('#nextButtonRest').show();
+                $('#finishButtonRest').hide();
+            }
+            else if (activeTabID.indexOf("${callDetailsTabID}") >=0 ) {
+                $('#backButtonRest').show();
+                $('#nextButtonRest').show();
+                $('#finishButtonRest').hide();
+            }
+            else if (activeTabID.indexOf("${inputOutputTabID}") >=0 ) {
+                $('#backButtonRest').show();
+                $('#nextButtonRest').hide();
+                $('#finishButtonRest').show();
+                checkRestFinish();
+            }
+        });
+
+        var $tabs = $('.restTabbable li');
+        $('#backButtonRest').on('click', function() {
+            var prevTabAnchor = $tabs.filter('.active').prev('li').find('a[data-toggle="tab"]');
+            if(prevTabAnchor.length == 1) {
+                prevTabAnchor.tab('show');
+            }
+            else if(prevTabAnchor.length == 0) {
+                //if there is no previous tab, disable back button
+                $('#backButtonRest').prop("disabled",true);
+            }
+        });
+
+        $('#nextButtonRest').on('click', function() {
+            $tabs.filter('.active').next('li').find('a[data-toggle="tab"]').tab('show');
+        });
+
+    });
+
+    angular.module("portalApp").controller('restAPIPrimitiveController', function($element, $scope, $compile, $http, translate) {
+        var resetVars = function(){
+            $scope.restAPIPrimitive = {};
+            $scope.restAPIPrimitive.method="GET";
+            $scope.restAPIPrimitive.authType="NONE";
+            $scope.scriptIOs = {};
+            $scope.scriptIOs.outputs = [];
+            $scope.scriptIOs.queryParams = [];
+            $scope.scriptIOs.headers = [];
+        }
+
+        resetVars();
+
+        $scope.addO = {output:''};
+        $scope.deleteOutput = function(idx) {
+            $scope.scriptIOs.outputs.splice(idx, 1);
+        }
+        $scope.addOutput = function() {
+            $scope.scriptIOs.outputs.push(angular.copy($scope.addO));
+        }
+
+        $scope.addQP = {queryParam:''};
+        $scope.deleteQueryParam = function(idx) {
+            $scope.scriptIOs.queryParams.splice(idx, 1);
+        }
+        $scope.addQueryParam = function() {
+            $scope.scriptIOs.queryParams.push(angular.copy($scope.addQP));
+        }
+
+        $scope.addH = {header:''};
+        $scope.deleteHeader = function(idx) {
+            $scope.scriptIOs.headers.splice(idx, 1);
+        }
+        $scope.addHeader = function() {
+            $scope.scriptIOs.headers.push(angular.copy($scope.addH));
+        }
+
+        $scope.$watch('scriptIOs', function(newVal) {
+            var outputs = [], queryParams = [], headers = [];
+            angular.forEach($scope.scriptIOs.outputs, function(obj) {
+                if (obj.output !== '') outputs.push(obj.output);
+            });
+            angular.forEach($scope.scriptIOs.queryParams, function(obj) {
+                if (obj.queryParam !== '') queryParams.push(obj.queryParam);
+            });
+            angular.forEach($scope.scriptIOs.headers, function(obj) {
+                if (obj.queryParam !== '') headers.push(obj.header);
+            });
+
+            $scope.outputs = outputs.toString();
+            $scope.queryParams = queryParams.toString();
+            $scope.headers = headers.toString();
+       }, true);
+
+
+        function populateLocalVars(copyFrom, copyTo, key){
+            if(copyFrom){
+                    var arr = copyFrom.split(',');
+                    $.each( arr, function( index, value ){
+                        var temp = {};
+                        temp[key] = $.trim(value);
+                        copyTo.push(temp);
+                    });
+                }
+        }
+
+       // for edit functionality
+       $scope.populateModal = function(edit, id, type) {
+            resetVars();
+            if (edit) {
+                $scope.modalTitle=translate('restAPI.primitive.edit.title');
+
+                $http.get(routes.Primitive_get({primitiveId: id, primitiveType: type})).then(function (resp) {
+                    if (resp.status == 200) {
+                        $scope.restAPIPrimitive = resp.data;
+                        // converting outputs/headers to local format
+                        populateLocalVars($scope.restAPIPrimitive.outputs, $scope.scriptIOs.outputs, 'output');
+                        populateLocalVars($scope.restAPIPrimitive.headers, $scope.scriptIOs.headers, 'header');
+                        populateLocalVars($scope.restAPIPrimitive.queryParams, $scope.scriptIOs.queryParams, 'queryParam');
+                    }
+                });
+
+            }
+            else {
+                $scope.modalTitle=translate('restAPI.primitive.add.title');
+                $('#restAPIPrimitive_newScriptControlGroup').hide();
+
+                // Setting selected workflow directory ID
+                $scope.restAPIPrimitive.wfDirID = $('#jstree_demo').jstree(true).get_selected()[0]
+            }
+       }
+    });
+</script>

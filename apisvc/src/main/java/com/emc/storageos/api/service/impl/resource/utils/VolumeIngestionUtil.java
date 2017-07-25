@@ -101,7 +101,6 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
-import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -161,10 +160,7 @@ public class VolumeIngestionUtil {
                             dbClient, unManagedVolumeUri);
                 }
 
-                if (!isVplexBackendVolume(unManagedVolume)) {
-                    checkVPoolValidForGivenUnManagedVolumeUris(unManagedVolumeInformation, unManagedVolume,
-                            vPool.getId(), dbClient);
-                }
+                checkVPoolValidForUnManagedVolume(unManagedVolumeInformation, unManagedVolume, vPool.getId(), dbClient);
             } catch (APIException ex) {
                 _logger.error(ex.getLocalizedMessage());
                 throw IngestionException.exceptions.validationException(ex.getLocalizedMessage());
@@ -883,17 +879,19 @@ public class VolumeIngestionUtil {
      * @param vpoolUri the URI of the VirtualPool to check
      * @param dbClient a reference to the database client
      */
-    private static void checkVPoolValidForGivenUnManagedVolumeUris(
+    private static void checkVPoolValidForUnManagedVolume(
             StringSetMap preExistVolumeInformation, UnManagedVolume unManagedVolume,
             URI vpoolUri, DbClient dbClient) {
         StringSet supportedVPoolUris = unManagedVolume.getSupportedVpoolUris();
         String spoolName = "(not set)";
+        StoragePool spool = null;
         if (unManagedVolume.getStoragePoolUri() != null) {
-            StoragePool spool = dbClient.queryObject(StoragePool.class, unManagedVolume.getStoragePoolUri());
+            spool = dbClient.queryObject(StoragePool.class, unManagedVolume.getStoragePoolUri());
             if (spool != null) {
                 spoolName = spool.getLabel();
             }
         }
+
         if (null == supportedVPoolUris || supportedVPoolUris.isEmpty()) {
             if (isVplexVolume(unManagedVolume)) {
                 throw APIException.internalServerErrors.noMatchingVplexVirtualPool(
@@ -903,7 +901,46 @@ public class VolumeIngestionUtil {
             throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPoolNicer(
                     spoolName, VOLUME_TEXT, unManagedVolume.getLabel());
         }
+
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolUri);
+
+        // check storage pool association to the selected virtual pool.
+        // for non-vplex volumes, this is a simple check that the unmanaged volume's storage pool URI
+        // is contained within the virtual pool.
+        // vplex virtual volumes do not need this check at all because they don't have a storage pool.
+        // block snapshots don't have a storage pool either.
+        // vplex backend volumes, however, need to have the first simple check, then if that's not a 
+        // match AND the virtual pool is Distributed High Availability, then the HA vpool's storage
+        // pools should also be checked.  
+        // if no storage pool association can be found, throw an exception.
+        boolean volumeStoragePoolIsOkay = false;
+        if (!isVolumeStoragePoolRequired(unManagedVolume)) {
+            // vplex virtual vols and block snapshots have no storage pool, so this is okay.
+            volumeStoragePoolIsOkay = true;
+        } else if (spool != null) {
+            // check the matched or assigned pools, based on the vpool settings
+            List<StoragePool> matchedPools = VirtualPool.getValidStoragePools(vpool, dbClient, false);
+            List<URI> matchedPoolUris = URIUtil.toUris(matchedPools);
+            if (matchedPoolUris.contains(spool.getId())) {
+                volumeStoragePoolIsOkay = true;
+            } else if (isVplexBackendVolume(unManagedVolume) && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
+                // vplex backend volumes into a distributed pool should check the HA side's storage pools as well
+                List<URI> haMatchedPoolUris = null;
+                VirtualPool haVpool = VirtualPool.getHAVPool(vpool, dbClient);
+                if (haVpool != null) {
+                    List<StoragePool> haMatchedPools = VirtualPool.getValidStoragePools(haVpool, dbClient, false);
+                    haMatchedPoolUris = URIUtil.toUris(haMatchedPools);
+                }
+                if (haMatchedPoolUris != null && haMatchedPoolUris.contains(spool.getId())) {
+                    volumeStoragePoolIsOkay = true;
+                }
+            }
+        }
+        if (!volumeStoragePoolIsOkay) {
+            throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPoolNicer(
+                    spoolName, VOLUME_TEXT, unManagedVolume.getLabel());
+        }
+
         if (!supportedVPoolUris.contains(vpoolUri.toString())) {
             String vpoolName = vpool != null ? vpool.getLabel() : vpoolUri.toString();
             List<VirtualPool> supportedVpools = dbClient.queryObject(
@@ -1102,6 +1139,21 @@ public class VolumeIngestionUtil {
         String status = volume.getVolumeCharacterstics()
                 .get(SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString());
         return TRUE.equals(status);
+    }
+
+    /**
+     * Returns true if the UnManagedVolume requires a storage pool for ingestion.
+     * BlockSnapshots and VPLEX virtual volume do not require a storage pool.
+     *
+     * @param volume the UnManagedVolume in question
+     * @return true if the volume requires a storage pool for ingestion
+     */
+    public static boolean isVolumeStoragePoolRequired(UnManagedVolume volume) {
+        if (null == volume || isVplexVolume(volume) || isSnapshot(volume)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -1529,7 +1581,7 @@ public class VolumeIngestionUtil {
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
                     eligibleMask.getMaskName(), unManagedVolume.getLabel());
-            unManagedVolume.getUnmanagedExportMasks().remove(eligibleMask.getId().toString());
+            unManagedVolume.removeUnManagedExportMask(eligibleMask);
             eligibleMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
         }
 
@@ -1632,22 +1684,23 @@ public class VolumeIngestionUtil {
     public static <T extends BlockObject> boolean validateStoragePortsInVarray(DbClient dbClient, T volume, URI varray,
             Set<String> portsInUnManagedMask, UnManagedExportMask mask, List<String> errorMessages) {
         _logger.info("validating storage ports in varray " + varray);
-        List<URI> storagePortUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+        List<URI> allVarrayStoragePortUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVirtualArrayStoragePortsConstraint(varray.toString()));
-        storagePortUris = filterOutUnregisteredPorts(dbClient, storagePortUris);
-        Set<String> storagePortUriStr = new HashSet<String>((Collections2.transform(storagePortUris,
+        allVarrayStoragePortUris = filterOutUnregisteredPorts(dbClient, allVarrayStoragePortUris);
+        Set<String> allVarrayStoragePortUriStrings = new HashSet<String>((Collections2.transform(allVarrayStoragePortUris,
                 CommonTransformerFunctions.FCTN_URI_TO_STRING)));
-        SetView<String> unManagedExportMaskPortsNotInSourceVarray = Sets.difference(portsInUnManagedMask, storagePortUriStr);
+        SetView<String> unManagedExportMaskPortsNotInSourceVarray = Sets.difference(portsInUnManagedMask, allVarrayStoragePortUriStrings);
         // Temporary relaxation of storage port restriction for XIO:
         // With XIO we do not have the ability to remove specific (and possibly unavailable) storage ports
         // from the LUN maps. So a better check specifically for XIO is to ensure that we at least have one
         // storage port in the varray.
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
         boolean portsValid = true;
+        boolean atLeastOnePortMatched = unManagedExportMaskPortsNotInSourceVarray.size() < portsInUnManagedMask.size();
         if (storageSystem != null) {
             if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString()) ||
                     storageSystem.getSystemType().equalsIgnoreCase(SystemType.unity.toString())) {
-                portsValid = unManagedExportMaskPortsNotInSourceVarray.size() < portsInUnManagedMask.size();
+                portsValid = atLeastOnePortMatched;
             } else {
                 portsValid = unManagedExportMaskPortsNotInSourceVarray.isEmpty();
             }
@@ -1658,39 +1711,55 @@ public class VolumeIngestionUtil {
                     new Object[] {mask.getMaskName(), varray, Joiner.on(",").join(unManagedExportMaskPortsNotInSourceVarray)});
             if (volume instanceof Volume) {
                 Volume vol = (Volume) volume;
-                URI haVarray = checkVplexHighAvailabilityArray(vol, dbClient);
-                if (null != haVarray) {
-                    _logger.info("Checking high availability Virtual Array {} for Storage Ports as well.",
-                            haVarray);
-                    storagePortUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                            .getVirtualArrayStoragePortsConstraint(haVarray.toString()));
-                    storagePortUris = filterOutUnregisteredPorts(dbClient, storagePortUris);
-                    storagePortUriStr = new HashSet<String>((Collections2.transform(storagePortUris,
-                            CommonTransformerFunctions.FCTN_URI_TO_STRING)));
-                    SetView<String> unManagedExportMaskPortsNotInHaVarray = 
-                            Sets.difference(unManagedExportMaskPortsNotInSourceVarray, storagePortUriStr);
-                    if (!unManagedExportMaskPortsNotInHaVarray.isEmpty()) {
-                        _logger.warn("The following Storage Ports in UnManagedExportMask {} are not available in high "
-                                + "availability varray {} either, so matching fails for this mask: {}",
-                                new Object[] { mask.getMaskName(), getVarrayName(haVarray, dbClient), 
-                                        Joiner.on(",").join(unManagedExportMaskPortsNotInHaVarray) });
-                        StringBuffer errorMessage = new StringBuffer("Unable to find the following Storage Port(s) of unmanaged export mask ");
-                        errorMessage.append(mask.forDisplay());
-                        errorMessage.append(" in source Virtual Array ");
-                        errorMessage.append(getVarrayName(varray, dbClient));
-                        errorMessage.append(" or in high availability Virtual Array ");
-                        errorMessage.append(getVarrayName(haVarray, dbClient)).append(": ");
-                        errorMessage.append(Joiner.on(", ").join(
-                                getStoragePortNames((Collections2.transform(unManagedExportMaskPortsNotInHaVarray,
-                                CommonTransformerFunctions.FCTN_STRING_TO_URI)), dbClient)));
-                        errorMessage.append(". All ports must be present in one Virtual Array or the other for exported distributed VPLEX volume ingestion.");
-                        errorMessages.add(errorMessage.toString());
-                        return false;
-                    } else {
-                        _logger.info("Storage Ports {} in unmanaged mask {} found in high availability varray {}, so this mask is okay", 
+                if (isVplexVolume(vol, dbClient)) {
+                    URI haVarray = checkVplexHighAvailabilityArray(vol, dbClient);
+                    if (null != haVarray) {
+                        _logger.info("Checking high availability Virtual Array {} for Storage Ports as well.",
+                                haVarray);
+                        allVarrayStoragePortUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                .getVirtualArrayStoragePortsConstraint(haVarray.toString()));
+                        allVarrayStoragePortUris = filterOutUnregisteredPorts(dbClient, allVarrayStoragePortUris);
+                        allVarrayStoragePortUriStrings = new HashSet<String>((Collections2.transform(allVarrayStoragePortUris,
+                                CommonTransformerFunctions.FCTN_URI_TO_STRING)));
+                        SetView<String> unManagedExportMaskPortsNotInHaVarray = 
+                                Sets.difference(unManagedExportMaskPortsNotInSourceVarray, allVarrayStoragePortUriStrings);
+                        if (!unManagedExportMaskPortsNotInHaVarray.isEmpty()) {
+                            int unfoundPortCount = unManagedExportMaskPortsNotInSourceVarray.size() - unManagedExportMaskPortsNotInHaVarray.size();
+                            if (unfoundPortCount < portsInUnManagedMask.size()) {
+                                _logger.warn("Storage Ports {} in unmanaged mask {} were not found in VPLEX source or high availability varray, "
+                                        + "but at least one port was found in either, so this mask is okay for further processing...", 
+                                        new Object[] { Joiner.on(",").join(getStoragePortNames(Collections2.transform(unManagedExportMaskPortsNotInHaVarray,
+                                                CommonTransformerFunctions.FCTN_STRING_TO_URI), dbClient)), mask.forDisplay() });
+                                return true;
+                            } else {
+                                _logger.warn("The following Storage Ports in UnManagedExportMask {} are not available in high "
+                                        + "availability varray {} either, so matching fails for this mask: {}",
+                                        new Object[] { mask.getMaskName(), getVarrayName(haVarray, dbClient), 
+                                                Joiner.on(",").join(unManagedExportMaskPortsNotInHaVarray) });
+                                StringBuffer errorMessage = new StringBuffer("Unable to find the following Storage Port(s) of unmanaged export mask ");
+                                errorMessage.append(mask.forDisplay());
+                                errorMessage.append(" in source Virtual Array ");
+                                errorMessage.append(getVarrayName(varray, dbClient));
+                                errorMessage.append(" or in high availability Virtual Array ");
+                                errorMessage.append(getVarrayName(haVarray, dbClient)).append(": ");
+                                errorMessage.append(Joiner.on(", ").join(
+                                        getStoragePortNames((Collections2.transform(unManagedExportMaskPortsNotInHaVarray,
+                                        CommonTransformerFunctions.FCTN_STRING_TO_URI)), dbClient)));
+                                errorMessage.append(". All ports must be present in one Virtual Array or the other for exported distributed VPLEX volume ingestion.");
+                                errorMessages.add(errorMessage.toString());
+                                return false;
+                            }
+                        } else {
+                            _logger.info("Storage Ports {} in unmanaged mask {} found in high availability varray {}, so this mask is okay", 
+                                    new Object[] { Joiner.on(",").join(getStoragePortNames(Collections2.transform(unManagedExportMaskPortsNotInSourceVarray,
+                                            CommonTransformerFunctions.FCTN_STRING_TO_URI), dbClient)),
+                                    mask.forDisplay(), getVarrayName(haVarray, dbClient) });
+                            return true;
+                        }
+                    } else if (atLeastOnePortMatched) {
+                        _logger.info("Storage Ports {} in unmanaged mask {} not found in VPLEX local varray, but at least one port was found, so this mask is okay", 
                                 new Object[] { Joiner.on(",").join(getStoragePortNames(Collections2.transform(unManagedExportMaskPortsNotInSourceVarray,
-                                        CommonTransformerFunctions.FCTN_STRING_TO_URI), dbClient)),
-                                mask.forDisplay(), getVarrayName(haVarray, dbClient) });
+                                        CommonTransformerFunctions.FCTN_STRING_TO_URI), dbClient)), mask.forDisplay() });
                         return true;
                     }
                 }
@@ -2680,6 +2749,9 @@ public class VolumeIngestionUtil {
         Map<String, UnManagedExportMask> cache = new HashMap<String, UnManagedExportMask>();
         Host host = dbClient.queryObject(Host.class, hostUri);
         Set<String> clusterInis = new HashSet<String>();
+        Map<URI, UnManagedVolume> localUmvCache = new HashMap<URI, UnManagedVolume>();
+        Map<URI, UnManagedExportMask> localUemCache = new HashMap<URI, UnManagedExportMask>();
+
         /**
          * If host is part of a cluster, then unmanaged volumes which are exclusive to this host will be selected
          * Get the remaining Host initiators of this cluster, and if there is at least a match between the cluster inis and
@@ -2703,8 +2775,15 @@ public class VolumeIngestionUtil {
                     AlternateIdConstraint.Factory.getUnManagedVolumeInitiatorNetworkIdConstraint(initiator.getInitiatorPort()), results);
             if (results.iterator() != null) {
                 for (URI uri : results) {
-                    _logger.debug("      found UnManagedVolume " + uri);
-                    unManagedVolumeUris.add(uri);
+                    UnManagedVolume umv = getUnManagedVolumeFromCache(uri, localUmvCache, dbClient);
+                    if (umv != null) {
+                        _logger.info("      checking UnManagedVolume " + umv.forDisplay());
+                        Set<String> initPortsInAllMasks = getAllInitiatorNetworkIdsInUnmanagedExportMasks(umv, localUemCache, dbClient);
+                        if (initPortsInAllMasks.contains(initiator.getInitiatorPort())) {
+                            _logger.info("         UnManagedVolume's masks contain host port {}, so it's a possible match.", initiator.getInitiatorPort());
+                            unManagedVolumeUris.add(uri);
+                        }
+                    }
                 }
             }
         }
@@ -2759,6 +2838,56 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Collects and returns a Set of all the Initiator Network ID Strings 
+     * for all the given UnManagedExportMasks.  It will cache the UnManagedExportMasks
+     * if a cache is supplied in the arguments.
+     *
+     * @param unManagedVolume the UnManagedVolume
+     * @param cache a Map of UnManagedExportMask URIs to UnManagedExportMask objects to check
+     * @param dbClient a reference to the database client
+     * @return a List of all the Initiator Network IDs for the given UnManagedExportMask
+     */
+    private static Set<String> getAllInitiatorNetworkIdsInUnmanagedExportMasks(UnManagedVolume unManagedVolume,
+            Map<URI, UnManagedExportMask> cache, DbClient dbClient) {
+        Set<String> inis = new HashSet<String>();
+        for (String eMaskUri : unManagedVolume.getUnmanagedExportMasks()) {
+            UnManagedExportMask unManagedExportMask = cache != null ? cache.get(eMaskUri) : null;
+            if (null == unManagedExportMask) {
+                unManagedExportMask = dbClient.queryObject(UnManagedExportMask.class, URI.create(eMaskUri));
+            }
+            if (null != unManagedExportMask) {
+                if (cache != null) {
+                    cache.put(unManagedExportMask.getId(), unManagedExportMask);
+                }
+                inis.addAll(unManagedExportMask.getKnownInitiatorNetworkIds());
+            }
+        }
+        return inis;
+    }
+
+    /**
+     * Gets an UnManagedVolume already loaded from the database if it can be found in the
+     * supplied cache, otherwise loads it, or returns null if not found in the database.
+     * 
+     * @param unManagedVolumeUri the UnManagedVolume URI to look for
+     * @param cache the UnManagedVolume cache (mapping of UnManagedVolume URI to object) to check
+     * @param dbClient a reference to the database client
+     * @return the UnManagedVolume or null if not found in the database.
+     */
+    public static UnManagedVolume getUnManagedVolumeFromCache(URI unManagedVolumeUri,
+            Map<URI, UnManagedVolume> cache, DbClient dbClient) {
+        UnManagedVolume unManagedVolume = cache != null ? cache.get(unManagedVolumeUri) : null;
+        if (null == unManagedVolume) {
+            unManagedVolume = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeUri);
+            if (null != unManagedVolume && null != cache) {
+                cache.put(unManagedVolumeUri, unManagedVolume);
+            }
+        }
+
+        return unManagedVolume;
+    }
+
+    /**
      * Returns a List of UnManagedVolumes for the given Cluster URI.
      *
      * @param clusterUri the Cluster URI to check
@@ -2770,6 +2899,8 @@ public class VolumeIngestionUtil {
         _logger.info("finding unmanaged volumes for cluster " + clusterUri);
         Set<URI> consistentVolumeUris = new HashSet<URI>();
         List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterUri, Host.class, "cluster");
+        Map<URI, UnManagedVolume> localUmvCache = new HashMap<URI, UnManagedVolume>();
+        Map<URI, UnManagedExportMask> localUemCache = new HashMap<URI, UnManagedExportMask>();
 
         int hostIndex = 0;
         for (URI hostUri : hostUris) {
@@ -2784,8 +2915,15 @@ public class VolumeIngestionUtil {
                         results);
                 if (results.iterator() != null) {
                     for (URI uri : results) {
-                        _logger.info("      found UnManagedVolume " + uri);
-                        unManagedVolumeUris.add(uri);
+                        UnManagedVolume umv = getUnManagedVolumeFromCache(uri, localUmvCache, dbClient);
+                        if (umv != null) {
+                            _logger.info("      checking UnManagedVolume " + umv.forDisplay());
+                            Set<String> initPortsInAllMasks = getAllInitiatorNetworkIdsInUnmanagedExportMasks(umv, localUemCache, dbClient);
+                            if (initPortsInAllMasks.contains(initiator.getInitiatorPort())) {
+                                _logger.info("         UnManagedVolume's masks contain host port {}, so it's a possible match.", initiator.getInitiatorPort());
+                                unManagedVolumeUris.add(uri);
+                            }
+                        }
                     }
                 }
             }
@@ -3225,7 +3363,7 @@ public class VolumeIngestionUtil {
                         if (foundExportMask) {
                             _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
                                     unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
-                            unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
+                            unManagedVolume.removeUnManagedExportMask(unManagedExportMask);
                             unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
                             updatedObjects.add(unManagedExportMask);
                         }

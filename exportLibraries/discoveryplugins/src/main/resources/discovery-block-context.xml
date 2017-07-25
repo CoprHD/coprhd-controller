@@ -134,6 +134,7 @@
 				<ref bean="runNetworkConnectivity"/>
                 <!-- Pool Matcher -->
 				<ref bean="implicitPoolMatcher"/>
+				<ref bean="getPortGroup"/>
 				<!-- run RP Connectivity -->
 				<ref bean="runRPConnectivity"/>
 				
@@ -2173,6 +2174,40 @@
     <bean id="metaVolumeTypeProcessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.MetaVolumeTypeProcessor" />
 
-
+	<!-- get Port Group -->	
+	 <bean id="getPortGroup" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+    	<property name="arguments">
+			<list>
+				<ref bean="reference-portGroup" />
+				<ref bean="bool-true" />
+				<ref bean="bool-true" />
+				<ref bean="bool" />
+				<ref bean="port-group-prop" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="" />
+		<property name="method" value="enumerateInstances" />
+		<property name="processor" ref="portGroupProcessor" />
+		<property name="message" value="Invoking enumerateInstances to get port groups"/>
+    </bean>
+    
+    <bean id="reference-portGroup" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="portGroup" />
+	</bean>
+	
+	<bean id="port-group-prop" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringArrayValue" />
+		<property name="value" value="ElementName" />
+		<property name="name" value="portGroupProp" />
+	</bean>
+	
+	<bean id="portGroupProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.VmaxPortGroupProcessor" />
+	
+    
 
 </beans>

@@ -2,7 +2,7 @@
  * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
-package com.emc.storageos.api.service.impl.resource;
+package com.emc.storageos.api.service.impl.resource.migration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,15 +22,6 @@ public abstract class AbstractMigrationServiceApiImpl implements MigrationServic
 
     private CoordinatorClient coordinator;
 
-    // Coordinator getter/setter
-    public void setCoordinator(CoordinatorClient locator) {
-        this.coordinator = locator;
-    }
-
-    public CoordinatorClient getCoordinator() {
-        return coordinator;
-    }
-
     // Db client getter/setter
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -40,8 +31,18 @@ public abstract class AbstractMigrationServiceApiImpl implements MigrationServic
         return dbClient;
     }
 
+    // Coordinator getter/setter
+    public void setCoordinator(CoordinatorClient locator) {
+        this.coordinator = locator;
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
+    }
+
     public AbstractMigrationServiceApiImpl() {
         super();
+        // TODO
     }
 
     /**

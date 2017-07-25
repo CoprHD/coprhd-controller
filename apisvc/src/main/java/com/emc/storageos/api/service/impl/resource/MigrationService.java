@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.BlockMigrationMapper;
 import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
+import com.emc.storageos.api.service.impl.resource.migration.MigrationServiceApi;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;

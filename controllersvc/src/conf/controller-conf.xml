@@ -893,6 +893,26 @@
         </property>
     </bean>
 
+    <bean id="vmaxMigrationController" class="com.emc.storageos.migrationcontroller.VMAXMigrationController">
+        <property name="dbClient" ref="dbclient" />
+        <property name="workflowService" ref="workflowService" />
+        <property name="devices">
+            <map>
+                <entry key="vmax" value-ref="vmaxSmisDevice"/>
+            </map>
+        </property>
+    </bean>
+
+    <bean id="migrationController" class="com.emc.storageos.migrationcontroller.MigrationControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="vmaxMigrationController"/>
+            </set>
+        </property>
+    </bean>
+
     <bean id="replicaDeviceController" class="com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController">
         <property name="dbClient" ref="dbclient" />
         <property name="blockDeviceController" ref="blockDeviceController" />
@@ -1076,6 +1096,7 @@
                 <ref bean="fileOrchestrationDeviceController"/>
                 <ref bean="fileReplicationDeviceController" />
                 <ref bean="srdfDeviceController" />
+                <ref bean="vmaxMigrationController" />
                 <ref bean="replicaDeviceController" />
                 <ref bean="snapshotWorkflowEntryPoints"/>
                 <ref bean="vplexConsistencyGroupManager"/>
@@ -1380,7 +1401,15 @@
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>
-    
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="MigrationController"/>
+        <property name="service" ref="migrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.migrationcontroller.MigrationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
     <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
         <property name="serviceName" value="FileReplicationController"/>
         <property name="service" ref="fileReplicationController"/>

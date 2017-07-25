@@ -315,5 +315,4 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     public void setPlacementPolicy(String placementPolicy) {
         this.placementPolicy = placementPolicy;
     }
-
 }

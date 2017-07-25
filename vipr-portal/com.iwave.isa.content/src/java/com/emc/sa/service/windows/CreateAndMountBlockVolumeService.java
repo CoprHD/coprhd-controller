@@ -28,7 +28,7 @@ public class CreateAndMountBlockVolumeService extends WindowsService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        createBlockVolumeHelper.precheck();
+        createBlockVolumeHelper.precheck(getClient());
 
         long capacityInBytes = createBlockVolumeHelper.getSizeInGb().longValue() * 1024 * 1024 * 1024;
         mountBlockVolumeHelpers = MountBlockVolumeHelper.createHelpers(windowsSystems, capacityInBytes);

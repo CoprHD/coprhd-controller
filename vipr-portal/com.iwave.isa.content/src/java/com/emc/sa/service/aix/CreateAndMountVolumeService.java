@@ -27,7 +27,7 @@ public class CreateAndMountVolumeService extends AixService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        createVolumeHelper.precheck();
+        createVolumeHelper.precheck(getClient());
         mountBlockVolumeHelper.precheck();
     }
 

@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -99,7 +100,7 @@ public class ExportBlockVolumeHelper {
             volumeIds = Collections.singletonList(volumeId);
         }
 
-        precheckPortGroupParameter(ResourceUtils.uri(volumeIds.get(0)), hostId, projectId, virtualArrayId, portGroup);
+        precheckPortGroupParameter(ResourceUtils.uri(volumeIds.get(0)), hostId, projectId, virtualArrayId, portGroup, null);
 
         if (BlockStorageUtils.isHost(hostId)) {
             host = BlockStorageUtils.getHost(hostId);
@@ -332,7 +333,7 @@ public class ExportBlockVolumeHelper {
         }
     }
     
-    public static void precheckPortGroupParameter(URI resourceId, URI hostOrClusterId, URI projectId, URI vArrayId, URI portGroup) {
+    public static void precheckPortGroupParameter(URI resourceId, URI hostOrClusterId, URI projectId, URI vArrayId, URI portGroup, ViPRCoreClient client) {
         boolean exportExist = false;
         if (BlockStorageUtils.isHost(hostOrClusterId)) {
             List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingHost(hostOrClusterId, projectId, vArrayId);
@@ -346,7 +347,7 @@ public class ExportBlockVolumeHelper {
             }
         }
 
-        if (!exportExist && BlockStorageUtils.isVMAXUsePortGroupEnabled(resourceId) && portGroup == null) {
+        if (!exportExist && BlockStorageUtils.isVMAXUsePortGroupEnabled(resourceId, vArrayId, client) && portGroup == null) {
             ExecutionUtils.fail("failTask.exportPortGroupParameters.precheck", new Object[] {}, new Object[] {});
         }
     }

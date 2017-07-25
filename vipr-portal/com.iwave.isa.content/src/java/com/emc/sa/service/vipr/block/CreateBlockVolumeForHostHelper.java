@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
 
 public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
@@ -62,10 +63,10 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
         return computeResource;
     }
 
-    public void precheck() {
+    public void precheck(ViPRCoreClient client) {
 
         ExportBlockVolumeHelper.precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
-        ExportBlockVolumeHelper.precheckPortGroupParameter(virtualPool, hostId, project, virtualArray, portGroup);
+        ExportBlockVolumeHelper.precheckPortGroupParameter(virtualPool, hostId, project, virtualArray, portGroup, client);
 
         if (BlockStorageUtils.isHost(hostId)) {
             host = BlockStorageUtils.getHost(hostId);
@@ -75,7 +76,6 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
         }
 
         BlockStorageUtils.checkEvents(host != null ? host : cluster);
-
     }
 
     public List<BlockObjectRestRep> exportVolumes(List<URI> volumeIds) {
@@ -160,7 +160,6 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
         List<BlockObjectRestRep> volumes = BlockStorageUtils.getBlockResources(volumeIds);
         return volumes;
     }
-
 
     public List<BlockObjectRestRep> createAndExportVolumes() {
         List<URI> volumeIds = createVolumes(getComputeResource());

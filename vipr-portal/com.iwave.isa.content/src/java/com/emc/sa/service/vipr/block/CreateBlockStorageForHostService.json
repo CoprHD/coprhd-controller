@@ -103,6 +103,7 @@
         },
         portGroup: {
             type:"assetType.vipr.exportVolumeForHostPortGroups",
+            hideIfEmpty: true,
             required: false
         }
       }

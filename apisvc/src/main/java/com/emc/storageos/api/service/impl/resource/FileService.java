@@ -4821,6 +4821,7 @@ public class FileService extends TaskResourceService {
         // Querying the storageSystem if its IP Address
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByIpAddressConstraint(address.getHostAddress()),
                 queryResult);
+        iter = queryResult.iterator();
         while (iter.hasNext()) {
             URI storageURI = iter.next();
             targetSys = _dbClient.queryObject(StorageSystem.class, storageURI);

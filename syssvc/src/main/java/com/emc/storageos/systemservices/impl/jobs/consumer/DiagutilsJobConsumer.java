@@ -69,6 +69,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             String dataFiledir = _DIAGUTIL_COLLECT_DIR + subOutputDir;
             //pre-check
             jobStatus.setStatus(DiagutilStatus.PRECHECK_IN_PROGRESS);
+            jobStatus.setDescription(DiagutilStatusDesc.PRECHECK_IN_PROGRESS);
             if (!updateJobInfoIfNotCancel(jobStatus)) { //job cancelled
                 return;
             }
@@ -80,6 +81,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             if (!result.exitedNormally() || result.getExitValue() != 0) {
                 log.error("Executing precheck error {},stdOutput: {}, stdError:{}",result.getExitValue(),result.getStdOutput(),result.getStdError());
                 jobStatus.setStatus(DiagutilStatus.PRECHECK_ERROR);
+                jobStatus.setDescription(DiagutilStatusDesc.DISK_FULL);
                 updateJobInfoIfNotCancel(jobStatus);
                 return;
             }
@@ -136,6 +138,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     FileUtils.copyInputStreamToFile(response.getEntityInputStream(), file);
                 } catch (Exception e) {
                     jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
+                    jobStatus.setDescription(DiagutilStatusDesc.COLLECTING_LOGS_FAILURE);
                     log.info("Collecting logs error {},quit the job", e);
                     updateJobInfoIfNotCancel(jobStatus);
                     return;
@@ -165,6 +168,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
 
             jobStatus.setLocation(dataFiledir);
             jobStatus.setStatus(DiagutilStatus.COLLECTING_SUCCESS);
+            jobStatus.setDescription(DiagutilStatusDesc.COLLECT_COMPLETE);
             if (!updateJobInfoIfNotCancel(jobStatus)) {
                 //cancelled
                 return;
@@ -177,7 +181,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             }
             BackupClient uploadClient = null;
 
-            if (!UploadParam.UploadType.download.equals(uploadParam.getUploadType())) {
+            if (UploadParam.UploadType.download != uploadParam.getUploadType()) {
                 String uri = uploadParam.getUploadFtpParam().getFtp();
                 String user = uploadParam.getUploadFtpParam().getUser();
                 String passwd = uploadParam.getUploadFtpParam().getPassword();
@@ -198,11 +202,13 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 } catch (Exception e ) {
                     log.error("Upload got exception {}", e);
                     jobStatus.setStatus(DiagutilStatus.UPLOADING_ERROR);
+                    jobStatus.setDescription(DiagutilStatusDesc.UPLOAD_FAILURE);
                     updateJobInfoIfNotCancel(jobStatus);
                     return ;
                 }
 
                 jobStatus.setStatus(DiagutilStatus.COMPLETE);
+                jobStatus.setDescription(DiagutilStatusDesc.UPLOAD_COMPLETE);
                 if (!updateJobInfoIfNotCancel(jobStatus)) {
                     //cancelled
                     return;

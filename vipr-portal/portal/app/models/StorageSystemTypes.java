@@ -189,6 +189,11 @@ public class StorageSystemTypes {
                     continue;
                 }
 
+                // ignore VMAX_UNISPHERE which is internal type only
+                if (StringUtils.equals(VMAX_UNISPHERE, typeName)) {
+                    continue;
+                }
+
                 String provider = arrayProviderMap.get(typeName);
                 if (provider != null) {
                     if (StringUtils.equals(VMAX, typeName)) {

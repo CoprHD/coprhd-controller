@@ -85,7 +85,7 @@ public class StorageProviderTypes {
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
             if (storagetypeRest.getIsSmiProvider()) {
-                if (!StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName()) && !StringUtils.equals(UNISPHERE, storagetypeRest.getStorageTypeName())) {
+                if (!StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName())) {
                     allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
                             storagetypeRest.getStorageTypeDispName()));
                 }
@@ -125,7 +125,7 @@ public class StorageProviderTypes {
         List<StringOption> allproviders = new ArrayList<StringOption>();
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
-            if (!storagetypeRest.getIsDefaultSsl()) {
+            if (!storagetypeRest.getIsDefaultSsl() && !StringUtils.equals(StorageSystemTypes.VMAX_UNISPHERE, storagetypeRest.getStorageTypeName())) {
                 allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
                         storagetypeRest.getStorageTypeDispName()));
             }

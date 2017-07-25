@@ -23,9 +23,14 @@ import com.emc.vipr.sanity.setup.SystemSetup
 import com.emc.vipr.sanity.setup.VCenterSetup
 import com.emc.vipr.sanity.setup.VMAXSetup
 import com.emc.vipr.sanity.setup.VirtualArraySetup
-
+import com.emc.vipr.sanity.setup.RemoteReplicationSetup
 
 class Sanity {
+
+    static enum LogLevel {ERROR,WARN,INFO,VERBOSE,DEBUG}
+    static currentLogLevel = LogLevel.VERBOSE  // adjust to change amount of output
+    static removeTopologyWhenDone = true
+
     static final Integer API_TASK_TIMEOUT = 120000
 
     static ExtendedProperties properties
@@ -43,16 +48,18 @@ class Sanity {
     static Class blockTests = com.emc.vipr.sanity.tests.CatalogBlockServicesSanity.class
     static Class protectionTests = com.emc.vipr.sanity.tests.CatalogBlockProtectionServicesSanity.class
     static Class vmwareTests = com.emc.vipr.sanity.tests.CatalogVmwareBlockServicesSanity.class
+    static Class remoteReplicationTests = com.emc.vipr.sanity.tests.CatalogRemoteReplicationServicesSanity.class
 
     static allTests = [
         catalogTests,
         blockTests,
         protectionTests,
         vmwareTests
+        //do not include remoteReplicationTests, which are run separately
     ] as Class[]
 
     public static void main(String[] args) {
-        setup()
+        println "----------------------  Starting tests --------------------"
         JUnitCore junit = new JUnitCore()
         junit.addListener(new RunListener() {
                     @Override
@@ -73,21 +80,39 @@ class Sanity {
         Result result = null
         switch (catalogTest) {
             case "all":
+                setup()
                 result = junit.run(allTests)
                 break
             case "catalog":
+                setup()
                 result = junit.run(catalogTests)
                 break
             case "block":
+                setup()
                 result = junit.run(blockTests)
                 break
             case "protection":
+                setup()
                 result = junit.run(protectionTests)
                 break
             case "vmware":
+                setup()
                 result = junit.run(vmwareTests)
                 break
-            default:
+           case "remotereplication":
+                currentLogLevel = LogLevel.INFO  // default is VERBOSE
+                removeTopologyWhenDone = false
+
+                // check topo loaded from sbsdk functional sanity
+                initClients()
+                RemoteReplicationSetup.loadTopologyViprSanity()
+
+                // run tests for sbsdk catalog sanity
+                initClients("ldapvipruser1@viprsanity.com","secret")
+                RemoteReplicationSetup.loadTopology()
+                result = junit.run(remoteReplicationTests)
+                break
+           default:
                 println "Not running any tests. Parameter = " + catalogTest
                 break
         }
@@ -110,6 +135,10 @@ class Sanity {
     }
 
     static void initClients() {
+        initClients(System.getenv("SYSADMIN"), System.getenv("SYSADMIN_PASSWORD"))
+    }
+
+    static void initClients(String username, String password) {
         clientConfig = new ClientConfig(
                 host: "localhost",
                 mediaType: "application/xml",
@@ -117,7 +146,7 @@ class Sanity {
                 ignoreCertificates: true
                 )
 
-        login(System.getenv("SYSADMIN"), System.getenv("SYSADMIN_PASSWORD"))
+        login(username,password)
     }
 
     static void login(String username, String password) {
@@ -127,5 +156,34 @@ class Sanity {
         catalog = new ViPRCatalogClient2(clientConfig).withAuthToken(authToken)
         portal = new ViPRPortalClient(clientConfig).withAuthToken(authToken)
         sys = new ViPRSystemClient(clientConfig).withAuthToken(authToken)
+    }
+
+    /*
+     * logging methods
+     */
+    static void printError(Object msg) {
+        printMsg(msg,LogLevel.ERROR)
+    }
+
+    static void printWarn(Object msg) {
+        printMsg(msg,LogLevel.WARN)
+    }
+
+    static void printInfo(Object msg) {
+        printMsg(msg,LogLevel.INFO)
+    }
+
+    static void printVerbose(Object msg) {
+        printMsg(msg,LogLevel.VERBOSE)
+    }
+
+   static void printDebug(Object msg) {
+        printMsg(msg,LogLevel.DEBUG)
+    }
+
+    static void printMsg(Object msg, LogLevel level) {
+        if ( level <= currentLogLevel) {
+            println msg.toString();
+        }
     }
 }

@@ -42,7 +42,6 @@ import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexConsistencyGroupInfo;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController.VPlexTaskCompleter;
-import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -268,7 +267,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             log.info(String.format("Executing workflow step deleteCG. Storage System: %s, CG Name: %s, Cluster Name: %s",
                     vplexSystemURI, cgName, clusterName));
 
-            StorageSystem vplexSystem = VPlexControllerUtils.getDataObject(StorageSystem.class, vplexSystemURI, dbClient);
+            vplexSystem = VPlexControllerUtils.getDataObject(StorageSystem.class, vplexSystemURI, dbClient);
             VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
             log.info("Got VPlex API client for VPlex system {}", vplexSystemURI);
 

@@ -75,7 +75,7 @@ import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSy
 import com.google.common.collect.Sets;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
-        implements FileStorageDevice {
+implements FileStorageDevice {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityFileStorageDevice.class);
 
@@ -92,7 +92,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doCreateFS(StorageSystem storage,
             FileDeviceInputOutput fileInOut) throws ControllerException {
-        _logger.info("creating file system: ", fileInOut.getFsName());
+        _logger.info("creating file system: {}", fileInOut.getFsName());
         Long fsSize = fileInOut.getFsCapacity();
         if (fsSize < 1) {
             // Invalid size throw an error
@@ -227,7 +227,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
 
         _logger.info("exporting the file system: {}", args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {

@@ -36,7 +36,6 @@ dependencies {
             project(":vmax"),
             project(":vnx"),
             project(":vnxe"),
-            project(":vmax"),
 
             project(":netapp"),
             project(":netappc"),

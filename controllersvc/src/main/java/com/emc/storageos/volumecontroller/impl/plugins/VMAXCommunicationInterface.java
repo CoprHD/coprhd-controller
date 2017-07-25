@@ -61,7 +61,7 @@ public class VMAXCommunicationInterface extends ExtendedCommunicationInterfaceIm
      */
     @Override
     public void scan(AccessProfile accessProfile) throws BaseCollectionException {
-        logger.info("Starting scan of Unity StorageProvider. IP={}", accessProfile.getIpAddress());
+        logger.info("Starting scan of Unisphere StorageProvider. IP={}", accessProfile.getIpAddress());
         StorageProvider provider = null;
         String detailedStatusMessage = "Unknown Status";
         StorageProvider.ConnectionStatus cxnStatus = StorageProvider.ConnectionStatus.CONNECTED;
@@ -98,7 +98,7 @@ public class VMAXCommunicationInterface extends ExtendedCommunicationInterfaceIm
                 apiClient.close();
             }
 
-            logger.info("Completed scan with Unity REST API. IP={}", accessProfile.getIpAddress());
+            logger.info("Completed scan with Unisphere REST API. IP={}", accessProfile.getIpAddress());
             _locker.releaseLock(accessProfile.getIpAddress());
         }
     }

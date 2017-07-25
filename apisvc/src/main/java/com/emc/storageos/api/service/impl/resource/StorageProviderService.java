@@ -398,10 +398,9 @@ public class StorageProviderService extends TaskResourceService {
 
         // clear restProviderURI
         if (StorageProvider.InterfaceType.unisphere.name().equalsIgnoreCase(provider.getInterfaceType())) {
-            List<URI> storageSystemURIList = _dbClient.queryByType(StorageSystem.class, true);
-            List<StorageSystem> storageSystemsList = _dbClient.queryObject(StorageSystem.class, storageSystemURIList);
-            Iterator<StorageSystem> systemItr = storageSystemsList.iterator();
             List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
+            List<URI> storageSystemURIList = _dbClient.queryByType(StorageSystem.class, true);
+            Iterator<StorageSystem> systemItr = _dbClient.queryIterativeObjects(StorageSystem.class, storageSystemURIList);
             while (systemItr.hasNext()) {
                 StorageSystem storageSystem = systemItr.next();
                 if (DiscoveredDataObject.Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType())) {

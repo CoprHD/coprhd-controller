@@ -11,6 +11,7 @@ import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -49,6 +50,8 @@ public class VMwareBinding {
         protected URI consistencyGroup;
         @Param(value = HLU, required = false)
         protected Integer hlu;
+        @Param(value = PORT_GROUP, required = false)
+        protected URI portGroup;
 
         @Override
         public String toString() {
@@ -70,6 +73,7 @@ public class VMwareBinding {
             } else {
                 map.put(HLU, hlu + hluInc);
             }
+            map.put(PORT_GROUP, portGroup);
             return map;
         }
     }

@@ -123,8 +123,8 @@
 
             <ul id="wftabs" class="nav nav-tabs workflow-nav-tabs" role="tablist" ng-hide="isWorkflowTabsEmpty()">
                 <li ng-repeat="workflowTab in workflowTabs" class="">
-                    <a class="workflow-tab" href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.name}}
-                        <button class="close tab-close" ng-click="closeTab(workflowTab.elementid)" type="button" title="Close tab" style="margin: -2px 0 0 5px;">&times;</button>
+                    <a class="workflow-tab" href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{(isTabModified(workflowTab)? '*' : '') + workflowTab.name}}
+                        <button class="close tab-close" ng-click="closeTab(workflowTab)" type="button" title="Close tab" style="margin: -2px 0 0 5px;">&times;</button>
                     </a>
                 </li>
             </ul>

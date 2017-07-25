@@ -1807,23 +1807,28 @@ public class ComputeUtils {
      * @param status {@link Pair} place holder
      * @return {@link Pair} Boolean and/or Compute System
      */
-    public static Pair<Boolean, String> checkComputeSystemsHaveImageServer(ViPRCoreClient client,
+    public static Pair<Boolean, Map<URI, String>> checkComputeSystemsHaveImageServer(ViPRCoreClient client,
                                                                            ComputeVirtualPoolRestRep cvp,
-                                                                           Pair<Boolean, String> status) {
+                                                                           Pair<Boolean, Map<URI, String>> status) {
         Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(client, cvp.getId());
+        Map<URI, String> computeSystemsWithoutImageServerMap = new HashMap<URI, String>();
         if (null != computeSystemMap) {
             for (Map.Entry<URI, ComputeSystemRestRep> computeSystemRestRep : computeSystemMap.entrySet()) {
                 if (NullColumnValueGetter.isNullValue(computeSystemRestRep.getValue().getComputeImageServer())) {
                     status.setFirstElement(false);
-                    status.setSecondElement(computeSystemRestRep.getValue().toString());
-                    return status;
+                    computeSystemsWithoutImageServerMap.put(computeSystemRestRep.getValue().getId(),
+                            computeSystemRestRep.getValue().getName());
+                    status.setSecondElement(computeSystemsWithoutImageServerMap);
                 }
             }
-            status.setFirstElement(true);
-            return status;
+            if (status.getFirstElement().equals(false)){
+                return status;
+            } else {
+                status.setFirstElement(true);
+                return status;
+            }
         }
         status.setFirstElement(false);
-        status.setSecondElement("");
         return status;
     }
 }

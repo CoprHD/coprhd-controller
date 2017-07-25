@@ -232,7 +232,7 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
         }
-        Pair<Boolean, String> status = new Pair<Boolean, String>();
+        Pair<Boolean, Map<URI, String>> status = new Pair<Boolean, Map<URI, String>>();
         if (ComputeUtils.checkComputeSystemsHaveImageServer(getClient(), cvp, status).getFirstElement().equals(false)) {
         	preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.compute.system.image.server.null", status.getSecondElement()));
         }

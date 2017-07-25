@@ -4342,8 +4342,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
                 if (isiSynIQPolicy != null) {
                     String targetPath = isiSynIQPolicy.getTargetPath();
+                    String targetHost = isiSynIQPolicy.getTargetHost();
                     //assuming that the file policy is valid setting the replication extension with the target info.
-                    setReplicationInfoInExtension(srcFs, targetPath);
+                    setReplicationInfoInExtension(srcFs, targetHost, targetPath);
                 }
             }
             // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
@@ -4360,12 +4361,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
     }
     
-    private void setReplicationInfoInExtension(FileShare sourceFileShare, String path) {
+    private void setReplicationInfoInExtension(FileShare sourceFileShare, String targetHost, String path) {
+        String targetInfo = String.format("%s:%s", targetHost, path);
         if (sourceFileShare != null) {
            if(!sourceFileShare.getExtensions().containsKey("ReplicationInfo")){
-               sourceFileShare.getExtensions().put("ReplicationInfo", path);
+               sourceFileShare.getExtensions().put("ReplicationInfo", targetInfo);
            } else {
-               sourceFileShare.getExtensions().replace("ReplicationInfo", path);
+               sourceFileShare.getExtensions().replace("ReplicationInfo", targetInfo);
            }
             _dbClient.updateObject(sourceFileShare);
         } else {

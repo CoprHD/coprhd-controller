@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.emc.storageos.model.compute.ComputeElementListRestRep;
-import com.iwave.ext.windows.winrm.Pair;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 

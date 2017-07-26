@@ -415,6 +415,7 @@ public class SystemsMapper {
 			}
 		}
 		to.setUsername(from.getUsername());
+		to.setRestProvider(toRelatedResource(ResourceTypeEnum.STORAGE_PROVIDER, from.getRestProvider()));
 		to.setModel(from.getModel());
 		to.setSupportedProvisioningType(from.getSupportedProvisioningType());
 		to.setSupportedAsynchronousActions(from.getSupportedAsynchronousActions());
@@ -515,6 +516,7 @@ public class SystemsMapper {
         to.setStorageDevice(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));
         to.setRegistrationStatus(from.getRegistrationStatus());
         to.setNativeGuid(from.getNativeGuid());
+        to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(from)));
         StringMap metrics= from.getMetrics();
         if (metrics != null && !metrics.isEmpty()) {
             Double portMetric = MetricsKeys.getDoubleOrNull(MetricsKeys.portMetric, metrics);

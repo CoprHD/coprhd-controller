@@ -8,10 +8,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.emc.storageos.vmax.VMAXRestUtils;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationEnvironmentResponse;
@@ -34,6 +37,9 @@ public class VMAXApiClientTest {
     private static final String sourceArraySerialNumber = "000195702161";
     private static final String targetArraySerialNumber = "000196800794";
     private static final String SG_NAME = "test_mig_161";
+    private static final String version = "8.4.0.10";
+    private static final Set<String> localSystems = new HashSet<>(Arrays.asList("000196701343", "000196801612", "000197000197",
+            "000197000143", "000196800794", "000196801468"));
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -46,8 +52,22 @@ public class VMAXApiClientTest {
         apiClientFactory.setSocketConnectionTimeoutMs(3600000);
 
         apiClientFactory.init();
-        apiClient = (VMAXApiClient) apiClientFactory
-                .getRESTClient(VMAXRestUtils.getUnisphereRestServerInfo(unisphereIp, portNumber, true), userName, password, true);
+        /*
+         * apiClient = (VMAXApiClient) apiClientFactory
+         * .getRESTClient(VMAXRestUtils.getUnisphereRestServerInfo(unisphereIp, portNumber, true), userName, password, true);
+         */
+        apiClient = apiClientFactory.getClient(unisphereIp, portNumber, true, userName, password);
+        assertNotNull("Api Client object is null", apiClient);
+    }
+
+    @Test
+    public void getApiVersionTest() throws Exception {
+        assertEquals(version, apiClient.getApiVersion());
+    }
+
+    @Test
+    public void getLocalSystemsTest() throws Exception {
+        assertEquals(localSystems, apiClient.getLocalSystems());
     }
 
     @Test

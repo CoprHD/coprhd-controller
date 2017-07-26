@@ -58,8 +58,8 @@ public class EngineFunctionTest {
 
     @Test
     public void testCreateOneVolumeWithNewSg() {
-        String sgName = "stone_test_sg_auto_024";
-        String volumeNamePrefix = "stone_test_vol_024-";
+        String sgName = "stone_test_sg_auto_025";
+        String volumeNamePrefix = "stone_test_vol_025-";
         testCreateEmptySg(sgName);
         testEditSgSlo(sgName);
         testEditSgWithWorkload(sgName);
@@ -69,6 +69,9 @@ public class EngineFunctionTest {
         testListVolumesWithName(volumeNamePrefix + "1");
         List<String> volumeIds = testFindValidVolumes(volumeNamePrefix + "1");
         testFetchVolume(volumeIds.get(0));
+        volumeIds = testRemoveAllVolumesFromSg(sgName);
+        testRemoveEmptySg(sgName);
+        testRemoveVolumes(volumeIds);
     }
 
     private void testCreateEmptySg(String sgName) {
@@ -120,6 +123,29 @@ public class EngineFunctionTest {
         urlParams.put("storageGroupId", sgName);
         urlParams.put("tdev", "true");
         Assert.assertTrue(volEngine.listVolumes(urlParams).isSuccessfulStatus());
+    }
+
+    private List<String> testRemoveAllVolumesFromSg(String sgName) {
+        Map<String, String> urlParams = new HashMap<String, String>();
+        urlParams.put("storageGroupId", sgName);
+        urlParams.put("tdev", "true");
+        List<String> volumeIds = volEngine.findValidVolumes(urlParams);
+        Assert.assertTrue(sgEngine.removeVolumeFromSg(sgName, volumeIds).isSuccessfulStatus());
+        return volumeIds;
+    }
+
+    private void testRemoveEmptySg(String sgName) {
+        Assert.assertTrue(sgEngine.removeEmptySg(sgName).isSuccessfulStatus());
+    }
+
+    private void testRemoveStandardVolume(String volumeId) {
+        Assert.assertTrue(volEngine.removeStandardVolume(volumeId).isSuccessfulStatus());
+    }
+
+    private void testRemoveVolumes(List<String> volumeIds) {
+        for (String volumeId : volumeIds) {
+            testRemoveStandardVolume(volumeId);
+        }
     }
 
     private void testListVolumesWithName(String volumeIdentifierName) {

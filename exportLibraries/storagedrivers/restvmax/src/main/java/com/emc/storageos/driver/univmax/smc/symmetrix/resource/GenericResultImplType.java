@@ -35,6 +35,18 @@ public class GenericResultImplType extends DefaultResponse {
      */
     public void setMessage(String message) {
         this.message = message;
+        this.appendCustMessage(message);
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "GenericResultImplType [success=" + success + ", message=" + message + ", getCustMessage()=" + getCustMessage()
+                + ", getHttpStatusCode()=" + getHttpStatusCode() + "]";
     }
 
 }

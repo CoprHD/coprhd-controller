@@ -12,8 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.univmax.smc.EngineFactory;
 import com.emc.storageos.driver.univmax.smc.basetype.AuthenticationInfo;
-import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.StorageGroupEngine;
-import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.CreateStorageGroupParameter;
 
 /**
  * @author fengs5
@@ -39,16 +37,16 @@ public class StorageGroupEngineTest {
         sgEngine = engineFacory.genStorageGroupEngine();
     }
 
-    @Test
-    public void testCreateEmptySg() {
-
-        String sgName = "stone_test_sg_auto_010";
-        CreateStorageGroupParameter param = new CreateStorageGroupParameter(sgName);
-        param.setCreateEmptyStorageGroup(true);
-        param.setEmulation("FBA");
-        param.setSrpId("SRP_1");
-        Assert.assertTrue(sgEngine.createEmptySg(param).isSuccessfulStatus());
-    }
+    // @Test
+    // public void testCreateEmptySg() {
+    //
+    // String sgName = "stone_test_sg_auto_010";
+    // CreateStorageGroupParameter param = new CreateStorageGroupParameter(sgName);
+    // param.setCreateEmptyStorageGroup(true);
+    // param.setEmulation("FBA");
+    // param.setSrpId("SRP_1");
+    // Assert.assertTrue(sgEngine.createEmptySg(param).isSuccessfulStatus());
+    // }
 
     // @Test
     // public void testEditSgSlo() {
@@ -91,5 +89,20 @@ public class StorageGroupEngineTest {
     //
     // Assert.assertTrue(sgEngine.createNewVolInSg(sgName, param).isSuccessfulStatus());
     // }
+
+    // @Test
+    // public void testRemoveVolumeFromSg() {
+    // String sgName = "stone_test_sg_auto_023";
+    // List<String> volumeIds = new ArrayList<String>();
+    // volumeIds.add("00CBD");
+    // Assert.assertTrue(sgEngine.removeVolumeFromSg(sgName, volumeIds).isSuccessfulStatus());
+    //
+    // }
+
+    @Test
+    public void testRemoveEmptySg() {
+        String sgName = "stone_test_sg_auto_017";
+        Assert.assertTrue(sgEngine.removeEmptySg(sgName).isSuccessfulStatus());
+    }
 
 }

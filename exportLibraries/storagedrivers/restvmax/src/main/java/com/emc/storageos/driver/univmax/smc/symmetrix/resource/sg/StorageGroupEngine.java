@@ -12,14 +12,15 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.driver.univmax.SymConstants;
 import com.emc.storageos.driver.univmax.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.univmax.smc.basetype.DefaultResEngine;
-import com.emc.storageos.driver.univmax.smc.basetype.EmptyResponse;
 import com.emc.storageos.driver.univmax.smc.basetype.ResponseWrapper;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.GenericResultImplType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.CreateStorageGroupParameter;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.DynamicDistributionType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.EditStorageGroupActionParam;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.EditStorageGroupParameter;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.EditStorageGroupSLOParam;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.EditStorageGroupWorkloadParam;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.RemoveVolumeParamType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.SetHostIOLimitsParam;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.sg.model.StorageGroupResponse;
 
@@ -39,7 +40,8 @@ public class StorageGroupEngine extends DefaultResEngine {
         public final static String LIST_SG_URL = "/sloprovisioning/symmetrix/%s/storagegroup";
         public final static String CREATE_SG_URL = "/84/sloprovisioning/symmetrix/%s/storagegroup";
         public final static String EDIT_SG_URL = "/sloprovisioning/symmetrix/%s/storagegroup/%s";
-        public final static String create_vol_in_SG_URL = "/84/sloprovisioning/symmetrix/%s/storagegroup/%s";
+        public final static String CREATE_VOL_IN_SG_URL = "/84/sloprovisioning/symmetrix/%s/storagegroup/%s";
+        public final static String REMOVE_SG_URL = "/sloprovisioning/symmetrix/%s/storagegroup/%s";
 
     }
 
@@ -47,7 +49,8 @@ public class StorageGroupEngine extends DefaultResEngine {
         SLO,
         WORK_LOAD,
         HOST_IO_LIMIT,
-        CREATE_VOLUME
+        CREATE_VOLUME,
+        REMOVE_VOLUME
     }
 
     /**
@@ -57,11 +60,24 @@ public class StorageGroupEngine extends DefaultResEngine {
         super(authenticationInfo);
     }
 
+    /**
+     * Create empty SG.
+     * 
+     * @param param
+     * @return
+     */
     public StorageGroupResponse createEmptySg(CreateStorageGroupParameter param) {
         return createEmptySg(param, genUrlFillers());
     }
 
-    private StorageGroupResponse createEmptySg(CreateStorageGroupParameter param, List<String> urlFillers) {
+    /**
+     * Create empty SG.
+     * 
+     * @param param
+     * @param urlFillers
+     * @return
+     */
+    public StorageGroupResponse createEmptySg(CreateStorageGroupParameter param, List<String> urlFillers) {
         String url = urlGenerator.genUrl(EndPointHolder.CREATE_SG_URL, urlFillers, null);
         ResponseWrapper<StorageGroupResponse> responseWrapper = engine.post(url, param, StorageGroupResponse.class);
         StorageGroupResponse responseBean = responseWrapper.getResponseBean();
@@ -88,7 +104,7 @@ public class StorageGroupEngine extends DefaultResEngine {
      * @param sloId
      * @return
      */
-    public EmptyResponse editSgWithSlo(String sgId, String sloId) {
+    public GenericResultImplType editSgWithSlo(String sgId, String sloId) {
         EditStorageGroupSLOParam sloParam = new EditStorageGroupSLOParam(sloId);
         EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
         actionParam.setEditStorageGroupSLOParam(sloParam);
@@ -104,7 +120,7 @@ public class StorageGroupEngine extends DefaultResEngine {
      * @param workload
      * @return
      */
-    public EmptyResponse editSgWithWorkload(String sgId, String workload) {
+    public GenericResultImplType editSgWithWorkload(String sgId, String workload) {
         EditStorageGroupWorkloadParam wlParam = new EditStorageGroupWorkloadParam(workload);
         EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
         actionParam.setEditStorageGroupWorkloadParam(wlParam);
@@ -122,7 +138,7 @@ public class StorageGroupEngine extends DefaultResEngine {
      * @param dynamicDistribution
      * @return
      */
-    public EmptyResponse editSgWithHostIoLimit(String sgId, String hostIoLimitMbSec, String hostIoLimitIoSec,
+    public GenericResultImplType editSgWithHostIoLimit(String sgId, String hostIoLimitMbSec, String hostIoLimitIoSec,
             DynamicDistributionType dynamicDistribution) {
         SetHostIOLimitsParam setHostIOLimitsParam = new SetHostIOLimitsParam(hostIoLimitMbSec, hostIoLimitIoSec, dynamicDistribution);
         EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
@@ -130,6 +146,22 @@ public class StorageGroupEngine extends DefaultResEngine {
         EditStorageGroupParameter param = new EditStorageGroupParameter();
         param.setEditStorageGroupActionParam(actionParam);
         return editProperty4Sg(sgId, param, genUrlFillers(sgId), SgPropertyType.HOST_IO_LIMIT);
+    }
+
+    /**
+     * Remove volumes from SG.
+     * 
+     * @param sgId
+     * @param volumeIds
+     * @return
+     */
+    public GenericResultImplType removeVolumeFromSg(String sgId, List<String> volumeIds) {
+        RemoveVolumeParamType removeVolumeParam = new RemoveVolumeParamType(volumeIds);
+        EditStorageGroupActionParam actionParam = new EditStorageGroupActionParam();
+        actionParam.setRemoveVolumeParam(removeVolumeParam);
+        EditStorageGroupParameter param = new EditStorageGroupParameter();
+        param.setEditStorageGroupActionParam(actionParam);
+        return editProperty4Sg(sgId, param, genUrlFillers(sgId), SgPropertyType.REMOVE_VOLUME);
     }
 
     /**
@@ -143,8 +175,44 @@ public class StorageGroupEngine extends DefaultResEngine {
         return createNewVolInSg(sgId, param, genUrlFillers(sgId));
     }
 
+    /**
+     * Remove empty SG.
+     * 
+     * @param sgId
+     * @return
+     */
+    public GenericResultImplType removeEmptySg(String sgId) {
+        String url = urlGenerator.genUrl(EndPointHolder.REMOVE_SG_URL, genUrlFillers(sgId), null);
+        ResponseWrapper<GenericResultImplType> responseWrapper = engine.delete(url, GenericResultImplType.class);
+        GenericResultImplType responseBean = responseWrapper.getResponseBean();
+        if (responseWrapper.getException() != null) {
+            LOG.error("Exception happened during removing storageGroup {}:{}", sgId, responseWrapper.getException());
+            responseBean = new GenericResultImplType();
+            appendExceptionMessage(responseBean, "Exception happened during removing storageGroup %s:%s",
+                    sgId,
+                    responseWrapper.getException());
+            return responseBean;
+        }
+
+        if (!responseBean.isSuccessfulStatus()) {
+            LOG.error("{}: Failed to remove storageGroup {} with error: {}", responseBean.getHttpStatusCode(),
+                    sgId,
+                    responseBean.getCustMessage() + responseBean.getMessage());
+        }
+        LOG.debug("Output response bean as : {}", responseBean);
+        return responseBean;
+    }
+
+    /**
+     * Create new volumes in SG.
+     * 
+     * @param sgId
+     * @param param
+     * @param urlFillers
+     * @return
+     */
     public StorageGroupResponse createNewVolInSg(String sgId, EditStorageGroupParameter param, List<String> urlFillers) {
-        String url = urlGenerator.genUrl(EndPointHolder.create_vol_in_SG_URL, urlFillers, null);
+        String url = urlGenerator.genUrl(EndPointHolder.CREATE_VOL_IN_SG_URL, urlFillers, null);
         ResponseWrapper<StorageGroupResponse> responseWrapper = engine.put(url, param, StorageGroupResponse.class);
         StorageGroupResponse responseBean = responseWrapper.getResponseBean();
         if (responseWrapper.getException() != null) {
@@ -164,14 +232,23 @@ public class StorageGroupEngine extends DefaultResEngine {
         return responseBean;
     }
 
-    public EmptyResponse editProperty4Sg(String sgId, EditStorageGroupParameter param, List<String> urlFillers,
+    /**
+     * Edit Sg.
+     * 
+     * @param sgId
+     * @param param
+     * @param urlFillers
+     * @param sgPropertyType
+     * @return
+     */
+    public GenericResultImplType editProperty4Sg(String sgId, EditStorageGroupParameter param, List<String> urlFillers,
             SgPropertyType sgPropertyType) {
         String url = urlGenerator.genUrl(EndPointHolder.EDIT_SG_URL, urlFillers, null);
-        ResponseWrapper<EmptyResponse> responseWrapper = engine.put(url, param, EmptyResponse.class);
-        EmptyResponse responseBean = responseWrapper.getResponseBean();
+        ResponseWrapper<GenericResultImplType> responseWrapper = engine.put(url, param, GenericResultImplType.class);
+        GenericResultImplType responseBean = responseWrapper.getResponseBean();
         if (responseWrapper.getException() != null) {
             LOG.error("Exception happened during editing storageGroup for {} :{}", sgPropertyType, responseWrapper.getException());
-            responseBean = new EmptyResponse();
+            responseBean = new GenericResultImplType();
             appendExceptionMessage(responseBean, "Exception happened during editing storageGroup for %s:%s",
                     sgPropertyType, responseWrapper.getException());
             return responseBean;

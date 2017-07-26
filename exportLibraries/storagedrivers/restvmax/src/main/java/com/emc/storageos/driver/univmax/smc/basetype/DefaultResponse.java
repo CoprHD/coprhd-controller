@@ -58,7 +58,7 @@ public class DefaultResponse implements IResponse {
     public boolean isSuccessfulStatus() {
         // TODO check status
 
-        return isCreated() || isOK();
+        return isCreated() || isOK() || isNoContent();
     }
 
     private boolean isCreated() {
@@ -67,6 +67,10 @@ public class DefaultResponse implements IResponse {
 
     private boolean isOK() {
         return httpStatusCode == SymConstants.StatusCode.OK;
+    }
+
+    private boolean isNoContent() {
+        return httpStatusCode == SymConstants.StatusCode.NO_CONTENT;
     }
 
     private boolean hasException() {

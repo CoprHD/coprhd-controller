@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.driver.univmax.smc.basetype.AuthenticationInfo;
 import com.emc.storageos.driver.univmax.smc.basetype.DefaultResEngine;
 import com.emc.storageos.driver.univmax.smc.basetype.ResponseWrapper;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.GenericResultImplType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.IteratorType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.model.GetVolumeResultType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.model.VolumeListResultType;
@@ -27,6 +28,7 @@ public class VolumeEngine extends DefaultResEngine {
     static class EndPointHolder {
         public final static String LIST_VOLUME_URL = "/sloprovisioning/symmetrix/%s/volume";
         public final static String GET_VOLUME_URL = "/sloprovisioning/symmetrix/%s/volume/%s";
+        public final static String REMOVE_VOLUME_URL = "/sloprovisioning/symmetrix/%s/volume/%s";
     }
 
     /**
@@ -36,10 +38,23 @@ public class VolumeEngine extends DefaultResEngine {
         super(authenticationInfo);
     }
 
+    /**
+     * List all volumes with filters.
+     * 
+     * @param filters
+     * @return
+     */
     public IteratorType<VolumeListResultType> listVolumes(Map<String, String> filters) {
         return listVolumes(genUrlFillers(), filters);
     }
 
+    /**
+     * List all volumes with filters.
+     * 
+     * @param urlFillers
+     * @param filters
+     * @return
+     */
     public IteratorType<VolumeListResultType> listVolumes(List<String> urlFillers,
             Map<String, String> filters) {
         String url = urlGenerator.genUrl(EndPointHolder.LIST_VOLUME_URL, urlFillers, filters);
@@ -73,6 +88,13 @@ public class VolumeEngine extends DefaultResEngine {
         return findValidVolumes(genUrlFillers(), filters);
     }
 
+    /**
+     * Find valid volumes with filters.
+     * 
+     * @param urlFillers
+     * @param filters
+     * @return
+     */
     public List<String> findValidVolumes(List<String> urlFillers, Map<String, String> filters) {
         List<String> volIds = new ArrayList<String>();
         IteratorType<VolumeListResultType> iterator = listVolumes(urlFillers, filters);
@@ -99,6 +121,13 @@ public class VolumeEngine extends DefaultResEngine {
         return fetchVolume(volumeId, genUrlFillers(volumeId));
     }
 
+    /**
+     * Fetch volume with id.
+     * 
+     * @param volumeId
+     * @param urlFillers
+     * @return
+     */
     public VolumeType fetchVolume(String volumeId, List<String> urlFillers) {
         String url = urlGenerator.genUrl(EndPointHolder.GET_VOLUME_URL, urlFillers, null);
         ResponseWrapper<GetVolumeResultType> responseWrapper = engine.get(url, GetVolumeResultType.class);
@@ -128,4 +157,31 @@ public class VolumeEngine extends DefaultResEngine {
         return volumeBean;
     }
 
+    /**
+     * Remove standard volume (volume without local or remote replication).
+     * 
+     * @param volumeId
+     * @return
+     */
+    public GenericResultImplType removeStandardVolume(String volumeId) {
+        String url = urlGenerator.genUrl(EndPointHolder.REMOVE_VOLUME_URL, genUrlFillers(volumeId), null);
+        ResponseWrapper<GenericResultImplType> responseWrapper = engine.delete(url, GenericResultImplType.class);
+        GenericResultImplType responseBean = responseWrapper.getResponseBean();
+        if (responseWrapper.getException() != null) {
+            LOG.error("Exception happened during removing volume {}:{}", volumeId, responseWrapper.getException());
+            responseBean = new GenericResultImplType();
+            appendExceptionMessage(responseBean, "Exception happened during removing volume %s:%s",
+                    volumeId,
+                    responseWrapper.getException());
+            return responseBean;
+        }
+
+        if (!responseBean.isSuccessfulStatus()) {
+            LOG.error("{}: Failed to remove volume {} with error: {}", responseBean.getHttpStatusCode(),
+                    volumeId,
+                    responseBean.getCustMessage() + responseBean.getMessage());
+        }
+        LOG.debug("Output response bean as : {}", responseBean);
+        return responseBean;
+    }
 }

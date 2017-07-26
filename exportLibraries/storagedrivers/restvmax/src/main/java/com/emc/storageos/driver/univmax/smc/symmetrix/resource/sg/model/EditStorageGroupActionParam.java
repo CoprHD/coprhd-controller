@@ -12,6 +12,7 @@ public class EditStorageGroupActionParam extends DefaultParameter {
     private EditStorageGroupWorkloadParam editStorageGroupWorkloadParam;
     private SetHostIOLimitsParam setHostIOLimitsParam;
     private ExpandStorageGroupParam expandStorageGroupParam;
+    private RemoveVolumeParamType removeVolumeParam;
 
     /**
      * @return the editStorageGroupSLOParam
@@ -67,6 +68,32 @@ public class EditStorageGroupActionParam extends DefaultParameter {
      */
     public void setExpandStorageGroupParam(ExpandStorageGroupParam expandStorageGroupParam) {
         this.expandStorageGroupParam = expandStorageGroupParam;
+    }
+
+    /**
+     * @return the removeVolumeParam
+     */
+    public RemoveVolumeParamType getRemoveVolumeParam() {
+        return removeVolumeParam;
+    }
+
+    /**
+     * @param removeVolumeParam the removeVolumeParam to set
+     */
+    public void setRemoveVolumeParam(RemoveVolumeParamType removeVolumeParam) {
+        this.removeVolumeParam = removeVolumeParam;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "EditStorageGroupActionParam [editStorageGroupSLOParam=" + editStorageGroupSLOParam + ", editStorageGroupWorkloadParam="
+                + editStorageGroupWorkloadParam + ", setHostIOLimitsParam=" + setHostIOLimitsParam + ", expandStorageGroupParam="
+                + expandStorageGroupParam + ", removeVolumeParam=" + removeVolumeParam + "]";
     }
 
 }

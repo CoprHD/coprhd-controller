@@ -18,6 +18,7 @@ public class SymConstants {
         public final static int EXCEPTION = -1;// Has exception and no response got from vmax3
         public final static int OK = 200;// OK
         public final static int CREATED = 201;// Created
+        public final static int NO_CONTENT = 204;
     }
 
     public static class MarkHolder {

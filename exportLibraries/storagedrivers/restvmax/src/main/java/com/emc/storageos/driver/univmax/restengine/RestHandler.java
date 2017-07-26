@@ -19,6 +19,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -234,14 +235,17 @@ public class RestHandler {
     }
 
     private <T extends IResponse> void processResponse(String url, ClientResponse response, Class<T> clazz,
-            ResponseWrapper<T> responseWrapper) {
+            ResponseWrapper<T> responseWrapper) throws JSONException {
         LOG.debug("response as :{}", response);
         if (response == null) {
             responseWrapper.setException(new NullResponseException(String.format("Null Response meet during calling %s", url)));
             return;
         }
-        JSONObject respnseJson = response.getEntity(JSONObject.class);
         int status = response.getStatus();
+        JSONObject respnseJson = new JSONObject();
+        if (ClientResponse.Status.NO_CONTENT.getStatusCode() != status) {
+            respnseJson = response.getEntity(JSONObject.class);
+        }
         T bean = JsonParser.parseJson2Bean((respnseJson.toString()), clazz);
         bean.setHttpStatusCode(status);
         responseWrapper.setResponseBean(bean);

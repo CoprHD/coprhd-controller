@@ -1607,7 +1607,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     Constants.DEFAULT_PARTITION_SIZE * 2);
 
                             // save bunch of NFS ACLs in db
-                            validateSizeLimitAndPersist(newUnManagedNfsShareACLList, newUnManagedNfsShareACLList,
+                            validateSizeLimitAndPersist(newUnManagedNfsShareACLList, oldUnManagedNfsShareACLList,
                                     Constants.DEFAULT_PARTITION_SIZE * 2);
 
                             allDiscoveredUnManagedFileSystems.add(unManagedFs.getId());
@@ -1657,8 +1657,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             if (!oldUnManagedExportRules.isEmpty()) {
-                _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
-                _dbClient.updateObject(newUnManagedExportRules);
+                _log.info("Saving Number of UnManagedFileExportRule(s) {}", oldUnManagedExportRules.size());
+                _dbClient.updateObject(oldUnManagedExportRules);
                 oldUnManagedExportRules.clear();
             }
 

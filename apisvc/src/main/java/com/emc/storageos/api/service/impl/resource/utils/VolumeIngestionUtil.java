@@ -908,13 +908,14 @@ public class VolumeIngestionUtil {
         // for non-vplex volumes, this is a simple check that the unmanaged volume's storage pool URI
         // is contained within the virtual pool.
         // vplex virtual volumes do not need this check at all because they don't have a storage pool.
+        // block snapshots don't have a storage pool either.
         // vplex backend volumes, however, need to have the first simple check, then if that's not a 
         // match AND the virtual pool is Distributed High Availability, then the HA vpool's storage
         // pools should also be checked.  
         // if no storage pool association can be found, throw an exception.
         boolean volumeStoragePoolIsOkay = false;
-        if (isVplexVolume(unManagedVolume)) {
-            // vplex virtual vols have no storage pool, so this is okay.
+        if (!isVolumeStoragePoolRequired(unManagedVolume)) {
+            // vplex virtual vols and block snapshots have no storage pool, so this is okay.
             volumeStoragePoolIsOkay = true;
         } else if (spool != null) {
             // check the matched or assigned pools, based on the vpool settings
@@ -1138,6 +1139,21 @@ public class VolumeIngestionUtil {
         String status = volume.getVolumeCharacterstics()
                 .get(SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString());
         return TRUE.equals(status);
+    }
+
+    /**
+     * Returns true if the UnManagedVolume requires a storage pool for ingestion.
+     * BlockSnapshots and VPLEX virtual volume do not require a storage pool.
+     *
+     * @param volume the UnManagedVolume in question
+     * @return true if the volume requires a storage pool for ingestion
+     */
+    public static boolean isVolumeStoragePoolRequired(UnManagedVolume volume) {
+        if (null == volume || isVplexVolume(volume) || isSnapshot(volume)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

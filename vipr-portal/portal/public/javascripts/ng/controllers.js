@@ -640,11 +640,11 @@ angular.module("portalApp").controller({
     	                  {id:'execute', name:translate('resources.filesystem.nfsacl.execute')},
     	                  {id:'fullControl', name:translate('resources.filesystem.nfsacl.fullControl')},];
     	                  
-        $scope.inheritOpt = [{id:'objectInheritFlag', name:translate('resources.filesystem.nfsacl.objectInheritFlag')}, 
-    	                  {id:'containerInheritFlag', name:translate('resources.filesystem.nfsacl.containerInheritFlag')}, 
-    	                  {id:'noPropInherit', name:translate('resources.filesystem.nfsacl.noPropInherit')},
-    	                  {id:'inheritOnlyFlag', name:translate('resources.filesystem.nfsacl.inheritOnlyFlag')},
-    	                  {id:'inheritedAceFlag', name:translate('resources.filesystem.nfsacl.inheritedAceFlag')},];
+        $scope.inheritOpt = [{id:'object_inherit', name:translate('resources.filesystem.nfsacl.objectInheritFlag')}, 
+    	                  {id:'container_inherit', name:translate('resources.filesystem.nfsacl.containerInheritFlag')}, 
+    	                  {id:'no_prop_inherit', name:translate('resources.filesystem.nfsacl.noPropInherit')},
+    	                  {id:'inherit_only', name:translate('resources.filesystem.nfsacl.inheritOnlyFlag')},
+    	                  {id:'inherited_ace', name:translate('resources.filesystem.nfsacl.inheritedAceFlag')},];
     	
     	var setData = function(data) {
     		$scope.acl = data;

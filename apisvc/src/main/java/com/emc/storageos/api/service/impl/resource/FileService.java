@@ -34,6 +34,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,9 +42,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.functions.MapFileShare;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.FilePlacementManager;
-import com.emc.storageos.api.service.impl.placement.FileRecommendation;
 import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
-import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CifsShareUtility;
 import com.emc.storageos.api.service.impl.resource.utils.ExportVerificationUtility;
@@ -75,7 +74,6 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -97,7 +95,6 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VirtualPool.FileReplicationRPOType;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
@@ -136,7 +133,6 @@ import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemMountParam;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemReduceParam;
-import com.emc.storageos.model.file.FileSystemReplicationSettings;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
@@ -1856,84 +1852,6 @@ public class FileService extends TaskResourceService {
         }
     }
 
-    /**
-     * Allocate, initialize and persist state of the fileSystem being created.
-     * 
-     * @param param
-     * @param project
-     * @param tenantOrg
-     * @param neighborhood
-     * @param vpool
-     * @param flags
-     * @param placement
-     * @param token
-     * @return
-     */
-    private FileShare prepareFileSystem(FileSystemParam param, Project project, TenantOrg tenantOrg,
-            VirtualArray neighborhood, VirtualPool vpool, DataObject.Flag[] flags, FileRecommendation placement, String token) {
-        _log.info("prepareFile System");
-        StoragePool pool = null;
-        FileShare fs = new FileShare();
-        fs.setId(URIUtil.createId(FileShare.class));
-
-        fs.setLabel(param.getLabel());
-
-        // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
-        // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
-        String convertedName = param.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
-        _log.info("Original name {} and converted name {}", param.getLabel(), convertedName);
-        fs.setName(convertedName);
-        Long fsSize = SizeUtil.translateSize(param.getSize());
-        fs.setCapacity(fsSize);
-        fs.setVirtualPool(param.getVpool());
-        if (project != null) {
-            fs.setProject(new NamedURI(project.getId(), fs.getLabel()));
-        }
-        fs.setTenant(new NamedURI(tenantOrg.getId(), param.getLabel()));
-        fs.setVirtualArray(neighborhood.getId());
-
-        if (null != placement.getSourceStoragePool()) {
-            pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
-            if (null != pool) {
-                fs.setProtocol(new StringSet());
-                fs.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
-            }
-        }
-
-        fs.setStorageDevice(placement.getSourceStorageSystem());
-        fs.setPool(placement.getSourceStoragePool());
-        if (param.getSoftLimit() != 0) {
-            fs.setSoftLimit(new Long(param.getSoftLimit()));
-        }
-        if (param.getNotificationLimit() != 0) {
-            fs.setNotificationLimit(new Long(param.getNotificationLimit()));
-        }
-        if (param.getSoftGrace() > 0) {
-            fs.setSoftGracePeriod(new Integer(param.getSoftGrace()));
-        }
-        if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
-            fs.setStoragePort(placement.getStoragePorts().get(0));
-        }
-
-        // When a VPool supports "thin" provisioning
-        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
-            fs.setThinlyProvisioned(Boolean.TRUE);
-        }
-
-        if (placement.getvNAS() != null) {
-            fs.setVirtualNAS(placement.getvNAS());
-        }
-
-        fs.setOpStatus(new OpStatusMap());
-        Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM);
-        fs.getOpStatus().createTaskStatus(token, op);
-        if (flags != null) {
-            fs.addInternalFlags(flags);
-        }
-        _dbClient.createObject(fs);
-        return fs;
-    }
 
     /**
      * Filesystem is not a zone level resource
@@ -2579,7 +2497,7 @@ public class FileService extends TaskResourceService {
         // Get All ACLs of FS from data base and group them based on path!!
         NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, subDir);
         NfsACLs acls = util.getNfsAclFromDB(allDirs);
-        if (acls.getNfsACLs() != null && !acls.getNfsACLs().isEmpty()) {
+        if (CollectionUtils.isEmpty(acls.getNfsACLs())) {
             _log.info("Found {} Acl rules for filesystem {}", acls.getNfsACLs().size(), fs.getId());
         } else {
             _log.info("No Acl rules found for filesystem  {}", fs.getId());
@@ -3024,8 +2942,6 @@ public class FileService extends TaskResourceService {
                     fs.getId(), notSuppReasonBuff.toString());
         }
 
-        // Get the virtual array!!!
-        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
 
         // New operation
         Operation op = new Operation();
@@ -3480,26 +3396,7 @@ public class FileService extends TaskResourceService {
         }
     }
 
-    /**
-     * copy exports rules
-     * 
-     * @param orig
-     * @param dest
-     * @param fs
-     */
-    private void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {
 
-        dest.setFsID(fs.getId());
-        dest.setExportPath(orig.getExportPath());
-        dest.setSecFlavor(orig.getSecFlavor());
-        dest.setAnon(orig.getAnon());
-        dest.setReadOnlyHosts(orig.getReadOnlyHosts());
-        dest.setReadWriteHosts(orig.getReadWriteHosts());
-        dest.setRootHosts(orig.getRootHosts());
-        dest.setMountPoint(orig.getMountPoint());
-        // Test
-        _log.info("Expor Rule : {} - {}", orig, dest);
-    }
 
     private List<FileExportRule> queryDBFSExports(FileShare fs) {
         _log.info("Querying all ExportRules Using FsId {}", fs.getId());
@@ -3573,28 +3470,7 @@ public class FileService extends TaskResourceService {
         return getFileServiceApis("default");
     }
 
-    /**
-     * Returns the bean responsible for servicing the request
-     * 
-     * @param vpool
-     *            Virtual Pool
-     * @param dbClient
-     *            db client
-     * @return file service implementation object
-     */
-    private static FileServiceApi getFileServiceImpl(VirtualPoolCapabilityValuesWrapper capabilities, FilePolicy filePolicy) {
-        // Mutually exclusive logic that selects an implementation of the file service
 
-        if (FilePolicyServiceUtils.vPoolSpecifiesFileReplication(capabilities)) {
-            if (filePolicy.getFileReplicationType().equals(FilePolicy.FileReplicationType.LOCAL.name())) {
-                return getFileServiceApis("localmirror");
-            } else if (filePolicy.getFileReplicationType().equals(FilePolicy.FileReplicationType.REMOTE.name())) {
-                return getFileServiceApis("remotemirror");
-            }
-        }
-
-        return getFileServiceApis("default");
-    }
 
     /**
      * 
@@ -3723,7 +3599,6 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
         }
 
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
 
@@ -3854,6 +3729,8 @@ public class FileService extends TaskResourceService {
                 taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
                 timeoutCounter++;
                 // exit the loop if task is completed with error/success or timeout
+
+                // TODO need to refine the logic. too many condition may need separate method.
             } while ((taskObject != null && !(taskObject.isReady() || taskObject.isError())) && timeoutCounter < timeout);
 
             if (taskObject == null) {
@@ -3978,318 +3855,7 @@ public class FileService extends TaskResourceService {
         fs.setParentFileShare(orgFs.getParentFileShare());
     }
 
-    /**
-     * Checks to see if the file replication change is supported.
-     * 
-     * @param currentVpool
-     *            the source virtual pool
-     * @param newVpool
-     *            the target virtual pool
-     * @param notSuppReasonBuff
-     *            the not supported reason string buffer
-     * @return
-     */
-    private boolean isSupportedFileReplicationCreate(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {
-        _log.info(String.format("Checking isSupportedFileReplicationCreate for Fs [%s] with vpool [%s]...", fs.getLabel(),
-                currentVpool.getLabel()));
 
-        if (!doBasicMirrorValidation(fs, currentVpool, notSuppReasonBuff)) {
-            return false;
-        }
-        // File system should not be the active source file system!!
-        if (fs.getPersonality() != null
-                && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
-                && !MirrorStatus.DETACHED.name().equalsIgnoreCase(fs.getMirrorStatus())) {
-            notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request is an active source file system %s.",
-                                    fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-
-        // File system should not have any active mirror copies!!
-        if (fs.getMirrorfsTargets() != null
-                && !fs.getMirrorfsTargets().isEmpty()) {
-            notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request has active target file system %s.",
-                                    fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Checks to see if the file replication change is supported.
-     * 
-     * @param currentVpool
-     *            the source virtual pool
-     * @param newVpool
-     *            the target virtual pool
-     * @param notSuppReasonBuff
-     *            the not supported reason string buffer
-     * @return
-     */
-    private boolean validateDeleteMirrorCopies(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {
-        _log.info(String.format("Checking validateDeleteMirrorCopies for Fs [%s] ", fs.getLabel()));
-
-        if (!doBasicMirrorValidation(fs, currentVpool, notSuppReasonBuff)) {
-            return false;
-        }
-        // File system should not be the failover state
-        // Failover state, the mirror copy would be in production!!!
-        if (fs.getPersonality() != null
-                && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
-                && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
-            notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request is in active or failover state %s.",
-                                    fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-
-        // File system should not have any active mirror copies!!
-        if (fs.getMirrorfsTargets() == null
-                || fs.getMirrorfsTargets().isEmpty()) {
-            notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request has no active target file system %s.",
-                                    fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Checks to see if the file replication operation is supported.
-     * 
-     * @param fs
-     *            file share object
-     * @param currentVpool
-     *            source virtual pool
-     * @param notSuppReasonBuff
-     *            the not supported reason string buffer
-     * @param operation
-     *            mirror operation to be checked
-     */
-    private boolean validateMirrorOperationSupported(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff,
-            String operation) {
-
-        _log.info("Checking if mirror operation {} is supported for file system {} ", operation, fs.getLabel());
-
-        if (!doBasicMirrorValidation(fs, currentVpool, notSuppReasonBuff)) {
-            return false;
-        }
-        String currentMirrorStatus = fs.getMirrorStatus();
-        boolean isSupported = false;
-
-        // This validation is required after stop operation
-        if (fs.getPersonality() == null || !fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-            notSuppReasonBuff.append(String.format("File system - %s given in request is not having any active replication.",
-                    fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-
-        switch (operation) {
-
-            // Refresh operation can be performed without any check.
-            case "refresh":
-                isSupported = true;
-                break;
-
-            // START operation can be performed only if Mirror status is UNKNOWN
-            case "start":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())) {
-                    isSupported = true;
-                }
-                break;
-
-            // STOP operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
-            case "stop":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString())) {
-                    isSupported = true;
-                }
-                break;
-
-            // PAUSE operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
-            case "pause":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString())) {
-                    isSupported = true;
-                }
-                break;
-
-            // RESUME operation can be performed only if Mirror status is PAUSED.
-            case "resume":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.PAUSED.toString())) {
-                    isSupported = true;
-                }
-                break;
-
-            // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
-            case "failover":
-                if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString()))) {
-                    isSupported = true;
-                }
-                break;
-
-            // Fail back can be performed only if Mirror status is FAILED_OVER.
-            case "failback":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
-                    isSupported = true;
-                }
-                break;
-        }
-        notSuppReasonBuff.append(String.format(" : file system %s is in %s state", fs.getLabel(), currentMirrorStatus.toUpperCase()));
-        return isSupported;
-    }
-
-    /**
-     * Checks to see if the file replication change is supported.
-     * 
-     * @param fs
-     * @param currentVpool
-     *            the source virtual pool
-     * @param notSuppReasonBuff
-     *            the not supported reason string buffer
-     * @return
-     */
-    private boolean doBasicMirrorValidation(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {
-
-        // file system virtual pool must be enabled with replication..
-        if (!FilePolicyServiceUtils.vPoolSpecifiesFileReplication(fs, currentVpool, _dbClient)) {
-            notSuppReasonBuff.append(String.format("File replication is not enabled in virtual pool - %s"
-                    + " of the requested file system -%s ", currentVpool.getLabel(), fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-
-        // File system should not be the target file system..
-        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
-            notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
-                    fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Checks to see if the file replication change is supported.
-     * 
-     * @param fs
-     * @param notSuppReasonBuff
-     *            the not supported reason string buffer
-     * @return
-     */
-    private boolean filesystemHasActiveReplication(FileShare fs, StringBuffer notSuppReasonBuff,
-            String deleteType, boolean forceDelete) {
-
-        // File system should not be the target file system..
-        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
-            notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
-                    fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return true;
-        }
-
-        // File system should not have active replication targets!!
-        // For resource delete (forceDelete=false)
-        // For VIPR_ONLY type, till we support ingestion of replication file systems
-        // avoid deleting file systems if it has active mirrors!!
-        if (forceDelete == false || FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType)) {
-            if (fs.getMirrorfsTargets() != null
-                    && !fs.getMirrorfsTargets().isEmpty()) {
-                notSuppReasonBuff
-                        .append(String
-                                .format("File system %s given in request has active target file systems.",
-                                        fs.getLabel()));
-                _log.info(notSuppReasonBuff.toString());
-                return true;
-
-            }
-        }
-
-        return false;
-    }
-
-    private Long getMinutRpoValue(String rpoType, Long rpoValue) {
-
-        Long multiplier = 1L;
-        switch (rpoType.toUpperCase()) {
-            case "MINUTES":
-                multiplier = 1L;
-                break;
-            case "HOURS":
-                multiplier = MINUTES_PER_HOUR;
-                break;
-            case "DAYS":
-                multiplier = HOURS_PER_DAY * MINUTES_PER_HOUR;
-                break;
-        }
-        Long rpoInMinuts = rpoValue * multiplier;
-        return rpoInMinuts;
-
-    }
-
-    private boolean validateProtectionSettings(VirtualPool vpool, FileReplicationParam param) {
-
-        if (param.getCopies() != null && !param.getCopies().isEmpty()) {
-            if (param.getCopies().get(0).getReplicationSettingParam() != null) {
-
-                FileSystemReplicationSettings rpoParam = param.getCopies().get(0).getReplicationSettingParam();
-                if (rpoParam.getRpoType() == null
-                        || FileReplicationRPOType.lookup(rpoParam.getRpoType()) == null) {
-                    throw APIException.badRequests
-                            .invalidReplicationRPOType(rpoParam.getRpoType());
-                }
-
-                if (rpoParam.getRpoValue() == null || rpoParam.getRpoValue() <= 0) {
-                    throw APIException.badRequests.invalidReplicationRPOValue();
-                }
-                // Validate the RPO values!!
-                switch (rpoParam.getRpoType().toUpperCase()) {
-                    case "MINUTES":
-                        if (rpoParam.getRpoValue() > MINUTES_PER_HOUR) {
-                            throw APIException.badRequests.invalidReplicationRPOValueForType(
-                                    rpoParam.getRpoValue().toString(), rpoParam.getRpoType());
-                        }
-                        break;
-                    case "HOURS":
-                        if (rpoParam.getRpoValue() > HOURS_PER_DAY) {
-                            throw APIException.badRequests.invalidReplicationRPOValueForType(
-                                    rpoParam.getRpoValue().toString(), rpoParam.getRpoType());
-                        }
-                        break;
-                    case "DAYS":
-                        // No validation required for Days.
-                        break;
-                    default:
-                        throw APIException.badRequests.invalidReplicationRPOType(rpoParam.getRpoType());
-                }
-
-                Long rpoInMinuts = getMinutRpoValue(rpoParam.getRpoType(), rpoParam.getRpoValue());
-                Long vpoolRpoInMinuts = getMinutRpoValue(vpool.getFrRpoType(), vpool.getFrRpoValue());
-
-                if (rpoInMinuts < vpoolRpoInMinuts) {
-                    throw APIException.badRequests.lessRPOThanVpoolRpo();
-                }
-                return true;
-            } else {
-                throw APIException.badRequests.noProtectionSettingsProvided();
-            }
-        }
-
-        return false;
-    }
 
     /**
      * Perform a mount operation for a file system
@@ -4537,6 +4103,7 @@ public class FileService extends TaskResourceService {
 
         StringBuffer notSuppReasonBuff = new StringBuffer();
         // Verify the fs has replication attributes!!!
+        // TODO tomany condtional check. may need seperate method for it.
         if (fs.getPersonality() != null && PersonalityTypes.SOURCE.name().equalsIgnoreCase(fs.getPersonality())
                 && fs.getMirrorfsTargets() != null && !fs.getMirrorfsTargets().isEmpty()) {
             notSuppReasonBuff.append(String.format("File system %s has active target file systems", fs.getLabel()));

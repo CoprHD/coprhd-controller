@@ -110,7 +110,7 @@ public class VMAXApiClientTest {
     }
 
     @Test
-    public void deletMigrationEnvironmentTest() throws Exception {
+    public void deleteMigrationEnvironmentTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
         GetMigrationEnvironmentResponse response = apiClient.getMigrationEnvironmentList(sourceArraySerialNumber);
         assertNotNull("Response object is null", response);

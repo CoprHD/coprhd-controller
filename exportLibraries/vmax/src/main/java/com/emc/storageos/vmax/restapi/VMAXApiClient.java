@@ -5,20 +5,28 @@
 package com.emc.storageos.vmax.restapi;
 
 import java.net.URI;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import javax.ws.rs.core.MediaType;
 
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.services.restutil.StandardRestClient;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.vmax.VMAXConstants;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
+import com.emc.storageos.vmax.restapi.model.Symmetrix;
 import com.emc.storageos.vmax.restapi.model.VMAXAuthInfo;
 import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
+import com.emc.storageos.vmax.restapi.model.response.system.GetSymmetrixResponse;
+import com.emc.storageos.vmax.restapi.model.response.system.ListSymmetrixResponse;
+import com.emc.storageos.vmax.restapi.model.response.system.SystemVersionResponse;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -193,11 +201,51 @@ public class VMAXApiClient extends StandardRestClient {
         return environmentResponse;
     }
 
+    /**
+     * Get Unisphere REST API version
+     *
+     * @return API version
+     * @throws Exception
+     */
+    public String getApiVersion() throws Exception {
+        ClientResponse clientResponse = get(URI.create(VMAXConstants.getVersionURI()));
+        SystemVersionResponse response = getResponseObject(SystemVersionResponse.class, clientResponse);
+        return response.getVersion().replaceFirst("[^\\d-]", "");
+    }
+
+    /**
+     * Get local storage systems
+     *
+     * @return set of storage system IDs
+     * @throws Exception
+     */
+    public Set<String> getLocalSystems() throws Exception {
+        Set<String> localSystems = new HashSet<>();
+        ClientResponse clientResponse = get(URI.create(VMAXConstants.getSystemListURI()));
+        ListSymmetrixResponse response = getResponseObject(ListSymmetrixResponse.class, clientResponse);
+
+        List<String> systems = response.getSymmetrixId();
+        if (!CollectionUtils.isEmpty(systems)) {
+            for (String system : systems) {
+                clientResponse = get(URI.create(VMAXConstants.getSystemGetURI(system)));
+                GetSymmetrixResponse symmResponse = getResponseObject(GetSymmetrixResponse.class, clientResponse);
+                List<Symmetrix> symmSystems = symmResponse.getSymmetrix();
+                if (!CollectionUtils.isEmpty(symmSystems)) {
+                    Symmetrix symmSystem = symmSystems.get(0);
+                    if (symmSystem != null && symmSystem.isLocal()) {
+                        localSystems.add(system);
+                    }
+                }
+            }
+        }
+
+        return localSystems;
+    }
+
     public GetMigrationEnvironmentResponse getMigrationEnvironmentList(String sourceArraySerialNumber) throws Exception {
         ClientResponse clientResponse = get(
                 URI.create(VMAXConstants.getMigrationEnvironmentURI(sourceArraySerialNumber)));
         GetMigrationEnvironmentResponse environmentResponse = getResponseObject(GetMigrationEnvironmentResponse.class, clientResponse);
         return environmentResponse;
     }
-
 }

@@ -415,6 +415,7 @@ public class SystemsMapper {
 			}
 		}
 		to.setUsername(from.getUsername());
+		to.setRestProvider(toRelatedResource(ResourceTypeEnum.STORAGE_PROVIDER, from.getRestProvider()));
 		to.setModel(from.getModel());
 		to.setSupportedProvisioningType(from.getSupportedProvisioningType());
 		to.setSupportedAsynchronousActions(from.getSupportedAsynchronousActions());

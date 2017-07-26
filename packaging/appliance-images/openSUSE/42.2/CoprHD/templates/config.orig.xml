@@ -21,7 +21,7 @@
         <bootloader-theme>openSUSE</bootloader-theme>
     </preferences>
     <preferences profiles="appliance">
-        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-leap42.1" format="vmdk" bootloader="grub2" kernelcmdline="splash net.ifnames=0 biosdevname=0">
+        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash net.ifnames=0 biosdevname=0">
             <machine memory="__RAM__" guestOS="suse">
                 <vmdisk controller="lsilogic" id="0"/>
                 <vmnic interface="e1000" mode="bridged"/>
@@ -33,7 +33,7 @@
         </type>
     </preferences>
     <preferences profiles="openstack">
-        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-leap42.1" format="vmdk" bootloader="grub2" kernelcmdline="splash net.ifnames=0 biosdevname=0">
+        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash net.ifnames=0 biosdevname=0">
             <machine memory="__RAM__" guestOS="suse">
                 <vmdisk controller="lsilogic" id="0"/>
                 <vmnic interface="e1000" mode="bridged"/>
@@ -64,7 +64,9 @@
         <package name="configure-network"/>
         <package name="createrepo"/>
         <package name="curl"/>
-        <package name="dhcpcd"/>
+        <package name="dhcp"/>
+        <package name="dhcp-client"/>
+        <package name="dhcp-server"/>
         <package name="docker"/>
         <package name="expect"/>
         <package name="fontconfig"/>
@@ -97,7 +99,7 @@
         <package name="libgcrypt-devel"/>
         <package name="libGeoIP1"/>
         <package name="libgpg-error-devel"/>
-        <package name="libmng2"/>
+        <package name="libmng1"/>
         <package name="libopenssl-devel"/>
         <package name="libpcrecpp0"/>
         <package name="libpcreposix0"/>
@@ -185,8 +187,6 @@
         <package name="kmod"/>
         <package name="suse-module-tools"/>
         <package name="systemd-sysvinit"/>
-        <package name="containerd"/>
-        <package name="runc"/>
         <package name="filesystem"/>
         <package name="glibc-locale"/>
         <package name="cracklib-dict-full"/>

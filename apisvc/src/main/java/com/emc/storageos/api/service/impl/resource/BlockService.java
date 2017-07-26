@@ -1956,19 +1956,27 @@ public class BlockService extends TaskResourceService {
     @Path("/testdb")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public void testDbClient() {
-        NamedURI prj1 = new NamedURI(URIUtil.createId(Project.class), "prj1_" + LocalDateTime.now().getSecond());
-        NamedURI prj2 = new NamedURI(URIUtil.createId(Project.class), "prj2_" + LocalDateTime.now().getSecond());
+        NamedURI prj1 = new NamedURI(URIUtil.createId(Project.class), "prj1_" + randomSuffix());
+        NamedURI prj2 = new NamedURI(URIUtil.createId(Project.class), "prj2_" + randomSuffix());
+        _log.info("====  project 1 is {}, {}, project 2 is {}, {}", prj1.getURI(), prj1.getName(), prj2.getURI(), prj2.getName());
 
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
-        volume.setLabel("vol" + LocalDateTime.now().getSecond());
+        volume.setLabel("vol" + randomSuffix());
         volume.setProject(prj1);
         volume.setType(0);
         _dbClient.createObject(volume);
+        _log.info("====  new vol id is {}, {}", volume.getId(), volume.getLabel());
 
         volume.setProject(prj2);
         volume.setType(1);
         _dbClient.updateObject(volume);
+        _log.info("====  updated");
+    }
+
+    private String randomSuffix() {
+        LocalDateTime t = LocalDateTime.now();
+        return t.getDayOfMonth() + "_" + t.getHour() + "_" + t.getMinute() + "_" + t.getSecond();
     }
 
     /**

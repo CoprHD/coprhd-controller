@@ -3603,6 +3603,7 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
         }
 
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
 

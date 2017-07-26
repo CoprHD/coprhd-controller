@@ -25,6 +25,7 @@ public class ExportUpdateParam {
     private InitiatorsUpdateParam initiators;
     private HostsUpdateParam hosts;
     private ClustersUpdateParam clusters;
+    private URI exportPathPolicy;
     // Export path parameters can be specified for any included volumes.
     private ExportPathParameters exportPathParameters;
 
@@ -122,4 +123,19 @@ public class ExportUpdateParam {
     public void setExportPathParameters(ExportPathParameters exportPathParameters) {
                 this.exportPathParameters = exportPathParameters;
             }
+
+    /**
+     * Optional URI specifying an export path policy that contains that path parameters.
+     * If explicit parameters are also supplied, they will override the parameters in the path policy.
+     * either of which will override the Virtual Pool parameters.
+     * @return URI of export path policy
+     */
+    @XmlElement(name = "export_path_policy", required = false)
+    public URI getExportPathPolicy() {
+        return exportPathPolicy;
+    }
+
+    public void setExportPathPolicy(URI exportPathPolicy) {
+        this.exportPathPolicy = exportPathPolicy;
+    }
 }

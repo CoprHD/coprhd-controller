@@ -4,7 +4,11 @@
  */
 package com.emc.storageos.model.block.export;
 
+import java.net.URI;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.valid.Range;
@@ -20,8 +24,8 @@ public class ExportPathPolicyUpdate {
     private String name;
     private Integer maxInitiatorsPerPort;
     
-    private StoragePorts portsToAdd;
-    private StoragePorts portsToRemove;
+    private List<URI> portsToAdd;
+    private List<URI> portsToRemove;
     
     @XmlElement(name = "max_paths")
     @Range(min = 1, max = 65535)
@@ -96,18 +100,20 @@ public class ExportPathPolicyUpdate {
         this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
     
-    @XmlElement(name = "add", required = false)
-    public StoragePorts getPortsToAdd() {
+    @XmlElementWrapper(name = "add_storage_ports", required = false)
+    @XmlElement(name = "storage_port", required = false)
+    public List<URI> getPortsToAdd() {
         return portsToAdd;
     }
-    public void setPortsToAdd(StoragePorts portsToAdd) {
+    public void setPortsToAdd(List<URI> portsToAdd) {
         this.portsToAdd = portsToAdd;
     }
-    @XmlElement(name = "remove", required = false)
-    public StoragePorts getPortsToRemove() {
+    @XmlElementWrapper(name = "remove_storage_ports", required = false)
+    @XmlElement(name = "storage_port", required = false)
+    public List<URI> getPortsToRemove() {
         return portsToRemove;
     }
-    public void setPortsToRemove(StoragePorts portsToRemove) {
+    public void setPortsToRemove(List<URI> portsToRemove) {
         this.portsToRemove = portsToRemove;
     }
     

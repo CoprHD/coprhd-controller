@@ -25,6 +25,10 @@ def pathparams_create(args):
         path_param['max_initiators_per_port'] = args.maxinitperport
     if (args.description):
         path_param['description'] = args.description
+    if (args.array and args.ports):
+        portnamesarray=args.ports.split(',')
+        portstoadd = parseports(args, portnamesarray)
+        path_param['storage_ports'] = portstoadd
     bourne.export_path_policies_create(path_param)
 
 def pathparams_update(args):
@@ -36,15 +40,25 @@ def pathparams_update(args):
     for id in res:
         pathparam = bourne.export_path_policies_get(id)
         if (pathparam['name'] == args.name):
+            print 'Updating ', args.name
             path_param = dict()
             path_param['name'] = args.name
             path_param['max_paths'] = args.maxpaths
             path_param['min_paths'] = args.minpaths
+            path_param['paths_per_initiator'] = args.pathsperinitiator
 	    if (args.description):
 	        path_param['description'] = args.description
             if (args.maxinitperport):
                 path_param['max_initiators_per_port'] = args.maxinitperport
-            path_param['paths_per_initiator'] = args.pathsperinitiator
+	    if (args.array and args.addports):
+               portnamesarray=args.addports.split(',')
+               portstoadd = parseports(args, portnamesarray)
+               path_param['add_storage_ports'] = portstoadd
+	    if (args.array and args.remports):
+               portnamesarray=args.remports.split(',')
+               portstorem = parseports(args, portnamesarray)
+               path_param['remove_storage_ports'] = portstorem
+            print 'calling: ', path_param
             bourne.export_path_policies_update(id, path_param)
 
 def pathparameters_list(args):
@@ -57,6 +71,12 @@ def pathparameters_list(args):
     for id in res:
         pathparam = bourne.export_path_policies_get(id)
         path_display(pathparam)
+        if (pathparam['storage_ports']):
+            print 'Ports: ',
+            for uri in pathparam['storage_ports']:
+	        port=bourne.storageport_get(uri);
+		print port['port_name'],
+            print
 
 def pathparameters_delete(args):
     list_all='false'
@@ -68,6 +88,24 @@ def pathparameters_delete(args):
         pathparam = bourne.export_path_policies_get(id)
         if (pathparam['name'] == args.name):
             bourne.export_path_policies_delete(id)
+
+# Parse storage ports
+# Takes args, portarray and returns porturiarray
+def parseports(args, portnamesarray):
+    print 'starting parse ports'
+    uriarray = []
+    try:
+        uri  = bourne.storagedevice_querybynativeguid(args.array)
+	print 'array: ', args.array
+        porturis = bourne.storageport_list(uri)
+        for porturi in porturis:
+            sport = bourne.storageport_show(uri, porturi['id'])
+	    if (sport['port_name'] in portnamesarray):
+	        print 'Found port: ', sport['port_name']
+	        uriarray.append(sport['id'])
+    except:
+        print 'problem parsing ports', portnamesarray
+    return uriarray
 
 #
 # display path parameters in list form
@@ -107,6 +145,8 @@ create.add_argument('maxpaths', help = 'maximum paths')
 create.add_argument('pathsperinitiator', help = 'paths per initiator')
 create.add_argument('--description', help='description')
 create.add_argument('--maxinitperport', help='description')
+create.add_argument('--array', help='storage ports')
+create.add_argument('--ports', help='storage ports')
 
 # pathparams update name 
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -116,6 +156,9 @@ update.add_argument('maxpaths', help = 'maximum paths')
 update.add_argument('pathsperinitiator', help = 'paths per initiator')
 update.add_argument('--description', help='description')
 update.add_argument('--maxinitperport', help='description')
+update.add_argument('--array', help='storage ports')
+update.add_argument('--addports', help='storage ports')
+update.add_argument('--remports', help='storage ports')
 
 # pathparams delete name
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

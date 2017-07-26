@@ -845,7 +845,7 @@ public class StorageSystems extends ViprResourceController {
             StoragePorts  storagePorts = new StoragePorts(); 
             if (!portsToAdd.isEmpty()) {
                 storagePorts.setStoragePorts(portsToAdd);
-                pathParam.setPortsToAdd(storagePorts);
+                pathParam.setPortsToAdd(portsToAdd);
             }
             getViprClient().exportPathParameters().update(exportPathParametersRestRep.getId(), pathParam);
         
@@ -870,7 +870,7 @@ public class StorageSystems extends ViprResourceController {
             StoragePorts  storagePorts = new StoragePorts(); 
             if (!portsToRemove.isEmpty()) {
                 storagePorts.setStoragePorts(portsToRemove);
-                pathParam.setPortsToRemove(storagePorts);
+                pathParam.setPortsToRemove(portsToRemove);
             }
             getViprClient().exportPathParameters().update(exportPathParametersRestRep.getId(), pathParam);
         editPortGroup(pathParamId,storageSystemId);

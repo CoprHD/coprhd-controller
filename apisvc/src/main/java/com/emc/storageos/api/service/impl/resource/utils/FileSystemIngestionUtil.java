@@ -276,4 +276,49 @@ public class FileSystemIngestionUtil {
         }
         return false;
     }
+    
+    /**
+     * This method handles the duplicate file system name to be ingested in same project
+     * 
+     * @param _dbClient
+     * @param project
+     * @param label
+     * @param filesystems
+     * @param isTargetFs
+     * @return file system label
+     */
+    public static String validateAndGetFileShareLabel(DbClient _dbClient, URI project, String label, List<FileShare> filesystems,
+            boolean isTargetFs) {
+        List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project", project, label));
+
+        // Add file systems from current batch!!
+        for (FileShare fs : filesystems) {
+            if (fs.getLabel().equalsIgnoreCase(label) || fs.getName().equalsIgnoreCase(label)) {
+                fileShareList.add(fs);
+            }
+        }
+        String tagetSuffix = "";
+        if (isTargetFs) {
+            tagetSuffix = "_target";
+        }
+        String fsName = label;
+        if (!fileShareList.isEmpty()) {
+            StringSet existingFsNames = new StringSet();
+            for (FileShare fs : fileShareList) {
+                existingFsNames.add(fs.getLabel());
+            }
+            // cancatenate the number!!!
+            int numFs = fileShareList.size();
+            do {
+                String fsLabelWithNumberSuffix = label + tagetSuffix + "(" + numFs + ")";
+                if (!existingFsNames.contains(fsLabelWithNumberSuffix)) {
+                    fsName = fsLabelWithNumberSuffix;
+                    break;
+                }
+                numFs++;
+            } while (true);
+        }
+        return fsName;
+    }
 }

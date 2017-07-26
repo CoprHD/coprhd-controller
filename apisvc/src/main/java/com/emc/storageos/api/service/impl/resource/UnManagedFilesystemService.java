@@ -500,7 +500,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                 fsSupportedProtocols.retainAll(pool.getProtocols());
                 fsSupportedProtocols.retainAll(cos.getProtocols());
                 filesystem.getProtocol().addAll(fsSupportedProtocols);
-                filesystem.setLabel(null == deviceLabel ? "" : deviceLabel);
+                String fsLabel = FileSystemIngestionUtil.validateAndGetFileShareLabel(_dbClient, project.getId(), deviceLabel, filesystems,
+                        false);
+                filesystem.setLabel(fsLabel);
                 filesystem.setName(null == fsName ? "" : fsName);
                 filesystem.setTenant(new NamedURI(project.getTenantOrg().getURI(), filesystem.getLabel()));
                 filesystem.setProject(new NamedURI(param.getProject(), filesystem.getLabel()));

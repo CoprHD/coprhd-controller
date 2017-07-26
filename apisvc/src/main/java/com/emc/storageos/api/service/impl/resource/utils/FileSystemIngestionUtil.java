@@ -284,9 +284,6 @@ public class FileSystemIngestionUtil {
      * 2. It also verifies for the file system in current processing file system list
      * 3. If duplicate name found, add suffix (n) to the file system label
      * 
-     * 
-     * 
-     * 
      * @param _dbClient
      * @param project - project id
      * @param label - label of the file system to be ingested

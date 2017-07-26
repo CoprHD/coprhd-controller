@@ -26,7 +26,7 @@ endif
 ##################################################
 #  Target files/folders
 ##################################################
-USE_CACHE := false
+USE_CACHE := $(shell [ -d /disks/adgbuild/OPENSUSE42.2/repo ] && echo true || echo false)
 IMAGE_DIR := $(WORKSPACE)/image/$(JOB)
 OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
 BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)

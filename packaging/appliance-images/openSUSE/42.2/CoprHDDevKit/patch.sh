@@ -27,7 +27,7 @@ FileVersion=$( rpm -q kiwi --queryformat "%{RPMTAG_VERSION}" )
 FileBoot="$kiwiPath/KIWIBoot.pm"
 if [ $FileVersion == "7.01.16" ] && [ ! -f $FileBoot.bak ]; then
   echo "Patching KIWI bootloader container installations"
-  line=$( grep -nr "\$loaderTarget = \$diskname;" $FileBoot | cut -d ':' -f 1 )
+  linenum=$(grep -n "\$loaderTarget = readlink (\$bootdev)" $FileBoot | cut -d: -f1)
   if [ ! -z "$line" ]; then
     cp $FileBoot $FileBoot.bak
     sed -i "$((line+0)),$((line+2))d" $FileBoot

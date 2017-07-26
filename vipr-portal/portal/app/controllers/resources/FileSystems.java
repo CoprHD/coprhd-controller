@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
@@ -403,9 +404,11 @@ public class FileSystems extends ResourceController {
         nfsACL.name = name;
         nfsACL.domain = domain;
         String[] strPerm = permissions.replaceAll("/", ",").split(",");
-        String[] strInherit = inheritFlags.replaceAll("/", ",").split(",");
         nfsACL.permissions = new HashSet<String>(Arrays.asList(strPerm));
-        nfsACL.inheritFlags = new HashSet<String>(Arrays.asList(strInherit));
+        if (null != inheritFlags && !inheritFlags.isEmpty()) {
+            String[] strInherit = inheritFlags.replaceAll("/", ",").split(",");
+            nfsACL.inheritFlags = new HashSet<String>(Arrays.asList(strInherit));
+        }
         nfsACL.permissionType = permissionType;
         renderArgs.put("permissionOptions", StringOption.options(new String[] {
                 "read", "write", "execute", "fullControl" }));
@@ -450,7 +453,9 @@ public class FileSystems extends ResourceController {
         for (String inheritFlag : inheritFlags) {
             strInherit = strInherit + inheritFlag.toLowerCase() + ",";
         }
-        strInherit = strInherit.substring(0, strInherit.length() - 1);
+        if (strInherit.length() > 1) {
+            strInherit = strInherit.substring(0, strInherit.length() - 1);
+        }
         List<NfsACE> aces = Lists.newArrayList();
         NfsACE nfsAce = new NfsACE();
 
@@ -498,7 +503,9 @@ public class FileSystems extends ResourceController {
                 ace.setUser(name);
                 ace.setType(type);
                 ace.setPermissions(permissions.replaceAll("/", ","));
-                ace.setInheritFlags(inheritFlags.replaceAll("/", ","));
+                if (null != inheritFlags && !inheritFlags.isEmpty()) {
+                    ace.setInheritFlags(inheritFlags.replaceAll("/", ","));
+                }
                 ace.setPermissionType(permissionType);
                 if (domain != null && !"".equals(domain)
                         && !"null".equals(domain)) {
@@ -1354,7 +1361,9 @@ public class FileSystems extends ResourceController {
             nfsAce.setType(type.trim());
             nfsAce.setUser(name.trim());
             nfsAce.setPermissions(permissions.toString());
-            nfsAce.setInheritFlags(inheritFlags.toString());
+            if (CollectionUtils.isEmpty(inheritFlags)) {
+                nfsAce.setInheritFlags(inheritFlags.toString());
+            }
             nfsAce.setPermissionType(permissionType);
             if (domain.trim() != null && !"".equals(domain.trim())) {
                 nfsAce.setDomain(domain.trim());

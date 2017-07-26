@@ -3390,9 +3390,6 @@ public interface BadRequestExceptions {
     public BadRequestException changePortGroupPortGroupNoOverlap(String newPortGroup);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException pathAdjustmentPortGroupInvalid(String newPortGroup, String storageSystem);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException changePortGroupNotSupportedforHostIOLimit(String volume);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

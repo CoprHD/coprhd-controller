@@ -219,6 +219,8 @@ public class AddHostToClusterService extends ViPRService {
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
         }
 
+        preCheckErrors = ComputeUtils.checkComputeSystemsHaveImageServer(getClient(), cvp, preCheckErrors);
+
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString() + 
                     ComputeUtils.getContextErrors(getModelClient()));

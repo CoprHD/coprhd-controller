@@ -20,5 +20,4 @@ public class GetStorageSystem extends ViPRExecutionTask<StorageSystemRestRep> {
     public StorageSystemRestRep executeTask() throws Exception {
         return getClient().storageSystems().get(this.storageSystem);
     }
-
 }

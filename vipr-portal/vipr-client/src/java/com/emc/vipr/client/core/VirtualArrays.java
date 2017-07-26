@@ -430,19 +430,25 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      */
     public List<NamedRelatedResourceRep> getStoragePortGroups(URI vArrayId) {
         StoragePortGroupList portGroups = client.get(StoragePortGroupList.class, baseUrl + "/{id}/storage-port-groups", vArrayId);
-       return defaultList(portGroups.getPortGroups());
+        return defaultList(portGroups.getPortGroups());
     }
-
+   
     /**
      * Gets the list of storage ports that are visible in this vArray with specified export
-     *
-     * @param vArrayId
-     *            the ID of the virtual array.
-     * @param exportId
-     *            the ID of the export group.
+     * 
+     * @param vArrayId 
+     *          The varray to get the PGs from 
+     * @param exportId 
+     *          Optional ID for an export group
+     * @param storageSystemId 
+     *          Optional ID for a storage system
+     * @param virtualPoolId 
+     *          Optional ID for a vpool
+     * * @param cgId 
+     *          Optional ID for a CG         
      * @return the list of storage port groups.
      */
-    public StoragePortGroupRestRepList getStoragePortGroups(URI vArrayId, URI exportId, URI storageSystemId, URI virtualPoolId) {
+    public StoragePortGroupRestRepList getStoragePortGroups(URI vArrayId, URI exportId, URI storageSystemId, URI virtualPoolId, URI cgID) {
         UriBuilder builder = client.uriBuilder(baseUrl + "/{id}/storage-port-groups");
         if (exportId != null && !exportId.equals("")) {
             builder = builder.queryParam("export_group", exportId);
@@ -452,6 +458,9 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
         }
         if (virtualPoolId != null && !virtualPoolId.equals("")) {
             builder = builder.queryParam("vpool", virtualPoolId);
+        }
+        if (cgID != null && !cgID.equals("")) {
+            builder = builder.queryParam("consistency_group", cgID);
         }
         return client.getURI(StoragePortGroupRestRepList.class, builder.build(vArrayId));
     }

@@ -90,7 +90,7 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
 
         super.precheck();
         for (CreateBlockVolumeForHostHelper helper : createBlockVolumeHelpers) {
-            helper.precheck();
+            helper.precheck(getClient());
         }
         acquireHostLock();
         for (String datastore : datastoreNames) {

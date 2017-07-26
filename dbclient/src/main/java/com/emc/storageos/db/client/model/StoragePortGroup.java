@@ -94,5 +94,4 @@ public class StoragePortGroup extends DiscoveredDataObject {
         this.mutable = mutable;
         setChanged("mutable");
     }
-
 }

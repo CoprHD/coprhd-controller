@@ -33,7 +33,7 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        createBlockVolumeHelper.precheck(getClient());
+        createBlockVolumeHelper.precheck();
         acquireHostLock();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         vmware.verifyVolumesBackingDatastore(host, hostId, datastore);

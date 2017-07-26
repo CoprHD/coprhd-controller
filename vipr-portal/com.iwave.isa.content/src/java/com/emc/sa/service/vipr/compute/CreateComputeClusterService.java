@@ -35,7 +35,6 @@ import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.block.ExportBlockVolumeHelper;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnToIpTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
@@ -217,6 +216,7 @@ public class CreateComputeClusterService extends ViPRService {
              }
         }
 
+
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
                 preCheckErrors.append(
@@ -242,8 +242,6 @@ public class CreateComputeClusterService extends ViPRService {
             throw new IllegalStateException(preCheckErrors.toString() + 
                     ComputeUtils.getContextErrors(getModelClient()));
         }
-        
-        ExportBlockVolumeHelper.precheckPortGroupParameter(virtualPool, cluster.getId(), project, virtualArray, portGroup, getClient());
     }
 
     @Override

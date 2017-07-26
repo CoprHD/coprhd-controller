@@ -30,7 +30,7 @@ public class CreateAndMountVolumeService extends LinuxService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        createVolumeHelper.precheck(getClient());
+        createVolumeHelper.precheck();
         mountBlockVolumeHelper.precheck();
     }
 

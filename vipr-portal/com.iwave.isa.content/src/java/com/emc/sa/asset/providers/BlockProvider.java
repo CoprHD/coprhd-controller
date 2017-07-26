@@ -552,6 +552,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         return options;
     }
+    
 
     @Asset("exportSnapshotForHostPortGroups")
     @AssetDependencies( {"unassignedBlockSnapshot", "host", "project"} )

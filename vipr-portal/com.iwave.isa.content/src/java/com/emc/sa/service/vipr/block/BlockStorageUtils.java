@@ -144,9 +144,8 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
-import com.emc.storageos.model.customconfig.SimpleValueRep;
-import com.emc.storageos.model.portgroup.StoragePortGroupRestRepList;
 import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.storageos.model.customconfig.SimpleValueRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
@@ -622,7 +621,7 @@ public class BlockStorageUtils {
             ExportGroupRestRep export = getExport(exportId);
             if (ResourceUtils.isActive(export) && export.getVolumes().isEmpty()) {
                 try {
-                    log.info(String.format("Attempting deletion of ExportGroup %s (%s)", export.getGeneratedName(), export.getId()));
+                    log.info(String.format("Attampting deletion of ExportGroup %s (%s)", export.getGeneratedName(), export.getId()));
                     Task<ExportGroupRestRep> response = execute(new DeactivateBlockExport(exportId));
                     addAffectedResource(response);
                 } catch (ExecutionException e) {
@@ -646,9 +645,9 @@ public class BlockStorageUtils {
         } while (retryNeeded);
     }
 
-    public static boolean isVMAXUsePortGroupEnabled(URI resourceId, URI varrayId, ViPRCoreClient client) {
-        SimpleValueRep vmaxPortGroupsEnabled = execute(new GetVMAXUsePortGroupEnabledConfig());
-        if (vmaxPortGroupsEnabled.getValue().equalsIgnoreCase("true")) {
+    public static boolean isVMAXUsePortGroupEnabled(URI resourceId) {
+        SimpleValueRep value = execute(new GetVMAXUsePortGroupEnabledConfig());
+        if (value.getValue().equalsIgnoreCase("true")) {
             if (ResourceType.isType(ResourceType.VOLUME, resourceId)) {
                 BlockObjectRestRep obj = getVolume(resourceId);
                 if (obj instanceof VolumeRestRep) {
@@ -689,12 +688,6 @@ public class BlockStorageUtils {
                 if (StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
                         StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
                     return true;
-                } else {
-                    // If the vpool does not explicitly state its type as VMAX, then we need to go one level deeper to check to see 
-                    // if there are any valid PGs for the varray/vpool present (which checks at the storage pool level). 
-                    // If so, the user must select one before the order can proceed since vmaxPortGroupsEnabled is true.
-                    StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId, null, null, resourceId, null);
-                    return !CollectionUtils.isEmpty(portGroups.getStoragePortGroups());
                 }
             }
         }

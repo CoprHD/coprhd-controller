@@ -23,7 +23,6 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.sa.service.vipr.block.ExportBlockVolumeHelper;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
@@ -63,6 +62,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
     private Cluster cluster;
     private List<String> hostNames = null;
     private List<String> copyOfHostNames = null;
+
 
     @Override
     public void precheck() throws Exception {
@@ -138,8 +138,6 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             throw new IllegalStateException(preCheckErrors.toString() + 
                     ComputeUtils.getContextErrors(getModelClient()));
         }
-        
-        ExportBlockVolumeHelper.precheckPortGroupParameter(virtualPool, clusterId, project, virtualArray, portGroup, getClient());
     }
 
     @Override
@@ -186,4 +184,95 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             }
         }
     }
+
+    public URI getClusterId() {
+        return clusterId;
+    }
+
+    public void setClusterId(URI clusterId) {
+        this.clusterId = clusterId;
+    }
+
+    public URI getProject() {
+        return project;
+    }
+
+    public void setProject(URI project) {
+        this.project = project;
+    }
+
+    public URI getVirtualArray() {
+        return virtualArray;
+    }
+
+    public void setVirtualArray(URI virtualArray) {
+        this.virtualArray = virtualArray;
+    }
+
+    public URI getVirtualPool() {
+        return virtualPool;
+    }
+
+    public void setVirtualPool(URI virtualPool) {
+        this.virtualPool = virtualPool;
+    }
+
+    public URI getVirtualComputePool() {
+        return computeVirtualPool;
+    }
+
+    public void setVirtualComputePool(URI virtualComputePool) {
+        this.computeVirtualPool = virtualComputePool;
+    }
+
+    public Double getSize() {
+        return size;
+    }
+
+    public void setSize(Double size) {
+        this.size = size;
+    }
+
+    /**
+     * @return the cluster
+     */
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    /**
+     * @param cluster the cluster to set
+     */
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
+    }
+
+    /**
+     * @return the hostNames
+     */
+    public List<String> getHostNames() {
+        return hostNames;
+    }
+
+    /**
+     * @param hostNames the hostNames to set
+     */
+    public void setHostNames(List<String> hostNames) {
+        this.hostNames = hostNames;
+    }
+
+    /**
+     * @return the copyOfHostNames
+     */
+    public List<String> getCopyOfHostNames() {
+        return copyOfHostNames;
+    }
+
+    /**
+     * @param copyOfHostNames the copyOfHostNames to set
+     */
+    public void setCopyOfHostNames(List<String> copyOfHostNames) {
+        this.copyOfHostNames = copyOfHostNames;
+    }
+
 }

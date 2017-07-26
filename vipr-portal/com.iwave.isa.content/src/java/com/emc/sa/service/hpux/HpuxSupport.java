@@ -197,11 +197,17 @@ public class HpuxSupport {
     }
 
     public RDisk findRDisk(BlockObjectRestRep volume, boolean usePowerPath) {
-        RDisk rdisk = execute(new FindRDiskForVolume(volume, usePowerPath));
-        if (rdisk == null) {
-            throw new IllegalStateException(String.format(
-                    "Could not find hdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
+        RDisk rdisk = null;
+        IllegalStateException rdiskException = new IllegalStateException(String.format(
+                    "Could not find rdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
                     volume.getWwn().toLowerCase()));
+        try {
+            rdisk = execute(new FindRDiskForVolume(volume, usePowerPath));
+            if (rdisk == null) {
+                throw rdiskException;
+            }
+        } catch (Exception ex) {
+            throw rdiskException;
         }
         return rdisk;
     }

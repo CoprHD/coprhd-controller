@@ -1643,7 +1643,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 waitFor = workflow.createStep(ENTER_MAINTENANCE_MODE,
                         "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
                         cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId),
-                        new Workflow.Method("exitHostFromMaintenanceMode", hostId), null);
+                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             }
         }
         return waitFor;

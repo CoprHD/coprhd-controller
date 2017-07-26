@@ -20,7 +20,11 @@ public class ExtendFilesystem extends HpuxExecutionTask<Void> {
 
     @Override
     public void execute() throws Exception {
-        ExtendFilesystemCommand command = new ExtendFilesystemCommand(device);
-        executeCommand(command, SHORT_TIMEOUT);
+        try {
+            ExtendFilesystemCommand command = new ExtendFilesystemCommand(device);
+            executeCommand(command, SHORT_TIMEOUT);
+        } catch (Exception ex) {
+            logWarn("hpux.extendfs.fail", ex.getMessage());
+        }
     }
 }

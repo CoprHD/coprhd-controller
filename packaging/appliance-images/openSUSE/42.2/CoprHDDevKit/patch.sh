@@ -41,7 +41,7 @@ if [ $FileVersion == "7.01.16" ] && [ ! -f $FileBoot.bak ]; then
   fi
 elif [ $FileVersion == "7.03.92" ] && [ ! -f $FileBoot.bak ]; then
   echo "Modifying to fix on container builds for $FileKIWIBoot version $patch"
-  linenum=$( grep -nr "\$loaderTarget = \$diskname;" $FileBoot | cut -d ':' -f 1 )
+  linenum=$(grep -n "\$loaderTarget = readlink (\$bootdev)" $FileBoot | cut -d: -f1)
   if [ "$linenum" != "" ]; then
     linerem=$(( ${linenum}-1 ))
     cp $FileBoot $FileBoot.bak

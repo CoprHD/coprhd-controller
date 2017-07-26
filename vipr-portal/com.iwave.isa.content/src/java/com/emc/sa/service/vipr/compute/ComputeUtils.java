@@ -69,7 +69,6 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.ExecutionLog.LogLevel;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -1816,7 +1815,10 @@ public class ComputeUtils {
         if (null != computeSystemMap) {
             for (Map.Entry<URI, ComputeSystemRestRep> computeSystemRestRep : computeSystemMap.entrySet()) {
                 if (NullColumnValueGetter.isNullValue(computeSystemRestRep.getValue().getComputeImageServer())){
-                    computeSystemsWithoutImageServer.append(computeSystemRestRep.getValue().getComputeImageServer());
+                    if (computeSystemsWithoutImageServer.length() > 0){
+                        computeSystemsWithoutImageServer.append(", ");
+                    }
+                    computeSystemsWithoutImageServer.append(computeSystemRestRep.getValue().getName());
                 }
             }
             if (computeSystemsWithoutImageServer.length() > 0){

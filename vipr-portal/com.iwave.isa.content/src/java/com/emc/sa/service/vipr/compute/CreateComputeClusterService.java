@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.iwave.ext.windows.winrm.Pair;
 import org.apache.commons.collections.CollectionUtils;
 
 import com.emc.sa.engine.ExecutionUtils;

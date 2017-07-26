@@ -52,16 +52,16 @@ public interface VMAXConstants {
         return URI.create(String.format(GET_MIGRATION_STORAGEGROUP_URI, sourceSymmetrixId, storageGroupName));
     }
 
-    public static String getVersionURI() {
-        return UNIVMAX_SYSTEM_VERSION_URI;
+    public static URI getVersionURI() {
+        return URI.create(UNIVMAX_SYSTEM_VERSION_URI);
     }
 
-    public static String getSystemListURI() {
-        return UNIVMAX_SYSTEM_SYMM_LIST_URI;
+    public static URI getSystemListURI() {
+        return URI.create(UNIVMAX_SYSTEM_SYMM_LIST_URI);
     }
 
-    public static String getSystemGetURI(String symmId) {
-        return String.format(UNIVMAX_SYSTEM_SYMM_GET_URI, symmId);
+    public static URI getSystemGetURI(String symmId) {
+        return URI.create(String.format(UNIVMAX_SYSTEM_SYMM_GET_URI, symmId));
     }
 
 }

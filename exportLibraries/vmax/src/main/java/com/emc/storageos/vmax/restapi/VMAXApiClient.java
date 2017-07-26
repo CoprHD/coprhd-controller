@@ -217,7 +217,7 @@ public class VMAXApiClient extends StandardRestClient {
      * @throws Exception
      */
     public String getApiVersion() throws Exception {
-        ClientResponse clientResponse = get(URI.create(VMAXConstants.getVersionURI()));
+        ClientResponse clientResponse = get(VMAXConstants.getVersionURI());
         SystemVersionResponse response = getResponseObject(SystemVersionResponse.class, clientResponse);
         return response.getVersion().replaceFirst("[^\\d-]", "");
     }
@@ -230,13 +230,13 @@ public class VMAXApiClient extends StandardRestClient {
      */
     public Set<String> getLocalSystems() throws Exception {
         Set<String> localSystems = new HashSet<>();
-        ClientResponse clientResponse = get(URI.create(VMAXConstants.getSystemListURI()));
+        ClientResponse clientResponse = get(VMAXConstants.getSystemListURI());
         ListSymmetrixResponse response = getResponseObject(ListSymmetrixResponse.class, clientResponse);
 
         List<String> systems = response.getSymmetrixId();
         if (!CollectionUtils.isEmpty(systems)) {
             for (String system : systems) {
-                clientResponse = get(URI.create(VMAXConstants.getSystemGetURI(system)));
+                clientResponse = get(VMAXConstants.getSystemGetURI(system));
                 GetSymmetrixResponse symmResponse = getResponseObject(GetSymmetrixResponse.class, clientResponse);
                 List<Symmetrix> symmSystems = symmResponse.getSymmetrix();
                 if (!CollectionUtils.isEmpty(symmSystems)) {
@@ -265,6 +265,7 @@ public class VMAXApiClient extends StandardRestClient {
         log.info("Response -> :{}", environmentResponse);
         return environmentResponse;
     }
+
     /**
      * Deletes the existing migration environment for the given source and target array
      * 

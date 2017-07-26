@@ -662,7 +662,7 @@ public class StorageScheduler implements Scheduler {
             if (optionalAttributes != null) {
                 optionalAttributes.put(AttributeMatcher.ERROR_MESSAGE, errorMessage);
             }
-            _log.warn("Varray {} does not have storage pools which match vpool {} properties and have specified  capabilities.",
+            _log.warn("Varray {} does not have storage pools which match vpool {} properties and have specified capabilities.",
                     varray.getId(), vpool.getId());
             return storagePools;
         }

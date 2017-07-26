@@ -5341,7 +5341,7 @@ class Bourne:
 
     def export_path_policies_list(self, all):
         results =  self.api('GET', URI_EXPORTPATHPOLICIES_LIST_QUERY.format(all))
-        resources = results['export_path_policy']
+        resources = results['export_path_policies']
         pathparams = []
         for resource in resources:
             pathparams.append(resource['id'])

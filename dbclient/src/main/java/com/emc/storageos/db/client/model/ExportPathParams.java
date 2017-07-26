@@ -189,7 +189,7 @@ public class ExportPathParams extends DataObject {
         this.allowFewerPorts = allowFewerPorts;
     }
 
-    @Transient
+    @Name("maxInitiatorsPerPort")
     public Integer getMaxInitiatorsPerPort() {
         if (maxInitiatorsPerPort == null) {
             // 1 is the default because we normally want only one initiator to use each storage port
@@ -200,6 +200,7 @@ public class ExportPathParams extends DataObject {
 
     public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
         this.maxInitiatorsPerPort = maxInitiatorsPerPort;
+        setChanged("maxInitiatorsPerPort");
     }
     
     @Name("description")

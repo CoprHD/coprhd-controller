@@ -21,6 +21,8 @@ def pathparams_create(args):
     path_param['max_paths'] = args.maxpaths
     path_param['min_paths'] = args.minpaths
     path_param['paths_per_initiator'] = args.pathsperinitiator
+    if (args.maxinitperport):
+        path_param['max_initiators_per_port'] = args.maxinitperport
     if (args.description):
         path_param['description'] = args.description
     bourne.export_path_policies_create(path_param)
@@ -70,18 +72,18 @@ def pathparameters_delete(args):
 #
 # display path parameters in list form
 #
-path_fmt=    '{0:40s} {1:4d} {2:4d} {3:4d} {4:72} {5:60s}'
-path_fmt_hdr='{0:40s} {1:4s} {2:4s} {3:4s} {4:72} {5:60s}'
+path_fmt=    '{0:40s} {1:4d} {2:4d} {3:4d} {4:4d} {5:72} {6:60s}'
+path_fmt_hdr='{0:40s} {1:4s} {2:4s} {3:4s} {4:4s} {5:72} {6:60s}'
 
 def path_display_hdr():
-    print path_fmt_hdr.format('name', ' min', ' max', ' ppi', 'id', 'description')
+    print path_fmt_hdr.format('name', ' min', ' max', ' ppi', 'mipp', 'id', 'description')
 
 def path_display(path):
     try:
         desc = path['description']
     except:
         desc = ''
-    print path_fmt.format(path['name'], path['min_paths'], path['max_paths'], path['paths_per_initiator'], path['id'], desc)
+    print path_fmt.format(path['name'], path['min_paths'], path['max_paths'], path['paths_per_initiator'], path['max_initiators_per_port'], path['id'], desc)
 
 #----------------------------------------------------------------------
 # command-line parsing
@@ -104,6 +106,7 @@ create.add_argument('minpaths', help = 'minimum paths')
 create.add_argument('maxpaths', help = 'maximum paths')
 create.add_argument('pathsperinitiator', help = 'paths per initiator')
 create.add_argument('--description', help='description')
+create.add_argument('--maxinitperport', help='description')
 
 # pathparams update name 
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

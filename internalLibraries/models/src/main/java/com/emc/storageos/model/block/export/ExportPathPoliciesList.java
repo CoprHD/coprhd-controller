@@ -25,7 +25,7 @@ public class ExportPathPoliciesList {
         this.pathPoliciesList = pathParamsList;
     }
 
-    @XmlElement(name = "export_path_policies")
+    @XmlElement(name = "export_path_policy")
     public List<NamedRelatedResourceRep> getPathParamsList() {
         if (pathPoliciesList == null) {
             pathPoliciesList = new ArrayList<NamedRelatedResourceRep>();

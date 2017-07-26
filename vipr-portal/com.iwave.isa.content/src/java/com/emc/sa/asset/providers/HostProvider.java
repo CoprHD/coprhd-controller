@@ -17,6 +17,7 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.HostTypeFilter;
@@ -136,5 +137,35 @@ public class HostProvider extends BaseHostProvider {
     public List<AssetOption> getVblockHostsByCluster(AssetOptionsContext context, URI clusterId) {
         debug("getting all hosts for a vblock cluster");
         return createHostOptions(context, getHosts(context, clusterId));
+    }
+
+    @Asset("hostsWithCEAndSPByVblockCluster")
+    @AssetDependencies({ "vblockCluster" })
+    public List<AssetOption> getHostsWithCEAndSP(AssetOptionsContext context, URI clusterId) {
+        debug("getting all hosts that have a CE and SP association from a vblock cluster");
+        List<HostRestRep> hostList = getHosts(context, clusterId);
+        List<AssetOption> options = Lists.newArrayList();
+        for (HostRestRep host : hostList) {
+            if (host.getComputeElement() != null &&
+                (!NullColumnValueGetter.isNullURI(host.getComputeElement().getId())
+                        && !NullColumnValueGetter.isNullValue(host.getServiceProfileName()))) {
+                options.add(createHostOption(context, host));
+            }
+        }
+        return options;
+    }
+
+    @Asset("releasedHostsWithSPByVblockCluster")
+    @AssetDependencies({ "vblockCluster" })
+    public List<AssetOption> getReleasedHostsWithSP(AssetOptionsContext context, URI clusterId) {
+        debug("getting all hosts having only SP association from a vblock cluster");
+        List<HostRestRep> hostList = getHosts(context, clusterId);
+        List<AssetOption> options = Lists.newArrayList();
+        for (HostRestRep host : hostList) {
+            if (!NullColumnValueGetter.isNullValue(host.getServiceProfileName()) && host.getComputeElement() == null) {
+                options.add(createHostOption(context, host));
+            }
+        }
+        return options;
     }
 }

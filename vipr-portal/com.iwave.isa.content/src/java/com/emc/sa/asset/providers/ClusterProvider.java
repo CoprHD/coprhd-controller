@@ -85,7 +85,8 @@ public class ClusterProvider extends BaseAssetOptionsProvider {
                     (host.getType().equalsIgnoreCase(Host.HostType.Esx.name()) ||
                      host.getType().equalsIgnoreCase(Host.HostType.No_OS.name())) &&
                     host.getComputeElement() != null && 
-                    !NullColumnValueGetter.isNullURI(host.getComputeElement().getId())) {
+                    (!NullColumnValueGetter.isNullURI(host.getComputeElement().getId())
+                            || !NullColumnValueGetter.isNullValue(host.getServiceProfileName()))) {
                     String dataCenterName = getDataCenterName(ctx, value);
                     options.add(createClusterOption(ctx, value, dataCenterName));
                     break;

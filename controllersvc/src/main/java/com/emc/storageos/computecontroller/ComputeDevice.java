@@ -144,5 +144,30 @@ public interface ComputeDevice extends Controller {
      * @throws ClientGeneralException
      */
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException;
-  
+
+    /**
+     * Unbinds the host's service profile from the associated blade.
+     * Determines the service profile to unbind using host's serviceProfile association.
+     * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
+     * serviceprofile to unbind will be determined by trying to find a serviceProfile that matches
+     * the computeElement's uuid.
+     * @param cs {@link ComputeSystem} cs instance
+     * @param host {@link Host} host instance
+     */
+    public void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException;
+
+    /**
+     * Removes host initiators from networks/varray
+     * @param host {@link Host} host instance
+     */
+    public void removeHostInitiatorsFromNetworks(Host host);
+
+   /**
+    * Binds the host's service profile to the associated blade.
+    * @param computeSystem {@link ComputeSystem} instance
+    * @param hostURI {@link URI} host id
+    * @param contextStepId {@link String} step Id to load step data if any else null can be specified
+    * @param stepId {@link String} stepId
+    */
+    public void bindServiceProfileToBlade(ComputeSystem computeSystem, URI hostURI, String contextStepId, String stepId);
 }

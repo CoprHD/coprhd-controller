@@ -26,6 +26,7 @@ import java.util.Set;
 import javax.xml.bind.JAXBElement;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +73,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
+import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -141,6 +143,15 @@ public class UcsComputeDevice implements ComputeDevice {
         _dbClient = dbClient;
     }
 
+    private ControllerLockingService locker;
+
+    /**
+     * @param _locker the _locker to set
+     */
+    public void setLocker(ControllerLockingService locker) {
+        this.locker = locker;
+    }
+
     @Override
     public void discoverComputeSystem(URI computeSystemId) throws InternalException {
         LOGGER.info("discoverComputeSystems");
@@ -196,27 +207,47 @@ public class UcsComputeDevice implements ComputeDevice {
         }
         computeElement.setAvailable(false);
 
+
+        URIQueryResultList ceHBAUriList = new URIQueryResultList();
+
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getHostComputeElemetHBAsConstraint(host.getId()),
+                ceHBAUriList);
+
+        List<ComputeElementHBA> ceHBAs = _dbClient.queryObject(ComputeElementHBA.class, ceHBAUriList, true);
+
         if (lsServer.getContent() != null && !lsServer.getContent().isEmpty()) {
 
             for (Serializable contentElement : lsServer.getContent()) {
                 if (contentElement instanceof JAXBElement<?>) {
                     if (((JAXBElement) contentElement).getValue() instanceof VnicFc) {
                         VnicFc vnicFc = (VnicFc) ((JAXBElement) contentElement).getValue();
-                        ComputeElementHBA computeElementHBA = new ComputeElementHBA();
-                        computeElementHBA.setComputeElement(computeElement.getId());
-                        computeElementHBA.setHost(host.getId());
-                        computeElementHBA.setCreationTime(Calendar.getInstance());
-                        computeElementHBA.setDn(vnicFc.getDn());
-                        computeElementHBA.setId(URIUtil.createId(ComputeElementHBA.class));
-                        computeElementHBA.setInactive(false);
-                        computeElementHBA.setLabel(vnicFc.getName());
-                        computeElementHBA.setProtocol(vnicFc.getType());
-                        computeElementHBA.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(computeElementHBA,
-                                systemType));
-                        computeElementHBA.setNode(vnicFc.getNodeAddr());
-                        computeElementHBA.setPort(vnicFc.getAddr());
-                        computeElementHBA.setVsanId(getVsanIdFromvnicFC(vnicFc));
-                        computeElementHBAs.add(computeElementHBA);
+
+                        if (CollectionUtils.isEmpty(ceHBAs)) {
+                            ComputeElementHBA computeElementHBA = new ComputeElementHBA();
+                            computeElementHBA.setComputeElement(computeElement.getId());
+                            computeElementHBA.setHost(host.getId());
+                            computeElementHBA.setCreationTime(Calendar.getInstance());
+                            computeElementHBA.setDn(vnicFc.getDn());
+                            computeElementHBA.setId(URIUtil.createId(ComputeElementHBA.class));
+                            computeElementHBA.setInactive(false);
+                            computeElementHBA.setLabel(vnicFc.getName());
+                            computeElementHBA.setProtocol(vnicFc.getType());
+                            computeElementHBA.setNativeGuid(
+                                    NativeGUIDGenerator.generateNativeGuid(computeElementHBA, systemType));
+                            computeElementHBA.setNode(vnicFc.getNodeAddr());
+                            computeElementHBA.setPort(vnicFc.getAddr());
+                            computeElementHBA.setVsanId(getVsanIdFromvnicFC(vnicFc));
+                            computeElementHBAs.add(computeElementHBA);
+                        } else {
+                            for (ComputeElementHBA computeElementHBA : ceHBAs) {
+                                if (computeElementHBA.getNode().equals(vnicFc.getNodeAddr())
+                                        && computeElementHBA.getPort().equals(vnicFc.getAddr())) {
+                                    computeElementHBA.setComputeElement(computeElement.getId());
+                                    dbClient.updateObject(computeElementHBA);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -271,8 +302,12 @@ public class UcsComputeDevice implements ComputeDevice {
             StringBuilder errorMessage = new StringBuilder();
             ucsmService.setLsServerPowerState(ucsmURL.toString(), cs.getUsername(), cs.getPassword(), ce.getDn(),
                     state, errorMessage);
-            pullAndPollManagedObject(ucsmURL.toString(), cs.getUsername(), cs.getPassword(), ce.getLabel(),
-                    ComputeBlade.class);
+            LsServer lsServer = pullAndPollManagedObject(ucsmURL.toString(), cs.getUsername(), cs.getPassword(), ce.getDn(),
+                    LsServer.class);
+            if (!ucsmService.verifyLsServerPowerState(lsServer, state)) {
+                throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, new String[] {
+                        "Failed to set power state to '" + state + "' on LsServer : " + lsServer.getDn() });
+            }
         } catch (ComputeSystemControllerTimeoutException cstoe) {
             LOGGER.error("Unable to change power state of compute element due to a device TimeOut", cstoe);
             throw cstoe;
@@ -789,6 +824,7 @@ public class UcsComputeDevice implements ComputeDevice {
         }
     }
 
+    @Override
     public void bindServiceProfileToBlade(ComputeSystem computeSystem, URI hostURI, String contextStepId,
             String stepId) {
 
@@ -797,14 +833,18 @@ public class UcsComputeDevice implements ComputeDevice {
         String spDn = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-
+            Host host = _dbClient.queryObject(Host.class, hostURI);
             spDn = (String) workflowService.loadStepData(contextStepId);
             if (spDn == null) {
-                throw new IllegalStateException(
-                        "Invalid value for step data. Previous step didn't persist required data.");
+                if(!NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
+                    UCSServiceProfile hostServiceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+                    spDn =  hostServiceProfile.getDn();
+                }
+                if (spDn == null) {
+                    throw new IllegalStateException(
+                            "Invalid value for step data. Previous step didn't persist required data or could not determine serviceProfile Dn from host's service profile.");
+                }
             }
-
-            Host host = _dbClient.queryObject(Host.class, hostURI);
 
             computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
 
@@ -817,8 +857,7 @@ public class UcsComputeDevice implements ComputeDevice {
                 serviceProfile = pullAndPollManagedObject(getUcsmURL(computeSystem).toString(),
                         computeSystem.getUsername(), computeSystem.getPassword(), spDn, LsServer.class);
 
-                // Test mechanism to invoke a failure. No-op on production
-                // systems.
+                // Test mechanism to invoke a failure. No-op on production systems.
                 InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_063);
                 if (serviceProfile == null || ASSOC_STATE_UNASSOCIATED.equals(serviceProfile.getAssocState())) {
                     String additionalInfo = null;
@@ -1170,14 +1209,15 @@ public class UcsComputeDevice implements ComputeDevice {
        }
     }
 
-    /*
+    /**
      * Unbinds the host's service profile from the associated blade.
      * Determines the service profile to unbind using host's serviceProfile association.
      * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
      * serviceprofile to unbind will be determined by trying to find a serviceProfile that matches
      * the computeElement's uuid.
-     */
-    private void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException {
+     **/
+    @Override
+    public void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException {
         // VBDU [DONE]: COP-28452, Check initiators count, if empty do we still need to delete service profile?
         // We already checked for empty initiators in a step before we get here
         if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
@@ -1286,7 +1326,8 @@ public class UcsComputeDevice implements ComputeDevice {
      *
      * @param host
      */
-    private void removeHostInitiatorsFromNetworks(Host host) {
+    @Override
+    public void removeHostInitiatorsFromNetworks(Host host) {
 
         URIQueryResultList ceHBAUriList = new URIQueryResultList();
 
@@ -1306,7 +1347,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
             networks.addAll(CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, Network.class, "nativeId",
                     computeElementHBA.getVsanId()));
-
+            LOGGER.info("removeHostInitiatorsFromNetworks deleting associated compute elementHBA " + computeElementHBA.getId());
             _dbClient.markForDeletion(computeElementHBA);
         }
 

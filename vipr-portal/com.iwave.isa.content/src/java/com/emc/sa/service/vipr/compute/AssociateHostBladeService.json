@@ -1,0 +1,31 @@
+{
+  baseKey:"AssociateHostBlade.Compute",
+  serviceId:"AssociateHostBlade",
+  destructive:true,
+  fields:{
+        cluster:{
+            type:"assetType.vipr.vblockCluster"
+        },
+        host:{
+            type:"assetType.vipr.releasedHostsWithSPByVblockCluster"
+        },
+        hostComputeVPool:{
+            type:"assetType.vipr.releasedHostComputeVirtualPool",
+            lockable: true
+        },
+        associateHostComputeVPool:{
+            type:"assetType.vipr.associateCVPByHostComputeSystem",
+            lockable: true,
+            required:true,
+            omitNone:true,
+            select:"one"
+        },
+        associateHostComputeElement:{
+            type:"assetType.vipr.associateCVPMatchedBlades",
+            lockable: true,
+            select:"one",
+            required:true,
+            omitNone:true
+        }
+  }
+}

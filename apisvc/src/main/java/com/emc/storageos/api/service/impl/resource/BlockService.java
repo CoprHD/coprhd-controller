@@ -1963,9 +1963,11 @@ public class BlockService extends TaskResourceService {
         volume.setId(URIUtil.createId(Volume.class));
         volume.setLabel("vol" + LocalDateTime.now().getSecond());
         volume.setProject(prj1);
+        volume.setType(0);
         _dbClient.createObject(volume);
 
         volume.setProject(prj2);
+        volume.setType(1);
         _dbClient.updateObject(volume);
     }
 

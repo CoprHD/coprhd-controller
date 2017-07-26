@@ -43,7 +43,8 @@ public class DataObjectType {
     private ColumnFamilyDefinition _cf;
     private Class<? extends DataObject> _clazz;
     private ColumnField _idField;
-    private List<DbViewDefinition> _viewDefs = new ArrayList<>();;
+    private List<DbViewDefinition> _viewDefs = new ArrayList<>();
+    private Map<String, DbViewDefinition> _viewDefMap = new HashMap<>();
     private Map<String, ColumnField> _columnFieldMap = new HashMap<String, ColumnField>();
     private EncryptionProvider _encryptionProvider;
     private List<ColumnField> _preprocessedFields;
@@ -191,6 +192,7 @@ public class DataObjectType {
             }
             DbViewDefinition viewDef = new DbViewDefinition(dbViewAnno.cf(), dbViewAnno.pkey(), clusters, cols);
             _viewDefs.add(viewDef);
+            _viewDefMap.put(viewDef.getViewName(), viewDef);
         }
         _log.info("========= The model class {} has dbviews like [ {} ]", _clazz, _viewDefs);
 

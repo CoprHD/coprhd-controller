@@ -216,6 +216,8 @@ public interface DbClient {
      */
     <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount);
 
+    DbViewQuery getDbViewQuery();
+
     void listVolumesByProject(URI project, int type, QueryResultList<Volume> volumes);
 
     /**

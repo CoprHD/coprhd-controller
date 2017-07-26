@@ -38,6 +38,7 @@ import com.datastax.driver.core.*;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Token;
+import com.emc.storageos.db.client.DbViewQuery;
 import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.cassandra.utils.UUIDGen;
 import org.apache.commons.lang.StringUtils;
@@ -985,6 +986,11 @@ public class DbClientImpl implements DbClient {
 
         constraint.setDbClientContext(this.getDbClientContext(constraint.getDataObjectType()));
         constraint.execute(result);
+    }
+
+    @Override
+    public DbViewQuery getDbViewQuery() {
+        return new DbViewQueryImpl(this);
     }
 
     @Override

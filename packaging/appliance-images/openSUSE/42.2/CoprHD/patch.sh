@@ -27,7 +27,7 @@ FileVersion=$( rpm -q kiwi --queryformat "%{RPMTAG_VERSION}" )
 FileBoot="$kiwiPath/KIWIBoot.pm"
 if [ $FileVersion == "7.01.16" ] && [ ! -f $FileBoot.bak ]; then
   echo "Patching KIWI bootloader container installations"
-  linenum=$(grep -n "\$loaderTarget = readlink (\$bootdev)" $FileBoot | cut -d: -f1)
+  line=$( grep -nr "\$loaderTarget = \$diskname;" $FileBoot | cut -d ':' -f 1 )
   if [ ! -z "$line" ]; then
     cp $FileBoot $FileBoot.bak
     sed -i "$((line+0)),$((line+2))d" $FileBoot
@@ -38,6 +38,25 @@ if [ $FileVersion == "7.01.16" ] && [ ! -f $FileBoot.bak ]; then
     sed -i "${line}i\                \$grubtool = \$locator -> getExecPath ('grub2-install');" $FileBoot
     sed -i "${line}i\                \$loaderTarget = \$this->{loop};" $FileBoot
     sed -i "${line}i\                # KIWIBoot.pm bootloader generic patch" $FileBoot
+  fi
+elif [ $FileVersion == "7.03.92" ] && [ ! -f $FileBoot.bak ]; then
+  echo "Modifying to fix on container builds for $FileKIWIBoot version $patch"
+  linenum=$(grep -n "\$loaderTarget = readlink (\$bootdev)" $FileBoot | cut -d: -f1)
+  if [ "$linenum" != "" ]; then
+    linerem=$(( ${linenum}-1 ))
+    cp $FileBoot $FileBoot.bak
+    sed -i "${linenum}i\            } elsif (\$chainload) {" $FileBoot
+    sed -i "${linenum}i\                \$targetMessage= \"On disk partition\";" $FileBoot
+    sed -i "${linenum}i\                \$grubtoolopts.= \"--root-directory=\$mount --force --no-nvram \";" $FileBoot
+    sed -i "${linenum}i\                \$grubtoolopts.= \"-d \$stages \";" $FileBoot
+    sed -i "${linenum}i\                \$grubtoolopts = \"--grub-mkdevicemap=\$dmfile \";" $FileBoot
+    sed -i "${linenum}i\                \$grubtool = \$locator -> getExecPath ('grub2-install');" $FileBoot
+    sed -i "${linenum}i\                \$loaderTarget = \$this->{loop};" $FileBoot
+    sed -i "${linenum}i\            if (\$result == 0) {" $FileBoot
+    sed -i "${linenum}i\            \$result = \$? >> 8;" $FileBoot
+    sed -i "${linenum}i\            \$status = KIWIQX::qxx ( \"ls /.dockerinit &>/dev/null\" );" $FileBoot
+    sed -i "${linenum}i\            # Fix /usr/sbin/grub2-bios-setup: error: failed to get canonical path" $FileBoot
+    sed -i "${linerem}d" $FileBoot
   fi
 fi
 

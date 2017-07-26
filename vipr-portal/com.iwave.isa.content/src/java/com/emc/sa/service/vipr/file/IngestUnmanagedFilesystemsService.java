@@ -62,8 +62,13 @@ public class IngestUnmanagedFilesystemsService extends ViPRService {
             // Requery and produce a log of what was ingested or not
             int failed = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type)).size();
             int ingestedCount = unmanaged.size() - failed;
+            int skippedCount = fileSystemIds.size() - ingestedCount;
             logInfo("ingest.unmanaged.filesystems.service.ingested", ingestedCount);
-            logInfo("ingest.unmanaged.filesystems.service.skipped", fileSystemIds.size() - ingestedCount);
+            if (skippedCount > 0) {
+                logInfo("ingest.unmanaged.filesystems.service.skipped.nonzero", skippedCount);
+            } else {
+                logInfo("ingest.unmanaged.filesystems.service.skipped", skippedCount);
+            }
         }
     }
 }

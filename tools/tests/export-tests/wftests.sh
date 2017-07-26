@@ -3907,7 +3907,8 @@ test_delete_srdf() {
           set_artificial_failure none
 
           # No sense in validating db for failure_087, since source or target would have been deleted.
-          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" ]
+          # Same for ReturnElementsToStoragePool, both volumes would remain with SRDF properties cleared.  Expect deletion to be succeed.
+          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" -o "${failure}" = "failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool" ]
           then
             # failure_087 leaves the source or target behind, so we expect to be able to retry deleting whichever one was left behind.
             runcmd volume delete --project ${PROJECT} --wait

@@ -20,9 +20,14 @@ import com.emc.storageos.services.restutil.StandardRestClient;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.vmax.VMAXConstants;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
+import com.emc.storageos.vmax.restapi.model.ErrorResponse;
 import com.emc.storageos.vmax.restapi.model.Symmetrix;
 import com.emc.storageos.vmax.restapi.model.VMAXAuthInfo;
+import com.emc.storageos.vmax.restapi.model.request.migration.CreateMigrationEnvironmentRequest;
+import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationEnvironmentResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationStorageGroupListResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationStorageGroupResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.GetSymmetrixResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.ListSymmetrixResponse;
@@ -79,20 +84,23 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode();
         if (errorCode >= 300) {
+
             JSONObject obj = null;
             String extraExceptionInfo = null;
-            /*
-             * try {
-             * obj = response.getEntity(JSONObject.class);
-             * code = obj.getInt(XtremIOConstants.ERROR_CODE);
-             * } catch (Exception e) {
-             * extraExceptionInfo = e.getMessage();
-             * log.error("Parsing the failure response object failed", e);
-             * }
-             */
+
+            try {
+                // obj = response.getEntity(JSONObject.class);
+                ErrorResponse errorResponse = getResponseObject(ErrorResponse.class, response);
+                log.error("Error Response received from Unisphere :{}", errorResponse);
+                extraExceptionInfo = errorResponse.getMessage();
+                // xtremIOCode = obj.getInt(XtremIOConstants.ERROR_CODE);
+            } catch (Exception e) {
+                extraExceptionInfo = e.getMessage();
+                log.error("Parsing the failure response object failed", e);
+            }
 
             if (errorCode == 404 || errorCode == 410) {
-                throw VMAXException.exceptions.resourceNotFound(uri.toString());
+                throw VMAXException.exceptions.resourceNotFound(uri.toString(), extraExceptionInfo);
             } else if (errorCode == 401) {
                 throw VMAXException.exceptions.authenticationFailure(uri.toString());
             } else {
@@ -196,8 +204,9 @@ public class VMAXApiClient extends StandardRestClient {
     public MigrationEnvironmentResponse getMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber)
             throws Exception {
         ClientResponse clientResponse = get(
-                URI.create(VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber)));
+                VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber));
         MigrationEnvironmentResponse environmentResponse = getResponseObject(MigrationEnvironmentResponse.class, clientResponse);
+        log.info("Response -> :{}", environmentResponse);
         return environmentResponse;
     }
 
@@ -208,7 +217,7 @@ public class VMAXApiClient extends StandardRestClient {
      * @throws Exception
      */
     public String getApiVersion() throws Exception {
-        ClientResponse clientResponse = get(URI.create(VMAXConstants.getVersionURI()));
+        ClientResponse clientResponse = get(VMAXConstants.getVersionURI());
         SystemVersionResponse response = getResponseObject(SystemVersionResponse.class, clientResponse);
         return response.getVersion().replaceFirst("[^\\d-]", "");
     }
@@ -221,13 +230,13 @@ public class VMAXApiClient extends StandardRestClient {
      */
     public Set<String> getLocalSystems() throws Exception {
         Set<String> localSystems = new HashSet<>();
-        ClientResponse clientResponse = get(URI.create(VMAXConstants.getSystemListURI()));
+        ClientResponse clientResponse = get(VMAXConstants.getSystemListURI());
         ListSymmetrixResponse response = getResponseObject(ListSymmetrixResponse.class, clientResponse);
 
         List<String> systems = response.getSymmetrixId();
         if (!CollectionUtils.isEmpty(systems)) {
             for (String system : systems) {
-                clientResponse = get(URI.create(VMAXConstants.getSystemGetURI(system)));
+                clientResponse = get(VMAXConstants.getSystemGetURI(system));
                 GetSymmetrixResponse symmResponse = getResponseObject(GetSymmetrixResponse.class, clientResponse);
                 List<Symmetrix> symmSystems = symmResponse.getSymmetrix();
                 if (!CollectionUtils.isEmpty(symmSystems)) {
@@ -242,10 +251,87 @@ public class VMAXApiClient extends StandardRestClient {
         return localSystems;
     }
 
+    /**
+     * Returns list of available migration environments for the given array
+     * 
+     * @param sourceArraySerialNumber
+     * @return {@link GetMigrationEnvironmentResponse}.getArrayList() will returns the other arrays serial number
+     * @throws Exception
+     */
     public GetMigrationEnvironmentResponse getMigrationEnvironmentList(String sourceArraySerialNumber) throws Exception {
         ClientResponse clientResponse = get(
-                URI.create(VMAXConstants.getMigrationEnvironmentURI(sourceArraySerialNumber)));
+                VMAXConstants.getMigrationEnvironmentURI(sourceArraySerialNumber));
         GetMigrationEnvironmentResponse environmentResponse = getResponseObject(GetMigrationEnvironmentResponse.class, clientResponse);
+        log.info("Response -> :{}", environmentResponse);
         return environmentResponse;
     }
+
+    /**
+     * Deletes the existing migration environment for the given source and target array
+     * 
+     * @param sourceArraySerialNumber
+     * @param targetArraySerialNumber
+     * @throws Exception
+     */
+    public void deleteMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber) throws Exception {
+        delete(VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber));
+        log.info("Deleted migration environment between {} and {}", sourceArraySerialNumber, targetArraySerialNumber);
+    }
+
+    /**
+     * Creates new migration environment for the given source and target arrays
+     * 
+     * @param sourceArraySerialNumber
+     * @param targetArraySerialNumber
+     * @return {@link CreateMigrationEnvironmentResponse}
+     * @throws InternalException
+     * @throws Exception
+     */
+    public CreateMigrationEnvironmentResponse createMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber)
+            throws InternalException, Exception {
+        log.info("Started Create Migration environment call between {} and {}", sourceArraySerialNumber, targetArraySerialNumber);
+        CreateMigrationEnvironmentRequest createMigrationEnvironmentRequest = new CreateMigrationEnvironmentRequest();
+        createMigrationEnvironmentRequest.setOtherArrayId(targetArraySerialNumber);
+        ClientResponse clientResponse = post(VMAXConstants.createMigrationEnvornmentURI(sourceArraySerialNumber),
+                getJsonForEntity(createMigrationEnvironmentRequest));
+        CreateMigrationEnvironmentResponse response = getResponseObject(CreateMigrationEnvironmentResponse.class, clientResponse);
+        log.info("Response -> :{}", response);
+        log.info("Successfullt created migration environment between {} and {}", sourceArraySerialNumber, targetArraySerialNumber);
+        return response;
+    }
+
+    /**
+     * Get all migration storage group names for the given array
+     * 
+     * @param sourceArraySerialNumber
+     * @return {@link GetMigrationStorageGroupListResponse}
+     * @throws Exception
+     */
+    public GetMigrationStorageGroupListResponse getMigrationStorageGroups(String sourceArraySerialNumber) throws Exception {
+        log.info("Get all migration storage groups available for the array {}", sourceArraySerialNumber);
+        ClientResponse clientResponse = get(VMAXConstants.getMigrationStorageGroupsURI(sourceArraySerialNumber));
+        GetMigrationStorageGroupListResponse getMigrationStorageGroupListResponse = getResponseObject(
+                GetMigrationStorageGroupListResponse.class, clientResponse);
+        log.info("Response -> :{}", getMigrationStorageGroupListResponse);
+        return getMigrationStorageGroupListResponse;
+    }
+
+    /**
+     * Get migration storage group for the given array
+     * 
+     * @param sourceArraySerialNumber
+     * @param storageGroupName
+     * @return {@link GetMigrationStorageGroupResponse}
+     * @throws Exception
+     */
+    public GetMigrationStorageGroupResponse getMigrationStorageGroup(String sourceArraySerialNumber, String storageGroupName)
+            throws Exception {
+        log.info("Get migration storage group {} from array {}", storageGroupName, sourceArraySerialNumber);
+        ClientResponse clientResponse = get(VMAXConstants.getMigrationStorageGroupURI(sourceArraySerialNumber, storageGroupName));
+        GetMigrationStorageGroupResponse getMigrationStorageGroupResponse = getResponseObject(GetMigrationStorageGroupResponse.class,
+                clientResponse);
+        log.info("Response -> :{}", getMigrationStorageGroupResponse);
+        return getMigrationStorageGroupResponse;
+    }
+
 }

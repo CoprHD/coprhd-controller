@@ -26,7 +26,7 @@ public interface VMAXExceptions {
     VMAXException authenticationFailure(String storageSystemForDisplay);
 
     @DeclareServiceCode(ServiceCode.UNISPHERE_API_ERROR)
-    VMAXException resourceNotFound(String storageSystemForDisplay);
+    VMAXException resourceNotFound(String storageSystemForDisplay, String message);
 
     @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
     VMAXException invalidResponseFromUnisphere(final String message);

@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.vmax;
 
+import java.net.URI;
+
 public interface VMAXConstants {
 
     static final String AUTH_TOKEN = "X-XIO-AUTH-TOKEN";
@@ -11,7 +13,7 @@ public interface VMAXConstants {
     static final String HTTPS_URL = "https";
     static final String HTTP_URL = "http";
 
-    static final  String UNIVMAX_BASE_URI = "/univmax/restapi";
+    static final String UNIVMAX_BASE_URI = "/univmax/restapi";
     static final String UNIVMAX_SYSTEM_BASE_URI = UNIVMAX_BASE_URI + "/system";
     static final String UNIVMAX_SYSTEM_VERSION_URI = UNIVMAX_SYSTEM_BASE_URI + "/version";
     static final String UNIVMAX_SYSTEM_SYMM_LIST_URI = UNIVMAX_SYSTEM_BASE_URI + "/symmetrix";
@@ -21,23 +23,45 @@ public interface VMAXConstants {
     static final String VALIDATE_ENVIRONMENT_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/environment/%2$s";
     static final String GET_MIGRATION_ENVIRONMENT_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/environment";
 
-    public static String getValidateEnvironmentURI(String sourceSymmetrixId, String targetSymmetrixId) {
-        return String.format(VALIDATE_ENVIRONMENT_URI, sourceSymmetrixId, targetSymmetrixId);
+    static final String CREATE_MIGRATION_ENVIRONMENT_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s";
+
+    static final String GET_MIGRATION_STORAGEGROUPS_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup";
+    static final String GET_MIGRATION_STORAGEGROUP_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup/%2$s";
+
+    public static URI getValidateEnvironmentURI(String sourceArraySerialNumber, String targetArraySerialNumber) {
+        return URI.create(String.format(VALIDATE_ENVIRONMENT_URI, sourceArraySerialNumber, targetArraySerialNumber));
     }
 
-    public static String getVersionURI() {
-        return UNIVMAX_SYSTEM_VERSION_URI;
+    public static URI getBaseURI(String ipAddress, int port, boolean isSSL) {
+        return URI.create(String.format("%1$s://%2$s:%3$d", isSSL ? HTTPS_URL : HTTP_URL, ipAddress, port));
     }
 
-    public static String getSystemListURI() {
-        return UNIVMAX_SYSTEM_SYMM_LIST_URI;
+    public static URI getMigrationEnvironmentURI(String sourceArraySerialNumber) {
+        return URI.create(String.format(GET_MIGRATION_ENVIRONMENT_URI, sourceArraySerialNumber));
     }
 
-    public static String getSystemGetURI(String symmId) {
-        return String.format(UNIVMAX_SYSTEM_SYMM_GET_URI, symmId);
+    public static URI createMigrationEnvornmentURI(String sourceArraySerialNumber) {
+        return URI.create(String.format(CREATE_MIGRATION_ENVIRONMENT_URI, sourceArraySerialNumber));
     }
 
-    public static String getMigrationEnvironmentURI(String sourceSymmetrixId) {
-        return String.format(GET_MIGRATION_ENVIRONMENT_URI, sourceSymmetrixId);
+    public static URI getMigrationStorageGroupsURI(String sourceArraySerialNumber) {
+        return URI.create(String.format(GET_MIGRATION_STORAGEGROUPS_URI, sourceArraySerialNumber));
     }
+
+    public static URI getMigrationStorageGroupURI(String sourceSymmetrixId, String storageGroupName) {
+        return URI.create(String.format(GET_MIGRATION_STORAGEGROUP_URI, sourceSymmetrixId, storageGroupName));
+    }
+
+    public static URI getVersionURI() {
+        return URI.create(UNIVMAX_SYSTEM_VERSION_URI);
+    }
+
+    public static URI getSystemListURI() {
+        return URI.create(UNIVMAX_SYSTEM_SYMM_LIST_URI);
+    }
+
+    public static URI getSystemGetURI(String symmId) {
+        return URI.create(String.format(UNIVMAX_SYSTEM_SYMM_GET_URI, symmId));
+    }
+
 }

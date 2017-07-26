@@ -14,23 +14,23 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 
-public class VMAXApiClientFactory extends RestClientFactory{
-	
-	private static VMAXApiClientFactory singleton = new VMAXApiClientFactory();
-	private static boolean isInitiated = false;
-	
-	private VMAXApiClientFactory(){
-		
-	}
-	
-	public static VMAXApiClientFactory getInstance(){
-		return singleton;
-	}
-	
-	@Override
+public class VMAXApiClientFactory extends RestClientFactory {
+
+    private static VMAXApiClientFactory singleton = new VMAXApiClientFactory();
+    private static boolean isInitiated = false;
+
+    private VMAXApiClientFactory() {
+
+    }
+
+    public static VMAXApiClientFactory getInstance() {
+        return singleton;
+    }
+
+    @Override
     public void init() {
         if (!isInitiated) {
-            synchronized(this) {
+            synchronized (this) {
                 super.init();
                 isInitiated = true;
             }
@@ -50,10 +50,10 @@ public class VMAXApiClientFactory extends RestClientFactory{
         return clientApi;
     }
 
-	@Override
-	protected RestClientItf createNewRestClient(URI endpoint, String username, String password, Client client) {
-		return new VMAXApiClient(endpoint, username, password, client);
-	}
+    @Override
+    protected RestClientItf createNewRestClient(URI endpoint, String username, String password, Client client) {
+        return new VMAXApiClient(endpoint, username, password, client);
+    }
 
     public VMAXApiClient getClient(String ipAddress, int port, boolean useSSL, String username, String password) throws URISyntaxException {
         return (VMAXApiClient) getRESTClient(VMAXRestUtils.getUnisphereRestServerInfo(ipAddress, port, useSSL), username, password, true);

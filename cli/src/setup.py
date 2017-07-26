@@ -27,6 +27,7 @@ distutils.core.setup(
                       'snapshot.py',
                       'storagepool.py',
                       'storageport.py',
+                      'storageportgroup.py',
                       'storagesystem.py',
                       'tenant.py',
                       'network.py',

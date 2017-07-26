@@ -2794,7 +2794,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private BiosCommandResult doStartTargetMirrorPolicy(StorageSystem sourceSystem, String policyName, StorageSystem targetSystem,
             String mirrorPolicyName, TaskCompleter completer) {
 
+        // get source policy details of local target on target system (policy : source -> target)
         IsilonSyncTargetPolicy mirrorPolicy = mirrorOperations.getIsilonSyncTargetPolicy(sourceSystem, mirrorPolicyName);
+
+        // get target mirror policy details of local target on source system (*_mirror : target -> source)
         IsilonSyncTargetPolicy policy = mirrorOperations.getIsilonSyncTargetPolicy(targetSystem, policyName);
 
         _log.info("doStartTaregetMirrorPolicy - target policy details : {}", mirrorPolicy.toString());
@@ -2935,6 +2938,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     /**
      * Failover on target mirror policy that enable write on source system.
+     * allow writes on source filesystem and on target system trasfer the controller to source system
+     * on write will be disable and next step resync-prep on target will sync source policy
      * 
      * @param sourceSystem - source system
      * @param policyName - source to target policy
@@ -2954,8 +2959,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (!result.isCommandSuccess()) {
             return result;
         }
-
+        // get source policy details of local target on target system (policy : source -> target)
         mirrorPolicy = mirrorOperations.getIsilonSyncTargetPolicy(sourceSystem, mirrorPolicyName);
+        // get target mirror policy details of local target on source system (policy : target -> source)
         policy = mirrorOperations.getIsilonSyncTargetPolicy(targetSystem, policyName);
 
         // if mirror has already "write_enabled" the skip the step
@@ -3073,6 +3079,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
+     * this command issue on source system when source policy in failover state.
+     * when resync-prep issue on source policy then it will create mirror policy.
+     * this mirror policy will from source to target
+     * 
      * 'resync-prep' call on source policy will create new "*_mirror" policy
      * 
      * @param sourceSystem - source system
@@ -3091,6 +3101,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         cmdResult = mirrorOperations.doTestReplicationPolicy(sourceSystem, policyName);
         if (cmdResult.isCommandSuccess()) {
             // get source policy details on target storage system
+
             policy = mirrorOperations.getIsilonSyncTargetPolicy(targetSystem, policyName);
             if (cmdResult.isCommandSuccess() && null != policy) {
                 // enable the replication policy
@@ -3099,6 +3110,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     return cmdResult;
                 }
                 // resync-prep operation already done and mirror policy exist
+                // get source policy details of local target on target system (policy : source -> target)
                 if (JobState.finished.equals(policy.getLastJobState()) &&
                         FOFB_STATES.resync_policy_created.equals(policy.getFoFbState())) {
                     _log.info("Skipped the resyncprep action on policy : {}", policyName);
@@ -3123,6 +3135,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * 'resync-prep' call on mirror policy of target system that enable source policy.
      * the target will be writes_disable and source will allow the writes.
+     * * this operation activate source policy and source policy allow the write operations.
+     * 
      * 
      * @param targetSystem - target system
      * @param mirrorPolicy - mirror policy name from target to source.
@@ -3137,7 +3151,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonSyncTargetPolicy policy = null;
         IsilonSyncTargetPolicy mirrorPolicy = null;
 
+        // get mirror policy of local targets on source system (mirror_policy: target-> source )
         mirrorPolicy = mirrorOperations.getIsilonSyncTargetPolicy(sourceSystem, mirrorPolicyName);
+        // get source policy details of local target on target system (policy : source -> target)
         policy = mirrorOperations.getIsilonSyncTargetPolicy(targetSystem, policyName);
 
         // if mirror has already in "resync-policy-created" and source policy is "write_disabled"

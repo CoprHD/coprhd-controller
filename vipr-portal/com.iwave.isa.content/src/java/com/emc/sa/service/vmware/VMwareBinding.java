@@ -11,6 +11,7 @@ import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.RDF_GROUP;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
@@ -52,6 +53,8 @@ public class VMwareBinding {
         protected Integer hlu;
         @Param(value = RDF_GROUP, required = false)
         public URI rdfGroup;
+        @Param(value = PORT_GROUP, required = false)
+        protected URI portGroup;
 
         @Override
         public String toString() {
@@ -74,6 +77,7 @@ public class VMwareBinding {
             } else {
                 map.put(HLU, hlu + hluInc);
             }
+            map.put(PORT_GROUP, portGroup);
             return map;
         }
     }

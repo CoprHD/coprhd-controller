@@ -29,6 +29,7 @@ public class VolumeCreate {
     private URI consistencyGroup;
     private URI computeResource;
     private Set<String> extensionParams;
+    private URI portGroup;
 
     // A list of implemented extension parameter values.  See the getter method for more info.
     public static final String EXTENSION_PARAM_KNOWN_RDFGROUP = "replication_group";
@@ -191,4 +192,17 @@ public class VolumeCreate {
 	public void setComputeResource(URI computeResource) {
 		this.computeResource = computeResource;
 	}
+	
+	/**
+     * The port group which the volume is exported through
+     * @return
+     */
+	@XmlElement(name = "port_group")
+    public URI getPortGroup() {
+        return portGroup;
+}
+
+    public void setPortGroup(URI portGroup) {
+        this.portGroup = portGroup;
+    }
 }

@@ -17,6 +17,9 @@ import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupCreateParam;
+import com.emc.storageos.model.portgroup.StoragePortGroupList;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
@@ -222,5 +225,31 @@ public class ViPRClientApp {
         ExportUpdateParam input = new ExportUpdateParam();
         input.addVolume(volumeId);
         client.blockExports().update(export.getId(), input);
+    }
+    
+    public String getPortGroup(URI portGroupUri, URI storageUri) {
+        StoragePortGroupRestRep pg = client.storagePortGroups().get(portGroupUri, storageUri);
+        return pg.getNativeGuid();
+    }
+    
+    public StoragePortGroupList getAllPortGroup(URI storageUri) {
+        return client.storagePortGroups().getAll(storageUri);
+    }
+    
+    public URI createPortGroup(URI storageUri, StoragePortGroupCreateParam parm) {
+        Task<StoragePortGroupRestRep> portGroup = client.storagePortGroups().create(storageUri, parm);
+        return portGroup.getResourceId();
+    }
+    
+    public void registerPortGroup(URI storageUri, URI portGroupUri) {
+        client.storagePortGroups().register(portGroupUri, storageUri);
+    }
+    
+    public void deregisterPortGroup(URI storageUri, URI portGroupUri) {
+        client.storagePortGroups().deregister(portGroupUri, storageUri);
+    }
+    
+    public void deletePortGroup(URI storageUri, URI portGroupUri) {
+        client.storagePortGroups().delete(portGroupUri, storageUri);
     }
 }

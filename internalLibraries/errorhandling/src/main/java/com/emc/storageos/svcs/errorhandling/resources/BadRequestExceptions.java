@@ -2332,6 +2332,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidConfigType(final String configType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidConfigValueType(final String configType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidScopeFomart(final String scope);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3361,4 +3364,30 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException badReplicationGroup(final String rdfGroupId);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupInvalid(String portGroupURI);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupValidForVMAXOnly();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cgPortGroupNotMatch(final String portGroup, final String consistencyGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException internalPortGroup(final String portGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupSettingIsOff();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotOverridePortGroupBecauseExistingExports(String newPortgroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupNotSpecified();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotExportVolumesFromDifferentSystems(String portGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupNotInVarray(String port, String portGroup, String varray);
 }

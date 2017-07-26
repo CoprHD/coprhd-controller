@@ -69,6 +69,7 @@ public class StorageSystem extends StorageObject {
     List<String> storageProvidersNativeIds;
 
 
+    @Deprecated
     private List<CapabilityInstance> capabilities;
 
     public String getSystemType() {
@@ -191,10 +192,12 @@ public class StorageSystem extends StorageObject {
         this.supportedReplications = supportedReplications;
     }
 
+    @Deprecated
     public List<CapabilityInstance> getCapabilities() {
         return capabilities;
     }
 
+    @Deprecated
     public void setCapabilities(List<CapabilityInstance> capabilities) {
         this.capabilities = capabilities;
     }

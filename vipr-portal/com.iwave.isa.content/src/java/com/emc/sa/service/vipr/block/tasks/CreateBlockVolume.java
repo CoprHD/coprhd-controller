@@ -23,14 +23,15 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
     private URI consistencyGroupId;
     private URI computeResource;
     private URI rdfGroup;
+    private URI portGroup;
 
     public CreateBlockVolume(String vpoolId, String varrayId, String projectId, String size, Integer count,
             String name, String consistencyGroupId, URI rdfGroup) {
-        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, name, uri(consistencyGroupId), null, rdfGroup);
+        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, name, uri(consistencyGroupId), null, null, rdfGroup);
     }
 
     public CreateBlockVolume(URI vpoolId, URI varrayId, URI projectId, String size, Integer count, String name,
-            URI consistencyGroupId, URI computeResource, URI rdfGroup) {
+            URI consistencyGroupId, URI computeResource, URI portGroup, URI rdfGroup) {
         this.vpoolId = vpoolId;
         this.varrayId = varrayId;
         this.projectId = projectId;
@@ -40,6 +41,7 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
         this.consistencyGroupId = consistencyGroupId;
         this.computeResource = computeResource;
         this.rdfGroup = rdfGroup;
+        this.portGroup = portGroup;
         provideDetailArgs(name, size, vpoolId, varrayId, projectId);
     }
 
@@ -61,6 +63,9 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
             create.setComputeResource(computeResource);
         }
         create.setExtensionParams(null);
+        if (portGroup != null) {
+            create.setPortGroup(portGroup);
+        }
         
         if (rdfGroup != null) {
             Set<String> extensionParams = new HashSet<>();

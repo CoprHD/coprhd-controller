@@ -325,6 +325,8 @@ public class SRDFScheduler implements Scheduler {
             sb.append(targetVarray.getId()).append(" ");
         }
         _log.info(sb.toString());
+        // Remove port group for target matching pools
+        capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.PORT_GROUP);
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         Map<VirtualArray, List<StoragePool>> varrayPoolMap = getMatchingPools(targetVarrays, vpool,
                 capabilities, attributeMap);

@@ -100,6 +100,16 @@
       validation: {
         min:-1
       }
+    },
+    advanced:{
+      type:"group",
+      collapsed:true,
+      items:{
+        portGroup: {
+            type:"assetType.vipr.exportVolumeForHostPortGroups",
+            required: false
+        }
+      }
     }
   }
 }

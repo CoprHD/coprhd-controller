@@ -177,6 +177,12 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return cmdResult;
     }
 
+    /**
+     * get the extended Attributes
+     *
+     * @param args
+     * @return
+     */
     public Map<String, String> getAutoExtendAttrs(FileDeviceInputOutput args) {
 
         Map<String, String> autoAtts = new HashMap<String, String>();
@@ -283,8 +289,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             FileDeviceInputOutput args) throws ControllerException {
         _log.info("checking file system existence on array: ", args.getFsName());
         boolean isFSExists = true;
+        ApplicationContext context = null;
         try {
-            ApplicationContext context = null;
             context = loadContext();
             VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
             if (null == vnxComm) {
@@ -336,7 +342,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
 
             if (!arrayExportRuleMap.isEmpty()) {
-                if (exportModify != null) {
+                if (exportModify != null && !exportModify.isEmpty()) {
                     // merge the end point for which sec flavor is common.
                     for (ExportRule exportRule : exportModify) {
                         ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
@@ -381,9 +387,11 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         // ALL EXPORTS
         List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
         List<ExportRule> exportsToprocess = new ArrayList<>();
-        for (ExportRule rule : existingDBExportRule) {
-            if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
-                exportsToprocess.add(rule);
+        if(existingDBExportRule != null && !existingDBExportRule.isEmpty()) {
+            for (ExportRule rule : existingDBExportRule) {
+                if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
+                    exportsToprocess.add(rule);
+                }
             }
         }
         _log.info("Number of existng Rules found {}", exportsToprocess.size());
@@ -460,40 +468,41 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 }
 
                 List<VNXFileExport> exportList = new ArrayList<VNXFileExport>();
+                if(!exportsToprocess.isEmpty()) {
+                    for (ExportRule rule : exportsToprocess) {
 
-                for (ExportRule rule : exportsToprocess) {
+                        VNXFileExport vnxExp = null;
+                        // update the comment
+                        String comments = rule.getComments();
+                        String protocol = "nfs";
+                        if (rule.getReadOnlyHosts() != null && !rule.getReadOnlyHosts().isEmpty()) {
+                            vnxExp = new VNXFileExport(new ArrayList<String>(rule.getReadOnlyHosts()),
+                                    dm.getName(), exportPath,
+                                    rule.getSecFlavor(), "ro",
+                                    rule.getAnon(), protocol,
+                                    args.getFs().getStoragePort().toString(), subDir, comments);
 
-                    VNXFileExport vnxExp = null;
-                    // update the comment
-                    String comments = rule.getComments();
-                    String protocol = "nfs";
-                    if (rule.getReadOnlyHosts() != null && !rule.getReadOnlyHosts().isEmpty()) {
-                        vnxExp = new VNXFileExport(new ArrayList<String>(rule.getReadOnlyHosts()),
-                                dm.getName(), exportPath,
-                                rule.getSecFlavor(), "ro",
-                                rule.getAnon(), protocol,
-                                args.getFs().getStoragePort().toString(), subDir, comments);
+                            exportList.add(vnxExp);
+                        }
+                        if (rule.getReadWriteHosts() != null && !rule.getReadWriteHosts().isEmpty()) {
+                            vnxExp = new VNXFileExport(new ArrayList<String>(rule.getReadWriteHosts()),
+                                    dm.getName(), exportPath,
+                                    rule.getSecFlavor(), "rw",
+                                    rule.getAnon(), protocol,
+                                    args.getFs().getStoragePort().toString(), subDir, comments);
 
-                        exportList.add(vnxExp);
+                            exportList.add(vnxExp);
+                        }
+                        if (rule.getRootHosts() != null && !rule.getRootHosts().isEmpty()) {
+                            vnxExp = new VNXFileExport(new ArrayList<String>(rule.getRootHosts()),
+                                    dm.getName(), exportPath,
+                                    rule.getSecFlavor(), "root",
+                                    rule.getAnon(), protocol,
+                                    args.getFs().getStoragePort().toString(), subDir, comments);
+                            exportList.add(vnxExp);
+                        }
+
                     }
-                    if (rule.getReadWriteHosts() != null && !rule.getReadWriteHosts().isEmpty()) {
-                        vnxExp = new VNXFileExport(new ArrayList<String>(rule.getReadWriteHosts()),
-                                dm.getName(), exportPath,
-                                rule.getSecFlavor(), "rw",
-                                rule.getAnon(), protocol,
-                                args.getFs().getStoragePort().toString(), subDir, comments);
-
-                        exportList.add(vnxExp);
-                    }
-                    if (rule.getRootHosts() != null && !rule.getRootHosts().isEmpty()) {
-                        vnxExp = new VNXFileExport(new ArrayList<String>(rule.getRootHosts()),
-                                dm.getName(), exportPath,
-                                rule.getSecFlavor(), "root",
-                                rule.getAnon(), protocol,
-                                args.getFs().getStoragePort().toString(), subDir, comments);
-                        exportList.add(vnxExp);
-                    }
-
                 }
 
                 // When all the export rules removed, add one rule manually to meet the requirments of
@@ -646,23 +655,25 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             if (null == vnxComm) {
                 throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
             }
-            for (int expCount = 0; expCount < exportList.size(); expCount++) {
-                List<String> endPoints = new ArrayList<String>();
-                FileExport export = exportList.get(expCount);
-                String exportEntryKey = FileExport.exportLookupKey(export.getProtocol(),
-                        export.getSecurityType(), export.getPermissions(), export.getRootUserMapping(),
-                        export.getPath());
-                FileExport fileExport = args.getFileObjExports().get(exportEntryKey);
-                if (fileExport != null) {
-                    endPoints.addAll(fileExport.getClients());
-                }
-                export.setClients(endPoints);
-                _log.info("FileExport:" + export.getClients() + ":" + export.getStoragePortName()
-                        + ":" + export.getStoragePort() + ":" + export.getRootUserMapping()
-                        + ":" + export.getPermissions() + ":" + export.getProtocol()
-                        + ":" + export.getSecurityType() + ":" + export.getMountPoint()
-                        + ":" + export.getPath());
+            if(exportList != null && !exportList.isEmpty()) {
+                for (int expCount = 0; expCount < exportList.size(); expCount++) {
+                    List<String> endPoints = new ArrayList<String>();
+                    FileExport export = exportList.get(expCount);
+                    String exportEntryKey = FileExport.exportLookupKey(export.getProtocol(),
+                            export.getSecurityType(), export.getPermissions(), export.getRootUserMapping(),
+                            export.getPath());
+                    FileExport fileExport = args.getFileObjExports().get(exportEntryKey);
+                    if (fileExport != null) {
+                        endPoints.addAll(fileExport.getClients());
+                    }
+                    export.setClients(endPoints);
+                    _log.info("FileExport:" + export.getClients() + ":" + export.getStoragePortName()
+                            + ":" + export.getStoragePort() + ":" + export.getRootUserMapping()
+                            + ":" + export.getPermissions() + ":" + export.getProtocol()
+                            + ":" + export.getSecurityType() + ":" + export.getMountPoint()
+                            + ":" + export.getPath());
 
+                }
             }
 
             List<VNXFileExport> vnxExps = getVNXFileExports(exportList);
@@ -701,10 +712,12 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
         Long newFsExpandSize = args.getNewFSCapacity();
 
-        if (args.getNewFSCapacity() % BYTESPERMB == 0) {
-            newFsExpandSize = newFsExpandSize / BYTESPERMB;
-        } else {
-            newFsExpandSize = newFsExpandSize / BYTESPERMB + 1;
+        if(newFsExpandSize != null) {
+            if (args.getNewFSCapacity() % BYTESPERMB == 0) {
+                newFsExpandSize = newFsExpandSize / BYTESPERMB;
+            } else {
+                newFsExpandSize = newFsExpandSize / BYTESPERMB + 1;
+            }
         }
 
         _log.info("FileSystem new size translation : {} : {}", args.getNewFSCapacity(), args.getFsCapacity());
@@ -821,7 +834,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
 
         } catch (VNXException e) {
-            throw new DeviceControllerException(e);
+            BiosCommandResult.createErrorResult(e);
         } catch (NumberFormatException e) {
             // Placeholder until real handling is determined.
             throw new DeviceControllerException(e);
@@ -879,7 +892,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
             args.getFileObjShares().remove(smbFileShare.getName());
         } catch (VNXException e) {
-            throw new DeviceControllerException(e);
+            BiosCommandResult.createErrorResult(e);
         } finally {
             clearContext(context);
         }
@@ -895,21 +908,15 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doDeleteShares(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-        BiosCommandResult result = new BiosCommandResult();
-        result.setCommandSuccess(false);
-        result.setCommandStatus(Operation.Status.error.name());
-        result.setMessage("SMB sharing is not supported.");
-        return result;
+        //SMB sharing is not supported.
+        return BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.operationNotSupported());
     }
 
     @Override
     public BiosCommandResult doModifyFS(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-        BiosCommandResult result = new BiosCommandResult();
-        result.setCommandSuccess(false);
-        result.setCommandStatus(Operation.Status.error.name());
-        result.setMessage("Modify FS NOT supported for VNX.");
-        return result;
+        //Modify FS NOT supported for VNX.
+        return BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.operationNotSupported());
     }
 
     @Override
@@ -942,7 +949,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 args.setSnapshotPath(path);
             }
         } catch (VNXException e) {
-            throw new DeviceControllerException(e);
+            BiosCommandResult.createErrorResult(e);
         } finally {
             clearContext(context);
         }
@@ -1012,6 +1019,12 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return result;
     }
 
+    /**
+     *
+     * get VNXFileExports from FSExportMap
+     * @param existingExps
+     * @return
+     */
     private List<VNXFileExport> getVNXFileExports(FSExportMap existingExps) {
 
         List<VNXFileExport> vnxExports = new ArrayList<VNXFileExport>();
@@ -1032,6 +1045,11 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return vnxExports;
     }
 
+    /**
+     * get VNXFileExports from FileExports
+     * @param exports
+     * @return
+     */
     private List<VNXFileExport> getVNXFileExports(List<FileExport> exports) {
 
         List<VNXFileExport> vnxExports = new ArrayList<VNXFileExport>();
@@ -1453,10 +1471,16 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
 
             Map<String, String> vnxExportMap = null;
+            String readOnlyList = null;
+            String readWriteList = null;
+            String rootList = null;
+
             vnxExportMap = vnxComm.getNFSExport(storage, args);
-            String readOnlyList = vnxExportMap.get("ro");
-            String readWriteList = vnxExportMap.get("rw");
-            String rootList = vnxExportMap.get("root");
+            if(vnxExportMap != null) {
+                readOnlyList = vnxExportMap.get("ro");
+                readWriteList = vnxExportMap.get("rw");
+                rootList = vnxExportMap.get("root");
+            }
             // we get multiple value each separated by :
             if (readOnlyList != null) {
                 for (String readOnly : readOnlyList.split(":")) {

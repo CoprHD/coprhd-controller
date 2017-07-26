@@ -66,6 +66,13 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
 
     }
 
+    /**
+     * Process the User accounts details
+     *
+     * @param userList
+     * @param keyMap
+     * @throws VNXFilePluginException
+     */
     private void processUserAccountList(List<Object> userList, Map<String, Object> keyMap) throws VNXFilePluginException {
 
         Iterator<Object> iterator = userList.iterator();

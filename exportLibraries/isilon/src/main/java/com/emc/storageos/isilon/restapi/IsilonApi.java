@@ -219,9 +219,7 @@ public class IsilonApi {
         }
     }
 
-    /**
-     * 
-     * /**
+    /*
      * Get list of all sub directories of fspath
      * 
      * @param fspath

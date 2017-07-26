@@ -73,7 +73,6 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
-import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -141,15 +140,6 @@ public class UcsComputeDevice implements ComputeDevice {
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
-    }
-
-    private ControllerLockingService locker;
-
-    /**
-     * @param _locker the _locker to set
-     */
-    public void setLocker(ControllerLockingService locker) {
-        this.locker = locker;
     }
 
     @Override
@@ -1326,8 +1316,7 @@ public class UcsComputeDevice implements ComputeDevice {
      *
      * @param host
      */
-    @Override
-    public void removeHostInitiatorsFromNetworks(Host host) {
+    private void removeHostInitiatorsFromNetworks(Host host) {
 
         URIQueryResultList ceHBAUriList = new URIQueryResultList();
 
@@ -1347,7 +1336,6 @@ public class UcsComputeDevice implements ComputeDevice {
 
             networks.addAll(CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, Network.class, "nativeId",
                     computeElementHBA.getVsanId()));
-            LOGGER.info("removeHostInitiatorsFromNetworks deleting associated compute elementHBA " + computeElementHBA.getId());
             _dbClient.markForDeletion(computeElementHBA);
         }
 

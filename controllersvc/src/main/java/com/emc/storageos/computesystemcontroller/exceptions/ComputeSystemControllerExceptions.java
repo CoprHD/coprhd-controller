@@ -216,7 +216,4 @@ public interface ComputeSystemControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException unableToBindHostComputeElement(String computeelement, String host, Exception exception);
-
-    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
-    public ComputeSystemControllerException unableToRemoveHostInitiatorsFromNetworks(String host, Exception exception);
 }

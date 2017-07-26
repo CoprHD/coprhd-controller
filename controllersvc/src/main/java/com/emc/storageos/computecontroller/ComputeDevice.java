@@ -156,12 +156,6 @@ public interface ComputeDevice extends Controller {
      */
     public void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException;
 
-    /**
-     * Removes host initiators from networks/varray
-     * @param host {@link Host} host instance
-     */
-    public void removeHostInitiatorsFromNetworks(Host host);
-
    /**
     * Binds the host's service profile to the associated blade.
     * @param computeSystem {@link ComputeSystem} instance

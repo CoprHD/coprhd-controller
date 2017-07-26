@@ -582,7 +582,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         // First determine if there is an active zone.
         Zoneset activeZoneset = getActiveZoneset(dialog, vsanId);
         if (activeZoneset == null) {
-
             // if no active or default zoneset presents, consider none is removed
             String defaultZonesetName = getDefaultZonesetName(vsanId.toString());
             _log.warn("No active/default zoneset found: " + defaultZonesetName);
@@ -597,16 +596,18 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 
         // If all zones already deleted, return.
         if (zonesToBeDeleted.isEmpty()) {
+	        deleteUnassignedZones(dialog, zones, vsanId, removedZoneNames);
             return removedZoneNames;
         }
-
+        
         try {
             dialog.config();
+            
             boolean doZonesetClone = zonesetClone(dialog, vsanId, activeZoneset);     
             if (doZonesetClone) {
             	dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
             }
-            
+                       
             for (Zone zone : zonesToBeDeleted) {  
             	 String zoneName = zone.getName();
             	if (doZonesetClone) {	               
@@ -618,8 +619,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	                    removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
 	                    handleZonesStrategyException(ex, activateZones);
 	                }
-	                _log.info("Going back to config prompt");	                
-	                dialog.exitToConfig();
+	                _log.info("Going back to config prompt");	                	                
             	} else {
             		  _log.info("Deleting zone: " + zoneName + " in vsan: " + vsanId);
   	                try {
@@ -629,10 +629,11 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
   	                    removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
   	                    handleZonesStrategyException(ex, activateZones);
   	                }            		
-            	}
+            	}            	            
             }
- 
-          
+            
+            dialog.exitToConfig();
+                        
             if (activateZones) {
                 dialog.zonesetActivate(activeZoneset.getName(), vsanId, ((remainingZones[0] == 0) ? true : false));
             }
@@ -644,7 +645,11 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             dialog.copyRunningConfigToStartupFabric();
             dialog.endConfig();
             time = System.currentTimeMillis() - time;
+                                       
+	        deleteUnassignedZones(dialog, zones, vsanId, removedZoneNames);
+  
             _log.info("Zone remove time (msec): " + time.toString());
+            
             return removedZoneNames;
         } catch (Exception ex) {
             throw NetworkDeviceControllerException.exceptions.removeZonesStrategyFailed(ex);
@@ -652,6 +657,39 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             safeExitSession(dialog, vsanId);
         }
     }
+
+	private void deleteUnassignedZones(MDSDialog dialog, List<Zone> zones, Integer vsanId,
+			Map<String, String> removedZoneNames) {
+		//Delete unassigned zones.
+		//Zones that are removed, but end up in the show vsan analysis under Unassigned zones are zones that do not belong 
+		//to any zonesets. These zones can be removed. We dont remove all such zones, but only those zones that are requested to be 
+		//deleted in the first place but are now not part of any zonesets.
+		dialog.config();
+		List<String> unassignedZones = showZoneAnalysisVsan(dialog, vsanId);   	
+		for (Zone zone : zones) {
+				_log.info(zone.getName() + " was requested to be deleted");
+				if (unassignedZones.contains(zone.getName())) {
+					_log.info("Unassigned zone: " + zone.getName() +  "matched");
+					 try {	
+		            	dialog.zoneNameVsan(zone.getName(), vsanId, true);
+		                removedZoneNames.put(zone.getName(), SUCCESS);
+		        	 } catch (Exception ex) {
+		                _log.info("Could not remove stale zone : " +  zone.getName());
+		             }            	
+				}
+			}            
+			
+		 if (dialog.isInSession()) {
+		     dialog.zoneCommit(vsanId);
+		     dialog.waitForZoneCommit(vsanId);
+		 }
+	}
+    
+    private List<String> showZoneAnalysisVsan(MDSDialog dialog, Integer vsanId) {
+    	       List<String> unassignedZones = new ArrayList<>();
+    	       unassignedZones = dialog.zoneAnalysisVsan(vsanId);
+    	       return unassignedZones;
+    	    }
 
     /**
      * 

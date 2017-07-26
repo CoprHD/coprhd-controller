@@ -1104,6 +1104,55 @@ public class MDSDialog extends SSHDialog {
     public void zoneMemberPwwn(String pwwn) throws NetworkDeviceControllerException {
         zoneMemberPwwn(pwwn, false); // add zone
     }
+    
+    /**
+    +     * zone name {zoneName} vsan {vsanId}
+    +     * no zone name {zoneName} vsan {vsanId}
+    +     *
+    +     * @param zoneName
+    +     * @param vsanId
+    +     * @param no -- makes no version of command
+    +     * @throws NetworkDeviceControllerException
+    +     */
+      public List<String> zoneAnalysisVsan(Integer vsanId) throws NetworkDeviceControllerException {
+    
+            List<String> unassignedZones = new ArrayList<>();
+            SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG };
+            StringBuilder buf = new StringBuilder();
+            boolean retryNeeded = true;
+            for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
+                String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.showZone.analysis.vsan.cmd"), vsanId
+                        ); // show zone analysis vsan {0}\n
+                lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
+                String[] lines = getLines(buf);
+                retryNeeded = checkForEnhancedZoneSession(lines, retryCount);
+    
+	            String[] regex = {
+	                    MDSDialogProperties.getString("MDSDialog.showZone.analysis.unassignedZones.match"),//Unassigned Zones:
+	                    MDSDialogProperties.getString("MDSDialog.showZone.analysis.unassignedZones.name.match")
+	                    }; 
+	            String[] groups = new String[10];
+	            boolean unassignedZonesFound = false;
+	            for (String line : lines) {
+	            	_log.info("LINE: " + line.toString());
+	                int index = match(line, regex, groups);  
+	                switch (index) {
+	                    case 0:
+	                        // Match the string "Unassigned Zones"
+	                        unassignedZonesFound = true;
+	                        break;
+	                    case 1:
+	                    	//Save the stale/unassigned zone names
+	                    	if (unassignedZonesFound) {
+	                    		unassignedZones.add(groups[0]);
+	                    	}
+	                    	break;
+	                }
+	            }
+            }
+           return unassignedZones;
+        }
+    
 
     /**
      * member pwwn {pwwn}

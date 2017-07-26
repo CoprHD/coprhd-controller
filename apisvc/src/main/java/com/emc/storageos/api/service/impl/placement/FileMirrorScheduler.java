@@ -87,6 +87,8 @@ public class FileMirrorScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         List<FileRecommendation> recommendations = null;
+        // This Mirror scheduler method will be called only
+        // if capabilities.getFileReplicationType() have valid replication type
         if (capabilities.getFileReplicationType().equalsIgnoreCase(VirtualPool.FileReplicationType.REMOTE.name())) {
             recommendations = getRemoteMirrorRecommendationsForResources(varray, project, vpool, capabilities);
         } else {
@@ -357,9 +359,11 @@ public class FileMirrorScheduler implements Scheduler {
             for (URI targetVirtualArray : VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient)
                     .keySet()) {
                 VirtualArray nh = dbClient.queryObject(VirtualArray.class, targetVirtualArray);
-                targetVirtualArrays.add(nh);
-                permissionHelper.checkTenantHasAccessToVirtualArray(
-                        project.getTenantOrg().getURI(), nh);
+                if (nh != null && !nh.getInactive()) {
+                    targetVirtualArrays.add(nh);
+                    permissionHelper.checkTenantHasAccessToVirtualArray(
+                            project.getTenantOrg().getURI(), nh);
+                }
             }
         }
         return targetVirtualArrays;

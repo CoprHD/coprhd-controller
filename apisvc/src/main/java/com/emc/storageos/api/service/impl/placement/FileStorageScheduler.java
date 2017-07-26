@@ -130,6 +130,7 @@ public class FileStorageScheduler implements Scheduler {
                 storageSystemSet.add(capabilities.getTargetStorageSystem().toString());
             }
             optionalAttributes.put(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+            _log.info("Asked for the storage recomendations from storage systems {} only", storageSystemSet);
         }
 
         // Get all storage pools that match the passed vpool params and
@@ -167,6 +168,11 @@ public class FileStorageScheduler implements Scheduler {
                 if (sourcevNAsServer == null || sourcevNAsServer.getInactive()) {
                     provisioningOnVirtualNAS = false;
                 }
+            }
+            if (provisioningOnVirtualNAS) {
+                _log.info("Source was placed on virtual nas server, So trying target recommendations from virtual nas");
+            } else {
+                _log.info("Source was placed on physical nas server, So getting the target recommendations from physical nas only");
             }
         }
 
@@ -238,7 +244,10 @@ public class FileStorageScheduler implements Scheduler {
                         }
                     }
                 }
+            } else {
+                _log.info(" No valid recommendations found on virtual NAS servers, Will try on physical nas servers");
             }
+
         }
 
         // In case of
@@ -262,6 +271,8 @@ public class FileStorageScheduler implements Scheduler {
                 if (fileRecommendations != null) {
                     fileRecommendations.addAll(recommendations);
                 }
+            } else {
+                _log.info("Could not find recommendatations on Storage HADomain/physical nas servers");
             }
         }
         // We need to place all the resources. If we can't then
@@ -482,6 +493,12 @@ public class FileStorageScheduler implements Scheduler {
             vNASList = getUnassignedVNASServers(vArrayURI, vPool, project, invalidNasServers);
         }
 
+        // If no valid vNAS servers found, no need to proceed further!!
+        if (vNASList == null || vNASList.isEmpty()) {
+            _log.info("No suitable vNAS server found in assigned and/or un-assigned vNAS servers in varray {}", vArrayURI);
+            return map;
+        }
+
         if (vNASList != null && !vNASList.isEmpty()) {
 
             boolean meteringEnabled = Boolean.parseBoolean(configInfo.get(ENABLE_METERING));
@@ -520,6 +537,8 @@ public class FileStorageScheduler implements Scheduler {
             }
             if (!storagePools.isEmpty()) {
                 map.put(vNAS, storagePools);
+            } else {
+                _log.info("vNAS {} is being filtered out because its pools do not match the vpool's storage pools", vNAS.getNasName());
             }
         }
 

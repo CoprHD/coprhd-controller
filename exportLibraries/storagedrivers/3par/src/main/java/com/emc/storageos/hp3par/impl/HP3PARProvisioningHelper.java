@@ -31,33 +31,27 @@ public class HP3PARProvisioningHelper {
     private static final Logger _log = LoggerFactory.getLogger(HP3PARProvisioningHelper.class);
     private HP3PARUtil hp3parUtil;
 
-    
-    public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities, 
-            DriverTask task, Registry driverRegistry) {
+
+    public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities,
+                                    DriverTask task, Registry driverRegistry) {
 
         int volumesCreated = 0;
         boolean IsDeDupEnabled = false;
-        
+
         // get deduplicationCapability
         CommonStorageCapabilities commonCapabilities= capabilities.getCommonCapabilities();
-		if (commonCapabilities != null) {
-			List<DataStorageServiceOption> dataService = commonCapabilities.getDataStorage();
-			if (dataService != null) {
-				for (DataStorageServiceOption dataServiceOption : dataService) {
-					List<CapabilityInstance> capabilityList = dataServiceOption.getCapabilities();
-					if (capabilityList != null) {
-						for (CapabilityInstance ci : capabilityList) {
-							String provTypeValue = ci
-									.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
-							if (provTypeValue !=null && provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
-								IsDeDupEnabled = true;
-							}
-						}
-					}
-
-				}
-			}
-		}
+        if (commonCapabilities != null) {
+            List<CapabilityInstance> dataService = commonCapabilities.getDataStorage();
+            if (dataService != null) {
+                for (CapabilityInstance ci : dataService) {
+                    String provTypeValue = ci
+                            .getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
+                    if (provTypeValue !=null && provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
+                        IsDeDupEnabled = true;
+                    }
+                }
+            }
+        }
 
         // For each requested volume
         for (StorageVolume volume : volumes) {

@@ -27,51 +27,43 @@ public class StorageCapabilitiesUtils {
 
         // Get the data storage service options for the common capabilities.
         // If null, create it and set it.
-        List<DataStorageServiceOption> dataStorageSvcOptions = storageCapabilities.getDataStorage();
+        List<CapabilityInstance> dataStorageSvcOptions = storageCapabilities.getDataStorage();
         if (dataStorageSvcOptions == null) {
             dataStorageSvcOptions = new ArrayList<>();
             storageCapabilities.setDataStorage(dataStorageSvcOptions);
         }
 
-        // Create a new data storage service option for the passed capabilities
-        // and add it to the list.
-        DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(capabilities);
-        dataStorageSvcOptions.add(dataStorageSvcOption);
+        dataStorageSvcOptions.addAll(capabilities);
     }
 
 
     /**
-     * Convenience method to get specific storage service capability instance
+     * Convenience method to get specific storage service capability instances
      *
      * @param commonStorageCapabilities common storage capabilities
      * @param capabilityUid  Uid of storage service capability
-     * @return  capability instance for specified capability Uid
+     * @return  capability instances for specified capability Uid
      */
-    public static CapabilityInstance getDataStorageServiceCapability(CommonStorageCapabilities commonStorageCapabilities, CapabilityDefinition.CapabilityUid capabilityUid) {
+    public static List<CapabilityInstance> getDataStorageServiceCapability(CommonStorageCapabilities commonStorageCapabilities, CapabilityDefinition.CapabilityUid capabilityUid) {
 
-        CapabilityInstance dataStorageCapabilityInstance = null;
         if (commonStorageCapabilities == null) {
             return null;
         }
 
-        List<DataStorageServiceOption> dataService = commonStorageCapabilities.getDataStorage();
+        List<CapabilityInstance> dataService = commonStorageCapabilities.getDataStorage();
         if (dataService == null) {
             return null;
         }
 
-        for (DataStorageServiceOption dataServiceOption : dataService) {
-            List<CapabilityInstance> capabilityList = dataServiceOption.getCapabilities();
-            if (capabilityList != null) {
-                for (CapabilityInstance ci : capabilityList) {
-                    if (ci.getCapabilityDefinitionUid() != null &&
-                            ci.getCapabilityDefinitionUid().equals(capabilityUid.toString()) &&
-                            ci.getProperties() != null) {
-                        dataStorageCapabilityInstance = ci;
-                    }
-                }
+        List<CapabilityInstance> dataStorageCapabilityInstances = new ArrayList<>();
+        for (CapabilityInstance ci : dataService) {
+            if (ci.getCapabilityDefinitionUid() != null &&
+                    ci.getCapabilityDefinitionUid().equals(capabilityUid.toString()) &&
+                    ci.getProperties() != null) {
+                dataStorageCapabilityInstances.add(ci);
             }
         }
-        return dataStorageCapabilityInstance;
+        return dataStorageCapabilityInstances;
     }
 
     /**
@@ -82,11 +74,11 @@ public class StorageCapabilitiesUtils {
     public static String getVolumeCompressionRatio(StorageVolume driverVolume) {
         // process volume compression from driver volume common capabilities
         String compressionRatio = null;
-        CapabilityInstance volumeCompression =
+        List<CapabilityInstance> volumeCompression =
                 StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(), CapabilityDefinition.CapabilityUid.volumeCompression);
-        if (volumeCompression != null) {
+        if (volumeCompression != null && !volumeCompression.isEmpty()) {
             _log.info("Compression capability for volume {}: {} ", driverVolume.getNativeId(), volumeCompression.toString());
-            compressionRatio = volumeCompression.getPropertyValue(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.COMPRESSION_RATIO.toString());
+            compressionRatio = volumeCompression.get(0).getPropertyValue(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.COMPRESSION_RATIO.toString());
         }
         return compressionRatio;
     }

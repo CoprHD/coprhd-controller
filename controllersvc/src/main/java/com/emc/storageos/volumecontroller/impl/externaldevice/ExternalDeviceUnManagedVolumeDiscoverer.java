@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -323,6 +324,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             // cleanup hostiolimits from previous discoveries
             unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), new StringSet());
             unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), new StringSet());
+
+            // cleanup auto-tiering policies from previous volume discoveries
+            unManagedVolume.putVolumeCharacterstics(UnManagedVolume.SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), FALSE);
+            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString(), new StringSet());
         }
 
         unManagedVolume.setLabel(driverVolume.getDeviceLabel());
@@ -361,10 +366,12 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 nativeId);
 
         // process hostiolimits from driver volume common capabilities
-        CapabilityInstance hostIOLimits =
-                StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(), CapabilityDefinition.CapabilityUid.hostIOLimits);
-        if (hostIOLimits != null) {
-            log.info("HostIOLimits for volume {}: {} ", driverVolume.getNativeId(),hostIOLimits.toString());
+        List<CapabilityInstance> hostIOLimitsList =
+                StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(),
+                        CapabilityDefinition.CapabilityUid.hostIOLimits);
+        if (hostIOLimitsList != null && !hostIOLimitsList.isEmpty()) {
+            log.info("HostIOLimits for volume {}: {} ", driverVolume.getNativeId(), hostIOLimitsList.toString());
+            CapabilityInstance hostIOLimits = hostIOLimitsList.get(0);
             String bandwidth = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_BANDWIDTH.toString());
             String iops = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_IOPS.toString());
             if (bandwidth != null) {
@@ -378,6 +385,24 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 iopsValue.add(iops);
                 unManagedVolume.putVolumeInfo(
                         UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), iopsValue);
+            }
+        }
+
+        // process auto-tiering policies from driver volume common capabilities
+        List<CapabilityInstance> autoTieringPoliciesList =
+                StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(), CapabilityDefinition.CapabilityUid.autoTieringPolicy);
+        if (autoTieringPoliciesList != null && !autoTieringPoliciesList.isEmpty()) {
+            log.info("AutoTieringPolicies for volume {}: {} ", driverVolume.getNativeId(),autoTieringPoliciesList.toString());
+            CapabilityInstance autoTieringPolicies = autoTieringPoliciesList.get(0);
+            List<String> policyNames = autoTieringPolicies.getPropertyValues(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.toString());
+            if (policyNames != null && !policyNames.isEmpty()) {
+                StringSet policies = new StringSet();
+                for (String policy : policyNames) {
+                    policies.add(policy);
+                }
+                unManagedVolume.putVolumeInfo(
+                        UnManagedVolume.SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString(), policies);
+                unManagedVolume.putVolumeCharacterstics(UnManagedVolume.SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), TRUE);
             }
         }
 

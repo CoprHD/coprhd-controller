@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -77,10 +76,25 @@ public class VolumeEngineTest {
     // LOG.info("Volume as {}", volume);
     // }
 
+    // @Test
+    // public void testRemoveStandardVolume() {
+    // String volumeId = "00CBA";
+    // Assert.assertTrue(volEngine.removeStandardVolume(volumeId).isSuccessfulStatus());
+    // }
+
+    // @Test
+    // public void testGetNextPageForItarator() {
+    // String iteratorId = "e1d92029-0a75-4ee2-81ef-c65ffa4fe7c9_0";
+    // Type responseClazzType = new TypeToken<ResultListType<VolumeListResultType>>() {
+    // }.getType();
+    // ResultListType<VolumeListResultType> responseBean = volEngine.getNextPageForItarator(iteratorId, 1001, 1050);
+    // List<VolumeListResultType> volumeList = responseBean.getResult();
+    // System.out.println(volumeList.size());
+    // }
+
     @Test
-    public void testRemoveStandardVolume() {
-        String volumeId = "00CBA";
-        Assert.assertTrue(volEngine.removeStandardVolume(volumeId).isSuccessfulStatus());
+    public void testFindValidVolumes() {
+        LOG.info("volume number as {}", volEngine.findValidVolumes(null).size());
     }
 
 }

@@ -134,6 +134,25 @@ public class RestHandler {
 
     }
 
+    public <T extends IResponse> ResponseWrapper<T> get(String url, Type responseClazzType) {
+        ClientResponse response = null;
+        ResponseWrapper<T> responseWrapper = new ResponseWrapper<>();
+        try {
+            LOG.debug("request url as :GET {}", url);
+            response = restClient.get(URI.create(url));
+            processResponse(url, response, responseClazzType, responseWrapper);
+
+        } catch (Exception e) {
+            LOG.error("Exception happened during calling get rest call {}", e);
+            responseWrapper.setException(new FailedGetRestCallException(e));
+        } finally {
+            restClient.closeResponse(response);
+        }
+
+        return responseWrapper;
+
+    }
+
     public <T extends IResponse> ResponseWrapper<T> list(String url, Type responseClazzType) {
         ClientResponse response = null;
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<>();
@@ -242,11 +261,28 @@ public class RestHandler {
             return;
         }
         int status = response.getStatus();
-        JSONObject respnseJson = new JSONObject();
+        JSONObject responseJson = new JSONObject();
         if (ClientResponse.Status.NO_CONTENT.getStatusCode() != status) {
-            respnseJson = response.getEntity(JSONObject.class);
+            responseJson = response.getEntity(JSONObject.class);
         }
-        T bean = JsonParser.parseJson2Bean((respnseJson.toString()), clazz);
+        T bean = JsonParser.parseJson2Bean((responseJson.toString()), clazz);
+        bean.setHttpStatusCode(status);
+        responseWrapper.setResponseBean(bean);
+    }
+
+    private <T extends IResponse> void processResponse(String url, ClientResponse response, Type responseClazzType,
+            ResponseWrapper<T> responseWrapper) throws JSONException {
+        LOG.debug("response as :{}", response);
+        if (response == null) {
+            responseWrapper.setException(new NullResponseException(String.format("Null Response meet during calling %s", url)));
+            return;
+        }
+        int status = response.getStatus();
+        JSONObject responseJson = new JSONObject();
+        if (ClientResponse.Status.NO_CONTENT.getStatusCode() != status) {
+            responseJson = response.getEntity(JSONObject.class);
+        }
+        T bean = JsonParser.parseJson2Bean((responseJson.toString()), responseClazzType);
         bean.setHttpStatusCode(status);
         responseWrapper.setResponseBean(bean);
     }
@@ -258,9 +294,10 @@ public class RestHandler {
             responseWrapper.setException(new NullResponseException(String.format("Null Response meet during calling %s", url)));
             return;
         }
-        JSONObject respnseJson = response.getEntity(JSONObject.class);
+        JSONObject responseJson = response.getEntity(JSONObject.class);
+        LOG.debug("Jsonobject as : {}", responseJson);
         int status = response.getStatus();
-        IteratorType<T> beanIterator = new Gson().fromJson(sanitize(respnseJson.toString()), responseClazzType);
+        IteratorType<T> beanIterator = new Gson().fromJson(sanitize(responseJson.toString()), responseClazzType);
         beanIterator.setHttpStatusCode(status);
         responseWrapper.setResponseBeanIterator(beanIterator);
     }

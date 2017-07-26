@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.driver.univmax.utils;
 
+import static com.google.json.JsonSanitizer.sanitize;
+
+import java.lang.reflect.Type;
+
 import com.google.gson.Gson;
 
 /**
@@ -21,6 +25,10 @@ public class JsonParser {
      */
     public static <T> T parseJson2Bean(String jsonString, Class T) {
         return (T) new Gson().fromJson(jsonString, T);
+    }
+
+    public static <T> T parseJson2Bean(String jsonString, Type responseClazzType) {
+        return new Gson().fromJson(sanitize(jsonString), responseClazzType);
     }
 
 }

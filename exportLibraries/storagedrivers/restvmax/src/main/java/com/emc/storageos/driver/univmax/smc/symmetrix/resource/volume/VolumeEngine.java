@@ -17,6 +17,7 @@ import com.emc.storageos.driver.univmax.smc.basetype.DefaultResEngine;
 import com.emc.storageos.driver.univmax.smc.basetype.ResponseWrapper;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.GenericResultImplType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.IteratorType;
+import com.emc.storageos.driver.univmax.smc.symmetrix.resource.ResultListType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.model.GetVolumeResultType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.model.VolumeListResultType;
 import com.emc.storageos.driver.univmax.smc.symmetrix.resource.volume.model.VolumeType;
@@ -25,7 +26,7 @@ import com.google.gson.reflect.TypeToken;
 public class VolumeEngine extends DefaultResEngine {
     private static final Logger LOG = LoggerFactory.getLogger(VolumeEngine.class);
 
-    static class EndPointHolder {
+    static class EndPointHolder extends DefaultResEngine.EndPointHolder {
         public final static String LIST_VOLUME_URL = "/sloprovisioning/symmetrix/%s/volume";
         public final static String GET_VOLUME_URL = "/sloprovisioning/symmetrix/%s/volume/%s";
         public final static String REMOVE_VOLUME_URL = "/sloprovisioning/symmetrix/%s/volume/%s";
@@ -45,7 +46,7 @@ public class VolumeEngine extends DefaultResEngine {
      * @return
      */
     public IteratorType<VolumeListResultType> listVolumes(Map<String, String> filters) {
-        return listVolumes(genUrlFillers(), filters);
+        return listVolumes(genUrlFillersWithSn(), filters);
     }
 
     /**
@@ -85,7 +86,7 @@ public class VolumeEngine extends DefaultResEngine {
      * @return List<String> volumeIds
      */
     public List<String> findValidVolumes(Map<String, String> filters) {
-        return findValidVolumes(genUrlFillers(), filters);
+        return findValidVolumes(genUrlFillersWithSn(), filters);
     }
 
     /**
@@ -96,14 +97,15 @@ public class VolumeEngine extends DefaultResEngine {
      * @return
      */
     public List<String> findValidVolumes(List<String> urlFillers, Map<String, String> filters) {
-        List<String> volIds = new ArrayList<String>();
+        List<String> volIds = new ArrayList<>();
         IteratorType<VolumeListResultType> iterator = listVolumes(urlFillers, filters);
         if (!iterator.isSuccessfulStatus() && iterator.getCount() <= 0) {
             LOG.warn("Cannot find valid volumes with filters {}", filters);
             return volIds;
         }
-
-        List<VolumeListResultType> volumeList = iterator.fetchAllResults();
+        Type responseClazzType = new TypeToken<ResultListType<VolumeListResultType>>() {
+        }.getType();
+        List<VolumeListResultType> volumeList = getAllResourcesOfItatrator(iterator, responseClazzType);
         for (VolumeListResultType volume : volumeList) {
             volIds.add(volume.getVolumeId());
         }
@@ -118,7 +120,7 @@ public class VolumeEngine extends DefaultResEngine {
      * @return VolumeType
      */
     public VolumeType fetchVolume(String volumeId) {
-        return fetchVolume(volumeId, genUrlFillers(volumeId));
+        return fetchVolume(volumeId, genUrlFillersWithSn(volumeId));
     }
 
     /**
@@ -164,7 +166,7 @@ public class VolumeEngine extends DefaultResEngine {
      * @return
      */
     public GenericResultImplType removeStandardVolume(String volumeId) {
-        String url = urlGenerator.genUrl(EndPointHolder.REMOVE_VOLUME_URL, genUrlFillers(volumeId), null);
+        String url = urlGenerator.genUrl(EndPointHolder.REMOVE_VOLUME_URL, genUrlFillersWithSn(volumeId), null);
         ResponseWrapper<GenericResultImplType> responseWrapper = engine.delete(url, GenericResultImplType.class);
         GenericResultImplType responseBean = responseWrapper.getResponseBean();
         if (responseWrapper.getException() != null) {

@@ -1638,6 +1638,7 @@ public class VirtualArrayService extends TaggedResource {
      *     the port groups in the virtual array, but in different storage system from the export masks.
      * If storage system is specified, it will only return the port groups belonging to the storage system. 
      * If vpool is specified, it will get the port groups from the same storage system as vpool's storage pools reside. 
+     * If consistency group is specified, it will return the port groups in the same storage system as the consistency group
      * This API is used by UI to get storage port group list for create and export volumes related catalog services 
      * 
      * @param id - Virtual array URI
@@ -1645,6 +1646,9 @@ public class VirtualArrayService extends TaggedResource {
      * @param exportGroupURI - OPTIONAL Export group URI
      * @param vpoolURI - OPTIONAL virtual pool URI
      * @param cgURI - OPTIONAL consistency group URI
+     * @param registeredOnly - OPTIONAL if true, only registered port group would be returned
+     *                                  if false, both registered and deregistered port group would be returned
+     *                                  if not set, default to true
      * @return - Storage port group list
      */
     @GET
@@ -1655,7 +1659,8 @@ public class VirtualArrayService extends TaggedResource {
             @QueryParam("storage_system") URI storageURI,
             @QueryParam("export_group") URI exportGroupURI,
             @QueryParam("vpool") URI vpoolURI,
-            @QueryParam("consistency_group") URI cgURI) {
+            @QueryParam("consistency_group") URI cgURI,
+            @QueryParam("registered_only") Boolean registeredOnly) {
 
         // Get and validate the varray with the passed id.
         ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
@@ -1807,13 +1812,14 @@ public class VirtualArrayService extends TaggedResource {
             sortPGs.add(it.next());
         }
         Collections.sort(sortPGs, new StoragePortGroupComparator());
+        boolean checkRegistered = (registeredOnly != null ? registeredOnly : true);
         // return the result.
         for (StoragePortGroup portGroup : sortPGs) {
-            if (portGroup != null && portGroup.isUsable()) {
-                if (portURIs.containsAll(StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()))) {
+            if (portGroup != null && !portGroup.getInactive() &&
+                    (!checkRegistered || portGroup.isUsable()) && 
+                    portURIs.containsAll(StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()))) {
                     StoragePortGroupRestRep pgRep = MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
                     portGroups.getStoragePortGroups().add(pgRep);
-                }
             }
         }
         return portGroups;

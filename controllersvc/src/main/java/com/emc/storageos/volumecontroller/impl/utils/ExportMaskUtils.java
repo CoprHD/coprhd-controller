@@ -717,8 +717,7 @@ public class ExportMaskUtils {
             List<URI> targets, ZoneInfoMap zoneInfoMap,
             T volume, Set<String> unManagedInitiators, String nativeId,
             List<Initiator> userAddedInis, DbClient dbClient,
-            Map<String, Integer> wwnToHluMap)
-                    throws Exception {
+            Map<String, Integer> wwnToHluMap) throws Exception {
 
         ExportMask exportMask = new ExportMask();
         exportMask.setId(URIUtil.createId(ExportMask.class));
@@ -1511,11 +1510,12 @@ public class ExportMaskUtils {
                 // other process just added the volume to the ExportMask, but the HLU selection by the array has
                 // not completed. In that case, we won't indicate that the volume is added just yet.
                 // That other process should add the volume and its HLU in the ExportMask addVolume post process.
-                if (hlu != null) {
-                    volumesToAdd.put(normalizedWWN, hlu);
-                } else {
+                // UPDATE: existing volumes should definitely be added to ExportMask. If there is no HLU assigned yet, let it be -1.
+                if (hlu == null) {
+                    hlu = ExportGroup.LUN_UNASSIGNED;
                     _log.info("Volume {} does not have an HLU. It could be getting assigned.", normalizedWWN);
                 }
+                volumesToAdd.put(normalizedWWN, hlu);
             }
         }
         return volumesToAdd;

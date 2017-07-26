@@ -648,8 +648,12 @@ public class UcsComputeDevice implements ComputeDevice {
         LsServer lsServer = null;
         StringBuffer errorMessage = new StringBuffer();
         try {
-            lsServer = ucsmService.createServiceProfileFromTemplate(getUcsmURL(cs).toString(), cs.getUsername(),
-                    cs.getPassword(), sptDn, host.getHostName(), errorMessage);
+            try {
+                lsServer = ucsmService.createServiceProfileFromTemplate(getUcsmURL(cs).toString(), cs.getUsername(),
+                        cs.getPassword(), sptDn, host.getHostName(), errorMessage);
+            } catch (Exception e) {
+                throw new RuntimeException("UCS call to create service profile from template failed due to : " + errorMessage);
+            }
 
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_073);

@@ -8,8 +8,10 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.vipr.client.Task;
 
@@ -21,9 +23,10 @@ public class CreateExportNoWait extends ViPRExecutionTask<Task<ExportGroupRestRe
     private Integer hlu;
     private URI hostId;
     private URI clusterId;
+    private URI portGroup;
 
     public CreateExportNoWait(String name, URI varrayId, URI projectId, List<URI> volumeIds, Integer hlu, String hostName, URI hostId,
-            URI clusterId) {
+            URI clusterId, URI portGroup) {
         this.name = name;
         this.varrayId = varrayId;
         this.projectId = projectId;
@@ -37,6 +40,7 @@ public class CreateExportNoWait extends ViPRExecutionTask<Task<ExportGroupRestRe
         else {
             provideDetailArgs(name, getMessage("CreateExport.hostname"), hostName, volumeIds, hlu);
         }
+        this.portGroup = portGroup;
     }
 
     @Override
@@ -65,6 +69,12 @@ public class CreateExportNoWait extends ViPRExecutionTask<Task<ExportGroupRestRe
         else {
             export.addHost(hostId);
             export.setType("Host");
+        }
+        
+        if (!NullColumnValueGetter.isNullURI(portGroup)) {
+            ExportPathParameters exportPathParameters = new ExportPathParameters();
+            exportPathParameters.setPortGroup(portGroup);
+            export.setExportPathParameters(exportPathParameters);
         }
 
         Task<ExportGroupRestRep> task = getClient().blockExports().create(export);

@@ -258,6 +258,9 @@ public interface DeviceControllerErrors {
             final int successPolicies);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError fileReplicationConfFailoverOperationFailed(final String fsname, final int failedSteps, final int numSteps);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError noNasServerFoundToAddStepsToApplyPolicy(final String system);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)

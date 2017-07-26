@@ -1118,7 +1118,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                 if (haVpool == null) {
                     supportsMirror = false;
                 } else {
-                    supportsMirror = haVpool.getMaxNativeContinuousCopies() != VirtualPool.MAX_DISABLED
+                    supportsMirror = haVpool.getMaxNativeContinuousCopies() != null 
+                            && haVpool.getMaxNativeContinuousCopies() != VirtualPool.MAX_DISABLED
                             && haVpool.getMirrorVirtualPool() != null;
                 }
             }

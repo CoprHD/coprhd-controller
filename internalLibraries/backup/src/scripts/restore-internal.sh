@@ -18,7 +18,23 @@ DIR=$(dirname $0)
 start_service() {
     echo -n "Starting storageos services on all nodes ... "
     local command="/etc/storageos/storageos start"
-    loop_execute "${command}" "true"
+#    loop_execute "${command}" "true"
+
+    set +e
+
+    for viprNode in ${SUCCESSFUL_NODES}
+    do
+        ssh_execute "$viprNode" "$command" "${ROOT_PASSWORD}"
+    done
+    wait
+
+    for viprNode in ${FAILED_NODES}
+    do
+        ssh_execute "$viprNode" "$command" "${ROOT_PASSWORD}"
+    done
+    wait
+    set -e
+
     echo "done"
 }
 
@@ -86,6 +102,10 @@ copy_missing_files() {
     done
 }
 
+# Keep this variable to handle startup sequence
+FAILED_NODES=""
+SUCCESSFUL_NODES=""
+
 restore_data() {
     echo "Restoring data on all nodes ... "
     set +e
@@ -103,12 +123,15 @@ restore_data() {
             restore_node "${viprNode}" "onlysiteid"
         fi
         if [ $? != 0 ]; then
+            FAILED_NODES=${FAILED_NODES}" "${viprNode}
             if [[ "$(is_local_backup ${RESTORE_ORIGIN})" == "true" ]] && [[ `echo ${#BACKUP_INFO[@]} | grep ${viprNode}` == "" ]] ; then
                    echo "This is incomplete backup, and skip ${viprNode} as it is the missing one."
                    continue
             fi
             echo "Failed on ${viprNode}.."
             RESTORE_RESULT="failed"
+        else
+            SUCCESSFUL_NODES=${SUCCESSFUL_NODES}" "${viprNode}
         fi
     done
     set -e

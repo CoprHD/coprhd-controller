@@ -5,9 +5,13 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +23,8 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+
+import static com.google.common.collect.Collections2.transform;
 
 public class VolumeDeleteCompleter extends VolumeTaskCompleter {
     private static final Logger _log = LoggerFactory
@@ -63,12 +69,9 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
                         // user of the potential resource(s) that were not cleaned-up as a by-product of this
                         // failure, so we will add such information into the incoming service code message.
                         if (isRollingBack() && (coded instanceof ServiceError)) {
-                            ServiceError error = (ServiceError) coded;
-                            String originalMessage = error.getMessage();
                             String additionMessage = "Rollback encountered problems cleaning up " +
                                     volume.getNativeGuid() + " and may require manual clean up";
-                            String updatedMessage = String.format("%s\n%s", originalMessage, additionMessage);
-                            error.setMessage(updatedMessage);
+                            addAdditionalMessage(coded, additionMessage);
                         }
 
                         // if SRDF Protected Volume, then change it to a normal device.
@@ -82,11 +85,14 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
                                 volume.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
                                 volume.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
                                 volume.setSrdfGroup(NullColumnValueGetter.getNullURI());
-                            } else if (null != volume.getSrdfTargets()) {
+                            } else if (null != volume.getSrdfTargets() && !volume.getSrdfTargets().isEmpty()) {
+                                addAdditionalMessage(coded, "SRDF target volumes may also require removal: " +
+                                        joinedTargetLabels(volume, dbClient));
                                 volume.getSrdfTargets().clear();
                             }
+
+                            dbClient.updateObject(volume);
                         }
-                        dbClient.updateObject(volume);
 
                         dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
                         break;
@@ -120,5 +126,30 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
         } finally {
             super.complete(dbClient, status, coded);
         }
+    }
+
+    private void addAdditionalMessage(ServiceCoded error, String message) {
+        if (!(error  instanceof ServiceError)) {
+            _log.warn(message);
+            return;
+        }
+
+        String originalMessage = error.getMessage();
+        String updatedMessage = null;
+
+        if (Strings.isNullOrEmpty(originalMessage)) {
+            updatedMessage = message;
+        } else {
+            updatedMessage = String.format("%s\n%s", originalMessage, message);
+        }
+        ((ServiceError)error).setMessage(updatedMessage);
+    }
+
+    private String joinedTargetLabels(Volume volume, DbClient dbClient) {
+        Collection<URI> targetURIs = transform(volume.getSrdfTargets(), CommonTransformerFunctions.FCTN_STRING_TO_URI);
+        List<Volume> targets = dbClient.queryObject(Volume.class, targetURIs);
+        Collection<String> targetLabels = transform(targets, CommonTransformerFunctions.fctnBlockObjectToLabel());
+
+        return Joiner.on(',').join(targetLabels);
     }
 }

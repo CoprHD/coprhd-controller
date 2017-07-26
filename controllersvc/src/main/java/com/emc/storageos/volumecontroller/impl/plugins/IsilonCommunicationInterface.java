@@ -1407,9 +1407,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     /*
-     * The method find the replication policy found for file system directory
+     * The method finds the replication policy for file system directory
      * The policy might be at either file system level or at higher directory level
-     * policies name with _mirror suffix should not be considered for source as they represent for target
+     * policy name with _mirror suffix should not be considered for source as they represent for target
      */
     private boolean setSourceReplicationPolicyAttributes(UnManagedFileSystem unManagedFs, String fsPath,
             ArrayList<IsilonSyncPolicy> isiSyncIQPolicies) {
@@ -1428,11 +1428,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
                 if (isiSyncIQPolicy.getSourceRootPath() != null && !isiSyncIQPolicy.getSourceRootPath().isEmpty()) {
                     String policyPath = isiSyncIQPolicy.getSourceRootPath();
-                    // Add SLASH to end of the path, if not
-                    // it would easy the prefix directory checking in case of policy at higher level
+                    // Add SLASH to end of the path,
+                    // it would be easy to verifying policy at fs level or higher level
                     policyPath = policyPath + (policyPath.endsWith(SLASH) ? "" : SLASH);
                     fsPath = fsPath + (fsPath.endsWith(SLASH) ? "" : SLASH);
-                    // If policy at file system level both policy path and fs path should be same
+                    // If policy at file system level, both policy path and fs path should be same.
                     // if policy at higher directory level of this file system,
                     // the policy path should be part of file system path.
                     if (policyPath.equals(fsPath) || fsPath.startsWith(policyPath)) {
@@ -1452,9 +1452,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 policySourcePath);
                         unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_SCHEDULE.toString(),
                                 policySchedule);
-
-                        // What about if there are policies at higher level as well fs level
-                        // TODO
                         return true;
                     }
                 } else {
@@ -1467,9 +1464,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     /*
-     * The method find the replication local target policy found for file system directory
-     * The policy might be at either file system level or at higher directory level
-     * policies name with _mirror suffix should not be considered for target as they represent for source
+     * The method finds the replication local target policy for file system directory.
+     * The policy might be at either file system level or at higher directory level.
+     * As these policies are local targets, policy name with _mirror suffix should not be
+     * considered for target as they represent for source.
      */
     private boolean setTargetReplicationPolicyAttributes(UnManagedFileSystem unManagedFs, String fsPath,
             ArrayList<IsilonSyncTargetPolicy> isiSyncIQPolicies) {
@@ -1488,10 +1486,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 if (localTargetPolicy.getTargetPath() != null && !localTargetPolicy.getTargetPath().isEmpty()) {
                     String policyPath = localTargetPolicy.getTargetPath();
                     // Add SLASH to end of the path, if not
-                    // it would easy the prefix directory checking in case of policy at higher level
+                    // it would be easy to verifying policy at fs level or higher level
                     policyPath = policyPath + (policyPath.endsWith(SLASH) ? "" : SLASH);
                     fsPath = fsPath + (fsPath.endsWith(SLASH) ? "" : SLASH);
-                    // If policy at file system level both policy path and fs path should be same
+                    // If policy at file system level, both policy path and fs path should be same.
                     // if policy at higher directory level of this file system,
                     // the policy path should be part of file system path.
                     if (policyPath.equals(fsPath) || fsPath.startsWith(policyPath)) {
@@ -1508,9 +1506,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 policyDirPath);
                         unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_SCHEDULE.toString(),
                                 policySchedule);
-
-                        // What about if there are policies at higher level as well fs level
-                        // TODO
                         return true;
                     }
                 } else {
@@ -2439,11 +2434,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             pools.add(pool.getId().toString());
             unManagedFileSystemInformation.put(
                     UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_POOL.toString(), pools);
+            // Add support to ingest file systems to thick vpools as well.
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool.getId());
             _log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
             if (null == matchedVPools || matchedVPools.isEmpty()) {
                 // clear all existing supported vpools.
                 unManagedFileSystem.getSupportedVpoolUris().clear();
+                _log.info("No matched vpool found for the file system {}", fileSystem.getNativeId());
             } else {
                 // replace with new StringSet
                 unManagedFileSystem.getSupportedVpoolUris().replace(matchedVPools);

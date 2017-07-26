@@ -1033,7 +1033,7 @@ public class DiscoveryUtils {
      * guaranteed to be used the same (or at all) on all storage array platforms.
      * 
      * @param propertyToFilter the object property String to check against the system unmanaged discovery filter Regex pattern.
-     *                         if the property to filter is null or empty, this method will return false because it can't be matched.
+     *            if the property to filter is null or empty, this method will return false because it can't be matched.
      * @return true if the property String is a match and the object should be processed for unmanaged discovery
      */
     public static boolean isUnmanagedVolumeFilterMatching(String propertyToFilter) {
@@ -1064,7 +1064,6 @@ public class DiscoveryUtils {
      * Filters supported vPools in UnManaged file system based on file replication.
      *
      * @param unManagedFs the UnManaged file system
-     * @param system the system
      * @param dbClient the db client
      */
     public static void filterSupportedVpoolsBasedOnFileReplication(UnManagedFileSystem unManagedFs, DbClient dbClient) {
@@ -1078,11 +1077,12 @@ public class DiscoveryUtils {
                 VirtualPool vPool = dbClient.queryObject(VirtualPool.class, URI.create(uri));
                 if (vPool != null && !vPool.getInactive()) {
                     if (!vPool.getFileReplicationSupported()) {
-                        _log.info("vPool {} is not supported replication, so removing from eligible vpool list", vPool.getLabel());
+                        _log.info("vPool {} does not support replication, so removing it from eligible vpool list", vPool.getLabel());
                         vPoolsToRemove.add(uri);
                     }
                 } else {
                     // remove Inactive vPool URI
+                    _log.debug("vPool {} is not valid, so removing it from eligible vpool list", uri);
                     vPoolsToRemove.add(uri);
                 }
             }

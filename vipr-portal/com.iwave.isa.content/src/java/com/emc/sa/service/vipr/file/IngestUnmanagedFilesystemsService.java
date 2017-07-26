@@ -47,17 +47,22 @@ public class IngestUnmanagedFilesystemsService extends ViPRService {
     public void precheck() throws Exception {
         super.precheck();
         execute(new CheckStorageSystemDiscoveryStatus(storageSystem));
+        if (fileSystemIds == null || fileSystemIds.isEmpty()) {
+            logWarn("ingest.unmanaged.filesystems.service.selected.none");
+        }
     }
 
     @Override
     public void execute() throws Exception {
-        List<UnManagedFileSystemRestRep> unmanaged = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type));
+        if (fileSystemIds != null && !fileSystemIds.isEmpty()) {
+            List<UnManagedFileSystemRestRep> unmanaged = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type));
 
-        execute(new IngestUnmanagedFilesystems(virtualPool, virtualArray, project, uris(fileSystemIds)));
+            execute(new IngestUnmanagedFilesystems(virtualPool, virtualArray, project, uris(fileSystemIds)));
 
-        // Requery and produce a log of what was ingested or not
-        int failed = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type)).size();
-        logInfo("ingest.unmanaged.filesystems.service.ingested", unmanaged.size() - failed);
-        logInfo("ingest.unmanaged.filesystems.service.skipped", failed);
+            // Requery and produce a log of what was ingested or not
+            int failed = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type)).size();
+            logInfo("ingest.unmanaged.filesystems.service.ingested", unmanaged.size() - failed);
+            logInfo("ingest.unmanaged.filesystems.service.skipped", fileSystemIds.size() - failed);
+        }
     }
 }

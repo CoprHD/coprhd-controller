@@ -4855,7 +4855,9 @@ nfsACL.name=Name
 nfsACL.type=Type
 nfsACL.domain=Domain
 nfsACL.permissionType=Permissions Type
+nfsACL.inheritFlags=Inherit Flags
 
+nfsAccessControlList.inheritFlags=Inherit Flags
 nfsAccessControlList.permissions=Permissions
 nfsAccessControlList.name=Name
 nfsAccessControlList.type=Type

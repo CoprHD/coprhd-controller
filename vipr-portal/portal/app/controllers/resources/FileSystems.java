@@ -449,12 +449,13 @@ public class FileSystems extends ResourceController {
             strPer = strPer + permission.toLowerCase() + ",";
         }
         strPer = strPer.substring(0, strPer.length() - 1);
-
-        for (String inheritFlag : inheritFlags) {
-            strInherit = strInherit + inheritFlag.toLowerCase() + ",";
-        }
-        if (strInherit.length() > 1) {
-            strInherit = strInherit.substring(0, strInherit.length() - 1);
+        if (inheritFlags != null) {
+            for (String inheritFlag : inheritFlags) {
+                strInherit = strInherit + inheritFlag.toLowerCase() + ",";
+            }
+            if (strInherit.length() > 1) {
+                strInherit = strInherit.substring(0, strInherit.length() - 1);
+            }
         }
         List<NfsACE> aces = Lists.newArrayList();
         NfsACE nfsAce = new NfsACE();

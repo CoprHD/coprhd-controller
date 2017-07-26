@@ -97,7 +97,7 @@ test_expand_host_filesystem() {
                 validate_db 1 2 "${column_family[@]}"
 
                 # host tooling to verify that volume is remounted
-                verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
+                verify_mount_point ${os} ${mountpoint} ${size} ${wwn} false
 
 		# Rerun the expand operation
 		set_artificial_failure none
@@ -108,7 +108,7 @@ test_expand_host_filesystem() {
 	    fi
 
             # Verify that expand is successful on host side
-            verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
+            verify_mount_point ${os} ${mountpoint} ${size} ${wwn} true
 
             # Report results
             report_results "${test_name}_${os}" ${failure}

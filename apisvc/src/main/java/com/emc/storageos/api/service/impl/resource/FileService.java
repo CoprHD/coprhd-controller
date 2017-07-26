@@ -2319,6 +2319,20 @@ public class FileService extends TaskResourceService {
         String path = fs.getPath();
         _log.info("Export path found {} ", path);
 
+        // COP - 31479
+        ScopedLabelSet scopedLabelSet = fs.getTag();
+        if (scopedLabelSet != null) {
+            final String datastoreNamespace = "isa.vc:datastore";
+            for (ScopedLabel tag : scopedLabelSet) {
+                if (tag.getLabel() != null && tag.getLabel().contains(datastoreNamespace)) {
+                    _log.info("File system has tagged NFS Datasource ", tag.getScope());
+                    throw APIException.badRequests
+                            .unableToProcessRequest(
+                                    "Cannot perform Remove NFS Export operation as the File system is associated with NFS Datastore");
+                }
+            }
+        }
+
         // Before running operation check if subdirectory exists
 
         List<FileExportRule> exportFileRulesTemp = queryDBFSExports(fs);

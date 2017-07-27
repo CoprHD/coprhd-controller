@@ -40,11 +40,6 @@ public abstract class AbstractMigrationServiceApiImpl implements MigrationServic
         return coordinator;
     }
 
-    public AbstractMigrationServiceApiImpl() {
-        super();
-        // TODO
-    }
-
     /**
      * Looks up controller dependency for given hardware type.
      * If cannot locate controller for defined hardware type, lookup controller for

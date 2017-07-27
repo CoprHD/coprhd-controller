@@ -4,13 +4,11 @@
  */
 package com.emc.storageos.model.block;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * The migration create/initiate parameter.
@@ -20,16 +18,13 @@ public class MigrationCreateParam {
 
     private URI targetStorageSystem;
 
-    private List<URI> targetPorts;
-
-    // TODO add path param
+    // TODO srp, compression - need to be provided by user?
 
     public MigrationCreateParam() {
     }
 
     public MigrationCreateParam(URI targetStorageSystem, List<URI> targetPorts) {
         this.targetStorageSystem = targetStorageSystem;
-        this.targetPorts = targetPorts;
     }
 
     /**
@@ -45,20 +40,4 @@ public class MigrationCreateParam {
         this.targetStorageSystem = targetStorageSystem;
     }
 
-    @XmlElementWrapper(required = true, name = "target_storage_ports")
-    /**
-     * List of target storage port ids.
-     * Example: list of valid URIs
-     */
-    @XmlElement(required = true, name = "target_storage_port")
-    public List<URI> getTargetPorts() {
-        if (targetPorts == null) {
-            targetPorts = new ArrayList<URI>();
-        }
-        return targetPorts;
-    }
-
-    public void setTargetPorts(List<URI> targetPorts) {
-        this.targetPorts = targetPorts;
-    }
 }

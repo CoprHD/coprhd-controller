@@ -927,7 +927,7 @@ public class MigrationService extends TaskResourceService {
         migrationApiImpl.migrationCreateEnvironment(param, taskId);
 
         // Create a task for the storage system and set the initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, srcSysytem.getId(), taskId,
+        Operation op = _dbClient.createTaskOpStatus(StorageSystem.class, srcSysytem.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CREATE_ENV);
 
         TaskResourceRep task = toTask(srcSysytem, taskId, op);
@@ -961,7 +961,7 @@ public class MigrationService extends TaskResourceService {
         migrationApiImpl.migrationRemoveEnvironment(param, taskId);
 
         // Create a task for the storage system and set the initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, srcSysytem.getId(), taskId,
+        Operation op = _dbClient.createTaskOpStatus(StorageSystem.class, srcSysytem.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_REMOVE_ENV);
 
         TaskResourceRep task = toTask(srcSysytem, taskId, op);

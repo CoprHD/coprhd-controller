@@ -18,30 +18,112 @@ public interface MigrationController extends Controller {
     public final static String MIGRATION = "migration"; // TODO tag needed?
 
     /**
-     * Create Migration environment.
+     * Create migration environment between source system and target system
      *
-     * @param sourceSystem the source system
-     * @param targetSystem the target system
+     * @param sourceSystemURI the source system uri
+     * @param targetSystemURI the target system uri
      * @param taskId the task id
      * @throws ControllerException the controller exception
      */
-    public void migrationCreateEnvironment(URI sourceSystem, URI targetSystem, String taskId) throws ControllerException;
+    public void migrationCreateEnvironment(URI sourceSystemURI, URI targetSystemURI, String taskId) throws ControllerException;
 
-    public void migrationCreate(URI sourceSystem, URI cgId, URI targetSystem, String taskId) throws ControllerException;
+    /**
+     * Create/Initiate the migration process
+     *
+     * @param sourceSystemURI the source system uri
+     * @param cgURI the cg uri
+     * @param migrationURI the migration uri
+     * @param targetSystemURI the target system uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
+     */
+    public void migrationCreate(URI sourceSystemURI, URI cgURI, URI migrationURI, URI targetSystemURI, String taskId)
+            throws ControllerException;
 
-    public void migrationCutover(URI sourceSystem, URI cgId, String taskId) throws ControllerException;
+    /**
+     * Cutover the migration process
+     *
+     * @param sourceSystemURI the source system uri
+     * @param cgURI the cg uri
+     * @param migrationURI the migration uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
+     */
+    public void migrationCutover(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
 
-    public void migrationCommit(URI sourceSystem, URI cgId, String taskId) throws ControllerException;
+    /**
+     * Commit the migration process
+     *
+     * @param sourceSystemURI the source system uri
+     * @param cgURI the cg uri
+     * @param migrationURI the migration uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
+     */
+    public void migrationCommit(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
 
-    public void migrationCancel(URI sourceSystem, URI cgId, String taskId) throws ControllerException;
+    /**
+     * Cancel the migration process
+     *
+     * @param sourceSystemURI the source system uri
+     * @param cgURI the cg uri
+     * @param migrationURI the migration uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
+     */
+    public void migrationCancel(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
 
-    public void migrationRefresh(URI sourceSystem, URI cgId, String taskId) throws ControllerException;
+    /**
+     * Update the status of the migration job
+     *
+     * @param sourceSystemURI the source system uri
+     * @param cgURI the cg uri
+     * @param migrationURI the migration uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
+     */
+    public void migrationRefresh(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
 
-    public void migrationRecover(URI sourceSystem, URI cgId, String taskId) throws ControllerException;
+    /**
+     * Recover the migration process
+     *
+     * @param sourceSystemURI the source system uri
+     * @param cgURI the cg uri
+     * @param migrationURI the migration uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
+     */
+    public void migrationRecover(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
 
-    public void migrationSyncStop(URI sourceSystem, URI cgId, String taskId) throws ControllerException;
+    /**
+     * Stop the data synchronization of source volumes from target volumes
+     *
+     * @param sourceSystemURI the source system uri
+     * @param cgURI the cg uri
+     * @param migrationURI the migration uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
+     */
+    public void migrationSyncStop(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
 
-    public void migrationSyncStart(URI sourceSystem, URI cgId, String taskId) throws ControllerException;
+    /**
+     * Start the data synchronization of source volumes from target volumes
+     *
+     * @param sourceSystemURI the source system uri
+     * @param cgURI the cg uri
+     * @param migrationURI the migration uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
+     */
+    public void migrationSyncStart(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
 
-    public void migrationRemoveEnvironment(URI sourceSystem, URI targetSystem, String taskId) throws ControllerException;
+    /**
+     * Remove the migration environment between source system and target system
+     *
+     * @param sourceSystemURI the source system uri
+     * @param targetSystemURI the target system uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
+     */
+    public void migrationRemoveEnvironment(URI sourceSystemURI, URI targetSystemURI, String taskId) throws ControllerException;
 }

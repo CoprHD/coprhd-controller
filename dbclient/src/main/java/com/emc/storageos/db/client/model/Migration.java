@@ -7,7 +7,7 @@ package com.emc.storageos.db.client.model;
 import java.net.URI;
 
 /**
- * Represents a volume migration operation.
+ * Represents a migration operation for volume or consistency group.
  */
 @ExcludeFromGarbageCollection
 @Cf("Migration")
@@ -16,10 +16,14 @@ public class Migration extends DataObject {
     // The URI of the volume associated with the migration.
     private URI _volume;
 
-    // The URI of the migration source.
+    // The URI of the consitency group associated with the migration.
+    // Source and target fields represents storage systems.
+    private URI _consistencyGroup;
+
+    // The URI of the migration source (Either volume or storage system depending on the object associated with migration).
     private URI _source;
 
-    // The URI of the migration target.
+    // The URI of the migration target (Either volume or storage system depending on the object associated with migration).
     private URI _target;
 
     // The migration start time.
@@ -50,6 +54,27 @@ public class Migration extends DataObject {
     public void setVolume(URI volume) {
         _volume = volume;
         setChanged("volume");
+    }
+
+    /**
+     * Getter for the URI of the consistency group being migrated.
+     * 
+     * @return The URI of the consistency group being migrated.
+     */
+    @RelationIndex(cf = "RelationIndex", type = BlockConsistencyGroup.class)
+    @Name("consistencyGroup")
+    public URI getConsistencyGroup() {
+        return _consistencyGroup;
+    }
+
+    /**
+     * Setter for the URI of the consistency group being migrated.
+     * 
+     * @param name The URI of the consistency group being migrated.
+     */
+    public void setConsistencyGroup(URI consistencyGroup) {
+        _consistencyGroup = consistencyGroup;
+        setChanged("consistencyGroup");
     }
 
     /**

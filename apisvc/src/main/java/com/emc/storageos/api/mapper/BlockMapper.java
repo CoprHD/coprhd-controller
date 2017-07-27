@@ -560,6 +560,7 @@ public class BlockMapper {
             to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
         }
         to.setArrayConsistency(from.getArrayConsistency());
+        to.setMigrationStatus(from.getMigrationStatus());
 
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);
@@ -648,9 +649,15 @@ public class BlockMapper {
             return null;
         }
         MigrationRestRep to = new MigrationRestRep();
-        to.setVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getVolume()));
-        to.setSource(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSource()));
-        to.setTarget(toRelatedResource(ResourceTypeEnum.VOLUME, from.getTarget()));
+        if (!NullColumnValueGetter.isNullURI(from.getVolume())) {
+            to.setVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getVolume()));
+            to.setSource(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSource()));
+            to.setTarget(toRelatedResource(ResourceTypeEnum.VOLUME, from.getTarget()));
+        } else if (!NullColumnValueGetter.isNullURI(from.getConsistencyGroup())) {
+            to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
+            to.setSource(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getSource()));
+            to.setTarget(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getTarget()));
+        }
         to.setStartTime(from.getStartTime());
         to.setStatus(from.getMigrationStatus());
         to.setPercentageDone(from.getPercentDone());

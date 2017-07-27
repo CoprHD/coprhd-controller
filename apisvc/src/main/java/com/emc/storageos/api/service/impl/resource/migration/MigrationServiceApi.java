@@ -24,47 +24,43 @@ public interface MigrationServiceApi {
 
     /**
      * Create/Initiate the migration process
-     * 
      */
-    public void migrationCreate(URI cgId, MigrationCreateParam param, String taskId);
+    public void migrationCreate(URI cgURI, URI migrationURI, MigrationCreateParam param, String taskId);
 
     /**
      * Cutover the migration process
-     * 
      */
-    public void migrationCutover(URI cgId, String taskId);
+    public void migrationCutover(URI cgURI, URI migrationURI, String taskId);
 
     /**
      * Commit the migration process
      */
-    public void migrationCommit(URI cgId, String taskId);
+    public void migrationCommit(URI cgURI, URI migrationURI, String taskId);
 
     /**
      * Cancel the migration process
-     * 
      */
-    public void migrationCancel(URI cgId, String taskId);
+    public void migrationCancel(URI cgURI, URI migrationURI, String taskId);
 
     /**
      * Update the status of the migration job
      */
-    public void migrationRefresh(URI cgId, String taskId);
+    public void migrationRefresh(URI cgURI, URI migrationURI, String taskId);
 
     /**
      * Recover the migration process
-     * 
      */
-    public void migrationRecover(URI cgId, String taskId);
+    public void migrationRecover(URI cgURI, URI migrationURI, String taskId);
 
     /**
      * Stop the data synchronization of source volumes from target volumes
      */
-    public void migrationSyncStop(URI cgId, String taskId);
+    public void migrationSyncStop(URI cgURI, URI migrationURI, String taskId);
 
     /**
      * Start the data synchronization of source volumes from target volumes
      */
-    public void migrationSyncStart(URI cgId, String taskId);
+    public void migrationSyncStart(URI cgURI, URI migrationURI, String taskId);
 
     /**
      * Remove the migration environment between source system and target system

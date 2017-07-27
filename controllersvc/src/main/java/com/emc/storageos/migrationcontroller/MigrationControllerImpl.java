@@ -58,53 +58,54 @@ public class MigrationControllerImpl extends AbstractDiscoveredSystemController 
     }
 
     @Override
-    public void migrationCreateEnvironment(URI sourceSystem, URI targetSystem, String taskId) throws ControllerException {
-        blockRMI("migrationCreateEnvironment", sourceSystem, targetSystem, taskId);
+    public void migrationCreateEnvironment(URI sourceSystemURI, URI targetSystemURI, String taskId) throws ControllerException {
+        blockRMI("migrationCreateEnvironment", sourceSystemURI, targetSystemURI, taskId);
     }
 
     @Override
-    public void migrationCreate(URI sourceSystem, URI cgId, URI targetSystem, String taskId) throws ControllerException {
-        blockRMI("migrationCreate", sourceSystem, cgId, targetSystem, taskId);
+    public void migrationCreate(URI sourceSystemURI, URI cgURI, URI migrationURI, URI targetSystemURI, String taskId)
+            throws ControllerException {
+        blockRMI("migrationCreate", sourceSystemURI, cgURI, migrationURI, targetSystemURI, taskId);
     }
 
     @Override
-    public void migrationCutover(URI sourceSystem, URI cgId, String taskId) throws ControllerException {
-        blockRMI("migrationCutover", sourceSystem, cgId, taskId);
+    public void migrationCutover(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
+        blockRMI("migrationCutover", sourceSystemURI, cgURI, migrationURI, taskId);
     }
 
     @Override
-    public void migrationCommit(URI sourceSystem, URI cgId, String taskId) throws ControllerException {
-        blockRMI("migrationCommit", sourceSystem, cgId, taskId);
+    public void migrationCommit(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
+        blockRMI("migrationCommit", sourceSystemURI, cgURI, migrationURI, taskId);
     }
 
     @Override
-    public void migrationCancel(URI sourceSystem, URI cgId, String taskId) throws ControllerException {
-        blockRMI("migrationCancel", sourceSystem, cgId, taskId);
+    public void migrationCancel(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
+        blockRMI("migrationCancel", sourceSystemURI, cgURI, migrationURI, taskId);
     }
 
     @Override
-    public void migrationRefresh(URI sourceSystem, URI cgId, String taskId) throws ControllerException {
-        blockRMI("migrationRefresh", sourceSystem, cgId, taskId);
+    public void migrationRefresh(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
+        blockRMI("migrationRefresh", sourceSystemURI, cgURI, migrationURI, taskId);
     }
 
     @Override
-    public void migrationRecover(URI sourceSystem, URI cgId, String taskId) throws ControllerException {
-        blockRMI("migrationRecover", sourceSystem, cgId, taskId);
+    public void migrationRecover(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
+        blockRMI("migrationRecover", sourceSystemURI, cgURI, migrationURI, taskId);
     }
 
     @Override
-    public void migrationSyncStop(URI sourceSystem, URI cgId, String taskId) throws ControllerException {
-        blockRMI("migrationSyncStop", sourceSystem, cgId, taskId);
+    public void migrationSyncStop(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
+        blockRMI("migrationSyncStop", sourceSystemURI, cgURI, migrationURI, taskId);
     }
 
     @Override
-    public void migrationSyncStart(URI sourceSystem, URI cgId, String taskId) throws ControllerException {
-        blockRMI("migrationSyncStart", sourceSystem, cgId, taskId);
+    public void migrationSyncStart(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
+        blockRMI("migrationSyncStart", sourceSystemURI, cgURI, migrationURI, taskId);
     }
 
     @Override
-    public void migrationRemoveEnvironment(URI sourceSystem, URI targetSystem, String taskId) throws ControllerException {
-        blockRMI("migrationRemoveEnvironment", sourceSystem, targetSystem, taskId);
+    public void migrationRemoveEnvironment(URI sourceSystemURI, URI targetSystemURI, String taskId) throws ControllerException {
+        blockRMI("migrationRemoveEnvironment", sourceSystemURI, targetSystemURI, taskId);
     }
 
 }

@@ -127,6 +127,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String HOST_CHANGES_WF_NAME = "HOST_CHANGES_WORKFLOW";
     private static final String SYNCHRONIZE_SHARED_EXPORTS_WF_NAME = "SYNCHRONIZE_SHARED_EXPORTS_WORKFLOW";
     private static final String SET_SAN_BOOT_TARGETS_WF_NAME = "SET_SAN_BOOT_TARGETS_WORKFLOW";
+    private static final String UPDATE_HOST_INITIATOR_WF_NAME = "UPDATE_HOST_INITIATOR_WORKFLOW";
 
     private static final String DETACH_HOST_STORAGE_WF_NAME = "DETACH_HOST_STORAGE_WORKFLOW";
     private static final String DETACH_CLUSTER_STORAGE_WF_NAME = "DETACH_CLUSTER_STORAGE_WORKFLOW";
@@ -2589,5 +2590,73 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
             throws ControllerException {
         removeHostsFromExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, isVcenter, vCenterDataCenterId, taskId);
+    }
+
+    @Override
+    public void updateHostInitiators(URI eventId, URI host, List<URI> newInitiators, List<URI> oldInitiators, String taskId) {
+        TaskCompleter completer = null;
+        try {
+            completer = new HostInitiatorsCompleter(eventId, host, newInitiators, oldInitiators, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_HOST_INITIATOR_WF_NAME, true, taskId);
+            String waitFor = null;
+
+            waitFor = addStepsForUpdateInitiators(workflow, waitFor, host, newInitiators, oldInitiators, eventId);
+
+            workflow.executePlan(completer, "Success", null, null, null, null);
+        } catch (Exception ex) {
+            String message = "updateHostInitiators caught an exception.";
+            _log.error(message, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            completer.error(_dbClient, serviceError);
+        }
+
+    }
+
+    public String addStepsForUpdateInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> newInitiatorIds,
+            Collection<URI> oldInitiatorIds, URI eventId) {
+        List<Initiator> newInitiators = _dbClient.queryObject(Initiator.class, newInitiatorIds);
+        List<Initiator> oldInitiators = _dbClient.queryObject(Initiator.class, oldInitiatorIds);
+
+        List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, oldInitiators);
+
+        for (ExportGroup export : exportGroups) {
+            List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+            Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
+
+            Set<URI> addedClusters = new HashSet<>();
+            Set<URI> removedClusters = new HashSet<>();
+            Set<URI> addedHosts = new HashSet<>();
+            Set<URI> removedHosts = new HashSet<>();
+            Set<URI> addedInitiators = new HashSet<>();
+            Set<URI> removedInitiators = new HashSet<>(oldInitiatorIds);
+
+            // Check for adding initiators
+            List<Initiator> validInitiator = ComputeSystemHelper.validatePortConnectivity(_dbClient, export, newInitiators);
+            if (!validInitiator.isEmpty()) {
+                boolean addingInitiators = false;
+                for (Initiator initiator : validInitiator) {
+                    // if the initiators is not already in the list add it.
+                    if (!existingInitiators.contains(initiator.getId()) && !addedInitiators.contains(initiator.getId())) {
+                        addedInitiators.add(initiator.getId());
+                        addingInitiators = true;
+                    }
+                }
+
+                if (!addingInitiators && !NullColumnValueGetter.isNullURI(eventId)) {
+                    throw ComputeSystemControllerException.exceptions.noInitiatorPortConnectivity(StringUtils.join(newInitiatorIds, ","),
+                            export.forDisplay());
+                }
+            }
+
+            waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
+                    String.format("Updating export group %s", export.getId()), waitFor,
+                    export.getId(), export.getId().toString(),
+                    this.getClass(),
+                    updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                            addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
+                    updateExportGroupRollbackMethod(export.getId()), null);
+
+        }
+        return waitFor;
     }
 }

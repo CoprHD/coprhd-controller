@@ -660,26 +660,35 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             }
 
             if (ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
+
+                List<String> oldInitiatorPorts = Lists.newArrayList();
+                List<String> newInitiatorPorts = Lists.newArrayList();
+                List<URI> oldInitiatorIds = Lists.newArrayList();
+                List<URI> newInitiatorIds = Lists.newArrayList();
+
                 for (Initiator oldInitiator : oldInitiatorObjects) {
-                    EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_DELETE, host.getTenant(),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorLabel", oldInitiator.getInitiatorPort()),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorDescription",
-                                    oldInitiator.getInitiatorPort()),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorWarning"),
-                            host, Lists.newArrayList(host.getId(), oldInitiator.getId()), EventUtils.removeInitiator,
-                            new Object[] { oldInitiator.getId() }, EventUtils.removeInitiatorDecline,
-                            new Object[] { oldInitiator.getId() });
+                    oldInitiatorPorts.add(oldInitiator.getInitiatorPort());
+                    oldInitiatorIds.add(oldInitiator.getId());
                 }
                 for (Initiator newInitiator : newInitiatorObjects) {
-                    EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_ADD, host.getTenant(),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorLabel", newInitiator.getInitiatorPort()),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDescription",
-                                    newInitiator.getInitiatorPort()),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorWarning"),
-                            host, Lists.newArrayList(host.getId(), newInitiator.getId()), EventUtils.addInitiator,
-                            new Object[] { newInitiator.getId() }, EventUtils.addInitiatorDecline,
-                            new Object[] { newInitiator.getId() });
+                    newInitiatorPorts.add(newInitiator.getInitiatorPort());
+                    newInitiatorIds.add(newInitiator.getId());
                 }
+
+                List<URI> allAffectedResources = Lists.newArrayList();
+                allAffectedResources.add(host.getId());
+                allAffectedResources.addAll(newInitiatorIds);
+                allAffectedResources.addAll(oldInitiatorIds);
+
+                EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_UPDATES, host.getTenant(),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsLabel",
+                                StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ",")),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsDescription",
+                                StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ",")),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsWarning"),
+                        host, allAffectedResources, EventUtils.updateInitiators,
+                        new Object[] { host.getId(), newInitiatorIds, oldInitiatorIds }, EventUtils.updateInitiatorsDecline,
+                        new Object[] { host.getId(), newInitiatorIds, oldInitiatorIds });
             } else {
                 for (Initiator oldInitiator : oldInitiatorObjects) {
                     info("Deleting Initiator %s because it was not re-discovered and is not in use by any export groups",

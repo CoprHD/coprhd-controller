@@ -142,4 +142,6 @@ public interface ComputeSystemController extends Controller {
     * @throws ControllerException
     */
     public void setHostBootVolume(URI hostId, URI volumeId, boolean updateSanBootTargets, String taskId) throws ControllerException;
+
+    public void updateHostInitiators(URI eventId, URI host, List<URI> newInitiators, List<URI> oldInitiators, String taskId);
 }

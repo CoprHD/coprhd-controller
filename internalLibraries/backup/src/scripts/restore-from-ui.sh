@@ -28,4 +28,4 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-nohup ${DIR}/restore-internal.sh "$1" "$2" "$3" "$4" &
+nohup ${DIR}/restore-internal.sh "$1" "$2" "$3" "$4"&

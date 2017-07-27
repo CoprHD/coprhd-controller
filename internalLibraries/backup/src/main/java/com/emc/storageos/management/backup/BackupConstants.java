@@ -128,7 +128,8 @@ public interface BackupConstants {
 
     // The directory to persist downloaded backup files from FTP server
     String RESTORE_DIR= "/data/restore";
-
+    // Local backup folder
+    String LOCAL_BACKUP_DIR= "/data/backup";
     String PULL_RESTORE_STATUS = "pull-restore-status";
     String LOCAL_RESTORE_KIND_PREFIX= PULL_RESTORE_STATUS + "/local";
     String REMOTE_RESTORE_KIND_PREFIX= PULL_RESTORE_STATUS + "/remote";

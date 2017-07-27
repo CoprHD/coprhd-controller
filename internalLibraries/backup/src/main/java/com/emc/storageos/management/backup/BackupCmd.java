@@ -39,7 +39,7 @@ public class BackupCmd {
 
     private enum CommandType {
         create("Create backup, default name is timestamp"),
-        list("List all backups"),
+        list("List all backups. If specified backup name, list detail backup info from this backup"),
         delete("Delete specific backup"),
         restore("Purge ViPR data and restore specific backup\n" +
                 "with args: <backup dir> <name> osi(optional)\n" +
@@ -68,7 +68,12 @@ public class BackupCmd {
                 .withLongOpt(CommandType.create.name())
                 .create("c");
         options.addOption(createOption);
-        options.addOption("l", CommandType.list.name(), false, CommandType.list.getDescription());
+        Option listOption = OptionBuilder.hasOptionalArg()
+                .withArgName("[backupName]")
+                .withDescription(CommandType.list.getDescription())
+                .withLongOpt(CommandType.list.name())
+                .create("l");
+        options.addOption(listOption);
         options.addOption("d", CommandType.delete.name(), true, CommandType.delete.getDescription());
         Option restoreOption = OptionBuilder.hasArgs()
                 .withArgName("args")
@@ -189,6 +194,14 @@ public class BackupCmd {
         if (!cli.hasOption(CommandType.list.name())) {
             return;
         }
+        // list specified backup file info
+        String backupName = cli.getOptionValue(CommandType.list.name());
+        if (backupName != null && !backupName.isEmpty()) {
+            BackupDetail detail = backupOps.getLocalBackupDetail(backupName);
+            System.out.println(detail.toString());
+            return;
+        }
+        // list all backup list
         System.out.println("Start to list backup...");
         List<BackupSetInfo> backupList = backupOps.listBackup();
         System.out.println(

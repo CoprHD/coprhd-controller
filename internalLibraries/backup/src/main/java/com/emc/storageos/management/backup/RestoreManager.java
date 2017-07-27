@@ -14,7 +14,6 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.Scanner;
 
-import com.emc.vipr.model.sys.backup.BackupInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -240,34 +239,6 @@ public class RestoreManager {
 
         log.info(String.format(OUTPUT_FORMAT,
                 "ViPR backup folder validation", Validation.passed.name()));
-    }
-
-    /**
-     * Checks version and IPs from backupInfo
-     *
-     * @param backupInfo The backup info model
-     */
-    public void checkBackupInfo(final BackupInfo backupInfo) throws IOException {
-        // check version
-        String currentVersion = PlatformUtils.getProductIdent();
-        String backupVersion = backupInfo.getVersion();
-        log.info("Backup Version:  {}\nCurrent Version:  {}", backupVersion, currentVersion);
-        if (!enableChangeVersion && !backupVersion.equals(currentVersion)) {
-            throw new IllegalArgumentException("version is not allowed to be changed");
-        }
-
-        // check hosts
-        String backupHosts = backupInfo.getHosts();
-        log.info("Backup Hosts: {}", backupHosts);
-
-        String[] backupHostArray = backupHosts.replaceAll("\\[|\\]", "").split(", ");
-        boolean isHostValid = checkHostsCount(backupHostArray) && checkHostsIp(backupHostArray);
-
-        if (backupInfo.isGeo() && !isHostValid) {
-            String errMessage = "Node count and ip are not allowed to be changed when backup was taken in multi vdc environment";
-            log.error(errMessage);
-            throw new IllegalArgumentException(errMessage);
-        }
     }
 
     /**

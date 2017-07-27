@@ -4,19 +4,15 @@
  */
 package com.emc.storageos.management.backup;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.Format;
 import java.text.SimpleDateFormat;
@@ -40,6 +36,7 @@ import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.management.backup.util.BackupClient;
 
+import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.model.sys.backup.BackupInfo;
 import com.emc.vipr.model.sys.backup.BackupOperationStatus;
@@ -88,6 +85,7 @@ public class BackupOps {
     private CoordinatorClient coordinatorClient;
     private int quorumSize;
     private File backupDir;
+    private RestoreManager restoreManager;
 
     private DrUtil drUtil;
 
@@ -114,7 +112,7 @@ public class BackupOps {
 
     /**
      * Sets jmx service url
-     * 
+     *
      * @param serviceUrl
      *            The string format of jmx service url
      */
@@ -124,7 +122,7 @@ public class BackupOps {
 
     /**
      * Sets jmx service hosts
-     * 
+     *
      * @param hosts
      *            The list of jmx service hosts
      */
@@ -135,7 +133,7 @@ public class BackupOps {
 
     /**
      * Normalize DualInetAddress so to persist String into _info.properties file
-     * 
+     *
      * @param host
      * @return return ipv4 if host only contains ipv4 return [ipv6] if host only
      *         contains ipv6 return ipv4/[ipv6] if both ipv4 and ipv6 are
@@ -170,7 +168,7 @@ public class BackupOps {
 
     /**
      * Gets ViPR hosts from coordinator client, update it if necessary
-     * 
+     *
      * @return map of node id to IP address for each ViPR host
      */
     public Map<String, String> getHosts() {
@@ -198,7 +196,7 @@ public class BackupOps {
 
     /**
      * Gets a map of node id and IP addresses, update it if necessary
-     * 
+     *
      * @return map of node id to IP address(both IPv4 and IPv6 if configured)
      *         for each ViPR host
      */
@@ -235,7 +233,7 @@ public class BackupOps {
 
     /**
      * Sets jmx service ports
-     * 
+     *
      * @param ports
      *            The list of jmx service ports
      */
@@ -245,7 +243,7 @@ public class BackupOps {
 
     /**
      * Sets coordinator client
-     * 
+     *
      * @param coordinatorClient
      *            The instance of coordinator client
      */
@@ -298,7 +296,7 @@ public class BackupOps {
     }
     /**
      * Create backup file on all nodes
-     * 
+     *
      * @param backupTag
      *            The tag of this backup
      */
@@ -308,7 +306,7 @@ public class BackupOps {
 
     /**
      * Create backup file on all nodes
-     * 
+     *
      * @param backupTag
      *            The tag of this backup
      * @param force
@@ -336,34 +334,6 @@ public class BackupOps {
             releaseLock(recoveryLock);
             releaseLock(backupLock);
         }
-    }
-
-    /**
-     * Check backup files from backupInfo model
-     *
-     * @param backupInfo
-     * @throws Exception
-     */
-    public void checkBackupFromMergedInfo(String backupName, BackupInfo backupInfo) throws Exception {
-
-        if(backupInfo.getVersion().isEmpty()) {
-            String errMsg = String.format("%s does not contain property file", backupName);
-            throw new RuntimeException(errMsg);
-        }
-
-        log.info("found db: {} geodb: {} isGeo: {}", backupInfo.isFoundDBfile(), backupInfo.isFoundGeoFile(), backupInfo.isGeo());
-
-        if (!backupInfo.isFoundDBfile()) {
-            String errMsg = String.format("%s does not contain db files", backupName);
-            throw new RuntimeException(errMsg);
-        }
-
-        if (!backupInfo.isFoundGeoFile()) {
-            String errMsg = String.format("%s does not contain geodb files", backupName);
-            throw new RuntimeException(errMsg);
-        }
-
-        checkBackupPropertyInfoFromBackupInfo(backupInfo);
     }
 
     public void checkBackup(File backupFolder, boolean isLocal) throws Exception {
@@ -425,23 +395,61 @@ public class BackupOps {
             throw new RuntimeException(errMsg);
         }
 
-
         checkBackupPropertyInfo(infoPropertyFile, isGeo);
     }
 
-    private void checkBackupPropertyInfoFromBackupInfo(BackupInfo backupInfo) throws IOException {
-        RestoreManager manager = new RestoreManager();
-        CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
-        manager.setNodeCount(client.getNodeCount());
-
-        DualInetAddress addresses = coordinatorClient.getInetAddessLookupMap().getDualInetAddress();
-        String ipaddress4 = addresses.getInet4();
-        String ipaddress6 = addresses.getInet6();
-        manager.setIpAddress4(ipaddress4);
-        manager.setIpAddress6(ipaddress6);
-        manager.setEnableChangeVersion(false);
-
-        manager.checkBackupInfo(backupInfo);
+    /**
+     * Get local backup details
+     *
+     * @param backupName (backup path is also supported. e.g. "/data/backup/test")
+     * @return
+     */
+    public BackupDetail getLocalBackupDetail(final String backupName) {
+        BackupDetail backupDetail = new BackupDetail();
+        // get backup name
+        File backupFile = new File(backupName);
+        String backupPath = "";
+        if(backupFile.isAbsolute()) {
+            backupDetail.setName(backupFile.getName());
+            backupPath = backupName;
+        } else {
+            backupDetail.setName(backupName);
+            backupPath = getBackupFolderPath(backupName, true);
+        }
+        File backupFolder = new File(backupPath);
+        if (!backupFolder.exists()) {
+            return backupDetail;
+        }
+        // get file names
+        File[] backupFiles = backupFolder.listFiles();
+        if(backupFiles == null || backupFiles.length == 0) {
+            return backupDetail;
+        }
+        List<String> fileNames = backupDetail.getBackupFiles();
+        for(File file: backupFiles) {
+            fileNames.add(file.getName());
+            // geo
+            if(file.getName().contains(BackupConstants.BACKUP_NAME_DELIMITER +
+                    BackupType.geodbmultivdc.name())) {
+                backupDetail.setGeo(true);
+            }
+        }
+        // version validation
+        File propertyFile = new File(backupFolder, backupName + BackupConstants.BACKUP_INFO_SUFFIX);
+        try (InputStream fis = new FileInputStream(propertyFile)) {
+            Properties properties = new Properties();
+            properties.load(fis);
+            String backupVersion = properties.getProperty(BackupConstants.BACKUP_INFO_VERSION);
+            String currentVersion = PlatformUtils.getProductIdent();
+            log.info("Backup Version:  {}\nCurrent Version:  {}", backupVersion, currentVersion);
+            if (backupVersion.equals(currentVersion)) {
+                backupDetail.setVersionValid(true);
+            }
+        } catch (IOException ex) {
+            // Ignore this exception
+            log.warn("Unable to get version", ex);
+        }
+        return backupDetail;
     }
 
     private void checkBackupPropertyInfo(File propertyInfoFile, boolean isGeo) throws Exception {
@@ -458,6 +466,9 @@ public class BackupOps {
 
         manager.checkBackupInfo(propertyInfoFile, isGeo);
     }
+
+
+
 
     public List<URI> getOtherNodes() throws URISyntaxException, UnknownHostException {
         Map<String, URI> nodes = getNodesInfo();
@@ -856,6 +867,17 @@ public class BackupOps {
         }
 
         return isLocal ? new File(getBackupDir(), name) : new File(BackupConstants.RESTORE_DIR, name);
+    }
+
+    public String getBackupFolderPath(String backupName, boolean isLocal) {
+
+        String name = backupName;
+        if (backupName.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
+            name = FilenameUtils.removeExtension(backupName);
+        }
+        Path path = Paths.get(isLocal? BackupConstants.LOCAL_BACKUP_DIR: BackupConstants.RESTORE_DIR, name);
+        log.info("Absolute path: {}", path);
+        return path.toString();
     }
 
     class CreateBackupCallable extends BackupCallable<Void> {
@@ -1605,12 +1627,6 @@ public class BackupOps {
         }
     }
 
-    /**
-     * Collect and merge local backup info from all hosts
-     *
-     * @param backupTag
-     * @return
-     */
     public BackupInfo queryLocalBackupInfo(String backupTag) {
         BackupInfo backupInfo = new BackupInfo();
         backupInfo.setBackupName(backupTag);
@@ -1651,10 +1667,6 @@ public class BackupOps {
             dst.setSiteName(info.getSiteName());
             dst.setCreateTime(info.getCreateTime());
             dst.setVersion(info.getVersion());
-            dst.setFoundGeoFile(info.isFoundGeoFile());
-            dst.setFoundDBfile(info.isFoundDBfile());
-            dst.setGeo(info.isGeo());
-            dst.setHosts(info.getHosts());
         }
 
         log.info("merged backup info {}", dst);
@@ -1828,12 +1840,11 @@ public class BackupOps {
         ZipEntry zentry = zin.getNextEntry();
 
         while (zentry != null) {
-            String filename = zentry.getName();
             if (isPropEntry(zentry)) {
-                log.info("Found the property file={}", filename);
+                log.info("Found the property file={}", zentry.getName());
                 setBackupInfo(backupInfo, backupName, zin);
+                break;
             }
-            setBackupInfoFromFilename(backupInfo, filename);
             zentry = zin.getNextEntry();
         }
 
@@ -1856,18 +1867,6 @@ public class BackupOps {
         return zentry.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
     }
 
-    public void setBackupInfoFromFilename(BackupInfo backupInfo, String filename) {
-        if (isGeoBackup(filename)) {
-            backupInfo.setGeo(true);
-        }
-
-        if (filename.contains("_db_")) {
-            backupInfo.setFoundDBfile(true);
-        }else if (filename.contains(BackupType.geodb.toString()) || filename.contains(BackupType.geodbmultivdc.toString())) {
-            backupInfo.setFoundGeoFile(true);
-        }
-    }
-
     public void setBackupInfo(BackupInfo backupInfo, String backupName, InputStream in) {
         Properties properties = loadProperties(in);
         backupInfo.setVersion(getBackupVersion(properties));
@@ -1875,11 +1874,6 @@ public class BackupOps {
         backupInfo.setSiteId(getSiteIDFromProperties(properties));
         backupInfo.setSiteName(getSiteNameFromProperties(properties));
         backupInfo.setBackupName(backupName);
-        backupInfo.setHosts(getBackupHosts(properties));
-    }
-
-    private String getBackupHosts(Properties properties) {
-        return properties.getProperty(BackupConstants.BACKUP_INFO_HOSTS);
     }
 
     private String getBackupVersion(Properties properties) {

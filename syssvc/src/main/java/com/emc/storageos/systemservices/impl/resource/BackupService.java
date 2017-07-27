@@ -13,9 +13,6 @@ import java.io.PipedOutputStream;
 import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.*;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
@@ -223,22 +220,6 @@ public class BackupService {
         }
     }
 
-    private BackupInfo getBackupInfoModel(String backupName, boolean isLocal) throws Exception {
-        if (isLocal) {
-            //query info of a local backup
-            return backupOps.queryLocalBackupInfo(backupName);
-        }
-
-        checkExternalServer();
-
-        SchedulerConfig cfg = backupScheduler.getCfg();
-
-        BackupInfo backupInfo =  backupOps.getBackupInfo(backupName, getExternalServerClient(cfg));
-
-        log.info("The backupInfo={}", backupInfo);
-        return backupInfo;
-    }
-
     /**
      * Get info for a specific backup
      * 
@@ -255,11 +236,37 @@ public class BackupService {
     public BackupInfo queryBackupInfo(@QueryParam("backupname") String backupName, @QueryParam("isLocal") @DefaultValue("false") boolean isLocal) {
         log.info("Query backup info backupName={} isLocal={}", backupName, isLocal);
         try {
-            return getBackupInfoModel(backupName, isLocal);
+            if (isLocal) {
+                //query info of a local backup
+                return backupOps.queryLocalBackupInfo(backupName);
+            }
+
+            checkExternalServer();
+
+            SchedulerConfig cfg = backupScheduler.getCfg();
+
+            BackupInfo backupInfo =  backupOps.getBackupInfo(backupName, getExternalServerClient(cfg));
+
+            log.info("The backupInfo={}", backupInfo);
+            return backupInfo;
         } catch (Exception e) {
             log.error("Failed to query external backup info", e);
             throw APIException.internalServerErrors.queryExternalBackupFailed(e);
         }
+    }
+
+    /**
+     * @brief Get local backup detail infomation
+     * @param backupName The name of backup
+     * @prereq none
+     * @return Info of a specific backup
+     */
+    @GET
+    @Path("internal/local-backup-detail")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public BackupDetail queryLocalBackupDetail(@QueryParam("backupname") String backupName) {
+        return backupOps.getLocalBackupDetail(backupName);
     }
 
 
@@ -635,37 +642,11 @@ public class BackupService {
             return Response.status(ASYNC_STATUS).build();
         }
 
-        File backupDir= backupOps.getBackupDir(backupName, isLocal);
-        String myNodeId = backupOps.getCurrentNodeId();
-
-        BackupInfo backupInfo;
-        try {
-            backupInfo = getBackupInfoModel(backupName, isLocal);
-        } catch (Exception e) {
-            String errMsg = String.format("Cannot collect backup info in %s: %s", backupName, e.getMessage());
-            setRestoreFailed(backupName, isLocal, errMsg, e);
-            auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
-            return Response.status(ASYNC_STATUS).build();
-        }
-
-        try {
-            backupOps.checkBackupFromMergedInfo(backupName, backupInfo);
-        }catch (Exception e) {
-            if (backupOps.shouldHaveBackupData()) {
-                String errMsg = String.format("Invalid backup on %s: %s", myNodeId, e.getMessage());
-                setRestoreFailed(backupName, isLocal, errMsg, e);
-                auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
-                return Response.status(ASYNC_STATUS).build();
-            }
-
-            log.info("The current node doesn't have valid backup data {} so redirect to vipr1", backupDir.getAbsolutePath());
-            redirectRestoreRequest(backupName, isLocal, password, isGeoFromScratch);
-            return Response.status(ASYNC_STATUS).build();
-        }
-
         backupOps.setRestoreStatus(backupName, isLocal, BackupRestoreStatus.Status.RESTORING, null, false, false);
+
+        String backupPath = backupOps.getBackupFolderPath(backupName, isLocal);
         String[] restoreCommand=new String[]{restoreCmd,
-                backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
+                backupPath, password, Boolean.toString(isGeoFromScratch),
                 restoreLog};
 
         log.info("The restore command parameters: {} {} {} {}",
@@ -771,13 +752,19 @@ public class BackupService {
         status.setBackupName(backupName); // in case it is not saved in the ZK
 
         if (isLocal) {
-            BackupInfo backupInfo = backupOps.queryLocalBackupInfo(backupName);
-
-            if (backupInfo.getVersion().isEmpty()) {
+            File backupDir = backupOps.getBackupDir(backupName, true);
+            String[] files = backupDir.list();
+            if (files.length == 0) {
                 throw BackupException.fatals.backupFileNotFound(backupName);
             }
 
-            status.setGeo(backupInfo.isGeo());
+            for (String f : files) {
+                if (backupOps.isGeoBackup(f)) {
+                    log.info("{} is a geo backup", backupName);
+                    status.setGeo(true);
+                    break;
+                }
+            }
         }else {
             checkExternalServer();
 

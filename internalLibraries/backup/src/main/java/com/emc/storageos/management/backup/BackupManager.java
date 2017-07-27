@@ -400,12 +400,10 @@ public class BackupManager implements BackupManagerMBean {
         }
 
         long size = 0;
-
-        BackupOps ops = new BackupOps();
         for (File file : backupFiles) {
-            String filename = file.getName();
-            if (filename.endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+            if (file.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
                 log.info("Get the create time from info file {}", file.getName());
+                BackupOps ops = new BackupOps();
                 try (FileInputStream in = new FileInputStream(file)) {
                     ops.setBackupInfo(backupInfo, backupName, in);
                 }catch (IOException e) {
@@ -413,8 +411,6 @@ public class BackupManager implements BackupManagerMBean {
                     return backupInfo;
                 }
             }
-            ops.setBackupInfoFromFilename(backupInfo, filename);
-
             size += file.length();
         }
 

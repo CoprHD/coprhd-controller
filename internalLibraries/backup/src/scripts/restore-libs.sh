@@ -87,26 +87,11 @@ is_local_backup() {
     set +e
     local backup=$1
 
-    if ! [[ "${backup}" =~ ^\/data\/backup ]]; then
+    if  [[ "${backup}" =~ ^\/data\/backup ]]; then
+        echo "true"
+    else
         echo "false"
-        return
     fi
-
-    if [ ${#BACKUP_INFO[@]} == 0 ]; then
-        echo "false"
-        return
-    fi
-
-    for info in ${BACKUP_INFO[@]}
-    do
-        if [ "${info}" != "" ]; then
-            echo "true"
-            return
-        fi
-    done
-    set -e
-    echo "false"
-    return
 }
 
 
@@ -114,16 +99,12 @@ is_local_backup() {
 get_backup_info_from_nodes() {
     set +e
     local backup=$1
-    local ls_command="ls ${backup}"
-    local test_command="test -d ${backup}"
+    local ls_command="/opt/storageos/bin/bkutils -l ${backup}"
     for i in $(seq 1 ${NODE_COUNT})
     do
         local viprNode=$(get_nodeid)
-        ssh_execute "${viprNode}" "${test_command}" "${ROOT_PASSWORD}"
-        if [ `echo $?` == 0 ]; then
-            local result=`ssh_execute_with_output "${viprNode}" "${ls_command}" "${ROOT_PASSWORD}"`
-            BACKUP_INFO[$i]=${result}
-        fi
+        local result=`ssh_execute_with_output "${viprNode}" "${ls_command}" "${ROOT_PASSWORD}"`
+        BACKUP_INFO[$i]=${result}
     done
     echo ${BACKUP_INFO[@]}
 }

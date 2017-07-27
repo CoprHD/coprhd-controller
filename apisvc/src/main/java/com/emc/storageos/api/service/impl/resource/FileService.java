@@ -39,7 +39,6 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.mapper.functions.MapFileShare;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -107,7 +106,6 @@ import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor.Type;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
@@ -4576,7 +4574,8 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
         }
 
-        // Create task to check if any replication policy is existing in backend if yes, then to check if the target fs already
+        // Create task to check if any replication policy is existing in backend if yes, then to check if the target fs
+        // already
         // in database.
         FileShare targetFs = null;
         StorageSystem targetSystem = null;
@@ -4612,13 +4611,13 @@ public class FileService extends TaskResourceService {
                         throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
                     } else {
                         String[] token = targetInfo.split(":");
-                        if(token[0].equalsIgnoreCase("localhost")) {
+                        if (token[0].equalsIgnoreCase("localhost")) {
                             targetSystem = device;
                         } else {
                             targetSystem = getTargetStorageSystem(token[0]);
                         }
-                        
-                        if(targetSystem != null && !targetSystem.getInactive()){
+
+                        if (targetSystem != null && !targetSystem.getInactive()) {
                             targetFs = getTargetFileSystem(targetSystem, token[1]);
                         } else {
                             notSuppReasonBuff.append(String.format(
@@ -4627,7 +4626,7 @@ public class FileService extends TaskResourceService {
                             _log.error(notSuppReasonBuff.toString());
                             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
                         }
-                        
+
                         if (targetFs == null) {
                             notSuppReasonBuff.append(String.format(
                                     "File system - %s given in request has a replication policy already exist at the backend and target is not ingested. Please ingest target %s",
@@ -4685,11 +4684,12 @@ public class FileService extends TaskResourceService {
             List recommendations = new ArrayList<>();
 
             boolean validTarget = false;
-            
+
             if (targetFs != null) {
                 validTarget = validateTarget(targetFs, projectURI, targertVarrayURIs);
             }
 
+            //no target FS which implies that the target FS needs to be created
             if (targetFs == null) {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
@@ -4753,14 +4753,16 @@ public class FileService extends TaskResourceService {
                 recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
                         vpool, capabilities);
             } else if (validTarget) {
-             // skipping the recommendation as we have a targetFs in database
+                // skipping the recommendation as we have a targetFs in database. this is ingestion case.
                 _log.info("Skipping the placement as we have a targetFs");
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
             } else {
+                //target FS was present but the validation failed.
                 _log.error("The target Fs validation failed");
-                return getFailureResponse(targetFs, task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM, "Error occured while validating the target FS");
-            
+                return getFailureResponse(targetFs, task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM,
+                        "Error occured while validating the target FS");
+
             }
             FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,
@@ -4856,15 +4858,15 @@ public class FileService extends TaskResourceService {
             _log.error("The target fs virtual array does not match the expected target virtual array");
             return false;
         }
-        
-        if(targetFs.getProject() != null ){
+
+        if (targetFs.getProject() != null) {
             String targetprj = targetFs.getProject().getURI().toString();
             String srcprj = project.toString();
-            if(!targetprj.equals(srcprj)){
+            if (!targetprj.equals(srcprj)) {
                 _log.error("The target fs project does not match the source fs project");
                 return false;
-        }
-            
+            }
+
         }
         return true;
     }

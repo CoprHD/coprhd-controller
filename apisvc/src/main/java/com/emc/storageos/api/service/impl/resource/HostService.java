@@ -57,6 +57,7 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.computecontroller.ComputeController;
+import com.emc.storageos.computecontroller.HostRescanController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -136,6 +137,7 @@ import com.emc.storageos.model.host.IpInterfaceList;
 import com.emc.storageos.model.host.IpInterfaceParam;
 import com.emc.storageos.model.host.IpInterfaceRestRep;
 import com.emc.storageos.model.host.ProvisionBareMetalHostsParam;
+import com.emc.storageos.networkcontroller.NetworkController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -241,6 +243,49 @@ public class HostService extends TaskResourceService {
         }
 
         return map(host, computeElement, serviceProfile, computeSystem);
+    }
+    
+    /**
+     * Get Host Controller
+     * @param deviceType
+     * @return
+     */
+    private HostRescanController getHostController(String deviceType) {
+        HostRescanController controller = getController(HostRescanController.class, "host");
+        return controller;
+    }
+    
+    
+    /**
+     * Rescan Host
+     * @param id
+     * @return 
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}")
+    public TaskResourceRep rescanHost(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, Host.class, "id");
+        Host host = _dbClient.queryObject(Host.class, id);
+        
+        if (host == null || host.getInactive()) {
+            _log.info(String.format("Host not found or inactive: %s", id));
+            //TODO throw exception
+        }
+        
+        if (!host.getDiscoverable()) {
+            _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
+            //TODO throw exception
+        }
+        String task = UUID.randomUUID().toString();
+        
+        Operation op = _dbClient.createTaskOpStatus(Host.class, id, task, ResourceOperationTypeEnum.HOST_RESCAN);
+        HostRescanController reScanController = getHostController("host");
+        reScanController.rescanHostStorage(id, task);
+        return toTask(host, task, op);
+        
     }
 
     /**

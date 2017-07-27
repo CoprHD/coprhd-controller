@@ -1128,13 +1128,12 @@ public class MDSDialog extends SSHDialog {
                 retryNeeded = checkForEnhancedZoneSession(lines, retryCount);
     
 	            String[] regex = {
-	                    MDSDialogProperties.getString("MDSDialog.showZone.analysis.unassignedZones.match"),//Unassigned Zones:
+	                    MDSDialogProperties.getString("MDSDialog.showZone.analysis.unassignedZones.match"), 
 	                    MDSDialogProperties.getString("MDSDialog.showZone.analysis.unassignedZones.name.match")
 	                    }; 
 	            String[] groups = new String[10];
 	            boolean unassignedZonesFound = false;
 	            for (String line : lines) {
-	            	_log.info("LINE: " + line.toString());
 	                int index = match(line, regex, groups);  
 	                switch (index) {
 	                    case 0:

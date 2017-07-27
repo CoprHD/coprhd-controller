@@ -601,8 +601,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         }
         
         try {
-            dialog.config();
-            
+            dialog.config();            
             boolean doZonesetClone = zonesetClone(dialog, vsanId, activeZoneset);     
             if (doZonesetClone) {
             	dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
@@ -610,6 +609,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                        
             for (Zone zone : zonesToBeDeleted) {  
             	 String zoneName = zone.getName();
+            	 //If zoneset clones are stored on the switch, and we cannot simply delete the zone, since it will delete that zone from all the zonesets, including cloned ones.
+            	 //Cloned backups would not really be backups in that case.   
+            	 //Remove the zone member from the active zoneset if clones are enabled, otherwise delete the zones. 
             	if (doZonesetClone) {	               
 	                _log.info("Removing zone: " + zoneName + " from zoneset: " + activeZoneset.getName() +  " in vsan: " + vsanId);
 	                try {
@@ -618,8 +620,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	                } catch (Exception ex) {
 	                    removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
 	                    handleZonesStrategyException(ex, activateZones);
-	                }
-	                _log.info("Going back to config prompt");	                	                
+	                }	               	                	               
             	} else {
             		  _log.info("Deleting zone: " + zoneName + " in vsan: " + vsanId);
   	                try {
@@ -646,8 +647,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             dialog.endConfig();
             time = System.currentTimeMillis() - time;
                                        
-	        deleteUnassignedZones(dialog, zones, vsanId, removedZoneNames);
-  
+	        deleteUnassignedZones(dialog, zones, vsanId, removedZoneNames);  
             _log.info("Zone remove time (msec): " + time.toString());
             
             return removedZoneNames;
@@ -658,10 +658,19 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         }
     }
 
+	/**
+	 * Unassigned zones are those zones that do not belong to any zoneset. These zonesets occupy space in the zoning database.
+	 * This method looks at the "show zone analysis" for a given VSAN and removes the zones if the zones were part of the delete operation. 
+	 *  
+	 * @param dialog - handle to dialog
+	 * @param zones - list of zones that was requested to be deleted. 
+	 * @param vsanId - vsan 
+	 * @param removedZoneNames - list of zones that were removed.
+	 */
 	private void deleteUnassignedZones(MDSDialog dialog, List<Zone> zones, Integer vsanId,
-			Map<String, String> removedZoneNames) {
+						Map<String, String> removedZoneNames) {
 		//Delete unassigned zones.
-		//Zones that are removed, but end up in the show vsan analysis under Unassigned zones are zones that do not belong 
+		//Zones that are removed, but end up in the "show zone analysis" under Unassigned zones are zones that do not belong 
 		//to any zonesets. These zones can be removed. We dont remove all such zones, but only those zones that are requested to be 
 		//deleted in the first place but are now not part of any zonesets.
 		dialog.config();

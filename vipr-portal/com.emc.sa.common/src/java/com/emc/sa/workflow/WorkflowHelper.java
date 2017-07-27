@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -72,6 +73,7 @@ import com.emc.sa.workflow.CustomServicesWorkflowPackage.WorkflowVersion;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
@@ -81,6 +83,7 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
@@ -89,6 +92,7 @@ import com.emc.storageos.security.keystore.impl.KeyCertificateAlgorithmValuesHol
 import com.emc.storageos.security.keystore.impl.KeystoreEngine;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Helper class to perform CRUD operations on a workflow
@@ -107,6 +111,10 @@ public final class WorkflowHelper {
     private static final ImmutableList<String> SUPPORTED_VERSIONS = ImmutableList.<String> builder()
             .add(CURRENT_VERSION.toString()).build();
     private static final int MAX_IMPORT_NAME_INDEX = 100;
+    private static final Set<String> ATTRIBUTES = ImmutableSet.<String> builder()
+            .add(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)
+            .add(CustomServicesConstants.WORKFLOW_LOOP)
+            .build();
 
     private WorkflowHelper() {
     }
@@ -131,6 +139,7 @@ public final class WorkflowHelper {
         workflow.setDescription(document.getDescription());
         workflow.setSteps(toStepsJson(document.getSteps()));
         workflow.setPrimitives(getPrimitives(document));
+        workflow.setAttributes(getAttributes(document));
         return workflow;
     }
 
@@ -217,6 +226,15 @@ public final class WorkflowHelper {
             }
         }
         return primitives;
+    }
+
+    public static StringMap getAttributes(final CustomServicesWorkflowDocument document) {
+        final StringMap map = new StringMap();
+        final Map<String, String> attributes = document.getAttributes();
+        if (attributes != null) {
+            map.putAll(attributes);
+        }
+        return map;
     }
 
     public static CustomServicesWorkflow importWorkflow(final InputStream stream,

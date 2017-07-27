@@ -181,6 +181,7 @@
         <package name="runc"/>
         <package name="ansible"/>
         <package name="python-Jinja2"/>
+        <package name="python-MarkupSafe"/>
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>

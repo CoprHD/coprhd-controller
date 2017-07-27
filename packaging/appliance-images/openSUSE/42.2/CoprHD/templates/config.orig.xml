@@ -179,6 +179,9 @@
         <package name="libboost_thread1_58_0"/>
         <package name="librados2"/>
         <package name="librbd1"/>
+        <package name="containerd"/>
+        <package name="runc"/>
+        <package name="ansible"/>
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>
@@ -186,8 +189,6 @@
         <package name="kmod"/>
         <package name="suse-module-tools"/>
         <package name="systemd-sysvinit"/>
-        <package name="containerd"/>
-        <package name="runc"/>
         <package name="filesystem"/>
         <package name="glibc-locale"/>
         <package name="cracklib-dict-full"/>

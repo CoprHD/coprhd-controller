@@ -141,22 +141,10 @@ restore_data() {
 # $1=node name
 restore_node() {
     local viprNode=${1}
-    # get backupTag from ${BACKUP_INFO}
+    cd ${RESTORE_DIR}
+    local backupTag=`ls *zip | head -n 1 | awk '{split($0,a,"_"); print a[1]}'`
 
-    local backupTag=""
-    for info in ${BACKUP_INFO[@]}
-    do
-        if [[ ${info} =~ "_info.properties" ]]; then
-            backupTag=${info%%_*}
-            break
-        fi
-    done
-
-    if [ "${backupTag}" == "" ]; then
-        echo "Cannot find propeties file! "
-        exit 1
-    fi
-
+    # restore local files
     local command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag'"
     if [ "$RESTORE_GEO_FROM_SCRATCH" == "true" ]; then
         command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag' -f"

@@ -104,30 +104,24 @@ get_backup_info_from_nodes() {
     do
         local viprNode=$(get_nodeid)
         local result=`ssh_execute_with_output "${viprNode}" "${ls_command}" "${ROOT_PASSWORD}"`
-        BACKUP_INFO[$i]=${result}
+        BACKUP_INFO=${BACKUP_INFO}${result}
     done
-    echo ${BACKUP_INFO[@]}
+    echo -e ${BACKUP_INFO} | sort | uniq
 }
 
 
 is_vdc_connected() {
     BACKUP_INFO="$1"
-    for info in ${BACKUP_INFO}
-    do
-        if [[ ${info} =~ "geodb" ]]; then
-            geodb_type=${info#*_}
-            geodb_type=${geodb_type%%_*}
-            if [ "$geodb_type" == "geodb" ]; then
-                IS_CONNECTED_VDC=false
-                return
-            elif [ "$geodb_type" == "geodbmultivdc" ]; then
-                IS_CONNECTED_VDC=true
-                return
-            fi
-        fi
-    done
-    echo -e "\nInvalid geodb type: $geodb_type, exiting.."
-    exit 2
+    local is_geo=`echo {BACKUP_INFO} | grep "geo"`
+    is_geo=${is_geo#*=}
+    if [[ is_geo == "true" ]]; then
+        IS_CONNECTED_VDC=true
+    else if [[ is_geo == "false" ]]; then
+        IS_CONNECTED_VDC=false
+    else
+        echo -e "\nInvalid geodb type: $geodb_type, exiting.."
+        exit 2
+    fi
 }
 
 clean_up() {

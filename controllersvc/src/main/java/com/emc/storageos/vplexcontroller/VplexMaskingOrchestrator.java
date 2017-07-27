@@ -385,7 +385,7 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 String.format("Delete VPLEX Storage View %s for ExportGroup %s",
                                         exportMask.getMaskName(), export),
                                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
-                                this.getClass(), storageViewExecuteMethod, null, exportMaskDeleteStep);
+                                VPlexMaskingWorkflowEntryPoints.class, storageViewExecuteMethod, null, exportMaskDeleteStep);
                     }
 
                     if (removeVolumes) {
@@ -597,7 +597,8 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportURI, exportMask.getId());
                     previousStep = workflow.createStep(DELETE_STORAGE_VIEW,
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
-                            previousStep, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, exportMaskDeleteStep);
+                            previousStep, vplexURI, vplex.getSystemType(), VPlexMaskingWorkflowEntryPoints.class, deleteStorageView, null,
+                            exportMaskDeleteStep);
 
                     // Unzone step (likely just a FCZoneReference removal since this is remove volume only)
                     previousStep = workflow.createStep(
@@ -2121,7 +2122,7 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         DELETE_STORAGE_VIEW,
                         String.format("Delete VPLEX Storage View %s for ExportGroup %s", exportMask.getMaskName(),
                                 exportGroup.getId()),
-                        lastStep, vplex.getId(), vplex.getSystemType(), this.getClass(),
+                        lastStep, vplex.getId(), vplex.getSystemType(), VPlexMaskingWorkflowEntryPoints.class,
                         storageViewExecuteMethod, null, exportMaskDeleteStep);
 
                 // Add zoning step for deleting ExportMask

@@ -747,6 +747,8 @@ public class VPlexExportOperations extends VPlexOperations{
                 blockObjectNames);
 
         _log.info("successfully removed " + blockObjectNames + " from StorageView " + exportMask.getMaskName());
+
+        taskCompleter.ready(_dbClient);
 		
 	}
 	

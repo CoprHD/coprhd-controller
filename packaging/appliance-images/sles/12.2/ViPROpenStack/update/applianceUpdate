@@ -298,15 +298,6 @@ logMessage "DEBUG" "Update repo SLES version = $slesRepoVersion."
 if [ "$(echo $result | grep newer)" != "" ]; then
   logMessage "ERROR" "A higher version of OS is already installed. Aborting update procedure ..."
   exit $osVersionError
-elif [ "$(echo $result | grep older)" != "" ]; then
-  logMessage "INFO" "Updating OS release ..."
-
-  zypper -n -vv install --repo $repoName $slesReleaseFile 2>&1>>$logFile
-  STATUS_CODE=$?
-  if [ $STATUS_CODE -ne 0 ]; then
-    logZyppMessage $STATUS_CODE "while installing sles-release package."
-    abortUpdate $STATUS_CODE
-  fi
 else
   logMessage "INFO" "OS version check is successful."
 fi

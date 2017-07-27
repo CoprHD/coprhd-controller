@@ -220,7 +220,6 @@
     <package name="xerces"/>
     <package name="jema"/>
     <package name="atop"/>
-    <package name="connectemc"/>
     <package name="java"/>
     <package name="keepalived"/> 
     <package name="nginx"/>

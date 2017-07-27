@@ -30,6 +30,12 @@ chown -R keystone:keystone /etc/keystone
 a2enmod version
 systemctl start apache2.service
 
+# Uninstalling java7
+rpm -q java-1.7.0-oracle >/dev/null
+if [ $? -eq 0 ]; then
+  rpm -ev --nodeps java-1.7.0-oracle >/dev/null
+  [ $? -eq 0 ] && echo "Successfully uninstalled java-1.7.0-oracle..."
+fi
  
 # cinder
 echo "Updating cinder config"

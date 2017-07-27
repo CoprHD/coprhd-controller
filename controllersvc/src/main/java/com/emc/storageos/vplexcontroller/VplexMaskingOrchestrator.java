@@ -68,9 +68,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchest
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-import com.emc.storageos.volumecontroller.impl.validators.ValCk;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -86,19 +83,16 @@ import com.google.common.collect.Collections2;
 
 public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
-	private static final Logger log = LoggerFactory.getLogger(VplexMaskingOrchestrator.class);
+    private static final Logger _log = LoggerFactory.getLogger(VplexMaskingOrchestrator.class);
 	private VPlexApiFactory _vplexApiFactory;
 	private static CoordinatorClient coordinator;
     private VPlexApiLockManager _vplexApiLockManager;
-    private ValidatorFactory validator;
     
     private static final URI nullURI = NullColumnValueGetter.getNullURI();
     @Autowired
     private DataSourceFactory dataSourceFactory;
     @Autowired
     private CustomConfigHandler customConfigHandler;
-    @Autowired
-    protected ValidatorConfig validatorConfig;
     
     private static final int FOUND_NO_VIPR_EXPORT_MASKS = 0;
     private static final int FOUND_ONE_VIPR_EXPORT_MASK = 1;
@@ -108,7 +102,6 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     private static final String STORAGE_VIEW_ADD_STORAGE_PORTS_METHOD = "storageViewAddStoragePorts";
     private static final String STORAGE_VIEW_ADD_INITS_ROLLBACK_METHOD = "storageViewAddInitiatorsRollback";
     private static final String STORAGE_VIEW_ADD_VOLS_ROLLBACK_METHOD = "storageViewAddVolumesRollback";
-    private static final String STORAGE_VIEW_ADD_PORTS_ROLLBACK_METHOD = "storageViewAddStoragePortsRollback";
     private static final String STORAGE_VIEW_REMOVE_INITIATORS_METHOD = "storageViewRemoveInitiators";
     private static final String STORAGE_VIEW_REMOVE_VOLUMES_METHOD = "storageViewRemoveVolumes";
     private static final String STORAGE_VIEW_REMOVE_STORAGE_PORTS_METHOD = "storageViewRemoveStoragePorts";
@@ -138,10 +131,6 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     
     public void setVplexApiLockManager(VPlexApiLockManager lockManager) {
         _vplexApiLockManager = lockManager;
-    }
-    
-    public void setValidator(ValidatorFactory validator) {
-        this.validator = validator;
     }
 
     /*
@@ -303,11 +292,6 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     + " on VPLEX " + vplexSystem.getLabel());
             Workflow workflow = _workflowService.getNewWorkflow(VPlexMaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", false, opId);
 
-            StringBuffer errorMessages = new StringBuffer();
-            boolean isValidationNeeded = validatorConfig.isValidationEnabled()
-                    && !ExportUtils.checkIfExportGroupIsRP(exportGroup);
-            _log.info("Orchestration level validation needed : {}", isValidationNeeded);
-
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex);
             if (exportMasks.isEmpty()) {
                 throw VPlexApiException.exceptions.exportGroupDeleteFailedNull(vplex.toString());
@@ -445,16 +429,6 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         _networkDeviceController.getClass(), zoningExecuteMethod, null, zoningStep);
             }
 
-            String message = errorMessages.toString();
-            if (isValidationNeeded && !message.isEmpty()) {
-                _log.error("Error Message {}", errorMessages);
-
-                throw DeviceControllerException.exceptions.deleteExportGroupValidationError(
-                        exportGroup.forDisplay(),
-                        vplexSystem.forDisplay(),
-                        message);
-            }
-
             // Start the workflow
             workflow.executePlan(completer, "Successfully deleted ExportMasks for ExportGroup: " + export);
         } catch (Exception ex) {
@@ -518,15 +492,10 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             completer = new ExportRemoveVolumeCompleter(exportURI, volumeURIs, opId);
             volListStr = Joiner.on(',').join(volumeURIs);
-            validator.volumeURIs(volumeURIs, false, false, ValCk.ID);
             Workflow workflow = _workflowService.getNewWorkflow(VPlexMaskingWorkflowEntryPoints.getInstance(), EXPORT_GROUP_REMOVE_VOLUMES, false, opId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex.getId());
-
-            StringBuffer errorMessages = new StringBuffer();
-            boolean isValidationNeeded = validatorConfig.isValidationEnabled();
-            _log.info("Orchestration level validation needed : {}", isValidationNeeded);
 
             VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
@@ -643,26 +612,13 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
 
             if (hasSteps) {
-                String message = errorMessages.toString();
-                if (isValidationNeeded && !message.isEmpty()) {
-                    _log.error("Error Message {}", errorMessages);
-                    List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIs);
-                    String volumesForDisplay = Joiner.on(", ").join(
-                            Collections2.transform(volumes,
-                                    CommonTransformerFunctions.fctnDataObjectToForDisplay()));
-                    throw DeviceControllerException.exceptions.removeVolumesValidationError(
-                            volumesForDisplay, vplex.forDisplay(), message);
-                }
-
-                workflow.executePlan(
-                        completer,
+                workflow.executePlan(completer,
                         String.format("Sucessfully removed volumes or deleted Storage View: %s (%s)", exportGroup.getLabel(),
                                 exportGroup.getId()));
             } else {
                 completer.ready(_dbClient);
             }
         } catch (VPlexApiException vae) {
-
             String message = String.format("Failed to remove Volume %s from ExportGroup %s",
                     volListStr, exportURI);
             _log.error(message, vae);
@@ -797,10 +753,6 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             ExportRemoveInitiatorCompleter completer = new ExportRemoveInitiatorCompleter(exportURI, initiatorURIs, opId);
             Workflow workflow = _workflowService.getNewWorkflow(VPlexMaskingWorkflowEntryPoints.getInstance(), "exportRemoveInitiator", true, opId);
             boolean hasStep = false; // true if Workflow has a Step
-            Initiator firstInitiator = _dbClient.queryObject(Initiator.class, initiatorURIs.get(0));
-            boolean isValidationNeeded = validatorConfig.isValidationEnabled()
-                    && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(firstInitiator));
-            _log.info("Orchestration level validation needed : {}", isValidationNeeded);
 
             _log.info("starting remove initiators for export group: " + exportGroup.toString());
             _log.info("request is to remove these initiators: " + initiatorURIs);
@@ -2481,7 +2433,7 @@ public class VplexMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Workflow.Method addPortsToViewMethod = new Workflow.Method(STORAGE_VIEW_ADD_STORAGE_PORTS_METHOD, vplexSystem.getId(), 
             		exportGroupUri, exportMask.getId(), storagePortURIsToAdd);
 
-            Workflow.Method addToViewRollbackMethod = new Workflow.Method(STORAGE_VIEW_ADD_PORTS_ROLLBACK_METHOD, vplexSystem.getId(), 
+            Workflow.Method addToViewRollbackMethod = new Workflow.Method(STORAGE_VIEW_REMOVE_STORAGE_PORTS_METHOD, vplexSystem.getId(),
             		exportGroupUri, exportMask.getId(), storagePortURIsToAdd);
 
             storageViewStepId = workflow.createStep("storageView",

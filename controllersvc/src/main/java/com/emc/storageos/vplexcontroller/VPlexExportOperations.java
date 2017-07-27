@@ -37,6 +37,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCre
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
+import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -246,6 +247,8 @@ public class VPlexExportOperations extends VPlexOperations{
                         List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values());
                         initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
                     }
+
+                    validator.volumeURIs(volumeURIs, false, false, ValCk.ID);
 
                     ExportMaskValidationContext ctx = new ExportMaskValidationContext();
                     ctx.setStorage(vplex);
@@ -722,6 +725,7 @@ public class VPlexExportOperations extends VPlexOperations{
                 initiators.add(initItr.next());
             }
         }
+        validator.volumeURIs(volumeURIList, false, false, ValCk.ID);
 
         ExportMaskValidationContext ctx = new ExportMaskValidationContext();
         ctx.setStorage(vplex);

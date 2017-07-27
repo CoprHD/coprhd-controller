@@ -32,8 +32,6 @@ import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.utils.VplexExportOperationContext;
-import com.emc.storageos.workflow.Workflow;
-import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
@@ -63,7 +61,7 @@ public class VPlexMaskingWorkflowEntryPoints  implements Controller{
         _blockScheduler = storageScheduler;
     }
     
-    public void setVplexExportOperations(VPlexExportOperations exportOperationsHelper) {
+    public void setVplexExportOperationsHelper(VPlexExportOperations exportOperationsHelper) {
     	vplexExportOperationsHelper = exportOperationsHelper;
     }
     
@@ -81,6 +79,7 @@ public class VPlexMaskingWorkflowEntryPoints  implements Controller{
         	WorkflowStepCompleter.stepExecuting(stepId);        	
             vplexExportOperationsHelper.registerInitiators(initiatorUris, vplexURI, vplexClusterName);     
             _log.info(String.format("%s end", call));
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (final Exception e) {
             _log.info(call + " Encountered an exception", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

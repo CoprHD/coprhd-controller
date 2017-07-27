@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
@@ -83,17 +84,23 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             // the same volume can have different parameters to different hosts.
             Map<URI, Integer> addedVolumeParams = exportGroupService.getChangedVolumes(exportUpdateParam, true);
             ExportPathParams exportPathParam = null;
-            if (exportUpdateParam.getExportPathParameters() != null && !addedVolumeParams.keySet().isEmpty()) {
-                exportPathParam = exportGroupService.validateAndCreateExportPathParam(
-                        exportUpdateParam.getExportPathParameters(), exportGroup, addedVolumeParams.keySet());
+            StringBuilder pathWarningMessages = new StringBuilder();
+            if (!addedVolumeParams.keySet().isEmpty()) {
+                exportPathParam = exportGroupService.validateAndCreateExportPathParam(exportUpdateParam.getExportPathPolicy(),
+                        exportUpdateParam.getExportPathParameters(), exportGroup, addedVolumeParams.keySet(), pathWarningMessages);
+                URI portGroup = (exportPathParam != null) ? exportPathParam.getPortGroup() : null;
                 exportGroupService.validatePortGroupWhenAddVolumesForExportGroup(addedVolumeParams.keySet(),
-                        exportUpdateParam.getExportPathParameters().getPortGroup(), exportGroup);
-                
-                exportGroupService.addBlockObjectsToPathParamMap(addedVolumeParams.keySet(), exportPathParam.getId(), exportGroup);
-            } else if (!addedVolumeParams.keySet().isEmpty()) {
-                // exportPathParam is null
-                exportGroupService.validatePortGroupWhenAddVolumesForExportGroup(addedVolumeParams.keySet(), null, exportGroup);
-            }
+                        portGroup, exportGroup);
+                if (exportPathParam != null) {
+                    exportGroupService.addBlockObjectsToPathParamMap(addedVolumeParams.keySet(), exportPathParam.getId(), exportGroup);
+                    exportGroupService._dbClient.createObject(exportPathParam);
+                } 
+            } 
+// TODO: Remove
+//            else if (!addedVolumeParams.keySet().isEmpty()) {
+//                // exportPathParam is null
+//                exportGroupService.validatePortGroupWhenAddVolumesForExportGroup(addedVolumeParams.keySet(), null, exportGroup);
+//            }
             // Remove the block objects being deleted from any existing path parameters.
             exportGroupService.removeBlockObjectsFromPathParamMap(removedBlockObjectsMap.keySet(), exportGroup);
 
@@ -122,6 +129,8 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             _log.info("Submitting export group update request.");
             exportController.exportGroupUpdate(exportGroup.getId(), addedBlockObjectsMap, removedBlockObjectsMap,
                     addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, task);
+            // Append warning message to task if any
+            this.exportGroupService.addTaskWarningMessage(taskRes, pathWarningMessages.toString());
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(), (ServiceCoded) ex);

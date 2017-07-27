@@ -5034,7 +5034,7 @@ class Bourne:
             exportgroups.append(resource['id'])
         return exportgroups
 
-    def export_group_create(self, name, project, neighborhood, type, volspec, initList, hostList, clusterList, pathParam):
+    def export_group_create(self, name, project, neighborhood, type, volspec, initList, hostList, clusterList, pathParam, pathPolicy):
         projectURI = self.project_query(project).strip()
         nhuri = self.neighborhood_query(neighborhood).strip()
 
@@ -5045,6 +5045,8 @@ class Bourne:
         }
 
 	# Optionally add path parameters
+        if (pathPolicy):
+	    parms['export_path_policy'] = pathPolicy;
         if (pathParam['max_paths'] > 0):
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
@@ -5107,10 +5109,12 @@ class Bourne:
 	    print o
         return (o, s)
 
-    def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList, pathParam):
+    def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList, pathParam, pathPolicy):
         parms = {}
 
 	# Optionally add path parameters
+        if (pathPolicy):
+	    parms['export_path_policy'] = pathPolicy;
         if (pathParam['max_paths'] > 0):
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
@@ -5341,12 +5345,21 @@ class Bourne:
 
     def export_path_policies_list(self, all):
         results =  self.api('GET', URI_EXPORTPATHPOLICIES_LIST_QUERY.format(all))
-        print results
         resources = results['export_path_policy']
         pathparams = []
         for resource in resources:
             pathparams.append(resource['id'])
         return pathparams
+
+    def export_path_policies_query_by_name(self, name):
+        print 'looking up pathpolicy: ', name
+        results = self.export_path_policies_list('false')
+	for id in results:
+            result = self.export_path_policies_get(id)
+	    if (result['name'] == name or result['id'] == name):
+	        print 'Found export_path_policy: ', name, result['id']
+	        return result['id']
+	raise 'export_path_policy not found'
 
     def export_path_policies_get(self, id):
         result = self.api('GET', URI_EXPORTPATHPOLICIES_INSTANCE.format(id))

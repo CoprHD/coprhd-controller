@@ -2806,7 +2806,7 @@ public interface BadRequestExceptions {
     public BadRequestException pathParameterPortsDoNotIncludeArray(final URI arrayURI);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotOverrideVpoolPathsBecauseExistingExports(final String message);
+    public BadRequestException cannotChangePathsBecauseExistingExports(final String message);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddSRDFProtectionToPartialCG(String msg);

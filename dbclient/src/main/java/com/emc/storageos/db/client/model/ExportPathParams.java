@@ -52,6 +52,21 @@ public class ExportPathParams extends DataObject {
     public ExportPathParams() {
         // default constructor needed for persistence framework
     }
+    
+    public ExportPathParams(ExportPathParams other, boolean explicitlyCreated, String description) {
+        // Copy constructor.
+        this.setMaxPaths(other.getMaxPaths());
+        this.setMinPaths(other.getMinPaths());
+        this.setPathsPerInitiator(other.getPathsPerInitiator());
+        this.setMaxInitiatorsPerPort(other.getMaxInitiatorsPerPort());
+        if (other.getStoragePorts() != null && !other.getStoragePorts().isEmpty()) {
+            this.setStoragePorts(other.getStoragePorts());
+        }
+        this.setExportGroupType(other.getExportGroupType());
+        this.setExplicitlyCreated(explicitlyCreated);
+        this.setPortGroup(other.getPortGroup());
+        this.setDescription(description);
+    }
 
     public ExportPathParams(int maxPaths, int minPaths, int pathsPerInitiator) {
         this(maxPaths, minPaths, pathsPerInitiator, ExportGroupType.Host);

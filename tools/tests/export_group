@@ -22,6 +22,8 @@ def export_group_create(args):
         path_param['min_paths'] = args.minpath
         path_param['paths_per_initiator'] = args.pathsperinit
         
+        if (args.pathpolicy):
+	    args.pathpolicy = bourne.export_path_policies_query_by_name(args.pathpolicy)
         if (args.ports):
 	    storage_ports = []
 	    storagePortList = args.ports.split(',')
@@ -36,7 +38,7 @@ def export_group_create(args):
 	    
     except:
        print 'No path parameters (optional)'
-    (o, s) = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters, path_param)
+    (o, s) = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters, path_param, args.pathpolicy)
     if (s['state'] == 'ready'):
 	print 'Export group created with id ' + s['resource']['id']
     elif (s['state'] != 'suspended_no_error'):
@@ -45,6 +47,8 @@ def export_group_create(args):
 
 def export_group_update(args):
     bourne.connect(args.ip)
+    if (args.pathpolicy):
+        args.pathpolicy = bourne.export_path_policies_query_by_name(args.pathpolicy)
     path_param = dict()
     path_param['max_paths'] = "0"
     try:
@@ -61,7 +65,7 @@ def export_group_update(args):
     except:
         print 'No path parameters (optional)'
     groupId = bourne.export_group_query(args.groupId)
-    (o, s) = bourne.export_group_update(groupId, args.addVolspec, args.addInits, args.addHosts, args.addClusters, args.remVols, args.remInits, args.remHosts, args.remClusters, path_param)
+    (o, s) = bourne.export_group_update(groupId, args.addVolspec, args.addInits, args.addHosts, args.addClusters, args.remVols, args.remInits, args.remHosts, args.remClusters, path_param, args.pathpolicy)
     if (s['state'] == 'ready'):
 	print 'Export group updated with id ' + s['resource']['id']
     elif (s['state'] != 'suspended_no_error'):
@@ -283,6 +287,7 @@ create.add_argument('--minpath', help = 'minimum number storage paths')
 create.add_argument('--pathsperinit', help = 'paths per initiator')
 create.add_argument('--ports', help = 'storage ports for export')
 create.add_argument('--portgroup', help = 'storage port group for export')
+create.add_argument('--pathpolicy', help = 'Export Path Policy')
 
 # export_group update groupId 
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -299,6 +304,7 @@ update.add_argument('--maxpath', help = 'maximum number storage paths')
 update.add_argument('--minpath', help = 'minimum number storage paths')
 update.add_argument('--pathsperinit', help = 'paths per initiator')
 update.add_argument('--ports', help = 'storage ports for export')
+update.add_argument('--pathpolicy', help = 'Export Path Policy')
 
 # pathadj ports
 pathadj = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

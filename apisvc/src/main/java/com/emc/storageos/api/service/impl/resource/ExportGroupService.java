@@ -90,6 +90,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -310,8 +311,6 @@ public class ExportGroupService extends TaskResourceService {
             validateBlockObjectNativeId(addVolumeURIs);
         }
 
-
-
         // Validate the project and check its permissions
         Project project = queryObject(Project.class, param.getProject(), true);
         StorageOSUser user = getUserFromContext();
@@ -340,8 +339,10 @@ public class ExportGroupService extends TaskResourceService {
         // the ExportGroup.
         validateNotSameNameProjectAndVarray(param);
 
-        // If ExportPathParameter block is present, and volumes are present, validate have permissions.
+        // If export path policy URI and/or ExportPathParameter block is present, 
+        // and volumes are present, validate have permissions.
         // Processing will be in the aysnc. task.
+        lookupPathParams(param.getExportPathPolicy());
         ExportPathParameters pathParam = param.getExportPathParameters();
         if (pathParam != null && !volumeMap.keySet().isEmpty()) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
@@ -381,7 +382,7 @@ public class ExportGroupService extends TaskResourceService {
         // call thread that does the work.
         CreateExportGroupSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, neighborhood, project,
                 exportGroup, storageMap, param.getClusters(), param.getHosts(),
-                param.getInitiators(), volumeMap, param.getExportPathParameters(), task, taskRes);
+                param.getInitiators(), volumeMap, param.getExportPathPolicy(), param.getExportPathParameters(), task, taskRes);
 
         _log.info("Kicked off thread to perform export create scheduling. Returning task: " + taskRes.getId());
 
@@ -1446,6 +1447,7 @@ public class ExportGroupService extends TaskResourceService {
         }
         validateBlockObjectNativeId(boURIList);
 
+        lookupPathParams(param.getExportPathPolicy());
         if (param.getExportPathParameters() != null) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
             ExportPathParameters pathParam = param.getExportPathParameters();
@@ -2853,38 +2855,51 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * Validate the the optional path parameters are valid for the ExportGroup.
-     *
+     * Validate path parameters are valid for the ExportGroup.
+     * 
+     * @param URI for the ExportPathParameters representing the ExportPathPolicy that was submitted
      * @param param -- ExportPathParameters block
      * @param exportGroup -- ExportGroup
      * @param blockObjectURIs -- Collection of block object URIs, used only for validating ports
-     * @return ExportPathParam suitable for persistence
+     * @param warningMessage -- StringBuilder holder for warning messages
+     * @return ExportPathParam suitable for persistence in the ExportGroup pathParameter map.
+     * Can return null if no parameters were available.
      */
-    ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param,
-            ExportGroup exportGroup, Collection<URI> blockObjectURIs) {
+    ExportPathParams validateAndCreateExportPathParam(URI exportPathPolicyURI, ExportPathParameters param,
+            ExportGroup exportGroup, Collection<URI> blockObjectURIs, StringBuilder warningMessages) {
+        // IF no policy or explicit parameters, nothing to do, return null
+        if (exportPathPolicyURI == null && param == null) {
+            return null;
+        }
+        // IF a URI containing the ExportPathParams (normally from an ExportPathPolicyService record,
+        // then look up that set of parameters.
+        ExportPathParams policy = null;
+        if (exportPathPolicyURI != null) {
+            ArgValidator.checkUri(exportPathPolicyURI);
+            policy = _dbClient.queryObject(ExportPathParams.class, exportPathPolicyURI);
+            ArgValidator.checkEntityNotNull(policy, exportPathPolicyURI, false);
+        }
+        ExportPathParams pathParam = (policy != null) 
+                ? new ExportPathParams(policy, false, "Created from path policy: " + policy.getLabel())
+                : ExportPathParams.getDefaultParams();
+        pathParam.setId(URIUtil.createId(ExportPathParams.class));
+        pathParam.setLabel(exportGroup.getLabel());
+        pathParam.setExplicitlyCreated(false);
 
         // If minPaths is specified, or pathsPerInitiator is specified, maxPaths must be specified
-        if ((param.getMinPaths() != null || param.getPathsPerInitiator() != null) && param.getMaxPaths() == null) {
+        if (param != null && (param.getMinPaths() != null || param.getPathsPerInitiator() != null) && param.getMaxPaths() == null) {
             throw APIException.badRequests.maxPathsRequired();
         }
         
-        ExportPathParams pathParam = new ExportPathParams();
-        pathParam.setId(URIUtil.createId(ExportPathParams.class));
-        if (param.getMaxPaths() != null) {
+        if (param != null && param.getMaxPaths() != null) {
             ArgValidator.checkFieldMinimum(param.getMaxPaths(), 1, "max_paths");
             
             if (param.getMinPaths() != null) {
                 ArgValidator.checkFieldMinimum(param.getMinPaths(), 1, "min_paths");
-            } else {
-                // Defaults to one path if not suppiled
-                param.setMinPaths(1);
-            }
+            } 
             if (param.getPathsPerInitiator() != null) {
                 ArgValidator.checkFieldMinimum(param.getPathsPerInitiator(), 1, "paths_per_initiator");
-            } else {
-                // Defaults to one path if not supplied
-                param.setPathsPerInitiator(1);
-            }
+            } 
             // minPaths must be <= than maxPaths.
             if (param.getMinPaths() > param.getMaxPaths()) {
                 throw APIException.badRequests.minPathsGreaterThanMaxPaths();
@@ -2893,31 +2908,31 @@ public class ExportGroupService extends TaskResourceService {
             if (param.getPathsPerInitiator() > param.getMaxPaths()) {
                 throw APIException.badRequests.pathsPerInitiatorGreaterThanMaxPaths();
             }
-    
-            // Collect the list of Storage Systems used by the block objects.
-            Set<URI> storageArrays = new HashSet<URI>();
-            for (URI blockObjectURI : blockObjectURIs) {
-                BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
-                if (blockObject == null) {
-                    continue;
-                }
-                storageArrays.add(blockObject.getStorageController());
-            }
-    
-            // validate storage ports if they are supplied
-            validateExportPathParmPorts(param, exportGroup, storageArrays);
             pathParam.setMaxPaths(param.getMaxPaths());
             pathParam.setMinPaths(param.getMinPaths());
             pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
             if (param.getStoragePorts() != null) {
                 pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
             }
-            
-            // Validate there are no existing exports for the hosts involved that we could not override.
-            validateNoConflictingExports(exportGroup, storageArrays, pathParam);
         }
-        pathParam.setLabel(exportGroup.getLabel());
-        if (!NullColumnValueGetter.isNullURI(param.getPortGroup())) {
+        
+        // Collect the list of Storage Systems used by the block objects.
+        Set<URI> storageArrays = new HashSet<URI>();
+        for (URI blockObjectURI : blockObjectURIs) {
+            BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
+            if (blockObject == null) {
+                continue;
+            }
+            storageArrays.add(blockObject.getStorageController());
+        }
+
+        // validate storage ports if they are supplied
+        validateExportPathParmPorts(pathParam, exportGroup, storageArrays);
+        // Validate there are no existing exports for the hosts involved that we could not override.
+        // If there are, issue task warning message (no longer a failure.)
+        validateNoConflictingExports(exportGroup, storageArrays, pathParam, warningMessages);
+
+        if (param != null && !NullColumnValueGetter.isNullURI(param.getPortGroup())) {
             // Check if the use port group config setting is on
             String value = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
                     Type.vmax.name(), null);
@@ -2932,8 +2947,6 @@ public class ExportGroupService extends TaskResourceService {
             }
             pathParam.setPortGroup(pgURI);
         }
-        pathParam.setExplicitlyCreated(false);
-
         return pathParam;
     }
 
@@ -2944,9 +2957,10 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup
      * @param arrayURIs
      * @param pathParam -- New ExportPathParams to be used
+     * @param warningMessages -- StringBuilder
      */
     private void validateNoConflictingExports(ExportGroup exportGroup, Set<URI> arrayURIs,
-            ExportPathParams pathParam) {
+            ExportPathParams pathParam, StringBuilder warningMessages) {
         _log.info("Requested path parameters: " + pathParam.toString());
         Map<String, String> conflictingMasks = new HashMap<String, String>();
         StringSet initiators = exportGroup.getInitiators();
@@ -2985,7 +2999,7 @@ public class ExportGroupService extends TaskResourceService {
                         String systemName = (system != null) ? system.getLabel() : exportMask.getStorageDevice().toString();
                         if (!conflictingMasks.containsKey(hostName)) {
                             String msg = String.format(
-                                    "Export Mask %s for Host %s and Array %s has %d paths and paths_per_initiator %d",
+                                    "Export Mask %s for Host %s and Array %s has %d paths and paths_per_initiator %d. ",
                                     exportMask.getMaskName(), hostName, systemName, maskParam.getMaxPaths(),
                                     maskParam.getPathsPerInitiator());
                             conflictingMasks.put(hostName, msg);
@@ -3002,8 +3016,25 @@ public class ExportGroupService extends TaskResourceService {
                 }
                 builder.append(entry.getValue());
             }
-            throw APIException.badRequests.cannotOverrideVpoolPathsBecauseExistingExports(builder.toString());
+            warningMessages.append(APIException.badRequests.cannotChangePathsBecauseExistingExports(builder.toString()).getMessage());
         }
+    }
+    
+    /**
+     * Add a task warning message if appropriate
+     * @param taskRes -- the TaskResourceRep containing the task
+     * @param warningMessage -- String warning message (skipped if null or empty)
+     */
+    public void addTaskWarningMessage(TaskResourceRep taskRes, String warningMessage) {
+            if (warningMessage == null || warningMessage.isEmpty()) {
+                return;
+            }
+            URI id = taskRes.getId();
+            Task task = _dbClient.queryObject(Task.class, id);
+            if (task != null) {
+                task.addWarningMessage(warningMessage);
+                _dbClient.updateObject(task);
+            }
     }
 
     /**
@@ -3011,20 +3042,20 @@ public class ExportGroupService extends TaskResourceService {
      * for every array in the list of volumes to be provisioned. Also verify
      * the ports can be located, and there are at least as many ports as maxPaths.
      *
-     * @param param ExportPathParameters block
+     * @param param ExportPathParams block
      * @param exportGroup
      * @param StorageArrays Collection<URI> Arrays that will be used for the Exports
      */
-    private void validateExportPathParmPorts(ExportPathParameters param, ExportGroup exportGroup,
+    private void validateExportPathParmPorts(ExportPathParams param, ExportGroup exportGroup,
             Collection<URI> storageArrays) {
         if (param.getClass() == null || param.getStoragePorts() == null || param.getStoragePorts().isEmpty()) {
             return;
         }
         // Get database entries for all the ports in a map of array URI to set of StoragePort.
         Map<URI, Set<StoragePort>> arrayToStoragePorts = new HashMap<URI, Set<StoragePort>>();
-        for (URI portURI : param.getStoragePorts()) {
-            StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
-            ArgValidator.checkEntityNotNull(port, portURI, false);
+        for (String portURI : param.getStoragePorts()) {
+            StoragePort port = _dbClient.queryObject(StoragePort.class, URI.create(portURI));
+            ArgValidator.checkEntityNotNull(port, URI.create(portURI), false);
             URI arrayURI = port.getStorageDevice();
             if (!arrayToStoragePorts.containsKey(arrayURI)) {
                 arrayToStoragePorts.put(arrayURI, new HashSet<StoragePort>());
@@ -3829,5 +3860,21 @@ public class ExportGroupService extends TaskResourceService {
                 
             }
         }
+    }
+    
+    /**
+     * If supplied, lookup the ExportPathParams given a URI.
+     * @param exportPathParamsURI -- URI of object to find
+     * @return  ExportPathParams structure -- structure retrieved
+     * @throws InvalidArgument if entity not found
+     */
+    public ExportPathParams lookupPathParams(URI exportPathParamsURI) {
+        if (exportPathParamsURI == null) {
+            return null;
+        }
+        ArgValidator.checkUri(exportPathParamsURI);
+        ExportPathParams policy = _permissionsHelper.getObjectById(exportPathParamsURI, ExportPathParams.class);
+        ArgValidator.checkEntityNotNull(policy, exportPathParamsURI, false);
+        return policy;
     }
 }

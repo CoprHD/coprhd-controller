@@ -31,6 +31,10 @@ REQUIREMENTS
   1. Download the latest Selenium Standalone Server (http://www.seleniumhq.org/download/)
   2. Download the latest ChromeDriver (https://sites.google.com/a/chromium.org/chromedriver/)
 
+- Configure environment variables:
+  1. export CUCUMBER_APP_HOST="your-coprhd-host"
+  2. export CUCUMBER_APP_PASSWORD="coprhd-root-password"
+
 
 RUNNING TESTS
 -------------
@@ -50,7 +54,7 @@ RUNNING TESTS
   1.  Start Selenium Standalone Server on your remote host (e.g. a host with a windowing system capable of running Google Chrome).
       $ java -Dwebdriver.chrome.driver=/path/to/chromedriver -jar /path/to/selenium-server-standalone-3.4.0.jar
 
-  2.  Export CUCUMBER_REMOTE_HOST variable with the machine running Selenium Standalone Server
+  2.  Export CUCUMBER_REMOTE_HOST variable with the machine address running Selenium Standalone Server
 
   3.  Run cucumber with IN_BROWSER env variable set.
       $ IN_BROWSER=true bundle exec cucumber [feature file]

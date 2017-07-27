@@ -1044,6 +1044,9 @@ public class VcenterApiClient {
                                 if (virtualMachine.getRuntime().getPowerState()
                                         .equals(VirtualMachinePowerState.poweredOff)) {
                                     isVMsPoweredOff = true;
+                                } else {
+                                    isVMsPoweredOff = false;
+                                    break;
                                 }
                             }
                         } else {

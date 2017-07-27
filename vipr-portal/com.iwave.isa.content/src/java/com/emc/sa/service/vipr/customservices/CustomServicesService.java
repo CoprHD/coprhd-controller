@@ -120,7 +120,16 @@ public class CustomServicesService extends ViPRService {
             ImmutableMap<String, Step> steps = getStepHash();
             for (Map.Entry<String, Step> stepEntry : steps.entrySet()) {
 
+                logger.info("step key:{}", stepEntry.getKey());
                 final Step step = stepEntry.getValue();
+                logger.info("stepid:{}", step.getId());
+                if (step.getInputGroups() == null) {
+                    logger.info("it is null");
+                }
+                if (step.getType().equals(StepType.START.toString()) || step.getType().equals(StepType.END.toString())) {
+                    logger.info("it is start or end so continue");
+                    continue;
+                }
                 for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
                     for (final Input value : inputGroup.getInputGroup()) {
                         final String name = params.get(value.getFriendlyName()).toString(); //todo handle pw
@@ -306,10 +315,12 @@ public class CustomServicesService extends ViPRService {
 
     private ImmutableMap<String, Step> getStepHash() throws Exception {
 
+        logger.info("in stephash");
         final CustomServicesWorkflowDocument obj = getwfDocument();
         final List<Step> steps = obj.getSteps();
         final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
         for (final Step step : steps) {
+            logger.info("stepid:{}", step.getId());
             builder.put(step.getId(), step);
         }
         final ImmutableMap<String, Step> stepsHash = builder.build();

@@ -38,7 +38,7 @@ public class CustomServicesWorkflowDocument {
 
     private String name;
     private String description;
-    private WorkflowAttribute attributes;
+    private Map<String, String> attributes;
     private List<Step> steps;
 
     @XmlElement(name = "name", nillable = true)
@@ -60,11 +60,11 @@ public class CustomServicesWorkflowDocument {
     }
 
     @XmlElement(name = "attributes")
-    public WorkflowAttribute getAttributes() {
+    public Map<String, String> getAttributes() {
         return attributes;
     }
 
-    public void setAttributes(WorkflowAttribute attributes) {
+    public void setAttributes(final Map<String, String> attributes) {
         this.attributes = attributes;
     }
 
@@ -76,30 +76,6 @@ public class CustomServicesWorkflowDocument {
 
     public void setSteps(List<Step> steps) {
         this.steps = steps;
-    }
-
-    public static class WorkflowAttribute {
-        private boolean loopWorkflow = false;
-        private long timeout;
-
-        @XmlElement(name = "loop_workflow")
-        public boolean getLoopWorkflow() {
-            return loopWorkflow;
-        }
-
-        public void setLoopWorkflow(boolean loopWorkflow) {
-            this.loopWorkflow = loopWorkflow;
-        }
-
-        @XmlElement(name = "timeout")
-        public long getTimeout() {
-            return timeout;
-        }
-
-        public void setTimeout(long timeout) {
-            this.timeout = timeout;
-        }
-
     }
 
     public static class InputGroup {

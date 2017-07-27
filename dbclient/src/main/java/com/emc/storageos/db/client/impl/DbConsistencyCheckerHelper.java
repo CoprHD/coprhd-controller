@@ -43,8 +43,6 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.exceptions.NotFoundException;
-import com.netflix.astyanax.cql.CqlStatement;
-import com.netflix.astyanax.cql.CqlStatementResult;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
@@ -221,7 +219,8 @@ public class DbConsistencyCheckerHelper {
                         getIndexColumns(indexedField, column, objRow.getKey()));
                 
                 if (!isColumnInIndex) {
-                    if (doubleConfirmed && isDataObjectRemoved(doType.getDataObjectClass(), objRow.getKey())) {
+                    if (doubleConfirmed && (isDataObjectRemoved(doType.getDataObjectClass(), objRow.getKey())
+                    		|| !isColumnExists(keyspace, doType.getCF(), column, objRow.getKey()))) {
                         continue;
                     }
                     
@@ -729,6 +728,17 @@ public class DbConsistencyCheckerHelper {
         try {
             ks.prepareQuery(indexCf).getKey(indexKey)
                     .getColumn(column)
+                    .execute().getResult();
+            return true;
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
+    
+    public boolean isColumnExists(Keyspace ks, ColumnFamily<String, CompositeColumnName> cf, Column<CompositeColumnName> column, String key) throws ConnectionException {
+    	try {
+            ks.prepareQuery(cf).getKey(key)
+                    .getColumn(column.getName())
                     .execute().getResult();
             return true;
         } catch (NotFoundException e) {

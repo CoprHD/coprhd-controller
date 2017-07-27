@@ -100,7 +100,6 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.isilon.IsilonSta
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
-import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 
@@ -114,11 +113,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final int PATH_IS_FILE = 1;
     private static final int PATH_IS_QUOTA = 2;
     private static final int PATH_IS_INVALID = 3;
-
-    private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
-    private static final String UNMANAGED_SHARE_ACL = "UnManagedCifsShareACL";
+    // TODO unused constants..
     private static final String IFS_ROOT = "/ifs";
-    private static final String SOS_DIR = "sos";
     private static final String QUOTA = "quota";
     private static final String TRUE = "true";
     private static final String FALSE = "false";
@@ -130,21 +126,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String NFS = "NFS";
     private static final String CIFS = "CIFS";
     private static final String UNIXSECURITY = "unix";
-    private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String SYSSECURITY = "sys";
     private static final String NFSv4 = "NFSv4";
     private static final String UMFS_DETAILS = "FS_DETAILS";
     private static final String UMFSQD_DETAILS = "UMFSQD_DETAILS";
     private static final String UMFS_QD_MAP = "UMFS_QD_MAP";
-    private static final String INITIAL_PATH = "/ifs/accesszone/";
-
     private static final Long MAX_NFS_EXPORTS_V7_2 = 1500L;
     private static final Long MAX_CIFS_SHARES = 40000L;
     private static final Long MAX_STORAGE_OBJECTS = 40000L;
     private static final String SYSTEM_ACCESS_ZONE_NAME = "System";
-    private static final Long GB_IN_BYTES = 1073741824L;
-    private static final Long GB_IN_KB = 1048576L;
-    private static final Long MB_IN_BYTES = 1048576L;
     private static final Long KB_IN_BYTES = 1024L;
     private static final String ONEFS_V8 = "8.0.0.0";
     private static final String ONEFS_V7_2 = "7.2.0.0";
@@ -155,7 +145,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String LICENSE_EVALUATION = "Evaluation";
     private static final String CHECKPOINT_SCHEDULE = "checkpoint_schedule";
     private static final String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
-
     private static final Integer MAX_RECORDS_SIZE = 100;
 
     private Set<String> _discPathsForUnManaged;
@@ -662,7 +651,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             isilonApi.getClusterInfo();
 
             discoverCluster(storageSystem);
-            _dbClient.persistObject(storageSystem);
+            _dbClient.updateObject(storageSystem);
             if (!storageSystem.getReachableStatus()) {
                 throw new IsilonCollectionException("Failed to connect to " + storageSystem.getIpAddress());
             }
@@ -680,7 +669,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             if (!pools.get(EXISTING).isEmpty()) {
                 allPools.addAll(pools.get(EXISTING));
-                _dbClient.persistObject(pools.get(EXISTING));
+                _dbClient.updateObject(pools.get(EXISTING));
             }
 
             List<StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(allPools,
@@ -700,7 +689,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             if (null != ports && !ports.get(EXISTING).isEmpty()) {
                 allPorts.addAll(ports.get(EXISTING));
-                _dbClient.persistObject(ports.get(EXISTING));
+                _dbClient.updateObject(ports.get(EXISTING));
             }
             List<StoragePort> notVisiblePorts = DiscoveryUtils.checkStoragePortsNotVisible(allPorts,
                     _dbClient, storageSystemId);
@@ -734,7 +723,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 try {
                     // set detailed message
                     storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
-                    _dbClient.persistObject(storageSystem);
+                    _dbClient.updateObject(storageSystem);
                 } catch (DatabaseException ex) {
                     _log.error("Error while persisting object to DB", ex);
                 }
@@ -851,7 +840,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 // is it a System access zone?
                 isilonNetworkPools = null;
 
-                if (isilonAccessZone.isSystem() == false) {
+                if (!isilonAccessZone.isSystem()) {
                     _log.info("Process the user defined access zone {} ", isilonAccessZone.toString());
                     isilonNetworkPools = new ArrayList<IsilonNetworkPool>();
                     // get the smart connect zone information
@@ -1066,8 +1055,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
-            boolean syncLicenseValid = isValidLicense(isilonApi.getReplicationLicenseInfo(), storageSystem);
-            boolean snapLicenseValid = isValidLicense(isilonApi.snapshotIQLicenseInfo(), storageSystem);
+            boolean syncLicenseValid = isValidLicense(isilonApi.getReplicationLicenseInfo());
+            boolean snapLicenseValid = isValidLicense(isilonApi.snapshotIQLicenseInfo());
 
             // Set file replication type for Isilon storage system!!!
             if (syncLicenseValid) {
@@ -1093,9 +1082,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem, isilonPool.getNativeId(),
                         NativeGUIDGenerator.POOL);
-                @SuppressWarnings("deprecation")
-                List<URI> poolURIs = _dbClient
-                        .queryByConstraint(AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(poolNativeGuid));
+                // Removed the deprecated DB call..
+                URIQueryResultList poolURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getStoragePoolByNativeGuidConstraint(poolNativeGuid), poolURIs);
 
                 for (URI poolUri : poolURIs) {
                     StoragePool pool = _dbClient.queryObject(StoragePool.class, poolUri);
@@ -1212,6 +1202,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.info("Trying to get latest smart connect version");
                 IsilonSmartConnectInfoV2 connInfo = isilonApi.getSmartConnectInfoV2();
                 if (connInfo == null || (connInfo != null && connInfo.getSmartZones() == null)) {
+                    // TODO Better to throw some less generic exception..
                     throw new Exception("Failed new Interface, try old Interface");
                 }
                 if (connInfo != null) {
@@ -1227,6 +1218,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             if (isilonStoragePorts == null || isilonStoragePorts.isEmpty()) {
                 // No ports defined throw an exception and fail the discovery
+                // TODO need to update this deprecated exception..
                 IsilonCollectionException ice = new IsilonCollectionException("discoverPorts failed. No Smartzones defined");
                 throw ice;
             }
@@ -1239,9 +1231,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         storageSystem, isilonPort.getIpAddress(),
                         NativeGUIDGenerator.PORT);
                 // Check if storage port was already discovered
-                @SuppressWarnings("deprecation")
-                List<URI> portURIs = _dbClient
-                        .queryByConstraint(AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portNativeGuid));
+                // TODO removed deprecated db call..
+                URIQueryResultList portURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getStoragePortByNativeGuidConstraint(portNativeGuid), portURIs);
+
                 for (URI portUri : portURIs) {
                     StoragePort port = _dbClient.queryObject(StoragePort.class, portUri);
                     if (port.getStorageDevice().equals(storageSystemId) && !port.getInactive()) {
@@ -1266,6 +1260,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     _log.info("Creating new storage port using NativeGuid : {}", portNativeGuid);
                     newStoragePorts.add(storagePort);
                 } else {
+                    // TODO why we are adding NULL to existingStoragePorts list??
                     existingStoragePorts.add(storagePort);
                 }
                 storagePort.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
@@ -1359,14 +1354,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * 
      * @param licenseStatus
      *            Status of the license
-     * @param system
-     *            Storage System
      * @return true/false
      * @throws IsilonException
      * @throws JSONException
      */
-    private boolean isValidLicense(String licenseStatus, StorageSystem system)
-            throws IsilonException, JSONException {
+    // TODO removed unused parameter..//WHY JSON, ISILON EXCEPTION?
+    private boolean isValidLicense(String licenseStatus) {
         Set<String> validLicenseStatus = new HashSet<String>();
         validLicenseStatus.add(LICENSE_ACTIVATED);
         validLicenseStatus.add(LICENSE_EVALUATION);
@@ -1388,11 +1381,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         NASServer nasServer = null;
         if (nasServerMap != null && !nasServerMap.isEmpty()) {
             for (Entry<String, NASServer> entry : nasServerMap.entrySet()) {
-                if (!SYSTEM_ACCESS_ZONE_NAME.equals(entry.getValue().getNasName())) {
-                    if (fsPath.startsWith(entry.getKey())) {
-                        nasServer = entry.getValue();
-                        break;
-                    }
+                // TODO Clubbed 2 ifs into one..
+                if (!SYSTEM_ACCESS_ZONE_NAME.equals(entry.getValue().getNasName()) && fsPath.startsWith(entry.getKey())) {
+                    nasServer = entry.getValue();
+                    break;
                 }
             }
             if (nasServer == null) {
@@ -1756,7 +1748,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         String resumeToken = null;
         HashMap<String, HashSet<String>> allShares = new HashMap<String, HashSet<String>>();
         URI storageSystemId = storageSystem.getId();
-        _log.info("discoverAllShares for storage system {} - start", storageSystemId);
+        // TODO corrected the log..
+        _log.info("discoverAllShares for storage system: {} access zone {} - start", storageSystem, isilonAccessZone);
 
         try {
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
@@ -1769,19 +1762,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     String path = share.getPath();
                     String shareId = share.getId();
                     sharesHashSet = allShares.get(path);
-                    if (null == sharesHashSet) {
-                        sharesHashSet = new HashSet<String>();
-                        sharesHashSet.add(shareId);
-                        allShares.put(path, sharesHashSet);
-                    } else {
-                        // if shares already exist for path then add
-                        sharesHashSet.add(shareId);
-                        allShares.put(path, sharesHashSet);
+                    // TODO refactored the code..
+                    // Null means there is no shares at this path in allShares Map. So, creating new entry..
+                    if (sharesHashSet == null) {
+                        sharesHashSet = new HashSet<>();
                     }
-
+                    sharesHashSet.add(shareId);
+                    allShares.put(path, sharesHashSet);
                     _log.info("Discovered SMB Share name {} and path {}", shareId, path);
                 }
-
                 resumeToken = isilonShares.getToken();
             } while (resumeToken != null);
             _log.info("discoverd AllShares for access zone {} ", isilonAccessZone);
@@ -1868,6 +1857,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         fs.setCapacity(capacity);
         fs.setUsedCapacity(quota.getUsagePhysical());
+        // TODO Is it a null check??
         if (!quota.getId().equalsIgnoreCase("null")) {
             fs.getExtensions().put(QUOTA, quota.getId());
         }
@@ -1986,17 +1976,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 for (IsilonExport exp : exports) {
                     _log.info("Discovered fS export {}", exp.toString());
                     if (exp.getPaths() == null || exp.getPaths().isEmpty()) {
-                        _log.info("Ignoring export {} as it is not having any path", exp.getId().toString());
+                        // TODO Possible NPE..
+                        _log.info("Ignoring export {} as it is not having any path", exp.toString());
                         continue;
                     }
-                    HashSet<Integer> exportIds = new HashSet<>();
+                    // TODO useless assignment of exportIds hashset at this point..
                     // Ignore Export with multiple paths
                     if (exp.getPaths().size() > 1) {
                         _log.info("Discovered Isilon Export: {} has multiple paths so ingnoring it", exp.toString());
                         continue;
                     }
                     String path = exp.getPaths().get(0);
-                    exportIds = allExports.get(path);
+                    HashSet<Integer> exportIds = allExports.get(path);
+                    // Null means there is no export at this path in allExport Map. So, creating new entry..
                     if (exportIds == null) {
                         exportIds = new HashSet<>();
                     }
@@ -2105,8 +2097,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                             // We take only username and we can ignore type and id
                             // Set user
-                            unManagedCifsShareACL.setUser(permission.getTrustee().getName());
-
+                            // TODO NULL Check
+                            if (permission.getTrustee() != null) {
+                                unManagedCifsShareACL.setUser(permission.getTrustee().getName());
+                            }
                             // Set filesystem id
                             unManagedCifsShareACL.setFileSystemId(unManagedFileSystem.getId());
                             unManagedCifsShareACL.setId(URIUtil.createId(UnManagedCifsShareACL.class));
@@ -2239,7 +2233,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private void cleanupDiscovery(StorageSystem system) {
         try {
             system.setReachableStatus(false);
-            _dbClient.persistObject(system);
+            _dbClient.updateObject(system);
         } catch (DatabaseException e) {
             _log.error("discoverStorage failed.  Failed to update discovery status to ERROR.", e);
         }
@@ -2262,7 +2256,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             String unManagedFileSystemNativeGuid, StorageSystem storageSystem,
             StoragePool pool, NASServer nasServer, FileShare fileSystem)
             throws IOException, IsilonCollectionException {
-
+        // TODO should refactor this method...
         if (null == unManagedFileSystem) {
             unManagedFileSystem = new UnManagedFileSystem();
             unManagedFileSystem.setId(URIUtil
@@ -2448,6 +2442,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.debug("call getIsilonSMBShare {}", isilonSMBShare.toString());
             }
         } catch (Exception e) {
+            // TODO better to rethrow some retry exception if some Exception is of connectivity issue type..
             _log.error("Exception while getting SMBShare for {}", shareId);
         }
         return isilonSMBShare;
@@ -2576,10 +2571,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             throws IOException {
         StoragePool pool = null;
         // use NativeGuid to lookup Pools in DB
-        @SuppressWarnings("deprecation")
-        List<URI> poolURIs = _dbClient
-                .queryByConstraint(AlternateIdConstraint.Factory
-                        .getStoragePoolByNativeGuidConstraint(nativeGuid));
+        // TODO deprecated method..
+        URIQueryResultList poolURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getStoragePoolByNativeGuidConstraint(nativeGuid), poolURIs);
         for (URI poolURI : poolURIs) {
             pool = _dbClient.queryObject(StoragePool.class, poolURI);
             if (pool != null && !pool.getInactive()) {
@@ -2589,32 +2584,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return null;
     }
 
-    /*
-     * get Storage Pool
-     * 
-     * @return
-     */
-    private StoragePool getStoragePool(StorageSystem storageSystem) throws IOException {
-        StoragePool storagePool = null;
-        // Check if storage pool was already discovered
-        URIQueryResultList storagePoolURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceStoragePoolConstraint(storageSystem.getId()),
-                storagePoolURIs);
-        Iterator<URI> storagePoolIter = storagePoolURIs.iterator();
-        while (storagePoolIter.hasNext()) {
-            URI storagePoolURI = storagePoolIter.next();
-            storagePool = _dbClient.queryObject(StoragePool.class,
-                    storagePoolURI);
-            if (storagePool != null && !storagePool.getInactive()) {
-                _log.debug("found a pool for storage system  {} {}",
-                        storageSystem.getSerialNumber(), storagePool);
-                return storagePool;
-            }
-        }
-        return null;
-    }
-
+    // TODO Unused private method..
     private StoragePort getStoragePortPool(StorageSystem storageSystem)
             throws IOException {
         StoragePort storagePort = null;
@@ -2649,17 +2619,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private Map<String, NASServer> validateAndGetNASServer(final StorageSystem storageSystem,
             List<IsilonAccessZone> accessZones) {
         NASServer nasServer = null;
-        List<IsilonAccessZone> InvalidAccessZones = new ArrayList<IsilonAccessZone>();
+        List<IsilonAccessZone> invalidAccessZones = new ArrayList<IsilonAccessZone>();
         Map<String, NASServer> accessZonesMap = new HashMap<String, NASServer>();
         if (accessZones != null && !accessZones.isEmpty()) {
             for (IsilonAccessZone isilonAccessZone : accessZones) {
-                if (isilonAccessZone.isSystem() == false) {
+
+                if (!isilonAccessZone.isSystem()) {
                     nasServer = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                     if (nasServer != null && !nasServer.getInactive()
                             && DiscoveredDataObject.DiscoveryStatus.VISIBLE.name().equals(nasServer.getDiscoveryStatus())) {
                         accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
                     } else {
-                        InvalidAccessZones.add(isilonAccessZone);
+                        invalidAccessZones.add(isilonAccessZone);
                         _log.info("Nas server {} is not valid, hence filesystem's will not be ingested",
                                 isilonAccessZone.getName());
                     }
@@ -2668,71 +2639,21 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     if (nasServer != null && !nasServer.getInactive()) {
                         accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
                     } else {
-                        InvalidAccessZones.add(isilonAccessZone);
+                        invalidAccessZones.add(isilonAccessZone);
                         _log.info("Nas server {} is not valid, hence filesystem's will not be ingested",
                                 isilonAccessZone.getName());
                     }
                 }
             }
             // Remove the invalid nas servers, so that we do not discover any object of it!!!
-            if (!InvalidAccessZones.isEmpty()) {
-                accessZones.removeAll(InvalidAccessZones);
+            if (!invalidAccessZones.isEmpty()) {
+                accessZones.removeAll(invalidAccessZones);
             }
         }
         return accessZonesMap;
     }
 
-    /**
-     * Generate Export Map for UnManagedFileSystem
-     * Ignore exports with multiple exports for the same path
-     * Ignore exports that have multiple security flavors
-     * Ignore exports with multiple paths
-     * Ignore exports not found on the array
-     * Ignore exports which have the same internal export key ( <sec, perm, root-mapping>)
-     * 
-     * @param umfs
-     * @param expIdMap
-     * @param storagePort
-     * @param fsPath
-     * @param isilonApi
-     * @return boolean
-     */
-    private List<UnManagedFileExportRule> getUnManagedFSExportRules(UnManagedFileSystem umfs, HashMap<String, HashSet<Integer>> expIdMap,
-            StoragePort storagePort, String fsPath, String zoneName, IsilonApi isilonApi) {
-        List<UnManagedFileExportRule> exportRules = new ArrayList<UnManagedFileExportRule>();
-        UnManagedExportVerificationUtility validationUtility = new UnManagedExportVerificationUtility(_dbClient);
-        List<UnManagedFileExportRule> exportRulesTemp = null;
-        boolean isAllRulesValid = true;
-        for (String expMapPath : expIdMap.keySet()) {
-            HashSet<Integer> isilonExportIds = new HashSet<>();
-            _log.info("getUnManagedFSExportMap {} : export ids : {}",
-                    expMapPath, expIdMap.get(expMapPath));
-            isilonExportIds = expIdMap.get(expMapPath);
-            if (isilonExportIds != null && !isilonExportIds.isEmpty()) {
-                exportRulesTemp = getUnManagedFSExportRules(umfs, storagePort,
-                        isilonExportIds, expMapPath, zoneName, isilonApi);
-                // validate export rules for each path
-                if (null != exportRulesTemp && !exportRulesTemp.isEmpty()) {
-                    isAllRulesValid = validationUtility.validateUnManagedExportRules(
-                            exportRulesTemp, false);
-                    if (isAllRulesValid) {
-                        _log.info("Validating rules success for export {}", expMapPath);
-                        exportRules.addAll(exportRulesTemp);
-                    } else {
-                        _log.info("Ignroing the rules for export {}", expMapPath);
-                        isAllRulesValid = false;
-                    }
-                }
-            }
-        }
-
-        if (exportRules.isEmpty() || false == isAllRulesValid) {
-            umfs.setHasExports(false);
-            _log.info("FileSystem " + fsPath + " does not have valid ViPR exports ");
-            exportRules.clear();
-        }
-        return exportRules;
-    }
+    // TODO unused private method..
 
     /**
      * Generate Export Map for UnManagedFileSystem
@@ -2813,7 +2734,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private boolean getUnManagedFSExportMap(UnManagedFileSystem umfs, HashSet<Integer> isilonExportIds,
             StoragePort storagePort, String fsPath, String zoneName, IsilonApi isilonApi,
             List<UnManagedFileExportRule> expRules) {
-
+        // TODO need to refactor this method..
         UnManagedFSExportMap exportMap = new UnManagedFSExportMap();
         int generatedExportCount = 0;
         ArrayList<IsilonExport> isilonExports = new ArrayList<>();
@@ -3001,111 +2922,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return true;
     }
 
-    /**
-     * Generate Export Map for UnManagedFileSystem
-     * Ignore exports with multiple exports for the same path
-     * Ignore exports that have multiple security flavors
-     * Ignore exports with multiple paths
-     * Ignore exports not found on the array
-     * Ignore exports which have the same internal export key ( <sec, perm, root-mapping>)
-     * 
-     * @param umfs
-     * @param isilonExportIds
-     * @param storagePort
-     * @param fsPath
-     * @param isilonApi
-     * @return boolean
-     */
-    private List<UnManagedFileExportRule> getUnManagedFSExportRules(UnManagedFileSystem umfs, StoragePort storagePort,
-            HashSet<Integer> isilonExportIds, String fsPath, String zoneName, IsilonApi isilonApi) {
-
-        List<UnManagedFileExportRule> expRules = new ArrayList<UnManagedFileExportRule>();
-        ArrayList<IsilonExport> isilonExports = new ArrayList<IsilonExport>();
-
-        if (isilonExportIds != null && isilonExportIds.size() > 1) {
-            _log.info("Ignoring file system {}, Multiple export rulues found {} ", fsPath, isilonExportIds.size());
-        }
-
-        for (Integer expId : isilonExportIds) {
-            IsilonExport exp = getIsilonExport(isilonApi, expId, zoneName);
-            if (exp == null) {
-                _log.info("Ignoring file system {}, export {} not found", fsPath, expId);
-            } else if (exp.getSecurityFlavors().size() > 1) {
-                _log.info("Ignoring file system {}, multiple security flavors {} found", fsPath, exp.getSecurityFlavors().toString());
-            } else if (exp.getPaths().size() > 1) {
-                _log.info("Ignoring file system {}, multiple paths {} found", fsPath, exp.getPaths().toString());
-            } else {
-                isilonExports.add(exp);
-            }
-        }
-
-        for (IsilonExport exp : isilonExports) {
-            String securityFlavor = exp.getSecurityFlavors().get(0);
-            // Isilon Maps sys to unix and we do this conversion during export from ViPR
-            if (securityFlavor.equalsIgnoreCase(UNIXSECURITY)) {
-                securityFlavor = SYSSECURITY;
-            }
-
-            String path = exp.getPaths().get(0);
-
-            // Get User
-            String rootUserMapping = "";
-            String mapAllUserMapping = "";
-            if (exp.getMap_root() != null && exp.getMap_root().getUser() != null) {
-                rootUserMapping = exp.getMap_root().getUser();
-            } else if (exp.getMap_all() != null && exp.getMap_all().getUser() != null) {
-                mapAllUserMapping = exp.getMap_all().getUser();
-            }
-
-            String resolvedUser = (rootUserMapping != null && (!rootUserMapping.isEmpty())) ? rootUserMapping : mapAllUserMapping;
-
-            UnManagedFileExportRule expRule = new UnManagedFileExportRule();
-            expRule.setExportPath(path);
-            expRule.setSecFlavor(securityFlavor);
-            expRule.setAnon(resolvedUser);
-            expRule.setDeviceExportId(exp.getId().toString());
-            expRule.setFileSystemId(umfs.getId());
-            expRule.setMountPoint(storagePort.getPortNetworkId() + ":" + fsPath);
-
-            if (exp != null && exp.getReadOnlyClients() != null && !exp.getReadOnlyClients().isEmpty()) {
-                expRule.setReadOnlyHosts(new StringSet(exp.getReadOnlyClients()));
-            }
-
-            if (exp != null && exp.getReadWriteClients() != null && !exp.getReadWriteClients().isEmpty()) {
-                expRule.setReadWriteHosts(new StringSet(exp.getReadWriteClients()));
-            }
-
-            if (exp != null && exp.getRootClients() != null && !exp.getRootClients().isEmpty()) {
-                expRule.setRootHosts(new StringSet(exp.getRootClients()));
-            }
-
-            if (exp.getReadOnlyClients() != null && exp.getReadWriteClients() != null && exp.getRootClients() != null) {
-                // Check Clients size
-                if (exp.getReadOnlyClients().isEmpty() && exp.getReadWriteClients().isEmpty() && exp.getRootClients().isEmpty()) {
-                    // All hosts case. Check whether it is RO/RW/ROOT
-
-                    if (exp.getReadOnly()) {
-                        // This is a read only export for all hosts
-                        expRule.setReadOnlyHosts(new StringSet(exp.getClients()));
-                    } else {
-                        // Not read Only case
-                        if (exp.getMap_all() != null && exp.getMap_all().getUser() != null
-                                && exp.getMap_all().getUser().equalsIgnoreCase(ROOT)) {
-                            // All hosts with root permission
-                            expRule.setRootHosts(new StringSet(exp.getClients()));
-
-                        } else if (exp.getMap_all() != null) {
-                            // All hosts with RW permission
-                            expRule.setReadWriteHosts(new StringSet(exp.getClients()));
-                        }
-                    }
-                }
-            }
-            expRules.add(expRule);
-        }
-
-        return expRules;
-    }
+    // TODO unused private method..
 
     private HashMap<String, HashSet<Integer>> getExportsIncludingSubDir(String fsPath, HashMap<String, HashSet<Integer>> expMap,
             HashMap<String, HashSet<String>> umfsQuotaMap) {
@@ -3163,7 +2980,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         ArrayList<String> accessRights = new ArrayList<String>();
         for (String per : permissions) {
-
             if (per != null) {
                 if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_read.toString())) {
                     accessRights.add("Read");
@@ -3193,20 +3009,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         // Set the Limit Metric keys!!
         dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MAX_STORAGE_OBJECTS));
 
-        Long MaxNfsExports = 0L;
-        Long MaxCifsShares = 30000L;
+        Long maxNfsExports = 0L;
+        Long maxCifsShares = 30000L;
 
         if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, system.getFirmwareVersion()) > 0) {
-            MaxNfsExports = MAX_NFS_EXPORTS_V7_2;
-            MaxCifsShares = MAX_CIFS_SHARES;
+            maxNfsExports = MAX_NFS_EXPORTS_V7_2;
+            maxCifsShares = MAX_CIFS_SHARES;
         }
 
-        dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(MaxNfsExports));
-        dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(MaxCifsShares));
+        dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(maxNfsExports));
+        dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(maxCifsShares));
 
         // set the max capacity in GB
-        long MaxCapacity = Math.round(getClusterStorageCapacity(system));
-        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+        long maxCapacity = Math.round(getClusterStorageCapacity(system));
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(maxCapacity));
         return;
     }
 
@@ -3373,7 +3189,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.info("Setting provider: {} and domain: {}", providerName, domain);
             }
         }
-        if (isiAccessZone.isAll_auth_providers() == true) {
+        if (isiAccessZone.isAll_auth_providers()) {
+            // TODO Possible NPE..
             String[] providerArray = isiAccessZone.getSystem_provider().split(":");
             providerName = providerArray[0];
             domain = providerArray[1];
@@ -3601,8 +3418,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             isilonFSList.setToken(quotas.getToken());
 
             for (IsilonSmartQuota quota : quotas.getList()) {
-                if(quota.getType().compareTo("directory") != 0) {
-                    _log.debug("ignore quota path {} with quota id {}:", 
+                if (quota.getType().compareTo("directory") != 0) {
+                    _log.debug("ignore quota path {} with quota id {}:",
                             quota.getPath(), quota.getId() + " and quota type" + quota.getType());
                     continue;
                 }
@@ -3681,13 +3498,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             discoveredFileDetails.put(UMFS_QD_MAP, fileQuotas);
 
             return discoveredFileDetails;
-
+            // TODO Better to use IsilonCollectionExcpetion..
         } catch (IsilonException ie) {
             _log.error("discoverAllFileSystem failed. Storage system: {}", storageSystemId, ie);
             throw ie;
 
         } catch (Exception e) {
             _log.error("discoverAllFileSystem failed. Storage system: {}", storageSystemId, e);
+            // TODO better to remove deprecated method..
             IsilonCollectionException ice = new IsilonCollectionException("discoverAllFileSystem failed. Storage system: "
                     + storageSystemId);
             ice.initCause(e);

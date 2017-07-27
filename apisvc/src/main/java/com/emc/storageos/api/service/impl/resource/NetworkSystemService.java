@@ -926,6 +926,7 @@ public class NetworkSystemService extends TaskResourceService {
         
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemId);
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList, true);
+        Host host = _dbClient.queryObject(Host.class,hostURI);
         
         ExportPathParams pathParam = new ExportPathParams(param);
         
@@ -942,7 +943,7 @@ public class NetworkSystemService extends TaskResourceService {
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
         controller.createSanZones(hostInitiatorList, generatedIniToStoragePort, task);
-        return toTask(system, task, op);
+        return toTask(host, task, op);
         
     }
     

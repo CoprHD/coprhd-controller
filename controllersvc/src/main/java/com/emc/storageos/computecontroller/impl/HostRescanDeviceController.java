@@ -79,8 +79,9 @@ public class HostRescanDeviceController implements HostRescanController {
             throw DeviceControllerException.exceptions.hostRescanUnsuccessful(host.getHostName(),
                     "Could not get adapter to connect to Host");
         }
-        log.info(String.format("Rescanning Host %s", host.getHostName()));
+        log.info(String.format("Rescanning Host started %s", host.getHostName()));
         adapter.rescan();
+        log.info("Rescan Host {} completed", host.getHostName());
     }
     
     private HostRescanAdapter getRescanAdapter(Host host) {

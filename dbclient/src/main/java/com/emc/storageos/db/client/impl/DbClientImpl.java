@@ -15,6 +15,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+
+import org.apache.commons.collections.iterators.EmptyIterator;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -989,7 +991,9 @@ public class DbClientImpl implements DbClient {
         tracer.newTracer("read");
         ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
         if (!constraintImpl.isValid()) {
-            throw new IllegalArgumentException("invalid constraint: the key can't be null or empty");
+            _log.warn("invalid constraint: the key can't be null or empty");
+            result.setResult(EmptyIterator.INSTANCE);
+            return;
         }
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
         constraint.execute(result);
@@ -1001,7 +1005,9 @@ public class DbClientImpl implements DbClient {
         ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
 
         if (!constraintImpl.isValid()) {
-            throw new IllegalArgumentException("invalid constraint: the key can't be null or empty");
+        	_log.warn("invalid constraint: the key can't be null or empty");
+        	result.setResult(EmptyIterator.INSTANCE);
+        	return;
         }
 
         constraintImpl.setStartId(startId);

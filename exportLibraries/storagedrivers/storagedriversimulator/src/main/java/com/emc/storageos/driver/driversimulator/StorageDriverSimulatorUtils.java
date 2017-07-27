@@ -28,6 +28,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapa
 public class StorageDriverSimulatorUtils {
 
     private static int count =0;
+    public static String AUTO_TIER_POLICY_PREFIX = "Auto-Tier-Policy-";
 
     public static CapabilityInstance getHostIOLimitsCapabilities(StorageCapabilities storageCapabilities) {
         // get hostio limits capability
@@ -89,11 +90,8 @@ public class StorageDriverSimulatorUtils {
         // Based on how we create storage pool capabilities when we discover storage pools, volumes in pool 1 should match this pool
         // auto-tiering policy.
         AutoTieringPolicyCapabilityDefinition capabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
-        List<String> policyIds = new ArrayList<>();
-        for (int j = 1; j <= 2; j++) {
-            String policyId = "Auto-Tier-Policy-" + 1 + j;
-            policyIds.add(policyId);
-        }
+        List<String> policyIds = Arrays.asList(AUTO_TIER_POLICY_PREFIX+"11", AUTO_TIER_POLICY_PREFIX+"12");
+
         Map<String, List<String>> props = new HashMap<>();
         props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), policyIds);
         String provisioningType = StoragePool.AutoTieringPolicyProvisioningType.ThicklyProvisioned.name();

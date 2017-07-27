@@ -289,7 +289,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 // Each pool will have two capabilities: even pools will have thin capability and odd pools will have
                 // thick capability.
                 for (int j = 1; j <= 2; j++) {
-                    String policyId = "Auto-Tier-Policy-" + i + j;
+                    String policyId = StorageDriverSimulatorUtils.AUTO_TIER_POLICY_PREFIX + i + j;
                     Map<String, List<String>> props = new HashMap<>();
                     props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), Arrays.asList(policyId));
                     String provisioningType;

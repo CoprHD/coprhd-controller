@@ -368,7 +368,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         List<CapabilityInstance> hostIOLimitsList =
                 StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(),
                         CapabilityDefinition.CapabilityUid.hostIOLimits);
-        if (hostIOLimitsList != null && !hostIOLimitsList.isEmpty()) {
+        if (hostIOLimitsList != null && !hostIOLimitsList.isEmpty() && hostIOLimitsList.get(0) != null) {
             log.info("HostIOLimits for volume {}: {} ", driverVolume.getNativeId(), hostIOLimitsList.toString());
             CapabilityInstance hostIOLimits = hostIOLimitsList.get(0);
             String bandwidth = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_BANDWIDTH.toString());
@@ -390,7 +390,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         // process auto-tiering policies from driver volume common capabilities
         List<CapabilityInstance> autoTieringPoliciesList =
                 StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(), CapabilityDefinition.CapabilityUid.autoTieringPolicy);
-        if (autoTieringPoliciesList != null && !autoTieringPoliciesList.isEmpty()) {
+        if (autoTieringPoliciesList != null && !autoTieringPoliciesList.isEmpty() && autoTieringPoliciesList.get(0) != null) {
             log.info("AutoTieringPolicies for volume {}: {} ", driverVolume.getNativeId(),autoTieringPoliciesList.toString());
             CapabilityInstance autoTieringPolicies = autoTieringPoliciesList.get(0);
             List<String> policyNames = autoTieringPolicies.getPropertyValues(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.toString());

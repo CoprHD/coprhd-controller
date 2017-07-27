@@ -165,19 +165,21 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
             logger.info("make the arguments");
             final List<String> listVal = e.getValue();
+            final String arg;
             final StringBuilder sb = new StringBuilder();
             sb.append("\"");
-            logger.info("val is listVal.get(iterCount)");
-            sb.append(listVal.get(iterCount).replace("\"", ""));
-            sb.append("\"");
-            /*String prefix = "";
-            for (final String val : listVal) {
-                sb.append(prefix);
-                prefix = ",";
-                sb.append(val.replace("\"", ""));
+            if (listVal.size() < iterCount+1) {
+                logger.info("pick the common val:{}", listVal.get(0));
+                arg = listVal.get(0);
+            } else {
+                logger.info("it is not common val:{}", listVal.get(iterCount));
+                arg = listVal.get(iterCount);
             }
-            sb.append("\"");*/
-            str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
+
+            sb.append(arg.replace("\"", ""));
+            sb.append("\"");
+            final String key = e.getKey().startsWith("@") ? e.getKey().substring(1) : e.getKey();
+            str.append(key).append("=").append(sb.toString().trim()).append(" ");
         }
 
         logger.info("CS: Shell arguments:{}", str.toString());

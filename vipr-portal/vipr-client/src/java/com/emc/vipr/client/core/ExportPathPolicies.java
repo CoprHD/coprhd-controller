@@ -19,11 +19,11 @@ import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 import com.google.common.collect.Lists;
 
-public class PathParameters extends AbstractCoreBulkResources<ExportPathPolicyRestRep> {
+public class ExportPathPolicies extends AbstractCoreBulkResources<ExportPathPolicyRestRep> {
 
-    public PathParameters(ViPRCoreClient parent, RestClient client) {
+    public ExportPathPolicies(ViPRCoreClient parent, RestClient client) {
 
-        super(parent, client, ExportPathPolicyRestRep.class, PathConstants.EXPORT_PATH_PARAMS_URL);
+        super(parent, client, ExportPathPolicyRestRep.class, PathConstants.EXPORT_PATH_POLICIES_URL);
     }
 
     /**
@@ -35,7 +35,7 @@ public class PathParameters extends AbstractCoreBulkResources<ExportPathPolicyRe
      *            the ID of Export Path Params to deactivate.
      */
     public void delete(URI id) {
-        client.post(String.class, PathConstants.PATH_PARAMS__DEACTIVATE_BY_ID_URL, id);
+        client.post(String.class, PathConstants.EXPORT_PATH_POLICIES_DEACTIVATE_BY_ID_URL, id);
     }
 
     /**
@@ -63,7 +63,7 @@ public class PathParameters extends AbstractCoreBulkResources<ExportPathPolicyRe
      *            the ID of Export Path Params to deactivate.
      */
     public void update(URI id, ExportPathPolicyUpdate input) {
-        client.put(String.class, input, PathConstants.EXPORT_PATH_PARAMS_BY_ID_URL, id);
+        client.put(String.class, input, PathConstants.EXPORT_PATH_POLICIES_BY_ID_URL, id);
     }
 
     @Override

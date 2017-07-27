@@ -8,9 +8,9 @@ import util.datatable.DataTable;
 
 import com.emc.storageos.model.ports.StoragePortRestRep;
 
-public class ExportPathParamsDataTable extends DataTable  {
+public class ExportPathPoliciesDataTable extends DataTable  {
     
-    public ExportPathParamsDataTable(){
+    public ExportPathPoliciesDataTable(){
         addColumn("name").setRenderFunction("renderLink");
         addColumn("description");
         

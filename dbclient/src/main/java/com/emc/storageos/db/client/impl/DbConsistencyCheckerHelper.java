@@ -183,11 +183,13 @@ public class DbConsistencyCheckerHelper {
             boolean hasInactiveColumn = false;
             scannedRows++;
 
+            Map<String, Column<CompositeColumnName>> distinctColumns = new HashMap<String, Column<CompositeColumnName>>();
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
+            	//only check columns with latest value
+            	distinctColumns.put(column.getName().getOne(), column);
                 if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME)){
                 	hasInactiveColumn = true;
                 	inactiveObject = column.getBooleanValue();
-                	break;
                 }
             }
             
@@ -198,7 +200,7 @@ public class DbConsistencyCheckerHelper {
             	continue;
             }
 
-            for (Column<CompositeColumnName> column : objRow.getColumns()) {
+            for (Column<CompositeColumnName> column : distinctColumns.values()) {
             	if (!indexedFields.containsKey(column.getName().getOne())) {
             		continue;
             	}

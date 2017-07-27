@@ -161,8 +161,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 log.info("Volume count on this page {} ", driverVolumes.size());
 
                 for (StorageVolume driverVolume : driverVolumes) {
-
-                    if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(driverVolume.getDisplayName())) {
+                    if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(driverVolume.getNativeId())) {
                         // skipping this volume because the filter doesn't match
                         continue;
                     }

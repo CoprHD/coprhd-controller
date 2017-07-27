@@ -123,9 +123,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     private static final Long MAX_STORAGE_OBJECTS_UNITYVSA = 64L;
     private static final Long MAX_CAPACITY_UNITYVSA_TB = 50L;
 
-    private static final Long GB_IN_BYTES = 1073741824L;
     private static final Long GB_IN_KB = 1048576L;
-    private static final Long MB_IN_BYTES = 1048576L;
     private static final Long KB_IN_BYTES = 1024L;
     private static final Long TB_IN_GB = 1024L;
 
@@ -1477,21 +1475,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     public void collectStatisticsInformation(AccessProfile accessProfile) throws VNXeException {
 
         URI storageSystemId = accessProfile.getSystemId();
-        StorageSystem storageSystem = null;
 
         try {
             _logger.info("Start collecting statistics for ip address {}",
                     accessProfile.getIpAddress());
-            VNXeApiClient client = getVnxUnityClient(accessProfile);
-            long latestSampleTime = accessProfile.getLastSampleTime();
-            storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
-            String serialNumber = storageSystem.getSerialNumber();
-            String deviceType = storageSystem.getSystemType();
             // compute static load processor code
             computeStaticLoadMetrics(accessProfile);
-
             // TODO: Do we need usage stats?
-
             _logger.info("End collecting statistics for ip address {}",
                     accessProfile.getIpAddress());
         } catch (Exception e) {

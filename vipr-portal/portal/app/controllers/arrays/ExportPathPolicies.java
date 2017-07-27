@@ -27,6 +27,7 @@ import models.datatable.ExportPathPoliciesDataTable.StoragePortsDataTable;
 import models.datatable.StoragePortDataTable.StoragePortInfo;
 import play.Logger;
 import play.data.binding.As;
+import play.data.validation.Validation;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StoragePortUtils;
@@ -39,6 +40,39 @@ import util.datatable.DataTablesSupport;
 public class ExportPathPolicies extends ViprResourceController {
 
     protected static final String UNKNOWN = "ExportPathPolicies.unknown";
+
+    public static class PortGroupForm {
+        public String id;
+        public String name;
+        public String description;
+        public Integer maxPaths;
+        public Integer pathsPerInitiator;
+        public Integer minPaths;
+        public List<URI> storagePorts;
+        public Integer maxInitiatorsPerPort;
+
+        public PortGroupForm form(ExportPathPolicyRestRep restRep){
+            this.id = restRep.getId().toString();
+            this.name = restRep.getName();
+            this.description = restRep.getDescription();
+            this.maxPaths = restRep.getMaxPaths();
+            this.minPaths = restRep.getMinPaths();
+            this.pathsPerInitiator = restRep.getPathsPerInitiator();
+            this.maxInitiatorsPerPort = restRep.getMaxInitiatorsPerPort();
+            this.storagePorts = restRep.getStoragePorts();
+            
+            return this;
+        }
+
+        public void validate(String formName) {
+            Validation.required(formName + ".name", name);
+            Validation.required(formName + ".description", description);
+            Validation.required(formName + ".storagePorts", storagePorts);
+        }
+        public boolean isNew() {
+            return StringUtils.isBlank(id);
+        }
+    }
 
     public static void portGroups(String id) {
         // addReferenceData();
@@ -191,7 +225,7 @@ public class ExportPathPolicies extends ViprResourceController {
             StoragePorts  storagePorts = new StoragePorts(); 
             if (!portsToAdd.isEmpty()) {
                 storagePorts.setStoragePorts(portsToAdd);
-                pathParam.setPortsToAdd(storagePorts);
+                pathParam.setPortsToAdd(storagePorts.getStoragePorts());
             }
             getViprClient().exportPathPolicies().update(exportPathParametersRestRep.getId(), pathParam);
         
@@ -216,7 +250,7 @@ public class ExportPathPolicies extends ViprResourceController {
             StoragePorts  storagePorts = new StoragePorts(); 
             if (!portsToRemove.isEmpty()) {
                 storagePorts.setStoragePorts(portsToRemove);
-                pathParam.setPortsToRemove(storagePorts);
+                pathParam.setPortsToRemove(storagePorts.getStoragePorts());
             }
             getViprClient().exportPathPolicies().update(exportPathParametersRestRep.getId(), pathParam);
         editPortGroup(pathParamId,storageSystemId);

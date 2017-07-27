@@ -1399,37 +1399,5 @@ public class StorageSystems extends ViprResourceController {
             }
         }
     }
-    
-    public static class PortGroupForm {
-        public String id;
-        public String name;
-        public String description;
-        public Integer maxPaths;
-        public Integer pathsPerInitiator;
-        public Integer minPaths;
-        public List<URI> storagePorts;
-        public Integer maxInitiatorsPerPort;
 
-        public PortGroupForm form(ExportPathPolicyRestRep restRep){
-            this.id = restRep.getId().toString();
-            this.name = restRep.getName();
-            this.description = restRep.getDescription();
-            this.maxPaths = restRep.getMaxPaths();
-            this.minPaths = restRep.getMinPaths();
-            this.pathsPerInitiator = restRep.getPathsPerInitiator();
-            this.maxInitiatorsPerPort = restRep.getMaxInitiatorsPerPort();
-            this.storagePorts = restRep.getStoragePorts();
-            
-            return this;
-        }
-
-        public void validate(String formName) {
-            Validation.required(formName + ".name", name);
-            Validation.required(formName + ".description", description);
-            Validation.required(formName + ".storagePorts", storagePorts);
-        }
-        public boolean isNew() {
-            return StringUtils.isBlank(id);
-        }
-    }
 }

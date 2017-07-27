@@ -418,24 +418,23 @@ public class VPlexMaskingWorkflowEntryPoints  implements Controller{
         }
 	}
 
-	public void storageViewRemoveVolumes(URI vplexURI, URI exportGroupURI, URI exportMaskURI, List<URI> volumeURIs,
+    public void storageViewRemoveVolumes(URI vplexURI, URI exportGroupURI, ExportMask exportMask, List<URI> volumeURIs,
             String token) throws ControllerException {
 		
-		TaskCompleter taskCompleter = new ExportMaskRemoveVolumeCompleter(exportGroupURI, exportMaskURI,
+        TaskCompleter taskCompleter = new ExportMaskRemoveVolumeCompleter(exportGroupURI, exportMask.getId(),
                 volumeURIs, token);
 		
 		String call = String.format("storageViewRemoveVolumes(%s, %s, %s, [%s])",
-				vplexURI.toString(),
-				exportGroupURI.toString(),
-				exportMaskURI.toString(),
-				volumeURIs != null ? Joiner.on(',').join(volumeURIs) : "No Volumes");
+                vplexURI.toString(),
+                exportGroupURI.toString(),
+                exportMask.getId().toString(),
+                volumeURIs != null ? Joiner.on(',').join(volumeURIs) : "No Volumes");
 		
-		ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-        
+
 		try {
 			_log.info(String.format("%s start", call));
         	WorkflowStepCompleter.stepExecuting(token);
-            vplexExportOperationsHelper.storageViewRemoveVolumes(vplexURI, mask, volumeURIs, taskCompleter, token);           
+            vplexExportOperationsHelper.storageViewRemoveVolumes(vplexURI, exportMask, volumeURIs, taskCompleter, token);
             _log.info(String.format("%s end", call));
 		} catch (VPlexApiException vae) {
             _log.error("Exception removing volumes from Storage View: " + vae.getMessage(), vae);
@@ -443,7 +442,7 @@ public class VPlexMaskingWorkflowEntryPoints  implements Controller{
         } catch (Exception ex) {
             _log.error("Exception removing volumes from Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.REMOVE_STORAGE_VIEW_VOLUME.getName();
-            ServiceError serviceError = VPlexApiException.errors.storageViewRemoveVolumeFailed(mask.getMaskName(), opName, ex);
+            ServiceError serviceError = VPlexApiException.errors.storageViewRemoveVolumeFailed(exportMask.getMaskName(), opName, ex);
             VPlexControllerUtils.failStep(taskCompleter, token, serviceError, _dbClient);
         }
 	
@@ -453,10 +452,10 @@ public class VPlexMaskingWorkflowEntryPoints  implements Controller{
 			throws ControllerException {
 		
 		String call = String.format("storageViewAddStoragePorts(%s, %s, %s, [%s])",
-				vplexURI.toString(),
-				exportURI.toString(),
-				maskURI.toString(),
-				targetURIs != null ? Joiner.on(',').join(targetURIs) : "No Storage Ports");
+                vplexURI.toString(),
+                exportURI.toString(),
+                maskURI.toString(),
+                targetURIs != null ? Joiner.on(',').join(targetURIs) : "No Storage Ports");
 		
 		ExportMaskAddInitiatorCompleter completer = new ExportMaskAddInitiatorCompleter(exportURI, maskURI,
                 new ArrayList<URI>(), targetURIs, stepId);		

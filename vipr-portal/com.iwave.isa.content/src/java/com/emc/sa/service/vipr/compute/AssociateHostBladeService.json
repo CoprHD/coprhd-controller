@@ -9,7 +9,7 @@
         host:{
             type:"assetType.vipr.releasedHostsWithSPByVblockCluster"
         },
-        hostComputeVPool:{
+        hostPreviousComputeVPool:{
             type:"assetType.vipr.releasedHostComputeVirtualPool",
             lockable: true
         },

@@ -7,7 +7,7 @@ package com.emc.sa.service.vipr.compute;
 import static com.emc.sa.service.ServiceParams.ASSOCIATE_HOST_COMPUTE_ELEMENT;
 import static com.emc.sa.service.ServiceParams.ASSOCIATE_HOST_COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.CLUSTER;
-import static com.emc.sa.service.ServiceParams.HOST_COMPUTE_VIRTUAL_POOL;
+import static com.emc.sa.service.ServiceParams.HOST_PREVIOUS_COMPUTE_VIRTUAL_POOL;
 
 import java.net.URI;
 
@@ -33,8 +33,8 @@ public class AssociateHostBladeService extends ViPRService {
     @Param(ServiceParams.HOST)
     protected URI hostId;
 
-    @Param(HOST_COMPUTE_VIRTUAL_POOL)
-    protected URI hostComputeVPool;
+    @Param(HOST_PREVIOUS_COMPUTE_VIRTUAL_POOL)
+    protected URI hostPreviousComputeVPool;
 
     @Param(value = ASSOCIATE_HOST_COMPUTE_VIRTUAL_POOL, required = true)
     protected URI associateHostComputeVPool;

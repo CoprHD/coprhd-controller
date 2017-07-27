@@ -13,6 +13,7 @@ public class DiagutilInfo {
     private String startTimeStr;
     private DiagutilStatus status;
     private DiagutilStatusDesc desc;
+    private String location;
     private String errcode;
 
     public DiagutilInfo() {
@@ -54,6 +55,15 @@ public class DiagutilInfo {
         this.desc = desc;
     }
 
+    @XmlElement(name = "data_location")
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
     @XmlElement(name = "error_code")
     public String getErrcode() {
         return errcode;
@@ -76,6 +86,7 @@ public class DiagutilInfo {
         COMPLETE,
      }
 
+/*
     public enum DiagutilStatusDesc {
         PRECHECK_IN_PROGRESS,
         COLLECTING_ZK,
@@ -97,5 +108,27 @@ public class DiagutilInfo {
         COLLECTING_BACKUP_FAILURE,
         UPLOAD_FAILURE
     }
+*/
+public enum DiagutilStatusDesc {
+    PRECHECK_IN_PROGRESS,
+    collecting_db,
+    collecting_logs,
+    collecting_properties,
+    collecting_health,
+    collecting_backup,
+    COLLECTING_ARCHIVE,
+    COLLECT_COMPLETE,
+    UPLOADING_INPROGRESS,
+    UPLOAD_COMPLETE,
+    DISK_FULL,
+    COLLECTING_ZK_FAILURE,
+    COLLECTING_DB_FAILURE,
+    COLLECTING_LOGS_FAILURE,
+    COLLECTING_PROPERTIES_FAILURE,
+    COLLECTING_HEALTH_FAILURE,
+    COLLECTING_BACKUP_FAILURE,
+    UPLOAD_FAILURE
+}
+
 
 }

@@ -137,6 +137,8 @@ public class DiagutilJobStatus implements CoordinatorSerializable {
         diagutilInfo.setStartTimeStr(startTime);
         diagutilInfo.setNodeId(nodeId);
         diagutilInfo.setDesc(description);
+        diagutilInfo.setLocation(location);
+        diagutilInfo.setErrcode(errCode);
 
         return diagutilInfo;
     }

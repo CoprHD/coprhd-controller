@@ -15,9 +15,11 @@ import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.resource.DataCollectionService;
+import com.emc.storageos.systemservices.impl.resource.LogService;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.vipr.model.sys.diagutil.DiagutilInfo.*;
 import com.emc.vipr.model.sys.diagutil.DiagutilsJob;
+import com.emc.vipr.model.sys.diagutil.LogParam;
 import com.emc.vipr.model.sys.diagutil.UploadParam;
 import com.emc.vipr.model.sys.diagutil.UploadParam.*;
 import com.sun.jersey.api.client.ClientResponse;
@@ -26,16 +28,17 @@ import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.*;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob> {
     private static final Logger log = LoggerFactory.getLogger(DiagutilsJobConsumer.class);
+    @Autowired
+    private LogService logService;
     private static final String _OPT_DIR = "/opt/storageos/bin/";
     private static final String _DIAGUTIL = "diagutils";
     private static final String _DIAGUTIL_CMD = _OPT_DIR + "diagutils";
@@ -92,11 +95,14 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             }*/
             //collect data other than logs
             jobStatus.setStatus(DiagutilStatus.COLLECTING_IN_PROGRESS);
+            jobStatus.setNodeId(coordinatorClientExt.getMyNodeId());
             if (!updateJobInfoIfNotCancel(jobStatus)) {
                 return;
             }
             for (String option : options) {
-                jobStatus.setDescription(DiagutilStatusDesc.COLLECTING_DB);
+
+                DiagutilStatusDesc collectDesc = DiagutilStatusDesc.valueOf("collecting_" + option);
+                jobStatus.setDescription(collectDesc);
                 if (!updateJobInfoIfNotCancel(jobStatus)) {
                     return;
                 }
@@ -105,9 +111,11 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 log.info("Executing cmd {}", Arrays.toString(collectCmd));
                 result = Exec.sudo(COMMAND_TIMEOUT, collectCmd);
                 if (!result.exitedNormally() || result.getExitValue() != 0) {
-                    jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
                     log.error("Collecting {} error {}", option, result.getExitValue());
                     log.error("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
+                    jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
+                    //to be modifed...
+                    jobStatus.setDescription(DiagutilStatusDesc.COLLECTING_HEALTH_FAILURE);
                     updateJobInfoIfNotCancel(jobStatus);
                     return;
                 }
@@ -126,16 +134,27 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             if (diagutilsJob.getLogEnable()) {
                 String myId = coordinatorClientExt.getMyNodeId();
                 log.info("Collecting logs...");
-                jobStatus.setDescription(DiagutilStatusDesc.COLLECTING_LOGS);
+                jobStatus.setDescription(DiagutilStatusDesc.collecting_logs);
                 if (!updateJobInfoIfNotCancel(jobStatus)) {
                     //cancelled
                     return;
                 }
                 try {
-                    //to be modified to saved in each service file,and split
-                    ClientResponse response = SysClientFactory.getSysClient(coordinatorClientExt.getNodeEndpoint(myId)).get(SysClientFactory.URI_LOGS, ClientResponse.class, MediaType.APPLICATION_XML);
-                    File file = new File(dataFiledir + "/logs");
-                    FileUtils.copyInputStreamToFile(response.getEntityInputStream(), file);
+                    LogParam logParam = diagutilsJob.getLogParam();
+                    List<String> nodeIds = logParam.getNodeIds();
+                    List<String > logNames = logParam.getLogNames();
+                    if (logNames != null) {
+                        for (String nodeId : nodeIds) {
+                            for(String logName : logNames) {
+                                String logPath = String.format("%s/logs/%s_%s_%s.log", dataFiledir, logName, nodeId, nodeId);
+                                writeLogs(nodeId, nodeId, logName, logParam, logPath);
+                            }
+
+                        }
+                        //to be modified to saved in each service file,and split
+                        //    ClientResponse response = SysClientFactory.getSysClient(coordinatorClientExt.getNodeEndpoint(myId)).get(SysClientFactory.URI_LOGS, ClientResponse.class, MediaType.APPLICATION_XML);
+
+                    }
                 } catch (Exception e) {
                     jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
                     jobStatus.setDescription(DiagutilStatusDesc.COLLECTING_LOGS_FAILURE);
@@ -226,23 +245,40 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
 
 
     private boolean updateJobInfoIfNotCancel(DiagutilJobStatus jobstatus) throws Exception{
-        log.info("Updating DiagutilJobStatus to {}",jobstatus);
         CoordinatorClient coordinatorClient = coordinatorClientExt.getCoordinatorClient();
         InterProcessLock lock = coordinatorClient.getLock(DataCollectionService.DIAGUTIL_JOB_LOCK);
         lock.acquire();
         log.info("acquired {} lock",DataCollectionService.DIAGUTIL_JOB_LOCK);
-
         if (null == coordinatorClient.queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class)) {
             log.info("diagutilsJobStatus is null,job has been canceled,quit consumer");
             lock.release();
             //callback.itemProcessed();
             return false;
         }
+        log.info("Updating DiagutilJobStatus to {}",jobstatus);
         coordinatorClient.persistRuntimeState(Constants.DIAGUTIL_JOB_STATUS, jobstatus);
         lock.release();
         log.info("released {} lock",DataCollectionService.DIAGUTIL_JOB_LOCK);
         return true;
 
+    }
+
+    private void writeLogs(String nodeId, String nodeName, String logName, LogParam logParam, String destLogPath) {
+        List<String> nodeIds = new ArrayList<String>();
+        nodeIds.add(nodeId);
+        List<String> nodeNames = new ArrayList<>();
+        nodeNames.add(nodeName);
+        List<String> logNames = new ArrayList<>();
+        logNames.add(logName);
+        InputStream is;
+        try {
+            is = (InputStream) logService.getLogs(nodeIds, nodeNames, logNames, logParam.getSeverity(), logParam.getStartTimeStr(),
+                    logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), false).getEntity();
+            File file = new File(destLogPath);
+            FileUtils.copyInputStreamToFile(is, file);
+        }catch (Exception e ) {
+            log.error("get logs error {}",e);
+        }
     }
 
 

@@ -49,7 +49,7 @@ public class UploadFtpParam implements Serializable{
 
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         log.info("begin");
         sb.append("ftp address:");
         sb.append(ftp);

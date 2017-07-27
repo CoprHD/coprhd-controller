@@ -49,15 +49,10 @@ public class UploadParam implements Serializable {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("upload Type {");
-        log.info("begin append uploadType");
         sb.append(uploadType);
-        log.info("append uploadType");
         sb.append("}");
         sb.append("ftp param {");
-        log.info("sb is {}",sb.toString());
-        log.info("uploadFTPparam is {}",uploadFtpParam);
         sb.append(uploadFtpParam.toString());
-        log.info("append uploadFtp");
         sb.append("}");
 
         return sb.toString();

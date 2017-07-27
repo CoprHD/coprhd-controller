@@ -86,11 +86,13 @@ public class DataCollectionService {
         log.info("diagutil job status {} saved in zk.", jobStatus);
         //log.info("print out query job info {}",queryJobInfo());
         log.info("paramter is options {},DiagutilParam {}",options, diagutilParam);
-        log.info("paramter is UploadParam {}",diagutilParam.getUploadParam());
         DiagutilsJob diagutilsJob = new DiagutilsJob();
         diagutilsJob.setOptions(options);
         diagutilsJob.setUploadParam(diagutilParam.getUploadParam());
-        //diagutilsJob.setLogEnable();
+        diagutilsJob.setLogEnable(diagutilParam.getLogEnable());
+        if (diagutilParam.getLogEnable()) {
+            diagutilsJob.setLogParam(diagutilParam.getLogParam());
+        }
         jobProducer.enqueue(diagutilsJob);
         log.info("Diagutils job has been added to queue");
 
@@ -256,8 +258,7 @@ public class DataCollectionService {
             }
         }
 
-
-        return Response.ok(Response.Status.OK).build();
+        return Response.status(Response.Status.OK).build();
     }
 
     @POST

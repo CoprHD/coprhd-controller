@@ -296,9 +296,6 @@ public class SmisJob extends Job implements Serializable
             ServiceError error = DeviceControllerErrors.smis.jobFailed(_errorDescription);
             getTaskCompleter().error(jobContext.getDbClient(), error);
         }
-        // else {
-        // do nothing
-        // }
     }
 
     public String getJobID() {

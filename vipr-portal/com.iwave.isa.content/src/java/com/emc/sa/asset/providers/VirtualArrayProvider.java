@@ -20,6 +20,7 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.sa.util.TextUtils;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
@@ -96,9 +97,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         return getVirtualArray(context, windowsHostOrCluster);
     }
 
-    @Asset("virtualArray")
-    @AssetDependencies({ "host" })
-    public List<AssetOption> getVirtualArray(AssetOptionsContext context, URI hostOrClusterId) {
+    protected List<AssetOption> getVirtualArray(AssetOptionsContext context, URI hostOrClusterId) {
         ViPRCoreClient client = api(context);
         List<URI> hostIds = HostProvider.getHostIds(client, hostOrClusterId);
         Map<URI, VirtualArrayRestRep> virtualArrays = null;
@@ -211,6 +210,26 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         }
         filterByContextTenant(varrayIds, client.varrays().getByTenant(context.getTenant()));
         return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
+    }
+
+    @Asset("virtualArray")
+    @AssetDependencies({ "host" })
+    public List<AssetOption> getVirtualArrayForHost(AssetOptionsContext context, String hostOrClusterIds) {
+        Set<AssetOption> result = Sets.newConcurrentHashSet();
+        if (hostOrClusterIds != null && !hostOrClusterIds.isEmpty()) {
+            info("Host/Cluster ids selected by user: %s", hostOrClusterIds);
+            List<String> parsedHostClusterIds = TextUtils.parseCSV(hostOrClusterIds);
+            for (String id : parsedHostClusterIds) {
+                result.addAll(getVirtualArray(context, uri(id)));
+            }
+        }
+        return Lists.newArrayList(result);
+    }
+
+    @Asset("virtualArray")
+    @AssetDependencies({ "cluster" })
+    public List<AssetOption> getVirtualArrayForCluster(AssetOptionsContext context, String clusterIds) {
+        return getVirtualArrayForHost(context, clusterIds);
     }
 
     @Asset("objectVirtualArray")

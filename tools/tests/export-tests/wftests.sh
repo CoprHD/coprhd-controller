@@ -33,12 +33,13 @@ source $(dirname $0)/common_subs.sh
 
 Usage()
 {
-    echo 'Usage: wftests.sh <sanity conf file path> [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock | srdf [sync | async]] [-setup(hw) | -setupsim] [-report] [-cleanup] [-resetsim]  [test_1 test_2 ...]'
+    echo 'Usage: wftests.sh <sanity conf file path> [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock | srdf [sync | async]] [-setup(hw) | -setupsim] [-report] [-cleanup] [-resetsim] [-setuponly] [test_1 test_2 ...]'
     echo ' (vmax2 | vmax3 ...: Storage platform to run on.'
     echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
     echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
     echo ' [-cleanup]: Clean up the pre-created volumes and exports associated with -setup operation (Optional)'
     echo ' [-resetsim]: Resets the simulator as part of setup (Optional)'
+    echo ' [-setuponly]: Only performs setup, no tests are run. (Optional)'
     echo ' test names: Space-delimited list of tests to run.  Use + to start at a specific test.  (Optional, default will run all tests in suite)'
     print_test_names
     echo ' Example:  ./wftests.sh sanity.conf vmax3 -setupsim -report -cleanup test_7+'
@@ -156,6 +157,11 @@ prerun_setup() {
     # Reset system properties
     reset_system_props
 
+    # Reset the simulator if requested.
+    if [ ${RESET_SIM} = "1" ]; then
+	reset_simulator;
+    fi
+
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
@@ -166,15 +172,15 @@ prerun_setup() {
     if [ $? -eq 0 ]; then
 	   PROJECT=`project list --tenant emcworld | grep YES | head -1 | awk '{print $1}'`
 	   echo PROJECT ${PROJECT}
-	   echo "Seeing if there's an existing base of volumes"
-	   BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
+	   echo "Seeing if there's an existing base of hosts"
+	   BASENUM=`hosts list emcworld | grep wfhost1export | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
     else
 	   BASENUM=""
     fi
 
     if [ "${BASENUM}" != "" ]
     then
-       echo "Volumes were found!  Base number is: ${BASENUM}"
+       echo "Hosts were found!  Base number is: ${BASENUM}"
        VOLNAME=wftest${BASENUM}
        EXPORT_GROUP_NAME=export${BASENUM}
        HOST1=wfhost1export${BASENUM}
@@ -270,6 +276,13 @@ prerun_setup() {
     	exportAddInitiatorsDeviceStep=VPlexDeviceController.storageViewAddInitiators
     	exportRemoveInitiatorsDeviceStep=VPlexDeviceController.storageViewRemoveInitiators
     	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
+    fi
+
+    # If there's no volume in the DB, create one and delete it to prime exports
+    volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+    if [ $? -ne 0 ]; then
+	secho "Priming ExportMask and ExportGroup for tests by creating a VPLEX volume"
+	runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
     fi
 }
 
@@ -1394,12 +1407,6 @@ setup() {
         storage_type="vmax3";
     fi
 
-
-    # Reset the simulator if requested.
-    if [ ${RESET_SIM} = "1" ]; then
-	reset_simulator;
-    fi
-
     syssvc $SANITY_CONFIG_FILE localhost setup
     security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
     tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
@@ -1468,7 +1475,6 @@ setup() {
 
     run cos allow $VPOOL_BASE block $TENANT
     reset_system_props
-    run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
 }
 
 set_suspend_on_error() {
@@ -1551,8 +1557,6 @@ test_0_srdf() {
     echo "Deleting the volume"
     runcmd volume delete ${PROJECT}/${volname} --wait        
 }
-
-
 
 snap_db() {
     slot=$1
@@ -2080,6 +2084,7 @@ test_3() {
     else
       cfs=("Volume")
     fi
+
 
     for failure in ${failure_injections}
     do
@@ -3907,7 +3912,8 @@ test_delete_srdf() {
           set_artificial_failure none
 
           # No sense in validating db for failure_087, since source or target would have been deleted.
-          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" ]
+          # Same for ReturnElementsToStoragePool, both volumes would remain with SRDF properties cleared.  Expect deletion to be succeed.
+          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" -o "${failure}" = "failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool" ]
           then
             # failure_087 leaves the source or target behind, so we expect to be able to retry deleting whichever one was left behind.
             runcmd volume delete --project ${PROJECT} --wait
@@ -4641,6 +4647,7 @@ ZONE_CHECK=${ZONE_CHECK:-1}
 REPORT=0
 DO_CLEANUP=0;
 RESET_SIM=0;
+SETUP_ONLY=0;
 while [ "${1:0:1}" = "-" ]
 do
     if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
@@ -4672,12 +4679,14 @@ do
     elif [ "$1" = "-resetsim" ]
     then
 	if [ ${setup} -ne 1 ]; then
-	    echo "FAILURE: Setup not specified.  Not recommended to reset simulator in the middle of an active configuration.  Or put -resetsim after your -setup param"
-	    exit;
-	else
-	    RESET_SIM=1;
-	    shift
+	    echo "WARNING: Setup not specified.  Not recommended to reset simulator in the middle of an active configuration.  Or put -resetsim after your -setup param"
 	fi
+	RESET_SIM=1;
+	shift
+    elif [ "$1" = "-setuponly" ]
+    then
+	SETUP_ONLY=1
+	shift
     else
 	echo "Bad option specified: ${1}"
 	Usage
@@ -4696,6 +4705,13 @@ then
     if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" -o "$SS" = "srdf" ]; then
 	   setup_provider;
     fi
+fi
+
+# If we want to only run setup, and we got this far, return a successful status
+if [ $SETUP_ONLY -eq 1 ]
+then
+    echo "Setup-only requested.  Exiting without cleanup."
+    exit 0
 fi
 
 test_start=1
@@ -4750,6 +4766,18 @@ then
 fi    
 
 cleanup_previous_run_artifacts
+
+# If there's a volume in the DB, we can clean it up here.
+volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+if [ $? -eq 0 ]; then
+    if [ "${SIM}" = "1" ]; then
+	secho "Removing created volume, inventory-only since it's a simulator..."
+	runcmd volume delete --project ${PROJECT} --wait --vipronly
+    else
+	secho "Removing created volume, full delete since it's hardware..."
+	runcmd volume delete --project ${PROJECT} --wait
+    fi
+fi
 
 echo There were $VERIFY_COUNT verifications
 echo There were $VERIFY_FAIL_COUNT verification failures

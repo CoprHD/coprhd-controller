@@ -24,10 +24,6 @@ public class NfsACLUpdateParams implements Serializable {
 
     protected String subDir;
 
-    // Valid values for NFSv4 inherit ACL flag
-    public enum NFSInheritFlag {
-        object_inherit, container_inherit, no_prop_inherit, inherit_only, inherited_ace;
-    }
     public NfsACLUpdateParams() {
 
     }

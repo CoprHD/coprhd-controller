@@ -40,6 +40,11 @@ public class NfsACE implements Serializable {
         READ, WRITE, EXECUTE, FULLCONTROL
     }
 
+    // Valid values for NFSv4 inherit ACL flag
+    public enum NFSInheritFlag {
+        object_inherit, container_inherit, no_prop_inherit, inherit_only, inherited_ace;
+    }
+
     public enum NfsACLOperationErrorType {
         INVALID_PERMISSION_TYPE, INVALID_PERMISSION, INVALID_USER,
         USER_OR_GROUP_NOT_PROVIDED, USER_AND_GROUP_PROVIDED,
@@ -104,7 +109,7 @@ public class NfsACE implements Serializable {
 
     }
 
-    @XmlElement(name = "inheritFlags")
+    @XmlElement(name = "inheritFlags", required = false)
     public String getInheritFlags() {
         return inheritFlags;
     }

@@ -406,7 +406,7 @@ public class FileService extends TaskResourceService {
         StringBuilder errorMsg = new StringBuilder();
         if (cos.getFileReplicationSupported()
                 && !FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, neighborhood, cos, project, null, capabilities, errorMsg)) {
-            _log.error("File system can not be created, ", errorMsg.toString());
+            _log.error("File system can not be created, ", errorMsg);
             throw APIException.badRequests.unableToProcessRequest(errorMsg.toString());
         }
 
@@ -440,8 +440,8 @@ public class FileService extends TaskResourceService {
                 fileServiceApi, suggestedNativeFsId);
 
         auditOp(OperationTypeEnum.CREATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                param.getLabel(), param.getSize(), neighborhood.getId().toString(),
-                project == null ? null : project.getId().toString());
+                param.getLabel(), param.getSize(), neighborhood.getId(),
+                project == null ? null : project.getId());
         // Till we Support multiple file system create
         // return the file share taskrep
         return taskList.getTaskList().get(0);
@@ -865,7 +865,7 @@ public class FileService extends TaskResourceService {
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         fileServiceApi.export(device.getId(), fs.getId(), Arrays.asList(export), task);
         auditOp(OperationTypeEnum.EXPORT_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), device.getId().toString(), export.getClients(), param.getSecurityType(),
+                fs.getId(), device.getId(), export.getClients(), param.getSecurityType(),
                 param.getPermissions(), param.getRootUserMapping(), param.getProtocol());
 
         return toTask(fs, task, op);
@@ -962,7 +962,7 @@ public class FileService extends TaskResourceService {
         controller.export(device.getId(), fs.getId(), Arrays.asList(export), task);
 
         auditOp(OperationTypeEnum.EXPORT_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), device.getId().toString(), export.getClients(), securityType,
+                fs.getId(), device.getId(), export.getClients(), securityType,
                 permissions, rootUserMapping, protocol);
 
         return toTask(fs, task, op);
@@ -1064,7 +1064,7 @@ public class FileService extends TaskResourceService {
         controller.unexport(device.getId(), fs.getId(), Arrays.asList(export), task);
 
         auditOp(OperationTypeEnum.UNEXPORT_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), securityType, permissions, rootUserMapping, protocol);
+                fs.getId(), securityType, permissions, rootUserMapping, protocol);
 
         return toTask(fs, task, op);
     }
@@ -1162,7 +1162,7 @@ public class FileService extends TaskResourceService {
     public SmbShareResponse getFileSystemShare(@PathParam("id") URI id,
             @PathParam("shareName") String shareName) throws InternalException {
 
-        _log.info(String.format("Get SMB file share %s for file system: %s", shareName, id.toString()));
+        _log.info(String.format("Get SMB file share %s for file system: %s", shareName, id));
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         ArgValidator.checkFieldNotNull(shareName, "shareName");
         FileShare fileShare = queryResource(id);
@@ -1418,7 +1418,7 @@ public class FileService extends TaskResourceService {
         controller.modifyFS(fs.getStorageDevice(), fs.getPool(), id, task);
         op.setDescription("Filesystem update");
         auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), fs.getCapacity(), param.getNotificationLimit(),
+                fs.getId(), fs.getCapacity(), param.getNotificationLimit(),
                 param.getSoftLimit(), param.getSoftGrace());
 
         return toTask(fs, task, op);
@@ -1516,7 +1516,7 @@ public class FileService extends TaskResourceService {
         fileServiceApi.share(device.getId(), fs.getId(), smbShare, task);
         auditOp(OperationTypeEnum.CREATE_FILE_SYSTEM_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
-                smbShare.getMaxUsers(), smbShare.getDescription(), fs.getId().toString());
+                smbShare.getMaxUsers(), smbShare.getDescription(), fs.getId());
 
         return toTask(fs, task, op);
     }
@@ -1568,7 +1568,7 @@ public class FileService extends TaskResourceService {
         fileServiceApi.deleteShare(device.getId(), fs.getId(), fileSMBShare, task);
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
-                smbShare.getMaxUsers(), smbShare.getDescription(), fs.getId().toString());
+                smbShare.getMaxUsers(), smbShare.getDescription(), fs.getId());
 
         return toTask(fs, task, op);
     }
@@ -1588,7 +1588,7 @@ public class FileService extends TaskResourceService {
     public SnapshotList getSnapshots(@PathParam("id") URI id) {
         URIQueryResultList snapIDList = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id), snapIDList);
-        _log.debug("getSnapshots: FS {}: {} ", id.toString(), snapIDList.toString());
+        _log.debug("getSnapshots: FS {}: {} ", id, snapIDList);
         SnapshotList list = new SnapshotList();
         while (snapIDList.iterator().hasNext()) {
             URI uri = snapIDList.iterator().next();
@@ -1688,7 +1688,7 @@ public class FileService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
-                snap.getLabel(), snap.getId().toString(), fs.getId().toString());
+                snap.getLabel(), snap.getId(), fs.getId());
 
         fs = _dbClient.queryObject(FileShare.class, id);
         _log.debug("Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task), fs.getOpStatus().get(task)
@@ -1793,7 +1793,7 @@ public class FileService extends TaskResourceService {
         op.setDescription("Filesystem deactivate");
 
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), device.getId().toString());
+                fs.getId(), device.getId());
         try {
             fileServiceApi.deleteFileSystems(device.getId(), fileShareURIs,
                     param.getDeleteType(), param.getForceDelete(), false, task);
@@ -2040,7 +2040,7 @@ public class FileService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.CREATE_FILE_SYSTEM_QUOTA_DIR, true, AuditLogManager.AUDITOP_BEGIN,
-                quotaDirectory.getLabel(), quotaDirectory.getId().toString(), fs.getId().toString());
+                quotaDirectory.getLabel(), quotaDirectory.getId(), fs.getId());
 
         fs = _dbClient.queryObject(FileShare.class, id);
         _log.debug("FileService::QuotaDirectory Before sending response, FS ID : {}, Tasks : {} ; Status {}", fs.getOpStatus().get(task),
@@ -2169,7 +2169,7 @@ public class FileService extends TaskResourceService {
             fileServiceApi.updateExportRules(device.getId(), fs.getId(), param, unmountExport, task);
 
             auditOp(OperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                    fs.getId().toString(), device.getId().toString(), param);
+                    fs.getId(), device.getId(), param);
 
         } catch (URISyntaxException e) {
             _log.error("Error Processing Export Updates {}, {}", e.getMessage(), e);
@@ -2250,7 +2250,7 @@ public class FileService extends TaskResourceService {
             fileServiceApi.deleteExportRules(device.getId(), fs.getId(), allDirs, subDir, unmountExport, task);
 
             auditOp(OperationTypeEnum.UNEXPORT_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                    fs.getId().toString(), device.getId().toString(), allDirs, subDir);
+                    fs.getId(), device.getId(), allDirs, subDir);
 
         }
 
@@ -2324,8 +2324,8 @@ public class FileService extends TaskResourceService {
             FileCifsShareACLUpdateParams param) throws InternalException {
 
         _log.info("Update file share acl request received. Filesystem: {}, Share: {}",
-                id.toString(), shareName);
-        _log.info("Request body: {}", param.toString());
+                id, shareName);
+        _log.info("Request body: {}", param);
 
         ArgValidator.checkFieldNotNull(shareName, "shareName");
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
@@ -2366,7 +2366,7 @@ public class FileService extends TaskResourceService {
         fileServiceApi.updateShareACLs(device.getId(), fs.getId(), shareName, param, task);
 
         auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), device.getId().toString(), param);
+                fs.getId(), device.getId(), param);
 
         return toTask(fs, task, op);
     }
@@ -2457,7 +2457,7 @@ public class FileService extends TaskResourceService {
         fileServiceApi.deleteShareACLs(device.getId(), fs.getId(), shareName, taskId);
 
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), device.getId().toString(), shareName);
+                fs.getId(), device.getId(), shareName);
 
         return toTask(fs, taskId, op);
     }
@@ -2565,7 +2565,7 @@ public class FileService extends TaskResourceService {
             controller.updateNFSAcl(device.getId(), fs.getId(), param, task);
 
             auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL, true, AuditLogManager.AUDITOP_BEGIN,
-                    fs.getId().toString(), device.getId().toString(), param);
+                    fs.getId(), device.getId(), param);
 
         } catch (BadRequestException e) {
             op = _dbClient.error(FileShare.class, fs.getId(), task, e);
@@ -2623,7 +2623,7 @@ public class FileService extends TaskResourceService {
             controller.deleteNFSAcls(device.getId(), fs.getId(), subDir, task);
 
             auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
-                    fs.getId().toString(), device.getId().toString(), subDir);
+                    fs.getId(), device.getId(), subDir);
 
         } catch (BadRequestException e) {
             op = _dbClient.error(FileShare.class, fs.getId(), task, e);
@@ -2683,7 +2683,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
         // Verify the vPool change is supported!!!
         if (!VirtualPoolChangeAnalyzer.isSupportedFileReplicationChange(currentVpool, newVpool, notSuppReasonBuff)) {
-            _log.error("Virtual Pool change is not supported due to {}", notSuppReasonBuff.toString());
+            _log.error("Virtual Pool change is not supported due to {}", notSuppReasonBuff);
             throw APIException.badRequests.invalidVirtualPoolForVirtualPoolChange(
                     newVpool.getLabel(), notSuppReasonBuff.toString());
         }
@@ -2812,7 +2812,7 @@ public class FileService extends TaskResourceService {
         // Verify the file system and its vPool are capable of doing replication!!!
         if (!FileSystemReplicationUtils.isSupportedFileReplicationCreate(fs, currentVpool, notSuppReasonBuff)) {
             _log.error("create mirror copies is not supported for file system {} due to {}",
-                    fs.getId().toString(), notSuppReasonBuff.toString());
+                    fs.getId(), notSuppReasonBuff);
             throw APIException.badRequests.unableToCreateMirrorCopies(
                     fs.getId(), notSuppReasonBuff.toString());
         }
@@ -2845,7 +2845,7 @@ public class FileService extends TaskResourceService {
 
         StringBuilder errorMsg = new StringBuilder();
         if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, varray, currentVpool, project, null, capabilities, errorMsg)) {
-            _log.error("File system can not be created, ", errorMsg.toString());
+            _log.error("File system can not be created, ", errorMsg);
             throw APIException.badRequests.unableToProcessRequest(errorMsg.toString());
         }
 
@@ -2889,7 +2889,7 @@ public class FileService extends TaskResourceService {
         }
         auditOp(OperationTypeEnum.CREATE_MIRROR_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getLabel(), currentVpool.getLabel(), fs.getLabel(),
-                project == null ? null : project.getId().toString());
+                project == null ? null : project.getId());
 
         return taskList.getTaskList().get(0);
     }
@@ -2941,7 +2941,7 @@ public class FileService extends TaskResourceService {
         // Verify the file system and its vPool are capable of doing replication!!!
         if (!FileSystemReplicationUtils.validateDeleteMirrorCopies(fs, currentVpool, notSuppReasonBuff)) {
             _log.error("delete mirror copies is not supported for file system {} due to {}",
-                    fs.getId().toString(), notSuppReasonBuff.toString());
+                    fs.getId(), notSuppReasonBuff);
             throw APIException.badRequests.unableToDeleteMirrorCopies(
                     fs.getId(), notSuppReasonBuff.toString());
         }
@@ -2981,7 +2981,7 @@ public class FileService extends TaskResourceService {
         }
         auditOp(OperationTypeEnum.DELETE_MIRROR_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getLabel(), currentVpool.getLabel(), fs.getLabel(),
-                project == null ? null : project.getId().toString());
+                project == null ? null : project.getId());
 
         return taskList.getTaskList().get(0);
     }
@@ -3382,7 +3382,7 @@ public class FileService extends TaskResourceService {
         // Verify the file system is capable of replication..
         if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, notSuppReasonBuff, op.toLowerCase())) {
             _log.error("Mirror Operation {} is not supported for the file system {} as : {}", op,
-                    sourceFileShare.getLabel(), notSuppReasonBuff.toString());
+                    sourceFileShare.getLabel(), notSuppReasonBuff);
             throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
                     notSuppReasonBuff.toString());
 
@@ -3726,7 +3726,7 @@ public class FileService extends TaskResourceService {
             controller.listSanpshotByPolicy(device.getId(), fs.getId(), sp.getId(), task);
             Task taskObject = null;
             auditOp(OperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
-                    fs.getId().toString(), device.getId().toString(), sp.getId());
+                    fs.getId(), device.getId(), sp.getId());
             int timeoutCounter = 0;
             // wait till timeout or result from controller service ,whichever is earlier
             do {
@@ -3923,7 +3923,7 @@ public class FileService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.MOUNT_NFS_EXPORT, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getName(), fs.getId().toString(), param.getHost().toString(), param.getSubDir(), param.getPath());
+                fs.getName(), fs.getId(), param.getHost(), param.getSubDir(), param.getPath());
 
         fs = _dbClient.queryObject(FileShare.class, id);
         _log.debug("FileService::Mount Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task), fs
@@ -4090,8 +4090,8 @@ public class FileService extends TaskResourceService {
             fileDescriptors.add(desc);
             controller.assignFilePolicyToFileSystem(filePolicy, fileDescriptors, task);
 
-            auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN, fs.getId().toString(),
-                    device.getId().toString(), filePolicy.getId());
+            auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN, fs.getId(),
+                    device.getId(), filePolicy.getId());
         } catch (BadRequestException e) {
             _dbClient.error(FileShare.class, fs.getId(), task, e);
             _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);

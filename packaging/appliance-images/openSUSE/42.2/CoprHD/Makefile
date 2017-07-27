@@ -92,7 +92,7 @@ ifeq ($(USE_CACHE),false)
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.2-oss-update --no-gpgcheck http://download.opensuse.org/update/leap/42.2/oss suse-42.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-42.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-host-kmp-default systemd suse-module-tools systemd-sysvinit 
+	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-host-kmp-default systemd suse-module-tools systemd-sysvinit dracut
 endif
 	$(call targetLog,-)
 

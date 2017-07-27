@@ -189,6 +189,7 @@
         <package name="kmod"/>
         <package name="suse-module-tools"/>
         <package name="systemd-sysvinit"/>
+        <package name="dracut"/>
         <package name="filesystem"/>
         <package name="glibc-locale"/>
         <package name="cracklib-dict-full"/>

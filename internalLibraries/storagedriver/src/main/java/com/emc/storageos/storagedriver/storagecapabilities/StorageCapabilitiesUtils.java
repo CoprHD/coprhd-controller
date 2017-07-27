@@ -18,7 +18,7 @@ public class StorageCapabilitiesUtils {
 
     private static Logger _log = LoggerFactory.getLogger(StorageCapabilitiesUtils.class);
     /**
-     * Add new DataStorageServiceOption for  the passed common capability instances
+     * Add new dataStorageServiceOption for  the passed common capability instances
      *
      * @param storageCapabilities common storage capabilities container
      * @param capabilities capability instances for a new data storage service option

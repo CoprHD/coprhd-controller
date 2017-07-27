@@ -180,6 +180,7 @@
         <package name="containerd"/>
         <package name="runc"/>
         <package name="ansible"/>
+        <package name="python-Jinja2"/>
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>

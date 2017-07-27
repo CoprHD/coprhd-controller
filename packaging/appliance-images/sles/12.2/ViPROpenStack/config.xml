@@ -53,13 +53,13 @@
     <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/common-ocata-master"/>
   </repository>
   <repository type="rpm-md" priority="1">
-    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/Ocata-master/"/>
+    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/Ocata-master"/>
   </repository>
   <repository type="rpm-md" priority="1">
-    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/packages-master/"/>
+    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/packages-master"/>
   </repository>
   <repository type="rpm-md" priority="1">
-    <source path="http://lglob014.lss.emc.com/downloads/vipr-prerelease-local/common-trunk/"/>
+    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-yum-prerelease-local/common-trunk"/>
   </repository>
   <packages type="image" profiles="base,appliance">
     <package name="audit"/>

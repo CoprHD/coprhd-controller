@@ -14,6 +14,7 @@ import com.emc.storageos.management.backup.util.CifsClient;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
 import com.emc.storageos.systemservices.impl.resource.DataCollectionService;
 import com.emc.storageos.systemservices.impl.resource.LogService;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
@@ -22,6 +23,7 @@ import com.emc.vipr.model.sys.diagutil.DiagutilsJob;
 import com.emc.vipr.model.sys.diagutil.LogParam;
 import com.emc.vipr.model.sys.diagutil.UploadParam;
 import com.emc.vipr.model.sys.diagutil.UploadParam.*;
+import com.emc.vipr.model.sys.logging.LogRequest;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.media.jfxmedia.Media;
 import org.apache.commons.io.FileUtils;
@@ -33,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.*;
+import java.net.URI;
 import java.util.*;
 
 public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob> {
@@ -60,7 +63,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
     public void consumeItem(DiagutilsJob diagutilsJob, DistributedQueueItemProcessedCallback callback) throws Exception {
         try {
             List<String> options = diagutilsJob.getOptions();
-            DiagutilJobStatus jobStatus = coordinatorClientExt.getCoordinatorClient().queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class);
+            DiagutilJobStatus jobStatus = queryJobInfo();
             if (jobStatus == null) {
                 log.info("jobStatus is null,quit consumer");
                 return;
@@ -234,6 +237,14 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 }
             }
 
+        } catch(Exception e ) {
+            log.error("DiagutilsJobConsumer got unexpected exception: {}",e);
+            DiagutilJobStatus jobStatus1 = queryJobInfo();
+            if(jobStatus1 != null) {
+                jobStatus1.setStatus(DiagutilStatus.UNEXPECTED_ERROR);
+                updateJobInfoIfNotCancel(jobStatus1);
+            }
+            throw e;
         }finally {
             callback.itemProcessed();
         }
@@ -243,6 +254,9 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
 
     }
 
+    private DiagutilJobStatus queryJobInfo() {
+        return coordinatorClientExt.getCoordinatorClient().queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class);
+    }
 
     private boolean updateJobInfoIfNotCancel(DiagutilJobStatus jobstatus) throws Exception{
         CoordinatorClient coordinatorClient = coordinatorClientExt.getCoordinatorClient();
@@ -272,10 +286,15 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
         logNames.add(logName);
         InputStream is;
         try {
-            is = (InputStream) logService.getLogs(nodeIds, nodeNames, logNames, logParam.getSeverity(), logParam.getStartTimeStr(),
-                    logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), false).getEntity();
+/*            is = (InputStream) logService.getLogs(nodeIds, nodeNames, logNames, logParam.getSeverity(), logParam.getStartTimeStr(),
+                    logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), false).getEntity();*/
+            String myId = coordinatorClientExt.getMyNodeId();
+
+            String logUri = String.format(SysClientFactory.URI_LOGS_TEMPLATE, nodeId, nodeName, logName, logParam.getSeverity(), logParam.getStartTimeStr(), logParam.getEndTimeStr(),
+                    logParam.getMsgRegex(), logParam.getMaxCount());
+            ClientResponse response = SysClientFactory.getSysClient(coordinatorClientExt.getNodeEndpoint(myId)).get(URI.create(logUri), ClientResponse.class, MediaType.TEXT_PLAIN);
             File file = new File(destLogPath);
-            FileUtils.copyInputStreamToFile(is, file);
+            FileUtils.copyInputStreamToFile(response.getEntityInputStream(), file);
         }catch (Exception e ) {
             log.error("get logs error {}",e);
         }

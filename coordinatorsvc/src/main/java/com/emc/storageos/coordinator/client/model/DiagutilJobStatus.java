@@ -97,7 +97,6 @@ public class DiagutilJobStatus implements CoordinatorSerializable {
     @JsonIgnore
     public DiagutilJobStatus decodeFromString(String infoStr) throws FatalCoordinatorException {
         try {
-            log.info("decodeFromString infoStr {}",infoStr);
             //mapper.readerForUpdating(this).readValues(infoStr);
             return mapper.readValue(infoStr, DiagutilJobStatus.class);
             /*log.info("this content {}",this);

@@ -52,6 +52,7 @@ public class SysClientFactory {
     public static final String BASE_URL_FORMAT = "http://%1$s:%2$s";
     public static final String URI_NODE_BACKUPS_RESTORE_TEMPLATE =
             "/backupset/internal/restore?backupname=%s&isLocal=%s&password=%s&isgeofromscratch=%s";
+    public static final String URI_LOGS_TEMPLATE = "/logs?log_id=%s&node_name=%s&log_name=%s&severity=%d&start=%s&end=%s&msg_regex=%s&maxcount=%s";
 
     // URI for retrieving managed capacity for provisioning in apisvc
     public static final URI _URI_PROVISIONING_MANAGED_CAPACITY = URI.create

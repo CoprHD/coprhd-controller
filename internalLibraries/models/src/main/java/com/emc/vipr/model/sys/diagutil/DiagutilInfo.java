@@ -84,6 +84,7 @@ public class DiagutilInfo {
         UPLOADING_IN_PROGRESS,
         UPLOADING_ERROR,
         COMPLETE,
+        UNEXPECTED_ERROR,
      }
 
 /*
@@ -112,6 +113,7 @@ public class DiagutilInfo {
 public enum DiagutilStatusDesc {
     PRECHECK_IN_PROGRESS,
     collecting_db,
+    collecting_zk,
     collecting_logs,
     collecting_properties,
     collecting_health,

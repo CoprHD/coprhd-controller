@@ -24,11 +24,14 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
 /**
  * JAXB model for Custom Services workflow Definition
  */
 
 @XmlRootElement(name = "workflow_document")
+
 public class CustomServicesWorkflowDocument {
 
     public static final long DEFAULT_STEP_TIMEOUT = 600000; // Setting default to 10 mins
@@ -290,9 +293,8 @@ public class CustomServicesWorkflowDocument {
         private long timeout = DEFAULT_STEP_TIMEOUT;
         private boolean polling = false;
         private long interval;
-        // This will be the map of output values where key is the output param and value is the result to be evaluated
-        private Map<String, List<String>> successCriteria;
-        private Map<String, List<String>> failureCondition;
+        private List<Condition> successCondition;
+        private List<Condition> failureCondition;
 
         @XmlElement(name = "wait_for_task")
         public boolean getWaitForTask() {
@@ -330,26 +332,50 @@ public class CustomServicesWorkflowDocument {
             this.interval = interval;
         }
 
-        @XmlElementWrapper(name = "success_criteria")
-        public Map<String, List<String>> getSuccessCriteria() {
-            return successCriteria;
+        @XmlElement(name = "success_condition")
+        public List<Condition> getSuccessCondition() {
+            return successCondition;
         }
 
-        public void setSuccessCriteria(Map<String, List<String>> successCriteria) {
-            this.successCriteria = successCriteria;
+        public void setSuccessCondition(List<Condition> successCondition) {
+            this.successCondition = successCondition;
         }
 
-        @XmlElementWrapper(name = "failure_condition")
-        public Map<String, List<String>> getFailureCondition() {
+        @XmlElement(name = "failure_condition")
+        public List<Condition> getFailureCondition() {
             return failureCondition;
         }
 
-        public void setFailureCondition(Map<String, List<String>> failureCondition) {
+        public void setFailureCondition(List<Condition> failureCondition) {
             this.failureCondition = failureCondition;
         }
 
     }
 
+    public static class Condition {
+        private String outputName;
+        private String checkValue;
+
+        @XmlElement(name = "output_name", nillable = true)
+        public String getOutputName() {
+            return outputName;
+        }
+
+        public void setOutputName(String outputName) {
+            this.outputName = outputName;
+        }
+
+        @XmlElement(name = "check_Value", nillable = true)
+        public String getCheckValue() {
+            return checkValue;
+        }
+
+        public void setCheckValue(String checkValue) {
+            this.checkValue = checkValue;
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Step {
 
         private String id;

@@ -1721,7 +1721,7 @@ xtremio_blockconsistency_tests()
     blockconsistencygroup_bulk_test
     ### Delete volume from consistency group
     echo "Deleting volume from consistency group"
-    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP}
+    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP} --wait
 }
 
 xtremio_blockconsistencygroup_add_volume_test()
@@ -1762,7 +1762,7 @@ xtremio_blockconsistencygroup_snapshot_tests()
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot
 
     echo "Deleting volume in snapshot consistency group"
-    run volume delete $PROJECT/volume-${cg_name}   
+    run volume delete $PROJECT/volume-${cg_name} --wait   
 }
 
 VERIFY_EXPORT_COUNT=0
@@ -1831,13 +1831,13 @@ xtremio_export_test()
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1,$hostname/$pwwn2"
     run export_group show $exp
     run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
-    run export_group update $exp --remInits "$hostname/$pwwn1"
-    run export_group show $exp
     run export_group update $exp --remVols $vol2,$snap1,$snap2
+    run export_group show $exp
+    run export_group update $exp --remInits "$hostname/$pwwn1,$hostname/$pwwn1"
     run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
@@ -2158,8 +2158,10 @@ srdf_setup_once()
     project show $SRDF_PROJECT &> /dev/null && return $?
     run project create $SRDF_PROJECT --tenant $TENANT
 
-    run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
-    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
+    # Letter at the end of the CG name denotes SRDF mode
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}S
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}A
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}M
     
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
     run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
@@ -2565,7 +2567,7 @@ srdf_basic_sync_test()
    #run volume delete $PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    srdf_sleep
-   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}S
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
@@ -2575,9 +2577,9 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
-   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}A
    srdf_sleep
-   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}A
    echo "Created 2 volumes... now going to sleep..."
    srdf_sleep
    echo "Deleting volumes..."
@@ -2605,9 +2607,9 @@ srdf_basic_active_test()
    # rediscover storage systems for RDF group mode getting updated
    echo "Rediscovering storage systems"
    run storagedevice discover_all --ignore_error
-   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
+   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}M
    srdf_sleep
-   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
+   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}M
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}3 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}4 --wait
@@ -6947,6 +6949,7 @@ sbsdk_setup()
                      --max_mirrors 1                           \
                      --host_io_limit_bandwidth 100             \
                      --host_io_limit_iops 200                  \
+                     --compressionEnabled true                 \
                      --expandable false 
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID

@@ -276,19 +276,27 @@ public class FileSystemIngestionUtil {
         }
         return false;
     }
-    
+
     /**
-     * This method handles the duplicate file system name to be ingested in same project
+     * This method verifies the duplicate named file system present in data base
+     * for the given project
+     * 1. It verifies file system name in existing data base
+     * 2. It also verifies for the file system in current processing file system list
+     * 3. If duplicate name found, add suffix (n) to the file system label
      * 
      * @param _dbClient
-     * @param project
-     * @param label
-     * @param filesystems
-     * @param isTargetFs
-     * @return file system label
+     * @param project - project id
+     * @param label - label of the file system to be ingested
+     * @param filesystems - list of file systems yet to write to db.
+     * 
+     * @return String - same label, if no duplicate found in the project; otherwise add suffix as said above
+     *         and return the updated label.
      */
-    public static String validateAndGetFileShareLabel(DbClient _dbClient, URI project, String label, List<FileShare> filesystems,
-            boolean isTargetFs) {
+    public static String validateAndGetFileShareLabel(DbClient _dbClient, URI project, String label, List<FileShare> filesystems) {
+
+        if (label == null || label.isEmpty()) {
+            return "";
+        }
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                 ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project", project, label));
 
@@ -298,26 +306,26 @@ public class FileSystemIngestionUtil {
                 fileShareList.add(fs);
             }
         }
-        String tagetSuffix = "";
-        if (isTargetFs) {
-            tagetSuffix = "_target";
-        }
+
         String fsName = label;
         if (!fileShareList.isEmpty()) {
             StringSet existingFsNames = new StringSet();
             for (FileShare fs : fileShareList) {
                 existingFsNames.add(fs.getLabel());
             }
-            // cancatenate the number!!!
+            // Concatenate the number!!!
             int numFs = fileShareList.size();
             do {
-                String fsLabelWithNumberSuffix = label + tagetSuffix + "(" + numFs + ")";
+                String fsLabelWithNumberSuffix = label + "(" + numFs + ")";
                 if (!existingFsNames.contains(fsLabelWithNumberSuffix)) {
                     fsName = fsLabelWithNumberSuffix;
                     break;
                 }
                 numFs++;
             } while (true);
+        }
+        if (!fileShareList.isEmpty()) {
+            _logger.info("Duplicate labled file systems found, the original label {} has been changed to {} ", label, fsName);
         }
         return fsName;
     }

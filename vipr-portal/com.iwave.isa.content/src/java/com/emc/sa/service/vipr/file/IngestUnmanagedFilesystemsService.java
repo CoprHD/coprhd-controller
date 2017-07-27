@@ -47,17 +47,28 @@ public class IngestUnmanagedFilesystemsService extends ViPRService {
     public void precheck() throws Exception {
         super.precheck();
         execute(new CheckStorageSystemDiscoveryStatus(storageSystem));
+        if (fileSystemIds == null || fileSystemIds.isEmpty()) {
+            logWarn("ingest.unmanaged.filesystems.service.selected.none");
+        }
     }
 
     @Override
     public void execute() throws Exception {
-        List<UnManagedFileSystemRestRep> unmanaged = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type));
+        if (fileSystemIds != null && !fileSystemIds.isEmpty()) {
+            List<UnManagedFileSystemRestRep> unmanaged = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type));
 
-        execute(new IngestUnmanagedFilesystems(virtualPool, virtualArray, project, uris(fileSystemIds)));
+            execute(new IngestUnmanagedFilesystems(virtualPool, virtualArray, project, uris(fileSystemIds)));
 
-        // Requery and produce a log of what was ingested or not
-        int failed = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type)).size();
-        logInfo("ingest.unmanaged.filesystems.service.ingested", unmanaged.size() - failed);
-        logInfo("ingest.unmanaged.filesystems.service.skipped", fileSystemIds.size() - (unmanaged.size() - failed));
+            // Requery and produce a log of what was ingested or not
+            int failed = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type)).size();
+            int ingestedCount = unmanaged.size() - failed;
+            int skippedCount = fileSystemIds.size() - ingestedCount;
+            logInfo("ingest.unmanaged.filesystems.service.ingested", ingestedCount);
+            if (skippedCount > 0) {
+                logInfo("ingest.unmanaged.filesystems.service.skipped.nonzero", skippedCount);
+            } else {
+                logInfo("ingest.unmanaged.filesystems.service.skipped", skippedCount);
+            }
+        }
     }
 }

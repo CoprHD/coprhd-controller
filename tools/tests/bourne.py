@@ -3258,11 +3258,11 @@ class Bourne:
 
     def storagedevice_querybynativeguid(self, native_guid):
         systems = self.discovered_storagedevice_list()
-        print 'SYSTEMS: ' + str(systems) + ' :SYSTEMS'
+        #print 'SYSTEMS: ' + str(systems) + ' :SYSTEMS'
         for system in systems:
             try:
                 storage_system = self.show_element(system['id'], URI_DISCOVERED_STORAGEDEVICE)
-                print("Storage_System: " + str(storage_system) + " :Storage_System" )
+                #print("Storage_System: " + str(storage_system) + " :Storage_System" )
                 if (storage_system['native_guid'] == native_guid):
                     return system['id']
             except KeyError:
@@ -5341,7 +5341,8 @@ class Bourne:
 
     def export_path_policies_list(self, all):
         results =  self.api('GET', URI_EXPORTPATHPOLICIES_LIST_QUERY.format(all))
-        resources = results['export_path_policies']
+        print results
+        resources = results['export_path_policy']
         pathparams = []
         for resource in resources:
             pathparams.append(resource['id'])

@@ -273,15 +273,15 @@ public class ExportPathPolicyService extends TaggedResource {
     }
 
     private ExportPathParams updatePathPolicy(ExportPathPolicyUpdate param, URI id) {
-        ExportPathParams params = queryResource(id);
-        params.setExplicitlyCreated(true);
+        ExportPathParams dbparams = queryResource(id);
+        dbparams.setExplicitlyCreated(true);
 
-        _log.info("Export Path Policy {} update started", params.getLabel());
+        _log.info("Export Path Policy {} update started", dbparams.getLabel());
         if (param.getName() != null) {
-            params.setLabel(param.getName());
+            dbparams.setLabel(param.getName());
         }
         if (param.getDescription() != null) {
-            params.setDescription(param.getDescription());
+            dbparams.setDescription(param.getDescription());
         }
 
         if (param.getMaxPaths() != null) {
@@ -289,65 +289,47 @@ public class ExportPathPolicyService extends TaggedResource {
                 _log.error("Failed to update export path policy due to Max Path not in the range");
                 throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Max Path not in the range");
             }
-            params.setMaxPaths(param.getMaxPaths());
+            dbparams.setMaxPaths(param.getMaxPaths());
         }
         if (param.getMinPaths() != null) {
             if (!rangeCheck(param.getMinPaths(), 1, 65535)) {
                 _log.error("Failed to update export path policy due to Min Path not in the range");
                 throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Min Path not in the range");
             }
-            params.setMinPaths(param.getMinPaths());
+            dbparams.setMinPaths(param.getMinPaths());
         }
         if (param.getPathsPerInitiator() != null) {
             if (!rangeCheck(param.getPathsPerInitiator(), 1, 65535)) {
                 _log.error("Failed to update export path policy due to Path Per Initiator not in the range");
                 throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Path Per Initiator not in the range");
             }
-            params.setPathsPerInitiator(param.getPathsPerInitiator());
+            dbparams.setPathsPerInitiator(param.getPathsPerInitiator());
         }
         if (param.getMaxInitiatorsPerPort() != null) {
             if (!rangeCheck(param.getMaxInitiatorsPerPort(), 1, 65535)) {
                 _log.error("Failed to update export path policy due to Initiators Per Port not in the range");
                 throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Initiators Per Port not in the range");
             }
-            params.setMaxInitiatorsPerPort(param.getMaxInitiatorsPerPort());
+            dbparams.setMaxInitiatorsPerPort(param.getMaxInitiatorsPerPort());
         }
 
-        StoragePorts portsToAdd = new StoragePorts();
-        StoragePorts portsToRemove = new StoragePorts();
-        List<URI> addList = Lists.newArrayList();
-        List<URI> removeList = Lists.newArrayList();
-
+        // Handle addition and removal of ports
+        boolean portsChanged = false;
+        StringSet updatedPorts = dbparams.getStoragePorts();
+        dbparams.setStoragePorts(updatedPorts);
         if (param.getPortsToAdd() != null) {
-            portsToAdd = param.getPortsToAdd();
+            List<String> portsToAdd = URIUtil.asStrings(param.getPortsToAdd());
+            for (String portToAdd : portsToAdd) {
+                updatedPorts.add(portToAdd);
+            }
         }
-
         if (param.getPortsToRemove() != null) {
-            portsToRemove = param.getPortsToRemove();
+            List<String> portsToRemove = URIUtil.asStrings(param.getPortsToRemove());
+            for (String portToRemove : portsToRemove) {
+                updatedPorts.remove(portToRemove);
+            }
         }
-        if (portsToAdd.getStoragePorts() != null) {
-            addList = portsToAdd.getStoragePorts();
-        }
-        if (portsToRemove.getStoragePorts() != null) {
-            removeList = portsToRemove.getStoragePorts();
-        }
-
-        StringSet setToAdd = new StringSet();
-        StringSet setToRemove = new StringSet();
-        for (URI portToBeAdded : addList) {
-            setToAdd.add(portToBeAdded.toString());
-        }
-        for (URI portToBeRemoved : removeList) {
-            setToRemove.add(portToBeRemoved.toString());
-        }
-
-        StringSet portsTobeUpdate = params.getStoragePorts();
-        portsTobeUpdate.addAll(setToAdd);
-        portsTobeUpdate.removeAll(setToRemove);
-        
-        params.setStoragePorts(portsTobeUpdate);
-
-        return params;
+        return dbparams;
     }
 
 }

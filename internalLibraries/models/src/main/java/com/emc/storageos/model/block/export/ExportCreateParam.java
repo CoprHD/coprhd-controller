@@ -27,6 +27,7 @@ public class ExportCreateParam {
     private String name;
     private String type;
     private List<VolumeParam> volumes;
+    private URI exportPathPolicy;
     private ExportPathParameters exportPathParameters;
 
     // The fiber channel SAN membership
@@ -199,5 +200,20 @@ public class ExportCreateParam {
 
     public void setExportPathParameters(ExportPathParameters pathParam) {
         this.exportPathParameters = pathParam;
+    }
+
+    /**
+     * Optional URI specifying an export path policy that contains that path parameters.
+     * If explicit parameters are also supplied, they will override the parameters in the path policy.
+     * either of which will override the Virtual Pool parameters.
+     * @return URI of export path policy
+     */
+    @XmlElement(name = "export_path_policy", required = false)
+    public URI getExportPathPolicy() {
+        return exportPathPolicy;
+    }
+
+    public void setExportPathPolicy(URI exportPathPolicy) {
+        this.exportPathPolicy = exportPathPolicy;
     }
 }

@@ -1721,7 +1721,7 @@ xtremio_blockconsistency_tests()
     blockconsistencygroup_bulk_test
     ### Delete volume from consistency group
     echo "Deleting volume from consistency group"
-    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP}
+    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP} --wait
 }
 
 xtremio_blockconsistencygroup_add_volume_test()
@@ -1762,7 +1762,7 @@ xtremio_blockconsistencygroup_snapshot_tests()
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot
 
     echo "Deleting volume in snapshot consistency group"
-    run volume delete $PROJECT/volume-${cg_name}   
+    run volume delete $PROJECT/volume-${cg_name} --wait   
 }
 
 VERIFY_EXPORT_COUNT=0
@@ -1831,13 +1831,13 @@ xtremio_export_test()
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1,$hostname/$pwwn2"
     run export_group show $exp
     run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
-    run export_group update $exp --remInits "$hostname/$pwwn1"
-    run export_group show $exp
     run export_group update $exp --remVols $vol2,$snap1,$snap2
+    run export_group show $exp
+    run export_group update $exp --remInits "$hostname/$pwwn1,$hostname/$pwwn1"
     run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then

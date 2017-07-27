@@ -114,6 +114,51 @@ public class IsilonMirrorOperations {
     /**
      * Enable the Isilon syncIQ policy
      * 
+     * @param system - storagesystem
+     * @param policyName
+     * @return
+     */
+    BiosCommandResult doEnablePolicy(StorageSystem system, String policyName) {
+        IsilonApi isi = getIsilonDevice(system);
+        IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
+
+        if (null != policy && !policy.getEnabled()) {
+            IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+            modifiedPolicy.setName(policyName);
+            modifiedPolicy.setEnabled(true);
+
+            try {
+                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                TimeUnit.SECONDS.sleep(33);
+            } catch (InterruptedException e) {
+                _log.warn("Enabling ReplicationPolicy - {} Interrupted", policyName);
+                ServiceError error = DeviceControllerErrors.isilon.jobFailed(
+                        "Enabling ReplicationPolicy is Failed with Interrupt exception and message :" + e.getMessage());
+                return BiosCommandResult.createErrorResult(error);
+            } catch (IsilonException ex) {
+                return BiosCommandResult.createErrorResult(ex);
+            }
+        }
+        return BiosCommandResult.createSuccessfulResult();
+    }
+
+    /**
+     * get the local target policy details
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonSyncTargetPolicy getIsilonSyncTargetPolicy(StorageSystem system, String policyName) throws IsilonException {
+        IsilonApi isi = getIsilonDevice(system);
+        return isi.getTargetReplicationPolicy(policyName);
+
+    }
+
+    /**
+     * Enable the Isilon syncIQ policy
+     * 
      * @param isi
      * @param policyName
      * @return
@@ -122,9 +167,9 @@ public class IsilonMirrorOperations {
         IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
         modifiedPolicy.setName(policyName);
         modifiedPolicy.setEnabled(true);
-        
+
         IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-        if(null != policy && !policy.getEnabled()) {
+        if (null != policy && !policy.getEnabled()) {
             isi.modifyReplicationPolicy(policyName, modifiedPolicy);
             policy = isi.getReplicationPolicy(policyName);
         }
@@ -188,11 +233,13 @@ public class IsilonMirrorOperations {
     }
 
     public BiosCommandResult doCancelReplicationPolicy(StorageSystem system, String policyName) {
-            IsilonApi isi = getIsilonDevice(system);
-            return doCancelReplicationPolicy(isi, policyName);
+        IsilonApi isi = getIsilonDevice(system);
+        return doCancelReplicationPolicy(isi, policyName);
     }
+
     /**
      * Cancel the replication policy
+     * 
      * @param isi
      * @param policyName
      * @return
@@ -217,6 +264,7 @@ public class IsilonMirrorOperations {
         }
 
     }
+
     /**
      * Get isilon device represented by the StorageDevice
      * 
@@ -278,7 +326,7 @@ public class IsilonMirrorOperations {
     }
 
     /**
-     * Call to device to stop policy
+     * Call to Isilon device api to stop policy
      * 
      * @param system
      * @param policyName
@@ -287,20 +335,20 @@ public class IsilonMirrorOperations {
     public BiosCommandResult doStopReplicationPolicy(IsilonApi isi, String policyName) {
         try {
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            if(policy.getLastJobState().equals(JobState.running)){
+            if (policy.getLastJobState().equals(JobState.running)) {
                 BiosCommandResult cmdResult = doCancelReplicationPolicy(isi, policyName);
-                if(!cmdResult.isCommandSuccess()) {
+                if (!cmdResult.isCommandSuccess()) {
                     return cmdResult;
                 } else {
-                    //if the replication still running through exception
+                    // if the replication still running through exception
                     policy = isi.getReplicationPolicy(policyName);
-                    if(policy.getLastJobState().equals(JobState.running)) {
+                    if (policy.getLastJobState().equals(JobState.running)) {
                         ServiceError error = DeviceControllerErrors.isilon.jobFailed(
                                 "Unable Stop Replication policy and policy state  :" + policy.getLastJobState().toString());
                         return BiosCommandResult.createErrorResult(error);
                     }
                 }
-            } 
+            }
             // disable the policy
             if (policy.getEnabled()) {
                 IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
@@ -324,8 +372,10 @@ public class IsilonMirrorOperations {
             return BiosCommandResult.createErrorResult(error);
         }
     }
+
     /**
-     * Test Replication Connection and policy
+     * Test Replication Connection and policy details
+     * 
      * @param system
      * @param policyName
      * @return
@@ -341,7 +391,7 @@ public class IsilonMirrorOperations {
         }
         return BiosCommandResult.createSuccessfulResult();
     }
-    
+
     /**
      * Call to device to stop replication policy
      * 
@@ -371,7 +421,7 @@ public class IsilonMirrorOperations {
                 _log.info("can't perform failover operation on policy: {} because failover is done already",
                         syncTargetPolicy.getName());
                 return BiosCommandResult.createSuccessfulResult();
-            } 
+            }
             IsilonSyncJob job = new IsilonSyncJob();
             job.setId(policyName);
             job.setAction(Action.allow_write);
@@ -410,8 +460,7 @@ public class IsilonMirrorOperations {
             _log.info("resync-prep between source file system to target file system started and device ip:", system.getIpAddress());
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy syncPolicy = isi.getReplicationPolicy(policyName);
-            
-            //Before 'resync-prep' operation, Original source to target policy should be enabled.
+            // Before 'resync-prep' operation, Original source to target policy should be enabled.
             if (!syncPolicy.getEnabled()) {
                 _log.info("Policy {} is in disabled state, enabling the policy before do resync-prep", policyName);
                 syncPolicy = doEnableReplicationPolicy(isi, policyName);
@@ -420,6 +469,7 @@ public class IsilonMirrorOperations {
                 syncPolicy = isi.getReplicationPolicy(policyName);
                 _log.info("Replication Policy -{}  Enabled successfully.", syncPolicy.toString());
             }
+
             IsilonSyncJob job = new IsilonSyncJob();
             job.setId(policyName);
             job.setAction(Action.resync_prep);
@@ -427,6 +477,7 @@ public class IsilonMirrorOperations {
             IsilonSyncJobResync isilonSyncJobResync = new IsilonSyncJobResync(policyName, system.getId(), completer);
 
             ControllerServiceImpl.enqueueJob(new QueueJob(isilonSyncJobResync));
+
             return BiosCommandResult.createPendingResult();
         } catch (Exception ex) {
             _log.error("Resync-Prep Failed", ex);
@@ -451,6 +502,15 @@ public class IsilonMirrorOperations {
         return errorMessage;
     }
 
+    /**
+     * Update Mirror policy details
+     * 
+     * @param system
+     * @param source
+     * @param policyName
+     * @return
+     * @throws DeviceControllerException
+     */
     public BiosCommandResult doRefreshMirrorFileShareLink(StorageSystem system, FileShare source, String policyName)
             throws DeviceControllerException {
 
@@ -473,12 +533,14 @@ public class IsilonMirrorOperations {
             }
             if (policy.getLastStarted() == null) {
                 source.setMirrorStatus(MirrorStatus.UNKNOWN.toString());
-            } else if (!policy.getEnabled() || policy.getLastJobState().equals(JobState.paused)) {
+            } else if (!policy.getEnabled() && null != localTarget && localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled) ||
+                    policy.getLastJobState().equals(JobState.paused)) {
                 source.setMirrorStatus(MirrorStatus.PAUSED.toString());
-            } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
+            } else if (null != localTarget && localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled) ||
+                    localTarget.getFoFbState().equals(FOFB_STATES.resync_policy_created)) {
                 source.setMirrorStatus(MirrorStatus.FAILED_OVER.toString());
             } else if (policy.getEnabled() && policy.getLastJobState().equals(JobState.finished) &&
-                    localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled)) {
+                    null != localTarget && localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled)) {
                 source.setMirrorStatus(MirrorStatus.SYNCHRONIZED.toString());
             } else if (policy.getLastJobState().equals(JobState.running)) {
                 source.setMirrorStatus(MirrorStatus.IN_SYNC.toString());

@@ -213,9 +213,9 @@ public class PathConstants {
     public static final String STORAGE_DRIVER_UNINSTALL_URL = "/storagedriver/{driverName}";
     public static final String STORAGE_DRIVER_UPGRADE_URL = "/storagedriver/{driverName}";
 
-    public static final String EXPORT_PATH_PARAMS_URL = "/block/export-path-parameters";
-    public static final String EXPORT_PATH_PARAMS_BY_ID_URL = "/block/export-path-parameters/{id}";
-    public static final String PATH_PARAMS__DEACTIVATE_BY_ID_URL = EXPORT_PATH_PARAMS_BY_ID_URL + "/deactivate";
+    public static final String EXPORT_PATH_POLICIES_URL = "/block/export-path-policies";
+    public static final String EXPORT_PATH_POLICIES_BY_ID_URL = "/block/export-path-policies/{id}";
+    public static final String EXPORT_PATH_POLICIES_DEACTIVATE_BY_ID_URL = EXPORT_PATH_POLICIES_BY_ID_URL + "/deactivate";
 
     public static final String STORAGE_PORT_GROUP_URL = STORAGE_SYSTEM_URL
             + "/{storageSystemId}/storage-port-groups";

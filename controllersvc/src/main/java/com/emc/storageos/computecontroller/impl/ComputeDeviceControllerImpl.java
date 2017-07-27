@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1519,7 +1520,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     @Override
-    public String addStepsCheckVMsOnHostBootVolume(Workflow workflow, String waitFor, URI hostId) {
+    public String addStepsCheckVMsOnHostBootVolume(Workflow workflow, String waitFor, URI hostId, boolean verifyVMsPowerState) {
         log.info("CheckVMsOnBootVolume step");
         Host hostObj = _dbClient.queryObject(Host.class, hostId);
         if (null != hostObj) {
@@ -1534,7 +1535,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             waitFor = workflow.createStep(CHECK_VMS_ON_BOOT_VOLUME,
                     "Check if there are any VMs on the boot volume of the host being modified/decommissioned.", waitFor,
                     hostObj.getId(), hostObj.getType(), this.getClass(),
-                    new Workflow.Method("checkVMsOnHostBootVolume", hostObj),
+                    new Workflow.Method("checkVMsOnHostBootVolume", hostObj, verifyVMsPowerState),
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
         } else {
             throw new RuntimeException("Host null for uri " + hostId);
@@ -1547,23 +1548,44 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      *
      * @param host
      *            {@link Host}
+     * @param verifyVMsPowerState boolean indicating if additional one has to check if VMs are in powered off state.
      * @param stepId
      *            {@link String} step id
      */
-    public void checkVMsOnHostBootVolume(Host host, String stepId) {
+    public void checkVMsOnHostBootVolume(Host host, boolean verifyVMsPowerState, String stepId) {
         try {
-            boolean isVMsPresent = vcenterController.checkVMsOnHostBootVolume(host.getVcenterDataCenter(),
+            Map<String, Boolean> statusMap = vcenterController.checkVMsOnHostBootVolume(host.getVcenterDataCenter(),
                     host.getCluster(), host.getId(), host.getBootVolumeId());
             // if there are any VMs on the boot volume fail step
-            if (isVMsPresent) {
-                log.error("There are VMs on boot volume {} of host {}, cannot proceed with deactivating/modifying host.", host.getBootVolumeId(), host.getHostName());
-                throw ComputeSystemControllerException.exceptions.hostHasVmsOnBootVolume(
-                        host.getBootVolumeId().toString(), host.getHostName());
+            if (MapUtils.isNotEmpty(statusMap)) {
+                if (statusMap.get("isVMsPresent")) {
+                    if (!verifyVMsPowerState) {
+                        log.error(
+                                "There are VMs on boot volume {} of host {}, cannot proceed with deactivating/modifying host.",
+                                host.getBootVolumeId(), host.getHostName());
+                        throw ComputeSystemControllerException.exceptions
+                                .hostHasVmsOnBootVolume(host.getBootVolumeId().toString(), host.getHostName());
+                    } else {
+                        if (!statusMap.get("isVMsPoweredOff")) {
+                            log.error(
+                                    "There are powered on VMs on boot volume {} of host {}, cannot proceed with modifying host.",
+                                    host.getBootVolumeId(), host.getHostName());
+                            throw ComputeSystemControllerException.exceptions.hostHasPoweredOnVmsOnBootVolume(
+                                    host.getBootVolumeId().toString(), host.getHostName());
+                        } else {
+                            log.info("There are VMs on bootVolume {} for host {} and all VMs are powered off, step successful.", host.getBootVolumeId(),
+                                    host.getHostName());
+                        }
+                    }
+                } else {
+                    log.info("There are no VMs on bootVolume {} for host {}, step successful.", host.getBootVolumeId(),
+                            host.getHostName());
+                }
             } else {
-                log.info("There are no VMs on bootVolume {} for host {}, step successful.", host.getBootVolumeId(),
-                        host.getHostName());
-                WorkflowStepCompleter.stepSucceded(stepId);
+                throw new RuntimeException("Unable to determine if VMs exist on boot volume " + host.getBootVolumeId()
+                        + " of host" + host.getHostName() + ".");
             }
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
             log.error("InternalException when trying to checkVMsOnHostBootVolume: " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, e);
@@ -1774,79 +1796,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     /**
-     * This will attempt to put host into maintenance mode on a Vcenter.
-     *
-     * @param hostId
-     * @param stepId
-     */
-    public void exitHostFromMaintenanceMode(URI hostId, String stepId) {
-        log.info("exitHostFromMaintenanceMode {}", hostId);
-        Host host = null;
-        try {
-            WorkflowStepCompleter.stepExecuting(stepId);
-
-            host = _dbClient.queryObject(Host.class, hostId);
-            if (host.getType() != null && host.getType().equalsIgnoreCase(Host.HostType.No_OS.name())) {
-                log.info("Host os type is NO_OS, nothing to do");
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            }
-
-            if (NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
-                log.info("datacenter is null, nothing to do");
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            }
-            if (NullColumnValueGetter.isNullURI(host.getCluster())) {
-                log.warn("cluster is null, nothing to do");
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            }
-
-            if (host.getType() != null && host.getType().equalsIgnoreCase(Host.HostType.Esx.name())) {
-                vcenterController.exitMaintenanceMode(host.getVcenterDataCenter(), host.getCluster(), host.getId());
-            }
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (VcenterControllerException e) {
-            log.warn("VcenterControllerException when trying to exitHostFromMaintenanceMode: " + e.getMessage(), e);
-            if (e.getCause() instanceof VcenterObjectNotFoundException) {
-                if (checkPreviouslyFailedDecommission(host)) {
-                    log.info("did not find the host, considering success based on previous delete host operation");
-                    WorkflowStepCompleter.stepSucceded(stepId);
-                } else {
-                    log.info("did not find the host, considering failure as no previous delete host operation found");
-                    WorkflowStepCompleter.stepFailed(stepId, e);
-                }
-            } else if (e.getCause() instanceof VcenterObjectConnectionException) {
-                if (checkPreviouslyFailedDecommission(host)) {
-                    log.info("host is not connected, considering success based on previous delete host operation");
-                    WorkflowStepCompleter.stepSucceded(stepId);
-                } else {
-                    log.info("host is not connected, considering failure as no previous delete host operation found");
-                    WorkflowStepCompleter.stepFailed(stepId, e);
-                }
-            } else {
-                log.error("failure " + e);
-                WorkflowStepCompleter.stepFailed(stepId, e);
-            }
-        } catch (InternalException e) {
-            log.error("InternalException when trying to exitHostFromMaintenanceMode: " + e.getMessage(), e);
-            WorkflowStepCompleter.stepFailed(stepId, e);
-        } catch (Exception e) {
-            log.error("unexpected exception" + e.getMessage(), e);
-            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
-                    .unableToExitHostFromMaintenenceMode(host != null ? host.getHostName() : hostId.toString(), e);
-            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
-        }
-    }
-
-    /**
-     * 
-     * @param csId
-     * @param hostId
-     * @param computeElementId
-     * @param isRollbackStep
-     * @param stepId
+     * Method to rebind host to a given compute element.
+     * @param csId {@link URI} computesystem id
+     * @param hostId {@link URI} host id
+     * @param computeElementID {@link URI} computeElement id
+     * @param isRollbackStep boolean indicating if the method is being invoked as part of rollback
+     * @param stepId {@link String} stepId
      */
     public void rebindHostComputeElement(URI csId, URI hostId, URI computeElementId, boolean isRollbackStep,
             String stepId) {
@@ -1905,11 +1860,16 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             throw new RuntimeException("Could not determine the Compute System the host " + host.getLabel()
                     + " is provisioned on. Cannot proceed with asociate compute element step when compute system is not known.");
         } else {
-            waitFor = workflow.createStep("Prerequsite step for bind service profile to blade",
-                    "Prerequsite step for bind service profile to blade, creates host to compute element in DB.",
+            waitFor = workflow.createStep("Verify Service profile is in unassociated state.",
+                    "Verify Service profile of host is in unassociated state, only then proceed.",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
-                    new Workflow.Method("prerequsiteForBindServiceProfileToBlade", hostId, computeElementId),
-                    new Workflow.Method("rollbackPrerequsiteForBindServiceProfileToBlade", hostId, computeElementId),
+                    new Workflow.Method("verifyHostUCSServiceProfileState", cs.getId(), hostId, "unassociated"),
+                    new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+            waitFor = workflow.createStep("Prerequisite step for bind service profile to blade",
+                    "Prerequisite step for bind service profile to blade, creates host to compute element in DB.",
+                    waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
+                    new Workflow.Method("prerequisiteForBindServiceProfileToBlade", hostId, computeElementId),
+                    new Workflow.Method("rollbackPrerequisiteForBindServiceProfileToBlade", hostId, computeElementId),
                     null);
             waitFor = workflow.createStep("Associate/bind host compute element", "Associate/bind host compute element",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
@@ -1924,13 +1884,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     /**
-     * 
-     * @param hostId
-     * @param computeElementID
-     * @param stepId
+     * Method to set the prerequisite host to compute element association
+     * @param hostId {@link URI} host id
+     * @param computeElementID {@link URI} computeElement id
+     * @param stepId {@link String} stepId
      */
-    public void prerequsiteForBindServiceProfileToBlade(URI hostId, URI computeElementID, String stepId) {
-        log.info("prerequsiteForBindServiceProfileToBlade");
+    public void prerequisiteForBindServiceProfileToBlade(URI hostId, URI computeElementID, String stepId) {
+        log.info("prerequisiteForBindServiceProfileToBlade");
         WorkflowStepCompleter.stepExecuting(stepId);
         Host host = _dbClient.queryObject(Host.class, hostId);
         host.setComputeElement(computeElementID);
@@ -1939,13 +1899,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     /**
-     * 
-     * @param hostId
-     * @param computeElementID
-     * @param stepId
+     * Rollback method to undo host to compute element association
+     * @param hostId {@link URI} host id
+     * @param computeElementID {@link URI} computeElement id
+     * @param stepId {@link String} stepId
      */
-    public void rollbackPrerequsiteForBindServiceProfileToBlade(URI hostId, URI computeElementID, String stepId) {
-        log.info("rollbackPrerequsiteForBindServiceProfileToBlade");
+    public void rollbackPrerequisiteForBindServiceProfileToBlade(URI hostId, URI computeElementID, String stepId) {
+        log.info("rollbackPrerequisiteForBindServiceProfileToBlade");
         WorkflowStepCompleter.stepExecuting(stepId);
         Host host = _dbClient.queryObject(Host.class, hostId);
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement())
@@ -1954,5 +1914,52 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             _dbClient.updateObject(host);
         }
         WorkflowStepCompleter.stepSucceded(stepId);
+    }
+
+    /**
+     * Verify service profile associated state
+     * @param csId {@link URI} computesystem id
+     * @param hostId {@link URI} host id
+     * @param assocState {@link String} expected state
+     * @param stepId {@link String} stepId
+     */
+    public void verifyHostUCSServiceProfileState(URI csId, URI hostId, String assocState, String stepId) {
+        log.info("verifyHostUCSServiceProfileState");
+        Host host = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, csId);
+            host = _dbClient.queryObject(Host.class, hostId);
+            if (null != host) {
+                String serviceProfileState = getDevice(cs.getSystemType()).fetchServiceProfileAssociatedState(cs,
+                        hostId, stepId);
+                if (assocState.equalsIgnoreCase(serviceProfileState)) {
+                    log.info(
+                            "Successfully verified hosts {}'s service profile state, expected is {} and actual state is {}",
+                            host.getHostName(), assocState, serviceProfileState);
+                    WorkflowStepCompleter.stepSucceded(stepId);
+                } else {
+                    log.error(
+                            "Failed verification of host {}'s service profile association state, expected is {} and actual state is {}",
+                            host.getHostName(), assocState, serviceProfileState);
+                    ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
+                            .verifyHostUCSServiceProfileStateFailed(
+                                    (host != null ? host.getHostName() : hostId.toString()), assocState,
+                                    serviceProfileState);
+                    WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+                }
+            } else {
+                throw new RuntimeException("Host null for uri " + hostId);
+            }
+
+        } catch (Exception exception) {
+            log.error("Error verifying host's service profile association state", hostId, exception);
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
+                    .unableToVerifyHostUCSServiceProfileState((host != null ? host.getHostName() : hostId.toString()),
+                            exception);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+            return;
+        }
     }
 }

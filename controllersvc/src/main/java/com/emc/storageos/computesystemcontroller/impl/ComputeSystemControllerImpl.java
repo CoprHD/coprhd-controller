@@ -416,7 +416,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     && hostObj.getType() != null && (hostObj.getType().equalsIgnoreCase(Host.HostType.Esx.name()))) {
                 // check if host's boot-volume has any VMs on it before
                 // proceeding further.
-                waitFor = computeDeviceController.addStepsCheckVMsOnHostBootVolume(workflow, waitFor, hostObj.getId());
+                waitFor = computeDeviceController.addStepsCheckVMsOnHostBootVolume(workflow, waitFor, hostObj.getId(), false);
             }
 
             if (deactivateOnComplete) {
@@ -2609,7 +2609,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     && hostObj.getType() != null && (hostObj.getType().equalsIgnoreCase(Host.HostType.Esx.name()))) {
                 // check if host's boot-volume has any VMs on it before
                 // proceeding further.
-                waitFor = computeDeviceController.addStepsCheckVMsOnHostBootVolume(workflow, waitFor, hostObj.getId());
+                waitFor = computeDeviceController.addStepsCheckVMsOnHostBootVolume(workflow, waitFor, hostObj.getId(), true);
             }
 
             waitFor = computeDeviceController.addStepsVcenterHostEnterMaintenanceMode(workflow, waitFor, hostId);

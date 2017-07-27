@@ -164,4 +164,14 @@ public interface ComputeDevice extends Controller {
     * @param stepId {@link String} stepId
     */
     public void bindServiceProfileToBlade(ComputeSystem computeSystem, URI hostURI, String contextStepId, String stepId);
+
+    /**
+     * Fetch service profile associated state
+     * @param computeSystem {@link ComputeSystem} instance
+     * @param hostURI {@link URI} host id
+     * @param stepId {@link String} stepId
+     * @return {@link String} service profile associate state.
+     * @throws ClientGeneralException
+     */
+    public String fetchServiceProfileAssociatedState(ComputeSystem computeSystem, URI hostURI, String stepId)  throws ClientGeneralException;
 }

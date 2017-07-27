@@ -978,14 +978,15 @@ public class VcenterApiClient {
      * @param clusterNameOrMoRef {@link String} name of the cluster
      * @param hostName {@link String} name of the host
      * @param volumewwn {@link String} volume wwn
-     * @return true when there are any VMs on the datastore identified by the volume wwn, otherwise false
+     * @return status map specifying if VMs are present and if VMs are poweredoff.
      * @throws VcenterSystemException
      * @throws VcenterObjectNotFoundException
      * @throws VcenterObjectConnectionException
      */
-    public boolean checkVMsOnHostVolume(String datacenterName, String clusterNameOrMoRef, String hostName, String volumewwn) throws VcenterSystemException,
+    public Map<String, Boolean> checkVMsOnHostVolume(String datacenterName, String clusterNameOrMoRef, String hostName, String volumewwn) throws VcenterSystemException,
     VcenterObjectNotFoundException, VcenterObjectConnectionException {
         boolean isVMsPresent = false;
+        boolean isVMsPoweredOff = false;
         try {
             _log.info("Request to check VMs on volume " + volumewwn + " host " + hostName + " to datacenter "
                     + datacenterName + " cluster " + clusterNameOrMoRef);
@@ -1034,10 +1035,17 @@ public class VcenterApiClient {
                         }
                     }
                     if (bootVolDatastore != null) {
-                        if (CollectionUtils.isNotEmpty(Arrays.asList(bootVolDatastore.getVms()))) {
+                        List<VirtualMachine> vmList = Arrays.asList(bootVolDatastore.getVms());
+                        if (CollectionUtils.isNotEmpty(vmList)) {
                             isVMsPresent = true;
                             _log.info("Found {} VMs on the datastore {}", bootVolDatastore.getVms().length,
                                     bootVolDatastore.getName());
+                            for (VirtualMachine virtualMachine : vmList) {
+                                if (virtualMachine.getRuntime().getPowerState()
+                                        .equals(VirtualMachinePowerState.poweredOff)) {
+                                    isVMsPoweredOff = true;
+                                }
+                            }
                         } else {
                             _log.info("No VMs found on datastore {}", bootVolDatastore.getName());
                         }
@@ -1058,6 +1066,9 @@ public class VcenterApiClient {
             _log.error("Exception checkVMsOnHostVolume : {}", e);
             throw new VcenterSystemException(e.getLocalizedMessage());
         }
-        return isVMsPresent;
+        Map<String, Boolean> status = new HashMap<String, Boolean>(2);
+        status.put("isVMsPresent", isVMsPresent);
+        status.put("isVMsPoweredOff", isVMsPoweredOff);
+        return status;
     }
 }

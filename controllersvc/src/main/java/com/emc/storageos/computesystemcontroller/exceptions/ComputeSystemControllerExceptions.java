@@ -216,4 +216,13 @@ public interface ComputeSystemControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException unableToBindHostComputeElement(String computeelement, String host, Exception exception);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException hostHasPoweredOnVmsOnBootVolume(final String bootVolumeId, final String hostname);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException verifyHostUCSServiceProfileStateFailed(final String hostname, String expectedState, String currentState);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToVerifyHostUCSServiceProfileState(final String hostname, Exception exception);
 }

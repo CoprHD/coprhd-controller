@@ -180,9 +180,10 @@ public interface ComputeDeviceController extends Controller {
      *            be a string representation of a Step UUID, or the name of a
      *            StepGroup.
      * @param hostId {@link URI} hostId URI
+     * @param verifyVMsPowerState boolean indicating if additional one has to check if VMs are in powered off state.
      * @return waitFor step name
      */
-    public String addStepsCheckVMsOnHostBootVolume(Workflow workflow, String waitFor, URI hostId);
+    public String addStepsCheckVMsOnHostBootVolume(Workflow workflow, String waitFor, URI hostId, boolean verifyVMsPowerState);
 
     /**
      * Method to add steps to put the host in MaintenanceMode on the vcenter

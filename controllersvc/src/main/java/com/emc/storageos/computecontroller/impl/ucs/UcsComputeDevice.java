@@ -1382,4 +1382,18 @@ public class UcsComputeDevice implements ComputeDevice {
             deviceOperationPollFrequency = pollfrequency;
         }
     }
+
+    @Override
+    public String fetchServiceProfileAssociatedState(ComputeSystem computeSystem, URI hostURI, String stepId)
+            throws ClientGeneralException {
+        String associatedState = null;
+        WorkflowStepCompleter.stepExecuting(stepId);
+        Host host = _dbClient.queryObject(Host.class, hostURI);
+
+        LsServer serviceProfile = ucsmService.getLsServer(getUcsmURL(computeSystem).toString(),
+                computeSystem.getUsername(), computeSystem.getPassword(), host.getUuid());
+        associatedState = serviceProfile.getAssocState();
+
+        return associatedState;
+    }
 }

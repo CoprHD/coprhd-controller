@@ -922,10 +922,10 @@ public class NetworkSystemService extends TaskResourceService {
         ArgValidator.checkFieldUriType(storageSystemId, StorageSystem.class, "storageId");
         
         String task = UUID.randomUUID().toString();
-        List<URI> hostInitiatorNamesList = ExportUtils.getInitiatorsOfHost(hostURI, _dbClient);
+        List<URI> hostInitiatorList = ExportUtils.getInitiatorsOfHost(hostURI, _dbClient);
         
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemId);
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorNamesList, true);
+        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList, true);
         
         ExportPathParams pathParam = new ExportPathParams(param);
         
@@ -941,7 +941,7 @@ public class NetworkSystemService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, hostURI, task,
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
-        controller.createSanZones(hostInitiatorNamesList, generatedIniToStoragePort, task);
+        controller.createSanZones(hostInitiatorList, generatedIniToStoragePort, task);
         return toTask(system, task, op);
         
     }

@@ -144,9 +144,11 @@ public class ExportUtils {
      */
     public static List<URI> getInitiatorsOfHost(URI hostURI, DbClient dbClient) {
         List<URI> initiatorURIList = new ArrayList<URI>();
-        List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(hostURI, Initiator.class, "iniport", "host",dbClient);
-        for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
-            initiatorURIList.add(dataObject.getId());
+        @SuppressWarnings("deprecation")
+        List<URI> uris = dbClient.queryByConstraint(ContainmentConstraint.Factory.getContainedObjectsConstraint(hostURI,
+                Initiator.class, "host"));
+        if (null != uris && !uris.isEmpty()) {
+            initiatorURIList.addAll(uris);
         }
         return initiatorURIList;
     }
@@ -167,25 +169,7 @@ public class ExportUtils {
         return clusterInis;
     }
     
-    private static <T extends DataObject> List<NamedElementQueryResultList.NamedElement> listChildren(URI id, Class<T> clzz,
-            String nameField, String linkField, DbClient dbClient) {
-        @SuppressWarnings("deprecation")
-        List<URI> uris = dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField));
-        if (uris != null && !uris.isEmpty()) {
-            Iterator<T> dataObjects = dbClient.queryIterativeObjectField(clzz, nameField, uris);
-            List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>();
-            while (dataObjects.hasNext()) {
-                T dataObject = dataObjects.next();
-                Object name = DataObjectUtils.getPropertyValue(clzz, dataObject, nameField);
-                elements.add(NamedElementQueryResultList.NamedElement.createElement(
-                        dataObject.getId(), name == null ? "" : name.toString()));
-            }
-            return elements;
-        } else {
-            return new ArrayList<NamedElementQueryResultList.NamedElement>();
-        }
-    }
+   
 
     /**
      * For each initiator in the list, return all the volumes and snapshots that

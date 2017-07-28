@@ -28,7 +28,7 @@ public class Main {
             return;
         }
 
-        Cmd cmd = null;
+        Cmd cmd;
         boolean showUsage = false;
         try {
             cmd = Cmd.valueOf(args[0].trim().toUpperCase());

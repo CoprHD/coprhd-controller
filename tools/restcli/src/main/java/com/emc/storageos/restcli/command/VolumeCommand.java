@@ -5,12 +5,10 @@
 
 package com.emc.storageos.restcli.command;
 
-import com.emc.storageos.driver.restvmax.RestVMAXStorageDriver;
-import com.emc.storageos.driver.restvmax.rest.BackendType;
-import com.emc.storageos.driver.restvmax.vmax.type.CapacityUnitType;
+import com.emc.storageos.driver.univmax.UniVmaxStorageDriver;
+import com.emc.storageos.driver.univmax.rest.RestClient;
+import com.emc.storageos.driver.univmax.rest.type.common.CapacityUnitType;
 import com.emc.storageos.storagedriver.DriverTask;
-import com.emc.storageos.storagedriver.model.StorageProvider;
-import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 
 import java.util.ArrayList;
@@ -19,12 +17,11 @@ import java.util.List;
 public class VolumeCommand extends CliCommand {
     private String user;
     private String pass;
+    private Boolean useSsl = true;
     private String providerHost;
     private Integer port = 0;
-    private boolean jsonFinePrint = true;
     private static final String INVALID_PARAM = "Invalid parameter: ";
     private String groupId;
-    private Integer num_vol;
     private long capacity;
     private String sym;
     private String poolId;
@@ -34,23 +31,22 @@ public class VolumeCommand extends CliCommand {
     public void usage() {
         System.out.println("Description:\n\tStorage Provider Command.");
         System.out.println("Usage:");
-        System.out.println("\trestcli volume [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
-                " --ip IP_ADDR [--port PORT] --sym SYMMETRIXID --poolid POOLID --groupid GROUPID --num_vol NUM --capacity NUM [--capacityunit MB[|GB|TB]]");
+        System.out.println("\trestcli volume [--user USERNAME] [--pass PASSWORD]" +
+                " [--ssl|--nossl] --host IP[|HOSTNAME] [--port PORT] " +
+                "--sym SYMMETRIX_ID --poolid POOL_ID --groupid GROUP_ID " +
+                "--capacity NUM [--capacityunit MB[|GB|TB]]");
     }
 
     public void run(String[] args) {
         this.parseRestArgs(args);
-        RestVMAXStorageDriver driver = new RestVMAXStorageDriver();
+        UniVmaxStorageDriver driver = new UniVmaxStorageDriver();
         // connection
-        StorageProvider provider = new StorageProvider();
-        provider.setProviderHost(providerHost);
-        if (port > 0) {
-            provider.setPortNumber(port);
-        } else {
-            provider.setPortNumber(BackendType.VMAX.getPort());
+        if (port == 0) {
+            port = RestClient.DEFAULT_PORT;
         }
-        provider.setUsername(user);
-        provider.setPassword(pass);
+        RestClient client = new RestClient(useSsl, providerHost, port, user, pass);
+        driver.getDriverDataUtil().addRestClient(sym, client);
+
         // pass parameter to create volume
         List<StorageVolume> volumes = new ArrayList<>();
         StorageVolume volume = new StorageVolume();
@@ -59,43 +55,46 @@ public class VolumeCommand extends CliCommand {
         volume.setRequestedCapacity(capacity);
         volume.setStorageSystemId(sym);
         volumes.add(volume);
-        // check correction
+        // check parameter
         System.out.println("Input parameter:");
-        System.out.println("\tport:" + provider.getPortNumber() + ", host:" + provider.getProviderHost() +
-                ", user:" + provider.getUsername() + ", pass:" + provider.getPassword() +
-                ", storageGroupId:" + volume.getStorageGroupId() + ", poolId:" + volume.getStoragePoolId() +
-                ", Synmmtrix: " + volume.getStorageSystemId() + ", capacity:" + volume.getRequestedCapacity());
-        List<StorageSystem> storageSystems = new ArrayList<>();
-        System.out.println("\ndiscoverStorageProvider: start ....");
-        driver.discoverStorageProvider(provider, storageSystems);
-        System.out.println("\tprovider version: " + provider.getProviderVersion());
-        System.out.println("\tversion is supported: " + provider.isSupportedVersion());
-
+        System.out.println("\tport:" + port +
+                ", host:" + providerHost +
+                ", user:" + user +
+                ", pass:" + pass +
+                ", storageGroupId:" + volume.getStorageGroupId() +
+                ", poolId:" + volume.getStoragePoolId() +
+                ", symmetrixId: " + volume.getStorageSystemId() +
+                ", capacity:" + volume.getRequestedCapacity());
         System.out.println("\ncreateVolumes: start ....");
-        driver.createVolumes(volumes, null);
-        System.out.println("\tvolume native id: " + volume.getNativeId() +
-                "\n\tAllocated capacity: " + volume.getAllocatedCapacity() +
-                "\n\tprovisioned capacity: " + volume.getProvisionedCapacity() +
-                "\n\twwn: " + volume.getWwn());
+
+        DriverTask task = driver.createVolumes(volumes, null);
+
+        System.out.println("\tVolume Native ID: " + volume.getNativeId() +
+                "\n\tAllocated Capacity: " + volume.getAllocatedCapacity() +
+                "\n\tProvisioned Capacity: " + volume.getProvisionedCapacity() +
+                "\n\tWWN: " + volume.getWwn());
+
+        System.out.println("\nTask Status:\n\t" + task.getStatus().toString());
+        System.out.println("Task Message:\n\t" + task.getMessage());
     }
 
     private void parseRestArgs(String[] args) {
         String paramFile = null;
         for (int i = 1; i < args.length; i++) {
             switch (args[i]) {
-                case "--fineprint":
-                    this.jsonFinePrint = true;
-                    break;
-                case "--nofineprint":
-                    this.jsonFinePrint = false;
-                    break;
                 case "--user":
                     this.user = args[++i];
                     break;
                 case "--pass":
                     this.pass = args[++i];
                     break;
-                case "--ip":
+                case "--ssl":
+                    this.useSsl = true;
+                    break;
+                case "--nossl":
+                    this.useSsl = false;
+                    break;
+                case "--host":
                     this.providerHost = args[++i];
                     break;
                 case "--port":
@@ -104,14 +103,11 @@ public class VolumeCommand extends CliCommand {
                 case "--sym":
                     this.sym = String.valueOf(args[++i]);
                     break;
-                case "--groupid":
-                    this.groupId = String.valueOf(args[++i]);
-                    break;
                 case "--poolid":
                     this.poolId = String.valueOf(args[++i]);
                     break;
-                case "--num_vol":
-                    this.num_vol = Integer.valueOf(args[++i]);
+                case "--groupid":
+                    this.groupId = String.valueOf(args[++i]);
                     break;
                 case "--capacity":
                     this.capacity = Long.valueOf(args[++i]);

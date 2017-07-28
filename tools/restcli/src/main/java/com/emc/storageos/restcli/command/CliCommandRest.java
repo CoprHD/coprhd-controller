@@ -5,15 +5,12 @@
 
 package com.emc.storageos.restcli.command;
 
-import com.emc.storageos.driver.restvmax.rest.BackendType;
-import com.emc.storageos.driver.restvmax.rest.RestAPI;
-import com.emc.storageos.driver.restvmax.rest.RestMethod;
-import com.emc.storageos.restcli.Util;
+import com.emc.storageos.driver.univmax.DriverUtil;
+import com.emc.storageos.driver.univmax.rest.RestClient;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import com.sun.jersey.api.client.ClientResponse;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -23,7 +20,10 @@ public class CliCommandRest extends CliCommand {
 
     private String user;
     private String pass;
-    private String url;
+    private boolean useSsl = true;
+    private String host;
+    private int port = 0;
+    private String endPoint;
     private String restParam;
     private RestMethod method = RestMethod.GET;
 
@@ -34,10 +34,14 @@ public class CliCommandRest extends CliCommand {
     public void usage() {
         System.out.println("Description:\n\tSend raw RESTful API requests.");
         System.out.println("Usage:");
-        System.out.println("\trestcli rest [--get] [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD] --url URL");
-        System.out.println("\trestcli rest --post [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD] --url URL --param <TEXT_FILE|->");
-        System.out.println("\trestcli rest --put [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD] --url URL");
-        System.out.println("\trestcli rest --delete [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD] --url URL");
+        System.out.println("\trestcli rest [--get] [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
+                " [--ssl|--nossl] --host IP[|NAME] [--port PORT] --endpoint ENDPOINT");
+        System.out.println("\trestcli rest --post [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
+                " [--ssl|--nossl] --host IP[|NAME] [--port PORT] --param <TEXT_FILE|-> --endpoint ENDPOINT");
+        System.out.println("\trestcli rest --put [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
+                " [--ssl|--nossl] --host IP[|NAME] [--port PORT] --param <TEXT_FILE|-> --endpoint ENDPOINT");
+        System.out.println("\trestcli rest --delete [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
+                " [--ssl|--nossl] --host IP[|NAME] [--port PORT] --endpoint ENDPOINT");
     }
 
     public void run(String[] args) {
@@ -45,56 +49,41 @@ public class CliCommandRest extends CliCommand {
             usage();
             return;
         }
-        ClientResponse cr = null;
-        String jestr;
         try {
             parseRestArgs(args);
+            RestClient client = new RestClient(useSsl, host, port, user, pass);
+            String rstr;
             switch (this.method) {
                 case GET:
-                    cr = RestAPI.get(this.url, false, BackendType.VMAX, this.user, this.pass);
+                    rstr = client.getJsonString(endPoint);
                     break;
                 case DELETE:
-                    cr = RestAPI.delete(this.url, false, BackendType.VMAX, this.user, this.pass);
+                    rstr = client.deleteJsonString(endPoint);
                     break;
                 case POST:
-                    cr = RestAPI.post(this.url, this.restParam, false, BackendType.VMAX, this.user, this.pass);
+                    rstr = client.postJsonString(endPoint, restParam);
                     break;
                 case PUT:
-                    cr = RestAPI.put(this.url, this.restParam, false, BackendType.VMAX, this.user, this.pass);
+                    rstr = client.putJsonString(endPoint, restParam);
                     break;
                 default:
                     throw new IllegalArgumentException("unsupported REST action: " + this.method.name());
             }
-            jestr = cr.getEntity(String.class);
-            int status = cr.getStatus();
-            if (status != 200) {
-                System.out.println("Status-Code: " + cr.getStatus());
-                if (status == 400) {
-                    if (this.method == RestMethod.POST) {
-                        System.out.println("rest param: " + this.restParam);
-                    }
-                }
-            } else {
-                if (this.jsonFinePrint) {
-                    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                    JsonParser jp = new JsonParser();
-                    JsonElement je = jp.parse(jestr);
-                    jestr = gson.toJson(je);
-                }
+            if (this.jsonFinePrint) {
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                JsonParser jp = new JsonParser();
+                JsonElement je = jp.parse(rstr);
+                rstr = gson.toJson(je);
             }
-            System.out.println(jestr);
+            System.out.println(rstr);
         } catch (Exception e) {
-            Util.printException(e);
+            System.out.println(DriverUtil.getStackTrace(e));
             usage();
-        } finally {
-            if (cr != null) {
-                cr.close();
-            }
         }
     }
 
     private void parseRestArgs(String[] args) {
-        String paramFile = null;
+        String paramFile;
         for (int i = 1; i < args.length; i++) {
             switch (args[i]) {
                 case "--fineprint":
@@ -109,8 +98,20 @@ public class CliCommandRest extends CliCommand {
                 case "--pass":
                     this.pass = args[++i];
                     break;
-                case "--url":
-                    this.url = args[++i];
+                case "--ssl":
+                    this.useSsl = true;
+                    break;
+                case "--nossl":
+                    this.useSsl = false;
+                    break;
+                case "--host":
+                    this.host = args[++i];
+                    break;
+                case "--port":
+                    this.port = Integer.valueOf(args[++i]);
+                    break;
+                case "--endpoint":
+                    this.endPoint = args[++i];
                     break;
                 case "--get":
                     this.method = RestMethod.GET;
@@ -144,10 +145,8 @@ public class CliCommandRest extends CliCommand {
                             this.restParam += s;
                         }
                         System.out.println("rest param: " + this.restParam);
-                        Gson gson = new Gson();
-                        gson.fromJson(this.restParam, Object.class);
                     } catch (Exception e) {
-                        Util.printException(e);
+                        System.out.println(DriverUtil.getStackTrace(e));
                         ex = true;
                     } finally {
                         try {
@@ -159,9 +158,9 @@ public class CliCommandRest extends CliCommand {
                             }
                         } catch (Exception e) {
                         }
-                        if (ex) {
-                            throw new IllegalArgumentException("Invalid json string for \"--param\": " + restParam);
-                        }
+                    }
+                    if (ex) {
+                        throw new IllegalArgumentException("Invalid json string for \"--param\": " + restParam);
                     }
                     break;
                 default:
@@ -185,5 +184,9 @@ public class CliCommandRest extends CliCommand {
             default:
                 break;
         }
+    }
+
+    enum RestMethod {
+        GET, POST, PUT, DELETE;
     }
 }

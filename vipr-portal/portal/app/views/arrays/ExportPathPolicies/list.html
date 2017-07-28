@@ -1,45 +1,32 @@
 #{extends 'main.html'/}
 
 #{set navSelected: ['nav.assets', 'nav.storageArrays']/}
-#{set 'title'}&{'StorageSystems.portGroup.title'}#{/set}
+#{set 'title'}&{'exportPathPolicies.title'}#{/set}
 
-#{breadcrumb.container}
-  #{breadcrumb.item @arrays.StorageSystems.list()}&{'StorageSystems.list.title'}#{/breadcrumb.item}
-  #{breadcrumb.item @arrays.StorageSystems.edit(storageSystemId)}${storageSystemName}#{/breadcrumb.item}
-   #{breadcrumb.item @arrays.StorageSystems.ports(storageSystemId)}&{'StorageSystems.listPorts.title'}#{/breadcrumb.item}
-#{/breadcrumb.container}
-
-#{DataTable.header titleKey:'StorageSystems.portGroup.title'/}
-#{DataTable.table id:'portGroups', 
+#{DataTable.header titleKey:'exportPathPolicies.title'/}
+#{DataTable.table id:'exportPathPolicy', 
                   dataTable:dataTable,
-                  source:@portGroupsJson(),
+                  source:@exportPathPoliciesJson(),
                   selectable:true}
   #{DataTable.buttonBar}
     #{Form.button name:'button.add', class:'success', icon:'plus', submit:'addForm'/}<!-- $("#createDialog").modal("show")'/} -->
     #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm', data:['enabled':'selected']/}
-
   #{/DataTable.buttonBar}
 #{/DataTable.table}
 
-%{
-  formFields = ['storageSystemId': storageSystemId]
-  
-}%
-
-#{DataTable.formAction @addPortGroup(), id:'addForm', table:'portGroups', fields:formFields/}
-#{DataTable.formAction @deletePortGroup(), id:'removeForm', table:'portGroups', fields:formFields/}
+#{DataTable.formAction @addExportPathPolicy(), id:'addForm', table:'exportPathPolicy', fields:formFields/}
+#{DataTable.formAction @deleteExportPathPolicy(), id:'removeForm', table:'exportPathPolicy', fields:formFields/}
 
 <!-- 
 #{Modal.dialog id:'createDialog'}
   #{Modal.header}
-    <h4 class="modal-title">&{'portGroup.create.title'}</h4> 
-    &{'portGroup.create.description'}
+    <h4 class="modal-title">&{'exportPathPolicy.create.title'}</h4> 
+    &{'exportPathPolicy.create.description'}
   #{/Modal.header}
-  #{form @addPortGroup(), id:'portGroup', class:'form form-horizontal'}
+  #{form @addExportPathPolicy(), id:'exportPathPolicy', class:'form form-horizontal'}
     #{Modal.body}
-      <input type="hidden" name="storageSystemId" value="${storageSystemId}">
       #{field 'name'}
-        %{ field.label = messages.get('portGroup.name') }%
+        %{ field.label = messages.get('exportPathPolicy.name') }%
         #{Form.inputTextControlGroup field:field/}
       #{/field}
     #{/Modal.body}
@@ -72,7 +59,7 @@ $(document).ready(function() {
 function renderLink(o, val) {
 	
 	var data = o.aData;
-    var url = #{jsAction @editPortGroup(':id',storageSystemId)/};
+    var url = #{jsAction @edit(exportPathPolicyId)/};
     var href = url(data);
 	
     return "<a href='"+href+"'>" + val + "</a>";

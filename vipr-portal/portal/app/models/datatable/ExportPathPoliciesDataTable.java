@@ -16,16 +16,16 @@ public class ExportPathPoliciesDataTable extends DataTable  {
         setDefaultSortField("name");
     }
     
-    public static class ExportPathParamsModel{
+    public static class ExportPathPoliciesModel{
         public URI id;
         public String name;
         public String description;
-        public ExportPathParamsModel(URI id, String name, String description) {
+        public ExportPathPoliciesModel(URI id, String name, String description) {
             super();
             this.id = id;
             this.name = name;
             this.description = description;
-        }       
+        }
     }
     
     public class StoragePortsDataTable extends StoragePortDataTable{

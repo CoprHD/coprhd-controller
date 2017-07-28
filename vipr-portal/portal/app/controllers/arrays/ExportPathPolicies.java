@@ -61,7 +61,7 @@ public class ExportPathPolicies extends ViprResourceController {
         public List<URI> storagePorts;
         public Integer maxInitiatorsPerPort;
 
-        public ExportPathPolicyForm form(ExportPathPolicyRestRep restRep){
+        public ExportPathPolicyForm form(ExportPathPolicyRestRep restRep) {
             this.id = restRep.getId().toString();
             this.name = restRep.getName();
             this.description = restRep.getDescription();
@@ -70,207 +70,200 @@ public class ExportPathPolicies extends ViprResourceController {
             this.pathsPerInitiator = restRep.getPathsPerInitiator();
             this.maxInitiatorsPerPort = restRep.getMaxInitiatorsPerPort();
             this.storagePorts = restRep.getStoragePorts();
-            
+
             return this;
         }
 
         public void validate(String formName) {
             Validation.required(formName + ".name", name);
             Validation.required(formName + ".description", description);
-            Validation.required(formName + ".storagePorts", storagePorts);
+            // Validation.required(formName + ".storagePorts", storagePorts);
         }
+
         public boolean isNew() {
             return StringUtils.isBlank(id);
         }
     }
 
-    public static void portGroups(String id) {
+    public static void exportPathPolices() {
         // addReferenceData();
 
-        StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         renderArgs.put("dataTable", dataTable);
-        renderArgs.put("storageSystemId", id);
-        renderArgs.put("storageSystemName", storageSystem.getName());
-        ExportPathPolicyForm portGroup = new ExportPathPolicyForm();
-        render("@listPortGroups", storageSystem, dataTable,portGroup);
+        ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm();
+        render("@listExportPathPolicies", dataTable, exportPathPolicyForm);
     }
 
-    public static void portGroupsJson(String storageId) {
-        List<ExportPathPoliciesDataTable.ExportPathParamsModel> results = Lists.newArrayList();
-        List<ExportPathPolicyRestRep> portGroups = getViprClient().exportPathPolicies().getPortGroups();
+    public static void exportPathPoliciesJson() {
+        List<ExportPathPoliciesDataTable.ExportPathPoliciesModel> results = Lists.newArrayList();
+        List<ExportPathPolicyRestRep> exportPathPolicies = getViprClient().exportPathPolicies().getExportPathPoliciesList();
 
-        for (ExportPathPolicyRestRep portGroup : portGroups) {
-            results.add(new ExportPathPoliciesDataTable.ExportPathParamsModel(portGroup.getId(), portGroup.getName(), portGroup
-                    .getDescription()));
+        for (ExportPathPolicyRestRep exportPathPolicy : exportPathPolicies) {
+            results.add(new ExportPathPoliciesDataTable.ExportPathPoliciesModel(
+                    exportPathPolicy.getId(), exportPathPolicy.getName(),
+                    exportPathPolicy.getDescription()));
         }
-        renderArgs.put("storageSystemId", storageId);
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
-    
-    private static void renderNumPathsArgs(){
+
+    private static void renderNumPathsArgs() {
         renderArgs.put(
                 "numPathsOptions",
                 StringOption.options(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
                         "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32" }, false));
     }
-    
-   // @FlashException(value = "portGroups", keep = true)
-    public static void addPortGroup(String storageSystemId) {
-        
-        ExportPathPolicyForm portGroup = new ExportPathPolicyForm();//createExportPathParams();//new ExportPathParameters();//
+
+    // @FlashException(value = "exportPathPolicies", keep = true)
+    public static void addExportPathPolicy(String storageSystemId) {
+        ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm();// createExportPathParams();//new ExportPathParameters();//
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         StoragePortsDataTable portDataTable = dataTable.new StoragePortsDataTable();
         PortSelectionDataTable portSelectionDataTable = dataTable.new PortSelectionDataTable();
-        renderArgs.put("storageSystemId", storageSystemId);
+
         renderNumPathsArgs();
-        //ExportPathParametersRestRep resp =getViprClient().exportPathParameters().create(input);
-        ///editPortGroup(resp.getId().toString(),storageSystemId);
-        render("@editPortGroup",portGroup, portDataTable, portSelectionDataTable);
-       
+        render("@edit", exportPathPolicyForm, portDataTable, portSelectionDataTable);
     }
-    
-    //@FlashException(value = "portGroups", keep = true)
-    public static void editPortGroup(String id, String storageSystemId) {
-        ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(id));
-        renderArgs.put("storageSystemId", storageSystemId);
-        renderArgs.put("pathParamId", id);
+
+    // @FlashException(value = "exportPathPolicies", keep = true)
+    public static void edit(String id) {
+        ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(id));
+        renderArgs.put("exportPathPolicyId", id);
         renderNumPathsArgs();
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
-        StoragePortsDataTable portDataTable = dataTable.new StoragePortsDataTable();
-        PortSelectionDataTable portSelectionDataTable = dataTable.new PortSelectionDataTable();
-        //StorageArrayPortDataTable portDataTable = new StorageArrayPortDataTable(storageSystem);
-        if (exportPathParametersRestRep != null) {
-            ExportPathPolicyForm portGroup = new ExportPathPolicyForm().form(exportPathParametersRestRep);
-            render(portGroup,portDataTable,portSelectionDataTable);
-        }
-        else {
+        // StorageArrayPortDataTable portDataTable = new StorageArrayPortDataTable(storageSystem);
+        if (exportPathPolicyRestRep != null) {
+            ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm().form(exportPathPolicyRestRep);
+            render(exportPathPolicyForm);
+        } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
-            portGroups(storageSystemId);
+            exportPathPolices();
         }
 
     }
-    @FlashException("portGroups")
-    public static void deletePortGroup(@As(",") String[] ids,String storageSystemId) {
+
+    // @FlashException("exportPathPolicies")
+    public static void deleteExportPathPolicy(@As(",") String[] ids, String storageSystemId) {
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
                 getViprClient().exportPathPolicies().delete(uri(id));
             }
             flash.success(MessagesUtils.get("exportPathParameters.deleted"));
         }
-        portGroups(storageSystemId);
+        exportPathPolices();
     }
 
-    @FlashException(keep = true, referrer = { "editPortGroup" })
-    public static void savePortGroup(ExportPathPolicyForm portGroup,String storageSystemId) {
-        if (portGroup == null) {
-            Logger.error("No port group parameters passed");
-            badRequest("No port group parameters passed");
+    @FlashException(keep = true, referrer = { "edit" })
+    public static void saveExportPathPolicy(ExportPathPolicyForm exportPathPolicy, String storageSystemId) {
+        if (exportPathPolicy == null) {
+            Logger.error("No export path policy provided");
+            badRequest("No export path policy provided");
             return;
         }
-       /* portGroup.validate("portGroup");
-        if (Validation.hasErrors()) {
-            Common.handleError();
-        }*/
-        portGroup.id = params.get("id");
-        if (portGroup.isNew()) {
-            
-            ExportPathPolicy input = createExportPathParams(portGroup);
+        /*
+         * portGroup.validate("portGroup");
+         * if (Validation.hasErrors()) {
+         * Common.handleError();
+         * }
+         */
+        exportPathPolicy.id = params.get("id");
+        if (exportPathPolicy.isNew()) {
+
+            ExportPathPolicy input = createExportPathPolicy(exportPathPolicy);
             getViprClient().exportPathPolicies().create(input); // FIXME: had "true" second arg
         } else {
-            ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(portGroup.id));
-            ExportPathPolicyUpdate input = updateExportPathParams(portGroup);
-            getViprClient().exportPathPolicies().update(exportPathParametersRestRep.getId(), input);
+            ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicy.id));
+            ExportPathPolicyUpdate input = updateExportPathPolicy(exportPathPolicy);
+            getViprClient().exportPathPolicies().update(exportPathPolicyRestRep.getId(), input);
         }
-        flash.success(MessagesUtils.get("portGroup.saved", portGroup.name));
-        portGroups(storageSystemId);
+        flash.success(MessagesUtils.get("exportPathPolicy.saved", exportPathPolicy.name));
+        exportPathPolices();
     }
-    
-    public static ExportPathPolicy createExportPathParams( ExportPathPolicyForm portGroup ) {
-        ExportPathPolicy pathParam = new ExportPathPolicy();
-        pathParam.setName(portGroup.name.trim());
-        pathParam.setDescription(portGroup.description.trim());
-        pathParam.setMaxPaths(portGroup.maxPaths);
-        pathParam.setMinPaths(portGroup.minPaths);
-        pathParam.setPathsPerInitiator(portGroup.pathsPerInitiator);
-        pathParam.setMaxInitiatorsPerPort(portGroup.maxInitiatorsPerPort);
 
-        pathParam.setStoragePorts(portGroup.storagePorts);
-        return pathParam;
+    public static ExportPathPolicy createExportPathPolicy(ExportPathPolicyForm exportPathPolicyForm) {
+        ExportPathPolicy exportPathPolicy = new ExportPathPolicy();
+        exportPathPolicy.setName(exportPathPolicyForm.name.trim());
+        exportPathPolicy.setDescription(exportPathPolicyForm.description.trim());
+        exportPathPolicy.setMaxPaths(exportPathPolicyForm.maxPaths);
+        exportPathPolicy.setMinPaths(exportPathPolicyForm.minPaths);
+        exportPathPolicy.setPathsPerInitiator(exportPathPolicyForm.pathsPerInitiator);
+        exportPathPolicy.setMaxInitiatorsPerPort(exportPathPolicyForm.maxInitiatorsPerPort);
+
+        exportPathPolicy.setStoragePorts(exportPathPolicyForm.storagePorts);
+        return exportPathPolicy;
     }
-    
-    public static ExportPathPolicyUpdate updateExportPathParams( ExportPathPolicyForm portGroup ) {
-        ExportPathPolicyUpdate pathParam = new ExportPathPolicyUpdate();
-        pathParam.setName(portGroup.name.trim());
-        pathParam.setDescription(portGroup.description.trim());
-        pathParam.setMaxPaths(portGroup.maxPaths);
-        pathParam.setMinPaths(portGroup.minPaths);
-        pathParam.setPathsPerInitiator(portGroup.pathsPerInitiator);
-        pathParam.setMaxInitiatorsPerPort(portGroup.maxInitiatorsPerPort);
-        return pathParam;
+
+    public static ExportPathPolicyUpdate updateExportPathPolicy(ExportPathPolicyForm exportPathPolicyForm) {
+        ExportPathPolicyUpdate exportPathPolicyUpdate = new ExportPathPolicyUpdate();
+        exportPathPolicyUpdate.setName(exportPathPolicyForm.name.trim());
+        exportPathPolicyUpdate.setDescription(exportPathPolicyForm.description.trim());
+        exportPathPolicyUpdate.setMaxPaths(exportPathPolicyForm.maxPaths);
+        exportPathPolicyUpdate.setMinPaths(exportPathPolicyForm.minPaths);
+        exportPathPolicyUpdate.setPathsPerInitiator(exportPathPolicyForm.pathsPerInitiator);
+        exportPathPolicyUpdate.setMaxInitiatorsPerPort(exportPathPolicyForm.maxInitiatorsPerPort);
+        return exportPathPolicyUpdate;
     }
-    
-    @FlashException(referrer = { "editPortGroup" })
-    public static void addPorts(String pathParamId,String storageSystemId, String portIds, String pgName, String pgDesc) {
-         
-        if(pathParamId == null || "".equals(pathParamId)){
+
+    @FlashException(referrer = { "edit" })
+    public static void addStoragePortsToPolicy(String exportPathPolicyId, String storageSystemId, String storagePortIds, String pgName, String pgDesc) {
+
+        if (exportPathPolicyId == null || "".equals(exportPathPolicyId)) {
             ExportPathPolicy input = new ExportPathPolicy();
             input.setName(pgName);
             input.setDescription(pgDesc);
             ExportPathPolicyRestRep rep = getViprClient().exportPathPolicies().create(input);  // FIXME: had "true" second arg
-            pathParamId = rep.getId().toString();
+            exportPathPolicyId = rep.getId().toString();
         }
-        String [] ids = portIds.split(",");
-        ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(pathParamId));
-        List<URI> portsInDb = exportPathParametersRestRep.getStoragePorts();
-            List<URI> portsToAdd = Lists.newArrayList();
-            for (String value : ids) {
-                if (StringUtils.isNotBlank(value)) {
-                    if (!portsInDb.contains(uri(value))) {
-                        portsToAdd.add(uri(value));
-                    }   
+        String[] ids = storagePortIds.split(",");
+        ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicyId));
+        List<URI> storagePortsInDb = exportPathParametersRestRep.getStoragePorts();
+        List<URI> portsToAdd = Lists.newArrayList();
+        for (String value : ids) {
+            if (StringUtils.isNotBlank(value)) {
+                if (!storagePortsInDb.contains(uri(value))) {
+                    portsToAdd.add(uri(value));
                 }
             }
-            ExportPathPolicyUpdate pathParam = new ExportPathPolicyUpdate();
-            StoragePorts  storagePorts = new StoragePorts(); 
-            if (!portsToAdd.isEmpty()) {
-                storagePorts.setStoragePorts(portsToAdd);
-                pathParam.setPortsToAdd(storagePorts.getStoragePorts());
-            }
-            getViprClient().exportPathPolicies().update(exportPathParametersRestRep.getId(), pathParam);
-        
-        editPortGroup(pathParamId,storageSystemId);
-        
+        }
+        ExportPathPolicyUpdate pathParam = new ExportPathPolicyUpdate();
+        StoragePorts storagePorts = new StoragePorts();
+        if (!portsToAdd.isEmpty()) {
+            storagePorts.setStoragePorts(portsToAdd);
+            pathParam.setPortsToAdd(storagePorts.getStoragePorts());
+        }
+        getViprClient().exportPathPolicies().update(exportPathParametersRestRep.getId(), pathParam);
+
+        edit(exportPathPolicyId);
+
     }
-    
-    @FlashException(referrer = { "editPortGroup" })
-    public static void deletePorts(String pathParamId,String storageSystemId, @As(",") String[] ids) {
-        
-        ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(pathParamId));
-        List<URI> portsInDb = exportPathParametersRestRep.getStoragePorts();
-            List<URI> portsToRemove = Lists.newArrayList();
-            for (String value : ids) {
-                if (StringUtils.isNotBlank(value)) {
-                    if (portsInDb.contains(uri(value))) {
-                        portsToRemove.add(uri(value));
-                    }   
+
+    @FlashException(referrer = { "edit" })
+    public static void removeStoragePortsFromPolicy(String exportPathPolicyId, @As(",") String[] ids) {
+
+        ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicyId));
+        List<URI> exportPathPoliciesStoragePortsInDb = exportPathPolicyRestRep.getStoragePorts();
+        List<URI> storagePortsToRemove = Lists.newArrayList();
+        for (String value : ids) {
+            if (StringUtils.isNotBlank(value)) {
+                if (exportPathPoliciesStoragePortsInDb.contains(uri(value))) {
+                    storagePortsToRemove.add(uri(value));
                 }
             }
-            ExportPathPolicyUpdate pathParam = new ExportPathPolicyUpdate();
-            StoragePorts  storagePorts = new StoragePorts(); 
-            if (!portsToRemove.isEmpty()) {
-                storagePorts.setStoragePorts(portsToRemove);
-                pathParam.setPortsToRemove(storagePorts.getStoragePorts());
-            }
-            getViprClient().exportPathPolicies().update(exportPathParametersRestRep.getId(), pathParam);
-        editPortGroup(pathParamId,storageSystemId);
+        }
+        ExportPathPolicyUpdate exportPathPolicyUpdate = new ExportPathPolicyUpdate();
+        StoragePorts storagePorts = new StoragePorts();
+        if (!storagePortsToRemove.isEmpty()) {
+            storagePorts.setStoragePorts(storagePortsToRemove);
+            exportPathPolicyUpdate.setPortsToRemove(storagePorts.getStoragePorts());
+        }
+        getViprClient().exportPathPolicies().update(exportPathPolicyRestRep.getId(), exportPathPolicyUpdate);
+        edit(exportPathPolicyId);
     }
-    
-    public static void storagePortsJson(String pathParamId) {
+
+    public static void storagePortsJson(String exportPathPolicyId) {
         List<StoragePortInfo> results = Lists.newArrayList();
         
-        if (pathParamId != null && !"null".equals(pathParamId)) {
-            ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(pathParamId));
+        if (exportPathPolicyId != null && !"null".equals(exportPathPolicyId)) {
+            ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicyId));
             List<URI> storagePortUris = exportPathParametersRestRep.getStoragePorts();
             
             List<StoragePortRestRep> storagePorts = StoragePortUtils

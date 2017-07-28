@@ -306,7 +306,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -387,7 +387,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         // ALL EXPORTS
         List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
         List<ExportRule> exportsToprocess = new ArrayList<>();
-        if(existingDBExportRule != null && !existingDBExportRule.isEmpty()) {
+        if (existingDBExportRule != null && !existingDBExportRule.isEmpty()) {
             for (ExportRule rule : existingDBExportRule) {
                 if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
                     exportsToprocess.add(rule);
@@ -468,7 +468,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 }
 
                 List<VNXFileExport> exportList = new ArrayList<VNXFileExport>();
-                if(!exportsToprocess.isEmpty()) {
+                if (!exportsToprocess.isEmpty()) {
                     for (ExportRule rule : exportsToprocess) {
 
                         VNXFileExport vnxExp = null;
@@ -655,7 +655,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             if (null == vnxComm) {
                 throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
             }
-            if(exportList != null && !exportList.isEmpty()) {
+            if (exportList != null && !exportList.isEmpty()) {
                 for (int expCount = 0; expCount < exportList.size(); expCount++) {
                     List<String> endPoints = new ArrayList<String>();
                     FileExport export = exportList.get(expCount);
@@ -712,7 +712,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
         Long newFsExpandSize = args.getNewFSCapacity();
 
-        if(newFsExpandSize != null) {
+        if (newFsExpandSize != null) {
             if (args.getNewFSCapacity() % BYTESPERMB == 0) {
                 newFsExpandSize = newFsExpandSize / BYTESPERMB;
             } else {
@@ -908,14 +908,14 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doDeleteShares(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-        //SMB sharing is not supported.
+        // SMB sharing is not supported.
         return BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.operationNotSupported());
     }
 
     @Override
     public BiosCommandResult doModifyFS(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-        //Modify FS NOT supported for VNX.
+        // Modify FS NOT supported for VNX.
         return BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.operationNotSupported());
     }
 
@@ -970,7 +970,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         _log.info("FileShare, Snapshot {} {}", args.getFsUUID(), args.getSnapshotId());
         _log.info("FSName: {}", args.getFsName());
         _log.info("SnapShotName: {}", args.getSnapshotName());
-        int snapNativeId = 0;
         XMLApiResult result = null;
         ApplicationContext context = null;
         try {
@@ -1008,7 +1007,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1022,6 +1021,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     /**
      *
      * get VNXFileExports from FSExportMap
+     * 
      * @param existingExps
      * @return
      */
@@ -1047,6 +1047,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     /**
      * get VNXFileExports from FileExports
+     * 
      * @param exports
      * @return
      */
@@ -1086,7 +1087,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
             result = vnxComm.doDeleteSnapshot(storage, args.getSnapNativeId(), args.getSnapshotName(), true);
         } catch (VNXException e) {
-            throw new DeviceControllerException(e);
+            BiosCommandResult.createErrorResult(e);
         } finally {
             clearContext(context);
         }
@@ -1476,7 +1477,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             String rootList = null;
 
             vnxExportMap = vnxComm.getNFSExport(storage, args);
-            if(vnxExportMap != null) {
+            if (vnxExportMap != null) {
                 readOnlyList = vnxExportMap.get("ro");
                 readWriteList = vnxExportMap.get("rw");
                 rootList = vnxExportMap.get("root");

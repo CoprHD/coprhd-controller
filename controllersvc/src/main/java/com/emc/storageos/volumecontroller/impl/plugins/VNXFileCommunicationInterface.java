@@ -981,24 +981,19 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      */
     private HashMap<String, List<StoragePort>> discoverPorts(StorageSystem system, Set<StorageHADomain> movers)
             throws VNXFileCollectionException, VNXException, IOException {
-
+        _logger.info("Start storage port discovery for storage system {}", system.getId());
         HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
 
         List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
         List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
-
         List<PhysicalNAS> modifiedServers = new ArrayList<PhysicalNAS>();
-
-        _logger.info("Start storage port discovery for storage system {}", system.getId());
 
         // Retrieve the list of data movers interfaces for the VNX File device.
         List<VNXDataMoverIntf> allDmIntfs = getPorts(system);
-
         List<VNXVdm> vdms = getVdmPortGroups(system);
 
         // Filter VDM ports
-        List<VNXDataMoverIntf> dataMovers = null;
-        Map<String, VNXDataMoverIntf> dmIntMap = new HashMap();
+        Map<String, VNXDataMoverIntf> dmIntMap = new HashMap<String, VNXDataMoverIntf>();
 
         for (VNXDataMoverIntf intf : allDmIntfs) {
             _logger.info("getPorts Adding {} : {}", intf.getName(), intf.getIpAddress());
@@ -1011,11 +1006,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         // collect VDM interfaces
         if (vdms != null && !vdms.isEmpty()) {
+            Map<String, String> vdmIntfs = null;
             for (VNXVdm vdm : vdms) {
                 // Sometimes getVdmPortGroups(system) method does not collect all VDM interfaces,
                 // So running Collect NFS/CIFS interfaces from nas_server -info command. This will return
                 // Interfaces assigned to VDM and not thru CIFS servers
-                Map<String, String> vdmIntfs = sshDmApi.getVDMInterfaces(vdm.getVdmName());
+                vdmIntfs = sshDmApi.getVDMInterfaces(vdm.getVdmName());
                 if (!vdmIntfs.isEmpty()) {
                     for (String vdmIF : vdmIntfs.keySet()) {
                         _logger.info("Remove VDM interface {}", vdmIF);
@@ -2161,10 +2157,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         URI moverURI = null;
         if (storageHADomain.getVirtual() == true) {
             VirtualNAS virtualNAS = findvNasByNativeId(storageSystem, storageHADomain.getName());
-            moverURI = virtualNAS.getId();
+            if (virtualNAS != null) {
+                moverURI = virtualNAS.getId();
+            }
         } else {
             PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, storageHADomain.getName());
-            moverURI = physicalNAS.getId();
+            if (physicalNAS != null) {
+                moverURI = physicalNAS.getId();
+            }
         }
         return moverURI;
     }
@@ -2956,7 +2956,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         List<VNXDataMoverIntf> dataMoverInterfaces = null;
         List<VNXDataMoverIntf> vdmInterfaces = new ArrayList<VNXDataMoverIntf>();
-        Map<String, VNXDataMoverIntf> dmIntMap = new HashMap();
+        Map<String, VNXDataMoverIntf> dmIntMap = new HashMap<String, VNXDataMoverIntf>();
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
@@ -3005,6 +3005,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return vdmInterfaces;
     }
 
+    /**
+     * call to get all vnxfile system from Device
+     * 
+     * @param system
+     * @return
+     * @throws VNXException
+     */
     private List<VNXFileSystem> getAllFileSystem(final StorageSystem system)
             throws VNXException {
 
@@ -3025,6 +3032,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return fileSystems;
     }
 
+    /**
+     * call to get all quota tree from storage system
+     * 
+     * @param system
+     * @return
+     * @throws VNXException
+     */
     private List<TreeQuota> getAllQuotaTrees(final StorageSystem system)
             throws VNXException {
 
@@ -3080,7 +3094,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             // Assign storage port to unmanaged FS
             vnxufs.getFileSystemInformation().remove(UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_PORT.toString());
-            if (storagePort != null) {
+            if (storagePort != null && storagePort.getId() != null) {
                 StringSet storagePorts = new StringSet();
                 storagePorts.add(storagePort.getId().toString());
                 vnxufs.getFileSystemInformation().put(
@@ -3236,9 +3250,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             String exportPath, Map<String, String> fsExportInfo, StoragePort storagePort) {
 
         try {
-
             // Assign storage port to unmanaged FS
-            if (storagePort != null) {
+            if (storagePort != null && storagePort.getId() != null) {
                 StringSet storagePorts = new StringSet();
                 storagePorts.add(storagePort.getId().toString());
                 vnxufs.getFileSystemInformation().remove(UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_PORT.toString());
@@ -3671,6 +3684,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return unManagedFileSystem;
     }
 
+    /**
+     * set vnxfile request params
+     * 
+     * @param system
+     * @return
+     */
     private Map<String, Object> getRequestParamsMap(final StorageSystem system) {
 
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();

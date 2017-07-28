@@ -4704,7 +4704,7 @@ public class FileService extends TaskResourceService {
             boolean validTarget = false;
 
             if (targetFs != null) {
-                validTarget = FileServiceUtils.validateTarget(targetFs, projectURI, targertVarrayURIs, _dbClient);
+                validTarget = FileServiceUtils.validateTarget(targetFs, fs.getVirtualPool(), projectURI, targertVarrayURIs, _dbClient);
             }
 
             // no target FS which implies that the target FS needs to be created

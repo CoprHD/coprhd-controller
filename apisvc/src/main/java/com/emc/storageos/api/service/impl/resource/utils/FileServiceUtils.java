@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FileShare;
@@ -34,21 +35,21 @@ public class FileServiceUtils {
      * 
      * @param storageSys
      * @param filePath
-     * @param _dbClient
+     * @param dbClient
      * @return
      */
-    public static FileShare getFileSystemUsingNativeGuid(StorageSystem storageSys, String filePath, DbClient _dbClient) {
+    public static FileShare getFileSystemUsingNativeGuid(StorageSystem storageSys, String filePath, DbClient dbClient) {
         FileShare targetFs = null;
         String fileShareNativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSys.getSystemType(), storageSys.getSerialNumber(),
                 filePath);
 
         // Check if the target FS in the islon syncIQ policy exitst in ViPR DB
         URIQueryResultList queryResult = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSystemNativeGUIdConstraint(fileShareNativeGuid), queryResult);
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileSystemNativeGUIdConstraint(fileShareNativeGuid), queryResult);
         Iterator<URI> iter = queryResult.iterator();
         while (iter.hasNext()) {
             URI fsURI = iter.next();
-            targetFs = _dbClient.queryObject(FileShare.class, fsURI);
+            targetFs = dbClient.queryObject(FileShare.class, fsURI);
         }
         return targetFs;
     }
@@ -60,10 +61,10 @@ public class FileServiceUtils {
      * 
      * @param targetStorage
      * @param srcSys
-     * @param _dbClient
+     * @param dbClient
      * @return
      */
-    public static StorageSystem getTargetStorageSystem(String targetStorage, StorageSystem srcSys, DbClient _dbClient) {
+    public static StorageSystem getTargetStorageSystem(String targetStorage, StorageSystem srcSys, DbClient dbClient) {
         // Handle the local target systems
         StorageSystem targetSys = null;
         InetAddress address = null;
@@ -83,68 +84,75 @@ public class FileServiceUtils {
         }
 
         // Querying the targetSys if its storagePort IP Address
-        targetSys = queryStorageSystemWithStoragePort(address.getHostAddress(), _dbClient);
+        targetSys = queryStorageSystemWithStoragePort(address.getHostAddress(), dbClient);
         if (targetSys != null) {
             return targetSys;
         }
 
         // Querying the targetSys if its storagePort FQDN
-        targetSys = queryStorageSystemWithStoragePort(address.getHostName(), _dbClient);
+        targetSys = queryStorageSystemWithStoragePort(address.getHostName(), dbClient);
         if (targetSys != null) {
             return targetSys;
         }
 
         // Querying the targetSys if its StorageSystem IP Address
-        targetSys = queryStorageSystem(address.getHostAddress(), _dbClient);
+        targetSys = queryStorageSystem(address.getHostAddress(), dbClient);
         if (targetSys != null) {
             return targetSys;
         }
 
         // Querying the targetSys if its FQDN
-        targetSys = queryStorageSystem(address.getHostName(), _dbClient);
+        targetSys = queryStorageSystem(address.getHostName(), dbClient);
         return targetSys;
     }
 
-    private static StorageSystem queryStorageSystemWithStoragePort(String aldId, DbClient _dbClient) {
+    private static StorageSystem queryStorageSystemWithStoragePort(String aldId, DbClient dbClient) {
         StorageSystem targetSys = null;
         URIQueryResultList queryResult = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(aldId), queryResult);
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(aldId), queryResult);
         Iterator<URI> iter = queryResult.iterator();
         while (iter.hasNext()) {
             URI storagePortURI = iter.next();
-            StoragePort sPort = _dbClient.queryObject(StoragePort.class, storagePortURI);
+            StoragePort sPort = dbClient.queryObject(StoragePort.class, storagePortURI);
             if (sPort != null) {
-                targetSys = _dbClient.queryObject(StorageSystem.class, sPort.getStorageDevice());
+                targetSys = dbClient.queryObject(StorageSystem.class, sPort.getStorageDevice());
             }
         }
         return targetSys;
     }
 
-    private static StorageSystem queryStorageSystem(String id, DbClient _dbClient) {
+    private static StorageSystem queryStorageSystem(String id, DbClient dbClient) {
         StorageSystem targetSys = null;
         URIQueryResultList queryResult = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByIpAddressConstraint(id),
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByIpAddressConstraint(id),
                 queryResult);
         Iterator<URI> iter = queryResult.iterator();
         while (iter.hasNext()) {
             URI storageURI = iter.next();
-            targetSys = _dbClient.queryObject(StorageSystem.class, storageURI);
+            targetSys = dbClient.queryObject(StorageSystem.class, storageURI);
         }
         return targetSys;
     }
 
     /**
      * 
-     * Validates target system for compliance with vpool capabilities, same project and target varray.
+     * Validates target system for compliance with vpool, vpool capabilities, same project and target varray.
      * 
      * @param targetFs
      * @param project
+     * @param sourceVpoolURI
      * @param targertVarrayURIs
-     * @param _dbClient
+     * @param dbClient
      * @return
      */
-    public static boolean validateTarget(FileShare targetFs, URI project, Set<URI> targertVarrayURIs, DbClient _dbClient) {
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, targetFs.getVirtualPool());
+    public static boolean validateTarget(FileShare targetFs, URI sourceVpoolURI, URI project, Set<URI> targertVarrayURIs,
+            DbClient dbClient) {
+        // Checking if the source and target vpool is same
+        if (!URIUtil.identical(sourceVpoolURI, targetFs.getVirtualPool())) {
+            _log.error("The target fs vpool does not match the source fs vpool");
+            return false;
+        }
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, targetFs.getVirtualPool());
         // checking if the vpool of the target fs is replication capable
         if (!vpool.getAllowFilePolicyAtFSLevel()) {
             _log.error("The target fs vpool does not allow file replication policy at filesystem level");

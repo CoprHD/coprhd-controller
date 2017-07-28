@@ -1059,12 +1059,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $( '.jsplumb-endpoint' ).each(function( index, item ) {
                     $(item).css( "opacity", "" );
             });
-
-            //Glow logic
-            /*$( '.item , #End' ).each(function( index, item ) {
-                $(item).removeClass('glow-pass');
-                $(item).removeClass('glow-fail');
-            });*/
         });
 
         jspInstance.bind("beforeDrop", function (info) {

@@ -151,8 +151,8 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     if (logNames != null) {
                         for (String nodeId : nodeIds) {
                             for(String logName : logNames) {
-                                //String logPath = String.format("%s/logs/%s_%s_%s.log", dataFiledir, logName, nodeId, nodeId);
-                                String logPath = String.format("%s/logs/%s_%s_%s.log", "/var", logName, nodeId, nodeId);
+                                String logPath = String.format("%s/logs/%s_%s_%s.log", dataFiledir, logName, nodeId, nodeId);
+                                //String logPath = String.format("%s/log/%s_%s_%s.log", "/var", logName, nodeId, nodeId);
                                 writeLogs(nodeId, nodeId, logName, logParam, logPath);
                             }
 

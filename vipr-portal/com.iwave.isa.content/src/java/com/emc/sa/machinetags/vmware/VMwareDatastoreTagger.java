@@ -4,6 +4,19 @@
  */
 package com.emc.sa.machinetags.vmware;
 
+import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.DATACENTER;
+import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.DATASTORE;
+import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.MOUNT_POINT;
+import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.NAMESPACE;
+import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.VCENTER;
+
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.MachineTag;
 import com.emc.sa.machinetags.MachineTagUtils;
@@ -14,14 +27,6 @@ import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
-import org.apache.commons.lang.StringUtils;
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.*;
 
 public class VMwareDatastoreTagger {
 
@@ -117,7 +122,7 @@ public class VMwareDatastoreTagger {
     }
 
     public Integer addDatastoreTagsToFilesystem(URI filesystemId, URI vcenterId, URI datacenterId, String datastoreName,
-            String nfsMountPoint) {
+            String nfsMountPoint, List<String> endpoints) {
         final FileShareRestRep filesystem = client.fileSystems().get(filesystemId);
         final MachineTagsCollection tags = getFileSystemTags(filesystem);
         for (int i = 1; i < Integer.MAX_VALUE; i++) {
@@ -125,7 +130,7 @@ public class VMwareDatastoreTagger {
             if (datastoreTag == null) {
                 final Integer index = Integer.valueOf(i);
                 final DatastoreMachineTag tag = new DatastoreMachineTag(index, vcenterId.toString(),
-                        datacenterId.toString(), datastoreName, nfsMountPoint);
+                        datacenterId.toString(), datastoreName, nfsMountPoint, endpoints);
                 addDatastoreTagsToFilesystem(filesystemId, tag);
                 return Integer.valueOf(i);
             }

@@ -133,7 +133,7 @@ destroy:
 	@rm -fr $(WORKSPACE)/output
 	@rm -fr $(WORKSPACE)/zypper
 
-appliance: | ovf vmx box qcow2 tgz
+appliance: | ovf
 
 ovf: | $(OVF)
 	$(call targetLog,+)

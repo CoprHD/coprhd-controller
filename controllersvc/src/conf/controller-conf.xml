@@ -466,7 +466,7 @@
 	
     <bean id="dellsc" class="com.emc.storageos.driver.dellsc.DellSCStorageDriver"/>
 
-    <bean id="restvmax" class="com.emc.storageos.driver.restvmax.RestVMAXStorageDriver"/>
+    <bean id="restvmax" class="com.emc.storageos.driver.univmax.UniVmaxStorageDriver"/>
 
     <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">
         <property name="dbClient" ref="dbclient"/>

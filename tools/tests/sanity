@@ -803,6 +803,7 @@ export BOURNE_IPADDR="$BOURNE_IP"
 
 source sanity_utils
 source subs/zones
+source export-tests/common_subs.sh
 
 # search configuration
 TAG=$(tr -dc A-Za-z0-9_ < /dev/urandom | head -c 4)
@@ -3224,7 +3225,7 @@ vplex_tests()
         if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
             echo "**** Checking no remaining zones"
             fabricid=`echo ${CLUSTER1NET_NAME} | sed 's/VSAN_//'`
-            run_noundo verifynozones ${fabricid} ${host}
+            run_noundo verify_no_zones ${fabricid} ${host}
         fi
 
         echo "**** Deleting Host"

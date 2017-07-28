@@ -27,4 +27,7 @@ public interface VMAXErrors {
 
     @DeclareServiceCode(ServiceCode.UNISPHERE_PROVIDER_UNAVAILABLE)
     public ServiceError unableToCallStorageProvider(final String cause);
+
+    @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
+    public ServiceError methodFailed(final String methodName, final Throwable cause);
 }

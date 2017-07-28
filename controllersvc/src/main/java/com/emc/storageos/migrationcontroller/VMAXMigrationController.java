@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 DELL EMC
+ * All Rights Reserved
+ */
 package com.emc.storageos.migrationcontroller;
 
 import static java.lang.String.format;
@@ -17,8 +21,9 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationEnvironmentTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationWorkflowCompleter;
-import com.emc.storageos.volumecontroller.impl.vmax.VMAXRestStorageDevice;
+import com.emc.storageos.volumecontroller.impl.vmax.VMAXStorageDevice;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
@@ -30,7 +35,7 @@ public class VMAXMigrationController implements MigrationController {
 
     private DbClient dbClient;
     private WorkflowService workflowService;
-    private VMAXRestStorageDevice vmaxRestStorageDevice;
+    private VMAXStorageDevice vmaxStorageDevice;
 
     private static final String MIGRATION_CREATE_ENVIRONMENT_WF_NAME = "MIGRATION_CREATE_ENVIRONMENT_WORKFLOW";
     private static final String MIGRATION_REMOVE_ENVIRONMENT_WF_NAME = "MIGRATION_REMOVE_ENVIRONMENT_WORKFLOW";
@@ -60,12 +65,12 @@ public class VMAXMigrationController implements MigrationController {
         this.workflowService = workflowService;
     }
 
-    public VMAXRestStorageDevice getVMAXRestStorageDevice() {
-        return vmaxRestStorageDevice;
+    public VMAXStorageDevice getVmaxStorageDevice() {
+        return vmaxStorageDevice;
     }
 
-    public void setVMAXRestStorageDevice(final VMAXRestStorageDevice vmaxRestStorageDevice) {
-        this.vmaxRestStorageDevice = vmaxRestStorageDevice;
+    public void setVmaxStorageDevice(final VMAXStorageDevice vmaxStorageDevice) {
+        this.vmaxStorageDevice = vmaxStorageDevice;
     }
 
     @Override
@@ -292,53 +297,71 @@ public class VMAXMigrationController implements MigrationController {
         }
     }
 
-    private Workflow.Method createMigrationEnvironmentMethod(URI sourceSystem, URI targetSystem) {
-        return new Workflow.Method("createMigrationEnvironment", sourceSystem, targetSystem);
+    private Workflow.Method createMigrationEnvironmentMethod(URI sourceSystemURI, URI targetSystemURI) {
+        return new Workflow.Method("createMigrationEnvironment", sourceSystemURI, targetSystemURI);
     }
 
-    public void createMigrationEnvironment(URI sourceSystem, URI targetSystem, String opId)
+    /**
+     * Create migration environment
+     *
+     * @param sourceSystemURI
+     * @param targetSystemURI
+     * @param opId
+     * @throws ControllerException
+     */
+    public void createMigrationEnvironment(URI sourceSystemURI, URI targetSystemURI, String opId)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
-            TaskCompleter completer = new MigrationEnvironmentTaskCompleter(sourceSystem, opId);
-            getVMAXRestStorageDevice().
-                    doCreateMigrationEnvironment(storage, targetSystem, completer);
+            StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetSystemURI);
+            TaskCompleter completer = new MigrationEnvironmentTaskCompleter(sourceSystemURI, opId);
+            getVmaxStorageDevice().
+                    doCreateMigrationEnvironment(sourceSystem, targetSystem, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
         }
     }
 
-    private Workflow.Method removeMigrationEnvironmentMethod(URI sourceSystem, URI targetSystem) {
-        return new Workflow.Method("removeMigrationEnvironment", sourceSystem, targetSystem);
+    private Workflow.Method removeMigrationEnvironmentMethod(URI sourceSystemURI, URI targetSystemURI) {
+        return new Workflow.Method("removeMigrationEnvironment", sourceSystemURI, targetSystemURI);
     }
 
-    public void removeMigrationEnvironment(URI sourceSystem, URI targetSystem, String opId)
+    /**
+     * Remove migration environment
+     *
+     * @param sourceSystemURI
+     * @param targetSystemURI
+     * @param opId
+     * @throws ControllerException
+     */
+    public void removeMigrationEnvironment(URI sourceSystemURI, URI targetSystemURI, String opId)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
-            TaskCompleter completer = new MigrationEnvironmentTaskCompleter(sourceSystem, opId);
-            getVMAXRestStorageDevice().
-                    doRemoveMigrationEnvironment(storage, targetSystem, completer);
+            StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetSystemURI);
+            TaskCompleter completer = new MigrationEnvironmentTaskCompleter(sourceSystemURI, opId);
+            getVmaxStorageDevice().
+                    doRemoveMigrationEnvironment(sourceSystem, targetSystem, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
         }
     }
 
-    private Workflow.Method createMigrationMethod(URI sourceSystem, URI cgURI, URI migrationURI, URI targetSystem) {
-        return new Workflow.Method("createMigration", sourceSystem, cgURI, migrationURI, targetSystem);
+    private Workflow.Method createMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI, URI targetSystem) {
+        return new Workflow.Method("createMigration", sourceSystemURI, cgURI, migrationURI, targetSystem);
     }
 
-    public void createMigration(URI sourceSystem, URI cgURI, URI migrationURI, URI targetSystem, String opId)
+    public void createMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, URI targetSystem, String opId)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(migrationURI, opId);
-            getVMAXRestStorageDevice().
+            getVmaxStorageDevice().
                     doCreateMigration(storage, cgURI, targetSystem, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -346,16 +369,16 @@ public class VMAXMigrationController implements MigrationController {
         }
     }
 
-    private Workflow.Method cutoverMigrationMethod(URI sourceSystem, URI cgURI, URI migrationURI) {
-        return new Workflow.Method("cutoverMigration", sourceSystem, cgURI, migrationURI);
+    private Workflow.Method cutoverMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI) {
+        return new Workflow.Method("cutoverMigration", sourceSystemURI, cgURI, migrationURI);
     }
 
-    public void cutoverMigration(URI sourceSystem, URI cgURI, URI migrationURI, String opId) throws ControllerException {
+    public void cutoverMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, String opId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(migrationURI, opId);
-            getVMAXRestStorageDevice().
+            getVmaxStorageDevice().
                     doCutoverMigration(storage, cgURI, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -363,16 +386,16 @@ public class VMAXMigrationController implements MigrationController {
         }
     }
 
-    private Workflow.Method commitMigrationMethod(URI sourceSystem, URI cgURI, URI migrationURI) {
-        return new Workflow.Method("commitMigration", sourceSystem, cgURI, migrationURI);
+    private Workflow.Method commitMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI) {
+        return new Workflow.Method("commitMigration", sourceSystemURI, cgURI, migrationURI);
     }
 
-    public void commitMigration(URI sourceSystem, URI cgURI, URI migrationURI, String opId) throws ControllerException {
+    public void commitMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, String opId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(migrationURI, opId);
-            getVMAXRestStorageDevice().
+            getVmaxStorageDevice().
                     doCommitMigration(storage, cgURI, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -380,16 +403,16 @@ public class VMAXMigrationController implements MigrationController {
         }
     }
 
-    private Workflow.Method cancelMigrationMethod(URI sourceSystem, URI cgURI, URI migrationURI) {
-        return new Workflow.Method("cancelMigration", sourceSystem, cgURI, migrationURI);
+    private Workflow.Method cancelMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI) {
+        return new Workflow.Method("cancelMigration", sourceSystemURI, cgURI, migrationURI);
     }
 
-    public void cancelMigration(URI sourceSystem, URI cgURI, URI migrationURI, String opId) throws ControllerException {
+    public void cancelMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, String opId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(migrationURI, opId);
-            getVMAXRestStorageDevice().
+            getVmaxStorageDevice().
                     doCancelMigration(storage, cgURI, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -397,16 +420,16 @@ public class VMAXMigrationController implements MigrationController {
         }
     }
 
-    private Workflow.Method refreshMigrationMethod(URI sourceSystem, URI cgURI, URI migrationURI) {
-        return new Workflow.Method("refreshMigration", sourceSystem, cgURI, migrationURI);
+    private Workflow.Method refreshMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI) {
+        return new Workflow.Method("refreshMigration", sourceSystemURI, cgURI, migrationURI);
     }
 
-    public void refreshMigration(URI sourceSystem, URI cgURI, URI migrationURI, String opId) throws ControllerException {
+    public void refreshMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, String opId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(migrationURI, opId);
-            getVMAXRestStorageDevice().
+            getVmaxStorageDevice().
                     doRefreshMigration(storage, cgURI, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -414,16 +437,16 @@ public class VMAXMigrationController implements MigrationController {
         }
     }
 
-    private Workflow.Method recoverMigrationMethod(URI sourceSystem, URI cgURI, URI migrationURI) {
-        return new Workflow.Method("recoverMigration", sourceSystem, cgURI, migrationURI);
+    private Workflow.Method recoverMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI) {
+        return new Workflow.Method("recoverMigration", sourceSystemURI, cgURI, migrationURI);
     }
 
-    public void recoverMigration(URI sourceSystem, URI cgURI, URI migrationURI, String opId) throws ControllerException {
+    public void recoverMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, String opId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(migrationURI, opId);
-            getVMAXRestStorageDevice().
+            getVmaxStorageDevice().
                     doRecoverMigration(storage, cgURI, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -431,16 +454,16 @@ public class VMAXMigrationController implements MigrationController {
         }
     }
 
-    private Workflow.Method syncStopMigrationMethod(URI sourceSystem, URI cgURI, URI migrationURI) {
-        return new Workflow.Method("syncStopMigration", sourceSystem, cgURI, migrationURI);
+    private Workflow.Method syncStopMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI) {
+        return new Workflow.Method("syncStopMigration", sourceSystemURI, cgURI, migrationURI);
     }
 
-    public void syncStopMigration(URI sourceSystem, URI cgURI, URI migrationURI, String opId) throws ControllerException {
+    public void syncStopMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, String opId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(migrationURI, opId);
-            getVMAXRestStorageDevice().
+            getVmaxStorageDevice().
                     doSyncStopMigration(storage, cgURI, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -448,16 +471,16 @@ public class VMAXMigrationController implements MigrationController {
         }
     }
 
-    private Workflow.Method syncStartMigrationMethod(URI sourceSystem, URI cgURI, URI migrationURI) {
-        return new Workflow.Method("syncStartMigration", sourceSystem, cgURI, migrationURI);
+    private Workflow.Method syncStartMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI) {
+        return new Workflow.Method("syncStartMigration", sourceSystemURI, cgURI, migrationURI);
     }
 
-    public void syncStartMigration(URI sourceSystem, URI cgURI, URI migrationURI, String opId) throws ControllerException {
+    public void syncStartMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, String opId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(migrationURI, opId);
-            getVMAXRestStorageDevice().
+            getVmaxStorageDevice().
                     doSyncStartMigration(storage, cgURI, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -473,6 +496,10 @@ public class VMAXMigrationController implements MigrationController {
      */
     public Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
+    }
+
+    public void rollbackMethodNull(String stepId) throws WorkflowException {
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
 }

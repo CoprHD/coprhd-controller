@@ -2094,6 +2094,20 @@ public class DbClientTest extends DbsvcTestBase {
 
         Assert.assertTrue((long) aggregatedValue.getValue() == (long) agg.getAggregate("allocatedCapacity"));
     }
+    
+    @Test
+    public void testQueryByConstraintWithNull() throws Exception {
+    	Constraint constraint = ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(null);
+    	
+    	List<URI> result = _dbClient.queryByConstraint(constraint);
+    	Assert.assertEquals(0, result.size());
+    	
+    	URIQueryResultList uriQueryResultList = new URIQueryResultList();
+    	_dbClient.queryByConstraint(constraint, uriQueryResultList);
+    	Assert.assertFalse(uriQueryResultList.iterator().hasNext());
+    	
+        queryInPaginate(constraint, URIQueryResultList.class, 0, 0, 0);
+    }
 
     private void checkAggregatedValues(String groupBy, String groupByValue,
             String field,

@@ -12,9 +12,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,19 +24,23 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCZoneReference;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -43,6 +49,7 @@ import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -56,6 +63,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.google.common.base.Joiner;
 
 public class ExportUtils {
 
@@ -127,6 +135,41 @@ public class ExportUtils {
         }
         return initiatorPorts;
     }
+    
+    /**
+     * Get initiators of Host from ViPR DB
+     *
+     * @param hostURI
+     * @return
+     */
+    public static List<URI> getInitiatorsOfHost(URI hostURI, DbClient dbClient) {
+        List<URI> initiatorURIList = new ArrayList<URI>();
+        @SuppressWarnings("deprecation")
+        List<URI> uris = dbClient.queryByConstraint(ContainmentConstraint.Factory.getContainedObjectsConstraint(hostURI,
+                Initiator.class, "host"));
+        if (null != uris && !uris.isEmpty()) {
+            initiatorURIList.addAll(uris);
+        }
+        return initiatorURIList;
+    }
+
+    /**
+     * Get Initiators of Cluster
+     *
+     * @param clusterUri
+     * @return
+     */
+    public static Set<URI> getInitiatorsOfCluster(URI clusterUri, DbClient dbClient) {
+        Set<URI> clusterInis = new HashSet<URI>();
+        List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterUri, Host.class, "cluster");
+        
+        for (URI hostUri : hostUris) {
+            clusterInis.addAll(getInitiatorsOfHost(hostUri, dbClient));
+        }
+        return clusterInis;
+    }
+    
+   
 
     /**
      * For each initiator in the list, return all the volumes and snapshots that

@@ -321,7 +321,7 @@
         </property>
     </bean>
 
-    <bean id="migrationServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.MigrationServiceApiImpl">
+    <bean id="migrationServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.migration.MigrationServiceApiImpl">
          <property name="dbClient" ref="dbclient"/>
          <property name="coordinator" ref="coordinator"/>
     </bean>
@@ -774,6 +774,7 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.NetworkSystemService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
+                    <property name="blockStorageScheduler" ref="blockstoragescheduler"/>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.InitiatorService">
                     <property name="dbClient" ref="dbclient"/>

@@ -366,7 +366,12 @@
         <property name="findProviderFactory" ref="vnxFindProviderFactory"/>
     </bean>
 
-   <bean id="vmaxRestStorageDevice" class="com.emc.storageos.volumecontroller.impl.vmax.VMAXRestStorageDevice">
+   <bean id="vmaxStorageDevice" class="com.emc.storageos.volumecontroller.impl.vmax.VMAXStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="migrationOperations" ref="migrationOperations"/>
+    </bean>
+
+   <bean id="migrationOperations" class="com.emc.storageos.volumecontroller.impl.vmax.VMAXMigrationOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="vmaxClientFactory" ref="vmaxClientFactory"/>
     </bean>
@@ -902,7 +907,7 @@
     <bean id="vmaxMigrationController" class="com.emc.storageos.migrationcontroller.VMAXMigrationController">
         <property name="dbClient" ref="dbclient" />
         <property name="workflowService" ref="workflowService" />
-        <property name="vmaxRestStorageDevice" ref="vmaxRestStorageDevice" />
+        <property name="vmaxStorageDevice" ref="vmaxStorageDevice" />
     </bean>
 
     <bean id="migrationController" class="com.emc.storageos.migrationcontroller.MigrationControllerImpl">
@@ -1335,6 +1340,14 @@
         <property name="serviceName" value="BlockController"/>
         <property name="service" ref="blockcontroller"/>
         <property name="serviceInterface" value="com.emc.storageos.volumecontroller.BlockController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+    
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="HostRescanController"/>
+        <property name="service" ref="hostRescanDeviceController"/>
+        <property name="serviceInterface" value="com.emc.storageos.computecontroller.HostRescanController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>

@@ -209,9 +209,6 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException unableToUntagVolume(final String bootVolumeId, final String hostname, Exception exception);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
-    public ComputeSystemControllerException unableToExitHostFromMaintenenceMode(final String host, final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException unbindHostFromComputeElementFailed(String object, Exception exception);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)

@@ -279,9 +279,16 @@ public class UcsComputeDevice implements ComputeDevice {
 
     }
 
-    private void changePowerState(URI csId, URI ceId, String state) throws DeviceControllerException {
+    private void changePowerState(URI csId, URI hostId, String state) throws DeviceControllerException {
         LOGGER.info("changePowerState");
-        ComputeElement ce = _dbClient.queryObject(ComputeElement.class, ceId);
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+        UCSServiceProfile serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+        if (!ce.getDn().equals(serviceProfile.getDn())) {
+            throw new RuntimeException("Host " + host.getHostName() + "'s compute element Dn - " + ce.getDn()
+                    + " and service profile Dn - " + serviceProfile.getDn()
+                    + " does not match. Unable to power off compute element.");
+        }
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, csId);
 
         OperationTypeEnum typeEnum = POWER_DOWN.equals(state) ? OperationTypeEnum.POWERDOWN_COMPUTE_ELEMENT
@@ -313,15 +320,15 @@ public class UcsComputeDevice implements ComputeDevice {
     }
 
     @Override
-    public void powerUpComputeElement(URI computeSystemId, URI computeElementId) throws InternalException {
+    public void powerUpComputeElement(URI computeSystemId, URI hostId) throws InternalException {
         LOGGER.info("powerUpComputeElement");
-        changePowerState(computeSystemId, computeElementId, POWER_UP);
+        changePowerState(computeSystemId, hostId, POWER_UP);
     }
 
     @Override
-    public void powerDownComputeElement(URI computeSystemId, URI computeElementId) throws InternalException {
+    public void powerDownComputeElement(URI computeSystemId, URI hostId) throws InternalException {
         LOGGER.info("powerDownComputeElement");
-        changePowerState(computeSystemId, computeElementId, POWER_DOWN);
+        changePowerState(computeSystemId, hostId, POWER_DOWN);
     }
 
     @Override

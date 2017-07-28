@@ -29,19 +29,19 @@ import com.emc.vipr.client.Task;
 public class ReleaseAssociateHostBladeService extends ViPRService {
 
     @Param(CLUSTER)
-    protected URI clusterId;
+    private URI clusterId;
 
     @Param(ServiceParams.HOST)
-    protected URI hostId;
+    private URI hostId;
 
-    @Param(HOST_COMPUTE_VIRTUAL_POOL)
-    protected URI hostComputeVPool;
+    @Param(value = HOST_COMPUTE_VIRTUAL_POOL, required =false)
+    private URI hostComputeVPool;
 
     @Param(value = ASSOCIATE_HOST_COMPUTE_VIRTUAL_POOL, required = false)
-    protected URI associateHostComputeVPool;
+    private URI associateHostComputeVPool;
 
     @Param(value = ASSOCIATE_HOST_COMPUTE_ELEMENT, required = false)
-    protected URI associateHostComputeElement;
+    private URI associateHostComputeElement;
 
     private Cluster cluster;
     private Host host;
@@ -56,11 +56,11 @@ public class ReleaseAssociateHostBladeService extends ViPRService {
     @Override
     public void precheck() throws Exception {
         StringBuilder preCheckErrors = new StringBuilder();
-        cluster = BlockStorageUtils.getCluster(clusterId);
+        cluster = BlockStorageUtils.getCluster(getClusterId());
         if (cluster == null) {
             preCheckErrors.append("Cluster doesn't exist for ID " + clusterId + " ");
         }
-        host = BlockStorageUtils.getHost(hostId);
+        host = BlockStorageUtils.getHost(getHostId());
         if (host == null) {
             preCheckErrors.append("Host doesn't exist for ID " + hostId);
             throw new IllegalStateException(
@@ -84,13 +84,13 @@ public class ReleaseAssociateHostBladeService extends ViPRService {
             throw new IllegalStateException(
                     preCheckErrors.toString() + ComputeUtils.getContextErrors(getModelClient()));
         } else {
-            if (NullColumnValueGetter.isNullURI(associateHostComputeVPool)
-                    && NullColumnValueGetter.isNullURI(associateHostComputeElement)) {
+            if (NullColumnValueGetter.isNullURI(getAssociateHostComputeVPool())
+                    && NullColumnValueGetter.isNullURI(getAssociateHostComputeElement())) {
                 // no associate blade step required, only release blade.
                 operation = Enum.RELEASE;
             } else {
                 // both release and associate steps need to be performed.
-                ComputeElementRestRep newCE = getClient().computeElements().get(associateHostComputeElement);
+                ComputeElementRestRep newCE = getClient().computeElements().get(getAssociateHostComputeElement());
                 computeSystemURI = newCE.getComputeSystem().getId();
                 operation = Enum.BOTH;
             }
@@ -112,7 +112,7 @@ public class ReleaseAssociateHostBladeService extends ViPRService {
                 ExecutionUtils.currentContext().logInfo("releaseAssociate.computeElement.associate.action",
                         host.getLabel(), newCE != null ? newCE.getName() : associateHostComputeElement);
                 associateTask = execute(new AssociateHostComputeElementTask(hostId, associateHostComputeVPool,
-                        associateHostComputeElement, computeSystemURI));
+                        associateHostComputeElement, getComputeSystemURI()));
                 addAffectedResource(associateTask);
                 ExecutionUtils.currentContext().logInfo("releaseAssociate.computeElement.associate.action.success",
                         host.getLabel(), newCE != null ? newCE.getName() : associateHostComputeElement);
@@ -138,5 +138,75 @@ public class ReleaseAssociateHostBladeService extends ViPRService {
         ExecutionUtils.currentContext().logInfo("releaseAssociate.computeElement.release.action.success",
                 host.getLabel());
         return releaseTask;
+    }
+
+    /**
+     * @return the clusterId
+     */
+    public URI getClusterId() {
+        return clusterId;
+    }
+
+    /**
+     * @return the hostId
+     */
+    public URI getHostId() {
+        return hostId;
+    }
+
+    /**
+     * @return the hostComputeVPool
+     */
+    public URI getHostComputeVPool() {
+        return hostComputeVPool;
+    }
+
+    /**
+     * @return the associateHostComputeVPool
+     */
+    public URI getAssociateHostComputeVPool() {
+        return associateHostComputeVPool;
+    }
+
+    /**
+     * @return the associateHostComputeElement
+     */
+    public URI getAssociateHostComputeElement() {
+        return associateHostComputeElement;
+    }
+
+    /**
+     * @return the cluster
+     */
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    /**
+     * @param cluster the cluster to set
+     */
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
+    }
+
+    /**
+     * @return the host
+     */
+    public Host getHost() {
+        return host;
+    }
+
+    /**
+     * @param host the host to set
+     */
+    public void setHost(Host host) {
+        this.host = host;
+    }
+
+    /**
+     * @return the computeSystemURI
+     */
+    public URI getComputeSystemURI() {
+        return computeSystemURI;
     }
 }

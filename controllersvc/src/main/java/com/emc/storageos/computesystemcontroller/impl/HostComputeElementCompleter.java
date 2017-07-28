@@ -46,9 +46,9 @@ public class HostComputeElementCompleter extends TaskCompleter {
         this.serviceType = serviceType;
     }
 
-    public HostComputeElementCompleter(URI hostId, String taskId, OperationTypeEnum associateHostComputeElement,
+    public HostComputeElementCompleter(URI hostId, String taskId, OperationTypeEnum opType,
             String eventServiceType, URI computeElementId, URI computeVPoolId) {
-        this(hostId, taskId, associateHostComputeElement, eventServiceType);
+        this(hostId, taskId, opType, eventServiceType);
         this.computeElementId = computeElementId;
         this.computeVPoolId = computeVPoolId;
     }

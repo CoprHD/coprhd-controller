@@ -11,7 +11,9 @@
         },
         hostComputeVPool:{
             type:"assetType.vipr.hostComputeVirtualPool",
-            lockable: true
+            required:false,
+            lockable: true,
+            omitNone:true
         },
         associateComputeElement:{
           type:"group",

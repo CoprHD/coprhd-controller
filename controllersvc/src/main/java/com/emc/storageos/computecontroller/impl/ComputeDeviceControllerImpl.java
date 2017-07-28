@@ -493,20 +493,20 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     /**
      * Powers up or powers down the compute element.
      * @param computeSystemId
-     * @param computeElementId
+     * @param hostId
      * @param powerState
      * @param stepId
      */
-    public void setPowerComputeElementStep(URI computeSystemId, URI computeElementId, String powerState,
+    public void setPowerComputeElementStep(URI computeSystemId, URI hostId, String powerState,
             String stepId) {
         log.info("setPowerComputeElementStep");
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
 
             if ("up".equals(powerState)) {
-                powerUpComputeElement(computeSystemId, computeElementId);//
+                powerUpComputeElement(computeSystemId, hostId);//
             } else if ("down".equals(powerState)) {
-                powerDownComputeElement(computeSystemId, computeElementId);
+                powerDownComputeElement(computeSystemId, hostId);
             }
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
@@ -521,18 +521,18 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
-    private void powerUpComputeElement(URI computeSystemId, URI computeElementId) throws InternalException {
+    private void powerUpComputeElement(URI computeSystemId, URI hostId) throws InternalException {
         log.info("powerUpComputeElement");
 
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
-        getDevice(cs.getSystemType()).powerUpComputeElement(computeSystemId, computeElementId);
+        getDevice(cs.getSystemType()).powerUpComputeElement(computeSystemId, hostId);
     }
 
-    private void powerDownComputeElement(URI computeSystemId, URI computeElementId) throws InternalException {
+    private void powerDownComputeElement(URI computeSystemId, URI hostId) throws InternalException {
         log.info("powerDownComputeElement");
 
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
-        getDevice(cs.getSystemType()).powerDownComputeElement(computeSystemId, computeElementId);
+        getDevice(cs.getSystemType()).powerDownComputeElement(computeSystemId, hostId);
     }
 
     private String unbindHostFromTemplate(URI computeSystemId, URI hostId) throws InternalException {
@@ -1739,8 +1739,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         } else {
             waitFor = workflow.createStep("Power off compute element", "Power off compute element", waitFor, cs.getId(),
                     cs.getSystemType(), this.getClass(),
-                    new Workflow.Method("setPowerComputeElementStep", cs.getId(), host.getComputeElement(), "down"),
-                    new Workflow.Method("setPowerComputeElementStep", cs.getId(), host.getComputeElement(), "up"),
+                    new Workflow.Method("setPowerComputeElementStep", cs.getId(), hostId, "down"),
+                    new Workflow.Method("setPowerComputeElementStep", cs.getId(), hostId, "up"),
                     null);
             waitFor = workflow.createStep(RELEASE_HOST_COMPUTE_ELEMENT, "Release/unbind host compute element", waitFor,
                     cs.getId(), cs.getSystemType(), this.getClass(),
@@ -1877,8 +1877,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     new Workflow.Method("unbindHostComputeElement", cs.getId(), hostId), null);
             waitFor = workflow.createStep("Power on compute element", "Power on compute element", waitFor, cs.getId(),
                     cs.getSystemType(), this.getClass(),
-                    new Workflow.Method("setPowerComputeElementStep", cs.getId(), computeElementId, "up"),
-                    new Workflow.Method("setPowerComputeElementStep", cs.getId(), computeElementId, "down"), null);
+                    new Workflow.Method("setPowerComputeElementStep", cs.getId(), hostId, "up"),
+                    new Workflow.Method("setPowerComputeElementStep", cs.getId(), hostId, "down"), null);
         }
         return waitFor;
     }

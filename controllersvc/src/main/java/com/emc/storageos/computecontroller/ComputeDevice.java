@@ -84,19 +84,19 @@ public interface ComputeDevice extends Controller {
     /**
      * Power up/on the compute element
      * @param computeSystemId {@link URI} computeSystem id
-     * @param computeElementId {@link URI} computeElement id
+     * @param hostId {@link URI} host id
      * @throws InternalException
      */
-    public void powerUpComputeElement(URI computeSystemId, URI computeElementId)
+    public void powerUpComputeElement(URI computeSystemId, URI hostId)
             throws InternalException;
 
     /**
      * Power down the compute element
      * @param computeSystemId {@link URI} computeSystem id
-     * @param computeElementId {@link URI} computeElement id
+     * @param hostId {@link URI} host id
      * @throws InternalException
      */
-    public void powerDownComputeElement(URI computeSystemId, URI computeElementId)
+    public void powerDownComputeElement(URI computeSystemId, URI hostId)
             throws InternalException;
 
     /**

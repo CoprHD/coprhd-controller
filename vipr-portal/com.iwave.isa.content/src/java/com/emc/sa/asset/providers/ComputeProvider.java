@@ -84,8 +84,10 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
         HostRestRep hostRep = api(context).hosts().get(hostID);
         ComputeVirtualPoolRestRep cvpRestRep = api(context).computeVpools().get(hostRep.getComputeVirtualPool());
         List<AssetOption> options = Lists.newArrayList();
-        options.add(createComputeVirtualPoolOption(context, cvpRestRep));
-        AssetOptionsUtils.sortOptionsByLabel(options);
+        if (cvpRestRep != null) {
+            options.add(createComputeVirtualPoolOption(context, cvpRestRep));
+            AssetOptionsUtils.sortOptionsByLabel(options);
+        }
         return options;
     }
 
@@ -106,7 +108,10 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
     private List<AssetOption> getCVPByHostCS(AssetOptionsContext context, URI hostID) {
         debug("get compute virtual pool that has blades from computesystem that host belongs to.");
         HostRestRep hostRep = api(context).hosts().get(hostID);
-        ComputeVirtualPoolRestRep hostCVP = api(context).computeVpools().get(hostRep.getComputeVirtualPool().getId());
+        ComputeVirtualPoolRestRep hostCVP = null;
+        if (hostRep.getComputeVirtualPool() != null) {
+            hostCVP = api(context).computeVpools().get(hostRep.getComputeVirtualPool());
+        }
         List<AssetOption> options = Lists.newArrayList();
         List<ComputeElementRestRep> ceListRestRep = api(context).computeSystems()
                 .getComputeElements(hostRep.getComputeSystem().getId());
@@ -115,11 +120,15 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
             ComputeVirtualPoolRestRep cvpRestRep = api(context).computeVpools().get(namedRelatedResourceRep);
             boolean isMatched = false;
             List<RelatedResourceRep> cvpArrays = cvpRestRep.getVirtualArrays();
-            List<RelatedResourceRep> hostArrays = hostCVP.getVirtualArrays();
-            //list only those cvps whose varrays matches with that of the host varrays.
-            boolean hasCommonVArrays = CollectionUtils.containsAny(cvpArrays, hostArrays);
-            if (!hasCommonVArrays) {
-                continue;
+            //ingested host wont have a CVP so let them through this check
+            if (hostCVP != null) {
+                List<RelatedResourceRep> hostArrays = hostCVP.getVirtualArrays();
+                // list only those cvps whose varrays matches with that of the
+                // host varrays.
+                boolean hasCommonVArrays = CollectionUtils.containsAny(cvpArrays, hostArrays);
+                if (!hasCommonVArrays) {
+                    continue;
+                }
             }
             for (RelatedResourceRep matchedBlades : cvpRestRep.getMatchedComputeElements()) {
                 for (ComputeElementRestRep ce : ceListRestRep) {
@@ -186,16 +195,4 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
         sb.append(value.getName());
         return new AssetOption(value.getId(), sb.toString());
     }
-
-    /*@Asset("hostComputeBlade")
-    @AssetDependencies({"hostsByVblockCluster"})
-    public List<AssetOption> getHostComputeBlade(AssetOptionsContext context, URI hostID) {
-        debug("get compute blade that host belongs to.");
-        HostRestRep hostRep = api(context).hosts().get(hostID);
-        ComputeElementRestRep ceRestRep = api(context).computeElements().get(hostRep.getComputeElement());
-        List<AssetOption> options = Lists.newArrayList();
-        options.add(createComputeElementOption(context, ceRestRep, hostRep.getComputeSystem().getName()));
-        AssetOptionsUtils.sortOptionsByLabel(options);
-        return options;
-    }*/
 }

@@ -11,7 +11,9 @@
         },
         hostPreviousComputeVPool:{
             type:"assetType.vipr.releasedHostComputeVirtualPool",
-            lockable: true
+            required:false,
+            lockable: true,
+            omitNone:true
         },
         associateHostComputeVPool:{
             type:"assetType.vipr.associateCVPByHostComputeSystem",

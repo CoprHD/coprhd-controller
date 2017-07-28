@@ -28,19 +28,19 @@ import com.emc.vipr.client.Task;
 public class AssociateHostBladeService extends ViPRService {
 
     @Param(CLUSTER)
-    protected URI clusterId;
+    private URI clusterId;
 
     @Param(ServiceParams.HOST)
-    protected URI hostId;
+    private URI hostId;
 
-    @Param(HOST_PREVIOUS_COMPUTE_VIRTUAL_POOL)
-    protected URI hostPreviousComputeVPool;
+    @Param(value = HOST_PREVIOUS_COMPUTE_VIRTUAL_POOL, required = false)
+    private URI hostPreviousComputeVPool;
 
     @Param(value = ASSOCIATE_HOST_COMPUTE_VIRTUAL_POOL, required = true)
-    protected URI associateHostComputeVPool;
+    private URI associateHostComputeVPool;
 
     @Param(value = ASSOCIATE_HOST_COMPUTE_ELEMENT, required = true)
-    protected URI associateHostComputeElement;
+    private URI associateHostComputeElement;
 
     private Cluster cluster;
     private Host host;
@@ -50,11 +50,11 @@ public class AssociateHostBladeService extends ViPRService {
     public void precheck() throws Exception {
         StringBuilder preCheckErrors = new StringBuilder();
 
-        cluster = BlockStorageUtils.getCluster(clusterId);
+        cluster = BlockStorageUtils.getCluster(getClusterId());
         if (cluster == null) {
             preCheckErrors.append("Cluster doesn't exist for ID " + clusterId + " ");
         }
-        host = BlockStorageUtils.getHost(hostId);
+        host = BlockStorageUtils.getHost(getHostId());
         if (host == null) {
             preCheckErrors.append("Host doesn't exist for ID " + hostId);
             throw new IllegalStateException(
@@ -73,8 +73,8 @@ public class AssociateHostBladeService extends ViPRService {
             preCheckErrors.append(ExecutionUtils.getMessage("releaseAssociate.computeElement.not.released.state",
                     host.getLabel(), host.getComputeElement()));
         } else {
-            if (NullColumnValueGetter.isNullURI(associateHostComputeVPool)
-                    || NullColumnValueGetter.isNullURI(associateHostComputeElement)) {
+            if (NullColumnValueGetter.isNullURI(getAssociateHostComputeVPool())
+                    || NullColumnValueGetter.isNullURI(getAssociateHostComputeElement())) {
                 preCheckErrors.append(
                         ExecutionUtils.getMessage("releaseAssociate.computeElement.associate.insufficient.input"));
             } else {
@@ -94,9 +94,58 @@ public class AssociateHostBladeService extends ViPRService {
         ExecutionUtils.currentContext().logInfo("releaseAssociate.computeElement.associate.action", host.getLabel(),
                 newCE != null ? newCE.getName() : associateHostComputeElement);
         Task<HostRestRep> associateTask = execute(new AssociateHostComputeElementTask(hostId, associateHostComputeVPool,
-                associateHostComputeElement, computeSystemURI));
+                associateHostComputeElement, getComputeSystemURI()));
         addAffectedResource(associateTask);
         ExecutionUtils.currentContext().logInfo("releaseAssociate.computeElement.associate.action.success", host.getLabel(),
                 newCE != null ? newCE.getName() : associateHostComputeElement);
+    }
+
+    /**
+     * @return the clusterId
+     */
+    public URI getClusterId() {
+        return clusterId;
+    }
+
+    /**
+     * @return the hostId
+     */
+    public URI getHostId() {
+        return hostId;
+    }
+
+    /**
+     * @return the associateHostComputeVPool
+     */
+    public URI getAssociateHostComputeVPool() {
+        return associateHostComputeVPool;
+    }
+
+    /**
+     * @return the associateHostComputeElement
+     */
+    public URI getAssociateHostComputeElement() {
+        return associateHostComputeElement;
+    }
+
+    /**
+     * @return the cluster
+     */
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    /**
+     * @return the host
+     */
+    public Host getHost() {
+        return host;
+    }
+
+    /**
+     * @return the computeSystemURI
+     */
+    public URI getComputeSystemURI() {
+        return computeSystemURI;
     }
 }

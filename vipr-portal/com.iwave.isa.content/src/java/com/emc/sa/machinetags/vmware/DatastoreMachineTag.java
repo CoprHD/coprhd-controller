@@ -4,10 +4,11 @@
  */
 package com.emc.sa.machinetags.vmware;
 
+import java.util.List;
+
 import com.emc.sa.machinetags.MachineTag;
 import com.emc.sa.machinetags.MultiValueMachineTag;
 import com.google.common.collect.Lists;
-import java.util.List;
 
 public class DatastoreMachineTag extends MultiValueMachineTag {
 
@@ -15,15 +16,18 @@ public class DatastoreMachineTag extends MultiValueMachineTag {
     public static final String DATACENTER = "datacenter";
     public static final String VCENTER = "vcenter";
     public static final String MOUNT_POINT = "mountPoint";
+    public static final String END_POINTS = "endPoints";
     public static final String DATASTORE = "datastore";
 
     public static final List<String> relatedTags = Lists.newArrayList(DATASTORE, MOUNT_POINT, VCENTER, DATACENTER);
 
-    public DatastoreMachineTag(Integer index, String vcenter, String datacenter, String datastore, String mountpoint) {
+    public DatastoreMachineTag(Integer index, String vcenter, String datacenter, String datastore, String mountpoint,
+            List<String> endpoints) {
         super(new MachineTag(NAMESPACE, DATASTORE, index, datastore),
                 new MachineTag(NAMESPACE, VCENTER, index, vcenter),
                 new MachineTag(NAMESPACE, DATACENTER, index, datacenter),
-                new MachineTag(NAMESPACE, MOUNT_POINT, index, mountpoint));
+                new MachineTag(NAMESPACE, MOUNT_POINT, index, mountpoint),
+                new MachineTag(NAMESPACE, END_POINTS, index, endpoints.toString()));
     }
 
     public DatastoreMachineTag(MachineTag datastore, MachineTag vcenter, MachineTag datacenter, MachineTag mountpoint) {

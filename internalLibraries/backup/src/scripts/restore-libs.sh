@@ -47,7 +47,7 @@ ssh_execute_with_output() {
     local command="${2}"
     local password="${3}"
     local result=`echo "${password}" | sudo -S ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${password}' | sudo -S $command" 2>/dev/null`
-    echo ${result}
+    echo "${result}"
 }
 
 get_nodeid() {
@@ -104,22 +104,24 @@ get_backup_info_from_nodes() {
     do
         local viprNode=$(get_nodeid)
         local result=`ssh_execute_with_output "${viprNode}" "${ls_command}" "${ROOT_PASSWORD}"`
-        BACKUP_INFO=${BACKUP_INFO}${result}
+        BACKUP_INFO="${BACKUP_INFO}""${result}"
     done
-    echo -e ${BACKUP_INFO} | sort | uniq
+    set -e
+    echo "${BACKUP_INFO}" | sort -u
 }
 
 
 is_vdc_connected() {
     BACKUP_INFO="$1"
-    local is_geo=`echo {BACKUP_INFO} | grep "geo"`
+    local is_geo=`echo "${BACKUP_INFO}" | grep "geo="`
     is_geo=${is_geo#*=}
-    if [[ is_geo == "true" ]]; then
+    if [[ "${is_geo}" == "true" ]]; then
         IS_CONNECTED_VDC=true
-    else if [[ is_geo == "false" ]]; then
+    elif [[ "${is_geo}" == "false" ]]; then
         IS_CONNECTED_VDC=false
+        fi
     else
-        echo -e "\nInvalid geodb type: $geodb_type, exiting.."
+        echo -e "\nInvalid geodb type: ${is_geo}, exiting.."
         exit 2
     fi
 }

@@ -124,7 +124,7 @@ restore_data() {
         fi
         if [ $? != 0 ]; then
             FAILED_NODES=${FAILED_NODES}" "${viprNode}
-            if [[ "$(is_local_backup ${RESTORE_ORIGIN})" == "true" ]] && [[ `echo ${#BACKUP_INFO[@]} | grep ${viprNode}` == "" ]] ; then
+            if [[ "$(is_local_backup ${RESTORE_ORIGIN})" == "true" ]] && [[ `echo "${BACKUP_INFO}" | grep ${viprNode}` == "" ]] ; then
                    echo "This is incomplete backup, and skip ${viprNode} as it is the missing one."
                    continue
             fi
@@ -141,9 +141,8 @@ restore_data() {
 # $1=node name
 restore_node() {
     local viprNode=${1}
-    cd ${RESTORE_DIR}
-    local backupTag=`ls *zip | head -n 1 | awk '{split($0,a,"_"); print a[1]}'`
-
+    local backupTag=`echo "${BACKUP_INFO}" | grep "^name=" `
+    backupTag=${backupTag#*=}
     # restore local files
     local command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag'"
     if [ "$RESTORE_GEO_FROM_SCRATCH" == "true" ]; then

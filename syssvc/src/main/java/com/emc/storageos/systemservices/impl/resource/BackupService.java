@@ -752,19 +752,13 @@ public class BackupService {
         status.setBackupName(backupName); // in case it is not saved in the ZK
 
         if (isLocal) {
-            File backupDir = backupOps.getBackupDir(backupName, true);
-            String[] files = backupDir.list();
-            if (files.length == 0) {
-                throw BackupException.fatals.backupFileNotFound(backupName);
+            BackupDetail detail = backupOps.getLocalBackupDetail(backupName);
+            if(!detail.getBackupFiles().isEmpty()) {
+                status.setGeo(detail.isGeo());
+            } else {
+
             }
 
-            for (String f : files) {
-                if (backupOps.isGeoBackup(f)) {
-                    log.info("{} is a geo backup", backupName);
-                    status.setGeo(true);
-                    break;
-                }
-            }
         }else {
             checkExternalServer();
 

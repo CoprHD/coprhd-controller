@@ -588,7 +588,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         for (TaskResourceRep fileShareTask : taskList.getTaskList()) {
             fileShareTask.setState(Operation.Status.error.name());
             fileShareTask.setMessage(errorMessage);
-            // TODO use other method Operation and updateTaskOpStatus as it got depricated.
+            // TODO use other method Operation and updateTaskOpStatus as it got deprecated.
             Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMessage);
             _dbClient.updateTaskOpStatus(FileShare.class, fileShareTask.getResource()
                     .getId(), task, statusUpdate);

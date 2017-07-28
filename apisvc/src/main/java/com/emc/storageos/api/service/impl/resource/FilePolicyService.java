@@ -1335,7 +1335,7 @@ public class FilePolicyService extends TaskResourceService {
                                             srcVarray,
                                             project,
                                             vpool, capabilities);
-                                    if (CollectionUtils.isEmpty(newRecs)) {
+                                    if (!CollectionUtils.isEmpty(newRecs)) {
                                         projectAssociations
                                                 .addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
                                                         vpool.getId(), projectURI));

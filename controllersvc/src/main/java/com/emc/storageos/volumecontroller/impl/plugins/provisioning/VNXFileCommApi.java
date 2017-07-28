@@ -54,6 +54,11 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileD
  * VNXFileCommApi is responsible for communicating with the VNX File Control Station to perform
  * provisioning.
  */
+
+// todo - reduce db call since it is low api calls.
+// todo - try -catch should contains only xml api call. Some of function try and catch functions may require optimize
+// todo - all exception are followed deprecated calls
+
 public class VNXFileCommApi {
 
     private static final Logger _log = LoggerFactory.getLogger(VNXFileCommApi.class);
@@ -108,7 +113,7 @@ public class VNXFileCommApi {
     private String _thinFsAllocPercentage;
     private final VNXFileSshApi sshApi = new VNXFileSshApi();
 
-    //getter and setter methods
+    // getter and setter methods
     public DbClient getDbClient() {
         return _dbClient;
     }
@@ -141,7 +146,6 @@ public class VNXFileCommApi {
         return _provNamespaces;
     }
 
-
     // default constructor
     public VNXFileCommApi() {
 
@@ -149,6 +153,7 @@ public class VNXFileCommApi {
 
     /**
      * vnxfile create filesystem on data mover
+     * 
      * @param system
      * @param fileSys
      * @param pool
@@ -311,6 +316,7 @@ public class VNXFileCommApi {
 
     /**
      * Create snapshot for given filesystem
+     * 
      * @param system - vnx filesystem
      * @param fsName - file system name
      * @param snapshotName - snapshot name
@@ -386,6 +392,7 @@ public class VNXFileCommApi {
 
     /**
      * Create VNX File System Quota on given filesystem
+     * 
      * @param system
      * @param fsName
      * @param quotaDirName
@@ -822,7 +829,7 @@ public class VNXFileCommApi {
     }
 
     /**
-     *Delete the all exports and shares of filesystem
+     * Delete the all exports and shares of filesystem
      *
      * @param system
      * @param dataMover
@@ -912,7 +919,7 @@ public class VNXFileCommApi {
                 exportsToUnExport--;
             }
             // Persist the object after exports removed
-            _dbClient.persistObject(fObj);
+            _dbClient.updateObject(fObj);
         }
 
         // Now Let Handle SMB/CIFS Shares
@@ -957,7 +964,7 @@ public class VNXFileCommApi {
                 noOfSharesToDelete--;
             }
             // Persist the object after SMBShares removed
-            _dbClient.persistObject(fObj);
+            _dbClient.updateObject(fObj);
         }
 
         return result;
@@ -1117,7 +1124,7 @@ public class VNXFileCommApi {
     }
 
     /**
-     * delete exports given export path
+     * delete vnxfile exports of path from device
      *
      * @param system
      * @param exportPath
@@ -1211,7 +1218,7 @@ public class VNXFileCommApi {
     }
 
     /**
-     * Unexport a vnx filesystem
+     * perform Unexport a vnx filesystem on device
      *
      * @param system
      * @param fileExport
@@ -1484,7 +1491,7 @@ public class VNXFileCommApi {
      * @param args FileDeviceInputOutput object with export path details
      * @return export map
      */
-    public Map<String, String> getNFSExport(StorageSystem system, FileDeviceInputOutput args) {
+    private Map<String, String> getNFSExport(StorageSystem system, FileDeviceInputOutput args) {
         sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
                 system.getPassword());
         StoragePort storagePort = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
@@ -1567,11 +1574,17 @@ public class VNXFileCommApi {
      * Expand vnxfile system
      *
      * @param system
+     * 
      * @param fileShare - file share that has to be expanded
+     * 
      * @param extendSize - new size
+     * 
      * @param isMountRequired - is already mounted ?
+     * 
      * @param isVirtualProvisioned - is already Virtual provisioned ?
+     * 
      * @return
+     * 
      * @throws VNXException
      */
     public XMLApiResult expandFS(final StorageSystem system, final FileShare fileShare, long extendSize, boolean isMountRequired,
@@ -1762,6 +1775,12 @@ public class VNXFileCommApi {
         return matchingMoverOrVdm;
     }
 
+    /**
+     * get the parent mover from DB
+     * 
+     * @param parentMoverId
+     * @return
+     */
     private String getParentMoverName(URI parentMoverId) {
 
         String parentMoverName = null;
@@ -1776,6 +1795,12 @@ public class VNXFileCommApi {
         return parentMoverName;
     }
 
+    /**
+     * get the mover details from DB
+     * 
+     * @param fileShare
+     * @return
+     */
     private StorageHADomain getDataMover(FileShare fileShare) {
         StorageHADomain dm = null;
         if (fileShare.getStoragePort() != null) {
@@ -1787,6 +1812,12 @@ public class VNXFileCommApi {
         return dm;
     }
 
+    /**
+     * get the snapshots from fileshare
+     * 
+     * @param fs
+     * @return
+     */
     private List<Snapshot> getFSSnapshots(FileShare fs) {
         URI fsId = fs.getId();
         List<Snapshot> snapshots = new ArrayList<Snapshot>();
@@ -1802,6 +1833,12 @@ public class VNXFileCommApi {
         return snapshots;
     }
 
+    /**
+     * get quota of fileshare
+     * 
+     * @param fs
+     * @return
+     */
     private List<QuotaDirectory> getFSQuotaDirs(FileShare fs) {
         URI fsId = fs.getId();
         List<QuotaDirectory> quotaDirs = new ArrayList<QuotaDirectory>();

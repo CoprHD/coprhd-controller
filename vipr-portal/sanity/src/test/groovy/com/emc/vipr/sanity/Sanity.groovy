@@ -101,7 +101,7 @@ class Sanity {
                 break
            case "remotereplication":
                 currentLogLevel = LogLevel.INFO  // default is VERBOSE
-                removeTopologyWhenDone = false
+                //removeTopologyWhenDone = false
 
                 // check topo loaded from sbsdk functional sanity
                 initClients()

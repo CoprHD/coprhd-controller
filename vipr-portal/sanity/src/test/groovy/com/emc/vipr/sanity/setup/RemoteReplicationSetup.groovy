@@ -97,6 +97,10 @@ class RemoteReplicationSetup {
         deleteRrVolume(VOL_IN_CG_IN_GRP_NAME)
         deleteCg(CG_NAME_FOR_GRP)
         deleteCg(CG_NAME_FOR_SET)
+
+        // rm target vols left after STOP tests orphaned them
+        deleteRrVolume(VOL_IN_SET_NAME + "_TARGET")
+        deleteRrVolume(VOL_IN_CG_NAME + "_TARGET")
     }
 
     static enableVpoolForCg(String vpoolName) {

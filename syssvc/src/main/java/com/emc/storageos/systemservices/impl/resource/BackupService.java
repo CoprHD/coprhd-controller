@@ -13,6 +13,8 @@ import java.io.PipedOutputStream;
 import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
@@ -756,7 +758,21 @@ public class BackupService {
             if(!detail.getBackupFiles().isEmpty()) {
                 status.setGeo(detail.isGeo());
             } else {
-
+                URI queryLocalURI =
+                        URI.create(String.format(SysClientFactory.URI_LOCAL_BACKUP_DETAIL, backupName));
+                try {
+                    for(URI uri : backupOps.getOtherNodes()) {
+                        log.info("Redirect query local backup URI {} to {}", queryLocalURI, uri);
+                        SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(uri);
+                        BackupDetail info = sysClient.post(queryLocalURI, BackupDetail.class, null);
+                        if(!info.getBackupFiles().isEmpty()) {
+                            status.setGeo(info.isGeo());
+                            break;
+                        }
+                    }
+                } catch (URISyntaxException | UnknownHostException e) {
+                    log.error(e.getMessage());
+                }
             }
 
         }else {

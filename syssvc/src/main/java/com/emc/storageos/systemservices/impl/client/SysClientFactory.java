@@ -49,6 +49,7 @@ public class SysClientFactory {
     public static final URI URI_GET_DB_OFFLINE_STATUS = URI.create("/control/internal/node/dbsvc-offline-status");
     public static final URI URI_GET_DBREPAIR_STATUS = URI.create("/control/internal/node/dbrepair-status");
     public static final String BASE_URL_FORMAT = "http://%1$s:%2$s";
+    public static final String URI_LOCAL_BACKUP_DETAIL="/backupset/internal/local-backup-detail?backupname=%s";
     public static final String URI_NODE_BACKUPS_RESTORE_TEMPLATE =
             "/backupset/internal/restore?backupname=%s&isLocal=%s&password=%s&isgeofromscratch=%s";
 

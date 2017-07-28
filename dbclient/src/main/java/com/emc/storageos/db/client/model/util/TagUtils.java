@@ -66,6 +66,10 @@ public class TagUtils {
      * @return true if this tag is a mountpoint/datastore/boot
      */
     public static boolean isMountContentTag(ScopedLabel sl) {
+        if (sl == null || sl.getLabel() == null) {
+            return false;
+        }
+        
         if (sl.getLabel().startsWith(MOUNTPOINT) ||
                 sl.getLabel().startsWith(VMFS_DATASTORE) ||
                 sl.getLabel().startsWith(BOOT_VOLUME)) {

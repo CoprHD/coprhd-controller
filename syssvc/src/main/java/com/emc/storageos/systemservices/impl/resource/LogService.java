@@ -165,6 +165,10 @@ public class LogService extends BaseLogSvcResource {
         final MediaType mediaType = getMediaType();
         _log.info("Logs request media type {}", mediaType);
 
+        return getLogsWithMediatype(nodeIds, nodeNames, logNames, severity, startTimeStr, endTimeStr, msgRegex, maxCount, dryRun, mediaType);
+    }
+
+    public Response getLogsWithMediatype(List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity, String startTimeStr,String endTimeStr, String msgRegex, int maxCount, boolean dryRun, MediaType mediaType) {
         nodeIds = _coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames, nodeIds);
 
         // Validate the passed node ids.

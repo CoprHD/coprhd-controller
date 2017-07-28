@@ -286,15 +286,15 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
         logNames.add(logName);
         InputStream is;
         try {
-/*            is = (InputStream) logService.getLogs(nodeIds, nodeNames, logNames, logParam.getSeverity(), logParam.getStartTimeStr(),
-                    logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), false).getEntity();*/
-            String myId = coordinatorClientExt.getMyNodeId();
+            is = (InputStream) logService.getLogsWithMediatype(nodeIds, nodeNames, logNames, logParam.getSeverity(), logParam.getStartTimeStr(),
+                    logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), false, MediaType.TEXT_PLAIN_TYPE).getEntity();
+            /*String myId = coordinatorClientExt.getMyNodeId();
 
             String logUri = String.format(SysClientFactory.URI_LOGS_TEMPLATE, nodeId, nodeName, logName, logParam.getSeverity(), logParam.getStartTimeStr(), logParam.getEndTimeStr(),
                     logParam.getMsgRegex(), logParam.getMaxCount());
-            ClientResponse response = SysClientFactory.getSysClient(coordinatorClientExt.getNodeEndpoint(myId)).get(URI.create(logUri), ClientResponse.class, MediaType.TEXT_PLAIN);
+            ClientResponse response = SysClientFactory.getSysClient(coordinatorClientExt.getNodeEndpoint(myId)).get(URI.create(logUri), ClientResponse.class, MediaType.TEXT_PLAIN);*/
             File file = new File(destLogPath);
-            FileUtils.copyInputStreamToFile(response.getEntityInputStream(), file);
+            FileUtils.copyInputStreamToFile(is, file);
         }catch (Exception e ) {
             log.error("get logs error {}",e);
         }

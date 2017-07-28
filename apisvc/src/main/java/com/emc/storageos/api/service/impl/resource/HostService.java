@@ -57,6 +57,7 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.computecontroller.ComputeController;
+import com.emc.storageos.computecontroller.HostRescanController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -228,19 +229,63 @@ public class HostService extends TaskResourceService {
         ComputeElement computeElement = null;
         UCSServiceProfile serviceProfile = null;
         ComputeSystem computeSystem = null;
-        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
-            computeElement = queryObject(ComputeElement.class, host.getComputeElement(),false);
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            computeElement = queryObject(ComputeElement.class, host.getComputeElement(), false);
         }
-        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
             serviceProfile = queryObject(UCSServiceProfile.class, host.getServiceProfile(), false);
         }
-        if (serviceProfile!=null){
+        if (serviceProfile != null) {
             computeSystem = queryObject(ComputeSystem.class, serviceProfile.getComputeSystem(), false);
-        }else if (computeElement !=null){
+        } else if (computeElement != null) {
             computeSystem = queryObject(ComputeSystem.class, computeElement.getComputeSystem(), false);
         }
 
         return map(host, computeElement, serviceProfile, computeSystem);
+    }
+
+    /**
+     * Get Host Controller
+     * 
+     * @param deviceType
+     * @return
+     */
+    private HostRescanController getHostController(String deviceType) {
+        HostRescanController controller = getController(HostRescanController.class, "host");
+        return controller;
+    }
+
+    /**
+     * Rescan Host
+     * 
+     * @param id
+     * @return
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/rescan")
+    public TaskResourceRep rescanHost(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, Host.class, "id");
+        Host host = _dbClient.queryObject(Host.class, id);
+
+        if (host == null || host.getInactive()) {
+            _log.info(String.format("Host not found or inactive: %s", id));
+            // TODO throw exception
+        }
+
+        if (!host.getDiscoverable()) {
+            _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
+            // TODO throw exception
+        }
+        String task = UUID.randomUUID().toString();
+
+        Operation op = _dbClient.createTaskOpStatus(Host.class, id, task, ResourceOperationTypeEnum.HOST_RESCAN);
+        HostRescanController reScanController = getHostController("host");
+        reScanController.rescanHostStorage(id, task);
+        return toTask(host, task, op);
+
     }
 
     /**
@@ -283,10 +328,10 @@ public class HostService extends TaskResourceService {
      * <p>
      * Updating the host's cluster:
      * <ul>
-     *     <li> Adding a host to a cluster: The host will gain access to all volumes in the cluster.
-     *     <li> Removing a host from a cluster: The host will lose access to all volumes in the cluster.
-     *     <li> Updating a host's cluster: The host will lose access to all volumes in the old cluster. The 
-     *          host will gain access to all volumes in the new cluster.
+     * <li>Adding a host to a cluster: The host will gain access to all volumes in the cluster.
+     * <li>Removing a host from a cluster: The host will lose access to all volumes in the cluster.
+     * <li>Updating a host's cluster: The host will lose access to all volumes in the old cluster. The
+     * host will gain access to all volumes in the new cluster.
      * </ul>
      *
      * @param id
@@ -367,6 +412,7 @@ public class HostService extends TaskResourceService {
 
         return doDiscoverHost(host.getId(), taskId, updateTaskStatus);
     }
+
     /**
      * Updates the hosts boot volume Id
      *
@@ -396,7 +442,7 @@ public class HostService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, id, taskId,
                 ResourceOperationTypeEnum.UPDATE_HOST_BOOT_VOLUME);
 
-        //The volume being set as the boot volume should be exported to the host and should not be exported to any other initiators.
+        // The volume being set as the boot volume should be exported to the host and should not be exported to any other initiators.
         // The controller call invoked below validates that before setting the volume as the boot volume.
         controller.setHostBootVolume(host.getId(), param.getBootVolume(), updateSanBootTargets, taskId);
         return toTask(host, taskId, op);
@@ -704,38 +750,49 @@ public class HostService extends TaskResourceService {
         }
 
         UCSServiceProfile serviceProfile = null;
-        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
             serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
-            if (serviceProfile!=null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())){
+            if (serviceProfile != null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())) {
                 ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
-                if ( ucs!=null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
-                    throw APIException.badRequests.resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
+                if (ucs != null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
+                    throw APIException.badRequests
+                            .resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
                 }
             }
         }
         Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-                Arrays.asList("label", "uuid", "serviceProfile", "computeElement","registrationStatus", "inactive"), ControllerUtils.getFullyImplementedCollection(hostIds));
-        for (Host tempHost : hosts){
-            if (!tempHost.getId().equals(host.getId()) && !tempHost.getInactive()){
-                if (tempHost.getUuid()!=null && tempHost.getUuid().equals(host.getUuid())) {
-                    throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " shares same uuid "+ host.getUuid() +
-                            " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                Arrays.asList("label", "uuid", "serviceProfile", "computeElement", "registrationStatus", "inactive"),
+                ControllerUtils.getFullyImplementedCollection(hostIds));
+        for (Host tempHost : hosts) {
+            if (!tempHost.getId().equals(host.getId()) && !tempHost.getInactive()) {
+                if (tempHost.getUuid() != null && tempHost.getUuid().equals(host.getUuid())) {
+                    throw APIException.badRequests
+                            .resourceCannotBeDeleted("Host " + host.getLabel() + " shares same uuid " + host.getUuid() +
+                                    " with another active host " + tempHost.getLabel() + " with URI: " + tempHost.getId().toString()
+                                    + " and ");
                 }
-                if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement()== tempHost.getComputeElement()){
-                    throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel() + " shares same computeElement "+ host.getComputeElement() +
-                            " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())
+                        && host.getComputeElement() == tempHost.getComputeElement()) {
+                    throw APIException.badRequests
+                            .resourceCannotBeDeleted("Host " + host.getLabel() + " shares same computeElement " + host.getComputeElement() +
+                                    " with another active host " + tempHost.getLabel() + " with URI: " + tempHost.getId().toString()
+                                    + " and ");
                 }
-                if (!NullColumnValueGetter.isNullURI(host.getServiceProfile()) && host.getServiceProfile()== tempHost.getServiceProfile()){
-                    throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " shares same serviceProfile "+ host.getServiceProfile() +
-                            " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())
+                        && host.getServiceProfile() == tempHost.getServiceProfile()) {
+                    throw APIException.badRequests
+                            .resourceCannotBeDeleted("Host " + host.getLabel() + " shares same serviceProfile " + host.getServiceProfile() +
+                                    " with another active host " + tempHost.getLabel() + " with URI: " + tempHost.getId().toString()
+                                    + " and ");
                 }
 
             }
         }
-        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())){
-            throw APIException.badRequests.resourceCannotBeDeletedVblock(host.getLabel(), "Host "+ host.getLabel()+ " has a compute element, but no service profile."
-                    +" Please re-discover the Vblock Compute System and retry.");
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
+            throw APIException.badRequests.resourceCannotBeDeletedVblock(host.getLabel(),
+                    "Host " + host.getLabel() + " has a compute element, but no service profile."
+                            + " Please re-discover the Vblock Compute System and retry.");
         }
         // VBDU [DONE]: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
         // If initiators are empty, we will not perform any export updates
@@ -746,7 +803,7 @@ public class HostService extends TaskResourceService {
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 
         List<VolumeDescriptor> bootVolDescriptors = new ArrayList<>();
-        if(deactivateBootVolume & !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+        if (deactivateBootVolume & !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
             Volume vol = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
             if (vol.isVPlexVolume(_dbClient)) {
                 bootVolDescriptors.addAll(vplexBlockServiceApiImpl.getDescriptorsForVolumesToBeDeleted(
@@ -1222,7 +1279,6 @@ public class HostService extends TaskResourceService {
         return (HostBulkRep) super.getBulkResources(param);
     }
 
-
     @Override
     protected DataObject queryResource(URI id) {
         return queryObject(Host.class, id, false);
@@ -1265,20 +1321,20 @@ public class HostService extends TaskResourceService {
             ComputeElement computeElement = null;
             UCSServiceProfile serviceProfile = null;
             ComputeSystem computeSystem = null;
-            if (host!=null){
-                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
-                    computeElement = queryObject(ComputeElement.class, host.getComputeElement(),false);
+            if (host != null) {
+                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                    computeElement = queryObject(ComputeElement.class, host.getComputeElement(), false);
                 }
-                if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                     serviceProfile = queryObject(UCSServiceProfile.class, host.getServiceProfile(), false);
                 }
-                if (serviceProfile!=null){
+                if (serviceProfile != null) {
                     computeSystem = queryObject(ComputeSystem.class, serviceProfile.getComputeSystem(), false);
-                }else if (computeElement !=null){
+                } else if (computeElement != null) {
                     computeSystem = queryObject(ComputeSystem.class, computeElement.getComputeSystem(), false);
                 }
             }
-            HostRestRep rep = map(host,computeElement, serviceProfile, computeSystem);
+            HostRestRep rep = map(host, computeElement, serviceProfile, computeSystem);
             return rep;
         }
 
@@ -1295,7 +1351,7 @@ public class HostService extends TaskResourceService {
     }
 
     public static class HostResRepFilter<E extends RelatedResourceRep>
-    extends ResRepFilter<E> {
+            extends ResRepFilter<E> {
         public HostResRepFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
@@ -1353,7 +1409,7 @@ public class HostService extends TaskResourceService {
         UnManagedVolumeList list = new UnManagedVolumeList();
         for (UnManagedVolume volume : unmanagedVolumes) {
             list.getUnManagedVolumes()
-            .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, volume.getId()));
+                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, volume.getId()));
         }
 
         return list;
@@ -1384,7 +1440,7 @@ public class HostService extends TaskResourceService {
         UnManagedExportMaskList list = new UnManagedExportMaskList();
         for (UnManagedExportMask uem : uems) {
             list.getUnManagedExportMasks()
-            .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_EXPORT_MASKS, uem.getId()));
+                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_EXPORT_MASKS, uem.getId()));
         }
 
         return list;
@@ -1646,7 +1702,7 @@ public class HostService extends TaskResourceService {
                 _log.debug("Found compute system " + computeSystemRestRep.getId() + " for virtual array " + varray.getId());
                 if (!cvpTemplatesMap.containsKey(computeSystemRestRep.getId())) {
                     _log.info("The CVP has no service profile templates assigned from compute system " + computeSystemRestRep.getName()
-                    + ". So no blades will be used from this compute system.");
+                            + ". So no blades will be used from this compute system.");
                     continue;
                 }
                 ComputeElementListRestRep computeElementListRestRep = computeSystemService.getComputeElements(computeSystemRestRep.getId());
@@ -1700,14 +1756,15 @@ public class HostService extends TaskResourceService {
         }
         return sortedHashMap;
     }
-    private  Map<URI, List<URI>> filterOutBladesFromBadUcs(Map<URI, List<URI>> inputMap){
-        Map<URI, List<URI>> outputMap = new HashMap<URI,List<URI>>();
-        for (URI csURI: inputMap.keySet()){
+
+    private Map<URI, List<URI>> filterOutBladesFromBadUcs(Map<URI, List<URI>> inputMap) {
+        Map<URI, List<URI>> outputMap = new HashMap<URI, List<URI>>();
+        for (URI csURI : inputMap.keySet()) {
             ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, csURI);
-            if (ucs!=null && !ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
-                outputMap.put(csURI,inputMap.get(csURI));
-            }else {
-                _log.warn("Filtering out blades from Compute System "+ ucs.getLabel()+" which failed discovery");
+            if (ucs != null && !ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
+                outputMap.put(csURI, inputMap.get(csURI));
+            } else {
+                _log.warn("Filtering out blades from Compute System " + ucs.getLabel() + " which failed discovery");
             }
         }
         return outputMap;
@@ -2331,7 +2388,7 @@ public class HostService extends TaskResourceService {
                     "Compute system {} does not have an image server associated with it. Cannot proceed with OS install.",
                     img.getLabel());
             throw APIException.badRequests
-            .noImageServerAssociatedToComputeSystem(cs.getLabel());
+                    .noImageServerAssociatedToComputeSystem(cs.getLabel());
         } else {
             ComputeImageServer imageServer = queryObject(
                     ComputeImageServer.class, imageServerURI, true);
@@ -2341,8 +2398,8 @@ public class HostService extends TaskResourceService {
                 _log.info("Selected image {} does not exist on imageServer {}",
                         img.getLabel(), imageServer.getLabel());
                 throw APIException.badRequests
-                .imageNotPresentOnComputeImageServer(img.getLabel(),
-                        imageServer.getLabel());
+                        .imageNotPresentOnComputeImageServer(img.getLabel(),
+                                imageServer.getLabel());
             }
             _log.info("Selected image {} exists on imageServer {}",
                     img.getLabel(), imageServer.getLabel());
@@ -2351,6 +2408,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Verifies the host being installed does not conflict with existing host IPs.
+     * 
      * @param host {@link Host} host being newly provisioned.
      * @param param {@link OsInstallParam}
      *
@@ -2374,7 +2432,7 @@ public class HostService extends TaskResourceService {
                             throw APIException.badRequests.hostWithDuplicateIP(host.getLabel(), param.getHostIp(),
                                     hostWithSameIp.getLabel());
                         } else {
-                            // If there is a valid IpInterface object, but the host inside it is no longer in the 
+                            // If there is a valid IpInterface object, but the host inside it is no longer in the
                             // database, then we take this opportunity to clear out the object before it causes more
                             // issues.
                             _log.warn(

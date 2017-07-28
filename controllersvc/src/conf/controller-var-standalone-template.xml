@@ -18,6 +18,7 @@
                 <entry key="ObjectController" value="rmi://${node_id}:10099/ObjectController"/>
                 <entry key="WorkflowController" value="rmi://${node_id}:10099/WorkflowController"/>
                 <entry key="ComputeSystemOrchestrationController" value="rmi://${node_id}:10099/ComputeSystemOrchestrationController"/>
+                <entry key="HostRescanController" value="rmi://${node_id}:10099/HostRescanController"/>
                 <entry key="MigrationController" value="rmi://${node_id}:10099/MigrationController" />
             </map>
         </property>
@@ -56,6 +57,7 @@
                 <value>externaldevice</value>
                 <value>workflow</value>            
                 <value>compute-system-orchestration</value>
+                <value>host</value>
             </set>
         </property>
     </bean>

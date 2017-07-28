@@ -819,7 +819,7 @@ public class VMwareSupport {
     public void addNfsDatastoreTag(FileShareRestRep fileSystem, FileSystemExportParam export, URI datacenterId,
             String datastoreName) {
         execute(new TagDatastoreOnFilesystem(fileSystem.getId(), vcenterId, datacenterId, datastoreName,
-                export.getMountPoint()));
+                export.getMountPoint(), export.getEndpoints()));
         addRollback(new UntagDatastoreOnFilesystem(fileSystem.getId(), vcenterId, datacenterId, datastoreName));
         addAffectedResource(fileSystem);
     }

@@ -89,24 +89,6 @@ public class SmisDeleteVolumeJob extends SmisJob
                     }
                     logMsgBuilder.append(String.format("Failed to delete volume: %s", id));
                 }
-                // if SRDF Protected Volume, then change it to a normal device.
-                // in case of array locks, target volume deletions fail some times.
-                // This fix, converts a RDF device to non-rdf device in ViPr, so that this volume is exposed to UI for deletion again.
-                for (Volume volume : volumes) {
-                    if (volume.checkForSRDF()) {
-                        volume.setPersonality(NullColumnValueGetter.getNullStr());
-                        volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                        volume.setLinkStatus(NullColumnValueGetter.getNullStr());
-                        if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
-                            volume.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
-                            volume.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
-                            volume.setSrdfGroup(NullColumnValueGetter.getNullURI());
-                        } else if (null != volume.getSrdfTargets()) {
-                            volume.getSrdfTargets().clear();
-                        }
-                    }
-                }
-                dbClient.updateObject(volumes);
             }
             if (logMsgBuilder.length() > 0) {
                 _log.info(logMsgBuilder.toString());

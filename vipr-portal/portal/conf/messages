@@ -67,6 +67,7 @@ nav.block.snapshots=Block Snapshots
 nav.block.snapshotsessions=Snap Sessions
 nav.block.virtualPools=Block Virtual Pools
 nav.block.app=Applications
+nav.block.exportPathPolicies=Export Path Policies
 nav.file=File
 nav.file.filesystems=File Systems
 nav.file.snapshots=File Snapshots

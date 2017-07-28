@@ -1,12 +1,10 @@
 package models.datatable;
 
-import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
-
 import java.net.URI;
 
-import util.datatable.DataTable;
-
 import com.emc.storageos.model.ports.StoragePortRestRep;
+
+import util.datatable.DataTable;
 
 public class ExportPathPoliciesDataTable extends DataTable  {
     

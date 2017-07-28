@@ -22,6 +22,7 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 import models.datatable.ExportPathPoliciesDataTable;
+import models.datatable.VirtualPoolDataTable;
 import models.datatable.ExportPathPoliciesDataTable.PortSelectionDataTable;
 import models.datatable.ExportPathPoliciesDataTable.StoragePortsDataTable;
 import models.datatable.StoragePortDataTable.StoragePortInfo;
@@ -40,6 +41,16 @@ import util.datatable.DataTablesSupport;
 public class ExportPathPolicies extends ViprResourceController {
 
     protected static final String UNKNOWN = "ExportPathPolicies.unknown";
+
+    public static void list() {
+        ExportPathPoliciesDataTable dataTable = createExportPathPoliciesDataTable();
+        render(dataTable);
+    }
+
+    private static ExportPathPoliciesDataTable createExportPathPoliciesDataTable() {
+        ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
+        return dataTable;
+    }
 
     public static class PortGroupForm {
         public String id;

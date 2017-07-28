@@ -158,7 +158,7 @@ function singleModeIPConfigure()
   echo "$ip $hostname ${hostname%%.*}" > /etc/hosts
   echo "127.0.0.1	localhost" >> /etc/hosts
   echo "Setting network configuration..."
-  interface=$( ip addr | grep BROADCAST,MULTICAST | head -n $nic | tail -n 1 | cut -d':' -f2 | tr -d ' ' )
+  interface="eth${eth}"
   ifcfgFile="/etc/sysconfig/network/ifcfg-$interface"
   [ ! -f $ifcfgFile ] && touch $ifcfgFile
 
@@ -199,7 +199,7 @@ EOF
 
 function dualModeIPConfigure()
 {
-  interface=$( ip addr | grep BROADCAST,MULTICAST | head -n $nic | tail -n 1 | cut -d':' -f2 | tr -d ' ' )
+  interface="eth${eth}"
   resolvFileText=""
   resolvFile="/etc/resolv.conf"
   [ ! -f $resolvFile ] && touch $resolvFile
@@ -360,4 +360,3 @@ timezoneFile="/etc/localtime"
 [ -f $timezoneFile ] && mv -f $timezoneFile $timezoneFile.orig
 [ -d $timezoneFile ] && mv -f $timezoneFile $timezoneFile-orig
 ln -s "/usr/share/zoneinfo/$system_timezone" $timezoneFile
-

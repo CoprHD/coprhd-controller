@@ -23,7 +23,7 @@ function installRepositories
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-42.2-building \
          --no-gpgcheck http://download.opensuse.org/repositories/devel:/tools:/building/openSUSE_Leap_42.2 suse-42.2-building
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-42.2-appliances \
-         --no-gpgcheck http://download.opensuse.org/repositories/Virtualization/openSUSE_Leap_42.2 suse-42.2-appliances
+         --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/Appliances/openSUSE_Leap_42.2 suse-42.2-appliances
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-42.2-containers \
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_Leap_42.2 suse-42.2-containers
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-42.3-filesystems-ceph \

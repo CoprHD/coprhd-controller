@@ -85,7 +85,7 @@ public class VMAXUtils {
             } catch (VMAXException sourceEx) {
                 String msg = targetEx.getMessage() + " " + sourceEx.getMessage();
                 logger.error(msg);
-                throw DeviceControllerExceptions.vmax.providerUnrachable(msg);
+                throw DeviceControllerExceptions.vmax.providerUnreachable(msg);
             }
         }
 
@@ -111,6 +111,6 @@ public class VMAXUtils {
         }
 
         logger.warn(msg.toString());
-        throw DeviceControllerExceptions.vmax.providerUnrachable(msg.toString());
+        throw DeviceControllerExceptions.vmax.providerUnreachable(msg.toString());
     }
 }

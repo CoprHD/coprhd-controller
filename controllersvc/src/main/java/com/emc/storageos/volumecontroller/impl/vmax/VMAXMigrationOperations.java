@@ -30,7 +30,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
                 apiClient.createMigrationEnvironment(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber());
             } catch (Exception e) {
                 // ignore if migration environment already exists
-                if (!MIGRATION_ENV_EXISTS.equals(e.getMessage())) {
+                if (!e.getMessage().contains(MIGRATION_ENV_EXISTS)) {
                     throw e;
                 }
             }
@@ -54,7 +54,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
                 apiClient.deleteMigrationEnvironment(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber());
             } catch (Exception e) {
                 // ignore if migration environment hasn't been configured yet
-                if (!MIGRATION_ENV_NON_EXIST.equals(e.getMessage())) {
+                if (!e.getMessage().contains(MIGRATION_ENV_NON_EXIST)) {
                     throw e;
                 }
             }

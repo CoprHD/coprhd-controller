@@ -23,7 +23,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public interface VMAXExceptions {
 
     @DeclareServiceCode(ServiceCode.UNISPHERE_PROVIDER_UNAVAILABLE)
-    VMAXException providerUnrachable(String cause);
+    VMAXException providerUnreachable(String cause);
 
     @DeclareServiceCode(ServiceCode.UNISPHERE_PROVIDER_UNAVAILABLE)
     VMAXException authenticationFailure(String storageSystemForDisplay);

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 DELL EMC
+ * All Rights Reserved
+ */
 package com.emc.storageos.migrationcontroller;
 
 import static java.lang.String.format;
@@ -294,6 +298,14 @@ public class VMAXMigrationController implements MigrationController {
         return new Workflow.Method("createMigrationEnvironment", sourceSystem, targetSystem);
     }
 
+    /**
+     * Create migration environment
+     *
+     * @param sourceSystemURI
+     * @param targetSystemURI
+     * @param opId
+     * @throws ControllerException
+     */
     public void createMigrationEnvironment(URI sourceSystemURI, URI targetSystemURI, String opId)
             throws ControllerException {
         try {
@@ -312,6 +324,14 @@ public class VMAXMigrationController implements MigrationController {
         return new Workflow.Method("removeMigrationEnvironment", sourceSystem, targetSystem);
     }
 
+    /**
+     * Remove migration environment
+     *
+     * @param sourceSystemURI
+     * @param targetSystemURI
+     * @param opId
+     * @throws ControllerException
+     */
     public void removeMigrationEnvironment(URI sourceSystemURI, URI targetSystemURI, String opId)
             throws ControllerException {
         try {

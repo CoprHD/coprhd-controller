@@ -659,7 +659,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 dbClient.updateObject(host);
             }
 
-            if (ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
+            if (ComputeSystemHelper.isHostInUse(dbClient, host.getId()) && (!oldInitiatorObjects.isEmpty()
+                    || !newInitiatorObjects.isEmpty())) {
 
                 List<String> oldInitiatorPorts = Lists.newArrayList();
                 List<String> newInitiatorPorts = Lists.newArrayList();
@@ -680,12 +681,25 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 allAffectedResources.addAll(newInitiatorIds);
                 allAffectedResources.addAll(oldInitiatorIds);
 
+                String name = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsLabelAddAndRemove",
+                        StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ","));
+                String description = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsDescriptionAddAndRemove",
+                        StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ","));
+
+                if (!newInitiatorPorts.isEmpty() && oldInitiatorPorts.isEmpty()) {
+                    name = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsLabelAddOnly",
+                            StringUtils.join(newInitiatorPorts, ","));
+                    description = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsDescriptionAddOnly",
+                            StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ","));
+                } else if (newInitiatorPorts.isEmpty() && !oldInitiatorPorts.isEmpty()) {
+                    name = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsLabelRemoveOnly",
+                            StringUtils.join(newInitiatorPorts, ","));
+                    description = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsDescriptionRemoveOnly",
+                            StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ","));
+                }
+
                 EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_UPDATES, host.getTenant(),
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsLabel",
-                                StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ",")),
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsDescription",
-                                StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ",")),
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsWarning"),
+                        name, description, ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsWarning"),
                         host, allAffectedResources, EventUtils.updateInitiators,
                         new Object[] { host.getId(), newInitiatorIds, oldInitiatorIds }, EventUtils.updateInitiatorsDecline,
                         new Object[] { host.getId(), newInitiatorIds, oldInitiatorIds });

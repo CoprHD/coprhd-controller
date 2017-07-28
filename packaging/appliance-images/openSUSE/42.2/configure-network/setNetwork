@@ -158,7 +158,7 @@ function singleModeIPConfigure()
   echo "$ip $hostname ${hostname%%.*}" > /etc/hosts
   echo "127.0.0.1	localhost" >> /etc/hosts
   echo "Setting network configuration..."
-  interface="eth${nic}"
+  interface="eth${eth}"
   ifcfgFile="/etc/sysconfig/network/ifcfg-$interface"
   [ ! -f $ifcfgFile ] && touch $ifcfgFile
 
@@ -199,7 +199,7 @@ EOF
 
 function dualModeIPConfigure()
 {
-  interface="eth${nic}"
+  interface="eth${eth}"
   resolvFileText=""
   resolvFile="/etc/resolv.conf"
   [ ! -f $resolvFile ] && touch $resolvFile

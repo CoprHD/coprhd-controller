@@ -266,9 +266,8 @@ public class BackupService {
     @GET
     @Path("internal/local-backup-detail")
     @Produces({ MediaType.APPLICATION_JSON })
-    public Response queryLocalBackupDetail(@QueryParam("backupname") String backupName) {
-        BackupDetail info = backupOps.getLocalBackupDetail(backupName);
-        return Response.ok(info).build();
+    public BackupDetail queryLocalBackupDetail(@QueryParam("backupname") String backupName) {
+        return backupOps.getLocalBackupDetail(backupName);
     }
 
 
@@ -764,7 +763,7 @@ public class BackupService {
                     for(URI uri : backupOps.getOtherNodes()) {
                         log.info("Redirect query local backup URI {} to {}", queryLocalURI, uri);
                         SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(uri);
-                        BackupDetail info = sysClient.post(queryLocalURI, BackupDetail.class, null);
+                        BackupDetail info = sysClient.get(queryLocalURI, BackupDetail.class, null);
                         if(!info.getBackupFiles().isEmpty()) {
                             status.setGeo(info.isGeo());
                             break;

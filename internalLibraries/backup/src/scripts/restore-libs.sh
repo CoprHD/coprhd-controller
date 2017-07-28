@@ -119,7 +119,6 @@ is_vdc_connected() {
         IS_CONNECTED_VDC=true
     elif [[ "${is_geo}" == "false" ]]; then
         IS_CONNECTED_VDC=false
-        fi
     else
         echo -e "\nInvalid geodb type: ${is_geo}, exiting.."
         exit 2

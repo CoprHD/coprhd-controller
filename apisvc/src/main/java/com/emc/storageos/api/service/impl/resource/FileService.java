@@ -1310,7 +1310,7 @@ public class FileService extends TaskResourceService {
         } else {
             if (quotaFsSize < MIN_EXPAND_SIZE) {
                 List<QuotaDirectory> quotaDirs = queryDBQuotaDirectories(fs);
-                if (null != quotaDirs && !quotaDirs.isEmpty()) {
+                if (!CollectionUtils.isEmpty(quotaDirs)) {
                     long qdsize = 0;
                     // we will check sub quotas of filesystem
                     // that new size should not be less than any of the sub quota.
@@ -1668,9 +1668,9 @@ public class FileService extends TaskResourceService {
                 // if we don't find port for NFS protocol then
                 // in catch exception we get port for CIFS protocol
                 storagePort = _fileScheduler.placeFileShareExport(fs, PROTOCOL_CIFS, null);
-                _log.info(
+                _log.error(
                         "FS is not mounted so we are mounting the FS first and then creating the Snapshot and the returned storage port- {} and supported protocol-{}",
-                        storagePort.getPortName(), PROTOCOL_NFS);
+                        storagePort.getPortName(), PROTOCOL_NFS, e);
             }
         }
 
@@ -1799,7 +1799,7 @@ public class FileService extends TaskResourceService {
                     param.getDeleteType(), param.getForceDelete(), false, task);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
-                _log.error("Delete error", e);
+            _log.error("Delete error", e);
             }
 
             FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
@@ -2178,7 +2178,7 @@ public class FileService extends TaskResourceService {
             _log.error("Error Processing Export Updates {}, {}", e.getMessage(), e);
             throw e;
         } catch (Exception e) {
-            // _log.error("Error Processing Export Updates {}, {}", e.getMessage(), e);
+            _log.error("Error Processing Export Updates {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
 
@@ -2501,7 +2501,7 @@ public class FileService extends TaskResourceService {
         // Get All ACLs of FS from data base and group them based on path!!
         NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, subDir);
         NfsACLs acls = util.getNfsAclFromDB(allDirs);
-        if (CollectionUtils.isEmpty(acls.getNfsACLs())) {
+        if (!CollectionUtils.isEmpty(acls.getNfsACLs())) {
             _log.info("Found {} Acl rules for filesystem {}", acls.getNfsACLs().size(), fs.getId());
         } else {
             _log.info("No Acl rules found for filesystem  {}", fs.getId());
@@ -2701,8 +2701,8 @@ public class FileService extends TaskResourceService {
         }
 
         // check if same TYPE of policy already applied to file system
-        if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name()) && existingFSPolicies != null
-                && !existingFSPolicies.isEmpty()) {
+        if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())
+                && !CollectionUtils.isEmpty(existingFSPolicies)) {
             checkForDuplicatePolicyApplied(filePolicy, existingFSPolicies);
         }
 
@@ -3524,8 +3524,8 @@ public class FileService extends TaskResourceService {
         }
 
         // check if same TYPE of policy already applied to file system
-        if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name()) && existingFSPolicies != null
-                && !existingFSPolicies.isEmpty()) {
+        if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())
+                && !CollectionUtils.isEmpty(existingFSPolicies)) {
             checkForDuplicatePolicyApplied(filePolicy, existingFSPolicies);
         }
 
@@ -4108,16 +4108,14 @@ public class FileService extends TaskResourceService {
 
         StringBuffer notSuppReasonBuff = new StringBuffer();
         // Verify the fs has replication attributes!!!
-        // TODO tomany condtional check. may need seperate method for it.
-        if (fs.getPersonality() != null && PersonalityTypes.SOURCE.name().equalsIgnoreCase(fs.getPersonality())
-                && fs.getMirrorfsTargets() != null && !fs.getMirrorfsTargets().isEmpty()) {
+        if (PersonalityTypes.SOURCE.name().equalsIgnoreCase(fs.getPersonality()) && !CollectionUtils.isEmpty(fs.getMirrorfsTargets())) {
             notSuppReasonBuff.append(String.format("File system %s has active target file systems", fs.getLabel()));
             _log.error(notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
         }
 
         // File system should not be the target file system..
-        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+        if (PersonalityTypes.TARGET.name().equalsIgnoreCase(fs.getPersonality())) {
             notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
                     fs.getLabel()));
             _log.error(notSuppReasonBuff.toString());
@@ -4182,7 +4180,7 @@ public class FileService extends TaskResourceService {
         }
         URI targetvPool = null;
         // Get the existing topologies for the policy
-        if (filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
+        if (!CollectionUtils.isEmpty(filePolicy.getReplicationTopologies())) {
             for (String strTopology : filePolicy.getReplicationTopologies()) {
                 FileReplicationTopology dbTopology = _dbClient.queryObject(FileReplicationTopology.class,
                         URI.create(strTopology));

@@ -340,7 +340,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR, true, AuditLogManager.AUDITOP_BEGIN,
-                quotaDirNew.getLabel(), quotaDirNew.getId().toString(), fs.getId().toString());
+                quotaDirNew.getLabel(), quotaDirNew.getId(), fs.getId());
 
         fs = _dbClient.queryObject(FileShare.class, fs.getId());
         _log.debug("Quota directory before sending response, FS ID : {}, Taks : {} ; Status {}",
@@ -418,7 +418,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_QUOTA_DIR, true, AuditLogManager.AUDITOP_BEGIN,
-                quotaDirectory.getLabel(), quotaDirectory.getId().toString(), fs.getId().toString());
+                quotaDirectory.getLabel(), quotaDirectory.getId(), fs.getId());
 
         _log.debug("Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
                 fs.getOpStatus().get(task).getStatus());

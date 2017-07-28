@@ -511,7 +511,7 @@ public class FilePolicyServiceUtils {
                 if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
                         && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
-                    _log.info("Replication policy found for vpool {} and project {}", vpoolURI.toString(), project.getLabel());
+                    _log.info("Replication policy found for vpool {} and project {}", vpoolURI, project.getLabel());
                     return true;
                 }
             }

@@ -1272,6 +1272,7 @@ public class FileSnapshotService extends TaskResourceService {
                     fs.getId(), device.getId(), param);
 
         } catch (URISyntaxException e) {
+            // TODO create and error code and use op.error method.
             op.setStatus(Operation.Status.error.name());
             _log.error("Error Processing Export Updates {}, {}", e.getMessage(), e);
             return toTask(snap, task, op);

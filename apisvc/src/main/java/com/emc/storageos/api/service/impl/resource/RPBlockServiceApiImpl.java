@@ -74,7 +74,6 @@ import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -86,7 +85,6 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
-import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -1568,6 +1566,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         } else if (personality.equals(Volume.PersonalityTypes.TARGET)) {
             volume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
             volume.setLinkStatus(Volume.LinkStatus.OTHER.name());
+
+            // COP-32023: Set volume tags of the target to be the same as the source, since this is a live copy of the source.
+            // This wholesale copy of the volume tags may not be desired by all users, and may actually hinder logic that relies
+            // on the source volume having a different tag than the target, so post-processing may need to take place to remove
+            // undesired tagging this will cause.
+            transferMountedContentTags(sourceVolume, volume);
         }
 
         if (consistencyGroup != null) {

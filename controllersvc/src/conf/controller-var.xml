@@ -26,6 +26,7 @@
                 <entry key="ObjectController" value="rmi://localhost:10099/ObjectController"/>
                 <entry key="WorkflowController" value="rmi://localhost:10099/WorkflowController"/>
                 <entry key="ComputeSystemOrchestrationController" value="rmi://localhost:10099/ComputeSystemOrchestrationController"/>
+                <entry key="HostRescanController" value="rmi://localhost:10099/HostRescanController"/>
             </map>
         </property>
         <property name="version" value="1"/>
@@ -65,6 +66,7 @@
                 <value>externaldevice</value>
                 <value>workflow</value>
                 <value>compute-system-orchestration</value>
+                <value>host</value>
             </set>
         </property>
     </bean>

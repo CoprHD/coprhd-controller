@@ -4401,7 +4401,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private boolean isValidTargetHostOnExistingPolicy(String existingPolicyTargetHost, StorageSystem system) {
         if (existingPolicyTargetHost != null && !existingPolicyTargetHost.isEmpty()) {
             // target cluster IP address is matching????
-            if (existingPolicyTargetHost.equalsIgnoreCase(system.getIpAddress()) || existingPolicyTargetHost.equalsIgnoreCase("localhost")) {
+            if (existingPolicyTargetHost.equalsIgnoreCase(system.getIpAddress())) {
                 return true;
             }
             IsilonApi isi = getIsilonDevice(system);
@@ -4441,7 +4441,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     return false;
                 }
             } else {
-                if (!isValidTargetHostOnExistingPolicy(isiMatchedPolicy.getTargetHost(), sourceSystem)) {
+                if (!(isiMatchedPolicy.getTargetHost().equalsIgnoreCase("localhost")
+                        || isiMatchedPolicy.getTargetHost().equalsIgnoreCase("127.0.0.1")
+                        || isValidTargetHostOnExistingPolicy(isiMatchedPolicy.getTargetHost(), sourceSystem))) {
                     _log.error("Target host is not matching for LOCAL replication.");
                     return false;
                 }
@@ -4612,12 +4614,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
     
     @Override
-    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args){
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
         BiosCommandResult result = null;
         FileShare srcFs = args.getFs();
-        if (srcFs == null){
+        if (srcFs == null) {
             throw DeviceControllerException.exceptions.assignFilePolicyFailed(args.getFileProtectionPolicy().getFilePolicyName(),
-                    args.getFileProtectionPolicy().getApplyAt(),"Failed to retrieve source filesystem");
+                    args.getFileProtectionPolicy().getApplyAt(), "Failed to retrieve source filesystem");
         }
         Task task = TaskUtils.findTaskForRequestId(_dbClient, srcFs.getId(), args.getOpId());
         try {
@@ -4630,7 +4632,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (isiSynIQPolicy != null) {
                     String targetPath = isiSynIQPolicy.getTargetPath();
                     String targetHost = isiSynIQPolicy.getTargetHost();
-                    //assuming that the file policy is valid setting the replication extension with the target info.
+                    // assuming that the file policy is valid setting the replication extension with the target info.
                     setReplicationInfoInExtension(srcFs, targetHost, targetPath);
                 }
             }
@@ -4647,14 +4649,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
         return result;
     }
-    
+
     private void setReplicationInfoInExtension(FileShare sourceFileShare, String targetHost, String path) {
         String targetInfo = String.format("%s:%s", targetHost, path);
         if (sourceFileShare != null) {
             sourceFileShare.getExtensions().put("ReplicationInfo", targetInfo);
             _dbClient.updateObject(sourceFileShare);
         } else {
-            throw DeviceControllerException.exceptions.replicationInfoSettingFailed( "Failed to set the replication attribute to source FS ");
+            throw DeviceControllerException.exceptions
+                    .replicationInfoSettingFailed("Failed to set the replication attribute to source FS ");
         }
 
     }

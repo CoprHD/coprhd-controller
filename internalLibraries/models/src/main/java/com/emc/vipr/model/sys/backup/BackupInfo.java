@@ -23,12 +23,7 @@ public class BackupInfo implements Serializable {
     private String version ="";
     private String siteId="";
     private String siteName="";
-    private String hosts = "";
     private long createTime = 0;
-    private boolean isGeo = false;
-    private boolean foundDBfile=false;
-    private boolean foundGeoFile=false;
-
     private BackupRestoreStatus restoreStatus;
 
     public BackupInfo() {
@@ -93,44 +88,8 @@ public class BackupInfo implements Serializable {
         return siteName;
     }
 
-    @XmlElement(name = "hosts")
-    public String getHosts() {
-        return hosts;
-    }
-
-    public void setHosts(String hosts) {
-        this.hosts = hosts;
-    }
-
     public void setSiteName(String siteName) {
         this.siteName = siteName;
-    }
-
-    @XmlElement(name = "is_geo")
-    public boolean isGeo() {
-        return isGeo;
-    }
-
-    public void setGeo(boolean geo) {
-        isGeo = geo;
-    }
-
-    @XmlElement(name = "found_db_file")
-    public boolean isFoundDBfile() {
-        return foundDBfile;
-    }
-
-    public void setFoundDBfile(boolean foundDBfile) {
-        this.foundDBfile = foundDBfile;
-    }
-
-    @XmlElement(name = "found_geo_file")
-    public boolean isFoundGeoFile() {
-        return foundGeoFile;
-    }
-
-    public void setFoundGeoFile(boolean foundGeoFile) {
-        this.foundGeoFile = foundGeoFile;
     }
 
     @Override
@@ -144,18 +103,10 @@ public class BackupInfo implements Serializable {
         sb.append(siteId);
         sb.append(", site_name:");
         sb.append(siteName);
-        sb.append(", hosts:");
-        sb.append(hosts);
         sb.append(", CreateTime:");
         sb.append(createTime);
         sb.append(", backupSize:");
         sb.append(backupSize);
-        sb.append(", isGeo:");
-        sb.append(isGeo);
-        sb.append(", foundDBfile:");
-        sb.append(foundDBfile);
-        sb.append(", foundGeoFile:");
-        sb.append(foundGeoFile);
         sb.append(", RestoreStatus:");
         sb.append(restoreStatus);
 

@@ -18,8 +18,6 @@ DIR=$(dirname $0)
 start_service() {
     echo -n "Starting storageos services on all nodes ... "
     local command="/etc/storageos/storageos start"
-#    loop_execute "${command}" "true"
-
     set +e
 
     for viprNode in ${SUCCESSFUL_NODES}

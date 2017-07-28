@@ -94,7 +94,6 @@ is_local_backup() {
     fi
 }
 
-
 # $1=backup folder
 get_backup_info_from_nodes() {
     set +e
@@ -109,7 +108,6 @@ get_backup_info_from_nodes() {
     set -e
     echo "${BACKUP_INFO}" | sort -u
 }
-
 
 is_vdc_connected() {
     BACKUP_INFO="$1"

@@ -8,7 +8,7 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.model.block.export.ExportPathPolicy;
 import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
 import com.emc.storageos.model.block.export.StoragePorts;
@@ -22,7 +22,6 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 import models.datatable.ExportPathPoliciesDataTable;
-import models.datatable.VirtualPoolDataTable;
 import models.datatable.ExportPathPoliciesDataTable.PortSelectionDataTable;
 import models.datatable.ExportPathPoliciesDataTable.StoragePortsDataTable;
 import models.datatable.StoragePortDataTable.StoragePortInfo;
@@ -52,7 +51,7 @@ public class ExportPathPolicies extends ViprResourceController {
         return dataTable;
     }
 
-    public static class PortGroupForm {
+    public static class ExportPathPolicyForm {
         public String id;
         public String name;
         public String description;
@@ -62,7 +61,7 @@ public class ExportPathPolicies extends ViprResourceController {
         public List<URI> storagePorts;
         public Integer maxInitiatorsPerPort;
 
-        public PortGroupForm form(ExportPathPolicyRestRep restRep){
+        public ExportPathPolicyForm form(ExportPathPolicyRestRep restRep){
             this.id = restRep.getId().toString();
             this.name = restRep.getName();
             this.description = restRep.getDescription();
@@ -93,7 +92,7 @@ public class ExportPathPolicies extends ViprResourceController {
         renderArgs.put("dataTable", dataTable);
         renderArgs.put("storageSystemId", id);
         renderArgs.put("storageSystemName", storageSystem.getName());
-        PortGroupForm portGroup = new PortGroupForm();
+        ExportPathPolicyForm portGroup = new ExportPathPolicyForm();
         render("@listPortGroups", storageSystem, dataTable,portGroup);
     }
 
@@ -119,7 +118,7 @@ public class ExportPathPolicies extends ViprResourceController {
    // @FlashException(value = "portGroups", keep = true)
     public static void addPortGroup(String storageSystemId) {
         
-        PortGroupForm portGroup = new PortGroupForm();//createExportPathParams();//new ExportPathParameters();//
+        ExportPathPolicyForm portGroup = new ExportPathPolicyForm();//createExportPathParams();//new ExportPathParameters();//
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         StoragePortsDataTable portDataTable = dataTable.new StoragePortsDataTable();
         PortSelectionDataTable portSelectionDataTable = dataTable.new PortSelectionDataTable();
@@ -142,7 +141,7 @@ public class ExportPathPolicies extends ViprResourceController {
         PortSelectionDataTable portSelectionDataTable = dataTable.new PortSelectionDataTable();
         //StorageArrayPortDataTable portDataTable = new StorageArrayPortDataTable(storageSystem);
         if (exportPathParametersRestRep != null) {
-            PortGroupForm portGroup = new PortGroupForm().form(exportPathParametersRestRep);
+            ExportPathPolicyForm portGroup = new ExportPathPolicyForm().form(exportPathParametersRestRep);
             render(portGroup,portDataTable,portSelectionDataTable);
         }
         else {
@@ -161,9 +160,9 @@ public class ExportPathPolicies extends ViprResourceController {
         }
         portGroups(storageSystemId);
     }
-    
-    @FlashException(keep = true, referrer = { "create", "editPortGroup" })
-    public static void savePortGroup(PortGroupForm portGroup,String storageSystemId) {
+
+    @FlashException(keep = true, referrer = { "editPortGroup" })
+    public static void savePortGroup(ExportPathPolicyForm portGroup,String storageSystemId) {
         if (portGroup == null) {
             Logger.error("No port group parameters passed");
             badRequest("No port group parameters passed");
@@ -176,7 +175,7 @@ public class ExportPathPolicies extends ViprResourceController {
         portGroup.id = params.get("id");
         if (portGroup.isNew()) {
             
-            ExportPathParameters input = createExportPathParams(portGroup);
+            ExportPathPolicy input = createExportPathParams(portGroup);
             getViprClient().exportPathPolicies().create(input); // FIXME: had "true" second arg
         } else {
             ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(portGroup.id));
@@ -187,8 +186,8 @@ public class ExportPathPolicies extends ViprResourceController {
         portGroups(storageSystemId);
     }
     
-    public static ExportPathParameters createExportPathParams( PortGroupForm portGroup ) {
-        ExportPathParameters pathParam = new ExportPathParameters();
+    public static ExportPathPolicy createExportPathParams( ExportPathPolicyForm portGroup ) {
+        ExportPathPolicy pathParam = new ExportPathPolicy();
         pathParam.setName(portGroup.name.trim());
         pathParam.setDescription(portGroup.description.trim());
         pathParam.setMaxPaths(portGroup.maxPaths);
@@ -200,7 +199,7 @@ public class ExportPathPolicies extends ViprResourceController {
         return pathParam;
     }
     
-    public static ExportPathPolicyUpdate updateExportPathParams( PortGroupForm portGroup ) {
+    public static ExportPathPolicyUpdate updateExportPathParams( ExportPathPolicyForm portGroup ) {
         ExportPathPolicyUpdate pathParam = new ExportPathPolicyUpdate();
         pathParam.setName(portGroup.name.trim());
         pathParam.setDescription(portGroup.description.trim());
@@ -215,7 +214,7 @@ public class ExportPathPolicies extends ViprResourceController {
     public static void addPorts(String pathParamId,String storageSystemId, String portIds, String pgName, String pgDesc) {
          
         if(pathParamId == null || "".equals(pathParamId)){
-            ExportPathParameters input = new ExportPathParameters();
+            ExportPathPolicy input = new ExportPathPolicy();
             input.setName(pgName);
             input.setDescription(pgDesc);
             ExportPathPolicyRestRep rep = getViprClient().exportPathPolicies().create(input);  // FIXME: had "true" second arg

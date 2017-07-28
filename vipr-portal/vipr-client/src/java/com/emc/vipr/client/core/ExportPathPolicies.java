@@ -9,9 +9,9 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.ExportPathPoliciesBulkRep;
 import com.emc.storageos.model.block.export.ExportPathPoliciesList;
+import com.emc.storageos.model.block.export.ExportPathPolicy;
 import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -47,7 +47,7 @@ public class ExportPathPolicies extends AbstractCoreBulkResources<ExportPathPoli
      *            the Export Path Params.
      * @return the newly created Export Path Params.
      */
-    public ExportPathPolicyRestRep create(ExportPathParameters input) {
+    public ExportPathPolicyRestRep create(ExportPathPolicy input) {
         URI targetUri = client.uriBuilder(baseUrl).build();
         ExportPathPolicyRestRep element = client
                 .postURI(ExportPathPolicyRestRep.class, input, targetUri);

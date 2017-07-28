@@ -151,7 +151,8 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     if (logNames != null) {
                         for (String nodeId : nodeIds) {
                             for(String logName : logNames) {
-                                String logPath = String.format("%s/logs/%s_%s_%s.log", dataFiledir, logName, nodeId, nodeId);
+                                //String logPath = String.format("%s/logs/%s_%s_%s.log", dataFiledir, logName, nodeId, nodeId);
+                                String logPath = String.format("%s/logs/%s_%s_%s.log", "/var", logName, nodeId, nodeId);
                                 writeLogs(nodeId, nodeId, logName, logParam, logPath);
                             }
 
@@ -294,9 +295,12 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), false, MediaType.TEXT_PLAIN_TYPE);
             try {
                 logService.runningRequests.incrementAndGet();
+                log.info("runningRequest is: {}",logService.runningRequests);
                 logNetworkStreamMerger.streamLogs(os);
             }finally {
                 logService.runningRequests.decrementAndGet();
+                log.info("runningRequest is: {}",logService.runningRequests);
+                os.close();
             }
             /*String myId = coordinatorClientExt.getMyNodeId();
 

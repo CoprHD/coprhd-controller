@@ -290,6 +290,9 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
         InputStream is;
         try {
             File file = new File(destLogPath);
+            if (!file.getParentFile().exists()) {
+                file.getParentFile().mkdirs();
+            }
             OutputStream os = new FileOutputStream(file);
             LogNetworkStreamMerger logNetworkStreamMerger  = logService.getLogNetworkStreamMerger(nodeIds, nodeNames, logNames, logParam.getSeverity(), logParam.getStartTimeStr(),
                     logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), false, MediaType.TEXT_PLAIN_TYPE);

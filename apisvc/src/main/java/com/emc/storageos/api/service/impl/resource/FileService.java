@@ -882,10 +882,10 @@ public class FileService extends TaskResourceService {
                         "FileShareExport --- FileShare id: %1$s, Clients: %2$s, StoragePort: %3$s, SecurityType: %4$s, "
                                 +
                                 "Permissions: %5$s, Root user mapping: %6$s, Protocol: %7$s, path: %8$s, mountPath: %9$s, SubDirectory: %10$s ,byPassDnsCheck: %11$s",
-                                id, export.getClients(), sport.getPortName(), export.getSecurityType(), export.getPermissions(),
-                                export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(),
-                                export.getSubDirectory(),
-                                export.getBypassDnsCheck()));
+                        id, export.getClients(), sport.getPortName(), export.getSecurityType(), export.getPermissions(),
+                        export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(),
+                        export.getSubDirectory(),
+                        export.getBypassDnsCheck()));
 
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM);
@@ -2144,7 +2144,7 @@ public class FileService extends TaskResourceService {
         fs = _dbClient.queryObject(FileShare.class, id);
         _log.debug("FileService::QuotaDirectory Before sending response, FS ID : {}, Tasks : {} ; Status {}", fs.getOpStatus().get(task),
                 fs
-                .getOpStatus().get(task).getStatus());
+                        .getOpStatus().get(task).getStatus());
 
         return toTask(quotaDirectory, task, op);
     }
@@ -2229,6 +2229,13 @@ public class FileService extends TaskResourceService {
         FileShare fs = queryResource(id);
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        if (!checkDatastoreTags(fs.getTag(), id, subDir)) {
+            _log.info("File system has tagged NFS Datasource ", id);
+            throw APIException.badRequests.unableToProcessRequest(
+                    "Cannot perform Delete or Modify of NFS Export Rule as the File system is associated with NFS Datastore");
+
+        }
 
         // check for bypassDnsCheck flag. If null then set to false
         if (param.getBypassDnsCheck() == null) {
@@ -2321,18 +2328,11 @@ public class FileService extends TaskResourceService {
         String path = fs.getPath();
         _log.info("Export path found {} ", path);
 
-        // COP - 31479
-        ScopedLabelSet scopedLabelSet = fs.getTag();
-        if (scopedLabelSet != null) {
-            final String datastoreNamespace = "isa.vc:datastore";
-            for (ScopedLabel tag : scopedLabelSet) {
-                if (tag.getLabel() != null && tag.getLabel().contains(datastoreNamespace)) {
-                    _log.info("File system has tagged NFS Datasource ", tag.getScope());
-                    throw APIException.badRequests
-                            .unableToProcessRequest(
-                                    "Cannot perform Remove NFS Export operation as the File system is associated with NFS Datastore");
-                }
-            }
+        if (!checkDatastoreTags(fs.getTag(), id, subDir)) {
+            _log.info("File system has tagged NFS Datasource ", id);
+            throw APIException.badRequests
+                    .unableToProcessRequest(
+                            "Cannot perform Remove NFS Export operation as the File system is associated with NFS Datastore");
         }
 
         // Before running operation check if subdirectory exists
@@ -4699,4 +4699,56 @@ public class FileService extends TaskResourceService {
         }
         return fileShareTask;
     }
+
+    /**
+     * Method to check if Fs has tagged datastores to restrict modify or delete of export rules associated with the datastore
+     * COP - 31479
+     * 
+     * @param tag
+     * @param id
+     * @param subDir
+     * @return
+     */
+    private boolean checkDatastoreTags(ScopedLabelSet scopedLabelSet, URI id, String subDir) {
+
+        if (scopedLabelSet != null) {
+            final String endpointsNamespace = "isa.vc:endPoints";
+            final String datastoreNamespace = "isa.vc:datastore";
+            boolean dataStoreFlag = false;
+            boolean endPointFlag = false;
+            for (ScopedLabel tag : scopedLabelSet) {
+                if (tag.getLabel() != null && tag.getLabel().contains(datastoreNamespace)) {
+                    dataStoreFlag = true;
+                } else if (tag.getLabel() != null && tag.getLabel().contains(endpointsNamespace)) {
+                    String endPointString = tag.getLabel().split("=")[1].replaceAll("[\\[?\\]]", "");
+                    List<String> dstagEndpointsList = new ArrayList<String>(Arrays.asList(endPointString.split(",")));
+
+                    List<ExportRule> paramExportRules = FileOperationUtils.getExportRules(id, false, subDir, _dbClient);
+                    for (ExportRule exportRule : paramExportRules) {
+                        Set<String> hosts = new HashSet<>();
+                        if (exportRule.getReadOnlyHosts() != null) {
+                            hosts.addAll(exportRule.getReadOnlyHosts());
+                        }
+                        if (exportRule.getReadWriteHosts() != null) {
+                            hosts.addAll(exportRule.getReadWriteHosts());
+                        }
+                        if (exportRule.getRootHosts() != null) {
+                            hosts.addAll(exportRule.getRootHosts());
+                        }
+
+                        for (String host : hosts) {
+                            if (dstagEndpointsList.contains(host)) {
+                                endPointFlag = true;
+                            }
+                        }
+                    }
+                }
+            }
+            if (dataStoreFlag && endPointFlag) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

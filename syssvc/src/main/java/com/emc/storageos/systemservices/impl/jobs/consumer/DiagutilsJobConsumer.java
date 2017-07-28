@@ -15,6 +15,7 @@ import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
+import com.emc.storageos.systemservices.impl.logsvc.merger.LogNetworkStreamMerger;
 import com.emc.storageos.systemservices.impl.resource.DataCollectionService;
 import com.emc.storageos.systemservices.impl.resource.LogService;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
@@ -34,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 import java.io.*;
 import java.net.URI;
 import java.util.*;
@@ -286,15 +288,23 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
         logNames.add(logName);
         InputStream is;
         try {
-            is = (InputStream) logService.getLogsWithMediatype(nodeIds, nodeNames, logNames, logParam.getSeverity(), logParam.getStartTimeStr(),
-                    logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), false, MediaType.TEXT_PLAIN_TYPE).getEntity();
+            File file = new File(destLogPath);
+            OutputStream os = new FileOutputStream(file);
+            LogNetworkStreamMerger logNetworkStreamMerger  = logService.getLogNetworkStreamMerger(nodeIds, nodeNames, logNames, logParam.getSeverity(), logParam.getStartTimeStr(),
+                    logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), false, MediaType.TEXT_PLAIN_TYPE);
+            try {
+                logService.runningRequests.incrementAndGet();
+                logNetworkStreamMerger.streamLogs(os);
+            }finally {
+                logService.runningRequests.decrementAndGet();
+            }
             /*String myId = coordinatorClientExt.getMyNodeId();
 
             String logUri = String.format(SysClientFactory.URI_LOGS_TEMPLATE, nodeId, nodeName, logName, logParam.getSeverity(), logParam.getStartTimeStr(), logParam.getEndTimeStr(),
                     logParam.getMsgRegex(), logParam.getMaxCount());
             ClientResponse response = SysClientFactory.getSysClient(coordinatorClientExt.getNodeEndpoint(myId)).get(URI.create(logUri), ClientResponse.class, MediaType.TEXT_PLAIN);*/
-            File file = new File(destLogPath);
-            FileUtils.copyInputStreamToFile(is, file);
+
+            //FileUtils.copyInputStreamToFile(is, file);
         }catch (Exception e ) {
             log.error("get logs error {}",e);
         }

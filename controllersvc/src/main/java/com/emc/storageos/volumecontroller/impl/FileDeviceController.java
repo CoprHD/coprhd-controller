@@ -2042,7 +2042,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             args.setSubDirectory(param.getSubDir());
             args.setAllExportRules(param);
-            if(null != param.getBypassDnsCheck()) {
+            if (null != param.getBypassDnsCheck()) {
                 args.setBypassDnsCheck(param.getBypassDnsCheck());
             } else {
                 args.setBypassDnsCheck(false);
@@ -4939,8 +4939,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Fail over Work flow Method
      * 
-     * @param storage target storage system
-     * @param fileshareURI target file system URI
+     * @param storage
+     *            target storage system
+     * @param fileshareURI
+     *            target file system URI
      * @param completer
      * @param opId
      */
@@ -5057,7 +5059,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 }
             } else {
                 throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
-                            fp.getApplyAt(), "Could not retrieve reuired entities- filesystem / filepolicy / storage system");
+                        fp.getApplyAt(), "Could not retrieve required entities- filesystem / filepolicy / storage system");
             }
         } catch (Exception e) {
             StringBuffer errormsg = new StringBuffer();

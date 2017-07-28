@@ -161,6 +161,15 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                         //    ClientResponse response = SysClientFactory.getSysClient(coordinatorClientExt.getNodeEndpoint(myId)).get(SysClientFactory.URI_LOGS, ClientResponse.class, MediaType.APPLICATION_XML);
 
                     }
+                    String[] logCmd = {_DIAGUTIL_CMD, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, "-logs"};
+                    log.info("Executing cmd {}", Arrays.toString(logCmd));
+                    result = Exec.sudo(COMMAND_TIMEOUT, logCmd);
+                    if (!result.exitedNormally() || result.getExitValue() != 0) {
+                        log.error("Collecting logs error {}", result.getExitValue());
+                        log.error("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
+                        throw new Exception("execting get log command error");
+                    }
+                    log.info("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
                 } catch (Exception e) {
                     jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
                     jobStatus.setDescription(DiagutilStatusDesc.COLLECTING_LOGS_FAILURE);

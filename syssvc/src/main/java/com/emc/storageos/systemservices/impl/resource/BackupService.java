@@ -265,10 +265,10 @@ public class BackupService {
      */
     @GET
     @Path("internal/local-backup-detail")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_JSON })
-    public BackupDetail queryLocalBackupDetail(@QueryParam("backupname") String backupName) {
-        return backupOps.getLocalBackupDetail(backupName);
+    public Response queryLocalBackupDetail(@QueryParam("backupname") String backupName) {
+        BackupDetail info = backupOps.getLocalBackupDetail(backupName);
+        return Response.ok(info).build();
     }
 
 

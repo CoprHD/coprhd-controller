@@ -757,7 +757,14 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     var targetParams = {
         anchors: ["Top","Left"],
-        endpoint: "Blank",
+        endpoint: ["Dot", {
+        	cssClass: "commonEndpoint"
+        }],
+        dropOptions: {
+    		hoverClass: "glow-common-hover" ,
+    		activeClass: "glow-common"
+        } ,
+        allowLoopback: false,
         filter:":not(a)"
     };
 

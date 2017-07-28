@@ -85,7 +85,6 @@ public class BackupOps {
     private CoordinatorClient coordinatorClient;
     private int quorumSize;
     private File backupDir;
-    private RestoreManager restoreManager;
 
     private DrUtil drUtil;
 

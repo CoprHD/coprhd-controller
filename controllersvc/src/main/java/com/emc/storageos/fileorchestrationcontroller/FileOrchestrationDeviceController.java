@@ -1343,7 +1343,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             errMsg = new StringBuffer();
         }
         sourceFileShare = s_dbClient.queryObject(FileShare.class, sourceFsUri);
-        if (sourceFileShare == null) {
+        if (sourceFileShare == null || sourceFileShare.getInactive()) {
             // Update the error message
             // task update can be done at caller!!
             errMsg.append(String.format("No valid source file system found in DB with file system uri {} ",
@@ -1359,7 +1359,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
             targetFsURI = URI.create(targetfileUris.get(0));
             targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
-            if (targetFileShare == null) {
+            if (targetFileShare == null || targetFileShare.getInactive()) {
                 // Update the error message
                 // task update can be done at caller!!
                 errMsg.append(String.format("No valid target file system found in DB for given source file system {} ",
@@ -1370,7 +1370,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 && sourceFileShare.getPersonality().equals(PersonalityTypes.TARGET.name())) {
             targetFsURI = sourceFileShare.getParentFileShare().getURI();
             targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
-            if (targetFileShare == null) {
+            if (targetFileShare == null || targetFileShare.getInactive()) {
                 // Update the error message
                 // task update can be done at caller!!
                 errMsg.append(String.format("No valid parent file system found in DB for given target file system {} ",
@@ -1919,8 +1919,24 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             completer.error(s_dbClient, this._locker, serviceError);
         }
     }
+    /*
+     * Add file policies which were applied at vpool level and project level
+     * while provisioning file system with the vpool and project
+     * it will apply the policies only they were not alreay been created at the storage system
+     * 
+     * @param workflow
+     * 
+     * @param waitFor - previous step
+     * 
+     * @param fileDescriptors - list of file system descriptors
+     * 
+     * return last step id
+     * throws DeviceControllerException
+     * 
+     * 
+     */
 
-    public String addStepsForApplyingPolicies(Workflow workflow, String waitFor, List<FileDescriptor> fileDescriptors) {
+    private String addStepsForApplyingPolicies(Workflow workflow, String waitFor, List<FileDescriptor> fileDescriptors) {
 
         FileDescriptor sourceDescriptors = FileDescriptor
                 .filterByType(fileDescriptors, FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_MIRROR_SOURCE).get(0);
@@ -2283,6 +2299,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
+    /*
+     * Group the list of associations based on associated resource
+     */
     private Map<URI, List<FileStorageSystemAssociation>>
             getAssociationsPerAssignedResource(List<FileStorageSystemAssociation> associations) {
 
@@ -2298,6 +2317,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         return resAssociations;
     }
 
+    /*
+     * Scans through list of recommendations and finds whether the multiple recommendations to the same target
+     * return True, if multiple recommendations to the same target, false otherwise.
+     */
     private boolean checkRecommendationsWithManySourceToOneTarget(List<FileStorageSystemAssociation> associations) {
         StringSet targets = new StringSet();
         for (Map.Entry<URI, List<FileStorageSystemAssociation>> entry : getAssociationsPerAssignedResource(associations).entrySet()) {
@@ -2331,6 +2354,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         return false;
     }
 
+    /*
+     * Verifies the isilon path is been configured with cluster name, in case if recommendations are with same target for many sources
+     * return True - if cluster name is configured in path, otherwise false.
+     */
     private void verifyClusterNameInPathForManyToOneRecommendations(List<FileStorageSystemAssociation> associations,
             FilePolicy filePolicy) {
         if (checkRecommendationsWithManySourceToOneTarget(associations)) {
@@ -2648,6 +2675,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         return waitFor;
     }
 
+    /*
+     * Finds the list of policies applicable for project and
+     * checks the project name is part of the policy path for policies which are already applied at storage system.
+     * Gets the list of policies to be applied on storage system.
+     * 
+     */
     private static String setAllProjectLevelPolices(Workflow workflow, Project project, VirtualPool vpool,
             URI storageSystem, URI nasServer, List<FilePolicy> filePoliciesToCreate, String waitFor) {
         StringSet fileProjectPolicies = project.getFilePolicies();

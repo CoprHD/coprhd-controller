@@ -177,7 +177,7 @@ public class CustomServicesService extends ViPRService {
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
         long timeout = System.currentTimeMillis();
-        int iterCount = 0;
+
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
@@ -192,21 +192,13 @@ public class CustomServicesService extends ViPRService {
                 task.setParam(getClient().getRestClient());
 
                 logger.info("call executor");
-                res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step, iterCount));
+                res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
 
                 try {
                     final Map<String, List<String>> out = updateOutputPerStep(step, res);
                     logger.info("update non iter out");
                     outputPerStep.put(step.getId(), out);
-                    //iter
-                   /* if (outputPerStep.containsKey(step.getId())) {
-                        logger.info("update iter out");
-                        final Map<String, List<String>> iterOut = updateIterOutput(step, out, outputPerStep);
-                        outputPerStep.put(step.getId(), iterOut);
-                    } else {
-                        logger.info("update non iter out");
-                        outputPerStep.put(step.getId(), out);
-                    }*/
+
                 res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
 
                 } catch (final Exception e) {
@@ -214,22 +206,12 @@ public class CustomServicesService extends ViPRService {
                 }
 
                 next = getNext(true, res, step);
-                //iter
-                /*if (iterCount >= getIterCount(step, inputPerStep)) {
-                    next = getNext(true, res, step);
-                    iterCount = 0;
-
-                } else {
-                    iterCount++;
-                }*/
-
 
             } catch (final Exception e) {
                 logger.warn(
                         "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:", e);
 
                 next = getNext(false, null, step);
-                //iterCount = 0; //iter
             }
             if (next == null) {
                 ExecutionUtils.currentContext().logError("customServicesService.logStatus", "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
@@ -242,50 +224,6 @@ public class CustomServicesService extends ViPRService {
         }
     }
 
-   /* private boolean isIter(final Step step) {
-        final Map<String, List<String>> input = inputPerStep.get(step.getId());
-        for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
-            for (final Input value : inputGroup.getInputGroup()) {
-                if (isScript(step)) {
-                    if (!StringUtils.isEmpty(value.getTableName())) {
-                        logger.info("CS: It is of iteration type as table type is set");
-                        return true;
-                    }
-                    if (!value.getName().startsWith("@")) {
-                        if (input != null && input.get(value.getName()) != null && input.get(value.getName()).size() > 1) {
-                            logger.info("CS: It is Not an array but More elements present in list");
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-
-        logger.info("It is not an iterative step");
-        return false;
-    }*/
-
-    private int getIterCount(final Step step, final Map<String, Map<String, List<String>>> inputPerStep) {
-     /*   if (isScript(step)) {
-            logger.info("CS: Count the iteration number");
-            final Map<String, List<String>> input = inputPerStep.get(step.getId());
-            if (input == null) {
-                return 1;
-            }
-            for(Map.Entry<String, List<String>> e : input.entrySet()) {
-                if (StringUtils.isEmpty(e.getKey()) || e.getValue().isEmpty()) {
-                    continue;
-                }
-                List<String> val = e.getValue();
-                if (!e.getKey().startsWith("@") && val.size() > 1) {
-                    logger.info("Update the size to:{}", val.size());
-                    return val.size();
-                }
-            }
-        }*/
-
-        return 1;
-    }
 
     private CustomServicesWorkflowDocument getwfDocument() throws Exception {
         final String raw;
@@ -528,23 +466,7 @@ public class CustomServicesService extends ViPRService {
                                         .customServiceExecutionFailed("Value mapped is null : " + value.getValue());
                             }
                         }
-                        //iter
-                        /*if (value.getType().equals(InputType.FROM_STEP_INPUT.toString())) {
-                            stepInput = inputPerStep.get(stepId);
-                        } else {
-                            stepInput = outputPerStep.get(stepId);
-                        }
 
-
-                        if (stepInput != null && stepInput.get(attribute) != null) {
-                            if (name.startsWith("@")) {
-                                inputs.put(name, Arrays.asList(String.join(", ", stepInput.get(attribute)).replace("\"", "")));
-                                break;
-                            } else {
-                                inputs.put(name, stepInput.get(attribute));
-                                break;
-                            }
-                        }*/
                         if (value.getDefaultValue() != null) {
                             inputs.put(name, Arrays.asList(value.getDefaultValue()));
                             break;

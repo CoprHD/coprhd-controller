@@ -41,6 +41,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.google.common.collect.Sets;
 
 /**
  * StorageSystemTypes resource implementation
@@ -54,6 +55,15 @@ public class StorageSystemTypeService extends TaskResourceService {
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeService.class);
     private static final String EVENT_SERVICE_TYPE = "StorageSystemTypeService";
     private static final String ALL_TYPE = "all";
+    private static final Set<String> SHIELDED_TYPES = Sets.newHashSet("providersystem", "driverprovider", "hp3par");
+
+    /**
+     * For some of the in-tree drivers and driver simulator, they support multiple storage system
+     * types, among which some are not intended for customer using, thus should be filtered out.
+     */
+    boolean isForCustomerUse(String type) {
+        return !SHIELDED_TYPES.contains(type);
+    }
 
     /**
      * Show Storage System Type detail for given URI
@@ -103,6 +113,10 @@ public class StorageSystemTypeService extends TaskResourceService {
         Iterator<StorageSystemType> iter = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         while (iter.hasNext()) {
             StorageSystemType ssType = iter.next();
+            if (!isForCustomerUse(ssType.getStorageTypeName())) {
+                log.info("Filtered out type {}", ssType.getStorageTypeName());
+                continue;
+            }
             if (ssType.getStorageTypeId() == null) {
                 ssType.setStorageTypeId(ssType.getId().toString());
             }
@@ -127,6 +141,10 @@ public class StorageSystemTypeService extends TaskResourceService {
         Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         while (it.hasNext()) {
             StorageSystemType type = it.next();
+            if (!isForCustomerUse(type.getStorageTypeName())) {
+                log.info("Filtered out type {}", type.getStorageTypeName());
+                continue;
+            }
             Set<String> profiles = type.getSupportedStorageProfiles();
             if (CollectionUtils.isEmpty(profiles)) {
                 continue;

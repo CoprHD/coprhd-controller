@@ -518,6 +518,8 @@ public class VNXeApiClient {
                 shareParm.setReadWriteHosts(null);
                 shareParm.setReadOnlyHosts(null);
                 shareParm.setRootAccessHosts(null);
+            } else {
+                _logger.error("unknown permission: {} for NFS share default access.", nfsShareDefaultAccess);
             }
         }
 

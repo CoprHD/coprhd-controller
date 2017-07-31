@@ -289,6 +289,8 @@ implements FileStorageDevice {
                             }
                             rootClients.addAll(existingExport.getClients());
                         }
+                    } else {
+                        _logger.error("Unknown export permission specified: {}", permission);
                     }
                 }
 
@@ -316,6 +318,8 @@ implements FileStorageDevice {
                         }
                         rootClients.addAll(exp.getClients());
                     }
+                } else {
+                    _logger.error("Unknown export permission specified: {}", permission);
                 }
 
                 if (args.getFileOperation()) {

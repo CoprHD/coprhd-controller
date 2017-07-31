@@ -9,12 +9,6 @@
         host:{
             type:"assetType.vipr.releasedHostsWithSPByVblockCluster"
         },
-        hostPreviousComputeVPool:{
-            type:"assetType.vipr.releasedHostComputeVirtualPool",
-            required:false,
-            lockable: true,
-            omitNone:true
-        },
         associateHostComputeVPool:{
             type:"assetType.vipr.associateCVPByHostComputeSystem",
             lockable: true,

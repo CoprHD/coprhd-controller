@@ -68,8 +68,7 @@ public class ReleaseAssociateHostBladeService extends ViPRService {
         } else if (!host.getCluster().equals(clusterId)) {
             preCheckErrors
                     .append("Host " + host.getLabel() + " is not associated with cluster: " + cluster.getLabel() + " ");
-        } else if (NullColumnValueGetter.isNullURI(host.getComputeVirtualPoolId())
-                || NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
+        } else if (NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
             preCheckErrors.append("Cannot change compute element for non-vBlock host - ");
             preCheckErrors.append(host.getLabel());
             preCheckErrors.append(".");

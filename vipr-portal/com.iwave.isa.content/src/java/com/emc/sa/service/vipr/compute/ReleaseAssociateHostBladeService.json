@@ -9,12 +9,6 @@
         host:{
             type:"assetType.vipr.hostsWithCEAndSPByVblockCluster"
         },
-        hostComputeVPool:{
-            type:"assetType.vipr.hostComputeVirtualPool",
-            required:false,
-            lockable: true,
-            omitNone:true
-        },
         associateComputeElement:{
           type:"group",
           collapsed:"true",

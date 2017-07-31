@@ -66,31 +66,6 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
         return new AssetOption(value.getId(), label);
     }
 
-    @Asset("hostComputeVirtualPool")
-    @AssetDependencies({"hostsWithCEAndSPByVblockCluster"})
-    public List<AssetOption> getHostComputeVirtualPool(AssetOptionsContext context, URI hostID) {
-        debug("get compute virtual pool that host belongs to.");
-        return getHostCVP(context, hostID);
-    }
-
-    @Asset("releasedHostComputeVirtualPool")
-    @AssetDependencies({"releasedHostsWithSPByVblockCluster"})
-    public List<AssetOption> getReleasedHostComputeVirtualPool(AssetOptionsContext context, URI hostID) {
-        debug("get compute virtual pool that the released host belongs to.");
-        return getHostCVP(context, hostID);
-    }
-
-    private List<AssetOption> getHostCVP(AssetOptionsContext context, URI hostID) {
-        HostRestRep hostRep = api(context).hosts().get(hostID);
-        ComputeVirtualPoolRestRep cvpRestRep = api(context).computeVpools().get(hostRep.getComputeVirtualPool());
-        List<AssetOption> options = Lists.newArrayList();
-        if (cvpRestRep != null) {
-            options.add(createComputeVirtualPoolOption(context, cvpRestRep));
-            AssetOptionsUtils.sortOptionsByLabel(options);
-        }
-        return options;
-    }
-
     @Asset("computeVirtualPoolByHostComputeSystem")
     @AssetDependencies({"hostsWithCEAndSPByVblockCluster"})
     public List<AssetOption> getComputeVirtualPoolByHostComputeSystem(AssetOptionsContext context, URI hostID) {

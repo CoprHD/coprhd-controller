@@ -10,6 +10,7 @@ import static com.emc.vipr.client.core.filters.RegistrationFilter.REGISTERED;
 import java.net.URI;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -19,6 +20,7 @@ import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.HostTypeFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -149,7 +151,7 @@ public class HostProvider extends BaseHostProvider {
             if (host.getComputeElement() != null &&
                 (!NullColumnValueGetter.isNullURI(host.getComputeElement().getId())
                         && !NullColumnValueGetter.isNullValue(host.getServiceProfileName()))) {
-                options.add(createHostOption(context, host));
+                options.add(createHostCVPOption(context, host));
             }
         }
         return options;
@@ -163,9 +165,29 @@ public class HostProvider extends BaseHostProvider {
         List<AssetOption> options = Lists.newArrayList();
         for (HostRestRep host : hostList) {
             if (!NullColumnValueGetter.isNullValue(host.getServiceProfileName()) && host.getComputeElement() == null) {
-                options.add(createHostOption(context, host));
+                options.add(createHostCVPOption(context, host));
             }
         }
         return options;
     }
+
+    private AssetOption createHostCVPOption(AssetOptionsContext ctx, HostRestRep host) {
+        String discoveryMessage = getDiscoveryError(host);
+        String hostCVP = null;
+        if (host.getComputeVirtualPool() != null) {
+            ComputeVirtualPoolRestRep cvp = api(ctx).computeVpools().get(host.getComputeVirtualPool());
+            if (cvp != null) {
+                hostCVP = cvp.getName();
+            }
+        }
+        String label = host.getName();
+        if (StringUtils.isNotBlank(hostCVP)) {
+            label = getMessage("host.withComputeVirtualPool", host.getName(), hostCVP);
+        }
+        if (discoveryMessage != null) {
+            label = getMessage("host.withDiscovery", host.getName(), discoveryMessage);
+        }
+        return new AssetOption(host.getId(), label);
+    }
+
 }

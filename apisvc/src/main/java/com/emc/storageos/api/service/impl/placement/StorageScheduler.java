@@ -678,11 +678,6 @@ public class StorageScheduler implements Scheduler {
                     varray.getId(), vpool.getId());
             return storagePools;
         }
-        
-        //bbb
-        if (true) {
-            throw APIException.badRequests.noStoragePools(varray.getLabel(), vpool.getLabel(), errorMessage.toString());
-        }
 
         storagePools.addAll(matchedPools);
         return storagePools;
@@ -2035,8 +2030,8 @@ public class StorageScheduler implements Scheduler {
                             if (vmaxStorageSystems.contains(existingExportMask.getStorageDevice())) {
                                 // An existing Export Mask was found for this VMAX to the Host/Cluster, 
                                 // it's OK to proceed using this VMAX and it's storage pools without a PG.
-                                _log.info(String.format("Storage system [%s] is VMAX, but has existing export mask [%s](%s) to host/cluster [%s], no port group required. "
-                                        + "All available storage pools from this storage system are valid.", 
+                                _log.info(String.format("Storage system [%s] is VMAX, but has existing export mask [%s](%s) to host/cluster [%s], "
+                                        + "no port group required. All available storage pools from this storage system are valid.", 
                                         existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
                                         existingExportMask.getLabel(), computeResourceURI));
                                 noPortGroupRequiredStorageSystemSet.add(existingExportMask.getStorageDevice().toString());

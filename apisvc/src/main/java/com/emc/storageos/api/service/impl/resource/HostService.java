@@ -2395,6 +2395,11 @@ public class HostService extends TaskResourceService {
         }
     }
 
+    /**
+     * Release the compute element currently associated to a host.
+     * @param hostId {@link URI} host id
+     * @return {@link TaskResourceRep}
+     */
     @POST
     @Path("/{id}/release-compute-element")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -2409,19 +2414,23 @@ public class HostService extends TaskResourceService {
         if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             throw APIException.badRequests
                     .cannotReleaseHostComputeElement("Host does not have a valid compute element associated");
+        } else if (NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
+            throw APIException.badRequests.resourceCannotBeReleasedVblock(host.getLabel(),
+                    "Host " + host.getLabel() + " has a compute element, but no service profile."
+                            + " Please re-discover the Vblock Compute System and retry.");
         }
 
         UCSServiceProfile serviceProfile = null;
-        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
-            serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
-            if (serviceProfile != null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())) {
-                ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
-                if (ucs != null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
-                    throw APIException.badRequests.cannotReleaseHostComputeElement(
-                            "Host has service profile on a Compute System that failed to discover; ");
-                }
+
+        serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+        if (serviceProfile != null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())) {
+            ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+            if (ucs != null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
+                throw APIException.badRequests.cannotReleaseHostComputeElement(
+                        "Host has service profile on a Compute System that failed to discover; ");
             }
         }
+
         Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
                 Arrays.asList("label", "uuid", "serviceProfile", "computeElement", "registrationStatus", "inactive"),
@@ -2448,12 +2457,6 @@ public class HostService extends TaskResourceService {
 
             }
         }
-        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())
-                && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
-            throw APIException.badRequests.resourceCannotBeReleasedVblock(host.getLabel(),
-                    "Host " + host.getLabel() + " has a compute element, but no service profile."
-                            + " Please re-discover the Vblock Compute System and retry.");
-        }
 
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
@@ -2470,6 +2473,12 @@ public class HostService extends TaskResourceService {
         return toTask(host, taskId, op);
     }
 
+    /**
+     * Associate a new compute element to a host.
+     * @param hostId {@link URI} host id
+     * @param param {@link AssociateHostComputeElementParam} instance
+     * @return {@link TaskResourceRep}
+     */
     @POST
     @Path("/{id}/associate-compute-element")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -2481,6 +2490,11 @@ public class HostService extends TaskResourceService {
         boolean hasPendingTasks = hostHasPendingTasks(hostId);
         if (hasPendingTasks) {
             throw APIException.badRequests.cannotAssociateHostComputeElement("Host with another operation in progress");
+        }
+
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            throw APIException.badRequests
+                    .cannotAssociateHostComputeElement("Host has a compute element associated, cannot associate a new compute element.");
         }
 
         if (NullColumnValueGetter.isNullURI(param.getComputeElementId())) {

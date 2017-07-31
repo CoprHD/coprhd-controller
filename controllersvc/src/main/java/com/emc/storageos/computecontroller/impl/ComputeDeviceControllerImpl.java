@@ -1933,7 +1933,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
                 String serviceProfileState = getDevice(cs.getSystemType()).fetchServiceProfileAssociatedState(cs,
-                        hostId, stepId);
+                        hostId);
                 if (assocState.equalsIgnoreCase(serviceProfileState)) {
                     log.info(
                             "Successfully verified hosts {}'s service profile state, expected is {} and actual state is {}",

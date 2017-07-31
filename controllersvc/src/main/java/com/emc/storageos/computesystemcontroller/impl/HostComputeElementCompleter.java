@@ -111,6 +111,15 @@ public class HostComputeElementCompleter extends TaskCompleter {
                             }
                         }
                     }
+                } else {
+                    host.setProvisioningStatus(ProvisioningJobStatus.ERROR.toString());
+                    dbClient.updateObject(host);
+                    dbClient.error(Host.class, getId(), getOpId(), coded);
+
+                    auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(),
+                            AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, host.getId().toString());
+                    log.error("Unknown operation type {}", opType);
+                    throw new RuntimeException("Unknown operation type " + opType );
                 }
 
                 host.setProvisioningStatus(ProvisioningJobStatus.COMPLETE.toString());

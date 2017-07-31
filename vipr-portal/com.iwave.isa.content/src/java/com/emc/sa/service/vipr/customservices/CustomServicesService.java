@@ -100,6 +100,7 @@ public class CustomServicesService extends ViPRService {
         final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
                 ExecutionUtils.currentContext().getOrder().getOrderNumber());
         try {
+
             final int loopCount = getLoopCount();
             for (int i = 0; i < loopCount; i++) {
                 wfExecutor(i);
@@ -154,9 +155,17 @@ public class CustomServicesService extends ViPRService {
 
     private boolean isLoop() throws Exception {
         final CustomServicesWorkflowDocument obj = getwfDocument();
-        //obj.getAttributes();
+        final Map<String, String> attributes = obj.getAttributes();
+        if (attributes == null) {
+            return false;
+        }
+        final String isLoop = attributes.get("RunAsLoop");
+        if (StringUtils.isEmpty(isLoop)) {
+            return false;
+        }
 
-        return true;
+        logger.info("There might be a loop. isLoop:{}", isLoop);
+        return (isLoop.equals("true") ?  true :  false) ;
     }
 
     /**

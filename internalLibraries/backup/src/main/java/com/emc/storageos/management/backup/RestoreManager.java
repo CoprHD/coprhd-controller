@@ -110,32 +110,29 @@ public class RestoreManager {
      * @param geoRestoreFromScratch
      *            True if restore geodb from scratch, or else false
      */
-    public void restore(final String backupPath, final String snapshotName, final boolean geoRestoreFromScratch) {
+    public void restore(final String backupPath, final String snapshotName, final boolean geoRestoreFromScratch) throws IOException {
         log.info("Start to restore backup...");
-        try {
-            validateBackupFolder(backupPath, snapshotName);
-            purge(false);
 
-            if (onlyRestoreSiteId) {
-                zkRestoreHandler.setOnlyRestoreSiteId(true);
-                zkRestoreHandler.replace();
-                log.info("Backup ({}) has been restored (only site id) on local successfully", snapshotName);
-                return;
-            }
+        validateBackupFolder(backupPath, snapshotName);
+        purge(false);
 
-            dbRestoreHandler.replace();
-            log.info(String.format(OUTPUT_FORMAT,
-                    "Restore data of local database", Validation.passed.name()));
+        if (onlyRestoreSiteId) {
+            zkRestoreHandler.setOnlyRestoreSiteId(true);
             zkRestoreHandler.replace();
-            log.info(String.format(OUTPUT_FORMAT,
-                    "Restore data of coordinator", Validation.passed.name()));
-            geoDbRestoreHandler.replace(geoRestoreFromScratch);
-            log.info(String.format(OUTPUT_FORMAT,
-                    "Restore data of geo database", Validation.passed.name()));
-        } catch (Exception ex) {
-            log.error("Failed to restore with backupset({})", snapshotName, ex);
-            throw BackupException.fatals.failedToRestoreBackup(snapshotName, ex);
+            log.info("Backup ({}) has been restored (only site id) on local successfully", snapshotName);
+            return;
         }
+
+        dbRestoreHandler.replace();
+        log.info(String.format(OUTPUT_FORMAT,
+                "Restore data of local database", Validation.passed.name()));
+        zkRestoreHandler.replace();
+        log.info(String.format(OUTPUT_FORMAT,
+                "Restore data of coordinator", Validation.passed.name()));
+        geoDbRestoreHandler.replace(geoRestoreFromScratch);
+        log.info(String.format(OUTPUT_FORMAT,
+                "Restore data of geo database", Validation.passed.name()));
+
         log.info("Backup ({}) has been restored on local successfully", snapshotName);
     }
 

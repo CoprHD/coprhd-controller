@@ -116,12 +116,12 @@ restore_node() {
     local viprNode=${1}
     cd ${RESTORE_DIR}
     local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
-    local command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag'"
+    local command="/opt/storageos/bin/bkutils -r ${RESTORE_ORIGIN} '$backupTag'"
     if [ "$RESTORE_GEO_FROM_SCRATCH" == "true" ]; then
-        command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag' -f"
+        command="/opt/storageos/bin/bkutils -r ${RESTORE_ORIGIN} '$backupTag' -f"
     fi
     if [ "${2}" == "onlysiteid" ]; then
-        command="/opt/storageos/bin/bkutils -r $RESTORE_DIR '$backupTag' osi"
+        command="/opt/storageos/bin/bkutils -r ${RESTORE_ORIGIN} '$backupTag' osi"
     fi
     ssh_execute "$viprNode" "$command" "${ROOT_PASSWORD}"
 }

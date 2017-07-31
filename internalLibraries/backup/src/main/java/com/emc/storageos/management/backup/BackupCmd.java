@@ -5,7 +5,9 @@
 
 package com.emc.storageos.management.backup;
 
+import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.services.util.TimeUtils;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -274,7 +276,16 @@ public class BackupCmd {
             geoRestoreFromScratch = true;
         }
 
-        restoreManager.restore(restoreSrcDir, snapshotName, geoRestoreFromScratch);
+        try {
+            restoreManager.restore(restoreSrcDir, snapshotName, geoRestoreFromScratch);
+        } catch (Exception ex) {
+            String errMsg = String.format("Failed to restore with backupset(%s)", snapshotName);
+            log.error(errMsg, ex);
+            boolean isLocal = !restoreSrcDir.contains(BackupConstants.RESTORE_DIR);
+            backupOps.setRestoreStatus(snapshotName, isLocal, BackupRestoreStatus.Status.RESTORE_FAILED, errMsg,
+                    false,false);
+            throw BackupException.fatals.failedToRestoreBackup(snapshotName, ex);
+        }
 
         System.out.println("***Important***");
         System.out.println("Please start ViPR service after all nodes have been " +

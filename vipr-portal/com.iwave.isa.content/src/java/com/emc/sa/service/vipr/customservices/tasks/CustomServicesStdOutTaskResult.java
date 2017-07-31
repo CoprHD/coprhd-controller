@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.LoggerFactory;
@@ -42,8 +43,10 @@ public class CustomServicesStdOutTaskResult extends CustomServicesTaskResult {
     public static Map<String, List<String>> parseShellOutput(final String result, final List<Output> keys) {
         final String shellOutput = getShellOutput(result);
         final Map<String, List<String>> output = new HashMap<String, List<String>>();
-        for(final Output key : keys) {
-            output.put(key.getName(), parseShellOutput(shellOutput, key.getName()));
+        if(!CollectionUtils.isEmpty(keys)) {
+            for(final Output key : keys) {
+                output.put(key.getName(), parseShellOutput(shellOutput, key.getName()));
+            }
         }
         return output;
     }

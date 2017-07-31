@@ -53,6 +53,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
     private static final String _DIAGUTIL_ARCHIVE = "-archive";
     public static final String _DIAGUTIL_COLLECT_DIR = "/data/diagutils-data/";
     private static final long COMMAND_TIMEOUT = 60 * 60 * 1000;
+    private static final long logSize = 1024 * 100L;
 
     private DataCollectionService dataCollectionService;
     private CoordinatorClientExt coordinatorClientExt;
@@ -305,11 +306,17 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             }
             OutputStream os = new FileOutputStream(file);
             LogNetworkStreamMerger logNetworkStreamMerger  = logService.getLogNetworkStreamMerger(nodeIds, nodeNames, logNames, logParam.getSeverity(), logParam.getStartTimeStr(),
-                    logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), false, MediaType.TEXT_PLAIN_TYPE);
+                    logParam.getEndTimeStr(), logParam.getMsgRegex(), logParam.getMaxCount(), logService.DEFAULT_DOWNLOAD_LOG_SIZE, false, MediaType.TEXT_PLAIN_TYPE);
             try {
                 logService.runningRequests.incrementAndGet();
                 log.info("runningRequest is: {}",logService.runningRequests);
                 logNetworkStreamMerger.streamLogs(os);
+                for(int partId = 2; logNetworkStreamMerger.getIsOverMaxByte(); partId++ ) {
+                    os.close();
+                    String newFilePath = destLogPath.substring(0, destLogPath.length() - 4) + "_" + partId + destLogPath.substring(destLogPath.length() - 4, destLogPath.length());
+                    os = new FileOutputStream(newFilePath);
+                    logNetworkStreamMerger.streamLogs(os);
+                }
             }finally {
                 logService.runningRequests.decrementAndGet();
                 log.info("runningRequest is: {}",logService.runningRequests);

@@ -70,6 +70,7 @@ public class LogService extends BaseLogSvcResource {
             LogSeverity.DEBUG, LogSeverity.TRACE);
     private static final List<String> VALID_LOG4J_SEV_STRS = new ArrayList<String>();
     private static final int MAX_LOG_LEVEL_EXPIR = 2880; // two days
+    public static final long DEFAULT_DOWNLOAD_LOG_SIZE = 1024 * 1024 * 300L;
 
     @Autowired
     private CoordinatorClientExt _coordinatorClientExt;
@@ -165,7 +166,7 @@ public class LogService extends BaseLogSvcResource {
         final MediaType mediaType = getMediaType();
         _log.info("Logs request media type {}", mediaType);
 
-        final LogNetworkStreamMerger logRequestMgr = getLogNetworkStreamMerger(nodeIds, nodeNames, logNames, severity, startTimeStr, endTimeStr, msgRegex, maxCount, dryRun, mediaType);
+        final LogNetworkStreamMerger logRequestMgr = getLogNetworkStreamMerger(nodeIds, nodeNames, logNames, severity, startTimeStr, endTimeStr, msgRegex, maxCount, 0L, dryRun, mediaType);
         if (dryRun) {
             return Response.ok().build();
         }
@@ -183,7 +184,7 @@ public class LogService extends BaseLogSvcResource {
         return Response.ok(logMsgStream).build();
     }
 
-        public LogNetworkStreamMerger getLogNetworkStreamMerger(List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity, String startTimeStr,String endTimeStr, String msgRegex, int maxCount, boolean dryRun, MediaType mediaType)
+        public LogNetworkStreamMerger getLogNetworkStreamMerger(List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity, String startTimeStr,String endTimeStr, String msgRegex, int maxCount, long maxBytes, boolean dryRun, MediaType mediaType)
         {
             nodeIds = _coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames, nodeIds);
 
@@ -240,7 +241,7 @@ public class LogService extends BaseLogSvcResource {
 
             LogRequest logReqInfo = new LogRequest.Builder().nodeIds(nodeIds).baseNames(
                     getLogNamesFromAlias(logNames)).logLevel(severity).startTime(startTime)
-                    .endTime(endTime).regex(msgRegex).maxCont(maxCount).build();
+                    .endTime(endTime).regex(msgRegex).maxCont(maxCount).maxBytes(maxBytes).build();
             _log.info("log request info is {}", logReqInfo.toString());
             LogNetworkStreamMerger logRequestMgr = new LogNetworkStreamMerger(
                     logReqInfo, mediaType, _logSvcPropertiesLoader);

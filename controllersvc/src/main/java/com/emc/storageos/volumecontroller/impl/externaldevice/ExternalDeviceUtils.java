@@ -18,8 +18,8 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -37,7 +37,7 @@ public class ExternalDeviceUtils {
 
     private static synchronized StorageDriverManager getDriverManager() {
         if (driverManager == null) {
-            driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+            driverManager = StorageDriverManager.getInstance();
         }
         return driverManager;
     }

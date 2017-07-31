@@ -12,7 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-import com.emc.storageos.services.util.StorageDriverManager;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
+
 
 public class DiscoveredDataObject extends DataObject {
 
@@ -28,12 +29,9 @@ public class DiscoveredDataObject extends DataObject {
     static {
         // This class can be used in test setups without application context.
         // Ex. DB migration test framework.
-        ApplicationContext context = StorageDriverManager.getApplicationContext();
-        if (context != null) {
-            storageDriverManager = (StorageDriverManager)StorageDriverManager.
-                    getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
-        } else {
-            _log.warn("Cannot set storageDriverManager. Application context is null. Assuming not a real deployment.");
+        storageDriverManager = StorageDriverManager.getInstance();
+        if (storageDriverManager == null) {
+            _log.warn("Cannot set storageDriverManager. Application context is null or bean not found in application context. Assuming not a real deployment.");
         }
     }
 

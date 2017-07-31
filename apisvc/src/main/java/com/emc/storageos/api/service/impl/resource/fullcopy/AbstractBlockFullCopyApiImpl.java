@@ -47,13 +47,13 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -83,8 +83,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(AbstractBlockFullCopyApiImpl.class);
 
-    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
-            getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+    private static StorageDriverManager storageDriverManager = StorageDriverManager.getInstance();
 
     /**
      * Constructor

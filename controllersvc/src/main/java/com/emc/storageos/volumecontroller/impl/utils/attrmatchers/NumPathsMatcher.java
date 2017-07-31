@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 
 
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -29,6 +28,7 @@ import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
@@ -140,8 +140,7 @@ public class NumPathsMatcher extends AttributeMatcher {
                     continue;
                 }
 
-                StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext().getBean(
-                        StorageDriverManager.STORAGE_DRIVER_MANAGER);
+                StorageDriverManager storageDriverManager = StorageDriverManager.getInstance();
                 // If we need two or more paths, must have at least two HA Domains
                 if (!storageDriverManager.isDriverManaged(system.getSystemType())
                         && !system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name())

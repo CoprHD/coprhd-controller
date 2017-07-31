@@ -1005,6 +1005,5 @@
   </bean>
   
   <bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
-  <bean class="com.emc.storageos.api.service.impl.southbound.StorageDriverManagerPostProcessor" />
 </beans>
 

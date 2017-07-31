@@ -19,8 +19,8 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.block.AbstractMaskingFirstOrchestrator;
@@ -48,7 +48,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
 
     public synchronized StorageDriverManager getDriverManager() {
         if (driverManager == null) {
-            driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+            driverManager = StorageDriverManager.getInstance();
         }
         return driverManager;
     }

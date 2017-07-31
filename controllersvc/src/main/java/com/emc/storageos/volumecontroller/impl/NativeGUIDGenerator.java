@@ -38,8 +38,8 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.utility.CIMConstants;
 
 public class NativeGUIDGenerator {
@@ -119,8 +119,7 @@ public class NativeGUIDGenerator {
 
     // Cannot get this bean from ControllerServiceImpl context,
     // since ControllerServiceImpl is not loaded by spring in apisvc (it is passed in ZK). The context is null.
-    private static StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext()
-            .getBean("storageDriverManager");
+    private static StorageDriverManager storageDriverManager = StorageDriverManager.getInstance();
 
     /**
      * static block maps the names existed as part of indications with the corresponding devices

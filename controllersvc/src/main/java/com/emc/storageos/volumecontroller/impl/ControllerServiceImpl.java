@@ -45,6 +45,7 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.driver.driversimulator.StorageDriverSimulator;
@@ -55,7 +56,6 @@ import com.emc.storageos.locking.DistributedOwnerLockServiceImpl;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.util.DriverMetadataUtil;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
@@ -724,7 +724,7 @@ public class ControllerServiceImpl implements ControllerService {
     }
 
     private void initDriverManager(List<StorageSystemType> types) {
-        StorageDriverManager driverManager = (StorageDriverManager) getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        StorageDriverManager driverManager = StorageDriverManager.getInstance();
         for (StorageSystemType type : types) {
             String typeName = type.getStorageTypeName();
             String driverName = type.getDriverName();

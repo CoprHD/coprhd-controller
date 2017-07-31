@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationConfigProvider;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -61,7 +62,6 @@ import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
@@ -645,7 +645,7 @@ public class DataCollectionJobScheduler {
      * @throws Exception
      */
     private void scheduleRemoteReplicationConfigDiscoveryJobs() throws Exception {
-        StorageDriverManager driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        StorageDriverManager driverManager = StorageDriverManager.getInstance();
 
         _logger.info("Started scheduling discovery jobs for remote replication configuration.");
         ArrayList<DataCollectionJob> jobs = new ArrayList<>();

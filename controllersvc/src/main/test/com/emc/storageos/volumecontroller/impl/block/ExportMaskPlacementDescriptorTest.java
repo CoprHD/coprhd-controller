@@ -32,7 +32,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.services.util.StorageDriverManager;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 
 /**
  * Tester class for ExportMaskPlacementDescriptor usage.

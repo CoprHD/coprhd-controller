@@ -27,7 +27,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.services.util.StorageDriverManager;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
@@ -89,8 +89,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
             Iterator<String> deviceTypesIter = deviceTypes.iterator();
             if (deviceTypesIter.hasNext()) {
                 String deviceType = deviceTypes.iterator().next();
-                StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext().getBean(
-                        StorageDriverManager.STORAGE_DRIVER_MANAGER);
+                StorageDriverManager storageDriverManager = StorageDriverManager.getInstance();
                 if (storageDriverManager.isDriverManaged(deviceType)) {
                     filteredPoolList = getAutoTieringPoolsOnExternalSystem(autoTieringPolicyName, attributeMap, pools);
                 }

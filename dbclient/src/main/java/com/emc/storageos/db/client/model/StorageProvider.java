@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +19,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatu
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.db.client.upgrade.CustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.SMISProviderToStorageProviderMigration;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -44,12 +44,9 @@ public class StorageProvider extends DataObject {
     static {
         // This class can be used in test setups without application context.
         // Ex. DB migration test framework.
-        ApplicationContext context = StorageDriverManager.getApplicationContext();
-        if (context != null) {
-            storageDriverManager = (StorageDriverManager)StorageDriverManager.
-                    getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
-        } else {
-            logger.warn("Cannot set storageDriverManager. Application context is null. Assuming not a real deployment.");
+        storageDriverManager = StorageDriverManager.getInstance();
+        if (storageDriverManager == null) {
+            logger.warn("Cannot set storageDriverManager. Application context is null or bean not found in application context. Assuming not a real deployment.");
         }
     }
 

@@ -24,7 +24,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +42,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -85,8 +85,7 @@ public class StorageProviderService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "provider";
     private static final String HTTPS_PREFIX = "https://";
 
-    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
-            getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+    private static StorageDriverManager storageDriverManager = StorageDriverManager.getInstance();
 
     private static class ScanJobExec implements AsyncTaskExecutorIntf {
 

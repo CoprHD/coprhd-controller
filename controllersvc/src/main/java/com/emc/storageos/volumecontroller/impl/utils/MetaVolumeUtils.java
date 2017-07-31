@@ -6,7 +6,7 @@ package com.emc.storageos.volumecontroller.impl.utils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.services.util.StorageDriverManager;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import org.slf4j.Logger;
@@ -31,9 +31,7 @@ public class MetaVolumeUtils {
         if (driverManager == null) {
             // Cannot get this bean from ControllerServiceImpl context,
             // since ControllerServiceImpl is not loaded by spring in apisvc (it is passed in ZK). The context is null.
-            driverManager = ((StorageDriverManager.getApplicationContext() != null) ?
-                    (StorageDriverManager)StorageDriverManager.getApplicationContext().getBean("storageDriverManager") :
-                    null);
+            driverManager = StorageDriverManager.getInstance();
         }
         return driverManager;
     }

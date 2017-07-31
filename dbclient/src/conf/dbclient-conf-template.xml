@@ -66,6 +66,10 @@
         <property name="encryptId" value="geoid"/>
     </bean>    
 
+    <bean id="storageDriverManager" class="com.emc.storageos.db.client.model.util.StorageDriverManager">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
     <bean id="serviceRunsDuringMigration" class="java.lang.Boolean">
         <constructor-arg type="java.lang.String" value="false" />
     </bean>

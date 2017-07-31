@@ -2901,16 +2901,20 @@ public class ExportGroupService extends TaskResourceService {
                 ArgValidator.checkFieldMinimum(param.getPathsPerInitiator(), 1, "paths_per_initiator");
             } 
             // minPaths must be <= than maxPaths.
-            if (param.getMinPaths() > param.getMaxPaths()) {
+            if (param.getMinPaths() != null && param.getMinPaths() > param.getMaxPaths()) {
                 throw APIException.badRequests.minPathsGreaterThanMaxPaths();
             }
             // pathsPerInitiator must be <= maxPaths.
-            if (param.getPathsPerInitiator() > param.getMaxPaths()) {
+            if (param.getPathsPerInitiator() != null && param.getPathsPerInitiator() > param.getMaxPaths()) {
                 throw APIException.badRequests.pathsPerInitiatorGreaterThanMaxPaths();
             }
             pathParam.setMaxPaths(param.getMaxPaths());
-            pathParam.setMinPaths(param.getMinPaths());
-            pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
+            if (param.getMinPaths() != null) {
+                pathParam.setMinPaths(param.getMinPaths());
+            }
+            if (param.getPathsPerInitiator() != null) {
+                pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
+            }
             if (param.getStoragePorts() != null) {
                 pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
             }

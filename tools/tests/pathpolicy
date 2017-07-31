@@ -11,7 +11,7 @@ import json
 from bourne import Bourne
 
 #----------------------------------------------------------------------
-# pathpolicies cli functions
+# pathpolicy cli functions
 #----------------------------------------------------------------------
 
 def pathparams_create(args):
@@ -61,6 +61,20 @@ def pathparams_update(args):
             print 'calling: ', path_param
             bourne.export_path_policies_update(id, path_param)
 
+def pathparams_tag(args):
+    list_all='false'
+    if args.list_all:
+        list_all=args.list_all
+    bourne.connect(args.ip)
+    res = bourne.export_path_policies_list(list_all)
+    for id in res:
+        pathparam = bourne.export_path_policies_get(id)
+        if (pathparam['name'] == args.name):
+            print 'Tagging ', args.name
+	    tags = []
+            tags.append(args.tag)
+            bourne.tag("export_path_policy", id, tags)
+
 def pathparameters_list(args):
     list_all='false'
     if args.list_all:
@@ -70,7 +84,8 @@ def pathparameters_list(args):
     path_display_hdr()
     for id in res:
         pathparam = bourne.export_path_policies_get(id)
-        path_display(pathparam)
+        tags = bourne.listtag("export_path_policy", id)
+        path_display(pathparam, tags)
         if (pathparam['storage_ports']):
             print 'Ports: ',
             for uri in pathparam['storage_ports']:
@@ -110,18 +125,18 @@ def parseports(args, portnamesarray):
 #
 # display path parameters in list form
 #
-path_fmt=    '{0:40s} {1:4d} {2:4d} {3:4d} {4:4d} {5:72} {6:60s}'
-path_fmt_hdr='{0:40s} {1:4s} {2:4s} {3:4s} {4:4s} {5:72} {6:60s}'
+path_fmt=    '{0:40s} {1:4d} {2:4d} {3:4d} {4:4d} {5:72} {6:60s} {7:60s}'
+path_fmt_hdr='{0:40s} {1:4s} {2:4s} {3:4s} {4:4s} {5:72} {6:60s} {7:60s}'
 
 def path_display_hdr():
-    print path_fmt_hdr.format('name', ' min', ' max', ' ppi', 'mipp', 'id', 'description')
+    print path_fmt_hdr.format('name', ' min', ' max', ' ppi', 'mipp', 'id', 'description', 'tags')
 
-def path_display(path):
+def path_display(path, tags):
     try:
         desc = path['description']
     except:
         desc = ''
-    print path_fmt.format(path['name'], path['min_paths'], path['max_paths'], path['paths_per_initiator'], path['max_initiators_per_port'], path['id'], desc)
+    print path_fmt.format(path['name'], path['min_paths'], path['max_paths'], path['paths_per_initiator'], path['max_initiators_per_port'], path['id'], desc, tags)
 
 #----------------------------------------------------------------------
 # command-line parsing
@@ -131,13 +146,13 @@ try:
 except:
     bourne_ip = 'localhost'
 
-# pathparams <cmd> <cmd_args>  [--ip ipaddr]
-parser = argparse.ArgumentParser(description = 'Bourne pathpolicies cli usage.')
+# pathypolicy <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne pathpolicy cli usage.')
 parser.add_argument('cmd', help = 'cmd = (create|update|delete|list|show)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 parser.add_argument('--list_all', help='list implicitly created also')
 
-# pathparams create label minpaths maxpaths pathsperinitiator
+# pathypolicy create label minpaths maxpaths pathsperinitiator
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 create.add_argument('name', help = 'name for this policy')
 create.add_argument('minpaths', help = 'minimum paths')
@@ -148,7 +163,7 @@ create.add_argument('--maxinitperport', help='description')
 create.add_argument('--array', help='storage ports')
 create.add_argument('--ports', help='storage ports')
 
-# pathparams update name 
+# pathypolicy update name 
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 update.add_argument('name', help = 'name for this policy')
 update.add_argument('minpaths', help = 'minimum paths')
@@ -160,11 +175,16 @@ update.add_argument('--array', help='storage ports')
 update.add_argument('--addports', help='storage ports')
 update.add_argument('--remports', help='storage ports')
 
-# pathparams delete name
+# parhparm tag name
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('name', help = 'name for this policy')
+tag.add_argument('--tag', help='storage ports')
+
+# pathypolicy delete name
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('name',	help = 'name of policy to be deleted')
 
-# pathparams list 
+# pathypolicy list 
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 
 
@@ -192,6 +212,9 @@ try:
     elif (cmd == "delete"):
         args = delete.parse_args()
         pathparameters_delete(args)
+    elif (cmd == "tag"):
+        args = tag.parse_args()
+	pathparams_tag(args)
     else:
         parser.print_help()
 

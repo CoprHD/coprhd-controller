@@ -30,6 +30,7 @@ import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -42,6 +43,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
@@ -76,6 +78,7 @@ import com.google.common.collect.Collections2;
  */
 public class BlockStorageScheduler {
     protected static final Logger _log = LoggerFactory.getLogger(BlockStorageScheduler.class);
+    public static final String DEFAULT_PATH_POLICY_NAME = "default";
     private DbClient _dbClient;
     private PortMetricsProcessor _portMetricsProcessor;
     private NetworkScheduler _networkScheduler;
@@ -1496,6 +1499,26 @@ public class BlockStorageScheduler {
         }
         return param;
     }
+    
+    /**
+     * Given the tag name of an array type, find the default ExportPathPolicy if there is one.
+     * @param tag
+     * @return ExportPathParams representing the policy
+     */
+    public static ExportPathParams findDefaultExportPathPolicyForArray(DbClient dbClient, String tag) {
+        URIQueryResultList result = new URIQueryResultList();
+        dbClient.queryByConstraint(PrefixConstraint.Factory.getTagsPrefixConstraint(ExportPathParams.class, tag), result);
+        Iterator<URI> iter = result.iterator();
+        while(iter.hasNext()) {
+            ExportPathParams params = dbClient.queryObject(ExportPathParams.class, iter.next());
+            ScopedLabel scopedLabel = new ScopedLabel(null, tag);
+            if (params.getTag().contains(scopedLabel)) {
+               return params;
+            }
+        }
+        return null;
+    }
+
 
     /**
      * Get the ExportPathParams (maxPaths and pathsPerInitiator variables)

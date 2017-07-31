@@ -504,15 +504,18 @@ public class FilePolicyServiceUtils {
         if (vPoolHasReplicationPolicy(dbClient, vpoolURI)) {
             return true;
         }
-        Project project = dbClient.queryObject(Project.class, projectURI);
-        if (project != null && project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
-            for (String strPolicy : project.getFilePolicies()) {
-                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
-                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
-                        && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
-                        && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
-                    _log.info("Replication policy found for vpool {} and project {}", vpoolURI, project.getLabel());
-                    return true;
+        VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        if (vPool != null) {
+            Project project = dbClient.queryObject(Project.class, projectURI);
+            if (project != null && project.getFilePolicies() != null) {
+                for (String strPolicy : project.getFilePolicies()) {
+                    FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                    if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                            && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
+                            && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
+                        _log.info("Replication policy found for vpool {} and project {}", vPool.getLabel(), project.getLabel());
+                        return true;
+                    }
                 }
             }
         }

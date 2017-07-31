@@ -678,7 +678,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 		for (Zone zone : zones) {
 				_log.info(zone.getName() + " was requested to be deleted");
 				if (unassignedZones.contains(zone.getName())) {
-					_log.info("Unassigned zone: " + zone.getName() +  "matched");
+					_log.info("Deleting Unassigned zone : " + zone.getName());
 					 try {	
 		            	dialog.zoneNameVsan(zone.getName(), vsanId, true);
 		                removedZoneNames.put(zone.getName(), SUCCESS);

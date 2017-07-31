@@ -1,12 +1,10 @@
 package models.datatable;
 
-import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
-
 import java.net.URI;
 
-import util.datatable.DataTable;
-
 import com.emc.storageos.model.ports.StoragePortRestRep;
+
+import util.datatable.DataTable;
 
 public class ExportPathPoliciesDataTable extends DataTable  {
     
@@ -18,16 +16,16 @@ public class ExportPathPoliciesDataTable extends DataTable  {
         setDefaultSortField("name");
     }
     
-    public static class ExportPathParamsModel{
+    public static class ExportPathPoliciesModel{
         public URI id;
         public String name;
         public String description;
-        public ExportPathParamsModel(URI id, String name, String description) {
+        public ExportPathPoliciesModel(URI id, String name, String description) {
             super();
             this.id = id;
             this.name = name;
             this.description = description;
-        }       
+        }
     }
     
     public class StoragePortsDataTable extends StoragePortDataTable{

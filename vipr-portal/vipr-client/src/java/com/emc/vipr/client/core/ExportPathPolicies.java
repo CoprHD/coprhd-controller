@@ -9,9 +9,9 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.ExportPathPoliciesBulkRep;
 import com.emc.storageos.model.block.export.ExportPathPoliciesList;
+import com.emc.storageos.model.block.export.ExportPathPolicy;
 import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -27,27 +27,27 @@ public class ExportPathPolicies extends AbstractCoreBulkResources<ExportPathPoli
     }
 
     /**
-     * Deletes the given Export Path Params by ID.
+     * Deletes the given Export Path Policy by ID.
      * <p>
-     * API Call: <tt>POST /block/export-path-parameters/{id}/deactivate</tt>
+     * API Call: <tt>POST /block/export-path-policies/{id}/deactivate</tt>
      * 
      * @param id
-     *            the ID of Export Path Params to deactivate.
+     *            the ID of Export Path Policy to deactivate.
      */
     public void delete(URI id) {
         client.post(String.class, PathConstants.EXPORT_PATH_POLICIES_DEACTIVATE_BY_ID_URL, id);
     }
 
     /**
-     * Creates an Export Path Params.
+     * Creates an Export Path Policy.
      * <p>
-     * API Call: <tt>POST/block/export-path-parameters</tt>
+     * API Call: <tt>POST/block/export-path-policies</tt>
      * 
      * @param input
-     *            the Export Path Params.
-     * @return the newly created Export Path Params.
+     *            the Export Path Policy.
+     * @return the newly created Export Path Policy.
      */
-    public ExportPathPolicyRestRep create(ExportPathParameters input) {
+    public ExportPathPolicyRestRep create(ExportPathPolicy input) {
         URI targetUri = client.uriBuilder(baseUrl).build();
         ExportPathPolicyRestRep element = client
                 .postURI(ExportPathPolicyRestRep.class, input, targetUri);
@@ -55,12 +55,12 @@ public class ExportPathPolicies extends AbstractCoreBulkResources<ExportPathPoli
     }
 
     /**
-     * Update the given Export Path Params by ID.
+     * Update the given Export Path Policy by ID.
      * <p>
-     * API Call: <tt>PUT /block/export-path-parameters/{id}</tt>
+     * API Call: <tt>PUT /block/export-path-policy/{id}</tt>
      * 
      * @param id
-     *            the ID of Export Path Params to deactivate.
+     *            the ID of Export Path Policy to deactivate.
      */
     public void update(URI id, ExportPathPolicyUpdate input) {
         client.put(String.class, input, PathConstants.EXPORT_PATH_POLICIES_BY_ID_URL, id);
@@ -72,19 +72,8 @@ public class ExportPathPolicies extends AbstractCoreBulkResources<ExportPathPoli
         return defaultList(response.getExportPathParamsList());
     }
 
-    public List<ExportPathPolicyRestRep> getPortGroups() {
-
-        return get("true");
-    }
-
-    public List<ExportPathPolicyRestRep> getExportPathParamsList() {
-
-        return get("flase");
-    }
-
-    private List<ExportPathPolicyRestRep> get(String isPortGroup) {
+    public List<ExportPathPolicyRestRep> getExportPathPoliciesList() {
         UriBuilder builder = client.uriBuilder(baseUrl);
-        builder.queryParam("is-port-group", isPortGroup);
         ExportPathPoliciesList paramList = client.getURI(ExportPathPoliciesList.class, builder.build());
         List<NamedRelatedResourceRep> namedResourceList = paramList.getPathParamsList();
         List<URI> uris = Lists.newArrayList();

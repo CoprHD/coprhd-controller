@@ -207,6 +207,8 @@ public class CustomServicesService extends ViPRService {
                         logger.info("update non iter out");
                         outputPerStep.put(step.getId(), out);
                     }*/
+                res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
+
                 } catch (final Exception e) {
                     logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
                 }
@@ -220,6 +222,7 @@ public class CustomServicesService extends ViPRService {
                 } else {
                     iterCount++;
                 }*/
+
 
             } catch (final Exception e) {
                 logger.warn(
@@ -295,7 +298,7 @@ public class CustomServicesService extends ViPRService {
         }
         final CustomServicesWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
 
-        final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByName(obj.getName());
+        final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByNameOrId(obj.getName());
         if (wfs == null  || wfs.isEmpty() || wfs.size() > 1) {
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Workflow list is null or empty or more than one workflow per Workflow name:" + obj.getName());
@@ -607,6 +610,7 @@ public class CustomServicesService extends ViPRService {
      * @param step
      * @param res
      */
+
     private final Map<String, List<String>>  updateOutputPerStep(final Step step, final CustomServicesTaskResult res) throws Exception {
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
         final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
@@ -615,57 +619,41 @@ public class CustomServicesService extends ViPRService {
         }
         final String result = res.getOut();
 
-
-        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE)) {
-            try {
-                out.putAll(updateViproutput(step, res.getOut()));
-            } catch (Exception e) {
-                logger.warn("Could not parse ViPR REST Output properly:{}", e);
-            }
-        } else {
-            for (final CustomServicesWorkflowDocument.Output o : output) {
-                if (isScript(step)) {
-                    final String outToParse = ((CustomServicesScriptTaskResult)res).getScriptOut();
-                    logger.info("Parse non vipr output:{}", outToParse);
-                    out.put(o.getName(), evaluateAnsibleOut(outToParse, o.getName()));
-                } else if (step.getType().equals(StepType.REST.toString())) {
-                    final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
-                    final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
-                    for (final Map.Entry<String, List<String>> entry : headers) {
-                        if (entry.getKey().equals(o.getName())) {
-                            out.put(o.getName(), entry.getValue());
-                        }
-                    }
-                }
-            }
-        }
         //set the default result.
         out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
         out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
         out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
+        
+        switch(step.getType()) {
+            case CustomServicesConstants.VIPR_PRIMITIVE_TYPE:
+                try {
+                    out.putAll(updateViproutput(step, res.getOut()));
+                } catch (Exception e) {
+                    logger.warn("StepId:{} Could not parse ViPR REST Output properly:{}", step.getId(), e);
+                }
+            break;
+            default:
 
-
-        return out;
-    }
-
-    private Map<String, List<String>> updateIterOutput(final Step step, final Map<String, List<String>> out, final Map<String, Map<String, List<String>>> outputPerStep) {
-        logger.info("update iter out in method");
-        final Map<String, List<String>> stepOut = outputPerStep.get(step.getId());
-        for (Map.Entry<String, List<String>> e : out.entrySet()) {
-            final String key = e.getKey();
-            final List<String> value = e.getValue();
-            if (stepOut.containsKey(key)) {
-                logger.info("key is already present");
-                List<String> prevVal = stepOut.get(key);
-                prevVal.addAll(value);
-                stepOut.put(key, prevVal);
-            } else {
-                logger.info("key not preset");
-                stepOut.put(key, value);
-            }
+                if( null != output ) {
+                    for (final CustomServicesWorkflowDocument.Output o : output) {
+                        if (isScript(step)) {
+                            final String outToParse = ((CustomServicesScriptTaskResult)res).getScriptOut();
+                            logger.info("Parse non vipr output:{}", outToParse);
+                            out.put(o.getName(), evaluateAnsibleOut(outToParse, o.getName()));
+                        } else if (step.getType().equals(StepType.REST.toString())) {
+                            final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
+                            final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
+                            for (final Map.Entry<String, List<String>> entry : headers) {
+                                if (entry.getKey().equals(o.getName())) {
+                                    out.put(o.getName(), entry.getValue());
+                                }
+                            }
+                        }
+                    }
+                }
+           break;
         }
-
-        return stepOut;
+        return out;
     }
 
     private Map<String, List<String>> updateViproutput(final Step step, final String res) throws Exception {

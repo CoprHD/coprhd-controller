@@ -53,9 +53,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     private final DbClient dbClient;
 
-    private int iterCount;
-
-    public CustomServicesShellScriptExecution(final Map<String, List<String>> input,final CustomServicesWorkflowDocument.Step step,final DbClient dbClient, final int iterCount) {
+    public CustomServicesShellScriptExecution(final Map<String, List<String>> input,final CustomServicesWorkflowDocument.Step step,final DbClient dbClient) {
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -64,7 +62,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
-        this.iterCount = iterCount;
+
         provideDetailArgs(step.getId(), step.getFriendlyName());
 
     }
@@ -165,22 +163,19 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
             logger.info("make the arguments");
             final List<String> listVal = e.getValue();
-            final String arg;
+
             final StringBuilder sb = new StringBuilder();
             sb.append("\"");
-            if (listVal.size() < iterCount+1) {
-                logger.info("pick the common val:{}", listVal.get(0));
-                arg = listVal.get(0);
-            } else {
-                logger.info("it is not common val:{}", listVal.get(iterCount));
-                arg = listVal.get(iterCount);
+            String prefix = "";
+            for (final String val : listVal) {
+                sb.append(prefix);
+                prefix = ",";
+                sb.append(val.replace("\"", ""));
             }
-
-            sb.append(arg.replace("\"", ""));
             sb.append("\"");
-            final String key = e.getKey().startsWith("@") ? e.getKey().substring(1) : e.getKey();
-            str.append(key).append("=").append(sb.toString().trim()).append(" ");
+            str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
         }
+
 
         logger.info("CS: Shell arguments:{}", str.toString());
 

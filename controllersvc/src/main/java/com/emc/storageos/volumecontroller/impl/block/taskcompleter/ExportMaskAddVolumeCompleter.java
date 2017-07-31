@@ -84,6 +84,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
 
                 dbClient.updateObject(exportMask);
                 dbClient.updateObject(exportGroup);
+                updatePortGroupVolumeCount(exportMask.getPortGroup(), dbClient);
                 
                 // In the case of VPLEX backend volumes being successfully masked to the VPLEX,
                 // we store these volumes in the step data to know which volumes need to be forgotten

@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.windows;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -30,13 +31,15 @@ public class ExtendDriveHelper {
 
     private long volumeSizeInBytes;
 
+    private URI hostId;
+
     private boolean foundClusteredVolume = false;
 
-    public static List<ExtendDriveHelper> createHelpers(List<WindowsSystemWinRM> windowsSystems, long volumeSizeInBytes) {
+    public static List<ExtendDriveHelper> createHelpers(URI hostId, List<WindowsSystemWinRM> windowsSystems, long volumeSizeInBytes) {
         List<ExtendDriveHelper> helpers = Lists.newArrayList();
         for (WindowsSystemWinRM windowsSystem : windowsSystems) {
             WindowsSupport windowsSupport = new WindowsSupport(windowsSystem);
-            ExtendDriveHelper extendDriveHelper = new ExtendDriveHelper(windowsSupport, volumeSizeInBytes);
+            ExtendDriveHelper extendDriveHelper = new ExtendDriveHelper(hostId, windowsSupport, volumeSizeInBytes);
             BindingUtils.bind(extendDriveHelper, ExecutionUtils.currentContext().getParameters());
             helpers.add(extendDriveHelper);
         }
@@ -44,7 +47,8 @@ public class ExtendDriveHelper {
         return helpers;
     }
 
-    private ExtendDriveHelper(WindowsSupport windowsSupport, long volumeSizeInBytes) {
+    private ExtendDriveHelper(URI hostId, WindowsSupport windowsSupport, long volumeSizeInBytes) {
+        this.hostId = hostId;
         windows = windowsSupport;
         this.volumeSizeInBytes = volumeSizeInBytes;
     }
@@ -82,6 +86,7 @@ public class ExtendDriveHelper {
             logInfo("extendDrive.volumeMountPoint", volume.getName(), mountPoint);
             volume2mountPoint.put(volume, mountPoint);
         }
+        WindowsUtils.verifyMountPoints(hostId, volume2mountPoint);
     }
 
     /**
@@ -122,7 +127,7 @@ public class ExtendDriveHelper {
      * @param detail the detail of the disk
      * @return the mount point for the disk.
      */
-    private String getMountPoint(DiskDrive disk, Disk detail) {
+    public static String getMountPoint(DiskDrive disk, Disk detail) {
         if (detail == null) {
             ExecutionUtils.fail("failTask.ExtendDriveHelper.couldNotDetailDisk", disk.getNumber(), disk.getNumber());
         }

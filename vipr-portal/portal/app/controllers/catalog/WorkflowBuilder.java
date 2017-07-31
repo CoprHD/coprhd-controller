@@ -35,7 +35,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
-import org.owasp.esapi.ESAPI;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
@@ -288,9 +287,6 @@ public class WorkflowBuilder extends Controller {
             final CustomServicesWorkflowDocument workflowDoc) {
         final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
         for (final CustomServicesWorkflowDocument.Step step : workflowDoc.getSteps()) {
-            final String success_criteria = ESAPI.encoder().decodeForHTML(step.getSuccessCriteria());
-            step.setSuccessCriteria(success_criteria);
-
             // If this workflow has any ansible steps add host_file input
             addInventoryFileInputs(step);
         }

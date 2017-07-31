@@ -84,6 +84,8 @@ import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
+import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -137,6 +139,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String UMFSQD_DETAILS = "UMFSQD_DETAILS";
     private static final String UMFS_QD_MAP = "UMFS_QD_MAP";
     private static final String INITIAL_PATH = "/ifs/accesszone/";
+    private static final String SLASH = "/";
 
     private static final Long MAX_NFS_EXPORTS_V7_2 = 1500L;
     private static final Long MAX_CIFS_SHARES = 40000L;
@@ -315,78 +318,23 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.info("No file systems found for storage device {}. Hence metering stats collection ignored.", storageSystemId);
                 return;
             }
-            // get first page of quota data, process and insert to database
-            IsilonApi.IsilonList<IsilonSmartQuota> quotas = api.listQuotas(null);
-            for (IsilonSmartQuota quota : quotas.getList()) {
-                String fsNativeId = quota.getPath();
-                String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
-                String fsId = fileSystemsMap.get(fsNativeGuid);
-                if (fsId == null || fsId.isEmpty()) {
-                    // No file shares found for the quota
-                    // ignore stats collection for the file system!!!
-                    _log.debug("File System does not exists with nativeid {}. Hence ignoring stats collection.", fsNativeGuid);
-                    continue;
-                }
-                Stat stat = recorder.addUsageStat(quota, _keyMap, fsId, api);
-                fsChanged = false;
-                if (null != stat) {
-                    stats.add(stat);
-                    // Persists the file system, only if change in used capacity.
-                    FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
-                    if (fileSystem != null) {
-                        if (!fileSystem.getInactive()) {
-                            if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
-                                fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
-                                fsChanged = true;
-                            }
-                            if (null != fileSystem.getSoftLimit() && null != quota.getThresholds() &&
-                                    null != quota.getThresholds().getsoftExceeded()) { // if softlimit is set then get the value for
-                                // softLimitExceeded
-                                fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
-                                fsChanged = true;
-                            }
-                            if (fsChanged) {
-                                modifiedFileSystems.add(fileSystem);
-                            }
-                        }
-                    }
-                }
 
-                // Write the records batch wise!!
-                // Each batch with MAX_RECORDS_SIZE - 100 records!!!
-                if (modifiedFileSystems.size() >= MAX_RECORDS_SIZE) {
-                    _dbClient.updateObject(modifiedFileSystems);
-                    _log.info("Processed {} file systems stats ", modifiedFileSystems.size());
-                    modifiedFileSystems.clear();
-                }
-
-                if (stats.size() >= MAX_RECORDS_SIZE) {
-                    _log.info("Processed {} stats", stats.size());
-                    persistStatsInDB(stats);
-                }
-            }
-            // write the remaining records!!
-            if (!modifiedFileSystems.isEmpty()) {
-                _dbClient.updateObject(modifiedFileSystems);
-                _log.info("Processed {} file systems stats ", modifiedFileSystems.size());
-                modifiedFileSystems.clear();
-            }
-
-            if (!stats.isEmpty()) {
-                _log.info("Processed {} stats", stats.size());
-                persistStatsInDB(stats);
-            }
-
-            statsCount = statsCount + quotas.size();
-            _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
-
-            // get all other pages of quota data, process and insert to database page by page
-            while (quotas.getToken() != null && !quotas.getToken().isEmpty()) {
-                quotas = api.listQuotas(quotas.getToken());
+            // Process IsilonQuotas page by page (MAX 1000) in a page...
+            String resumeToken = null;
+            do {
+                IsilonApi.IsilonList<IsilonSmartQuota> quotas = api.listQuotas(resumeToken);
+                resumeToken = quotas.getToken();
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     String fsNativeId = quota.getPath();
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
-                    Stat stat = recorder.addUsageStat(quota, _keyMap, fsNativeGuid, api);
+                    String fsId = fileSystemsMap.get(fsNativeGuid);
+                    if (fsId == null || fsId.isEmpty()) {
+                        // No file shares found for the quota
+                        // ignore stats collection for the file system!!!
+                        _log.debug("File System does not exists with nativeid {}. Hence ignoring stats collection.", fsNativeGuid);
+                        continue;
+                    }
+                    Stat stat = recorder.addUsageStat(quota, _keyMap, fsId, api);
                     fsChanged = false;
                     if (null != stat) {
                         stats.add(stat);
@@ -402,14 +350,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 if (null != fileSystem.getSoftLimit() && null != fileSystem.getSoftLimitExceeded() &&
                                         null != quota.getThresholds() && null != quota.getThresholds().getsoftExceeded() &&
                                         !fileSystem.getSoftLimitExceeded().equals(quota.getThresholds().getsoftExceeded())) {
+                                    // softLimitExceeded
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
                                 }
-
                                 if (fsChanged) {
                                     modifiedFileSystems.add(fileSystem);
                                 }
-
                             }
                         }
                     }
@@ -426,11 +373,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         _log.info("Processed {} stats", stats.size());
                         persistStatsInDB(stats);
                     }
-
                 }
                 statsCount = statsCount + quotas.size();
                 _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
-            }
+            } while (resumeToken != null);
+
             zeroRecordGenerator.identifyRecordstobeZeroed(_keyMap, stats, FileShare.class);
             // write the remaining records!!
             if (!modifiedFileSystems.isEmpty()) {
@@ -1459,6 +1406,117 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return nasServer;
     }
 
+    /*
+     * The method finds the replication policy for file system directory
+     * The policy might be at either file system level or at higher directory level
+     * policy name with _mirror suffix should not be considered for source as they represent for target
+     */
+    private boolean setSourceReplicationPolicyAttributes(UnManagedFileSystem unManagedFs, String fsPath,
+            ArrayList<IsilonSyncPolicy> isiSyncIQPolicies) {
+        StringSet targetPaths = new StringSet();
+        StringSet targetHosts = new StringSet();
+        StringSet policySourcePath = new StringSet();
+        StringSet policySchedule = new StringSet();
+
+        if (fsPath != null && !fsPath.isEmpty()) {
+            for (IsilonSyncPolicy isiSyncIQPolicy : isiSyncIQPolicies) {
+                // Leave the mirror policies as they represent as targets!!
+                // Local target policies are processed for target file systems.
+                if (isiSyncIQPolicy.getName() != null && isiSyncIQPolicy.getName().endsWith("_mirror")) {
+                    _log.debug("Policy {} is a target policy, not for source file system", isiSyncIQPolicy.getName());
+                    continue;
+                }
+                if (isiSyncIQPolicy.getSourceRootPath() != null && !isiSyncIQPolicy.getSourceRootPath().isEmpty()) {
+                    String policyPath = isiSyncIQPolicy.getSourceRootPath();
+                    // Add SLASH to end of the path,
+                    // it would be easy to verifying policy at fs level or higher level
+                    policyPath = policyPath + (policyPath.endsWith(SLASH) ? "" : SLASH);
+                    fsPath = fsPath + (fsPath.endsWith(SLASH) ? "" : SLASH);
+                    // If policy at file system level, both policy path and fs path should be same.
+                    // if policy at higher directory level of this file system,
+                    // the policy path should be part of file system path.
+                    if (policyPath.equals(fsPath) || fsPath.startsWith(policyPath)) {
+                        unManagedFs.putFileSystemCharacterstics(
+                                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_MIRROR_SOURCE.toString(), TRUE);
+                        // Add the policy attributes to UMFS object
+                        targetPaths.add(isiSyncIQPolicy.getTargetPath());
+                        targetHosts.add(isiSyncIQPolicy.getTargetHost());
+                        policySourcePath.add(isiSyncIQPolicy.getSourceRootPath());
+                        policySchedule.add(isiSyncIQPolicy.getSchedule());
+
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.TARGET_HOST.toString(),
+                                targetHosts);
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.TARGET_PATH.toString(),
+                                targetPaths);
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_PATH.toString(),
+                                policySourcePath);
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_SCHEDULE.toString(),
+                                policySchedule);
+                        return true;
+                    }
+                } else {
+                    _log.debug("Policy {} source directory path is empty ", isiSyncIQPolicy.getName());
+                }
+
+            }
+        }
+        return false;
+    }
+
+    /*
+     * The method finds the replication local target policy for file system directory.
+     * The policy might be at either file system level or at higher directory level.
+     * As these policies are local targets, policy name with _mirror suffix should not be
+     * considered for target as they represent for source.
+     */
+    private boolean setTargetReplicationPolicyAttributes(UnManagedFileSystem unManagedFs, String fsPath,
+            ArrayList<IsilonSyncTargetPolicy> isiSyncIQPolicies) {
+        StringSet sourceHosts = new StringSet();
+        StringSet policyDirPath = new StringSet();
+        StringSet policySchedule = new StringSet();
+
+        if (fsPath != null && !fsPath.isEmpty()) {
+            for (IsilonSyncTargetPolicy localTargetPolicy : isiSyncIQPolicies) {
+                // Leave the mirror policies as they represent as targets!!
+                // Local target policies are processed for target file systems.
+                if (localTargetPolicy.getName() != null && localTargetPolicy.getName().endsWith("_mirror")) {
+                    _log.debug("Local target policy {} is a source policy, not for target file system", localTargetPolicy.getName());
+                    continue;
+                }
+                if (localTargetPolicy.getTargetPath() != null && !localTargetPolicy.getTargetPath().isEmpty()) {
+                    String policyPath = localTargetPolicy.getTargetPath();
+                    // Add SLASH to end of the path, if not
+                    // it would be easy to verifying policy at fs level or higher level
+                    policyPath = policyPath + (policyPath.endsWith(SLASH) ? "" : SLASH);
+                    fsPath = fsPath + (fsPath.endsWith(SLASH) ? "" : SLASH);
+                    // If policy at file system level, both policy path and fs path should be same.
+                    // if policy at higher directory level of this file system,
+                    // the policy path should be part of file system path.
+                    if (policyPath.equals(fsPath) || fsPath.startsWith(policyPath)) {
+                        unManagedFs.putFileSystemCharacterstics(
+                                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_MIRROR_TARGET.toString(), TRUE);
+                        // Add the policy attributes to UMFS object
+                        sourceHosts.add(localTargetPolicy.getSourceHost());
+                        policyDirPath.add(localTargetPolicy.getTargetPath());
+                        policySchedule.add(localTargetPolicy.getSchedule());
+
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.SOURCE_HOST.toString(),
+                                sourceHosts);
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_PATH.toString(),
+                                policyDirPath);
+                        unManagedFs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.POLICY_SCHEDULE.toString(),
+                                policySchedule);
+                        return true;
+                    }
+                } else {
+                    _log.debug("Policy {} source directory path is empty ", localTargetPolicy.getName());
+                }
+
+            }
+        }
+        return false;
+    }
+
     private void discoverUmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
 
         List<UnManagedFileSystem> newUnManagedFileSystems = new ArrayList<>();
@@ -1528,6 +1586,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // NFSv4 enabled on storage system!!!
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
 
+            // Get the list of SyncIQ policies present in the system!!
+            ArrayList<IsilonSyncPolicy> isiSyncIQPolicies = isilonApi.getReplicationPolicies().getList();
+
+            // Get the list of SyncIQ local target policies present in the system!!
+            ArrayList<IsilonSyncTargetPolicy> isiSyncIQLocalTargetPolicies = isilonApi.getTargetReplicationPolicies().getList();
+
             List<FileShare> discoveredFS = new ArrayList<>();
             String resumeToken = null;
 
@@ -1567,6 +1631,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     totalIsilonFSDiscovered += discoveredFS.size();
 
                     for (FileShare fs : discoveredFS) {
+
+                        if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getName())) {
+                            // skipping this file system because the filter doesn't match
+                            continue;
+                        }
+
                         if (!checkStorageFileSystemExistsInDB(fs.getNativeGuid())) {
 
                             // Create UnManaged FS
@@ -1594,6 +1664,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                             unManagedFs = createUnManagedFileSystem(unManagedFs,
                                     fs.getNativeGuid(), storageSystem, storagePool, nasServer, fs);
+
+                            // Set the policy attributes!!
+                            if (setSourceReplicationPolicyAttributes(unManagedFs, fs.getPath(), isiSyncIQPolicies)) {
+                                _log.info("File system {} is a source fs ", fs.getPath());
+                                DiscoveryUtils.filterSupportedVpoolsBasedOnFileReplication(unManagedFs, _dbClient);
+                            } else if (setTargetReplicationPolicyAttributes(unManagedFs, fs.getPath(), isiSyncIQLocalTargetPolicies)) {
+                                _log.info("File system {} is a target fs ", fs.getPath());
+                                DiscoveryUtils.filterSupportedVpoolsBasedOnFileReplication(unManagedFs, _dbClient);
+                            } else {
+                                _log.debug("File system {} is a not enabled with replication ", fs.getPath());
+                            }
 
                             unManagedFs.setHasNFSAcl(false);
                             newUnManagedFileSystems.add(unManagedFs);
@@ -1657,7 +1738,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     Constants.DEFAULT_PARTITION_SIZE * 2);
 
                             // save bunch of NFS ACLs in db
-                            validateSizeLimitAndPersist(newUnManagedNfsShareACLList, newUnManagedNfsShareACLList,
+                            validateSizeLimitAndPersist(newUnManagedNfsShareACLList, oldUnManagedNfsShareACLList,
                                     Constants.DEFAULT_PARTITION_SIZE * 2);
 
                             allDiscoveredUnManagedFileSystems.add(unManagedFs.getId());
@@ -1707,8 +1788,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             if (!oldUnManagedExportRules.isEmpty()) {
-                _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
-                _dbClient.updateObject(newUnManagedExportRules);
+                _log.info("Saving Number of UnManagedFileExportRule(s) {}", oldUnManagedExportRules.size());
+                _dbClient.updateObject(oldUnManagedExportRules);
                 oldUnManagedExportRules.clear();
             }
 
@@ -2221,45 +2302,52 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
                         unmanagedNFSAcl.setFileSystemPath(exportPath);
 
-                        String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+                        // Verify trustee name
+                        // ViPR would manage the ACLs only user/group name
+                        // and avoid null pointers too
+                        if (tempAcl.getTrustee().getName() != null) {
+                            String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
 
-                        if (tempUname.length > 1) {
-                            unmanagedNFSAcl.setDomain(tempUname[0]);
-                            unmanagedNFSAcl.setUser(tempUname[1]);
+                            if (tempUname.length > 1) {
+                                unmanagedNFSAcl.setDomain(tempUname[0]);
+                                unmanagedNFSAcl.setUser(tempUname[1]);
+                            } else {
+                                unmanagedNFSAcl.setUser(tempUname[0]);
+                            }
+
+                            unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+                            unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+                            unmanagedNFSAcl.setPermissions(StringUtils.join(
+                                    getIsilonAccessList(tempAcl.getAccessrights()), ","));
+
+                            unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+                            unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+
+                            _log.info("Unmanaged File share acls : {}", unmanagedNFSAcl);
+                            String fsShareNativeId = unmanagedNFSAcl.getFileSystemNfsACLIndex();
+                            _log.info("UMFS Share ACL index {}", fsShareNativeId);
+                            String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
+                                    .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
+                            _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
+                            // set native guid, so each entry unique
+                            unmanagedNFSAcl.setNativeGuid(fsUnManagedFileShareNativeGuid);
+
+                            unManagedNfsACLList.add(unmanagedNFSAcl);
+
+                            // Check whether the NFS share ACL was present in ViPR DB.
+                            existingNfsACL = checkUnManagedFsNfssACLExistsInDB(_dbClient, unmanagedNFSAcl.getNativeGuid());
+                            if (existingNfsACL != null) {
+                                // delete the existing acl
+                                existingNfsACL.setInactive(true);
+                                oldunManagedNfsShareACLList.add(existingNfsACL);
+                            }
                         } else {
-                            unmanagedNFSAcl.setUser(tempUname[0]);
-                        }
-
-                        unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
-                        unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
-                        unmanagedNFSAcl.setPermissions(StringUtils.join(
-                                getIsilonAccessList(tempAcl.getAccessrights()), ","));
-
-                        unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
-                        unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
-
-                        _log.info("Unmanaged File share acls : {}", unmanagedNFSAcl);
-                        String fsShareNativeId = unmanagedNFSAcl.getFileSystemNfsACLIndex();
-                        _log.info("UMFS Share ACL index {}", fsShareNativeId);
-                        String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
-                                .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
-                        _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
-                        // set native guid, so each entry unique
-                        unmanagedNFSAcl.setNativeGuid(fsUnManagedFileShareNativeGuid);
-
-                        unManagedNfsACLList.add(unmanagedNFSAcl);
-
-                        // Check whether the NFS share ACL was present in ViPR DB.
-                        existingNfsACL = checkUnManagedFsNfssACLExistsInDB(_dbClient, unmanagedNFSAcl.getNativeGuid());
-                        if (existingNfsACL != null) {
-                            // delete the existing acl
-                            existingNfsACL.setInactive(true);
-                            oldunManagedNfsShareACLList.add(existingNfsACL);
+                            _log.warn("Trustee name is null, and so skipping the File share ACL entry");
                         }
                     }
-                }
-                if (unManagedNfsACLList != null && !unManagedNfsACLList.isEmpty()) {
-                    unManagedFileSystem.setHasNFSAcl(true);
+                    if (unManagedNfsACLList != null && !unManagedNfsACLList.isEmpty()) {
+                        unManagedFileSystem.setHasNFSAcl(true);
+                    }
                 }
             } catch (Exception ex) {
                 _log.warn("Unble to access NFS ACLs for path {}", exportPath);
@@ -2334,7 +2422,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
                         .toString(),
-                TRUE);
+                FALSE);
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
@@ -2346,14 +2434,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             pools.add(pool.getId().toString());
             unManagedFileSystemInformation.put(
                     UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_POOL.toString(), pools);
-            StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool.getId(),
-                    unManagedFileSystemCharacteristics
-                            .get(UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                                    .toString()));
+            // Add support to ingest file systems to thick vpools as well.
+            StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool.getId());
             _log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
             if (null == matchedVPools || matchedVPools.isEmpty()) {
                 // clear all existing supported vpools.
                 unManagedFileSystem.getSupportedVpoolUris().clear();
+                _log.info("No matched vpool found for the file system {}", fileSystem.getNativeId());
             } else {
                 // replace with new StringSet
                 unManagedFileSystem.getSupportedVpoolUris().replace(matchedVPools);
@@ -3500,22 +3587,39 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     private String getCustomConfigPath() {
+        String custompath = "";
         URIQueryResultList results = new URIQueryResultList();
 
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getCustomConfigByConfigType(ISILON_PATH_CUSTOMIZATION), results);
 
         Iterator<URI> iter = results.iterator();
 
-        CustomConfig tempConfig = null;
+        List<CustomConfig> configList = new ArrayList<>();
 
         while (iter.hasNext()) {
-            tempConfig = _dbClient.queryObject(CustomConfig.class, iter.next());
-            if (tempConfig != null && !tempConfig.getInactive()) {
-                _log.info("Getting custom Config {}  ", tempConfig.getLabel());
-                break;
+            CustomConfig config = _dbClient.queryObject(CustomConfig.class, iter.next());
+            if (config != null && !config.getInactive()) {
+                configList.add(config);
+                _log.info("Getting custom Config {}  ", config.getLabel());
             }
         }
-        return tempConfig.getValue();
+
+        // only 1 config value means only default
+        if (configList.size() == 1) {
+            custompath = configList.get(0).getValue();
+            _log.info("Selecting custom Config {} with value: {} ", configList.get(0).getLabel(), configList.get(0).getValue());
+            // More than 1 config means return the custom one, NOT the default one..
+        } else {
+            for (CustomConfig conf : configList) {
+                if (conf.getSystemDefault()) {
+                    continue;
+                } else {
+                    custompath = conf.getValue();
+                    _log.info("Selecting custom Config {} with value: {} ", conf.getLabel(), conf.getValue());
+                }
+            }
+        }
+        return custompath;
     }
 
     /**
@@ -3627,7 +3731,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             isilonFSList.setToken(quotas.getToken());
 
             for (IsilonSmartQuota quota : quotas.getList()) {
-
+                if (quota.getType().compareTo("directory") != 0) {
+                    _log.debug("ignore quota path {} with quota id {}:",
+                            quota.getPath(), quota.getId() + " and quota type" + quota.getType());
+                    continue;
+                }
                 if ("/ifs/".equals(umfsDiscoverPath) &&
                         isQuotaUnderAccessZonePath(quota.getPath(), tempAccessZonePath)) {
                     continue;

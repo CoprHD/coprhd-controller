@@ -36,6 +36,7 @@ import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
@@ -128,7 +129,15 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                 uris.add(res.getId());
             }
 
+        } else if(classname.contains(RESTHelper.TASK)) {
+            final ObjectMapper mapper = new ObjectMapper();
+            mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
+            final Class<?> clazz = Class.forName(classname);
+
+            final Object task = mapper.readValue(result, clazz.newInstance().getClass());
+            uris.add(((TaskResourceRep)task).getId());
         }
+        
         if (!uris.isEmpty()) {
             return CustomServicesUtils.waitForTasks(uris, getClient());
         }
@@ -185,6 +194,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                 throw InternalServerErrorException.internalServerErrors.
                         customServiceExecutionFailed("Failed to Execute ViPR request");
             }
+
             return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), taskState);
 
         } catch (final InternalServerErrorException e) {

@@ -139,7 +139,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Failed to Execute REST request");
         }
-        
+
         return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
     }
 
@@ -154,6 +154,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
         return true;
     }
+
     public URI getUrl(final CustomServicesRESTApiPrimitive primitive, final List<InputParameter> queryParams) {
 
         final String target = AnsibleHelper.getOptions(CustomServicesConstants.TARGET, input);

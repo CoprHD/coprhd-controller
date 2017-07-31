@@ -35,7 +35,7 @@ public class LocalAnsibleExecutor implements MakeCustomServicesExecutor {
     @Autowired
     private DbClient dbClient;
 
-    @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step, final int iterCount) {
+    @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
         final String folderUniqueStep = step.getId().replace("-", "");
         final String orderDir = String.format("%s%s/%s/", CustomServicesConstants.ORDER_DIR_PATH,
                 ExecutionUtils.currentContext().getOrder().getOrderNumber(),folderUniqueStep);

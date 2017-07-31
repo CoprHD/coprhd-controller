@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import com.emc.storageos.model.block.export.ExportBlockParam;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -117,6 +118,18 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         for (BlockObjectRestRep volume : volumes) {
             if (volume.getTags() != null) {
                 vmware.removeVmfsDatastoreTag(volume, hostId);
+                logInfo("remove vmfs tags");
+            }
+        }
+
+        for (ExportGroupRestRep eg : filteredExportGroups) {
+            List<ExportBlockParam> volumes = eg.getVolumes();
+            for (ExportBlockParam volume : volumes) {
+                BlockObjectRestRep blockObjectRestRep = BlockStorageUtils.getBlockResource(volume.getId());
+                if (blockObjectRestRep.getTags() != null && blockObjectRestRep.getTags().contains(hostId)) {
+                    logInfo("remove additional.vmfs.datastore.tags");
+                    vmware.removeVmfsDatastoreTag(blockObjectRestRep, hostId);
+                }
             }
         }
 

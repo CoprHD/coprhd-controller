@@ -294,7 +294,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         }
     }
-    // Removing the private unused method..
 
     /**
      * Deleting a file share: - Delete the file share only
@@ -342,8 +341,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         isi.deleteDir(args.getFsMountPath());
     }
 
-    // Unused private method..
-
     /**
      * Deleting a snapshot: - deletes existing exports and smb shares for the
      * snapshot (only created by storage os)
@@ -374,8 +371,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             isi.deleteSnapshot(args.getSnapshotExtensions().get("id"));
         }
     }
-
-    // Unused private method..
 
     /**
      * Create/modify Isilon SMB share.
@@ -630,10 +625,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         IsilonExport newIsilonExport = new IsilonExport();
         newIsilonExport.addPath(mountPath);
-
-        if (comments != null && !comments.isEmpty()) {
-            newIsilonExport.setComment(comments);
+        if (comments == null) {
+            comments = "";
         }
+        newIsilonExport.setComment(comments);
 
         // Empty list of clients means --- all clients.
         newIsilonExport.addClients(fileExport.getClients());
@@ -674,7 +669,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("setIsilonExport called with {}", expRule.toString());
         String mountPath = expRule.getExportPath();
         String comments = "";
-        // TODO renaming variable..
         String rootUser = expRule.getAnon();
 
         IsilonExport newIsilonExport = new IsilonExport();
@@ -805,7 +799,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      */
     private void isiReduceFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
         Long capacity = args.getNewFSCapacity();
-        // TODO isi.getQuota(quotaId) is not required..
         IsilonSmartQuota quota = getExpandedQuota(isi, args, capacity);
         // Modify quoties for fileshare
 
@@ -1237,7 +1230,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doRestoreFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-        // TODO since this operation seems to be unsupported so we can return directly..
         return BiosCommandResult.createErrorResult(
                 DeviceControllerException.errors.unsupportedOperationOnDevType(
                         ResourceOperationTypeEnum.RESTORE_FILE_SNAPSHOT.getName(), storage.getSystemType()));
@@ -1262,7 +1254,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage, FileDeviceInputOutput args,
             List<String> snapshots) throws ControllerException {
-        // TODO since this operation is unsupported so we can return directly..
         return BiosCommandResult
                 .createErrorResult(
                         DeviceControllerException.errors.unsupportedOperationOnDevType("getFSSnapshotList", storage.getSystemType()));
@@ -1492,7 +1483,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 softlimit, notificationLimit, softGrace, fsSize, isi);
     }
 
-    // TODO used locally only, so changing to private
     private String createQuotaWithThreshold(String qDirPath, Long qDirSize, Long softLimitSize, Long notificationLimitSize,
             Long softGracePeriod, Long fsSize, IsilonApi isi) {
         boolean bThresholdsIncludeOverhead = true;
@@ -1521,7 +1511,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         String subDir = args.getSubDirectory();
         boolean allDirs = args.isAllDir();
         String exportPath;
-        // TODO variable subDirExportPath is never used locally..
         if (!args.getFileOperation()) {
             exportPath = args.getSnapshotPath();
         } else {
@@ -1587,13 +1576,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
         } catch (IsilonException ie) {
-            // TODO creating the proper exception handling..
             _log.info("deleteExportRules failed as : {}", ie);
             return BiosCommandResult.createErrorResult(ie);
         }
 
         _log.info("IsilonFileStorageDevice deleteExportRules {} - complete", args.getFsId());
-        // TODO removing deprecated method..
         return BiosCommandResult.createSuccessfulResult();
     }
 
@@ -1857,7 +1844,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("Add this export rule {}", exportRule.toString());
 
             String isilonExportId = exportRule.getDeviceExportId();
-            // TODO moving zoneName to else block..
 
             if (isilonExportId != null) {
                 // The Export Rule already exists on the array so modify it
@@ -1918,7 +1904,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 } else {
                     isilonExport = isi.getExport(isilonExportId);
                 }
-                // TODO the logic of updating export comment inside if condition..
+
                 if (isilonExport != null) {
                     List<String> allClients = new ArrayList<>();
 
@@ -2303,15 +2289,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                 }
             }
-            // TODO Using generics
+
             for (Iterator<ShareACL> iterator = existingDBShareACL.iterator(); iterator.hasNext();) {
                 ShareACL shareACL = iterator.next();
                 String key = "";
-                String domain = shareACL.getDomain();
+                String domain = "";
                 String user = shareACL.getUser();
                 String group = shareACL.getGroup();
-                // TODO we can use domain local variable instead of shareACL.getDomain()
-                if (domain != null && !domain.isEmpty()) {
+
+                if (shareACL.getDomain() != null && !shareACL.getDomain().isEmpty()) {
                     domain = shareACL.getDomain() + "\\";
                 }
                 if (user != null && !user.isEmpty()) {
@@ -2328,8 +2314,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return arrayShareACLMap;
 
     }
-
-    // Unused private method..
 
     @Override
     public BiosCommandResult deleteShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
@@ -2366,7 +2350,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     domain = "";
                 }
                 domain = domain.toLowerCase();
-                // TODO adding NULL check for acl group..
                 String userOrGroup = "";
                 if (acl.getUser() != null) {
                     userOrGroup = acl.getUser().toLowerCase();
@@ -2377,7 +2360,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (domain.length() > 0) {
                     userOrGroup = domain + "\\" + userOrGroup;
                 }
-                // TODO NULL check for permission value..
+
                 permissionValue = acl.getPermission();
                 if (permissionValue != null) {
                     permissionValue = permissionValue.toLowerCase();
@@ -2429,9 +2412,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         acl.setOp("add");
         acl.setAccesstype(nfsACE.getPermissionType());
         String user = nfsACE.getUser();
-        if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
-            // TODO use local variable instead of nfsACE.getUser()..
-            user = nfsACE.getDomain() + "\\" + user;
+        String domain = nfsACE.getDomain();
+        if (domain != null && !domain.isEmpty()) {
+            user = domain + "\\" + user;
         }
 
         IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
@@ -2480,7 +2463,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("Calling Isilon API: modify NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
         isi.modifyNFSACL(path, isilonAcl);
         _log.info("End updateNfsACLs");
-        // TODO return directly..
         return BiosCommandResult.createSuccessfulResult();
     }
 
@@ -2535,7 +2517,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("Calling Isilon API: to delete NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
         isi.modifyNFSACL(path, isilonAcl);
         _log.info("End deleteNfsACLs");
-        // TODO return directly...
         return BiosCommandResult.createSuccessfulResult();
     }
 
@@ -3033,34 +3014,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @param syncPolicy - synciq policy name
      * @return
      */
-    private BiosCommandResult getTargetSyncPolicyErrorReport(StorageSystem device, IsilonSyncTargetPolicy policy) {
-        List<IsilonSyncPolicyReport> listMirrorPolicyReports = null;
-        StringBuffer errorMsgBuff = new StringBuffer();
-
-        errorMsgBuff.append(String.format("Policy details  - failback-failover state : [%s] and policy status: [%s] ",
-                policy.getFoFbState().toString(), policy.getLastJobState()));
-
-        // get policy reports from device.
-        IsilonApi isi = getIsilonDevice(device);
-        listMirrorPolicyReports = isi.getTargetReplicationPolicyReports(policy.getName()).getList();
-
-        String errorMsg = mirrorOperations.isiGetReportErrMsg(listMirrorPolicyReports);
-
-        errorMsgBuff.append(String.format("Policy Error Target Report details: %s", errorMsg));
-
-        ServiceError serviceError = DeviceControllerErrors.isilon.unableToResyncPrepPolicy(device.getIpAddress(), policy.getName(),
-                errorMsgBuff.toString());
-        _log.error(errorMsgBuff.toString());
-        return BiosCommandResult.createErrorResult(serviceError);
-    }
-
-    /**
-     * get the error reports from device
-     * 
-     * @param device - storage system
-     * @param syncPolicy - synciq policy name
-     * @return
-     */
     private BiosCommandResult getSyncPolicyErrorReport(StorageSystem device, IsilonSyncTargetPolicy policy) {
         List<IsilonSyncPolicyReport> listMirrorPolicyReports = null;
         StringBuffer errorMsgBuff = new StringBuffer();
@@ -3094,7 +3047,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 FileShare fileShare = _dbClient.queryObject(FileShare.class, target);
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
                 URI uriParent = fileShare.getParentFileShare().getURI();
-                // TODO contains will return boolean value..
                 if (sources.contains(uriParent)) {
                     // Do not delete the file target file system with force flag
                     biosCommandResult = rollbackCreatedFilesystem(storageSystem, target, opId, false);
@@ -3310,7 +3262,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
                     resumeToken = snapshots.getToken();
                 }
-                // TODO we don't need 2nd check..
+
             } while (resumeToken != null);
 
         } catch (IsilonException e) {
@@ -3358,7 +3310,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    // TODO Removed the unsed paramter..
     private BiosCommandResult updateStorageSystemFileReplicationPolicy(IsilonApi isi, PolicyStorageResource policyRes,
             FilePolicyUpdateParam policyUpdateParam, boolean isVersion8above) {
 
@@ -3436,7 +3387,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     JobState policyState = syncpolicyAtPath.getLastJobState();
                     if (!policyState.equals(JobState.running) && !policyState.equals(JobState.paused)) {
                         if (isVersion8above) {
-                            // TODO Possible NPE..syncpolicyAtPath8 can be null here if policyUpdateParam.getPriority() is NULL..
+                            // Possible NPE..syncpolicyAtPath8 can be null here if policyUpdateParam.getPriority() is NULL..
                             // Better to use syncpolicyAtPath.getName()..
                             isi.modifyReplicationPolicy8above(syncpolicyAtPath.getName(), modifiedPolicycopy);
                             _log.info("Modify Replication Policy- {} finished successfully", syncpolicyAtPath.getName());
@@ -3468,7 +3419,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    // TODO Removed the unused parameter..
     private BiosCommandResult updateStorageSystemFileSnapshotPolicy(IsilonApi isi, PolicyStorageResource policyRes,
             FilePolicyUpdateParam policyUpdateParam) {
         try {
@@ -3485,7 +3435,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             if (snapPolicyAtPath != null) {
                 _log.info("Found SnapshotIQ policy{} for path {} ", snapPolicyAtPath.getName(), snapPolicyAtPath.getPath());
-                // TODO changed the variable name..
+
                 boolean isPolicyModified = false;
                 // Temp policy to store modified values.
                 IsilonSnapshotSchedule modifiedPolicy = new IsilonSnapshotSchedule();
@@ -3522,9 +3472,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 }
 
                 if (isPolicyModified) {
-                    // TODO log for modified policy..
-                    _log.info("Modifying Isilon Snapshot Policy from- {} to {} started", snapPolicyAtPath.toString(),
-                            modifiedPolicy.toString());
+                    _log.info("Modifying Isilon Snapshot Policy from- {} to {} started", snapPolicyAtPath,
+                            modifiedPolicy);
                     isi.modifySnapshotSchedule(snapPolicyAtPath.getName(), modifiedPolicy);
                     _log.info("Modify Snapshot Policy- {} finished successfully", snapPolicyAtPath.getName());
                     return BiosCommandResult.createSuccessfulResult();
@@ -3665,7 +3614,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 IsilonSyncPolicy isiSyncPolicy = getEquivalentIsilonSyncIQPolicy(isi, policyResource.getResourcePath());
                 if (isiSyncPolicy != null) {
                     _log.info("deleting Isilon replication policy: {}", isiSyncPolicy.toString());
-                    // TODO using local variable policy name..
                     String policyName = isiSyncPolicy.getName();
                     IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
                     // TODO Need to consider the use case when policy is deleted from backend..
@@ -3898,7 +3846,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @param storageSystem
      * @return
      */
-    // TODO Method is used locally only,Removing the unused parameter..
     private void updateLocalTargetFileSystemPath(FileDeviceInputOutput args) {
         VirtualPool vpool = args.getVPool();
         Project project = args.getProject();
@@ -4074,8 +4021,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
     }
 
-    // TODO Removing the unused method..
-
     private String createIsilonSyncPolicy(StorageSystem storageObj, StorageSystem targetStorage,
             FilePolicy filePolicy, String sourcePath, String targetPath, String syncPolicyName,
             FileDeviceInputOutput sourceSystemArgs, FileDeviceInputOutput targetSystemArgs) {
@@ -4116,12 +4061,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (filePolicy.getPriority() != null) {
                     replicationPolicyCopy.setPriority(FilePolicyPriority.valueOf(filePolicy.getPriority()).ordinal());
                 }
-                // TODO One final log before creating the actual Isilon Policy..
-                _log.info("Isilon SyncIQ policy : {} creation started", replicationPolicyCopy.toString());
+                _log.info("Isilon SyncIQ policy : {} creation started", replicationPolicyCopy);
                 scheduleId = isi.createReplicationPolicy8above(replicationPolicyCopy);
             } else {
-                // TODO One final log before creating the actual Isilon Policy..
-                _log.info("Isilon SyncIQ policy : {} creation started", replicationPolicy.toString());
+                _log.info("Isilon SyncIQ policy : {} creation started", replicationPolicy);
                 scheduleId = isi.createReplicationPolicy(replicationPolicy);
             }
 
@@ -4149,7 +4092,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // target cluster smart connect zone is matching???
             for (com.emc.storageos.db.client.model.StoragePort port : FileOrchestrationUtils
                     .getStorageSystemPorts(_dbClient, system)) {
-                // TODO Both conditions can be clubbed to ONE
                 if (existingPolicyTargetHost.equalsIgnoreCase(port.getPortName())
                         || existingPolicyTargetHost.equalsIgnoreCase(port.getPortNetworkId())) {
                     return true;
@@ -4162,8 +4104,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private boolean validateIsilonReplicationPolicy(IsilonSyncPolicy isiMatchedPolicy, FilePolicy filePolicy,
             String targetPath, StorageSystem targetSystem, StorageSystem sourceSystem) {
         _log.info("Comparing filepolicy: {} with SyncIQ policy: {}", filePolicy.getFilePolicyName(), isiMatchedPolicy.getName());
-        // TODO Null check not required since callers of this method are conditionally calling this method based on isiMatchedPolicy NULL
-        // check
 
         // replication type validation
         if (!isiMatchedPolicy.getAction().equals(IsilonSyncPolicy.Action.sync)) {
@@ -4186,14 +4126,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // schedule validation
         String viprSchedule = getIsilonPolicySchedule(filePolicy);
         String isiSchedule = StringUtils.substringBefore(isiMatchedPolicy.getSchedule(), " between");
-        // TODO Added Null check since either of them can be NULL at this point
+
         if (viprSchedule == null || isiSchedule == null || !viprSchedule.equalsIgnoreCase(isiSchedule)) {
             _log.error("File policy schedule: {} is different compared to isilon SyncIQ schedule: {}", viprSchedule, isiSchedule);
             return false;
         }
 
         // target path validation
-        // TODO Added Null check since isiMatchedPolicy.getTargetPath() can be NULL at this point
+
         String isiTargetPath = isiMatchedPolicy.getTargetPath();
         if (isiTargetPath == null || !isiTargetPath.equals(targetPath)) {
             _log.error("Target path: {} is different compared to SyncIQ policy path: {}", targetPath, isiMatchedPolicy);
@@ -4203,7 +4143,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return true;
     }
 
-    // TODO Removed the unused parameter
     private static IsilonSyncPolicy checkForReplicationPolicyOnIsilon(ArrayList<IsilonSyncPolicy> isiPolicies, String sourceRootPath,
             String targetPath) {
         IsilonSyncPolicy isiMatchedPolicy = null;
@@ -4295,7 +4234,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    // TODO Method is used locally only
     private static FilePolicy getReplicationPolicyAppliedOnFS(FileShare fs, DbClient dbClient) {
         StringSet existingFSPolicies = fs.getFilePolicies();
         List<URI> existingFSPolicyURIs = new ArrayList<>();
@@ -4314,7 +4252,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return null;
     }
 
-    // TODO Method is used locally only
     private static PolicyStorageResource getEquivalentPolicyStorageResource(FileShare fs, DbClient dbClient) {
         FilePolicy fp = getReplicationPolicyAppliedOnFS(fs, dbClient);
         if (fp != null) {

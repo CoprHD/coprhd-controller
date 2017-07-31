@@ -45,8 +45,6 @@ public class IsilonApi {
 	private final URI _baseUrl;
 
 	private final RESTClient _client;
-	// TODO removed unused constants..
-
 	private static final URI URI_IFS = URI.create("/namespace/");
 	private static final URI URI_NFS_EXPORTS = URI.create("/platform/1/protocols/nfs/exports/");
 	private static final URI URI_SMB_SHARES = URI.create("/platform/1/protocols/smb/shares/");
@@ -60,13 +58,11 @@ public class IsilonApi {
 	private static final URI URI_ARRAY_GLOBAL_STATUS = URI.create("/platform/1/protocols/nfs/settings/global");
 	private static final URI URI_ARRAY_GLOBAL_STATUS_ONEFS8 = URI.create("/platform/3/protocols/nfs/settings/global");
 	private static final URI URI_STORAGE_PORTS = URI.create("/platform/1/cluster/smartconnect_zones");
-	// private static final URI URI_EVENTS = URI.create("/platform/1/events/");
 	private static final URI URI_EVENTS = URI.create("/platform/2/event/events/");
 	private static final URI URI_ONEFS8_EVENTS = URI.create("/platform/3/event/eventlists/");
 
 	private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
 	private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
-	private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
 	private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
 	private static final URI URI_REPLICATION_POLICIES = URI.create("/platform/1/sync/policies/");
 	private static final URI URI_REPLICATION_POLICIES_8 = URI.create("/platform/3/sync/policies/");
@@ -157,7 +153,7 @@ public class IsilonApi {
 	 * @throws IsilonException
 	 */
 	public IsilonClusterInfo getClusterInfo() throws IsilonException {
-		// TODO shouldn't we put this in try block???..
+
 		ClientResponse clientResp = null;
 		try {
 			clientResp = _client.get(_baseUrl.resolve(URI_CLUSTER));
@@ -1588,9 +1584,7 @@ public class IsilonApi {
 
 			JSONObject resp = clientResp.getEntity(JSONObject.class);
 			sLogger.debug(resp.toString());
-			IsilonSmartConnectInfo info = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()),
-					IsilonSmartConnectInfo.class);
-			return info;
+			return new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()), IsilonSmartConnectInfo.class);
 		} catch (Exception e) {
 			String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
 			throw IsilonException.exceptions.getStorageConnectionInfoFailedOnIsilonArrayExc(response, e);
@@ -1607,6 +1601,7 @@ public class IsilonApi {
 			clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_PORTS));
 			if (clientResp.getStatus() != 200) {
 				sLogger.debug("Response: Exception :" + clientResp.toString());
+				// TODO Need to use non-deprecated constructor..
 				throw new IsilonException(clientResp.getStatus() + "");
 			}
 
@@ -1628,6 +1623,7 @@ public class IsilonApi {
 			return info;
 		} catch (Exception e) {
 			String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
+			// TODO Need to use non-deprecated constructor..
 			throw new IsilonException(response, e);
 		} finally {
 			if (clientResp != null) {
@@ -1895,10 +1891,8 @@ public class IsilonApi {
 				throw IsilonException.exceptions.getStatisticsProtocolFailedOnIsilonArray(clientResp.getStatus());
 			}
 
-			// ObjectMapper mapper = new ObjectMapper();
 			JSONObject resp = clientResp.getEntity(JSONObject.class);
-			// IsilonStats.Protocols protocols =
-			// mapper.readValue(resp.toString(), IsilonStats.Protocols.class);
+
 			JSONArray protocols = resp.getJSONArray("protocols");
 			for (int i = 0; i < protocols.length(); i++) {
 				JSONObject protocol = protocols.getJSONObject(i);
@@ -1933,7 +1927,6 @@ public class IsilonApi {
 	 */
 	private void processErrorResponse(String operationKey, String objectKey, int httpStatus, JSONObject errorEntity)
 			throws IsilonException, JSONException {
-		// TODO first and last exceptions are same..
 		if (errorEntity != null) {
 			if (errorEntity.has("errors")) {
 				throw IsilonException.exceptions.processErrorResponseFromIsilonMsg(operationKey, objectKey, httpStatus,
@@ -1984,8 +1977,6 @@ public class IsilonApi {
 		return isNfsv4Enabled;
 	}
 
-	// TODO Removing the unused public method..
-
 	/**
 	 * Get SyncIq license information from the Isilon array
 	 * 
@@ -1996,7 +1987,6 @@ public class IsilonApi {
 
 	public String getReplicationLicenseInfo() throws IsilonException, JSONException {
 		// TODO instead of this method we can use generic method getLicenseInfo
-		// TODO refactoring this method to close the connection..
 		ClientResponse resp = null;
 		String licenseStatus = "Unknown";
 		try {
@@ -2227,7 +2217,6 @@ public class IsilonApi {
 	public String getLicenseInfo(IsilonLicenseType licenseType) throws IsilonException, JSONException {
 		ClientResponse resp = null;
 		String licenseStatus = "Unknown";
-
 		try {
 			// Verify whether specified license is activated on ISILON array or
 			// not

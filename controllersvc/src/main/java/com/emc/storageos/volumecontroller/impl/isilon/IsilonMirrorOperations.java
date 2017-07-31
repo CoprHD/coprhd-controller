@@ -61,8 +61,6 @@ public class IsilonMirrorOperations {
         _dbClient = dbClient;
     }
 
-    // TODO removing the unused method..
-
     /**
      * Enable the Isilon syncIQ policy
      * 
@@ -156,7 +154,7 @@ public class IsilonMirrorOperations {
                 IsilonSyncJob job = new IsilonSyncJob();
                 job.setId(policyName);
                 isi.modifyReplicationJob(job);
-                // this assignment is not used after afterwards..better to remove it..
+                // TODO this assignment is not used after afterwards..better to remove it..
                 policy = isi.getReplicationPolicy(policyName);
 
                 IsilonSyncJobStart isiSyncJobStart = new IsilonSyncJobStart(policyName, system.getId(), taskCompleter, policyName);
@@ -243,8 +241,6 @@ public class IsilonMirrorOperations {
         return isilonAPI;
 
     }
-
-    // TODO Unused method..
 
     /**
      * Call to Isilon device api to stop policy

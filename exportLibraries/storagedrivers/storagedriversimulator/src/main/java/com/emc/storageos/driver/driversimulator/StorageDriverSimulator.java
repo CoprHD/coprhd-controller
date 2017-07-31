@@ -238,7 +238,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         String taskType = "discover-storage-pools";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
-        AutoTieringPolicyCapabilityDefinition capabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
+        AutoTieringPolicyCapabilityDefinition autoTieringCapabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
 
         // Volume compression capability instance
         VolumeCompressionCapabilityDefinition compressionCapabilityDefinition = new VolumeCompressionCapabilityDefinition();
@@ -249,7 +249,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 Collections.singletonList("true"));
 
         CapabilityInstance volumeCompressionCapability = new CapabilityInstance(compressionCapabilityDefinition.getId(),
-                capabilityDefinition.getId(), capabilityProperties);
+                compressionCapabilityDefinition.getId(), capabilityProperties);
 
         try {
             // Get connection information.
@@ -296,8 +296,12 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 
                 
                 List<CapabilityInstance> capabilities = new ArrayList<>();
+
+                // Generate auto-tiering capabilities for pools.
+                // Each pool will have two capabilities: even pools will have thin capability and odd pools will have
+                // thick capability.
                 for (int j = 1; j <= 2; j++) {
-                    String policyId = "Auto-Tier-Policy-" + i + j;
+                    String policyId = StorageDriverSimulatorUtils.AUTO_TIER_POLICY_PREFIX + i + j;
                     Map<String, List<String>> props = new HashMap<>();
                     props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), Arrays.asList(policyId));
                     String provisioningType;
@@ -307,7 +311,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                         provisioningType = StoragePool.AutoTieringPolicyProvisioningType.ThicklyProvisioned.name();
                     }
                     props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(), Arrays.asList(provisioningType));
-                    CapabilityInstance capabilityInstance = new CapabilityInstance(capabilityDefinition.getId(), policyId, props);
+                    CapabilityInstance capabilityInstance = new CapabilityInstance(autoTieringCapabilityDefinition.getId(), policyId, props);
                     capabilities.add(capabilityInstance);
                 }
 
@@ -870,6 +874,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
             if (GENERATE_CAPABILITIES_DATA) {
                 generateStorageCapabilitiesDataForVolume(driverVolume);
+                _log.info("Storage capabilities for volume {}: {}", driverVolume.getNativeId(), driverVolume.getCommonCapabilities().getDataStorage());
             }
 
             if (GENERATE_EXPORT_DATA) {
@@ -1464,5 +1469,6 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         }
         StorageDriverSimulatorUtils.addHostIOLimitsCapabilities(commonStorageCapabilities);
         StorageDriverSimulatorUtils.addVolumeCompressionCapability(commonStorageCapabilities);
+        StorageDriverSimulatorUtils.addVolumeAutoTieringPoliciesCapability(commonStorageCapabilities);
     }
 }

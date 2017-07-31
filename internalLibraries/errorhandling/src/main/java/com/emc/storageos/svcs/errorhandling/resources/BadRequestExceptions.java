@@ -3400,4 +3400,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException changePortGroupExistingVolumes(String exportMask, String volumes);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException pathAdjustmentSelectedPortsNotInPortGroup(String selectedPorts, String portGroupMembers);
 }

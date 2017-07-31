@@ -3226,7 +3226,17 @@ public class ExportGroupService extends TaskResourceService {
             // Manufacture an ExportPathParams structure from the REST ExportPathParameters structure
             ExportPathParams pathParam = new ExportPathParams(param.getExportPathParameters(), exportGroup);
             if (!storagePorts.isEmpty()) {
-                pathParam.setStoragePorts(storagePorts);
+                //check if storage ports are specified
+                StringSet paramPorts = pathParam.getStoragePorts();
+                if (paramPorts != null && !paramPorts.isEmpty()) {
+                    if (!storagePorts.containsAll(paramPorts)) {
+                        _log.error("Selected ports are not in the port group");
+                        throw APIException.badRequests.pathAdjustmentSelectedPortsNotInPortGroup(
+                                Joiner.on(',').join(paramPorts), Joiner.on(',').join(storagePorts));
+                    } 
+                } else {
+                    pathParam.setStoragePorts(storagePorts);
+                }
             }
             // Call the storage port allocator/assigner for all initiators (host or cluster) in
             // the Export Group. Pass in the existing paths if requested in the parameters.

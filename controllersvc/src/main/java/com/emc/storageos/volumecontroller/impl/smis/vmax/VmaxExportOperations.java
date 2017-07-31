@@ -2505,6 +2505,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     mask.getStoragePorts().addAll(storagePortsToAdd);
                     mask.getStoragePorts().removeAll(storagePortsToRemove);
+                    URI pgURI = mask.getPortGroup();
+                    if (!NullColumnValueGetter.isNullURI(pgURI) && 
+                            (!storagePortsToAdd.isEmpty() ||
+                             !storagePortsToRemove.isEmpty())) {
+                        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                        portGroup.getStoragePorts().addAll(storagePortsToAdd);
+                        portGroup.getStoragePorts().removeAll(storagePortsToRemove);
+                        _dbClient.updateObject(portGroup);
+                    }
                     ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
                     builder.append("XM refresh: There are changes to mask, " +
                             "updating it...\n");

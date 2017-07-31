@@ -151,7 +151,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     if (logNames != null) {
                         for (String nodeId : nodeIds) {
                             for(String logName : logNames) {
-                                String logPath = String.format("%s/logs/%s_%s_%s.log", dataFiledir, logName, nodeId, nodeId);
+                                String logPath = String.format("%s/logs/logs/%s_%s_%s.log", dataFiledir, logName, nodeId, nodeId);
                                 //String logPath = String.format("%s/log/%s_%s_%s.log", "/var", logName, nodeId, nodeId);
                                 writeLogs(nodeId, nodeId, logName, logParam, logPath);
                             }
@@ -170,6 +170,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                         throw new Exception("execting get log command error");
                     }
                     log.info("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
+
                 } catch (Exception e) {
                     jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
                     jobStatus.setDescription(DiagutilStatusDesc.COLLECTING_LOGS_FAILURE);

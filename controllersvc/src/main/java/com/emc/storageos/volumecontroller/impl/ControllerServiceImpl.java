@@ -675,6 +675,7 @@ public class ControllerServiceImpl implements ControllerService {
         String driverName = dirs[dirs.length - 2];
         return driverName.substring(0, driverName.length() - 1);
     }
+
     /**
      * Fetch driver information from db and wire it into StorageDriverManager
      * instance and ExternalBlockStorageDevice instance

@@ -85,7 +85,7 @@ public class StorageDriverManager implements ApplicationContextAware {
             String driverName = type.getDriverName();
             if (type.getIsSmiProvider()) {
                 storageProvidersMap.put(driverName, typeName);
-                log.info("Driver info for storage system type {} has been set into storageDriverManagerProxy instance", typeName);
+                log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
                 continue;
             }
             storageSystemsMap.put(driverName, typeName);
@@ -103,7 +103,7 @@ public class StorageDriverManager implements ApplicationContextAware {
             if (CollectionUtils.isNotEmpty(supportedProfiles)) {
                 supportedStorageProfiles.put(typeName, supportedProfiles);
             }
-            log.info("Driver info for storage system type {} has been set into storageDriverManagerProxy instance", typeName);
+            log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
         }
     }
 

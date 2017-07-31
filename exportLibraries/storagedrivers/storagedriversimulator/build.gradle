@@ -4,3 +4,8 @@ dependencies {
             library(spring),
             library(commons_lang)
 }
+
+jar {
+    from 'direct_type_metadata.properties'
+    from 'provider_type_metadata.properties'
+}

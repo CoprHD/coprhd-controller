@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -227,6 +228,17 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         DriverTask task = new DriverSimulatorTask(taskId);
         AutoTieringPolicyCapabilityDefinition capabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
 
+        // Volume compression capability instance
+        VolumeCompressionCapabilityDefinition compressionCapabilityDefinition = new VolumeCompressionCapabilityDefinition();
+        Map<String, List<String>> capabilityProperties = new HashMap<>();
+        capabilityProperties.put(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.COMPRESSION_RATIO.name(),
+                Collections.singletonList("10"));
+        capabilityProperties.put(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.ENABLED.name(),
+                Collections.singletonList("true"));
+
+        CapabilityInstance volumeCompressionCapability = new CapabilityInstance(compressionCapabilityDefinition.getId(),
+                capabilityDefinition.getId(), capabilityProperties);
+
         try {
             // Get connection information.
             Map<String, List<String>> connectionInfo =
@@ -286,6 +298,12 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                     CapabilityInstance capabilityInstance = new CapabilityInstance(capabilityDefinition.getId(), policyId, props);
                     capabilities.add(capabilityInstance);
                 }
+
+                // add compression capabilities to half of the pools
+                if (i%2 == 0) {
+                    capabilities.add(volumeCompressionCapability);
+                }
+
                 pool.setCapabilities(capabilities);
 
                 storagePools.add(pool);
@@ -418,6 +436,11 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             _log.info("HostIOLimits for volumes: " +hostIOLimits.toString());
         }
 
+        CapabilityInstance volumeCompression = StorageDriverSimulatorUtils.getVolumeCompressionCapabilities(capabilities);
+        if (volumeCompression != null) {
+            _log.info("Volume Compression for volumes: " +volumeCompression.toString());
+        }
+
         for (StorageVolume volume : volumes) {
             volume.setNativeId("driverSimulatorVolume" + UUID.randomUUID().toString());
             volume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
@@ -426,6 +449,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             volume.setDeviceLabel(volume.getNativeId());
             volume.setWwn(String.format("%s%s", volume.getStorageSystemId(), volume.getNativeId()));
 
+            // add capabilities
+            generateStorageCapabilitiesDataForVolume(volume);
             // newVolumes = newVolumes + volume.getNativeId() + " ";
             newVolumes.add(volume.getNativeId());
         }
@@ -1081,5 +1106,6 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             driverVolume.setCommonCapabilities(commonStorageCapabilities);
         }
         StorageDriverSimulatorUtils.addHostIOLimitsCapabilities(commonStorageCapabilities);
+        StorageDriverSimulatorUtils.addVolumeCompressionCapability(commonStorageCapabilities);
     }
 }

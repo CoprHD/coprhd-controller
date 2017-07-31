@@ -141,6 +141,7 @@ restore_node() {
     local viprNode=${1}
     local backupTag=`echo "${BACKUP_INFO}" | grep "^name=" `
     backupTag=${backupTag#*=}
+    backupTag=${backupTag%%_*}
     # restore local files
     local command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag'"
     if [ "$RESTORE_GEO_FROM_SCRATCH" == "true" ]; then

@@ -31,6 +31,7 @@ import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -509,6 +510,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         processHostChanges(Collections.singletonList(changes), Collections.<URI> emptyList(), Collections.<URI> emptyList(), false);
     }
 
+    @SuppressWarnings("unchecked")
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter) {
 
         log.info("There are " + changes.size() + " changes");
@@ -661,6 +663,34 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
 
             if (ComputeSystemHelper.isHostInUse(dbClient, host.getId()) && (!oldInitiatorObjects.isEmpty()
                     || !newInitiatorObjects.isEmpty())) {
+
+                ActionableEvent duplicateEvent = EventUtils.getDuplicateEvent(dbClient,
+                        EventUtils.EventCode.HOST_INITIATOR_UPDATES.getCode(), host.getId(), null);
+
+                List<URI> duplicateEventAddInitiators = Lists.newArrayList();
+                List<URI> duplicateEventRemoveInitiators = Lists.newArrayList();
+
+                if (duplicateEvent != null) {
+                    log.info(
+                            "Found duplicate event " + duplicateEvent.forDisplay() + " for " + host.forDisplay() + " to update initiators");
+
+                    ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(duplicateEvent.getApproveMethod());
+                    if (eventMethod == null) {
+                        log.info("Event method is null or empty for event " + duplicateEvent.getId());
+                    } else if (eventMethod.getArgs() == null) {
+                        log.info("Event method arguments are null for event " + duplicateEvent.getId());
+                    } else {
+                        // Parameters for updateInitiators are hostId, addInitiatorIds, removeInitiatorIds
+                        Object[] parameters = eventMethod.getArgs();
+                        if (parameters != null && parameters.length == EventUtils.UPDATE_INITIATORS_METHOD_PARAMETERS) {
+                            duplicateEventAddInitiators = (List<URI>) parameters[EventUtils.UPDATE_INITIATORS_METHOD_ADD_INITIATOR_INDEX];
+                            duplicateEventRemoveInitiators = (List<URI>) parameters[EventUtils.UPDATE_INITIATORS_METHOD_REMOVE_INITIATOR_INDEX];
+                        }
+                    }
+                }
+
+                newInitiatorObjects.addAll(dbClient.queryObject(Initiator.class, duplicateEventAddInitiators));
+                oldInitiatorObjects.addAll(dbClient.queryObject(Initiator.class, duplicateEventRemoveInitiators));
 
                 List<String> oldInitiatorPorts = Lists.newArrayList();
                 List<String> newInitiatorPorts = Lists.newArrayList();

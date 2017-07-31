@@ -44,6 +44,10 @@ public class EventUtils {
     public static String updateInitiators = "updateInitiators";
     public static String updateInitiatorsDecline = "updateInitiatorsDecline";
 
+    public static final int UPDATE_INITIATORS_METHOD_PARAMETERS = 3;
+    public static final int UPDATE_INITIATORS_METHOD_ADD_INITIATOR_INDEX = 1;
+    public static final int UPDATE_INITIATORS_METHOD_REMOVE_INITIATOR_INDEX = 2;
+
     private static List<EventCode> ALLOWED_DUPLICATE_EVENTS = Lists.newArrayList(EventCode.HOST_INITIATOR_ADD,
             EventCode.HOST_INITIATOR_DELETE);
 

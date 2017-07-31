@@ -79,7 +79,7 @@ public class StorageDriverManager implements ApplicationContextAware {
 
     private void refreshInfo() {
         clearInfo();
-        List<StorageSystemType> types = listDriverManagedTypes();
+        List<StorageSystemType> types = listDriverManagedTypes(dbClient);
         for (StorageSystemType type : types) {
             String typeName = type.getStorageTypeName();
             String driverName = type.getDriverName();
@@ -107,7 +107,7 @@ public class StorageDriverManager implements ApplicationContextAware {
         }
     }
 
-    private List<StorageSystemType> listDriverManagedTypes() {
+    public static List<StorageSystemType> listDriverManagedTypes(DbClient dbClient) {
         List<StorageSystemType> result = new ArrayList<StorageSystemType>();
         List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
         Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);

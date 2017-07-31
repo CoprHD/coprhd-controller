@@ -681,7 +681,7 @@ public class ControllerServiceImpl implements ControllerService {
      * instance and ExternalBlockStorageDevice instance
      */
     private void initDriverInfo() {
-        List<StorageSystemType> types = listDriverManagedTypes();
+        List<StorageSystemType> types = StorageDriverManager.listDriverManagedTypes(_dbClient);
         if (types.isEmpty()) {
             _log.info("No out-of-tree driver is installed, keep driver info remained as loaded from Spring context");
             return;
@@ -753,25 +753,6 @@ public class ControllerServiceImpl implements ControllerService {
 
             _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
         }
-    }
-
-    /**
-     * @return all storage system types managed by driver, whatever in-tree or out-of-tree
-     */
-    private List<StorageSystemType> listDriverManagedTypes() {
-        List<StorageSystemType> result = new ArrayList<>();
-        List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
-        Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
-        while (it.hasNext()) {
-            StorageSystemType type = it.next();
-            if (type.getDriverClassName() == null) {
-                continue;
-            }
-            if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {
-                result.add(type);
-            }
-        }
-        return result;
     }
 
     private void startCapacityService() {

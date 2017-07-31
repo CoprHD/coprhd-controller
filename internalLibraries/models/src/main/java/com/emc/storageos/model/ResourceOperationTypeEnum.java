@@ -365,7 +365,7 @@ public enum ResourceOperationTypeEnum {
     MIGRATION_RECOVER("MIGRATION RECOVER", "recover a migration after failure"),
     MIGRATION_SYNCSTOP("MIGRATION SYNCSTOP", "stop the migration data synchronization"),
     MIGRATION_SYNCSTART("MIGRATION SYNCSTART", "start the migration data synchronization"),
-    MIGRATION_REMOVE_ENV("MIGRATION REMOVE ENV", "remove migration environment"),
+    MIGRATION_REMOVE_ENV("MIGRATION REMOVE ENVIRONMENT", "remove migration environment"),
     WORKFLOW_RESUME("WORKFLOW_RESUME", "Resume a workflow from suspended state"),
     WORKFLOW_ROLLBACK("WORKFLOW_ROLLBACK", "Rollback a workflow"),
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),

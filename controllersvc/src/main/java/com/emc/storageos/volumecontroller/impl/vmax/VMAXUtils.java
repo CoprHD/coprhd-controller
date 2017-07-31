@@ -98,13 +98,13 @@ public class VMAXUtils {
         StringBuilder msg = new StringBuilder();
 
         if (NullColumnValueGetter.isNullURI(restProvider)) {
-            msg.append("REST provider is not set for ").append(system.getNativeId());
+            msg.append("REST provider is not set for ").append(system.getNativeGuid());
         } else {
             StorageProvider provider = dbClient.queryObject(StorageProvider.class, restProvider);
             if (provider == null || provider.getInactive()) {
-                msg.append("REST provider is not set for ").append(system.getNativeId());
+                msg.append("REST provider is not set for ").append(system.getNativeGuid());
             } else if (!provider.connected()) {
-                msg.append("REST provider is not connected for ").append(system.getNativeId());
+                msg.append("REST provider is not connected for ").append(system.getNativeGuid());
             } else {
                 return provider;
             }

@@ -45,41 +45,41 @@ public class VMAXStorageDevice extends DefaultBlockStorageDevice {
 
     public void doCreateMigration(StorageSystem sourceSystem, URI cgURI, URI targetSystemURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-
+        logger.info("doCreateMigration started");
     }
 
     public void doCutoverMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-
+        logger.info("doCutoverMigration started");
     }
 
     public void doCommitMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-
+        logger.info("doCommitMigration started");
     }
 
     public void doCancelMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-
+        logger.info("doCancelMigration started");
     }
 
     public void doRefreshMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-
+        logger.info("doRefreshMigration started");
     }
 
     public void doRecoverMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-
+        logger.info("doRecoverMigration started");
     }
 
     public void doSyncStopMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-
+        logger.info("doSyncStopMigration started");
     }
 
     public void doSyncStartMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-
+        logger.info("doSyncStartMigration started");
     }
 }

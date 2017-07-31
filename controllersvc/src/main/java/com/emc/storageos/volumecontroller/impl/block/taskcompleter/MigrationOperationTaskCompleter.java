@@ -14,12 +14,11 @@ import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.TaskCompleter;
 
 /**
  * Completer for migration operations.
  */
-public class MigrationOperationTaskCompleter extends TaskCompleter {
+public class MigrationOperationTaskCompleter extends TaskLockingCompleter {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(MigrationOperationTaskCompleter.class);
 
@@ -34,7 +33,9 @@ public class MigrationOperationTaskCompleter extends TaskCompleter {
                 opId, status.name()));
 
         // Update the task status.
-        setStatus(dbClient, status, coded);
+        super.setStatus(dbClient, status, coded);
+        super.complete(dbClient, status, coded);
+
         logger.info("Updated status for migration task on {}", getId());
     }
 }

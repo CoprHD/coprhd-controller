@@ -20,7 +20,6 @@ public class MigrationWorkflowCompleter extends TaskLockingCompleter {
 
     public MigrationWorkflowCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
-        setNotifyWorkflow(true);
     }
 
     @Override

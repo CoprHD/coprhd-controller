@@ -3090,7 +3090,7 @@ test_11() {
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
     fi
 
-    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+    failure_injections="${storage_failure_injections} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_083_VPlexDeviceController_late_in_add_targets_to_view"

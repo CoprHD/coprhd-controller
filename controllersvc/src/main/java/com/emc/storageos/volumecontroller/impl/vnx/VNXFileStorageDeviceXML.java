@@ -387,7 +387,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         // ALL EXPORTS
         List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
         List<ExportRule> exportsToprocess = new ArrayList<>();
-        if (existingDBExportRule != null && !existingDBExportRule.isEmpty()) {
+        if (existingDBExportRule != null) {
             for (ExportRule rule : existingDBExportRule) {
                 if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
                     exportsToprocess.add(rule);
@@ -653,7 +653,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             if (null == vnxComm) {
                 throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
             }
-            if (exportList != null && !exportList.isEmpty()) {
+            if (exportList != null) {
                 for (int expCount = 0; expCount < exportList.size(); expCount++) {
                     List<String> endPoints = new ArrayList<String>();
                     FileExport export = exportList.get(expCount);
@@ -890,7 +890,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
             args.getFileObjShares().remove(smbFileShare.getName());
         } catch (VNXException e) {
-            BiosCommandResult.createErrorResult(e);
+            throw new DeviceControllerException(e);
         } finally {
             clearContext(context);
         }
@@ -947,7 +947,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 args.setSnapshotPath(path);
             }
         } catch (VNXException e) {
-            BiosCommandResult.createErrorResult(e);
+            throw new DeviceControllerException(e);
         } finally {
             clearContext(context);
         }
@@ -1085,7 +1085,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
             result = vnxComm.doDeleteSnapshot(storage, args.getSnapNativeId(), args.getSnapshotName(), true);
         } catch (VNXException e) {
-            BiosCommandResult.createErrorResult(e);
+            throw new DeviceControllerException(e);
         } finally {
             clearContext(context);
         }

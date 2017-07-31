@@ -351,7 +351,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * Discovery of vnxfile storagesystem.( port, portgroup pools, vdm)
      * 
-     * @param accessProfile
+     * @param accessProfile - AccessProfile for the providers
      * @throws BaseCollectionException
      */
     public void discoverAll(AccessProfile accessProfile) throws BaseCollectionException {
@@ -1483,8 +1483,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * 
      * get mover by name
      * 
-     * @param movers
-     * @param moverName
+     * @param movers - list of movers
+     * @param moverName - name of mover that need to find out
      * @return
      */
     private StorageHADomain getMatchingMoverByName(Set<StorageHADomain> movers, String moverName) {
@@ -1499,8 +1499,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * get mover by id
      * 
-     * @param movers
-     * @param moverId
+     * @param movers - list of movers
+     * @param moverId - name of the mover id
      * @return
      */
     private StorageHADomain getMatchingMoverById(Set<StorageHADomain> movers, String moverId) {
@@ -1541,7 +1541,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * Discovery of VNX Unmanaged filesystems
      * 
-     * @param profile
+     * @param profile - AccessProfile for the providers
      * @throws BaseCollectionException
      */
     private void discoverUmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
@@ -1679,8 +1679,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * Discovery of Vnxfile unmanaged quota directory
      * 
-     * @param profile
-     * @param umfsIds
+     * @param profile - AccessProfile for the providers
+     * @param umfsIds - filesystem ids
      * @throws Exception
      */
     private void discoverUmanagedFileQuotaDirectory(AccessProfile profile, StringSet umfsIds) throws Exception {
@@ -1857,7 +1857,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * Discovery Unmanaged Cifs shares
      * 
-     * @param profile
+     * @param profile - AccessProfile for the providers
      */
     private void discoverUnManagedCifsShares(AccessProfile profile) {
 
@@ -2173,9 +2173,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * prepare the UnManagedCifsShare ACL
      * 
-     * @param vnxufs
-     * @param expPath
-     * @param fsExportInfo
+     * @param vnxufs - unmanaged object
+     * @param expPath -export path
+     * @param fsExportInfo - map
      * @param storagePort
      * @return
      */
@@ -2208,7 +2208,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * Discovery of Unmanaged new exports
      * 
-     * @param profile
+     * @param profile - AccessProfile for the providers
      */
     private void discoverUnmanagedNewExports(AccessProfile profile) {
 
@@ -3009,7 +3009,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * call to get all vnxfile system from Device
      * 
-     * @param system
+     * @param system - vnx storagesystem object
      * @return
      * @throws VNXException
      */
@@ -3036,7 +3036,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * call to get all quota tree from storage system
      * 
-     * @param system
+     * @param system - vnx storagesystem object
      * @return
      * @throws VNXException
      */
@@ -3070,11 +3070,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * associate nfs export with unmanaged filesystem
      * 
-     * @param vnxufs
-     * @param exportPath
-     * @param fsExportInfo
-     * @param mountPath
-     * @param storagePort
+     * @param vnxufs - unmanaged vnx file object
+     * @param exportPath - export path
+     * @param fsExportInfo - map contains export details.
+     * @param mountPath - mount path of the filesystem
+     * @param storagePort - storage port on which filesystem access
      */
     private void associateExportWithFS(UnManagedFileSystem vnxufs,
             String exportPath, Map<String, String> fsExportInfo, String mountPath, StoragePort storagePort) {
@@ -3223,8 +3223,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * get mount point from share and port
      * 
-     * @param shareName
-     * @param storagePort
+     * @param shareName - share name
+     * @param storagePort - storage port
      * @return
      */
     private String getMountPount(String shareName, StoragePort storagePort) {
@@ -3242,10 +3242,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * associate smbshares with unmanaged filesystem
      * 
-     * @param vnxufs
-     * @param exportPath
-     * @param fsExportInfo
-     * @param storagePort
+     * @param vnxufs - unmanaged filesystem
+     * @param exportPath - export path of the filesystem
+     * @param fsExportInfo - export details in map
+     * @param storagePort - storageport object
      */
     private void associateCifsExportWithFS(UnManagedFileSystem vnxufs,
             String exportPath, Map<String, String> fsExportInfo, StoragePort storagePort) {
@@ -3305,13 +3305,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * create UnManagedFSExport with access hosts
      * 
-     * @param accessHosts
-     * @param rwHosts
-     * @param mountPath
-     * @param security
-     * @param storagePort
-     * @param anonUser
-     * @param protocol
+     * @param accessHosts - list of access hosts
+     * @param rwHosts - list of rw hosts
+     * @param mountPath - mount path of the filesystem
+     * @param security - security type
+     * @param storagePort - storage port
+     * @param anonUser - name of the user
+     * @param protocol - protocol type
      * @return
      */
     private UnManagedFSExport createUnManagedExportWithAccessHosts(List<String> accessHosts,
@@ -3332,13 +3332,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * create UnManagedFSExport with RO hosts
      * 
-     * @param roHosts
-     * @param accessHosts
-     * @param mountPath
-     * @param security
-     * @param storagePort
-     * @param anonUser
-     * @param protocol
+     * @param roHosts - list of hosts
+     * @param accessHosts - list of access hosts
+     * @param mountPath - filesystem mount path
+     * @param security - security type
+     * @param storagePort - port on which filesystem accessed
+     * @param anonUser - name of user
+     * @param protocol - protocol type
      * @return
      */
     private UnManagedFSExport createUnManagedExportWithRoHosts(List<String> roHosts,
@@ -3511,8 +3511,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * associate export map with unmanaged filesystem
      * 
-     * @param vnxufs
-     * @param unManagedfileExport
+     * @param vnxufs - unmanaged filesystem object
+     * @param unManagedfileExport - unmanaged filesystem export object
      */
     private void associateExportMapWithFS(UnManagedFileSystem vnxufs,
             UnManagedFSExport unManagedfileExport) {
@@ -3538,13 +3538,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * create StorageFileSystem Info Object
      * 
-     * @param unManagedFileSystem
-     * @param unManagedFileSystemNativeGuid
-     * @param system
-     * @param pool
-     * @param storagePort
-     * @param fileSystem
-     * @return UnManagedFileSystem
+     * @param unManagedFileSystem - unmanaged object
+     * @param unManagedFileSystemNativeGuid - native guid of the filesystem
+     * @param system - storage system object
+     * @param pool - storagepool object
+     * @param storagePort - storage port
+     * @param fileSystem - VNXFileSystem object
+     * @return UnManagedFileSystem -unmanaged file system object
      * @throws IOException
      * @throws VNXFileCollectionException
      */
@@ -3688,7 +3688,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * set vnxfile request params
      * 
-     * @param system
+     * @param system - vnx storage system
      * @return
      */
     private Map<String, Object> getRequestParamsMap(final StorageSystem system) {
@@ -3734,8 +3734,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * check PreExisting Storage filesystem exists in DB
      * 
-     * @param nativeGuid
-     * @return unManageFileSystem
+     * @param nativeGuid - native guid of the filesystem
+     * @return unManageFileSystem - unmanaged object
      * @throws IOException
      */
     protected UnManagedFileSystem checkUnManagedFileSystemExistsInDB(
@@ -3765,7 +3765,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * get storage ports
      * 
-     * @param storageSystem
+     * @param storageSystem -vnxfile system object
      * @return
      * @throws IOException
      */
@@ -3794,7 +3794,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * get the all data movers
      * 
-     * @param storageSystem
+     * @param storageSystem - storage system object
      * @return
      * @throws IOException
      */
@@ -3823,7 +3823,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * get the all VDMs
      * 
-     * @param storageSystem
+     * @param storageSystem - vnx storagesystem object
      * @return
      * @throws IOException
      */

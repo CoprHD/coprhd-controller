@@ -154,15 +154,15 @@ public class VNXFileCommApi {
     /**
      * vnxfile create filesystem on data mover
      * 
-     * @param system
-     * @param fileSys
-     * @param pool
-     * @param dataMover
-     * @param size
-     * @param virtualProvisioning
-     * @param nativeFsId
-     * @param autoAtts
-     * @return
+     * @param system - vnxfile system object
+     * @param fileSys - name of filesystem
+     * @param pool - name of pool where filesystem placed.
+     * @param dataMover - data mover on which filesystem mounted.
+     * @param size - size of the filesystem
+     * @param virtualProvisioning - is virtual provisioning required
+     * @param nativeFsId - native of filesystem
+     * @param autoAtts - filesystem auto attributes.
+     * @return XMLApiResult
      * @throws VNXException
      */
     public XMLApiResult createFileSystem(final StorageSystem system,
@@ -287,10 +287,10 @@ public class VNXFileCommApi {
     /**
      * check the filesystem is already existing on the device
      *
-     * @param system
-     * @param fileId
-     * @param fileSys
-     * @return
+     * @param system - storagesystem object
+     * @param fileId - filesystem id
+     * @param fileSys - name of filesystem
+     * @return boolean - is filesystem available ?
      * @throws VNXException
      */
     public boolean checkFileSystemExists(StorageSystem system, String fileId, String fileSys) throws VNXException {
@@ -321,7 +321,7 @@ public class VNXFileCommApi {
      * @param fsName - file system name
      * @param snapshotName - snapshot name
      * @param fileShare - file share object
-     * @return
+     * @return XMLApiResult
      * @throws VNXException
      */
     public XMLApiResult createSnapshot(final StorageSystem system,
@@ -393,14 +393,14 @@ public class VNXFileCommApi {
     /**
      * Create VNX File System Quota on given filesystem
      * 
-     * @param system
-     * @param fsName
-     * @param quotaDirName
-     * @param securityStyle
-     * @param size
-     * @param oplocks
-     * @param isMountRequired
-     * @return
+     * @param system - vnxfile system object
+     * @param fsName - name of the file share
+     * @param quotaDirName - name of the quota dir
+     * @param securityStyle - security style
+     * @param size - size of the file system
+     * @param oplocks - is file oplock required ?
+     * @param isMountRequired - is mount required ?
+     * @return XMLApiResult
      * @throws VNXException
      */
     public XMLApiResult createQuotaDirectory(final StorageSystem system,
@@ -467,14 +467,14 @@ public class VNXFileCommApi {
     /**
      * Modify VNX File System Quota on given file system
      *
-     * @param system
-     * @param fsName
-     * @param quotaDirName
-     * @param securityStyle
-     * @param size
-     * @param oplocks
-     * @param isMountRequired
-     * @return
+     * @param system - vnxfile system details
+     * @param fsName - the name of the filesystem
+     * @param quotaDirName - the name of the quota
+     * @param securityStyle - security style
+     * @param size - new size of the quota
+     * @param oplocks - is fileshare oplock required ?
+     * @param isMountRequired - is mount operation required ?
+     * @return XMLApiResult
      * @throws VNXException
      */
     public XMLApiResult modifyQuotaDirectory(final StorageSystem system,
@@ -540,7 +540,7 @@ public class VNXFileCommApi {
      * @param quotaDirName
      * @param forceDelete
      * @param isMountRequired
-     * @return
+     * @return XMLApiResult
      * @throws VNXException
      */
     public XMLApiResult deleteQuotaDirectory(final StorageSystem system,
@@ -623,12 +623,12 @@ public class VNXFileCommApi {
     /**
      * Delete VNX File System using force flag
      *
-     * @param system
-     * @param fileId
-     * @param fileSys
-     * @param isForceDelete
-     * @param fs
-     * @return
+     * @param system - vnxfile object
+     * @param fileId - file id
+     * @param fileSys - name of the filesystem
+     * @param isForceDelete - is force delete enabled ?
+     * @param fs - fileshare object
+     * @return XMLApiResult
      * @throws VNXException
      */
     public XMLApiResult deleteFileSystem(final StorageSystem system,
@@ -776,10 +776,10 @@ public class VNXFileCommApi {
     /**
      * Delete all Quota directory for filesystem
      *
-     * @param system
-     * @param dataMover
-     * @param fs
-     * @return
+     * @param system - vnxfile system object
+     * @param dataMover - data mover object
+     * @param fs - fileshare object
+     * @return XMLApiResult
      */
     private XMLApiResult deleteAllQuotaDirs(StorageSystem system, StorageHADomain dataMover, FileShare fs) {
         _log.info("Delete All quotas of filesystem: }", fs.getLabel());
@@ -831,11 +831,11 @@ public class VNXFileCommApi {
     /**
      * Delete the all exports and shares of filesystem
      *
-     * @param system
-     * @param dataMover
-     * @param fs
-     * @param snapshot
-     * @return
+     * @param system - vnxfile system object
+     * @param dataMover - data mover the file system is on.
+     * @param fs - fileshare object
+     * @param snapshot - snapshot object
+     * @return XMLApiResult
      */
     private XMLApiResult deleteAllExportsAndShares(StorageSystem system, StorageHADomain dataMover, FileShare fs, Snapshot snapshot) {
         _log.info("Delete All shares and exports of filesystem {}", fs.getLabel());
@@ -975,11 +975,13 @@ public class VNXFileCommApi {
      * then the path must be mounted on a data mover first. Also, if the root user mapping contains a
      * user account name, then it must be converted into a UID.
      * 
-     * @param system
-     * @param exports
-     * @param fsName
-     * @param fsId
-     * @param firstExport
+     * @param system - vnxfile system object
+     * @param dataMover - data mover object
+     * @param exports - list exports
+     * @param newPaths - list of new export path
+     * @param fileObject- FileObject object
+     * @param fsId - file share id
+     * @param firstExport - is it First export ?
      * @return
      * @throws VNXException
      */
@@ -1126,11 +1128,11 @@ public class VNXFileCommApi {
     /**
      * delete vnxfile exports of path from device
      *
-     * @param system
-     * @param exportPath
-     * @param args
-     * @param deleteMount
-     * @return
+     * @param system - vnx filesystem
+     * @param exportPath - export path
+     * @param args - param object
+     * @param deleteMount - is delete mount required
+     * @return XMLApiResult
      */
     public XMLApiResult doDeleteExport(final StorageSystem system, String exportPath, FileDeviceInputOutput args, boolean deleteMount) {
 
@@ -1220,11 +1222,11 @@ public class VNXFileCommApi {
     /**
      * perform Unexport a vnx filesystem on device
      *
-     * @param system
-     * @param fileExport
-     * @param args
-     * @param deleteMount
-     * @return
+     * @param system - vnxfile system
+     * @param fileExport - vnxfile export object
+     * @param args - param object
+     * @param deleteMount - is delete mount required ?
+     * @return XMLApiResult
      * @throws VNXException
      */
     public XMLApiResult doUnexport(final StorageSystem system, VNXFileExport fileExport,
@@ -1491,7 +1493,7 @@ public class VNXFileCommApi {
      * @param args FileDeviceInputOutput object with export path details
      * @return export map
      */
-    private Map<String, String> getNFSExport(StorageSystem system, FileDeviceInputOutput args) {
+    public Map<String, String> getNFSExport(StorageSystem system, FileDeviceInputOutput args) {
         sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
                 system.getPassword());
         StoragePort storagePort = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
@@ -1513,11 +1515,11 @@ public class VNXFileCommApi {
     /**
      * expand vnx file system
      *
-     * @param system
-     * @param fsName
-     * @param extendSize
-     * @param isMountRequired
-     * @param isVirtualProvisioned
+     * @param system -vnx file system
+     * @param fsName - name of the file share.
+     * @param extendSize - new filesystem size
+     * @param isMountRequired - is already mounted ?
+     * @param isVirtualProvisioned - is Virtual provision
      * @return
      * @throws VNXException
      */
@@ -1611,7 +1613,7 @@ public class VNXFileCommApi {
      *
      * @param system - vnx file system
      * @param fsId - file share unique id
-     * @param fsName - fileshare name
+     * @param fsName - file share name that snapshot has to be restore
      * @param id - snapshot unquie id
      * @param snapshotName - snapshot name
      * @return
@@ -1655,7 +1657,7 @@ public class VNXFileCommApi {
      *
      * @param system - vnx file system
      * @param snapId - snapshot id
-     * @param snapshotName - snapshot name
+     * @param snapshotName - snapshot name that has to be delete
      * @param deleteBaseline
      * @return
      * @throws VNXException

@@ -14984,17 +14984,28 @@ performanceparams_rp_tests()
 
     # Define auto tiering policies
     src_atp_name="Platinum SLO (3.0ms)"
-    src_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${src_atp_name}
     src_jrnl_atp_name="Bronze SLO (14.0ms)"
-    src_jrnl_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${src_jrnl_atp_name}
     lcpy_atp_name="Silver SLO (8.0ms)"
-    lcpy_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${lcpy_atp_name}
     lcpy_jrnl_atp_name="Bronze SLO (14.0ms)"
-    lcpy_jrnl_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${lcpy_jrnl_atp_name}
     rcpy_atp_name="Diamond SLO (0.8ms)"
     rcpy_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_C_GUID}+SLO_POLICY+${rcpy_atp_name}
     rcpy_jrnl_atp_name="Diamond SLO DSS Workload (2.3ms)"
     rcpy_jrnl_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_C_GUID}+SLO_POLICY+${rcpy_jrnl_atp_name}
+    if [ ${QUICK} -eq 1 ]; then
+        src_atp_name="Platinum SLO (16.2ms)"
+        src_jrnl_atp_name="Copper SLO (16.2ms)"
+        lcpy_atp_name="Bronze SLO (16.2ms)"
+        lcpy_jrnl_atp_name="Copper SLO (16.2ms)"
+        rcpy_atp_name="Gold-Policy"
+        rcpy_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_C_GUID}+FASTPOLICY+${rcpy_atp_name}
+        rcpy_jrnl_atp_name="Bronze-Policy"
+        rcpy_jrnl_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_C_GUID}+FASTPOLICY+${rcpy_jrnl_atp_name}
+    fi
+    src_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${src_atp_name}
+    src_jrnl_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${src_jrnl_atp_name}
+    lcpy_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${lcpy_atp_name}
+    lcpy_jrnl_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${lcpy_jrnl_atp_name}
+
 
     # Create a performance parameters instance for the RP source volume
     src_pp=PerfParams-${RANDOM}
@@ -15068,9 +15079,6 @@ performanceparams_rp_tests()
     run performanceparams verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY3} performance_params ${rcpy_pp}
     run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY3}-journal-1 auto_tier_policy ${rcpy_jrnl_atp_guid}
     run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY3}-journal-1 performance_params ${rcpy_jrnl_pp}
-
-    secho "Sleeping"
-    sleep 60
 
     # Delete the volume.
     secho "Deleting volume ${vol1}."

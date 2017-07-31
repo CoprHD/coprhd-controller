@@ -28,23 +28,31 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.functions.MapExportPathPolicy;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TagAssignment;
 import com.emc.storageos.model.block.export.ExportPathPoliciesBulkRep;
 import com.emc.storageos.model.block.export.ExportPathPoliciesList;
 import com.emc.storageos.model.block.export.ExportPathPolicy;
 import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
 import com.emc.storageos.model.block.export.StoragePorts;
+import com.emc.storageos.model.search.Tags;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
+import com.emc.storageos.security.authorization.InheritCheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.google.common.collect.Lists;
 
 @Path("/block/export-path-policies")
@@ -331,5 +339,40 @@ public class ExportPathPolicyService extends TaggedResource {
         }
         return dbparams;
     }
-
+    /**
+     * @brief Assign tags to resource
+     *        Assign tags
+     * 
+     * @prereq none
+     * 
+     * @param id the URN of a ViPR resource
+     * @param assignment tag assignments
+     * @return No data returned in response body
+     */
+    @PUT
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/tags")
+    @InheritCheckPermission(writeAccess = true)
+    @Override
+    public Tags assignTags(@PathParam("id") URI id, TagAssignment assignment) {
+        // Validate that the passed add tags are of are unique to this policy if they are storage systems
+        for (String tag : assignment.getAdd()) {
+            Type type = null;
+            try {
+                type = Type.valueOf(tag);
+            } catch (IllegalArgumentException ex) {
+                // process non array types as regular tags
+                if (!tag.equals("default")) {
+                    continue;
+                }
+            }
+            ExportPathParams hasTag = BlockStorageScheduler.findDefaultExportPathPolicyForArray(_dbClient, tag);
+            if (hasTag != null && hasTag.getId() != id) {
+                ScopedLabel scopedLabel = new ScopedLabel(null, tag);
+                hasTag.getTag().remove(scopedLabel);
+                _dbClient.updateObject(hasTag);
+            }
+        }
+        return super.assignTags(id, assignment);
+    }
 }

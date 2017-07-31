@@ -5660,6 +5660,8 @@ class Bourne:
             uri = URI_IPINTERFACES
         elif resource_type == "initiator":
             uri = URI_INITIATORS
+        elif resource_type == "export_path_policy":
+            uri = URI_EXPORTPATHPOLICIES_LIST
         else:
             raise Exception('Unknown resource type ' + resource_type)
         searchuri =  uri + '/search'
@@ -5731,6 +5733,11 @@ class Bourne:
         else:
             raise Exception('Unknown resource type ' + resource_type)
         return uri + '/tags'
+
+    def listtag(self, resource_type, id):
+        target = self.getTagURI(resource_type, id)
+        result = self.api('GET', target)
+        return result['tag']
 
     def tag(self, resource_type, id, tags):
         target = self.getTagURI(resource_type, id)

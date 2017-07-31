@@ -37,9 +37,9 @@ public class ExportPathParams extends DataObject {
     // Return the default params if asked.
     // MaxPaths will be set to 4.
     // Minpaths will be set to 0 which is ignored.
-    // PathsPerInitiator is set to 0 which means determine by array type.
+    // PathsPerInitiator is set to 1.
     // MaxInitiatorsPerPort will be set to 1 which means ports are not shared by Initiators.
-    static public final ExportPathParams defaultParams = new ExportPathParams(4, 0, 0);
+    static public final ExportPathParams defaultParams = new ExportPathParams(4, 0, 1);
     
     private String description;
     
@@ -73,11 +73,11 @@ public class ExportPathParams extends DataObject {
     }
 
     public ExportPathParams(int maxPaths, int minPaths, int pathsPerInitiator, ExportGroupType type) {
-        this.maxPaths = maxPaths;
-        this.minPaths = minPaths;
-        this.pathsPerInitiator = pathsPerInitiator;
-        this.exportGroupType = type.toString();
-        this.maxInitiatorsPerPort = 1;
+        this.setMaxPaths(maxPaths);
+        this.setMinPaths(minPaths);
+        this.setPathsPerInitiator(pathsPerInitiator);
+        this.setExportGroupType(type.toString());
+        this.setMaxInitiatorsPerPort(1);
     }
     
     /**

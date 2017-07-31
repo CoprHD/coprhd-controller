@@ -167,7 +167,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
         }
         if (useFilteredPorts) {
             String message = String.format(
-                    "Ports successfully selected are %s. Ports eliminated because of sharing a cpu with an already-selected port are %s.",
+                    " Ports successfully selected are %s. Ports eliminated because of sharing a cpu with an already-selected port are %s.",
                     usedPorts.toString(), eliminatedPorts.toString());
             _log.info(message);
             if (errorMessages != null) {
@@ -227,7 +227,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             }
         }
         int numPG = minPorts / portsPerNetPerPG;
-        String message = String.format("Min Ports: %d. Number Port Groups: %d. Ports Per Network Per Port Group: %d.", 
+        String message = String.format(" Min Ports: %d. Number Port Groups: %d. Ports Per Network Per Port Group: %d.", 
                 minPorts, numPG, portsPerNetPerPG);
         _log.info(message);
         if (errorMessages != null) {

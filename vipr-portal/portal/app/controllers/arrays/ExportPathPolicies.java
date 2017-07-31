@@ -91,7 +91,7 @@ public class ExportPathPolicies extends ViprResourceController {
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         renderArgs.put("dataTable", dataTable);
         ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm();
-        render("@listExportPathPolicies", dataTable, exportPathPolicyForm);
+        render("@list", dataTable, exportPathPolicyForm);
     }
 
     public static void exportPathPoliciesJson() {
@@ -101,7 +101,10 @@ public class ExportPathPolicies extends ViprResourceController {
         for (ExportPathPolicyRestRep exportPathPolicy : exportPathPolicies) {
             results.add(new ExportPathPoliciesDataTable.ExportPathPoliciesModel(
                     exportPathPolicy.getId(), exportPathPolicy.getName(),
-                    exportPathPolicy.getDescription()));
+                    exportPathPolicy.getDescription(), 
+                    exportPathPolicy.getMinPaths(), exportPathPolicy.getMaxPaths(), 
+                    exportPathPolicy.getPathsPerInitiator(), exportPathPolicy.getMaxInitiatorsPerPort(),
+                    exportPathPolicy.getStoragePorts().size()));
         }
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
@@ -130,10 +133,12 @@ public class ExportPathPolicies extends ViprResourceController {
         renderArgs.put("exportPathPolicyId", id);
         renderNumPathsArgs();
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
-        // StorageArrayPortDataTable portDataTable = new StorageArrayPortDataTable(storageSystem);
+        StoragePortsDataTable portDataTable = dataTable.new StoragePortsDataTable();
+        PortSelectionDataTable portSelectionDataTable = dataTable.new PortSelectionDataTable();
+
         if (exportPathPolicyRestRep != null) {
             ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm().form(exportPathPolicyRestRep);
-            render(exportPathPolicyForm);
+            render(exportPathPolicyForm, dataTable, portDataTable, portSelectionDataTable);
         } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
             exportPathPolices();

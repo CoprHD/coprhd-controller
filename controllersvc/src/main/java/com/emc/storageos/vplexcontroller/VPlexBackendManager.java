@@ -1041,7 +1041,7 @@ public class VPlexBackendManager {
 
         Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
         if (allocatablePorts.isEmpty()) {
-            String message = "No allocatable ports found for export to VPLEX backend. ";
+            String message = " No allocatable ports found for export to VPLEX backend. ";
             _log.warn(message);
             if (errorMessages != null) {
                 errorMessages.append(message);

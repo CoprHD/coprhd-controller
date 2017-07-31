@@ -5183,6 +5183,12 @@ gettingStarted.vpool.unity.desc=Virtual Pool for EMC UNITY Storage created by Ge
 # Export Path Policies
 exportPathPolicy.name=Name
 exportPathPolicy.description=Description
+exportPathPolicy.minPaths=Min Paths
+exportPathPolicy.maxPaths=Max Paths
+exportPathPolicy.pathsPerInit=Paths / Init
+exportPathPolicy.initsPerPort=Inits / Port
+exportPathPolicy.numStoragePorts=# Selected Ports
+
 exportPathPolicy.create.title=Create Export Path Policy
 exportPathPolicy.create.description=Enter the name of the Export Path Policy.
 exportPathPolicy.edit.title=Edit Export Path Policy
@@ -5200,4 +5206,5 @@ arrayPorts.alias=Alias
 arrayPorts.ipAddress=IP Address
 arrayPorts.registrationStatus=Status
 exportPathPolicies.title=Export Path Polices
-exportPathPolicy.details.title=Export Path Policy Settings 
+exportPathPolicy.details.title=Export Path Policy Settings
+ExportPathPolicies.unknown=Unknown Export Path Policy with id %s

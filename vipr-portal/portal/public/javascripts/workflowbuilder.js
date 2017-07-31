@@ -814,7 +814,14 @@ angular.module("portalApp")
 
     var targetParams = {
         anchors: ["Top","Left"],
-        endpoint: "Blank",
+        endpoint: ["Dot", {
+        	cssClass: "commonEndpoint"
+        }],
+        dropOptions: {
+    		hoverClass: "glow-common-hover" ,
+    		activeClass: "glow-common"
+        } ,
+        allowLoopback: false,
         filter:":not(a)"
     };
 
@@ -1109,12 +1116,6 @@ angular.module("portalApp")
             $( '.jsplumb-endpoint' ).each(function( index, item ) {
                     $(item).css( "opacity", "" );
             });
-
-            //Glow logic
-            /*$( '.item , #End' ).each(function( index, item ) {
-                $(item).removeClass('glow-pass');
-                $(item).removeClass('glow-fail');
-            });*/
         });
 
         jspInstance.bind("beforeDrop", function (info) {

@@ -11,6 +11,7 @@
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
 #{set isMultiDrSite:controllers.infra.DisasterRecovery.isMultiDrSite() /}
+#{set isCustomServicesEnabled:controllers.infra.DisasterRecovery.isCustomServicesEnabled() /}
 
 <body>
 <header>
@@ -184,7 +185,9 @@
           #{nav.item 'viewImage', href: @catalog.CatalogImages.list() /}
       #{/deadbolt.restrict}
       #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
+        #{if isCustomServicesEnabled }
           #{nav.item 'workflowBuilder', href: @catalog.WorkflowBuilder.view()/}
+        #{/if}
       #{/deadbolt.restrict}
       #{nav.separator/}
       #{nav.item 'viewOrders', href: @catalog.Orders.list()/}

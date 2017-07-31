@@ -74,7 +74,6 @@ import com.emc.storageos.volumecontroller.impl.file.FileProtectionPolicyUpdateCo
 import com.emc.storageos.volumecontroller.impl.file.FileReplicationConfigFailoverCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileSnapshotWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileSystemAssignPolicyWorkflowCompleter;
-import com.emc.storageos.volumecontroller.impl.file.FileTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailbackTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
@@ -439,7 +438,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
         // Perform the operation on valid file object!!
         if (fileObj != null) {
-
             try {
                 Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_CIFS_SHARE_WF_NAME, false, taskId, completer);
                 String shareStep = workflow.createStepId();
@@ -457,7 +455,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            updateOperationFailed(completer, uri, opName);
+            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, uri, opName, errMsg);
         }
     }
 
@@ -500,7 +500,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            updateOperationFailed(completer, uri, opName);
+            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, uri, opName, errMsg);
         }
     }
 
@@ -560,7 +562,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            updateOperationFailed(completer, uri, opName);
+            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, uri, opName, errMsg);
         }
     }
 
@@ -609,7 +613,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            updateOperationFailed(completer, uri, opName);
+            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, uri, opName, errMsg);
         }
 
     }
@@ -622,13 +628,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * @param fileObjUri - file object uri, which is failed to read from database
      * 
      * @param opName - name of operation in which the action failed.
+     * 
      */
-    private void updateOperationFailed(TaskCompleter completer, URI fileObjUri, String opName) {
-        s_logger.error(String.format("Unable to fetch file object from DB in {} ", opName));
+    private void updateOperationFailed(TaskCompleter completer, URI fileObjUri, String opName, String msg) {
         List<URI> fileObjects = new ArrayList<URI>();
         fileObjects.add(fileObjUri);
         ServiceError serviceError = DeviceControllerException.errors.unableToPerformFileOperationDueToInvalidObjects(opName,
-                fileObjects.toString());
+                fileObjects.toString(), msg);
         completer.error(s_dbClient, _locker, serviceError);
     }
 
@@ -695,7 +701,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            updateOperationFailed(completer, uri, opName);
+            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, uri, opName, errMsg);
         }
     }
 
@@ -753,7 +761,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            updateOperationFailed(completer, uri, opName);
+            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, uri, opName, errMsg);
         }
 
     }
@@ -809,7 +819,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            updateOperationFailed(completer, uri, opName);
+            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, uri, opName, errMsg);
         }
     }
 
@@ -855,17 +867,19 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String stepDescription = null;
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK.getName();
         try {
-            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            List<String> targetfileUris = new ArrayList<String>();
-            targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-            FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
-            StorageSystem systemSource = s_dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-
-            if (sourceFileShare == null || targetFileShare == null || systemSource == null) {
-                // Update the task as failed!!
-                updateOperationFailed(completer, fsURI, opName);
-                // Do not proceed, if file objects invalid!!
+            FileShare sourceFileShare = null;
+            FileShare targetFileShare = null;
+            StringBuffer errMsg = new StringBuffer();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+                // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
+                updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
+            }
+            StorageSystem systemSource = s_dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+            if (systemSource == null) {
+                // No valid target system objects found, Hence Update the task as failed and do not proceed further!!
+                errMsg.append(String.format("No valid target storage system found in DB for {}", targetFileShare.getStorageDevice()));
+                updateOperationFailed(completer, fsURI, opName, errMsg.toString());
             }
 
             workflow = this._workflowService.getNewWorkflow(this, FAILBACK_FILESYSTEMS_WF_NAME, false, taskId, completer);
@@ -990,17 +1004,19 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
         try {
 
-            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            List<String> targetfileUris = new ArrayList<String>();
-            targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-            FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
-            StorageSystem systemTarget = s_dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
-
-            if (sourceFileShare == null || targetFileShare == null || systemTarget == null) {
-                // Update the task as failed!!
-                updateOperationFailed(completer, fsURI, opName);
-                // Do not proceed, if file objects invalid!!
+            FileShare sourceFileShare = null;
+            FileShare targetFileShare = null;
+            StringBuffer errMsg = new StringBuffer();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+                // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
+                updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
+            }
+            StorageSystem systemTarget = s_dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
+            if (systemTarget == null) {
+                // No valid target system objects found, Hence Update the task as failed and do not proceed further!!
+                errMsg.append(String.format("No valid target storage system found in DB for {}", targetFileShare.getStorageDevice()));
+                updateOperationFailed(completer, targetFileShare.getStorageDevice(), opName, errMsg.toString());
             }
 
             workflow = this._workflowService.getNewWorkflow(this, FAILOVER_FILESYSTEMS_WF_NAME, false, taskId, completer);
@@ -1129,42 +1145,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileShare targetFileShare = null;
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
         try {
-            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare == null) {
-                // Update the task as failed!!
-                updateOperationFailed(completer, fsURI, opName);
-                // Do not proceed, if file objects invalid!!
+            FileShare sourceFileShare = null;
+            StringBuffer errMsg = new StringBuffer();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+                // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
+                updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
-            }
-            URI targetFsURI = null;
-            // Transferring the configuration at failover/failback is applicable
-            // for only file systems with replication
-            // otherwise fail the task!!
-            if (sourceFileShare.getPersonality() != null && sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFsURI = URI.create(targetfileUris.get(0));
-                targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
-                if (targetFileShare == null) {
-                    // Update the task as failed and do not proceed!!
-                    updateOperationFailed(completer, targetFsURI, opName);
-                    return;
-                }
-            } else if (sourceFileShare.getPersonality() != null
-                    && sourceFileShare.getPersonality().equals(PersonalityTypes.TARGET.name())) {
-                targetFsURI = sourceFileShare.getParentFileShare().getURI();
-                targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
-                if (targetFileShare == null) {
-                    // Update the task as failed and do not proceed!!
-                    updateOperationFailed(completer, targetFsURI, opName);
-                    return;
-                }
-            } else {
-                String errMsg = String.format("File system {} is not a replicated source or target ", sourceFileShare.getLabel());
-                s_logger.error(errMsg);
-                ServiceError serviceError = DeviceControllerException.errors.unableToReplicateFileShareConfiguration(opName,
-                        sourceFileShare.getLabel(), errMsg);
-                completer.error(s_dbClient, _locker, serviceError);
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARES_TO_TARGET_WF_NAME, false, taskId, completer);
@@ -1234,41 +1220,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
         try {
 
-            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare == null) {
-                // Update the task as failed and do not proceed!!
-                updateOperationFailed(completer, fsURI, opName);
+            FileShare sourceFileShare = null;
+            StringBuffer errMsg = new StringBuffer();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+                // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
+                updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
-            }
-            URI targetFsURI = null;
-            // Transferring the configuration at failover/failback is applicable
-            // for only file systems with replication
-            // otherwise fail the task!!
-            if (sourceFileShare.getPersonality() != null && sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFsURI = URI.create(targetfileUris.get(0));
-                targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
-                if (targetFileShare == null) {
-                    // Update the task as failed and do not proceed!!
-                    updateOperationFailed(completer, targetFsURI, opName);
-                    return;
-                }
-            } else if (sourceFileShare.getPersonality() != null
-                    && sourceFileShare.getPersonality().equals(PersonalityTypes.TARGET.name())) {
-                targetFsURI = sourceFileShare.getParentFileShare().getURI();
-                targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
-                if (targetFileShare == null) {
-                    // Update the task as failed and do not proceed!!
-                    updateOperationFailed(completer, targetFsURI, opName);
-                    return;
-                }
-            } else {
-                String errMsg = String.format("File system {} is not a replicated source or target ", sourceFileShare.getLabel());
-                s_logger.error(errMsg);
-                ServiceError serviceError = DeviceControllerException.errors.unableToReplicateFileShareConfiguration(opName,
-                        sourceFileShare.getLabel(), errMsg);
-                completer.error(s_dbClient, _locker, serviceError);
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARE_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
@@ -1381,11 +1338,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     private boolean validateAndGetSourceAndTargetFileSystems(URI sourceFsUri, FileShare sourceFileShare, FileShare targetFileShare,
-            FileTaskCompleter completer, String opName) {
+            String opName, StringBuffer errMsg) {
+        if (errMsg == null) {
+            errMsg = new StringBuffer();
+        }
         sourceFileShare = s_dbClient.queryObject(FileShare.class, sourceFsUri);
         if (sourceFileShare == null) {
-            // Update the task as failed and do not proceed!!
-            updateOperationFailed(completer, sourceFsUri, opName);
+            // Update the error message
+            // task update can be done at caller!!
+            errMsg.append(String.format("No valid source file system found in DB with file system uri {} ",
+                    sourceFsUri));
             return false;
         }
         URI targetFsURI = null;
@@ -1398,8 +1360,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             targetFsURI = URI.create(targetfileUris.get(0));
             targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
             if (targetFileShare == null) {
-                // Update the task as failed and do not proceed!!
-                updateOperationFailed(completer, targetFsURI, opName);
+                // Update the error message
+                // task update can be done at caller!!
+                errMsg.append(String.format("No valid target file system found in DB for given source file system {} ",
+                        sourceFileShare.getLabel()));
                 return false;
             }
         } else if (sourceFileShare.getPersonality() != null
@@ -1407,16 +1371,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             targetFsURI = sourceFileShare.getParentFileShare().getURI();
             targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
             if (targetFileShare == null) {
-                // Update the task as failed and do not proceed!!
-                updateOperationFailed(completer, targetFsURI, opName);
+                // Update the error message
+                // task update can be done at caller!!
+                errMsg.append(String.format("No valid parent file system found in DB for given target file system {} ",
+                        sourceFileShare.getLabel()));
                 return false;
             }
         } else {
-            String errMsg = String.format("File system {} is not a replicated source or target ", sourceFileShare.getLabel());
-            s_logger.error(errMsg);
-            ServiceError serviceError = DeviceControllerException.errors.unableToReplicateFileShareConfiguration(opName,
-                    sourceFileShare.getLabel(), errMsg);
-            completer.error(s_dbClient, _locker, serviceError);
+            // Update the error message
+            // task update can be done at caller!!
+            errMsg.append(String.format("File system {} is not a replicated source or target ", sourceFileShare.getLabel()));
             return false;
         }
         return true;
@@ -1440,41 +1404,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileShare targetFileShare = null;
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
         try {
-            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare == null) {
-                // Update the task as failed and do not proceed!!
-                updateOperationFailed(completer, fsURI, opName);
+            FileShare sourceFileShare = null;
+            StringBuffer errMsg = new StringBuffer();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+                // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
+                updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
-            }
-            URI targetFsURI = null;
-            // Transferring the configuration at failover/failback is applicable
-            // for only file systems with replication
-            // otherwise fail the task!!
-            if (sourceFileShare.getPersonality() != null && sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFsURI = URI.create(targetfileUris.get(0));
-                targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
-                if (targetFileShare == null) {
-                    // Update the task as failed and do not proceed!!
-                    updateOperationFailed(completer, targetFsURI, opName);
-                    return;
-                }
-            } else if (sourceFileShare.getPersonality() != null
-                    && sourceFileShare.getPersonality().equals(PersonalityTypes.TARGET.name())) {
-                targetFsURI = sourceFileShare.getParentFileShare().getURI();
-                targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
-                if (targetFileShare == null) {
-                    // Update the task as failed and do not proceed!!
-                    updateOperationFailed(completer, targetFsURI, opName);
-                    return;
-                }
-            } else {
-                String errMsg = String.format("File system {} is not a replicated source or target ", sourceFileShare.getLabel());
-                s_logger.error(errMsg);
-                ServiceError serviceError = DeviceControllerException.errors.unableToReplicateFileShareConfiguration(opName,
-                        sourceFileShare.getLabel(), errMsg);
-                completer.error(s_dbClient, _locker, serviceError);
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_TO_TARGET_WF_NAME, false, taskId, completer);
@@ -1565,14 +1500,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileReplicationConfigFailoverCompleter completer = new FileReplicationConfigFailoverCompleter(fsURI, taskId);
         Workflow workflow = null;
         FileShare targetFileShare = null;
+        String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
         try {
-            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
-            } else {
-                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+            // Read the file system objects from DB and validate them!!
+            FileShare sourceFileShare = null;
+            StringBuffer errMsg = new StringBuffer();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+                // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
+                updateOperationFailed(completer, fsURI, opName, errMsg.toString());
+                return;
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WF_NAME, false, taskId, completer);
@@ -1681,7 +1617,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
         } catch (Exception ex) {
             s_logger.error("Could not replicate source filesystem NFS Exports Rules : " + fsURI, ex);
-            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
             ServiceError serviceError = DeviceControllerException.errors.updateFileShareExportRulesFailed(fsURI.toString(), opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
@@ -1792,15 +1727,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         FileShare targetFileShare = null;
         Workflow workflow = null;
-        try {
+        String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
 
-            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
-            } else {
-                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+        try {
+            // Read the file system objects from DB and validate them!!
+            FileShare sourceFileShare = null;
+            StringBuffer errMsg = new StringBuffer();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+                // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
+                updateOperationFailed(completer, fsURI, opName, errMsg.toString());
+                return;
             }
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
@@ -1923,7 +1859,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
         } catch (Exception ex) {
             s_logger.error("Could not replicate source filesystem NFS ACL : " + fsURI, ex);
-            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
             ServiceError serviceError = DeviceControllerException.errors.updateFileShareNFSACLFailed(
                     fsURI.toString(), opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
@@ -1954,16 +1889,18 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         FileShare targetFileShare = null;
         Workflow workflow = null;
-        try {
+        String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
 
-            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
-            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-                List<String> targetfileUris = new ArrayList<String>();
-                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
-            } else {
-                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+        try {
+            // Read the file system objects from DB and validate them!!
+            FileShare sourceFileShare = null;
+            StringBuffer errMsg = new StringBuffer();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+                // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
+                updateOperationFailed(completer, fsURI, opName, errMsg.toString());
+                return;
             }
+
             targetFileShare.setSoftGracePeriod(sourceFileShare.getSoftGracePeriod());
             targetFileShare.setSoftLimit(sourceFileShare.getSoftLimit());
             targetFileShare.setNotificationLimit(sourceFileShare.getNotificationLimit());
@@ -1978,7 +1915,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
         } catch (Exception ex) {
             s_logger.error("Could not replicate source filesystem directory quota settings: " + fsURI, ex);
-            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
             ServiceError serviceError = DeviceControllerException.errors.unableToUpdateFileSystem(opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
@@ -1989,7 +1925,20 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileDescriptor sourceDescriptors = FileDescriptor
                 .filterByType(fileDescriptors, FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_MIRROR_SOURCE).get(0);
         FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceDescriptors.getFsURI());
+        if (sourceFS == null) {
+            String opName = "Adding steps to apply policies";
+            String errMsg = String.format("unable to read source file system {} from DB ", sourceDescriptors.getFsURI());
+            s_logger.error(String.format("{} failed due to unable to read source file system {} from DB ", opName, errMsg));
+            throw DeviceControllerException.exceptions.unableToPerformFileOperationDueToInvalidObjects(opName, "sourceFS", errMsg);
+        }
         StorageSystem system = s_dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
+        if (system == null) {
+            String opName = "Adding steps to apply policies";
+            String errMsg = String.format("unable to read storage system {} from DB ", sourceFS.getStorageDevice());
+            s_logger.error(String.format("{} failed due to unable to read source file system {} from DB ", opName, errMsg));
+            throw DeviceControllerException.exceptions.unableToPerformFileOperationDueToInvalidObjects(opName, "system", errMsg);
+        }
+
         // applying policy is only supported by isilon
         if (system != null && system.getSystemType().equalsIgnoreCase(Type.isilon.toString())) {
             URI nasServer = null;
@@ -2060,7 +2009,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     for (String policyResource : policyResources) {
                         PolicyStorageResource policyStorage = s_dbClient.queryObject(PolicyStorageResource.class,
                                 URI.create(policyResource));
-                        if (policyStorage.getAppliedAt().toString().equals(uri.toString())) {
+                        if (policyStorage != null && policyStorage.getAppliedAt().toString().equals(uri.toString())) {
                             StorageSystem storageSystem = s_dbClient.queryObject(StorageSystem.class, policyStorage.getStorageSystem());
                             String stepId = workflow.createStepId();
                             String stepDes = String.format("unassigning file policy : %s,  from resource: %s,", filePolicy.getId(), uri);
@@ -2116,6 +2065,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 if (storageSystemURIList != null && !storageSystemURIList.isEmpty()) {
                     for (URI storageSystemURI : storageSystemURIList) {
 
+                        StorageSystem storagesystem = s_dbClient.queryObject(StorageSystem.class, storageSystemURI);
+                        if (storagesystem == null || storagesystem.getInactive()) {
+                            s_logger.warn(
+                                    "No valid storage system found for uri {} in DB while generating step for assigning file policy {} to vpool {} ",
+                                    storageSystemURI, filePolicyToAssign, vpoolURI);
+                            continue;
+                        }
                         List<URI> vNASURIList = FileOrchestrationUtils
                                 .getVNASServersOfStorageSystemAndVarrayOfVpool(s_dbClient, storageSystemURI, vpoolURI, null);
                         if (vNASURIList != null && !vNASURIList.isEmpty()) {
@@ -2136,7 +2092,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                             }
                         }
 
-                        StorageSystem storagesystem = s_dbClient.queryObject(StorageSystem.class, storageSystemURI);
                         if (storagesystem.getSystemType().equals(Type.isilon.toString())) {
 
                             if (usePhysicalNAS) {
@@ -2205,7 +2160,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 List<URI> storageSystemURIList = vpoolToStorageSystemMap.get(vpoolURI);
                 if (storageSystemURIList != null && !storageSystemURIList.isEmpty()) {
                     for (URI storageSystemURI : storageSystemURIList) {
-
+                        StorageSystem storagesystem = s_dbClient.queryObject(StorageSystem.class, storageSystemURI);
+                        if (storagesystem == null || storagesystem.getInactive()) {
+                            s_logger.warn(
+                                    "No valid storage system found for uri {} in DB while generating step for assigning file policy {} to project",
+                                    storageSystemURI, filePolicyToAssign);
+                            continue;
+                        }
                         if (projectURIs != null && !projectURIs.isEmpty()) {
 
                             for (URI projectURI : projectURIs) {
@@ -2231,8 +2192,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                                 storageSystemURI, args);
                                     }
                                 }
-
-                                StorageSystem storagesystem = s_dbClient.queryObject(StorageSystem.class, storageSystemURI);
 
                                 // Create policy, if physical nas is eligible for provisioning!!
                                 if (storagesystem.getSystemType().equals(Type.isilon.toString())) {
@@ -2415,7 +2374,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             for (FileStorageSystemAssociation association : associations) {
                 StorageSystem sourceStoragesystem = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
-
+                if (sourceStoragesystem == null || sourceStoragesystem.getInactive()) {
+                    s_logger.warn(
+                            "No valid storage system found for uri {} in DB while generating step for assigning file policy {} to vpool",
+                            association.getSourceSystem(), filePolicyToAssign);
+                    continue;
+                }
                 URI vpoolURI = association.getAppliedAtResource();
                 List<TargetAssociation> targetAssociations = association.getTargets();
                 if (targetAssociations != null && !targetAssociations.isEmpty()) {
@@ -2506,7 +2470,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             for (FileStorageSystemAssociation association : associations) {
                 StorageSystem sourceStoragesystem = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
-
+                if (sourceStoragesystem == null || sourceStoragesystem.getInactive()) {
+                    s_logger.warn(
+                            "No valid storage system found for uri {} in DB while generating step for assigning file policy {} to project",
+                            association.getSourceSystem(), filePolicyToAssign);
+                    continue;
+                }
                 URI projectURI = association.getAppliedAtResource();
                 URI vPoolURI = association.getProjectvPool();
                 List<TargetAssociation> targetAssociations = association.getTargets();
@@ -2579,7 +2548,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileShare sourceFS = null;
         Workflow workflow = null;
         List<URI> fsURIs = FileDescriptor.getFileSystemURIs(fileDescriptors);
-
+        URI sourceFSURI = null;
         FileSystemAssignPolicyWorkflowCompleter completer = new FileSystemAssignPolicyWorkflowCompleter(filePolicy.getId(), fsURIs, taskId);
         try {
             workflow = _workflowService.getNewWorkflow(this, ASSIGN_FILE_POLICY_TO_FS_WF_NAME, false, taskId);
@@ -2588,29 +2557,41 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             for (FileDescriptor fileDescriptor : fileDescriptors) {
                 if (fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE.name())
                         || fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_EXISTING_SOURCE.name())) {
-                    sourceFS = s_dbClient.queryObject(FileShare.class, fileDescriptor.getFsURI());
-                    break;
+                    sourceFSURI = fileDescriptor.getFsURI();
+                    sourceFS = s_dbClient.queryObject(FileShare.class, sourceFSURI);
+                    if (sourceFS != null && !sourceFS.getInactive()) {
+                        break;
+                    }
                 }
             }
 
-            // 1. If policy to be applied is of type replication and source file system doesn't have any target,
-            // then we have to create mirror file system first..
-            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
-                waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, fileDescriptors, taskId);
+            if (sourceFS != null && !sourceFS.getInactive()) {
+
+                // 1. If policy to be applied is of type replication and source file system doesn't have any target,
+                // then we have to create mirror file system first..
+                if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
+                    waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, fileDescriptors, taskId);
+                }
+
+                // 2. Apply the file protection policy
+                String stepDescription = String.format("applying file policy : %s  for file system : %s",
+                        filePolicy.getId(), sourceFS.getId());
+                String applyFilePolicyStep = workflow.createStepId();
+                Object[] args = new Object[] { sourceFS.getStorageDevice(), sourceFS.getId(), filePolicy.getId() };
+                _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
+                        stepDescription, sourceFS.getStorageDevice(), args);
+
+                // Finish up and execute the plan.
+                String successMessage = String.format("Assigning file policy : %s, to file system: %s successful.",
+                        filePolicy.getId(), sourceFS.getId());
+                workflow.executePlan(completer, successMessage);
+            } else {
+                // Update the task as failed!!
+                String opName = "Assign file policy to file system";
+                String errMsg = String.format("Unable to find valid source file system in {} ", opName);
+                s_logger.error(errMsg);
+                updateOperationFailed(completer, sourceFSURI, opName, errMsg);
             }
-
-            // 2. Apply the file protection policy
-            String stepDescription = String.format("applying file policy : %s  for file system : %s",
-                    filePolicy.getId(), sourceFS.getId());
-            String applyFilePolicyStep = workflow.createStepId();
-            Object[] args = new Object[] { sourceFS.getStorageDevice(), sourceFS.getId(), filePolicy.getId() };
-            _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
-                    stepDescription, sourceFS.getStorageDevice(), args);
-
-            // Finish up and execute the plan.
-            String successMessage = String.format("Assigning file policy : %s, to file system: %s successful.",
-                    filePolicy.getId(), sourceFS.getId());
-            workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to file system : %s failed", filePolicy.getId(),
@@ -2629,33 +2610,36 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (fileVpoolPolicies != null && !fileVpoolPolicies.isEmpty()) {
             for (String fileVpoolPolicy : fileVpoolPolicies) {
                 FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileVpoolPolicy));
-                filePoliciesToCreate.add(filePolicy);
-                StringSet policyStrRes = filePolicy.getPolicyStorageResources();
-                if (policyStrRes != null && !policyStrRes.isEmpty()) {
-                    for (String policyStrRe : policyStrRes) {
-                        PolicyStorageResource strRes = s_dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
-                        if (strRes.getAppliedAt().toString().equals(vpool.getId().toString())
-                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())
-                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.toString())) {
-                            s_logger.info("File Policy {} is already exists for vpool {} , storage system {} and nas server {}",
-                                    filePolicy.getFilePolicyName(), vpool.getLabel(), storageSystem.toString(), strRes);
+                if (filePolicy != null && !filePolicy.getInactive()) {
+                    filePoliciesToCreate.add(filePolicy);
+                    StringSet policyStrRes = filePolicy.getPolicyStorageResources();
+                    if (policyStrRes != null && !policyStrRes.isEmpty()) {
+                        for (String policyStrRe : policyStrRes) {
+                            PolicyStorageResource strRes = s_dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
+                            if (strRes != null && strRes.getAppliedAt().toString().equals(vpool.getId().toString())
+                                    && strRes.getStorageSystem().toString().equals(storageSystem.toString())
+                                    && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.toString())) {
+                                s_logger.info("File Policy {} is already exists for vpool {} , storage system {} and nas server {}",
+                                        filePolicy.getFilePolicyName(), vpool.getLabel(), storageSystem.toString(), strRes);
 
-                            /*
-                             * 1. Generate file policy path
-                             * 2. Check if vpool name is part of the policy path
-                             * 3. If not, throw error.
-                             */
-                            String stepDescription = String.format("Step to check if vpool {} is part of file policy path...",
-                                    vpool.getLabel());
-                            String stepId = workflow.createStepId();
-                            Object[] args = new Object[] { storageSystem, URIUtil.uri(fileVpoolPolicy), nasServer, vpool.getId(), null };
-                            waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                    CHECK_FILE_POLICY_PATH_HAS_RESOURCE_LABEL_METHOD, stepId, stepDescription,
-                                    storageSystem,
-                                    args);
+                                /*
+                                 * 1. Generate file policy path
+                                 * 2. Check if vpool name is part of the policy path
+                                 * 3. If not, throw error.
+                                 */
+                                String stepDescription = String.format("Step to check if vpool {} is part of file policy path...",
+                                        vpool.getLabel());
+                                String stepId = workflow.createStepId();
+                                Object[] args = new Object[] { storageSystem, URIUtil.uri(fileVpoolPolicy), nasServer, vpool.getId(),
+                                        null };
+                                waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                                        CHECK_FILE_POLICY_PATH_HAS_RESOURCE_LABEL_METHOD, stepId, stepDescription,
+                                        storageSystem,
+                                        args);
 
-                            filePoliciesToCreate.remove(filePolicy);
-                            break;
+                                filePoliciesToCreate.remove(filePolicy);
+                                break;
+                            }
                         }
                     }
                 }
@@ -2671,37 +2655,42 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
             for (String fileProjectPolicy : fileProjectPolicies) {
                 FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileProjectPolicy));
-                if (NullColumnValueGetter.isNullURI(filePolicy.getFilePolicyVpool())
-                        || !filePolicy.getFilePolicyVpool().toString().equals(vpool.getId().toString())) {
-                    continue;
-                }
-                filePoliciesToCreate.add(filePolicy);
-                StringSet policyStrRes = filePolicy.getPolicyStorageResources();
-                if (policyStrRes != null && !policyStrRes.isEmpty()) {
-                    for (String policyStrRe : policyStrRes) {
-                        PolicyStorageResource strRes = s_dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
-                        if (strRes != null && strRes.getAppliedAt().toString().equals(project.getId().toString())
-                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())
-                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.toString())) {
-                            s_logger.info("File Policy {} is already exists for project {} , storage system {} and nas server {}",
-                                    filePolicy.getFilePolicyName(), project.getLabel(), storageSystem.toString(), strRes);
+                if (filePolicy != null && !filePolicy.getInactive()) {
+                    if (filePolicy != null && !filePolicy.getInactive()) {
+                        if (NullColumnValueGetter.isNullURI(filePolicy.getFilePolicyVpool())
+                                || !filePolicy.getFilePolicyVpool().toString().equals(vpool.getId().toString())) {
+                            continue;
+                        }
+                        filePoliciesToCreate.add(filePolicy);
+                        StringSet policyStrRes = filePolicy.getPolicyStorageResources();
+                        if (policyStrRes != null && !policyStrRes.isEmpty()) {
+                            for (String policyStrRe : policyStrRes) {
+                                PolicyStorageResource strRes = s_dbClient.queryObject(PolicyStorageResource.class,
+                                        URIUtil.uri(policyStrRe));
+                                if (strRes != null && strRes.getAppliedAt().toString().equals(project.getId().toString())
+                                        && strRes.getStorageSystem().toString().equals(storageSystem.toString())
+                                        && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.toString())) {
+                                    s_logger.info("File Policy {} is already exists for project {} , storage system {} and nas server {}",
+                                            filePolicy.getFilePolicyName(), project.getLabel(), storageSystem.toString(), strRes);
 
-                            /*
-                             * 1. Generate file policy path
-                             * 2. Check if project name is part of the policy path
-                             * 3. If not, throw error.
-                             */
-                            String stepDescription = String.format("Step to check if vpool {} is part of file policy path...",
-                                    vpool.getLabel());
-                            String stepId = workflow.createStepId();
-                            Object[] args = new Object[] { storageSystem, URIUtil.uri(fileProjectPolicy), nasServer, vpool.getId(),
-                                    project.getId() };
-                            waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                    CHECK_FILE_POLICY_PATH_HAS_RESOURCE_LABEL_METHOD, stepId, stepDescription,
-                                    storageSystem,
-                                    args);
-                            filePoliciesToCreate.remove(filePolicy);
-                            break;
+                                    /*
+                                     * 1. Generate file policy path
+                                     * 2. Check if project name is part of the policy path
+                                     * 3. If not, throw error.
+                                     */
+                                    String stepDescription = String.format("Step to check if vpool {} is part of file policy path...",
+                                            vpool.getLabel());
+                                    String stepId = workflow.createStepId();
+                                    Object[] args = new Object[] { storageSystem, URIUtil.uri(fileProjectPolicy), nasServer, vpool.getId(),
+                                            project.getId() };
+                                    waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                                            CHECK_FILE_POLICY_PATH_HAS_RESOURCE_LABEL_METHOD, stepId, stepDescription,
+                                            storageSystem,
+                                            args);
+                                    filePoliciesToCreate.remove(filePolicy);
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
@@ -2722,19 +2711,34 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String stepDescription;
         String stepId;
         Object[] args;
+        String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK.getName();
         try {
-            FileShare sourceFS = s_dbClient.queryObject(FileShare.class, fsURI);
-            StorageSystem primarysystem = s_dbClient.queryObject(StorageSystem.class, systemURI);
-
-            StringSet targets = sourceFS.getMirrorfsTargets();
-            List<URI> targetFSURI = new ArrayList<>();
-            for (String target : targets) {
-                targetFSURI.add(URI.create(target));
+            taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, fsURI, taskId);
+            // Read the file system objects from DB and validate!!
+            FileShare sourceFS = null;
+            FileShare targetFS = null;
+            StringBuffer errMsg = new StringBuffer();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFS, targetFS, opName, errMsg)) {
+                // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
+                updateOperationFailed(taskCompleter, fsURI, opName, errMsg.toString());
+                return;
             }
-            FileShare targetFS = s_dbClient.queryObject(FileShare.class, targetFSURI.get(0));
+            // Read and validate source system!!
+            StorageSystem primarySystem = s_dbClient.queryObject(StorageSystem.class, systemURI);
+            if (primarySystem == null || primarySystem.getInactive()) {
+                // No valid target system objects found, Hence Update the task as failed and do not proceed further!!
+                errMsg.append(String.format("No valid target storage system found in DB for {}", systemURI));
+                updateOperationFailed(taskCompleter, systemURI, opName, errMsg.toString());
+                return;
+            }
+            // Read and validate target system!!
             StorageSystem secondarySystem = s_dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
-
-            taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, sourceFS.getId(), taskId);
+            if (secondarySystem == null || secondarySystem.getInactive()) {
+                // No valid target system objects found, Hence Update the task as failed and do not proceed further!!
+                errMsg.append(String.format("No valid target storage system found in DB for {}", targetFS.getStorageDevice()));
+                updateOperationFailed(taskCompleter, targetFS.getStorageDevice(), opName, errMsg.toString());
+                return;
+            }
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     FAILBACK_FILE_SYSTEM_METHOD, false, taskId, taskCompleter);
 
@@ -2746,9 +2750,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
              */
             stepDescription = String.format("source resync-prep : creating mirror policy on target system: %s", secondarySystem.getId());
             stepId = workflow.createStepId();
-            args = new Object[] { primarysystem.getId(), sourceFS.getId(), "resync" };
+            args = new Object[] { primarySystem.getId(), sourceFS.getId(), "resync" };
             String waitFor = _fileDeviceController.createMethod(workflow, null, FILE_REPLICATION_OPERATIONS_METHOD, stepId,
-                    stepDescription, primarysystem.getId(), args);
+                    stepDescription, primarySystem.getId(), args);
 
             /*
              * Step 2. Start the mirror replication policy manually, this will replicate new data (written during failover) from secondary
@@ -2770,9 +2774,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             stepId = workflow.createStepId();
             List<URI> combined = Arrays.asList(sourceFS.getId(), targetFS.getId());
             MirrorFileFailoverTaskCompleter failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, stepId);
-            args = new Object[] { primarysystem.getId(), sourceFS.getId(), failoverCompleter };
+            args = new Object[] { primarySystem.getId(), sourceFS.getId(), failoverCompleter };
             waitFor = _fileDeviceController.createMethod(workflow, waitFor, FAILOVER_FILE_SYSTEM_METHOD, stepId,
-                    stepDescription, primarysystem.getId(), args);
+                    stepDescription, primarySystem.getId(), args);
 
             /*
              * Step 4. Resync-Prep on secondary cluster , same as step 1 but will be executed on secondary cluster instead of primary
@@ -2789,7 +2793,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
         } catch (Exception ex) {
             s_logger.error("Could not replicate source filesystem CIFS shares: " + fsURI, ex);
-            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK.getName();
             ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
                     fsURI.toString(), opName, ex);
             taskCompleter.error(s_dbClient, this._locker, serviceError);

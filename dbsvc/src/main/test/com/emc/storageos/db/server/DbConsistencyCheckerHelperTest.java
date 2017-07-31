@@ -38,7 +38,6 @@ import com.emc.storageos.db.client.impl.TimeSeriesIndexColumnName;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;

@@ -103,11 +103,12 @@ test_expand_host_filesystem() {
 		set_artificial_failure none
                 runcmd expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os}
 
-		# Verify that expand is successful on host side
- 		verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
 	    else
 	        runcmd expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os} ${failure}
 	    fi
+
+            # Verify that expand is successful on host side
+            verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
 
             # Report results
             report_results "${test_name}_${os}" ${failure}
@@ -126,7 +127,7 @@ test_swap_mounted_volume() {
     test_name="test_swap_mounted_volume"
     echot "Test ${test_name} Begins"
 
-    supported_os="linux"
+    supported_os="windows linux"
     #supported_os="windows linux hpux" 
 
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
@@ -161,13 +162,15 @@ test_swap_mounted_volume() {
             run unix_create_volume_and_mount $TENANT ${hostname} "${volume2}" "/${volume2}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
         fi
 
-        size=1
+        size=2
 
+        mountpoint1=`get_volume_mount_point ${PROJECT}/${volume1}`
+        mountpoint2=`get_volume_mount_point ${PROJECT}/${volume2}`
         volume1_id=`volume list ${PROJECT} | grep "${volume1} " | awk '{print $7}'`
         volume2_id=`volume list ${PROJECT} | grep "${volume2} " | awk '{print $7}'`
         host_id=`hosts list ${TENANT} | grep "${hostname} " | awk '{print $4}'`
-        volume1_tag="vipr:mountPoint-${host_id}=/${volume1}"
-        volume2_tag="vipr:mountPoint-${host_id}=/${volume2}"
+        volume1_tag="vipr:mountPoint-${host_id}=${mountpoint1}"
+        volume2_tag="vipr:mountPoint-${host_id}=${mountpoint2}"
 
         echo "Swapping tags" 
         remove_tag "volume" ${volume1_id} ${volume1_tag}
@@ -187,7 +190,7 @@ test_swap_mounted_volume() {
         runcmd expand_volume $TENANT ${hostname} ${volume1} ${PROJECT} ${size} ${os} ${failure}
         runcmd expand_volume $TENANT ${hostname} ${volume2} ${PROJECT} ${size} ${os} ${failure}
 
-        report_results "${test_name}_${os}" ${failure}
+        report_results "${test_name}_${os}" ${test_name}
 
 	run unmount_and_delete_volume $TENANT ${hostname} "${volume1}" ${PROJECT} ${os}
 	run unmount_and_delete_volume $TENANT ${hostname} "${volume2}" ${PROJECT} ${os}

@@ -157,7 +157,7 @@ public class VNXeModifyExportJob extends VNXeJob {
             if (newRule != null) {
                 newRule.setInactive(true);
                 _logger.info("Removing Existing DB Export Rule {}", rule);
-                dbClient.persistObject(newRule);
+                dbClient.updateObject(newRule);
             }
 
             if (!isDeleteRule) {
@@ -221,7 +221,7 @@ public class VNXeModifyExportJob extends VNXeJob {
             exportToBeUpdated.setClients(clients);
             exports.put(newExport.getFileExportKey(), exportToBeUpdated);
             fsObj.setFsExports(exports);
-            dbClient.persistObject(fsObj);
+            dbClient.updateObject(fsObj);
         }
     }
 
@@ -247,7 +247,7 @@ public class VNXeModifyExportJob extends VNXeJob {
             exportToBeUpdated.setClients(clients);
             exports.put(newExport.getFileExportKey(), exportToBeUpdated);
             snapObj.setFsExports(exports);
-            dbClient.persistObject(snapObj);
+            dbClient.updateObject(snapObj);
         }
     }
 

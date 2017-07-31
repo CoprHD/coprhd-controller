@@ -47,6 +47,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -92,6 +93,7 @@ import com.emc.storageos.security.keystore.impl.KeyCertificateAlgorithmValuesHol
 import com.emc.storageos.security.keystore.impl.KeystoreEngine;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -165,6 +167,7 @@ public final class WorkflowHelper {
             oeWorkflow.setSteps(toStepsJson(document.getSteps()));
             oeWorkflow.removePrimitives(StringSetUtil.stringSetToUriList(oeWorkflow.getPrimitives()));
             oeWorkflow.addPrimitives(StringSetUtil.stringSetToUriList(getPrimitives(document)));
+            oeWorkflow.setAttributes(getAttributes(document));
         }
     }
 
@@ -179,6 +182,13 @@ public final class WorkflowHelper {
         document.setName(workflow.getLabel());
         document.setDescription(workflow.getDescription());
         document.setSteps(toDocumentSteps(workflow.getSteps()));
+        if (!MapUtils.isEmpty(workflow.getAttributes())) {
+            ImmutableMap.Builder<String, String> attributeMap = ImmutableMap.<String, String> builder();
+            for (final Entry<String, String> attribute : workflow.getAttributes().entrySet()) {
+                attributeMap.put(attribute.getKey(), attribute.getValue());
+            }
+            document.setAttributes(attributeMap.build());
+        }
 
         return document;
     }
@@ -232,7 +242,12 @@ public final class WorkflowHelper {
         final StringMap map = new StringMap();
         final Map<String, String> attributes = document.getAttributes();
         if (attributes != null) {
-            map.putAll(attributes);
+            for (final Entry<String, String> attribute : attributes.entrySet()) {
+                if (!ATTRIBUTES.contains(attribute.getKey())) {
+                    throw new IllegalStateException("Unknown attribute key: " + attribute.getKey());
+                }
+                map.put(attribute.getKey(), attribute.getValue());
+            }
         }
         return map;
     }
@@ -403,7 +418,7 @@ public final class WorkflowHelper {
     /**
      * @param client
      * @param wfDirectory
-     * @param value
+     * @param workflow
      * @throws IOException
      * @throws JsonMappingException
      * @throws JsonGenerationException
@@ -418,6 +433,8 @@ public final class WorkflowHelper {
         dbWorkflow.setDescription(workflow.getDocument().getDescription());
         dbWorkflow.setSteps(toStepsJson(workflow.getDocument().getSteps()));
         dbWorkflow.setPrimitives(getPrimitives(workflow.getDocument()));
+        dbWorkflow.setAttributes(getAttributes(workflow.getDocument()));
+
         client.save(dbWorkflow);
         if (null != wfDirectory.getId()) {
             wfDirectory.addWorkflows(Collections.singleton(workflow.getId()));

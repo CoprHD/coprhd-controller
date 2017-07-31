@@ -123,8 +123,8 @@ restore_data() {
         if [ $? != 0 ]; then
             FAILED_NODES=${FAILED_NODES}" "${viprNode}
             if [[ "$(is_local_backup ${RESTORE_ORIGIN})" == "true" ]] && [[ `echo "${BACKUP_INFO}" | grep ${viprNode}` == "" ]] ; then
-                   echo "This is incomplete backup, and skip ${viprNode} as it is the missing one."
-                   continue
+                echo "This is incomplete backup, and skip ${viprNode} as it is the missing one."
+                continue
             fi
             echo "Failed on ${viprNode}.."
             RESTORE_RESULT="failed"

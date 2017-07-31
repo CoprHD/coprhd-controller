@@ -467,9 +467,6 @@ public class BackupOps {
         manager.checkBackupInfo(propertyInfoFile, isGeo);
     }
 
-
-
-
     public List<URI> getOtherNodes() throws URISyntaxException, UnknownHostException {
         Map<String, URI> nodes = getNodesInfo();
         String localHostID = getLocalHostID();

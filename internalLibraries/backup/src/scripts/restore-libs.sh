@@ -84,7 +84,6 @@ finish_message() {
 # $1=backup folder
 
 is_local_backup() {
-    set +e
     local backup=$1
 
     if  [[ "${backup}" =~ ^\/data\/backup ]]; then

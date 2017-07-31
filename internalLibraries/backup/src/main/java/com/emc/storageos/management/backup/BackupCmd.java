@@ -39,7 +39,7 @@ public class BackupCmd {
 
     private enum CommandType {
         create("Create backup, default name is timestamp"),
-        list("List all backups. If specified backup name, list detail backup info from this backup"),
+        list("List all backups. If specified backup name, list detail info of this backup"),
         delete("Delete specific backup"),
         restore("Purge ViPR data and restore specific backup\n" +
                 "with args: <backup dir> <name> osi(optional)\n" +

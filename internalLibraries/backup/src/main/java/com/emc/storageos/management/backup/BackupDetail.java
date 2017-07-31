@@ -1,11 +1,12 @@
+/*
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.management.backup;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by wangk14 on 2017/7/27.
- */
 public class BackupDetail {
     private String name = "";
     private boolean isVersionValid = false;
@@ -46,10 +47,7 @@ public class BackupDetail {
 
     @Override
     public String toString() {
-        String files = "";
-        for(String filename : backupFiles) {
-            files += filename + " ";
-        }
+        String files = String.join(" ", backupFiles);
         return "name=" + name
                 +"\nversion_checked=" + isVersionValid
                 + "\ngeo=" + isGeo

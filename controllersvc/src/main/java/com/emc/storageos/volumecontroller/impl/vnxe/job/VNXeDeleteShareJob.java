@@ -108,7 +108,7 @@ public class VNXeDeleteShareJob extends VNXeJob {
         }
         shareMap.remove(smbShare.getName());
         deleteShareACLsFromDB(dbClient, fsObj);
-        dbClient.persistObject(fsObj);
+        dbClient.updateObject(fsObj);
     }
 
     private Snapshot updateSnapshot(VNXeApiClient apiClient, DbClient dbClient) {
@@ -120,7 +120,7 @@ public class VNXeDeleteShareJob extends VNXeJob {
         }
         shareMap.remove(smbShare.getName());
         deleteShareACLsFromDB(dbClient, snapObj);
-        dbClient.persistObject(snapObj);
+        dbClient.updateObject(snapObj);
         return snapObj;
     }
 
@@ -153,7 +153,7 @@ public class VNXeDeleteShareJob extends VNXeJob {
                 }
                 if (!deleteAclList.isEmpty()) {
                     _logger.info("Deleting ACLs of share {} of filesystem {}", smbShare.getName(), fsObj.getLabel());
-                    dbClient.persistObject(deleteAclList);
+                    dbClient.updateObject(deleteAclList);
                 }
             }
         } catch (Exception e) {

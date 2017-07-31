@@ -885,6 +885,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             List<VNXCifsServer> cifsServers = getCifServers(system, String.valueOf(mover.getId()), "false");
             CifsServerMap cifsServersMap = new CifsServerMap();
+
             if (null != cifsServers && !cifsServers.isEmpty()) {
                 for (VNXCifsServer cifsServer : cifsServers) {
                     _logger.info("Cifs Server {} for {} ", cifsServer.getName(), mover.getName());

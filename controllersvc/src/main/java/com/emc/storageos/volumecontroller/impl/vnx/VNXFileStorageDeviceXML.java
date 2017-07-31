@@ -468,41 +468,39 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 }
 
                 List<VNXFileExport> exportList = new ArrayList<VNXFileExport>();
-                if (!exportsToprocess.isEmpty()) {
-                    for (ExportRule rule : exportsToprocess) {
+                for (ExportRule rule : exportsToprocess) {
 
-                        VNXFileExport vnxExp = null;
-                        // update the comment
-                        String comments = rule.getComments();
-                        String protocol = "nfs";
-                        if (rule.getReadOnlyHosts() != null && !rule.getReadOnlyHosts().isEmpty()) {
-                            vnxExp = new VNXFileExport(new ArrayList<String>(rule.getReadOnlyHosts()),
-                                    dm.getName(), exportPath,
-                                    rule.getSecFlavor(), "ro",
-                                    rule.getAnon(), protocol,
-                                    args.getFs().getStoragePort().toString(), subDir, comments);
+                    VNXFileExport vnxExp = null;
+                    // update the comment
+                    String comments = rule.getComments();
+                    String protocol = "nfs";
+                    if (rule.getReadOnlyHosts() != null && !rule.getReadOnlyHosts().isEmpty()) {
+                        vnxExp = new VNXFileExport(new ArrayList<String>(rule.getReadOnlyHosts()),
+                                dm.getName(), exportPath,
+                                rule.getSecFlavor(), "ro",
+                                rule.getAnon(), protocol,
+                                args.getFs().getStoragePort().toString(), subDir, comments);
 
-                            exportList.add(vnxExp);
-                        }
-                        if (rule.getReadWriteHosts() != null && !rule.getReadWriteHosts().isEmpty()) {
-                            vnxExp = new VNXFileExport(new ArrayList<String>(rule.getReadWriteHosts()),
-                                    dm.getName(), exportPath,
-                                    rule.getSecFlavor(), "rw",
-                                    rule.getAnon(), protocol,
-                                    args.getFs().getStoragePort().toString(), subDir, comments);
-
-                            exportList.add(vnxExp);
-                        }
-                        if (rule.getRootHosts() != null && !rule.getRootHosts().isEmpty()) {
-                            vnxExp = new VNXFileExport(new ArrayList<String>(rule.getRootHosts()),
-                                    dm.getName(), exportPath,
-                                    rule.getSecFlavor(), "root",
-                                    rule.getAnon(), protocol,
-                                    args.getFs().getStoragePort().toString(), subDir, comments);
-                            exportList.add(vnxExp);
-                        }
-
+                        exportList.add(vnxExp);
                     }
+                    if (rule.getReadWriteHosts() != null && !rule.getReadWriteHosts().isEmpty()) {
+                        vnxExp = new VNXFileExport(new ArrayList<String>(rule.getReadWriteHosts()),
+                                dm.getName(), exportPath,
+                                rule.getSecFlavor(), "rw",
+                                rule.getAnon(), protocol,
+                                args.getFs().getStoragePort().toString(), subDir, comments);
+
+                        exportList.add(vnxExp);
+                    }
+                    if (rule.getRootHosts() != null && !rule.getRootHosts().isEmpty()) {
+                        vnxExp = new VNXFileExport(new ArrayList<String>(rule.getRootHosts()),
+                                dm.getName(), exportPath,
+                                rule.getSecFlavor(), "root",
+                                rule.getAnon(), protocol,
+                                args.getFs().getStoragePort().toString(), subDir, comments);
+                        exportList.add(vnxExp);
+                    }
+
                 }
 
                 // When all the export rules removed, add one rule manually to meet the requirments of

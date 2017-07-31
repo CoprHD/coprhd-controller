@@ -186,7 +186,6 @@ public class ExportGroupService extends TaskResourceService {
         if (_blockStorageScheduler == null) {
             _blockStorageScheduler = blockStorageScheduler;
         }
-
     }
 
     @Override
@@ -3293,7 +3292,7 @@ public class ExportGroupService extends TaskResourceService {
     private void calculateRemovedPaths(ExportPathsAdjustmentPreviewRestRep response, Map<URI, List<URI>> calculatedZoningMap, 
             ExportGroup exportGroup, StorageSystem system, URI varray, Set<URI> hosts) {
         // Find the Export Masks for this Storage System 
-        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, system.getId());
         for (ExportMask exportMask : exportMasks) {
             // For VPLEX, must verify the Export Mask is in the appropriate Varray
             if (!ExportMaskUtils.exportMaskInVarray(_dbClient,  exportMask,  varray)) {

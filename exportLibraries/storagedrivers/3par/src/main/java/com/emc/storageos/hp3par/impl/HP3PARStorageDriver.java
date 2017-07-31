@@ -86,6 +86,10 @@ public class HP3PARStorageDriver extends DefaultStorageDriver implements BlockSt
 	private HP3PARProvisioningHelper provHelper;
 	private HP3PARExpUnexpHelper expunexpHelper;
 	
+	public HP3PARStorageDriver() {
+	    init();
+	}
+
 	public void init() {
 	    ApplicationContext context = new ClassPathXmlApplicationContext(new String[] {HP3PAR_CONF_FILE}, parentApplicationContext);
         this.ingestHelper = (HP3PARIngestHelper) context.getBean("3parIngestionHelper");

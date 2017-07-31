@@ -439,27 +439,11 @@
         <property name="locker" ref="locker"/>
         <property name="exportMaskOperationsHelper" ref="externalDeviceExportMaskOperationsHelper"/>
         <!-- Block storage drivers -->
-        <property name="drivers">
-            <map>
-                <!--
-                <entry key="scaleiosystem" value-ref="scaleioStorageDriver"/>
-                -->
-                <!--entry key="driversystem" value-ref="storageDriverSimulator"/-->
-                <!--entry key="providersystem" value-ref="storageDriverSimulator"/-->
-                <!--entry key="driverprovider" value-ref="storageDriverSimulator"/-->
-                <entry key="hp3par" value-ref="hp3Par"/>
-            </map>
-        </property>
     </bean>
     <!-- Driver class for scaleio block storage driver -->
     <!--     <bean id="scaleioStorageDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
         </bean>
     -->
-    <!--bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
-    </bean-->
-    
-     <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init">
-    </bean>
 
     <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">
         <property name="dbClient" ref="dbclient"/>

@@ -599,8 +599,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
             vNas.setMetrics(dbMetrics);
 
-            _logger.info("Virtual NAS and its maxStorageCapacity {} and maxStorageObject {}", String.valueOf(MaxCapacity),
-                    String.valueOf(MaxObjects));
+            _logger.info("Virtual NAS and its maxStorageCapacity {} and maxStorageObject {}", MaxCapacity,
+                    MaxObjects);
 
         }
 
@@ -1013,7 +1013,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 // So running Collect NFS/CIFS interfaces from nas_server -info command. This will return
                 // Interfaces assigned to VDM and not thru CIFS servers
                 vdmIntfs = sshDmApi.getVDMInterfaces(vdm.getVdmName());
-                if (!vdmIntfs.isEmpty()) {
+                if (vdmIntfs != null && !vdmIntfs.isEmpty()) {
                     for (String vdmIF : vdmIntfs.keySet()) {
                         _logger.info("Remove VDM interface {}", vdmIF);
                         dmIntMap.remove(vdmIF);

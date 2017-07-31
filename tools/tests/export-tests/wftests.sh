@@ -157,11 +157,6 @@ prerun_setup() {
     # Reset system properties
     reset_system_props
 
-    # Reset the simulator if requested.
-    if [ ${RESET_SIM} = "1" ]; then
-	reset_simulator;
-    fi
-
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
@@ -232,6 +227,11 @@ prerun_setup() {
         VCENTER_HOST=${VCENTER_HW_HOST}
     fi  
 
+    # Reset the simulator if requested.
+    if [ ${RESET_SIM} = "1" ]; then
+	reset_simulator;
+    fi
+
     if [ "${SS}" = "vnx" ]
     then
 	   array_ip=${VNXB_IP}
@@ -279,12 +279,6 @@ prerun_setup() {
     	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
     fi
 
-    # If there's no volume in the DB, create one and delete it to prime exports
-    volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
-    if [ $? -ne 0 ]; then
-	secho "Priming ExportMask and ExportGroup for tests by creating a VPLEX volume"
-	runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
-    fi
 }
 
 # get the device ID of a created volume
@@ -1514,6 +1508,29 @@ set_controller_discovery_refresh_interval() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_discovery_refresh_interval $1
 }
 
+# Create basic volume for test cases that need it
+create_basic_volumes() {
+    volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+    if [ $? -ne 0 ]; then
+	secho "Basic test case volumes being created..."
+	runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+    fi
+}
+
+delete_basic_volumes() {
+    # If there's a volume in the DB, we can clean it up here.
+    volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+	if [ "${SIM}" = "1" ]; then
+	    secho "Removing created volume, inventory-only since it's a simulator..."
+	    runcmd volume delete --project ${PROJECT} --wait --vipronly
+	else
+	    secho "Removing created volume, full delete since it's hardware..."
+	    runcmd volume delete --project ${PROJECT} --wait
+	fi
+    fi
+}
+
 # Verify no masks
 #
 # Makes sure there are no masks on the array before running tests
@@ -1533,6 +1550,7 @@ verify_nomasks() {
 test_0() {
     echot "Test 0 Begins"
     expname=${EXPORT_GROUP_NAME}t0
+    create_basic_volumes
     verify_export ${expname}1 ${HOST1} gone
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 1
@@ -1674,6 +1692,7 @@ test_1() {
                                failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
     storage_failure_injections=""
+    cfs=("Volume")
     if [ "${SS}" = "vplex" ]
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
@@ -1686,6 +1705,9 @@ test_1() {
                                     failure_004:failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
                                     failure_004:failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
                                     failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
+	cfs=("Volume ExportGroup ExportMask FCZoneReference")
+	# VPLEX needs exports to be there, create basic volume if exports don't exist yet.
+	create_basic_volumes
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -1731,14 +1753,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete "
-
-    if [ "${SS}" = "vplex" ]
-    then
-      cfs=("Volume ExportGroup ExportMask FCZoneReference")
-    else
-      cfs=("Volume")
-    fi
+    # failure_injections="failure_004"
 
     for failure in ${failure_injections}
     do
@@ -1839,6 +1854,7 @@ test_2() {
                                failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
     storage_failure_injections=""
+    cfs=("Volume BlockConsistencyGroup")
     if [ "${SS}" = "vplex" ]
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
@@ -1852,6 +1868,9 @@ test_2() {
                                     failure_004:failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
                                     failure_004:failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
                                     failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
+	cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference")
+	# VPLEX needs exports to be there, create basic volume if exports don't exist yet.
+	create_basic_volumes
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -1888,8 +1907,8 @@ test_2() {
 
     if [ "${SS}" = "srdf" ]
     then
-    # Ensure empty RDF groups
-    volume delete --project ${PROJECT} --wait
+	# Ensure empty RDF groups
+	volume delete --project ${PROJECT} --wait
 
 	common_failure_injections="failure_004_final_step_in_workflow_complete \
 			       failure_005_BlockDeviceController.createVolumes_before_device_create \
@@ -1914,14 +1933,7 @@ test_2() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
-
-    if [ "${SS}" = "vplex" ]
-    then
-      cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference")
-    else
-      cfs=("Volume BlockConsistencyGroup")
-    fi
+    # failure_injections="failure_004"
 
     for failure in ${failure_injections}
     do
@@ -2053,9 +2065,13 @@ test_3() {
     common_failure_injections="failure_004_final_step_in_workflow_complete"
 
     storage_failure_injections=""
+    cfs=("Volume")
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
+	cfs=("Volume ExportGroup ExportMask FCZoneReference")
+	# VPLEX needs exports to be there, create basic volume if exports don't exist yet.
+	create_basic_volumes
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -2078,14 +2094,6 @@ test_3() {
 
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_004"
-
-    if [ "${SS}" = "vplex" ]
-    then
-      cfs=("Volume ExportGroup ExportMask FCZoneReference")
-    else
-      cfs=("Volume")
-    fi
-
 
     for failure in ${failure_injections}
     do
@@ -2219,6 +2227,9 @@ test_4() {
     # Placeholder when a specific failure case is being worked...
     #failure_injections="failure_004:failure_084_VPlexDeviceController.deleteStorageView_before_delete"
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     for failure in ${failure_injections}
     do
       clean_zones ${FC_ZONE_A:7} ${HOST1}
@@ -2228,7 +2239,6 @@ test_4() {
       secho "Running Test 4 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
-      volname=${VOLNAME}-${item}
       reset_counts
       
       # Turn on failure at a specific point
@@ -2326,6 +2336,9 @@ test_5() {
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_015_SmisCommandHelper.invokeMethod_AddMembers"
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     for failure in ${failure_injections}
     do
       item=${RANDOM}
@@ -2333,7 +2346,6 @@ test_5() {
       secho "Running Test 5 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
-      volname=${VOLNAME}-${item}
       reset_counts
       
       # Check the state of the export that it doesn't exist
@@ -2418,6 +2430,9 @@ test_6() {
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     for failure in ${failure_injections}
     do
       item=${RANDOM}
@@ -2425,7 +2440,6 @@ test_6() {
       secho "Running Test 6 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
-      volname=${VOLNAME}-${item}
       reset_counts
       
       # Snap the state before the export group was created
@@ -2524,6 +2538,9 @@ test_7() {
 
     zone2new="true"
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     for failure in ${failure_injections}
     do
       item=${RANDOM}
@@ -2531,7 +2548,6 @@ test_7() {
       secho "Running Test 7 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
-      volname=${VOLNAME}-${item}
       reset_counts
       
       # Check the state of the export that it doesn't exist
@@ -2665,6 +2681,7 @@ test_8() {
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
     meta_size=260GB
+    cfs=("Volume")
 
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
@@ -2672,6 +2689,9 @@ test_8() {
 	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
                                     failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
                                     failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
+	cfs=("Volume ExportGroup ExportMask FCZoneReference")
+	# VPLEX needs exports to be there, create basic volume if exports don't exist yet.
+	create_basic_volumes
     fi
 
     if [ "${SS}" = "vmax2" ]
@@ -2702,12 +2722,6 @@ test_8() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 1 with failure scenario: ${failure}..."
-      if [ "${SS}" = "vplex" ]
-      then
-	  cfs=("Volume ExportGroup ExportMask FCZoneReference")
-      else
-	  cfs=("Volume")
-      fi
       reset_counts
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
@@ -2802,9 +2816,13 @@ test_9() {
     common_failure_injections=""
 
     storage_failure_injections=""
+    cfs=("Volume BlockConsistencyGroup")
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections="failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation"
+	cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup")
+	# VPLEX needs exports to be there, create basic volume if exports don't exist yet.
+	create_basic_volumes
     fi
 
     if [ "${SS}" = "unity" ]
@@ -2842,13 +2860,6 @@ test_9() {
 
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation"
-
-    if [ "${SS}" = "vplex" ]
-    then
-      cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup")
-    else
-      cfs=("Volume BlockConsistencyGroup")
-    fi
 
     for failure in ${failure_injections}
     do
@@ -2954,6 +2965,9 @@ test_10() {
     # failure_injections="failure_004"
     # failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     for failure in ${failure_injections}
     do
       # By default, turn off the firewall test as it takes a really long time to run.
@@ -2978,7 +2992,6 @@ test_10() {
       secho "Running Test 10 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
-      volname=${VOLNAME}-${item}
       reset_counts
       
       # Snap the state before the export group was created
@@ -3196,6 +3209,9 @@ test_12() {
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_024_Export_zone_removeInitiator_before_delete"
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     for failure in ${failure_injections}
     do
       firewall_test=1
@@ -3219,7 +3235,6 @@ test_12() {
       secho "Running Test 12 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
-      volname=${VOLNAME}-${item}
       reset_counts
       
       # Snap the state before the export is created
@@ -3339,6 +3354,9 @@ test_13() {
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     for failure in ${failure_injections}
     do
       firewall_test=1
@@ -3362,7 +3380,6 @@ test_13() {
       secho "Running Test 13 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
-      volname=${VOLNAME}-${item}
       reset_counts
       
       # Snap the state before the export is created
@@ -3926,7 +3943,8 @@ test_delete_srdf() {
           set_artificial_failure none
 
           # No sense in validating db for failure_087, since source or target would have been deleted.
-          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" ]
+          # Same for ReturnElementsToStoragePool, both volumes would remain with SRDF properties cleared.  Expect deletion to be succeed.
+          if [ "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&1" -o "${failure}" = "failure_087_BlockDeviceController.before_doDeleteVolumes&2" -o "${failure}" = "failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool" ]
           then
             # failure_087 leaves the source or target behind, so we expect to be able to retry deleting whichever one was left behind.
             runcmd volume delete --project ${PROJECT} --wait
@@ -4388,7 +4406,7 @@ cleanup() {
 	  runcmd export_group delete ${id} > /dev/null
 	  echo "Deleted export group: ${id}"
 	done
-	runcmd volume delete --project $PROJECT --wait
+	delete_basic_volumes
     fi
     echo There were $VERIFY_FAIL_COUNT failures
 }
@@ -4779,18 +4797,7 @@ then
 fi    
 
 cleanup_previous_run_artifacts
-
-# If there's a volume in the DB, we can clean it up here.
-volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
-if [ $? -eq 0 ]; then
-    if [ "${SIM}" = "1" ]; then
-	secho "Removing created volume, inventory-only since it's a simulator..."
-	runcmd volume delete --project ${PROJECT} --wait --vipronly
-    else
-	secho "Removing created volume, full delete since it's hardware..."
-	runcmd volume delete --project ${PROJECT} --wait
-    fi
-fi
+delete_basic_volumes
 
 echo There were $VERIFY_COUNT verifications
 echo There were $VERIFY_FAIL_COUNT verification failures

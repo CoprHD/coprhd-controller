@@ -200,6 +200,7 @@ prerun_setup() {
        storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
        echo "Found storage type is: $storage_type"
        SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | awk -F+ '{print $2}'`
+       STORAGE_SYSTEM=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
        echo "Serial number is: $SERIAL_NUMBER"
        if [ "${storage_type}" = "xtremio" ]
        then
@@ -3057,14 +3058,13 @@ test_11() {
     expname=${EXPORT_GROUP_NAME}t11
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone \
-                               failure_059_NetworkDeviceController.zoneExportAddInitiators_after_zone"
+                               failure_101_NetworkDeviceController.zoneExportAddPaths_before_zone \
+                               failure_102_NetworkDeviceController.zoneExportAddPaths_after_zone"
 
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_003_late_in_add_initiator_to_mask \
-                                    failure_083_VPlexDeviceController_late_in_add_targets_to_view"
+	storage_failure_injections="failure_083_VPlexDeviceController_late_in_add_targets_to_view"
     fi
 
     if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
@@ -3088,6 +3088,7 @@ test_11() {
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 11 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
+      cfs2=("ExportGroup ExportMask")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -3099,35 +3100,48 @@ test_11() {
 
       # prime the export
       runcmd export_group create $PROJECT ${expname} $NH --type Host --volspec ${PROJECT}/${volname} --hosts "${HOST1}"
-
+        
       # Snsp the DB so we can validate after failures later
-      snap_db 2 "${cfs[@]}"
+      snap_db 2 "${cfs[@]}" "| grep -v storagePorts"
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
 
-      # Attempt to change vpool
-      fail volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
+      # Attempt to update max path value
+      fail export_group pathadj $PROJECT/${expname} $STORAGE_SYSTEM --varray $NH --maxpath 4 --hosts "${HOST1}" --go 1 --wait 1
 
       # Verify injected failures were hit
       verify_failures ${failure}
 
       # Perform any DB validation in here
-      snap_db 3 "${cfs[@]}"
+      # Ignore storagePorts on ExportMask because there is no rollback for the additional ports added to the ExportMaks (by design)
+      snap_db 3 "${cfs[@]}" "| grep -v storagePorts"
 
-      # Validate nothing was left behind
-      validate_db 2 3 "${cfs[@]}"
+      if [[ "${failure}" == "failure_102_NetworkDeviceController.zoneExportAddPaths_after_zone" ]]; then
+          # Validate nothing was left behind - ignore the FCZoneReference because no rollback occurs here (as designed)
+          validate_db 2 3 "${cfs2[@]}"  
+      else
+          # Validate nothing was left behind
+          validate_db 2 3 "${cfs[@]}"          
+      fi    
 
       # Rerun the command
       set_artificial_failure none
-      runcmd volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
+      export_group pathadj $PROJECT/${expname} $STORAGE_SYSTEM --varray $NH --maxpath 4 --hosts "${HOST1}" --go 1 --wait 1
 
       # Delete the export
       runcmd export_group delete ${PROJECT}/${expname}
 
       # Verify the DB is back to the original state
-      snap_db 4 "${cfs[@]}"
-      validate_db 1 4 "${cfs[@]}"
+	  snap_db 4 "${cfs[@]}"
+
+      if [[ "${failure}" == "failure_102_NetworkDeviceController.zoneExportAddPaths_after_zone" ]]; then
+          # Validate nothing was left behind - ignore the FCZoneReference because no zone rollback occurs after failure and zones will be left behind (as designed)
+          validate_db 1 4 "${cfs2[@]}"
+      else
+          # Validate nothing was left behind
+          validate_db 1 4 "${cfs[@]}"          
+      fi
 
       # Remove the volume
       runcmd volume delete ${PROJECT}/${volname} --wait

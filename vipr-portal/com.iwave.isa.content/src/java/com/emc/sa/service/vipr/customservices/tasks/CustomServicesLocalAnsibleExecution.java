@@ -211,7 +211,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
 
         }
 
-        return new CustomServicesShellTaskResult(step.getOutput(), result.getStdOutput(), result.getStdError(), result.getExitValue());
+        return new CustomServicesStdOutTaskResult(step.getOutput(), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     private void uncompressArchive(final byte[] ansibleArchive, final List<String> fileList, final List<String> pathList) {

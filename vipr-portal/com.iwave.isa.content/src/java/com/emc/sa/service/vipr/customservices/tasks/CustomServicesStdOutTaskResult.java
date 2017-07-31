@@ -29,14 +29,13 @@ import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.LoggerFactory;
 
-import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Output;
 
-public class CustomServicesShellTaskResult extends CustomServicesTaskResult {
+public class CustomServicesStdOutTaskResult extends CustomServicesTaskResult {
 
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesUtils.class);
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesStdOutTaskResult.class);
     
-    public CustomServicesShellTaskResult(final List<Output> keys, final String out, final String err, final int retCode) {
+    public CustomServicesStdOutTaskResult(final List<Output> keys, final String out, final String err, final int retCode) {
         super(out, err, retCode, parseShellOutput(out, keys));
     }
     

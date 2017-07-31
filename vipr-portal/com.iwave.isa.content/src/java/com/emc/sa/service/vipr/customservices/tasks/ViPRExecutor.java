@@ -20,7 +20,6 @@ public class ViPRExecutor implements MakeCustomServicesExecutor {
     private RestClient client;
     @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
         try {
-            // find out if the OP will return a task/task resource and make a different executor
             return new CustomServicesViprExecution(input, step, daos, client);
         } catch (Exception e) {
             logger.info("exception is:{}", e);

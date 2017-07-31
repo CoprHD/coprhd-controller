@@ -93,7 +93,7 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
         
         ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId(), step.getFriendlyName());
         
-        return new CustomServicesShellTaskResult(step.getOutput(), result.getStdout(), result.getStderr(), result.getExitValue());
+        return new CustomServicesStdOutTaskResult(step.getOutput(), result.getStdout(), result.getStderr(), result.getExitValue());
     }
 
 

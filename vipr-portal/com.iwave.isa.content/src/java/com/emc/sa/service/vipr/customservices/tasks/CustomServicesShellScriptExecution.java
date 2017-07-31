@@ -129,7 +129,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Shell Script execution Failed");
         }
 
-        return new CustomServicesShellTaskResult(step.getOutput(), result.getStdOutput(), result.getStdError(), result.getExitValue());
+        return new CustomServicesStdOutTaskResult(step.getOutput(), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     // Execute Shell Script resource

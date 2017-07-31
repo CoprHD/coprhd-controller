@@ -62,9 +62,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
-
         provideDetailArgs(step.getId(), step.getFriendlyName());
-
     }
 
 
@@ -156,14 +154,10 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         }
 
         for(Map.Entry<String, List<String>> e : input.entrySet()) {
-
             if (StringUtils.isEmpty(e.getKey()) || e.getValue().isEmpty()) {
                 continue;
             }
-
-            logger.info("make the arguments");
             final List<String> listVal = e.getValue();
-
             final StringBuilder sb = new StringBuilder();
             sb.append("\"");
             String prefix = "";
@@ -175,7 +169,6 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             sb.append("\"");
             str.append(e.getKey()).append("=").append(sb.toString().trim()).append(" ");
         }
-
 
         logger.info("CS: Shell arguments:{}", str.toString());
 

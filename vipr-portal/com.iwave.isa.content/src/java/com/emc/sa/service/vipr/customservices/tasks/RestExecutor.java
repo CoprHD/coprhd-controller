@@ -41,7 +41,7 @@ public class RestExecutor implements MakeCustomServicesExecutor {
     @Autowired
     private CustomServicesRESTApiPrimitiveDAO customServicesRESTApiDao;
 
-    @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step, final int iterCount) {
+    @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
         final CustomServicesRESTApiPrimitive primitive = customServicesRESTApiDao.get(step.getOperation());
         if( null == primitive ) {
             logger.error("Error retrieving the REST primitive from DB. {} not found in DB", step.getOperation());

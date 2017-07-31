@@ -25,7 +25,6 @@ import java.util.Map;
 
 import javax.ws.rs.core.UriBuilder;
 
-import com.emc.storageos.db.client.model.Task;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;

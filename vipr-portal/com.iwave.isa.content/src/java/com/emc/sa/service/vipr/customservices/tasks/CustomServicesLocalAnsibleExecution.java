@@ -201,7 +201,6 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Local Ansible execution Failed");
         }
 
-
         logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 

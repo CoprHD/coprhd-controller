@@ -832,7 +832,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
 
         } catch (VNXException e) {
-            BiosCommandResult.createErrorResult(e);
+            return BiosCommandResult.createErrorResult(e);
         } catch (NumberFormatException e) {
             // Placeholder until real handling is determined.
             throw new DeviceControllerException(e);
@@ -890,7 +890,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
             args.getFileObjShares().remove(smbFileShare.getName());
         } catch (VNXException e) {
-            throw new DeviceControllerException(e);
+            return BiosCommandResult.createErrorResult(e);
         } finally {
             clearContext(context);
         }

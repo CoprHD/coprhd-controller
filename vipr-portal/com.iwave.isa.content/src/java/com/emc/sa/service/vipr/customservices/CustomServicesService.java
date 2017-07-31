@@ -126,17 +126,18 @@ public class CustomServicesService extends ViPRService {
                 if (step.getInputGroups() == null) {
                     logger.info("it is null");
                 }
-                if (step.getType().equals(StepType.START.toString()) || step.getType().equals(StepType.END.toString())) {
+                if ( step.getInputGroups() == null) {
                     logger.info("it is start or end so continue");
                     continue;
                 }
                 for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
                     for (final Input value : inputGroup.getInputGroup()) {
-                        final String name = params.get(value.getFriendlyName()).toString(); //todo handle pw
+
                         switch (InputType.fromString(value.getType())) {
                             case FROM_USER:
                             case FROM_USER_MULTI:
                             case ASSET_OPTION_SINGLE://todo assetoption multi
+                                final String name = params.get(value.getFriendlyName()).toString(); //todo handle pw
                                 if (!StringUtils.isEmpty(value.getTableName())) {
                                     logger.info("There is a WF loop");
                                     String[] size = name.replace("\"", "").split(",");
@@ -466,19 +467,25 @@ public class CustomServicesService extends ViPRService {
                     case ASSET_OPTION_MULTI:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
 
-                            final List<String> arrayInput;
+                           // final List<String> arrayInput;
 
+                            logger.info("multi assetoption:{}", params.get(friendlyName));
                             if (!StringUtils.isEmpty(value.getTableName())) {
-                                arrayInput = Arrays.asList(params.get(friendlyName).toString().split("\",\""));
+                                if (isLoop()) {
+                                    final String[] arr = params.get(friendlyName).toString().replace("\"", "").split(",");
+                                    inputs.put(name, Arrays.asList(arr[loopCount]));
+                                } else {
+                                    inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "").split(",")));
+                                }
                             } else {
-                                arrayInput = Arrays.asList(params.get(friendlyName).toString());
+                                inputs.put(name, Arrays.asList(params.get(friendlyName).toString()));
                             }
 
-                            int index = 0;
+                           /* int index = 0;
                             for (String eachVal : arrayInput) {
                                 arrayInput.set(index++, eachVal.replace("\"", ""));
                             }
-                            inputs.put(name, arrayInput);
+                            inputs.put(name, arrayInput);*/
                         } else {
                             if (value.getDefaultValue() != null) {
                                 // The default value is copied only for the first index

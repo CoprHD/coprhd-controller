@@ -102,6 +102,7 @@ public class EventUtils {
             log.info("Duplicate event " + duplicateEvent.getId() + " is already in a pending state for resource " + resource.getId()
                     + ". Will not create a new event");
             duplicateEvent.setCreationTime(Calendar.getInstance());
+            duplicateEvent.setLabel(name);
             duplicateEvent.setDescription(description);
             duplicateEvent.setWarning(warning);
             duplicateEvent.setAffectedResources(getAffectedResources(affectedResources));

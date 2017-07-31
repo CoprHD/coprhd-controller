@@ -692,10 +692,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 newInitiatorObjects.addAll(dbClient.queryObject(Initiator.class, duplicateEventAddInitiators));
                 oldInitiatorObjects.addAll(dbClient.queryObject(Initiator.class, duplicateEventRemoveInitiators));
 
-                List<String> oldInitiatorPorts = Lists.newArrayList();
-                List<String> newInitiatorPorts = Lists.newArrayList();
-                List<URI> oldInitiatorIds = Lists.newArrayList();
-                List<URI> newInitiatorIds = Lists.newArrayList();
+                Set<String> oldInitiatorPorts = Sets.newHashSet();
+                Set<String> newInitiatorPorts = Sets.newHashSet();
+                Set<URI> oldInitiatorIds = Sets.newHashSet();
+                Set<URI> newInitiatorIds = Sets.newHashSet();
 
                 for (Initiator oldInitiator : oldInitiatorObjects) {
                     oldInitiatorPorts.add(oldInitiator.getInitiatorPort());
@@ -723,7 +723,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ","));
                 } else if (newInitiatorPorts.isEmpty() && !oldInitiatorPorts.isEmpty()) {
                     name = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsLabelRemoveOnly",
-                            StringUtils.join(newInitiatorPorts, ","));
+                            StringUtils.join(oldInitiatorPorts, ","));
                     description = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsDescriptionRemoveOnly",
                             StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ","));
                 }
@@ -731,8 +731,9 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_UPDATES, host.getTenant(),
                         name, description, ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsWarning"),
                         host, allAffectedResources, EventUtils.updateInitiators,
-                        new Object[] { host.getId(), newInitiatorIds, oldInitiatorIds }, EventUtils.updateInitiatorsDecline,
-                        new Object[] { host.getId(), newInitiatorIds, oldInitiatorIds });
+                        new Object[] { host.getId(), Lists.newArrayList(newInitiatorIds), Lists.newArrayList(oldInitiatorIds) },
+                        EventUtils.updateInitiatorsDecline,
+                        new Object[] { host.getId(), Lists.newArrayList(newInitiatorIds), Lists.newArrayList(oldInitiatorIds) });
             } else {
                 for (Initiator oldInitiator : oldInitiatorObjects) {
                     info("Deleting Initiator %s because it was not re-discovered and is not in use by any export groups",

@@ -761,7 +761,15 @@ public class DbConsistencyCheckerHelper {
         } else if (dbIndex instanceof PermissionsDbIndex) {
             indexKey = column.getName().getTwo();
         } else if (dbIndex instanceof PrefixDbIndex) {
-            indexKey = field.getPrefixIndexRowKey(column.getStringValue());
+            String columnValue = column.getStringValue();
+            int columnMinChars = ((PrefixDbIndex) dbIndex).getMinPrefixChars();
+
+            if(columnValue.length() < columnMinChars){
+                indexKey = null;
+            } else {
+                indexKey = field.getPrefixIndexRowKey(columnValue);
+            }
+
         } else if (dbIndex instanceof ScopedLabelDbIndex) {
             indexKey = field.getPrefixIndexRowKey(ScopedLabel.fromString(column.getStringValue()));
         } else if (dbIndex instanceof ClassNameTimeSeriesDBIndex) {

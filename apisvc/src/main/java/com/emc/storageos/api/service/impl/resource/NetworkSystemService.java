@@ -42,9 +42,11 @@ import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskSch
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
@@ -906,7 +908,7 @@ public class NetworkSystemService extends TaskResourceService {
      * Creates new zones based on given path parameters and storage ports.
      * The code understands existing zones and creates the remaining if needed.
      * @param param
-     * @param hostURI
+     * @param computeURI
      * @param storageSystemId
      * @return 
      * @throws InternalException
@@ -916,17 +918,24 @@ public class NetworkSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/create-san-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep createSANZones(ExportPathParameters param, @QueryParam("hostURI") URI hostURI,
+    public TaskResourceRep createSANZones(ExportPathParameters param, @QueryParam("computeURI") URI computeURI,
             @QueryParam("storageId") URI storageSystemId) throws InternalException {
-        ArgValidator.checkFieldUriType(hostURI, Host.class, "hostURI");
+        ArgValidator.checkUri(computeURI);
         ArgValidator.checkFieldUriType(storageSystemId, StorageSystem.class, "storageId");
         
+        
+        List<URI> hostInitiatorList = new ArrayList<URI>();
+        if (URIUtil.isType(computeURI, Cluster.class)) {
+            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(computeURI, _dbClient));
+        } else {
+            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(computeURI, _dbClient));
+        }
+        
         String task = UUID.randomUUID().toString();
-        List<URI> hostInitiatorList = ExportUtils.getInitiatorsOfHost(hostURI, _dbClient);
         
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemId);
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList, true);
-        Host host = _dbClient.queryObject(Host.class,hostURI);
+        Host host = _dbClient.queryObject(Host.class,computeURI);
         
         ExportPathParams pathParam = new ExportPathParams(param);
         
@@ -939,7 +948,7 @@ public class NetworkSystemService extends TaskResourceService {
         
         Map<URI, List<URI>> generatedIniToStoragePort = _blockStorageScheduler.assignStoragePorts(system, varray, initiators,
                 pathParam, new StringSetMap(), null);
-        Operation op = _dbClient.createTaskOpStatus(Host.class, hostURI, task,
+        Operation op = _dbClient.createTaskOpStatus(Host.class, computeURI, task,
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
         controller.createSanZones(hostInitiatorList, generatedIniToStoragePort, task);

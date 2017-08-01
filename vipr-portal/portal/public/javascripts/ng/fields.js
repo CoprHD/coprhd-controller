@@ -164,14 +164,6 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     }, true);
                 });
                 
-                scope.$watch(attrs.showField, function(showField) {
-                	if (showField) {
-                		element.parent().parent().css("display", "");
-                	} else {
-                		element.parent().parent().css("display", "none");
-                    }
-                });
-                
                 scope.$watch(attrs.options, function(newOptions) {
                     if (attrs.autoSelectIfOne == "true" && newOptions && newOptions.length === 1) {
                     	var firstOptionValue = newOptions[0][attrs.valueProperty];

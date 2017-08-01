@@ -38,8 +38,7 @@ angular.module("services", []).directive({
                     });
                 }
                 item.value = $scope.defaultValues[item.name] ? $scope.defaultValues[item.name] : item.initialValue;
-                item.showField = item.hideIfEmpty;
-                
+
                 var getAssetOptionsIfWeHaveAllDependencies = function() {
                     // this checks if we're updating modal fields or normal fields
                     if (($scope.updateModalFields == false && (item.modalField === undefined || item.modalField == false)) ||
@@ -92,12 +91,6 @@ angular.module("services", []).directive({
 	                            }
 	                            if (item.select == "list") {
 	                            	$scope.$root.errorCount -= 1;
-	                            }
-	                            
-	                            if (item.hideIfEmpty && item.options != null && item.options.length == 0) {
-	                                item.showField = false;
-	                            } else {
-	                            	item.showField = true;
 	                            }
 	                        }).error(function(data) {
 	                            var details = data.details || data;
@@ -159,8 +152,7 @@ angular.module("services", []).directive({
                         'options': "item.options",
                         'value-property': "key",
                         'label-property': "value",
-                        'auto-select-if-one': item.required,
-                        'show-field': "item.showField"
+                        'auto-select-if-one': item.required
                     };
                 } else if (item.type == 'choice') {
                     type = '<select-many>';
@@ -176,8 +168,7 @@ angular.module("services", []).directive({
 	                        'value-property': "key",
 	                        'label-property': "value",
 	                        'ng-disabled': "item.disabled",
-	                        'auto-select-if-one': item.required,
-	                        'show-field': "item.showField"
+	                        'auto-select-if-one': item.required
 	                    };
 	                    if (item.select == 'many') {
 	                    	type = '<select-many>';

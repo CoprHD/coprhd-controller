@@ -50,8 +50,6 @@ public class ServiceField extends ServiceItem {
     /** Whether the field belongs to the service modal */
     public boolean modalField = false;
 
-    public boolean hideIfEmpty = false;
-
     /** For choice or asset fields, whether one or many values can be selected. */
     private String select = SELECT_ONE;
 
@@ -95,14 +93,6 @@ public class ServiceField extends ServiceItem {
 
     public void setModalField(boolean modalField) {
         this.modalField = modalField;
-    }
-
-    public boolean hideIfEmpty() {
-        return hideIfEmpty;
-    }
-
-    public void setHideIfEmpty(boolean hideIfEmpty) {
-        this.hideIfEmpty = hideIfEmpty;
     }
 
     public void setInitialValue(String initialValue) {

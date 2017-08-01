@@ -5,16 +5,6 @@
 
 package com.emc.storageos.driver.univmax.rest;
 
-import com.sun.jersey.api.client.*;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.api.json.JSONConfiguration;
-import com.sun.jersey.client.urlconnection.HTTPSProperties;
-import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.*;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -22,19 +12,45 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientHandler;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.api.json.JSONConfiguration;
+import com.sun.jersey.client.urlconnection.HTTPSProperties;
+import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
+
 public class RestClient implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(RestClient.class);
 
+    private static final String HTTPS = "https";
+    private static final String HTTP = "http";
     private static String HTTP_HEADER_AUTH_FIELD = "Authorization";
     private String httpHeaderAuthFieldValue;
     public static int DEFAULT_PORT = 8443;
     private String baseURI;
-    private Boolean verifyCA = false;
+    private Boolean verifyCA = true;
 
     public RestClient(Boolean useSSL, String host, int port, String user, String password) {
+        this(useSSL ? HTTPS : HTTP, host, port, user, password);
+    }
+
+    public RestClient(String protocol, String host, int port, String user, String password) {
         baseURI = String.format("%s://%s:%d/univmax/restapi",
-                useSSL ? "https" : "http",
+                protocol,
                 host,
                 port > 0 ? port : RestClient.DEFAULT_PORT);
         httpHeaderAuthFieldValue = "Basic " + Base64.getEncoder().encodeToString((user + ":" + password).getBytes());

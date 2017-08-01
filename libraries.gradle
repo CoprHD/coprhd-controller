@@ -123,6 +123,9 @@ ext {
         "commons-lang:commons-lang:2.6",
 
     ]
+    commons_collections = [
+    	"org.apache.commons:commons-collections4:4.0",
+    ]
     javassist = [
         "org.javassist:javassist:3.18.0-GA",
 

@@ -5,12 +5,22 @@
 
 package com.emc.storageos.driver.univmax.sdkapi;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.driver.univmax.DriverDataUtil;
 import com.emc.storageos.driver.univmax.DriverUtil;
 import com.emc.storageos.driver.univmax.rest.EndPoint;
 import com.emc.storageos.driver.univmax.rest.JsonUtil;
 import com.emc.storageos.driver.univmax.rest.RestClient;
-import com.emc.storageos.driver.univmax.rest.type.common.*;
+import com.emc.storageos.driver.univmax.rest.type.common.CapacityUnitType;
+import com.emc.storageos.driver.univmax.rest.type.common.IteratorType;
+import com.emc.storageos.driver.univmax.rest.type.common.ResultListType;
+import com.emc.storageos.driver.univmax.rest.type.common.VolumeAttributeType;
+import com.emc.storageos.driver.univmax.rest.type.common.VolumesListType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateStorageGroupParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.GetVolumeResultType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.SloBasedStorageGroupParamType;
@@ -21,11 +31,6 @@ import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.google.gson.reflect.TypeToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.UUID;
 
 public class VolumeManager {
 
@@ -35,7 +40,7 @@ public class VolumeManager {
 
     // TODO: Implement this interface.
     public DriverTask createVolumes(DriverDataUtil driverDataUtil,
-                                    List<StorageVolume> volumes, StorageCapabilities capabilities) {
+            List<StorageVolume> volumes, StorageCapabilities capabilities) {
 
         String driverName = driverDataUtil.getDriverName();
         String taskId = String.format("%s+%s+%s", driverName, "create-storage-volumes", UUID.randomUUID().toString());
@@ -97,11 +102,11 @@ public class VolumeManager {
     }
 
     private String doGetVolumeDetails(StorageVolume volume, String getResponse) {
-        IteratorType<VolumesListType> iType = JsonUtil.fromJsonIter(getResponse,
+        IteratorType<VolumesListType> iType = JsonUtil.fromJson(getResponse,
                 new TypeToken<IteratorType<VolumesListType>>() {
                 }.getType());
         ResultListType<VolumesListType> resultList = iType.getResultList();
-        String volumeId = resultList.getResult()[0].getVolumeId();
+        String volumeId = resultList.getResult().get(0).getVolumeId();
         String getVolumePath = String.format(EndPoint.SLOPROVISIONING_SYMMETRIX__VOLUME_ID,
                 volume.getStorageSystemId(), volumeId);
 

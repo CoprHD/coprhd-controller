@@ -5,7 +5,10 @@
 
 package com.emc.storageos.driver.univmax.rest.type.common;
 
-public class IteratorType<T> {
+import java.util.ArrayList;
+import java.util.List;
+
+public class IteratorType<T> extends GenericResultType {
 
     private String id;
     private Integer count;
@@ -61,5 +64,17 @@ public class IteratorType<T> {
 
     public void setResultList(ResultListType resultList) {
         this.resultList = resultList;
+    }
+
+    public <T> List<T> fetchAllResults() {
+        if (getCount() <= 0) {
+            return new ArrayList<T>();
+        }
+        List<T> results = new ArrayList<T>();
+        ResultListType<T> resultList = getResultList();
+        for (T t : resultList.getResult()) {
+            results.add(t);
+        }
+        return results;
     }
 }

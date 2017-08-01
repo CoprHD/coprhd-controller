@@ -6,7 +6,8 @@ dependencies {
         library(slf4j),
         library(json_sanitizer),
         library(commons_lang),
-        library(jersey)
+        library(jersey),
+        library(commons_collections)
 
     testCompile library(easymock)
 }

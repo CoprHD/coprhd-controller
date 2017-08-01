@@ -5,16 +5,22 @@
 
 package com.emc.storageos.driver.univmax;
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.mutable.MutableBoolean;
+
+import com.emc.storageos.driver.univmax.sdkapi.ExportManager;
 import com.emc.storageos.driver.univmax.sdkapi.VolumeManager;
 import com.emc.storageos.driver.univmax.sdkapi.discover.DiscoverStorageProvider;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.model.Initiator;
+import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-
-import java.util.List;
 
 public class UniVmaxStorageDriver extends DefaultStorageDriver {
 
@@ -37,4 +43,30 @@ public class UniVmaxStorageDriver extends DefaultStorageDriver {
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
         return new VolumeManager().createVolumes(driverDataUtil, volumes, capabilities);
     }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.storagedriver.DefaultStorageDriver#exportVolumesToInitiators(java.util.List, java.util.List, java.util.Map,
+     * java.util.List, java.util.List, com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities,
+     * org.apache.commons.lang.mutable.MutableBoolean, java.util.List)
+     */
+    @Override
+    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
+            Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
+            StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
+        return new ExportManager(this.driverRegistry, this.lockManager).exportVolumesToInitiators(initiators, volumes, volumeToHLUMap,
+                recommendedPorts, availablePorts, capabilities, usedRecommendedPorts, selectedPorts);
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.storagedriver.DefaultStorageDriver#unexportVolumesFromInitiators(java.util.List, java.util.List)
+     */
+    @Override
+    public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
+        return new ExportManager(this.driverRegistry, this.lockManager).unexportVolumesFromInitiators(initiators, volumes);
+    }
+
 }

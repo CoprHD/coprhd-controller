@@ -5,11 +5,13 @@
 
 package com.emc.storageos.driver.univmax.rest.type.common;
 
-public class ResultListType<T> extends ResultType {
+import java.util.List;
+
+public class ResultListType<T> extends GenericResultImplType {
     private Integer from;
     private Integer to;
     // min/max occurs: 0/unbounded
-    private T[] result;
+    private List<T> result;
 
     public Integer getFrom() {
         return from;
@@ -27,11 +29,18 @@ public class ResultListType<T> extends ResultType {
         this.to = to;
     }
 
-    public T[] getResult() {
+    /**
+     * @return the result
+     */
+    public List<T> getResult() {
         return result;
     }
 
-    public void setResult(T[] result) {
+    /**
+     * @param result the result to set
+     */
+    public void setResult(List<T> result) {
         this.result = result;
     }
+
 }

@@ -16,23 +16,24 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.serializers.StringSerializer;
-
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
 import com.emc.storageos.db.common.DependencyTracker.Dependency;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.google.common.collect.Lists;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.serializers.StringSerializer;
 
 
 public class InternalDbClientImpl extends InternalDbClient {
@@ -125,4 +126,10 @@ public class InternalDbClientImpl extends InternalDbClient {
 
         return references;
     }
+    
+	public Row<String, CompositeColumnName> queryAllColumns(URI id, Class clazz) {
+		Keyspace ks = getKeyspace(clazz);
+		DataObjectType doType = TypeMap.getDoType(clazz);
+		return this.queryRowWithAllColumns(ks, id, doType.getCF());
+	}
 }

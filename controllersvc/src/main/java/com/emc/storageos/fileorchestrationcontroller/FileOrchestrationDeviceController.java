@@ -436,6 +436,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     smbShare.getName());
             opName = ResourceOperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE.getName();
         }
+
         // Perform the operation on valid file object!!
         if (fileObj != null) {
             try {
@@ -483,6 +484,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             successMessage = String.format("Creating NFS export for file system snapshot : %s finished succesfully.", uri);
             opName = ResourceOperationTypeEnum.EXPORT_FILE_SNAPSHOT.getName();
         }
+
         // Perform the operation on valid file object!!
         if (fileObj != null) {
             try {
@@ -553,7 +555,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 _fileDeviceController.createMethod(workflow, waitFor, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, null, stepDescription,
                         storage, args);
                 workflow.executePlan(completer, successMessage);
-
             } catch (Exception ex) {
                 s_logger.error(String.format("Updating file system : %s export rules: %s failed.", uri, param.toString()), ex);
                 ServiceError serviceError = DeviceControllerException.errors.updateFileShareExportRulesFailed(
@@ -594,6 +595,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     param.toString());
             opName = ResourceOperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL.getName();
         }
+
         // Perform the operation on valid file object!!
         if (fileObj != null) {
             try {
@@ -686,6 +688,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     fileSMBShare.getName());
             opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE.getName();
         }
+
         // Perform the operation on valid file object!!
         if (fileObj != null) {
             try {
@@ -868,6 +871,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         Workflow workflow = null;
         String stepDescription = null;
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK.getName();
+
         try {
             FileShare sourceFileShare = null;
             FileShare targetFileShare = null;
@@ -1004,8 +1008,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String stepDescription = null;
         MirrorFileFailoverTaskCompleter failoverCompleter = null;
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
-        try {
 
+        try {
             FileShare sourceFileShare = null;
             FileShare targetFileShare = null;
             StringBuffer errMsg = new StringBuffer();
@@ -1066,7 +1070,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                 SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
                 SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
-
                 if (sourceSMBShareMap != null || targetSMBShareMap != null) {
                     // Both source and target share map shouldn't be null
                     stepDescription = String.format("Replicating CIFS shares from source file system : %s to target file system : %s",
@@ -1220,8 +1223,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileShare targetFileShare = null;
         Workflow workflow = null;
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
-        try {
 
+        try {
             FileShare sourceFileShare = null;
             StringBuffer errMsg = new StringBuffer();
             if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
@@ -2015,8 +2018,19 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     @Override
     public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException {
-        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
+
         FilePolicyUnAssignWorkflowCompleter completer = new FilePolicyUnAssignWorkflowCompleter(policy, unassignFrom, taskId);
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
+
+        String opName = "Unassign File policy ";
+        if (filePolicy == null || filePolicy.getInactive()) {
+            // Update the task as failed!!
+            String errMsg = String.format("Unable to read file object %s from DB in %s ", policy.toString(), opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, policy, opName, errMsg);
+            return;
+        }
+
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, UNASSIGN_FILE_POLICY_WF_NAME, false, taskId, completer);
             completer.setWorkFlowId(workflow.getWorkflowURI());
@@ -2065,10 +2079,18 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void assignFileSnapshotPolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
             throws InternalException {
-        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+
         FilePolicyAssignWorkflowCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign,
                 vpoolToStorageSystemMap.keySet(), null, taskId);
-
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+        String opName = "Assign File policy to Vpool ";
+        if (filePolicy == null || filePolicy.getInactive()) {
+            // Update the task as failed!!
+            String errMsg = String.format("Unable to read file object %s from DB in %s ", filePolicyToAssign.toString(), opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, filePolicyToAssign, opName, errMsg);
+            return;
+        }
         try {
             String waitFor = null;
             Workflow workflow = _workflowService.getNewWorkflow(this, ASSIGN_FILE_POLICY_WF_NAME, false, taskId, completer);
@@ -2153,7 +2175,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void assignFileSnapshotPolicyToProjects(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId) {
-        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+
         String opName = ResourceOperationTypeEnum.ASSIGN_FILE_POLICY.getName();
         URI projectVpool = null;
         if (vpoolToStorageSystemMap != null && !vpoolToStorageSystemMap.isEmpty()) {
@@ -2164,6 +2186,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
         FilePolicyAssignWorkflowCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, projectURIs, projectVpool,
                 taskId);
+
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+        if (filePolicy == null || filePolicy.getInactive()) {
+            // Update the task as failed!!
+            String errMsg = String.format("Unable to read file object %s from DB in %s ", filePolicyToAssign.toString(), opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, filePolicyToAssign, opName, errMsg);
+            return;
+        }
 
         try {
             String waitFor = null;
@@ -2258,9 +2289,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     @Override
     public void updateFileProtectionPolicy(URI policy, FilePolicyUpdateParam param, String taskId) {
-        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
+
         String opName = ResourceOperationTypeEnum.UPDATE_FILE_PROTECTION_POLICY.getName();
         FileProtectionPolicyUpdateCompleter completer = new FileProtectionPolicyUpdateCompleter(policy, taskId);
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
+        if (filePolicy == null || filePolicy.getInactive()) {
+            // Update the task as failed!!
+            String errMsg = String.format("Unable to read file object %s from DB in %s ", policy.toString(), opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, policy, opName, errMsg);
+            return;
+        }
 
         try {
             String waitFor = null;
@@ -2382,9 +2421,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
             List<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
 
-        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
         FilePolicyAssignWorkflowCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, vpoolURIs, null, taskId);
-
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+        String opName = "Assign Replication policy to vpools";
+        if (filePolicy == null || filePolicy.getInactive()) {
+            // Update the task as failed!!
+            String errMsg = String.format("Unable to read file object %s from DB in %s ", filePolicyToAssign.toString(), opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, filePolicyToAssign, opName, errMsg);
+            return;
+        }
         try {
             String waitFor = null;
             String stepId = null;
@@ -2477,9 +2523,18 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign,
             String taskId) {
-        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+
         FilePolicyAssignWorkflowCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, projectURIs, vpoolURI,
                 taskId);
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+        String opName = "Assign Replication policy to projects";
+        if (filePolicy == null || filePolicy.getInactive()) {
+            // Update the task as failed!!
+            String errMsg = String.format("Unable to read file object %s from DB in %s ", filePolicyToAssign.toString(), opName);
+            s_logger.error(errMsg);
+            updateOperationFailed(completer, filePolicyToAssign, opName, errMsg);
+            return;
+        }
 
         try {
             String waitFor = null;
@@ -2596,7 +2651,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
 
             if (sourceFS != null && !sourceFS.getInactive()) {
-
                 // 1. If policy to be applied is of type replication and source file system doesn't have any target,
                 // then we have to create mirror file system first..
                 if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {

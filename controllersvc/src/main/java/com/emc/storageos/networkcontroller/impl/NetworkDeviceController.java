@@ -3135,8 +3135,10 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // Now call addRemoveZones to add all the required zones.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_101);
             BiosCommandResult result = addRemoveZones(exportGroup.getId(),
                     context.getZoneInfos(), false);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_102);
             completedSucessfully = result.isCommandSuccess();
             if (completedSucessfully) {
                 taskCompleter.ready(_dbClient);

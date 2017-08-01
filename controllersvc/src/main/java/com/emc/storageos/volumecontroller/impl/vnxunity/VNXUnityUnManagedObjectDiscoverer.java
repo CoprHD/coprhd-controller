@@ -272,6 +272,15 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
     }
 
+    /**
+     * Discovers unmanaged filesystems and stores them in ViPR DB
+     * 
+     * @param accessProfile the access profile of the storage system
+     * @param dbClient the DB client
+     * @param coordinator the coordinator client
+     * @param partitionManager the partition manager to store DB objects in batches
+     * @throws Exception
+     */
     public void discoverUnManagedFileSystems(AccessProfile accessProfile, DbClient dbClient,
             CoordinatorClient coordinator, PartitionManager partitionManager) throws Exception {
         log.info("Started discovery of UnManagedFilesystems for system {}", accessProfile.getSystemId());
@@ -398,6 +407,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
         return storagePort;
     }
 
+    /**
+     * Returns a map of storage pool native GUID to storage pool object of a storage system
+     * 
+     * @param storageSystem the storage system
+     * @param dbClient the DB client
+     * @return the map of storage pool native GUID to storage pool object
+     */
     private Map<String, StoragePool> getStoragePoolMap(StorageSystem storageSystem, DbClient dbClient) {
         URIQueryResultList storagePoolURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -414,6 +430,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
         return pools;
     }
 
+    /**
+     * Discover all the export rules of all the unmanaged file systems
+     * 
+     * @param accessProfile the access profile of the storage system
+     * @param dbClient the DB client
+     * @param partitionManager the partition manager for saving DB objects in batches
+     */
     public void discoverAllExportRules(AccessProfile accessProfile,
             DbClient dbClient, PartitionManager partitionManager) {
 
@@ -541,6 +564,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
     }
 
+    /**
+     * Discover all the CIFS shares of all the unmanaged file systems
+     * 
+     * @param accessProfile the access profile of the storage system
+     * @param dbClient the DB client
+     * @param partitionManager the partition manager for saving DB objects in batches
+     */
     public void discoverAllCifsShares(AccessProfile accessProfile,
             DbClient dbClient, PartitionManager partitionManager) {
 
@@ -585,7 +615,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
                     // String mountPoint = storagePort.getPortNetworkId() + ":" + mountPath;
                     String mountPoint = "\\\\" + storagePort.getPortNetworkId() + "\\" + exp.getName();
-                    String cifsShareId = exp.getId();
+
+                    // Revoved unused variable
 
                     associateCifsExportWithUMFS(unManagedFs, mountPoint, exp, storagePort);
                     List<UnManagedCifsShareACL> cifsACLs = applyCifsSecurityRules(unManagedFs, mountPoint, exp, storagePort);
@@ -645,12 +676,11 @@ public class VNXUnityUnManagedObjectDiscoverer {
     }
 
     /**
-     * check Pre Existing Storage CIFS ACLs exists in DB
+     * Checks for existing CIFS ACLs exists in DB
      * 
      * @param dbClient
      * @param cifsNativeGuid
      * @return UnManagedCifsShareACL
-     * @throws java.io.IOException
      */
     protected UnManagedCifsShareACL checkUnManagedFsCifsACLExistsInDB(DbClient dbClient,
             String cifsACLNativeGuid) {
@@ -1123,11 +1153,11 @@ public class VNXUnityUnManagedObjectDiscoverer {
     }
 
     /**
-     * check Pre Existing Storage filesystem exists in DB
+     * Checks for existing filesystem exists in DB using nativeGUID
      * 
-     * @param nativeGuid
-     * @return unManageFileSystem
-     * @throws IOException
+     * @param dbClient the DB client
+     * @param nativeGuid the native GUID of the file system
+     * @return unManageFileSystem the unmanaged file system object
      */
     protected UnManagedFileSystem checkUnManagedFileSystemExistsInDB(DbClient dbClient, String nativeGuid) throws IOException {
         UnManagedFileSystem filesystemInfo = null;
@@ -1146,11 +1176,11 @@ public class VNXUnityUnManagedObjectDiscoverer {
     }
 
     /**
-     * check Pre Existing Storage Export Rule exists in DB
+     * Checks for existing Export Rule exists in DB
      * 
-     * @param nativeGuid
+     * @param dbClient the DB client
+     * @param nativeGuid the native GUID of the file system
      * @return unManagedFileExportRule
-     * @throws IOException
      */
     protected UnManagedFileExportRule checkUnManagedFsExportRuleExistsInDB(DbClient dbClient,
             String fsExportRuleNativeId) {
@@ -1209,6 +1239,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
     }
 
+    /**
+     * Discovers quota directories in the storage system
+     * 
+     * @param accessProfile the access profile of the storage system
+     * @param dbClient the DB client
+     * @param partitionManager the partition manager used for saves objects in batches
+     */
     public void discoverAllTreeQuotas(AccessProfile accessProfile, DbClient dbClient, PartitionManager partitionManager) {
 
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
@@ -1288,6 +1325,14 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
     }
 
+    /**
+     * Returns the unmanaged file quota directory using the native GUID
+     * 
+     * @param _dbClient the DB client
+     * @param nativeGuid
+     * @return the unamanaged file quota directory
+     * @throws IOException
+     */
     private UnManagedFileQuotaDirectory getExistingUnManagedQuotaDirectory(DbClient _dbClient, String nativeGuid)
             throws IOException {
         URIQueryResultList result = new URIQueryResultList();

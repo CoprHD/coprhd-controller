@@ -46,6 +46,6 @@ service openstack-cinder-scheduler restart
 service openstack-cinder-api restart
 
 # Update ViPR OpenStack version
-sed -i "s/1.1.0.0.10/1.2/g" /etc/motd
+sed -i "s~ViPROpenStack-1\.[0-99]\.0\.0\.[0-99]*~$(</etc/ImageVersion)~" /etc/motd
 # post Update - End
 ##############################################################

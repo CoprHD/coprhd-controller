@@ -869,6 +869,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(volumeURI, Migration.class, field);
         }
 
+        public static ContainmentConstraint getMigrationConsistencyGroupConstraint(URI cgURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("consistencyGroup");
+            return new ContainmentConstraintImpl(cgURI, Migration.class, field);
+        }
+
         public static ContainmentConstraint getScheduledEventOrderConstraint(URI scheduledEventId) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField("scheduledEventId");

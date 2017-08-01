@@ -4,7 +4,10 @@
  */
 package com.emc.storageos.api.mapper;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
+
 import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.MigrationRestRep;
 
@@ -26,12 +29,15 @@ public class BlockMigrationMapper {
         }
         MigrationRestRep to = new MigrationRestRep();
         DbObjectMapper.mapDataObjectFields(from, to);
-        to.setVolume(DbObjectMapper.toRelatedResource(ResourceTypeEnum.VOLUME,
-                from.getVolume()));
-        to.setSource(DbObjectMapper.toRelatedResource(ResourceTypeEnum.VOLUME,
-                from.getSource()));
-        to.setTarget(DbObjectMapper.toRelatedResource(ResourceTypeEnum.VOLUME,
-                from.getTarget()));
+        if (!NullColumnValueGetter.isNullURI(from.getVolume())) {
+            to.setVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getVolume()));
+            to.setSource(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSource()));
+            to.setTarget(toRelatedResource(ResourceTypeEnum.VOLUME, from.getTarget()));
+        } else if (!NullColumnValueGetter.isNullURI(from.getConsistencyGroup())) {
+            to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
+            to.setSource(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getSource()));
+            to.setTarget(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getTarget()));
+        }
         to.setStartTime(from.getStartTime());
         to.setPercentageDone(from.getPercentDone());
         to.setStatus(from.getMigrationStatus());

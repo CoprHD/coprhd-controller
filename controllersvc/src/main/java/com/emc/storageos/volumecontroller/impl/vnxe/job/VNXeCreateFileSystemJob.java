@@ -73,7 +73,7 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
                 logMsgBuilder.append(String.format(
                         "Task %s failed to create file system: %s", opId, fsId.toString()));
                 fsObj.setInactive(true);
-                dbClient.persistObject(fsObj);
+                dbClient.updateObject(fsObj);
 
             } else {
                 logMsgBuilder.append(String.format("The file system: %s is not found anymore", fsId));
@@ -115,7 +115,7 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
                 fsObj.setMountPath(mountPath);
                 fsObj.setPath(mountPath);
 
-                dbClient.persistObject(fsObj);
+                dbClient.updateObject(fsObj);
                 if (logMsgBuilder.length() != 0) {
                     logMsgBuilder.append("\n");
                 }

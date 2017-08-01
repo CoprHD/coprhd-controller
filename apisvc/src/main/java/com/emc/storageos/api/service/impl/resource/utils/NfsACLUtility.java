@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,13 +96,13 @@ public class NfsACLUtility {
             userSetDB.add(dbAcl.getUser());
         }
 
-        if (addList != null && !addList.isEmpty()) {
+        if (!CollectionUtils.isEmpty(addList)) {
             verifyNfsACLsAddList(addList, userSetDB);
         }
-        if (modifyList != null && !modifyList.isEmpty()) {
+        if (!CollectionUtils.isEmpty(modifyList)) {
             verifyNfsACLsModifyOrDeleteList(modifyList, userSetDB);
         }
-        if (deleteList != null && !deleteList.isEmpty()) {
+        if (!CollectionUtils.isEmpty(deleteList)) {
             verifyNfsACLsModifyOrDeleteList(deleteList, userSetDB);
         }
 

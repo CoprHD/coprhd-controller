@@ -44,5 +44,8 @@ service rabbitmq-server restart
 service openstack-cinder-volume restart
 service openstack-cinder-scheduler restart
 service openstack-cinder-api restart
+
+# Update ViPR OpenStack version
+sed -i "s/1.1.0.0.10/1.2/g" /etc/motd
 # post Update - End
 ##############################################################

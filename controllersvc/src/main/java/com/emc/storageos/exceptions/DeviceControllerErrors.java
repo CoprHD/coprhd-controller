@@ -221,9 +221,6 @@ public interface DeviceControllerErrors {
             final String message);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
-    public ServiceError unableToReplicateFileShareConfiguration(final String operationName, final String fileObjects, final String message);
-
-    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError updateFileShareExportRulesFailed(final String fsUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)

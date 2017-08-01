@@ -202,12 +202,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
-            String successMessage = "Create filesystems successful for: " + fsUris.toString();
+            String successMessage = String.format("Create filesystems successful for %s ", fsUris.toString());
             Object[] callbackArgs = new Object[] { fsUris };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
 
         } catch (Exception ex) {
-            s_logger.error("Could not create filesystems: " + fsUris, ex);
+            s_logger.error("Could not create filesystems {} ", fsUris, ex);
             releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.CREATE_FILE_SYSTEM.getName();
             ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
@@ -262,12 +262,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
-            String successMessage = "Change filesystems vpool successful for: " + fs;
+            String successMessage = String.format("Change filesystems vpool successful for %s ", fs.toString());
             Object[] callbackArgs = new Object[] { fsUris };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
 
         } catch (Exception ex) {
-            s_logger.error("Could not change the filesystem vpool: " + fs, ex);
+            s_logger.error("Could not change the filesystem vpool {} ", fs, ex);
             releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL.getName();
             ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
@@ -307,12 +307,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
-            String successMessage = "Delete FileShares successful for: " + fileShareUris.toString();
+            String successMessage = String.format("Delete FileShares successful for %s ", fileShareUris.toString());
             Object[] callbackArgs = new Object[] { fileShareUris };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
 
         } catch (Exception ex) {
-            s_logger.error("Could not delete FileShares: " + fileShareUris, ex);
+            s_logger.error("Could not delete FileShares {} ", fileShareUris, ex);
             releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.DELETE_FILE_SYSTEM.getName();
             ServiceError serviceError = DeviceControllerException.errors.deleteFileSharesFailed(
@@ -350,11 +350,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
-            String successMessage = "Expand FileShares successful for: " + fileShareUris.toString();
+            String successMessage = String.format("Expand FileShares successful for %s ", fileShareUris.toString());
             Object[] callbackArgs = new Object[] { fileShareUris };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
         } catch (Exception ex) {
-            s_logger.error("Could not Expand FileShares: " + fileShareUris, ex);
+            s_logger.error("Could not Expand FileShares {} ", fileShareUris, ex);
             releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM.getName();
             ServiceError serviceError = DeviceControllerException.errors.expandFileShareFailed(fileShareUris.toString(), opName, ex);
@@ -631,10 +631,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * 
      */
     private void updateOperationFailed(TaskCompleter completer, URI fileObjUri, String opName, String msg) {
-        List<URI> fileObjects = new ArrayList<URI>();
-        fileObjects.add(fileObjUri);
+        String strFileObj = "null";
+        if (fileObjUri != null) {
+            strFileObj = fileObjUri.toString();
+        }
         ServiceError serviceError = DeviceControllerException.errors.unableToPerformFileOperationDueToInvalidObjects(opName,
-                fileObjects.toString(), msg);
+                strFileObj, msg);
         completer.error(s_dbClient, _locker, serviceError);
     }
 
@@ -1350,10 +1352,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     sourceFsUri));
             return false;
         }
-        URI targetFsURI = null;
+
         // Transferring the configuration at failover/failback is applicable
         // for only file systems with replication
         // otherwise fail the task!!
+        URI targetFsURI = null;
         if (sourceFileShare.getPersonality() != null && sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
             List<String> targetfileUris = new ArrayList<String>();
             targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());

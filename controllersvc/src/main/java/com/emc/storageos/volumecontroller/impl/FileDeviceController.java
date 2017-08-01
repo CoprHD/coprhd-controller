@@ -437,17 +437,17 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         String errMsg = null;
                         if (snapshotsExist) {
                             errMsg = String.format(
-                                    "delete file system from ViPR database failed because snapshots exist for file system {}"
+                                    "delete file system from ViPR database failed because snapshots exist for file system %s "
                                             + " and once deleted the snapshot cannot be ingested into ViPR",
                                     fsObj.getLabel());
                         } else if (quotaDirsExist && !quotaDirectoryIngestionSupported(storageObj.getSystemType())) {
                             errMsg = String.format(
-                                    "delete file system from ViPR database failed because quota directories exist for file system "
+                                    "delete file system from ViPR database failed because quota directories exist for file system %s "
                                             + " and once deleted the quota directory cannot be ingested into ViPR",
                                     fsObj.getLabel());
                         } else if (policyExists) {
                             errMsg = String.format(
-                                    "delete file system from ViPR database failed because file protection policies exist for file system "
+                                    "delete file system from ViPR database failed because file protection policies exist for file system %s"
                                             + " and once deleted the policy cannot be ingested into ViPR",
                                     fsObj.getLabel());
                         }
@@ -4423,6 +4423,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param resId
      * 
      * @param mountPath
+     * 
+     * @param opId
      */
     public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) {
         try {
@@ -4437,6 +4439,16 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /*
+     * Verifies for any existing mount present for an export of given file system
+     * throws an exception if any
+     * 
+     * @param fsId
+     * 
+     * @param param
+     * 
+     * @param opId
+     */
     public void verifyMountDependencies(URI fsId, FileShareExportUpdateParams param, String opId) {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -4494,6 +4506,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         WorkflowStepCompleter.stepSucceded(opId);
     }
 
+    /*
+     * Finds and returns list of mounts present hosts for given modify/delete hosts
+     * 
+     */
     public List<MountInfo> getMountedExports(URI fsId, String subDir, FileExportUpdateParams param) {
         List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fsId, _dbClient);
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
@@ -4704,7 +4720,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 // should be decoupled!!!
                 String fsPath = fileshare.getNativeId();
                 // Append SLASH to the fsPath
-                // this would avoid changes to file systems with partial prefix path match
+                // this would avoid in picking file systems with partial prefix path match
                 // eg. fsPath (/ifs/vipr/GOLDPool/FS1) policyPath(/ifs/vipr/GOLD)
                 if (fsPath != null && !fsPath.endsWith("/")) {
                     fsPath = fsPath + "/";

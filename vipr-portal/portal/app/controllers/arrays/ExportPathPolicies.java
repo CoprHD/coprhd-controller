@@ -5,14 +5,17 @@ import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.export.ExportPathPolicy;
 import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
 import com.emc.storageos.model.block.export.StoragePorts;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.google.common.collect.Lists;
 
@@ -31,6 +34,7 @@ import play.data.validation.Validation;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StoragePortUtils;
+import util.StorageProviderUtils;
 import util.StorageSystemUtils;
 import util.StringOption;
 import util.datatable.DataTablesSupport;
@@ -103,10 +107,18 @@ public class ExportPathPolicies extends ViprResourceController {
                     exportPathPolicy.getId(), exportPathPolicy.getName(),
                     exportPathPolicy.getDescription(), 
                     exportPathPolicy.getMinPaths(), exportPathPolicy.getMaxPaths(), 
-                    exportPathPolicy.getPathsPerInitiator(), exportPathPolicy.getMaxInitiatorsPerPort(),
-                    exportPathPolicy.getStoragePorts().size()));
+                    exportPathPolicy.getPathsPerInitiator(), exportPathPolicy.getMaxInitiatorsPerPort()));
         }
         renderJSON(DataTablesSupport.createJSON(results, params));
+    }
+
+    public static void itemDetails(String id) {
+        ExportPathPolicyRestRep policy = getViprClient().exportPathPolicies().get(uri(id));
+        if (policy == null) {
+            error(MessagesUtils.get(UNKNOWN, id));
+        }
+        List<StoragePortRestRep> storagePorts = StoragePortUtils.getStoragePorts(policy.getStoragePorts());
+        render(storagePorts);
     }
 
     private static void renderNumPathsArgs() {

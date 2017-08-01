@@ -1,9 +1,11 @@
 package models.datatable;
 
 import java.net.URI;
+import java.util.List;
 
 import com.emc.storageos.model.ports.StoragePortRestRep;
 
+import util.StoragePortUtils;
 import util.datatable.DataTable;
 
 public class ExportPathPoliciesDataTable extends DataTable {
@@ -15,7 +17,6 @@ public class ExportPathPoliciesDataTable extends DataTable {
         addColumn("maxPaths");
         addColumn("pathsPerInit");
         addColumn("initsPerPort");
-        addColumn("numStoragePorts");
 
         sortAll();
         setDefaultSortField("name");
@@ -28,12 +29,11 @@ public class ExportPathPoliciesDataTable extends DataTable {
         public Integer minPaths; 
         public Integer maxPaths; 
         public Integer pathsPerInit;
-        public Integer initsPerPort; 
-        public int numStoragePorts;
+        public Integer initsPerPort;
 
         public ExportPathPoliciesModel(URI id, String name, String description, 
                 Integer minPaths, Integer maxPaths, Integer pathsPerInit,
-                Integer initsPerPort, int numStoragePorts) {
+                Integer initsPerPort) {
             super();
             this.id = id;
             this.name = name;
@@ -42,7 +42,6 @@ public class ExportPathPoliciesDataTable extends DataTable {
             this.maxPaths = maxPaths;
             this.pathsPerInit = pathsPerInit;
             this.initsPerPort = initsPerPort;
-            this.numStoragePorts = numStoragePorts;
         }
     }
 

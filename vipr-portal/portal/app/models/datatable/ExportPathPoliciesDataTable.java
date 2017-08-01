@@ -48,7 +48,7 @@ public class ExportPathPoliciesDataTable extends DataTable {
     public class StoragePortDisplayDataTable extends StoragePortDataTable {
         public StoragePortDisplayDataTable() {
             addColumn("storageSystem");
-            setHidden("allocationDisqualified", "registrationStatus");
+            setHidden("allocationDisqualified", "registrationStatus", "iqn", "alias");
             sortAllExcept("id");
             setDefaultSort("name", "asc");
         }

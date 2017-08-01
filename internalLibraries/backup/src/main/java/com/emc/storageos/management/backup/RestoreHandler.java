@@ -18,6 +18,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,8 +149,8 @@ public class RestoreHandler {
             tmpDir.renameTo(viprDataDir);
 
             //if there are more files in the data dir, chown may take more than 10 seconds to complete,
-            //so set timeout to 1 minute
-            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP,60*1000);
+            //so set timeout to 2 minute
+            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP, TimeUnit.MINUTES.toMillis(2));
 
             restoreDrivers();
         } finally {

@@ -11,19 +11,19 @@ import java.util.List;
  */
 
 public class CommonStorageCapabilities {
-    private List<DataStorageServiceOption> dataStorage;
+    private List<CapabilityInstance> dataStorageServiceOptions;
     private List<DataConnectivityServiceOption> dataConnectivity;
     private List<DataPerformanceServiceOption> dataPerformance;
     private List<DataProtectionServiceOption> dataProtection;
     private List<DataSecurityServiceOption> dataSecurity;
     private List<ExportPathsServiceOption> exportPathParams;
 
-    public List<DataStorageServiceOption> getDataStorage() {
-        return dataStorage;
+    public List<CapabilityInstance> getDataStorage() {
+        return dataStorageServiceOptions;
     }
 
-    public void setDataStorage(List<DataStorageServiceOption> dataStorage) {
-        this.dataStorage = dataStorage;
+    public void setDataStorage(List<CapabilityInstance> dataStorage) {
+        this.dataStorageServiceOptions = dataStorage;
     }
 
     public List<DataConnectivityServiceOption> getDataConnectivity() {

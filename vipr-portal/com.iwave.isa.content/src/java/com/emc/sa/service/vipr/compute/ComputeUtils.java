@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.model.compute.ComputeElementListRestRep;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 
 import com.emc.sa.engine.ExecutionException;
@@ -70,6 +73,8 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.compute.ComputeElementRestRep;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
@@ -92,7 +97,6 @@ import com.vmware.vim25.mo.HostSystem;
 public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
-
 
    /**
     * Creates tasks to provision specified hosts to the given cluster.
@@ -490,9 +494,10 @@ public class ComputeUtils {
      * @param project project
      * @param virtualArray virtual array
      * @param hlu HLU
+     * @param portGroup port group URI
      * @return returns a map of hosts to Export Group URIs
      */
-    public static Map<Host, URI> exportBootVols(Map<Host, URI> hostToVolumeIdMap, URI project, URI virtualArray, Integer hlu) {
+    public static Map<Host, URI> exportBootVols(Map<Host, URI> hostToVolumeIdMap, URI project, URI virtualArray, Integer hlu, URI portGroup) {
 
         if (hostToVolumeIdMap == null || hostToVolumeIdMap.isEmpty()) {
             return Maps.newHashMap();
@@ -529,12 +534,12 @@ public class ComputeUtils {
                     
                     if (createExport) {
                         task = BlockStorageUtils.createHostExportNoWait(exportName,
-                                project, virtualArray, Arrays.asList(volumeId), hlu, host);
+                                project, virtualArray, Arrays.asList(volumeId), hlu, host, portGroup);
                     } else {
                         task = BlockStorageUtils.addHostAndVolumeToExportNoWait(export.getId(),
                                     // Don't add the host if there are already initiators in this export group.
                                     export.getInitiators() != null && !export.getInitiators().isEmpty() ? null : host.getId(), 
-                                    volumeId, hlu); 
+                                    volumeId, hlu, portGroup); 
                     }
                     taskToHostMap.put(task, host);
                 } catch (ExecutionException e) {
@@ -1749,5 +1754,79 @@ public class ComputeUtils {
             }
         }
         return errBuff.toString();
+    }
+
+    /**
+     * Get matched compute elements from given CVP uri
+     * @param client {@link ViPRCoreClient} instance
+     * @param cvp {@link URI} compute virtual pool uri
+     * @return {@link ComputeElementListRestRep}
+     */
+    public static ComputeElementListRestRep getMatchedComputeElements(ViPRCoreClient client, URI cvp) {
+        return client.computeVpools().getMatchedComputeElements(cvp);
+    }
+
+    /**
+     * Get compute system from given Compute system URI
+     * @param client {@link ViPRCoreClient} instance
+     * @param csURI {@link URI} compute system URI
+     * @return {@link ComputeSystemRestRep}
+     */
+    private static ComputeSystemRestRep getComputeSystem(ViPRCoreClient client, URI csURI) {
+        return client.computeSystems().get(csURI);
+    }
+
+    /**
+     * For a given compute virtual pool, find and return compute system details to which the matched
+     * compute elements belong to.
+     * @param client {@link ViPRCoreClient} instance
+     * @param computeVirtualPool {@link URI} compute virtual pool uri
+     * @return {@link Map} of compute system URI and corresponding compute system details.
+     */
+    public static Map<URI, ComputeSystemRestRep> getComputeSystemsFromCVP(ViPRCoreClient client, URI computeVirtualPool) {
+        ComputeElementListRestRep computeElementsListRep = ComputeUtils.getMatchedComputeElements(client, computeVirtualPool);
+        Map<URI, ComputeSystemRestRep> computeSystemMap = new HashMap<URI,ComputeSystemRestRep>();
+        if (null != computeElementsListRep && CollectionUtils.isNotEmpty(computeElementsListRep.getList())) {
+            for (ComputeElementRestRep computeElement : computeElementsListRep.getList()) {
+                URI csURI = computeElement.getComputeSystem().getId();
+                if(!computeSystemMap.containsKey(csURI)) {
+                    ComputeSystemRestRep csRestRep = ComputeUtils.getComputeSystem(client, csURI);
+                    computeSystemMap.put(csURI, csRestRep);
+                }
+            }
+        }
+        return computeSystemMap;
+    }
+
+    /**
+     * This method checks for the presence of image server on the compute system(s) 
+     * associated to the compute element(s) used in the CVP.
+     *
+     * @param client {@link ViPRCoreClient} instance
+     * @param cvp {@link ComputeVirtualPoolRestRep}
+     * @param preCheckErrors {@link StringBuilder}
+     * @return {@link StringBuilder} preCheckErrors with appropriate messages
+     */
+    public static StringBuilder checkComputeSystemsHaveImageServer(ViPRCoreClient client,
+                                                            ComputeVirtualPoolRestRep cvp,
+                                                            StringBuilder preCheckErrors) {
+        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(client, cvp.getId());
+        StringBuilder computeSystemsWithoutImageServer = new StringBuilder();
+        if (null != computeSystemMap) {
+            for (Map.Entry<URI, ComputeSystemRestRep> computeSystemRestRep : computeSystemMap.entrySet()) {
+                if (NullColumnValueGetter.isNullValue(computeSystemRestRep.getValue().getComputeImageServer())){
+                    if (computeSystemsWithoutImageServer.length() > 0){
+                        computeSystemsWithoutImageServer.append(", ");
+                    }
+                    computeSystemsWithoutImageServer.append(computeSystemRestRep.getValue().getName());
+                }
+            }
+            if (computeSystemsWithoutImageServer.length() > 0){
+                preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.compute.system.image.server.null",
+                        computeSystemsWithoutImageServer));
+            }
+        }
+        return preCheckErrors;
+
     }
 }

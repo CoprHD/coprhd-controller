@@ -111,7 +111,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     private static final Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
     // Storage drivers for block  devices
-    private Map<String, AbstractStorageDriver> drivers;
+    private Map<String, AbstractStorageDriver> drivers = new HashMap<>();
     private DbClient dbClient;
     private ControllerLockingService locker;
     private ExportMaskOperations exportMaskOperationsHelper;
@@ -126,10 +126,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     public void setLocker(ControllerLockingService locker) {
         this.locker = locker;
-    }
-
-    public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
-        this.drivers = drivers;
     }
 
     public Map<String, AbstractStorageDriver> getDrivers() {

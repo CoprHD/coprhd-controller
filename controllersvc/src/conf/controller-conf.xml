@@ -438,19 +438,13 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="locker" ref="locker"/>
         <property name="exportMaskOperationsHelper" ref="externalDeviceExportMaskOperationsHelper"/>
-        <!-- Block storage drivers -->
     </bean>
-    <!-- Driver class for scaleio block storage driver -->
-    <!--     <bean id="scaleioStorageDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
-        </bean>
-    -->
 
     <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="externalDevice" ref="externalBlockStorageDevice" />
         <property name="blockScheduler" ref="blockscheduler"/>
     </bean>
-    <!-- Storage drivers End -->
 
     <bean id="vmaxFindProviderFactory" class="com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory">
         <constructor-arg ref="dbclient" />

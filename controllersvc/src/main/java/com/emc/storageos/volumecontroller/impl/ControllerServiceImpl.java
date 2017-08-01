@@ -647,7 +647,7 @@ public class ControllerServiceImpl implements ControllerService {
                 StorageDriverMetaData metaData = DriverMetadataUtil.parseMetadata(props, driverFileName);
                 List<StorageSystemType> types = DriverMetadataUtil.getTypesByDriverName(metaData.getDriverName(), _dbClient);
                 if (!types.isEmpty()) {
-                    _dbClient.removeObject((StorageSystemType[])types.toArray());
+                    _dbClient.removeObject(types.toArray(new StorageSystemType[types.size()]));
                 }
                 types = new ArrayList<>();
                 for (StorageSystemType type : DriverMetadataUtil.map(metaData)) {
@@ -721,7 +721,7 @@ public class ControllerServiceImpl implements ControllerService {
                 cachedDriverInstances.put(className, driverInstance);
                 _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
             } catch (Exception e) {
-                _log.error("Error happened when instantiating class {}", mainClassName);
+                _log.error("Error happened when instantiating class {}", mainClassName, e);
             }
         }
     }

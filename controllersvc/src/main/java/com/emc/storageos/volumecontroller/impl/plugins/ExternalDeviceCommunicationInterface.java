@@ -79,7 +79,7 @@ public class ExternalDeviceCommunicationInterface extends
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
     private static Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
-    private Map<String, AbstractStorageDriver> drivers;
+    private Map<String, AbstractStorageDriver> drivers = new HashMap<>();
     // Indicate if driver info has been fetched from db and merged into drivers member
     private boolean initialized = false;
     
@@ -96,10 +96,6 @@ public class ExternalDeviceCommunicationInterface extends
         this.unManagedVolumeDiscoverer = unManagedVolumeDiscoverer;
     }
 
-    public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
-        this.drivers = drivers;
-    }
-    
     /**
      * Setter for the common capability definitions supported by the SB SDK.
      * 

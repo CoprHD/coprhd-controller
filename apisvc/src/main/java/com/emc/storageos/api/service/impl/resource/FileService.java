@@ -271,7 +271,15 @@ public class FileService extends TaskResourceService {
 
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
-        
+        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER),
+        FAILBACK("failback", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
+        START("start", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
+        STOP("stop", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
+        PAUSE("pause", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
+        RESUME("resume", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
+        REFRESH("refresh", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH),
+        UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION),
+        UPDATE_RPO("update-rpo", ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;

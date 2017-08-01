@@ -14,6 +14,8 @@ import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
 import com.emc.storageos.model.block.export.StoragePorts;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.vipr.client.core.util.CachedResources;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
@@ -22,7 +24,6 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 import models.datatable.ExportPathPoliciesDataTable;
-import models.datatable.ExportPathPoliciesDataTable.StoragePortSelectionDataTable;
 import models.datatable.ExportPathPoliciesDataTable.StoragePortDisplayDataTable;
 import models.datatable.StoragePortDataTable.StoragePortInfo;
 import play.Logger;
@@ -31,6 +32,7 @@ import play.data.validation.Validation;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StoragePortUtils;
+import util.StorageSystemUtils;
 import util.StringOption;
 import util.datatable.DataTablesSupport;
 
@@ -132,7 +134,7 @@ public class ExportPathPolicies extends ViprResourceController {
         ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm();// createExportPathParams();//new ExportPathParameters();//
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         StoragePortDisplayDataTable portDataTable = dataTable.new StoragePortDisplayDataTable();
-        StoragePortSelectionDataTable portSelectionDataTable = dataTable.new StoragePortSelectionDataTable();
+        StoragePortDisplayDataTable portSelectionDataTable = dataTable.new StoragePortDisplayDataTable();
 
         renderNumPathsArgs();
         render("@edit", exportPathPolicyForm, portDataTable, portSelectionDataTable);
@@ -145,7 +147,7 @@ public class ExportPathPolicies extends ViprResourceController {
         renderNumPathsArgs();
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         StoragePortDisplayDataTable portDataTable = dataTable.new StoragePortDisplayDataTable();
-        StoragePortSelectionDataTable portSelectionDataTable = dataTable.new StoragePortSelectionDataTable();
+        StoragePortDisplayDataTable portSelectionDataTable = dataTable.new StoragePortDisplayDataTable();
 
         if (exportPathPolicyRestRep != null) {
             renderArgs.put("exportPathPolicy", exportPathPolicyRestRep);
@@ -279,11 +281,12 @@ public class ExportPathPolicies extends ViprResourceController {
         if (exportPathPolicyId != null && !"null".equals(exportPathPolicyId)) {
             ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicyId));
             List<URI> storagePortUris = exportPathParametersRestRep.getStoragePorts();
+            CachedResources<StorageSystemRestRep> storageSystems = StorageSystemUtils.createCache();
 
             List<StoragePortRestRep> storagePorts = StoragePortUtils
                     .getStoragePorts(storagePortUris);
             for (StoragePortRestRep storagePort : storagePorts) {
-                results.add(new StoragePortInfo(storagePort));
+                results.add(new StoragePortInfo(storagePort, storageSystems.get(storagePort.getStorageDevice())));
             }
         }
 
@@ -291,7 +294,7 @@ public class ExportPathPolicies extends ViprResourceController {
     }
 
     public static void availablePortsJson(String exporthPathPolicyId) {
-        List<StoragePortSelectionDataTable.PortSelectionModel> results = Lists.newArrayList();
+        List<StoragePortInfo> results = Lists.newArrayList();
         List<StoragePortRestRep> storagePorts = StoragePortUtils.getStoragePorts();
 
         if (exporthPathPolicyId != null && !"null".equals(exporthPathPolicyId)) {
@@ -300,10 +303,11 @@ public class ExportPathPolicies extends ViprResourceController {
             List<StoragePortRestRep> portsNotForSelection = StoragePortUtils.getStoragePorts(storagePortUris);
             storagePorts.removeAll(portsNotForSelection);
         }
+        
+        CachedResources<StorageSystemRestRep> storageSystems = StorageSystemUtils.createCache();
+
         for (StoragePortRestRep storagePort : storagePorts) {
-            ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
-            StoragePortSelectionDataTable portSelectionDataTable = dataTable.new StoragePortSelectionDataTable();
-            results.add(portSelectionDataTable.new PortSelectionModel(storagePort));
+            results.add(new StoragePortInfo(storagePort, storageSystems.get(storagePort.getStorageDevice())));
         }
 
         renderJSON(DataTablesSupport.createJSON(results, params));

@@ -688,7 +688,6 @@ public class ControllerServiceImpl implements ControllerService {
             _log.info("No out-of-tree driver is installed, keep driver info remained as loaded from Spring context");
             return;
         }
-        initDriverManager(types);
         initExternalBlockStorageDevice(types);
     }
 
@@ -723,37 +722,6 @@ public class ControllerServiceImpl implements ControllerService {
             } catch (Exception e) {
                 _log.error("Error happened when instantiating class {}", mainClassName, e);
             }
-        }
-    }
-
-    private void initDriverManager(List<StorageSystemType> types) {
-        StorageDriverManager driverManager = StorageDriverManager.getInstance();
-        for (StorageSystemType type : types) {
-            String typeName = type.getStorageTypeName();
-            String driverName = type.getDriverName();
-            if (type.getIsSmiProvider()) {
-                driverManager.getStorageProvidersMap().put(driverName, typeName);
-                _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
-                continue;
-            }
-            driverManager.getStorageSystemsMap().put(driverName, typeName);
-            if (type.getManagedBy() != null) {
-                driverManager.getProviderManaged().add(typeName);
-            } else {
-                driverManager.getDirectlyManaged().add(typeName);
-            }
-            if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.FILE.toString())) {
-                driverManager.getFileSystems().add(typeName);
-            } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
-                driverManager.getBlockSystems().add(typeName);
-            }
-
-            Set<String> supportedStorageProfiles = type.getSupportedStorageProfiles();
-            if (CollectionUtils.isNotEmpty(supportedStorageProfiles)) {
-                driverManager.getSupportedStorageProfiles().put(typeName, supportedStorageProfiles);
-            }
-
-            _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
         }
     }
 

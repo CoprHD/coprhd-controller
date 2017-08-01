@@ -109,9 +109,11 @@ public final class WorkflowHelper {
     private static final String RESOURCES_FOLDER = "resources";
     private static final String ROOT = "";
     private static final String METADATA_FILE = "workflow.md";
-    private static final WorkflowVersion CURRENT_VERSION = new WorkflowVersion(1, 0, 0, 0);
+    private static final WorkflowVersion CURRENT_VERSION = new WorkflowVersion(2, 0, 0, 0);
     private static final ImmutableList<String> SUPPORTED_VERSIONS = ImmutableList.<String> builder()
-            .add(CURRENT_VERSION.toString()).build();
+            .add(CURRENT_VERSION.toString())
+            .add(new WorkflowVersion(1, 0, 0, 0).toString())
+            .build();
     private static final int MAX_IMPORT_NAME_INDEX = 100;
     private static final Set<String> ATTRIBUTES = ImmutableSet.<String> builder()
             .add(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)

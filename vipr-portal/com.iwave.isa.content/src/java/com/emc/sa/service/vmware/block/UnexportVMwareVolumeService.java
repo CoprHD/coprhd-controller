@@ -118,17 +118,21 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         for (BlockObjectRestRep volume : volumes) {
             if (volume.getTags() != null) {
                 vmware.removeVmfsDatastoreTag(volume, hostId);
-                logInfo("remove vmfs tags");
             }
-        }
 
-        for (ExportGroupRestRep eg : filteredExportGroups) {
-            List<ExportBlockParam> volumes = eg.getVolumes();
-            for (ExportBlockParam volume : volumes) {
-                BlockObjectRestRep blockObjectRestRep = BlockStorageUtils.getBlockResource(volume.getId());
-                if (blockObjectRestRep.getTags() != null && blockObjectRestRep.getTags().contains(hostId)) {
-                    logInfo("remove additional.vmfs.datastore.tags");
-                    vmware.removeVmfsDatastoreTag(blockObjectRestRep, hostId);
+            String datastoreName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
+            for (ExportGroupRestRep eg : filteredExportGroups) {
+                List<ExportBlockParam> volumes = eg.getVolumes();
+                for (ExportBlockParam v : volumes) {
+                    BlockObjectRestRep blockObjectRestRep = BlockStorageUtils.getBlockResource(v.getId());
+                    if (blockObjectRestRep.getTags() == null) {
+                        continue;
+                    }
+                    for (String tag: blockObjectRestRep.getTags()) {
+                        if (tag.matches("(.*)" + hostId.toString() + "(.*)=" + datastoreName)) {
+                            vmware.removeVmfsDatastoreTag(blockObjectRestRep, hostId);
+                        }
+                    }
                 }
             }
         }

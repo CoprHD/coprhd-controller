@@ -18,6 +18,7 @@
 package com.emc.sa.service.vipr.customservices;
 
 import java.io.File;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,9 +30,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -42,11 +40,8 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesExecutors;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesScriptTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
-import com.emc.sa.service.vipr.customservices.tasks.RESTHelper;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
@@ -56,7 +51,6 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Ste
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesConstants.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
-import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
@@ -201,43 +195,26 @@ public class CustomServicesService extends ViPRService {
                 final MakeCustomServicesExecutor task = executor.get(step.getType());
                 task.setParam(getClient().getRestClient());
 
-                long polltimeout = System.currentTimeMillis();
                 if (step.getAttributes().getPolling()) {
+                    final long polltimeout = System.currentTimeMillis();
                     while (true) {
-                        logger.info("call executor");
+                        logger.info("call poll executor");
                         res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
 
-                        try {
-                            final Map<String, List<String>> out = updateOutputPerStep(step, res);
-                            logger.info("update non iter out");
-                            outputPerStep.put(step.getId(), out);
-
-                        } catch (final Exception e) {
-                            logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
-                        }
-                        if (checkPolling(step.getAttributes().getSuccessCondition(), null) ||
-                                checkPolling(step.getAttributes().getFailureCondition(), null)) {
-                            break;
-                        }
-
-                        TimeUnit.MINUTES.sleep(step.getAttributes().getInterval());
-
-                        if ((System.currentTimeMillis() - polltimeout) > step.getAttributes().getTimeout()) {
-                            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
-                        }
-                    }
-                } else {
-                    logger.info("call executor");
-                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
-
-                    try {
                         final Map<String, List<String>> out = updateOutputPerStep(step, res);
                         logger.info("update non iter out");
                         outputPerStep.put(step.getId(), out);
-
-                    } catch (final Exception e) {
-                        logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
+                        if (isPollingSuccessful(step, out, polltimeout)) {
+                            break;
+                        }
                     }
+                } else {
+                    logger.info("call non poll executor");
+                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
+
+                    final Map<String, List<String>> out = updateOutputPerStep(step, res);
+                    logger.info("update non iter out");
+                    outputPerStep.put(step.getId(), out);
                 }
 
                 next = getNext(true, res, step);
@@ -257,6 +234,27 @@ public class CustomServicesService extends ViPRService {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
             }
         }
+    }
+
+    private boolean isPollingSuccessful(final Step step, final Map<String, List<String>> values, final long polltimeout) throws Exception {
+
+        if (checkPolling(step.getAttributes().getSuccessCondition(), values)) {
+            logger.info("Polling step is successful");
+            return true;
+        }
+
+        if (checkPolling(step.getAttributes().getFailureCondition(), values)) {
+            logger.info("Polling step failed");
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Polling failed");
+        }
+
+        TimeUnit.MINUTES.sleep(step.getAttributes().getInterval());
+
+        if ((System.currentTimeMillis() - polltimeout) > step.getAttributes().getTimeout()) {
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
+        }
+
+        return false;
     }
 
     private boolean checkPolling(final List<CustomServicesWorkflowDocument.Condition> success, Map<String, List<String>> values) {
@@ -540,38 +538,6 @@ public class CustomServicesService extends ViPRService {
         return inputs;
     }
 
-
-    private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception {
-        final List<String> out = new ArrayList<String>();
-
-        final JsonNode node;
-        try {
-            node = new ObjectMapper().readTree(result);
-        } catch (final IOException e) {
-            logger.warn("Could not parse Script output" + e);
-            return null;
-        }
-
-        final JsonNode arrNode = node.get(key);
-
-        if (arrNode == null) {
-            logger.warn("Could not find value for:{}", key);
-            return null;
-        }
-
-        if (arrNode.isArray()) {
-            for (final JsonNode objNode : arrNode) {
-                out.add(objNode.toString());
-            }
-        } else {
-            out.add(arrNode.toString());
-        }
-
-        logger.info("parsed result key:{} value:{}", key, out);
-
-        return out;
-    }
-
     /**
      * Parse REST Response and get output values as specified by the user in the workflow definition
      * <p/>
@@ -584,104 +550,15 @@ public class CustomServicesService extends ViPRService {
      * @param res
      */
 
-    private final Map<String, List<String>>  updateOutputPerStep(final Step step, final CustomServicesTaskResult res) throws Exception {
+    private final Map<String, List<String>>  updateOutputPerStep(final Step step, final CustomServicesTaskResult res) {
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
-        final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
-        if (output == null) {
-            return out;
-        }
-        final String result = res.getOut();
 
         //set the default result.
         out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
         out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
         out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
-        
-        switch(step.getType()) {
-            case CustomServicesConstants.VIPR_PRIMITIVE_TYPE:
-                try {
-                    out.putAll(updateViproutput(step, res.getOut()));
-                } catch (Exception e) {
-                    logger.warn("StepId:{} Could not parse ViPR REST Output properly:{}", step.getId(), e);
-                }
-            break;
-            default:
+        out.putAll(res.getOutput());
 
-                if( null != output ) {
-                    for (final CustomServicesWorkflowDocument.Output o : output) {
-                        if (isScript(step)) {
-                            final String outToParse = ((CustomServicesScriptTaskResult)res).getScriptOut();
-                            logger.info("Parse non vipr output:{}", outToParse);
-                            out.put(o.getName(), evaluateAnsibleOut(outToParse, o.getName()));
-                        } else if (step.getType().equals(StepType.REST.toString())) {
-                            final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
-                            final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
-                            for (final Map.Entry<String, List<String>> entry : headers) {
-                                if (entry.getKey().equals(o.getName())) {
-                                    out.put(o.getName(), entry.getValue());
-                                }
-                            }
-                        }
-                    }
-                }
-           break;
-        }
         return out;
-    }
-
-    private Map<String, List<String>> updateViproutput(final Step step, final String res) throws Exception {
-
-        final CustomServicesViPRPrimitive primitive = customServicesViprDao.get(step.getOperation());
-        if (null == primitive) {
-            throw new RuntimeException("Primitive " + step.getOperation() + " not found ");
-        }
-
-        if (StringUtils.isEmpty(primitive.response())) {
-            logger.debug("Vipr primitive" + primitive.name() + " has no response defined.");
-            return null;
-        }
-
-        final String classname = primitive.response();
-
-        logger.debug("Result is:{}", res);
-        final ObjectMapper mapper = new ObjectMapper();
-        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
-        final Class<?> clazz = Class.forName(classname);
-
-        final Object responseEntity = mapper.readValue(res, clazz.newInstance().getClass());
-
-        final Map<String, List<String>> output = parseViprOutput(responseEntity, step);
-        logger.info("ViPR output for step ID: " + step.getId() + " is " + output);
-        return output;
-    }
-
-
-    private Map<String, List<String>> parseViprOutput(final Object responseEntity, final Step step) throws Exception {
-        final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
-
-        final Map<String, List<String>> output = new HashMap<String, List<String>>();
-        for (final CustomServicesWorkflowDocument.Output out : stepOut) {
-            final String outName = out.getName();
-            logger.debug("output to parse:{}", outName);
-
-            final String[] bits = outName.split("\\.");
-
-            // Start parsing at i=1 because the name of the root
-            // element is not included in the JSON
-            final List<String> list = RESTHelper.parserOutput(bits, 1, responseEntity);
-            if (list != null) {
-                output.put(out.getName(), list);
-            }
-        }
-
-        return output;
-    }
-
-    private boolean isScript(final Step step) {
-        if (step.getType().equals(StepType.LOCAL_ANSIBLE.toString()) || step.getType().equals(StepType.REMOTE_ANSIBLE.toString())
-                || step.getType().equals(StepType.SHELL_SCRIPT.toString()))
-            return true;
-
-        return false;
     }
 }

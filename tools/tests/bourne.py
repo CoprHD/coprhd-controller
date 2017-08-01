@@ -3795,7 +3795,7 @@ class Bourne:
         # Now copy policies. Should be in the form: varray|role:uri|role:uri|...,varray|role:uri|role:uri...,...
         if (copyPerfPolicy):
             cpp_varrays = []
-            cpp_entries = copyPerfParams.split(',')
+            cpp_entries = copyPerfPolicy.split(',')
             for cpp_entry in cpp_entries:
                 index = 0
                 cpp_varray = dict()
@@ -4287,10 +4287,10 @@ class Bourne:
        copy['count'] = count
        copy['type'] = "native"
 
-       # Initialize the mirror performance parameters. Should be in form: role:uri,role:uri,...
+       # Initialize the mirror performance policies. Should be in form: role:uri,role:uri,...
        if (mirrorPerfPolicy):
            pp_roles = []
-           pp_entries = mirrorPerfParams.split(',')
+           pp_entries = mirrorPerfPolicy.split(',')
            for pp_entry in pp_entries:
                pp_role_details = pp_entry.split(":")
                pp_role = dict()

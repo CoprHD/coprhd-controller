@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -200,18 +201,43 @@ public class CustomServicesService extends ViPRService {
                 final MakeCustomServicesExecutor task = executor.get(step.getType());
                 task.setParam(getClient().getRestClient());
 
-                logger.info("call executor");
-                res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
+                long polltimeout = System.currentTimeMillis();
+                if (step.getAttributes().getPolling()) {
+                    while (true) {
+                        logger.info("call executor");
+                        res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
 
-                try {
-                    final Map<String, List<String>> out = updateOutputPerStep(step, res);
-                    logger.info("update non iter out");
-                    outputPerStep.put(step.getId(), out);
+                        try {
+                            final Map<String, List<String>> out = updateOutputPerStep(step, res);
+                            logger.info("update non iter out");
+                            outputPerStep.put(step.getId(), out);
 
-                res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
+                        } catch (final Exception e) {
+                            logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
+                        }
+                        if (checkPolling(step.getAttributes().getSuccessCondition(), null) ||
+                                checkPolling(step.getAttributes().getFailureCondition(), null)) {
+                            break;
+                        }
 
-                } catch (final Exception e) {
-                    logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
+                        TimeUnit.MINUTES.sleep(step.getAttributes().getInterval());
+
+                        if ((System.currentTimeMillis() - polltimeout) > step.getAttributes().getTimeout()) {
+                            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
+                        }
+                    }
+                } else {
+                    logger.info("call executor");
+                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
+
+                    try {
+                        final Map<String, List<String>> out = updateOutputPerStep(step, res);
+                        logger.info("update non iter out");
+                        outputPerStep.put(step.getId(), out);
+
+                    } catch (final Exception e) {
+                        logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
+                    }
                 }
 
                 next = getNext(true, res, step);
@@ -233,6 +259,17 @@ public class CustomServicesService extends ViPRService {
         }
     }
 
+    private boolean checkPolling(final List<CustomServicesWorkflowDocument.Condition> success, Map<String, List<String>> values) {
+        for (CustomServicesWorkflowDocument.Condition cond : success) {
+            String key = cond.getOutputName();
+            List<String> out = values.get(key);
+            if (cond.getCheckValue().equals(out.get(0))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private CustomServicesWorkflowDocument getwfDocument() throws Exception {
         final String raw;
@@ -416,6 +453,11 @@ public class CustomServicesService extends ViPRService {
                         break;
                     case ASSET_OPTION_MULTI:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
+                            final String assetVal = params.get(friendlyName).toString();
+                            final String[] rowsVal = assetVal.split("\",\"");
+                            if (isLoop()) {
+                                inputs.put(name, Arrays.asList(rowsVal[loopCount]));
+                            }
 
                            // final List<String> arrayInput;
 

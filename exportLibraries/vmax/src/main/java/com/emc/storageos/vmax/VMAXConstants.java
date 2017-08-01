@@ -13,6 +13,10 @@ public interface VMAXConstants {
     static final String HTTPS_URL = "https";
     static final String HTTP_URL = "http";
 
+    public static enum MigrationActionTypes {
+        Recover, Cutover, Sync, Commit
+    }
+
     static final String UNIVMAX_BASE_URI = "/univmax/restapi";
     static final String UNIVMAX_SYSTEM_BASE_URI = UNIVMAX_BASE_URI + "/system";
     static final String UNIVMAX_SYSTEM_VERSION_URI = UNIVMAX_SYSTEM_BASE_URI + "/version";
@@ -26,7 +30,8 @@ public interface VMAXConstants {
     static final String CREATE_MIGRATION_ENVIRONMENT_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s";
 
     static final String GET_MIGRATION_STORAGEGROUPS_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup";
-    static final String GET_MIGRATION_STORAGEGROUP_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup/%2$s";
+    static final String MIGRATION_STORAGEGROUP_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup/%2$s";
+    static final String CANCEL_MIGRATION_URI = MIGRATION_STORAGEGROUP_URI + "?revert=true";
 
     public static URI getValidateEnvironmentURI(String sourceArraySerialNumber, String targetArraySerialNumber) {
         return URI.create(String.format(VALIDATE_ENVIRONMENT_URI, sourceArraySerialNumber, targetArraySerialNumber));
@@ -48,8 +53,8 @@ public interface VMAXConstants {
         return URI.create(String.format(GET_MIGRATION_STORAGEGROUPS_URI, sourceArraySerialNumber));
     }
 
-    public static URI getMigrationStorageGroupURI(String sourceSymmetrixId, String storageGroupName) {
-        return URI.create(String.format(GET_MIGRATION_STORAGEGROUP_URI, sourceSymmetrixId, storageGroupName));
+    public static URI migrationStorageGroupURI(String sourceArraySerialNumber, String storageGroupName) {
+        return URI.create(String.format(MIGRATION_STORAGEGROUP_URI, sourceArraySerialNumber, storageGroupName));
     }
 
     public static URI getVersionURI() {
@@ -62,6 +67,10 @@ public interface VMAXConstants {
 
     public static URI getSystemGetURI(String symmId) {
         return URI.create(String.format(UNIVMAX_SYSTEM_SYMM_GET_URI, symmId));
+    }
+
+    public static URI cancelMigrationURI(String sourceArraySerialNumber, String storageGroupName) {
+        return URI.create(String.format(CANCEL_MIGRATION_URI, sourceArraySerialNumber, storageGroupName));
     }
 
 }

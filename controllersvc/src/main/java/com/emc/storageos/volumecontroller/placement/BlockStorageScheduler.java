@@ -1457,39 +1457,55 @@ public class BlockStorageScheduler {
             param.setAllowFewerPorts(true);
             return param;
         }
+        URI pgURI = null;
         if (blockObjectURIs != null) {
+            BlockObject blockObject = null;
             for (URI uri : blockObjectURIs) {
-                BlockObject blockObject = BlockObject.fetch(_dbClient, uri);
+                blockObject = BlockObject.fetch(_dbClient, uri);
                 if (blockObject == null) {
                     continue;
                 }
-                if (storageSystemURI != null &&
-                        !storageSystemURI.equals(blockObject.getStorageController())) {
+                if (storageSystemURI != null && !storageSystemURI.equals(blockObject.getStorageController())) {
                     continue;
                 }
-                
                 ExportPathParams volParam = null;
-                if (exportGroup != null) {
-                    // Check to see if the ExportGroup has path parameters for volume
-                    if (exportGroup.getPathParameters().containsKey(uri.toString())) {
-                        URI exportPathParamsUri = URI.create(exportGroup.getPathParameters().get(uri.toString()));
-                        volParam = _dbClient.queryObject(ExportPathParams.class, exportPathParamsUri);
+                // Check to see if the ExportGroup has path parameters for volume
+                if (exportGroup != null && exportGroup.getPathParameters().containsKey(uri.toString())) {
+                    URI exportPathParamsUri = URI.create(exportGroup.getPathParameters().get(uri.toString()));
+                    volParam = _dbClient.queryObject(ExportPathParams.class, exportPathParamsUri);
+                    if (volParam == null) {
+                        continue;
+                    }
+                    // Record the port group, if any
+                    pgURI = volParam.getPortGroup();
+                    String.format("Port group: %s", pgURI);
+                    if (volParam.getMaxPaths() > 0) {
+                        _log.info(String.format("Using EG %s path policy %s - %s", exportGroup.getLabel(),
+                                volParam.getLabel(), volParam.getDescription()));
+                        param = volParam;
+                        break;
                     }
                 }
-                if (volParam == null || volParam.getMaxPaths() == null || volParam.getMaxPaths() == 0) {
-                    // Otherwise check use the Vpool path parameters
-                    URI vPoolURI = getBlockObjectVPoolURI(blockObject, _dbClient);
-                    URI pgURI = null;
-                    if (volParam != null) {
-                        pgURI = volParam.getPortGroup();
-                    }
-                    volParam = getExportPathParam(blockObject, vPoolURI, _dbClient);
-                    if (pgURI != null) {
-                        volParam.setPortGroup(pgURI);
-                    }
+            }
+            if (param == null || param.getMaxPaths() == null || param.getMaxPaths() == 0) {
+                // Otherwise, lookup up the default path policy for the array type
+                StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+                ExportPathParams policy = findDefaultExportPathPolicyForArray(_dbClient, system.getSystemType());
+                if (policy == null) {
+                    policy = findDefaultExportPathPolicyForArray(_dbClient, DEFAULT_PATH_POLICY_NAME);
                 }
-                if (volParam.getMaxPaths() > param.getMaxPaths()) {
-                    param = volParam;
+                if (policy != null) {
+                    _log.info(String.format("Using default export path policy %s : %s", policy.getLabel(), policy.getDescription()));
+                    param = policy;
+                }
+            }
+            if (param == null || param.getMaxPaths() == null || param.getMaxPaths() == 0) {
+                // Otherwise use the Vpool path parameters
+                URI vPoolURI = getBlockObjectVPoolURI(blockObject, _dbClient);
+                ExportPathParams vpoolPolicy = getExportPathParam(blockObject, vPoolURI, _dbClient);
+                if (vpoolPolicy != null) {
+                    _log.info(String.format("Using vpool path parameters %s : %s", vpoolPolicy.getLabel(), vpoolPolicy.getDescription()));
+                    param = vpoolPolicy;
                 }
             }
         }
@@ -1497,6 +1513,7 @@ public class BlockStorageScheduler {
         if (param.getMaxPaths() == 0) {
             param = ExportPathParams.getDefaultParams();
         }
+        param.setPortGroup(pgURI);
         return param;
     }
     

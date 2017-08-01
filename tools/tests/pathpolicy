@@ -136,7 +136,10 @@ def path_display(path, tags):
         desc = path['description']
     except:
         desc = ''
-    print path_fmt.format(path['name'], path['min_paths'], path['max_paths'], path['paths_per_initiator'], path['max_initiators_per_port'], path['id'], desc, tags)
+    try:
+        print path_fmt.format(path['name'], path['min_paths'], path['max_paths'], path['paths_per_initiator'], path['max_initiators_per_port'], path['id'], desc, tags)
+    except:
+        print path
 
 #----------------------------------------------------------------------
 # command-line parsing

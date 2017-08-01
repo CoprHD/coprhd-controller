@@ -5,18 +5,14 @@ import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.export.ExportPathPolicy;
 import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
 import com.emc.storageos.model.block.export.StoragePorts;
 import com.emc.storageos.model.ports.StoragePortRestRep;
-import com.emc.storageos.model.smis.StorageProviderRestRep;
-import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
@@ -34,8 +30,6 @@ import play.data.validation.Validation;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StoragePortUtils;
-import util.StorageProviderUtils;
-import util.StorageSystemUtils;
 import util.StringOption;
 import util.datatable.DataTablesSupport;
 
@@ -105,8 +99,8 @@ public class ExportPathPolicies extends ViprResourceController {
         for (ExportPathPolicyRestRep exportPathPolicy : exportPathPolicies) {
             results.add(new ExportPathPoliciesDataTable.ExportPathPoliciesModel(
                     exportPathPolicy.getId(), exportPathPolicy.getName(),
-                    exportPathPolicy.getDescription(), 
-                    exportPathPolicy.getMinPaths(), exportPathPolicy.getMaxPaths(), 
+                    exportPathPolicy.getDescription(),
+                    exportPathPolicy.getMinPaths(), exportPathPolicy.getMaxPaths(),
                     exportPathPolicy.getPathsPerInitiator(), exportPathPolicy.getMaxInitiatorsPerPort()));
         }
         renderJSON(DataTablesSupport.createJSON(results, params));
@@ -205,7 +199,6 @@ public class ExportPathPolicies extends ViprResourceController {
         exportPathPolicy.setMinPaths(exportPathPolicyForm.minPaths);
         exportPathPolicy.setPathsPerInitiator(exportPathPolicyForm.pathsPerInitiator);
         exportPathPolicy.setMaxInitiatorsPerPort(exportPathPolicyForm.maxInitiatorsPerPort);
-
         exportPathPolicy.setStoragePorts(exportPathPolicyForm.storagePorts);
         return exportPathPolicy;
     }
@@ -222,7 +215,8 @@ public class ExportPathPolicies extends ViprResourceController {
     }
 
     @FlashException(referrer = { "edit" })
-    public static void addStoragePortsToPolicy(String exportPathPolicyId, String storageSystemId, String storagePortIds, String pgName, String pgDesc) {
+    public static void addStoragePortsToPolicy(String exportPathPolicyId, String storageSystemId, String storagePortIds, String pgName,
+            String pgDesc) {
 
         if (exportPathPolicyId == null || "".equals(exportPathPolicyId)) {
             ExportPathPolicy input = new ExportPathPolicy();
@@ -279,39 +273,30 @@ public class ExportPathPolicies extends ViprResourceController {
 
     public static void storagePortsJson(String exportPathPolicyId) {
         List<StoragePortInfo> results = Lists.newArrayList();
-        
+
         if (exportPathPolicyId != null && !"null".equals(exportPathPolicyId)) {
             ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicyId));
             List<URI> storagePortUris = exportPathParametersRestRep.getStoragePorts();
-            
+
             List<StoragePortRestRep> storagePorts = StoragePortUtils
                     .getStoragePorts(storagePortUris);
             for (StoragePortRestRep storagePort : storagePorts) {
                 results.add(new StoragePortInfo(storagePort));
             }
-            
-        } 
-        
+        }
+
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
-    
-    public static void availablePortsJson(String val) {
-        List<PortSelectionDataTable.PortSelectionModel> results = Lists.newArrayList();
-        String[] data = val.split("~~~");
-        String pathParamId = "";
-        String systemId = "";
-        if(data.length > 1){
-            pathParamId = data[0];
-            systemId = data[1];
-        }
-        List<StoragePortRestRep> storagePorts = StoragePortUtils.getStoragePorts(systemId);
 
-        if (pathParamId != null && !"null".equals(pathParamId)) {
-            ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(pathParamId));
+    public static void availablePortsJson(String exporthPathPolicyId) {
+        List<PortSelectionDataTable.PortSelectionModel> results = Lists.newArrayList();
+        List<StoragePortRestRep> storagePorts = StoragePortUtils.getStoragePorts();
+
+        if (exporthPathPolicyId != null && !"null".equals(exporthPathPolicyId)) {
+            ExportPathPolicyRestRep exportPathParametersRestRep = getViprClient().exportPathPolicies().get(uri(exporthPathPolicyId));
             List<URI> storagePortUris = exportPathParametersRestRep.getStoragePorts();
             List<StoragePortRestRep> portsNotForSelection = StoragePortUtils.getStoragePorts(storagePortUris);
             storagePorts.removeAll(portsNotForSelection);
-
         }
         for (StoragePortRestRep storagePort : storagePorts) {
             ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();

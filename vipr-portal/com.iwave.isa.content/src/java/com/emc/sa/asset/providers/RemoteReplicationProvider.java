@@ -45,7 +45,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public final static String RR_PAIR = "Remote Replication Pair";
     public final static String CONSISTENCY_GROUP = "Consistency Group";
     public final static String NO_GROUP = "None";
-
+    public final static String ALL_PAIRS = "All Volumes In Set or Group";
     /**
      * Return menu options for replication modes supported by the remote replication
      * set(s) matching the given VirtualPool and VirtualArray.  If no set is found,
@@ -356,6 +356,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @Asset("remoteReplicationCgOrPair")
     public List<AssetOption> getRemoteReplicationCgOrPair(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
+        options.add(new AssetOption(ALL_PAIRS,ALL_PAIRS));
         options.add(new AssetOption(CONSISTENCY_GROUP,CONSISTENCY_GROUP));
         options.add(new AssetOption(RR_PAIR,RR_PAIR));
         return options;
@@ -390,7 +391,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getRemoteReplicationPair(AssetOptionsContext ctx,
             URI setId, String groupId, String cgOrPairs) {
         ViPRCoreClient coreClient = api(ctx);
-        List<AssetOption> options = null;
+        List<AssetOption> options = new ArrayList<>();
         if (CONSISTENCY_GROUP.equals(cgOrPairs)) {
             if(NO_GROUP.equals(groupId)) {
                 // get CGs in set
@@ -411,8 +412,6 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
                 options = createNamedResourceOptions(coreClient.remoteReplicationGroups().
                         listRemoteReplicationPairs(groupId).getRemoteReplicationPairs());
             }
-        } else {
-            throw new IllegalStateException("Select either Consistency Groups or Pairs");
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return addStateAndModeToOptionNames(options,coreClient);

@@ -20,7 +20,9 @@
     remoteReplicationCgOrPair: {
       type:"assetType.vipr.remoteReplicationCgOrPair",
       lockable: true,
-      required: false
+      required: false,
+      omitNone: true,
+      initialValue: "All Volumes In Set or Group"
     },
     remoteReplicationPairsOrCGs: {
       type:"assetType.vipr.remoteReplicationPairsOrCGs",

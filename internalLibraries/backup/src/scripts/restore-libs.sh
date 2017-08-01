@@ -54,17 +54,16 @@ finish_message() {
     echo "Restore ${RESTORE_RESULT}!"
     if [ "${RESTORE_RESULT}" == "failed" ]; then
         echo "Please check bkutils.log for the details."
-        return
-    fi
-    echo "Note: nodes will reboot if there is any change of property in this cluster."
-    if [[ ${IS_CONNECTED_VDC} == true ]]; then
-        if [ "$RESTORE_GEO_FROM_SCRATCH" == "false" ]; then
-            echo "Please reconnect this vdc after the status of cluster is stable."
+    else
+        echo "Note: nodes will reboot if there is any change of property in this cluster."
+        if [[ ${IS_CONNECTED_VDC} == true ]]; then
+            if [ "$RESTORE_GEO_FROM_SCRATCH" == "false" ]; then
+                echo "Please reconnect this vdc after the status of cluster is stable."
+            fi
+            echo "(If there is any vdc with version 2.1 in this geo federation, then you need to remove blacklist manually from other vdcs,"
+            echo "by using this command: \"/opt/storageos/bin/dbutils geoblacklist reset <vdc short id>\")"
         fi
-        echo "(If there is any vdc with version 2.1 in this geo federation, then you need to remove blacklist manually from other vdcs,"
-        echo "by using this command: \"/opt/storageos/bin/dbutils geoblacklist reset <vdc short id>\")"
     fi
-
 }
 
 # local backup includes:

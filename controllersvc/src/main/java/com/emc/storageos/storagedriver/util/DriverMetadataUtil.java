@@ -62,30 +62,32 @@ public final class DriverMetadataUtil {
      *
      * @param props properties loaded from in-tree driver jar's metadata.properties file
      * @param driverFileName name or driver jar file that contains metadata.properties file
-     *
-     * @throws Exception when meta data can't be parsed or isn't validated.
      */
-    public static void insertDriverMetadata(Properties props, String driverFileName, DbClient dbClient)
-            throws Exception {
-        StorageDriverMetaData metaData = parseMetadata(props, driverFileName);
+    public static void insertDriverMetadata(Properties props, String driverFileName, DbClient dbClient) {
+        try {
+            StorageDriverMetaData metaData = parseMetadata(props, driverFileName);
 
-        // Validate meta data and delete old meta data if it exists
-        List<StorageSystemType> types = getTypesByDriverName(metaData.getDriverName(), dbClient);
-        if (types.isEmpty()) { 
-            precheckForMetaData(metaData, dbClient, false, false);
-        } else {
-            precheckForMetaData(metaData, dbClient, true, false);
-            dbClient.removeObject((StorageSystemType[])types.toArray());
-        }
+            List<StorageSystemType> types = getTypesByDriverName(metaData.getDriverName(), dbClient);
+            if (types.isEmpty()) { 
+                precheckForMetaData(metaData, dbClient, false, false);
+            } else {
+                precheckForMetaData(metaData, dbClient, true, false);
+                // Remote old metadata first if new one has newer version
+                dbClient.removeObject((StorageSystemType[])types.toArray());
+            }
 
-        // Insert new meta data
-        types = new ArrayList<>();
-        for (StorageSystemType type : DriverMetadataUtil.map(metaData)) {
-            type.setDriverStatus(StorageSystemType.STATUS.ACTIVE.toString());
-            type.setIsNative(true);
-            types.add(type);
+            // Insert new meta data
+            types = new ArrayList<>();
+            for (StorageSystemType type : DriverMetadataUtil.map(metaData)) {
+                type.setDriverStatus(StorageSystemType.STATUS.ACTIVE.toString());
+                type.setIsNative(true);
+                types.add(type);
+            }
+            dbClient.createObject(types);
+        } catch (Exception e) {
+            log.warn("Failed to insert meta data parsed from {}. It's normal if it's caused by same meta data version.",
+                    driverFileName);
         }
-        dbClient.createObject(types);
     }
 
     /**

@@ -498,7 +498,7 @@ public class ControllerServiceImpl implements ControllerService {
 
         // This must be put before invoking initDriverInfo method, where we instantiate driver
         // instances and load driver info., which depend on metadata inserted by this method
-        initIntreeDriverMetadata();
+        initIntreesDriverMetadata();
 
         initDriverInfo();
         _drQueueCleanupHandler.run();
@@ -613,12 +613,13 @@ public class ControllerServiceImpl implements ControllerService {
     /**
      * Scan and insert meta data of in-tree drivers (including simulator driver).
      */
-    private void initIntreeDriverMetadata() {
+    private void initIntreesDriverMetadata() {
         InterProcessLock lock = null;
         try {
             lock = _coordinator.getLock(INTREE_DRIVER_METADATA_INIT_LOCK);
             _log.info("Waiting for lock of initializing in-tree drivers' meta data");
             lock.acquire();
+            // Insert in-tree driver metadata
             Enumeration<URL> resources = getClass().getClassLoader()
                     .getResources(DriverMetadataUtil.META_DEF_FILE_NAME);
             while (resources.hasMoreElements()) {
@@ -632,6 +633,7 @@ public class ControllerServiceImpl implements ControllerService {
                 propsStream.close();
                 DriverMetadataUtil.insertDriverMetadata(props, driverFileName, _dbClient);
             }
+
             // Insert simulator metadata
             for (String metadataFile : StorageDriverSimulator.METADATA_FILES) {
                 URL resource =getClass().getClassLoader().getResource(metadataFile);

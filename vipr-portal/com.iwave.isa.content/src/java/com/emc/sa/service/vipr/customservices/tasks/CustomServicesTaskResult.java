@@ -17,7 +17,7 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
-import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 public class CustomServicesTaskResult {
@@ -25,13 +25,13 @@ public class CustomServicesTaskResult {
     private final String out;
     private final String err;
     private final int returnCode;
-    private final Map<URI, String> taskState;
+    private final Map<String, List<String>> output;
 
-    public CustomServicesTaskResult(final String out, final String err, final int returnCode, final Map<URI, String> taskState) {
+    public CustomServicesTaskResult(final String out, final String err, final int returnCode, final Map<String, List<String>> output) {
         this.out = out;
         this.err = err;
         this.returnCode = returnCode;
-        this.taskState = taskState;
+        this.output = output;
     }
     public String getOut() {
         return out;
@@ -45,5 +45,7 @@ public class CustomServicesTaskResult {
         return returnCode;
     }
 
-    public Map<URI, String> getTaskState() { return taskState; }
+    public Map<String, List<String>> getOutput() {
+        return output;
+    }
 }

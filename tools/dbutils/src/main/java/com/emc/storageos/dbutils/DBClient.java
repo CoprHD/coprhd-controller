@@ -61,9 +61,9 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.commons.beanutils.MethodUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
 import org.apache.commons.beanutils.converters.DateConverter;
 import org.apache.commons.lang3.StringUtils;
@@ -86,6 +86,7 @@ import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
+import com.emc.storageos.db.client.impl.IndexCleanupList;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
@@ -121,6 +122,7 @@ import com.emc.storageos.geomodel.VdcConfig;
 import com.emc.storageos.security.SerializerUtils;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.Row;
 import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 
@@ -1442,26 +1444,24 @@ public class DBClient {
     public boolean rebuildIndex(URI id, Class clazz) {
         boolean runResult = false;
         try {
-            DataObject queryObject = queryObject(id, clazz);
-            if (queryObject != null) {
-                DataObject newObject = queryObject.getClass().newInstance();
+        	Row<String, CompositeColumnName> objectRow = _dbClient.queryAllColumns(id, clazz);
+            if (objectRow != null) {
+            	DataObjectType doType = TypeMap.getDoType(clazz);
+            	DataObject newObject = doType.deserialize(clazz, objectRow, new IndexCleanupList());
                 newObject.trackChanges();
                 ConvertUtils.register(new CalendarConverter(null), Calendar.class);
                 ConvertUtils.register(new DateConverter(null), Date.class);
-                BeanUtilsBean notNull = new NullAwareBeanUtilsBean();
-                notNull.copyProperties(newObject, queryObject);
-
+                
                 // special change tracking for customized types
                 BeanInfo bInfo;
                 try {
                     bInfo = Introspector.getBeanInfo(clazz);
-
                 } catch (IntrospectionException ex) {
                     log.error("Unexpected exception getting bean info", ex);
                     throw new RuntimeException("Unexpected exception getting bean info",
                             ex);
-
                 }
+                
                 PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
                 for (PropertyDescriptor pd : pds) {
                     Object val = pd.getReadMethod().invoke(newObject);
@@ -1486,6 +1486,13 @@ public class DBClient {
                         }
                     }
                 }
+                
+				Iterator<Column<CompositeColumnName>> it = objectRow.getColumns().iterator();
+				Method method = DataObject.class.getDeclaredMethod("setChanged", String.class);
+				method.setAccessible(true);
+				while (it.hasNext()) {
+					method.invoke(newObject, it.next().getName().getOne());
+				}
 
                 _dbClient.updateObject(newObject);
                 logMsg(String.format("Successfully rebuild index for %s in cf %s", id, clazz));

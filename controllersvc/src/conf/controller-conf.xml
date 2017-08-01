@@ -22,6 +22,7 @@
     <import resource="classpath:controller-scaleio-prov.xml"/>
     <import resource="classpath:controller-xtremio-prov.xml"/>
     <import resource="classpath:controller-unity.xml"/>
+    <import resource="classpath:controller-vmax.xml"/>
 
 	<context:property-placeholder location="classpath:isilon.properties" ignore-unresolvable="true"/>
 
@@ -363,6 +364,16 @@
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="metaVolumeOperations" ref="vnxMetaVolumeOperations"/>
         <property name="findProviderFactory" ref="vnxFindProviderFactory"/>
+    </bean>
+
+   <bean id="vmaxStorageDevice" class="com.emc.storageos.volumecontroller.impl.vmax.VMAXStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="migrationOperations" ref="migrationOperations"/>
+    </bean>
+
+   <bean id="migrationOperations" class="com.emc.storageos.volumecontroller.impl.vmax.VMAXMigrationOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vmaxClientFactory" ref="vmaxClientFactory"/>
     </bean>
 
     <bean id="cinderStorageDevice" class="com.emc.storageos.volumecontroller.impl.cinder.CinderStorageDevice">
@@ -893,6 +904,22 @@
         </property>
     </bean>
 
+    <bean id="vmaxMigrationController" class="com.emc.storageos.migrationcontroller.VMAXMigrationController">
+        <property name="dbClient" ref="dbclient" />
+        <property name="workflowService" ref="workflowService" />
+        <property name="vmaxStorageDevice" ref="vmaxStorageDevice" />
+    </bean>
+
+    <bean id="migrationController" class="com.emc.storageos.migrationcontroller.MigrationControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="vmaxMigrationController"/>
+            </set>
+        </property>
+    </bean>
+
     <bean id="replicaDeviceController" class="com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController">
         <property name="dbClient" ref="dbclient" />
         <property name="blockDeviceController" ref="blockDeviceController" />
@@ -1076,6 +1103,7 @@
                 <ref bean="fileOrchestrationDeviceController"/>
                 <ref bean="fileReplicationDeviceController" />
                 <ref bean="srdfDeviceController" />
+                <ref bean="vmaxMigrationController" />
                 <ref bean="replicaDeviceController" />
                 <ref bean="snapshotWorkflowEntryPoints"/>
                 <ref bean="vplexConsistencyGroupManager"/>
@@ -1388,7 +1416,15 @@
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>
-    
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="MigrationController"/>
+        <property name="service" ref="migrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.migrationcontroller.MigrationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
     <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
         <property name="serviceName" value="FileReplicationController"/>
         <property name="service" ref="fileReplicationController"/>
@@ -1486,6 +1522,7 @@
         <property name="hdsApiFactory" ref="hdsApiFactory"/>
         <property name="dataDomainFactory" ref="datadomainfactory"/>
         <property name="xtremIOFactory" ref="xtremioRestClientFactory"/>
+        <property name="vmaxClientFactory" ref="vmaxClientFactory"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
     </bean>
 

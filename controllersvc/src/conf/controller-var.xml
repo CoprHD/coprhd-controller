@@ -23,6 +23,7 @@
                 <entry key="FileReplicationController" value="rmi://localhost:10099/FileReplicationController" />
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
                 <entry key="SRDFController" value="rmi://localhost:10099/SRDFController" />
+                <entry key="MigrationController" value="rmi://localhost:10099/MigrationController" />
                 <entry key="ObjectController" value="rmi://localhost:10099/ObjectController"/>
                 <entry key="WorkflowController" value="rmi://localhost:10099/WorkflowController"/>
                 <entry key="ComputeSystemOrchestrationController" value="rmi://localhost:10099/ComputeSystemOrchestrationController"/>

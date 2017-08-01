@@ -19,6 +19,7 @@
                 <entry key="WorkflowController" value="rmi://${node_id}:10099/WorkflowController"/>
                 <entry key="ComputeSystemOrchestrationController" value="rmi://${node_id}:10099/ComputeSystemOrchestrationController"/>
                 <entry key="HostRescanController" value="rmi://${node_id}:10099/HostRescanController"/>
+                <entry key="MigrationController" value="rmi://${node_id}:10099/MigrationController" />
             </map>
         </property>
         <property name="version" value="1"/>

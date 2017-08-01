@@ -13,12 +13,14 @@ import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
 /**
- * Migration response.
+ * Migration response for volume or consistency group.
+ * TODO update doc for source, target, status
  */
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "block_migration")
 public class MigrationRestRep extends DataObjectRestRep {
     private RelatedResourceRep volume;
+    private RelatedResourceRep consistencyGroup;
     private RelatedResourceRep source;
     private RelatedResourceRep target;
     private String startTime;
@@ -123,5 +125,19 @@ public class MigrationRestRep extends DataObjectRestRep {
 
     public void setVolume(RelatedResourceRep volume) {
         this.volume = volume;
+    }
+
+    /**
+     * The consistency group being migrated.
+     * 
+     * @return The related resource representation for the consistency group being migrated.
+     */
+    @XmlElement(name = "consistency_group")
+    public RelatedResourceRep getConsistencyGroup() {
+        return consistencyGroup;
+    }
+
+    public void setConsistencyGroup(RelatedResourceRep consistencyGroup) {
+        this.consistencyGroup = consistencyGroup;
     }
 }

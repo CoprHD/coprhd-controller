@@ -123,9 +123,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     private static final Long MAX_STORAGE_OBJECTS_UNITYVSA = 64L;
     private static final Long MAX_CAPACITY_UNITYVSA_TB = 50L;
 
-    private static final Long GB_IN_BYTES = 1073741824L;
     private static final Long GB_IN_KB = 1048576L;
-    private static final Long MB_IN_BYTES = 1048576L;
     private static final Long KB_IN_BYTES = 1024L;
     private static final Long TB_IN_GB = 1024L;
 
@@ -226,17 +224,17 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         try {
             _logger.info("Access Profile Details :  IpAddress : {}, PortNumber : {}", accessProfile.getIpAddress(),
                     accessProfile.getPortNumber());
-            if (null != accessProfile.getnamespace() && (accessProfile.getnamespace()
-                    .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())
-                    || accessProfile.getnamespace()
-                    .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()))) {
+            if (StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()
+                    .equals(accessProfile.getnamespace())
+                    || StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()
+                            .equals(accessProfile.getnamespace())) {
                 discoverUnmanagedObjects(accessProfile);
             } else {
                 // Get the VNX Unity storage system from the database.
                 viprStorageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
 
-                _logger.info(String.format("Discover VnxUnity storage system %s at IP:%s, PORT:%s",
-                        storageSystemURI.toString(), accessProfile.getIpAddress(), accessProfile.getPortNumber()));
+                _logger.info("Discover VnxUnity storage system {} at IP:{}, port:{}",
+                        storageSystemURI.toString(), accessProfile.getIpAddress(), accessProfile.getPortNumber());
 
                 // Get the vnx unity service client for getting information
                 // about the Vnx Unity storage system.
@@ -473,7 +471,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     }
 
     /**
-     * Discover Unmanaged objects for the specified VNX File storage array
+     * Discover Unmanaged objects for the specified VNX Unity storage array
      * 
      * @param accessProfile
      *            Access profile of the storage system
@@ -489,16 +487,16 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
             storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
             _dbClient.updateObject(storageSystem);
-            if (accessProfile.getnamespace()
-                    .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString())) {
+            if (StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()
+                    .equals(accessProfile.getnamespace())) {
                 unityUnManagedObjectDiscoverer.discoverUnManagedFileSystems(accessProfile, _dbClient, _coordinator,
                         _partitionManager);
                 unityUnManagedObjectDiscoverer.discoverAllExportRules(accessProfile, _dbClient, _partitionManager);
                 unityUnManagedObjectDiscoverer.discoverAllCifsShares(accessProfile, _dbClient, _partitionManager);
                 unityUnManagedObjectDiscoverer.discoverAllTreeQuotas(accessProfile, _dbClient, _partitionManager);
 
-            } else if (accessProfile.getnamespace()
-                    .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
+            } else if (StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()
+                    .equals(accessProfile.getnamespace())) {
                 unityUnManagedObjectDiscoverer.discoverUnManagedVolumes(accessProfile, _dbClient, _coordinator,
                         _partitionManager);
             }
@@ -542,7 +540,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         String detailedStatusMessage = "Unknown Status";
 
         try {
-            _logger.info("Access Profile Details :  IpAddress : {}, PortNumber : {}", accessProfile.getIpAddress(),
+            _logger.info("Access Profile Details: IpAddress: {}, Port: {}", accessProfile.getIpAddress(),
                     accessProfile.getPortNumber());
 
             // Get the VNX Unity storage system from the database.
@@ -1477,21 +1475,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     public void collectStatisticsInformation(AccessProfile accessProfile) throws VNXeException {
 
         URI storageSystemId = accessProfile.getSystemId();
-        StorageSystem storageSystem = null;
 
         try {
             _logger.info("Start collecting statistics for ip address {}",
                     accessProfile.getIpAddress());
-            VNXeApiClient client = getVnxUnityClient(accessProfile);
-            long latestSampleTime = accessProfile.getLastSampleTime();
-            storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
-            String serialNumber = storageSystem.getSerialNumber();
-            String deviceType = storageSystem.getSystemType();
             // compute static load processor code
             computeStaticLoadMetrics(accessProfile);
-
             // TODO: Do we need usage stats?
-
             _logger.info("End collecting statistics for ip address {}",
                     accessProfile.getIpAddress());
         } catch (Exception e) {

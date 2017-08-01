@@ -31,8 +31,9 @@ public abstract class StandardRestClient implements RestClientItf {
     @Override
     public ClientResponse get(URI uri) throws InternalException {
         URI requestURI = _base.resolve(uri);
-        ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON).get(
-                ClientResponse.class);
+        ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON).get(
+                        ClientResponse.class);
         if (authenticationFailed(response)) {
             closeResponse(response);
             authenticate();
@@ -46,7 +47,7 @@ public abstract class StandardRestClient implements RestClientItf {
     public ClientResponse put(URI uri, String body) throws InternalException {
         URI requestURI = _base.resolve(uri);
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
-                .put(ClientResponse.class, body);
+                .accept(MediaType.APPLICATION_JSON).put(ClientResponse.class, body);
         if (authenticationFailed(response)) {
             closeResponse(response);
             authenticate();
@@ -61,7 +62,7 @@ public abstract class StandardRestClient implements RestClientItf {
     public ClientResponse post(URI uri, String body) throws InternalException {
         URI requestURI = _base.resolve(uri);
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
-                .post(ClientResponse.class, body);
+                .accept(MediaType.APPLICATION_JSON).post(ClientResponse.class, body);
         if (authenticationFailed(response)) {
             closeResponse(response);
             authenticate();
@@ -76,7 +77,7 @@ public abstract class StandardRestClient implements RestClientItf {
     public ClientResponse delete(URI uri) throws InternalException {
         URI requestURI = _base.resolve(uri);
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
-                .delete(ClientResponse.class);
+                .accept(MediaType.APPLICATION_JSON).delete(ClientResponse.class);
         if (authenticationFailed(response)) {
             closeResponse(response);
             authenticate();
@@ -90,7 +91,7 @@ public abstract class StandardRestClient implements RestClientItf {
     public ClientResponse delete(URI uri, String body) throws InternalException {
         URI requestURI = _base.resolve(uri);
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
-                .delete(ClientResponse.class, body);
+                .accept(MediaType.APPLICATION_JSON).delete(ClientResponse.class, body);
         if (authenticationFailed(response)) {
             closeResponse(response);
             authenticate();

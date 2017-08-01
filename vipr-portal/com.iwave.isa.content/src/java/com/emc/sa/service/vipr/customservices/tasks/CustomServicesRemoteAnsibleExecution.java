@@ -17,24 +17,22 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.LoggerFactory;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRemoteAnsiblePrimitive;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
-import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.iwave.ext.command.Command;
 import com.iwave.ext.command.CommandOutput;
 import com.iwave.utility.ssh.SSHCommandExecutor;
-
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.List;
-import java.util.Map;
 
 public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
 
@@ -92,14 +90,10 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
 
         logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdout(), result.getStderr(),
                 result.getExitValue());
-
-        final String parsedOut = AnsibleHelper.parseOut(result.getStdout());
-        if (!StringUtils.isEmpty(parsedOut)) {
-            ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId(), step.getFriendlyName());
-
-            return new CustomServicesScriptTaskResult(parsedOut, result.getStdout(), result.getStderr(), result.getExitValue());             
-        }
-        return new CustomServicesScriptTaskResult(result.getStdout(), result.getStdout(), result.getStderr(), result.getExitValue());
+        
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId(), step.getFriendlyName());
+        
+        return new CustomServicesStdOutTaskResult(step.getOutput(), result.getStdout(), result.getStderr(), result.getExitValue());
     }
 
 

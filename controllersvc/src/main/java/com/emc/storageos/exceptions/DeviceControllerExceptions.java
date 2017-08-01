@@ -22,6 +22,7 @@ import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.vmax.restapi.errorhandling.VMAXExceptions;
 import com.emc.storageos.vnx.xmlapi.VNXExceptions;
 import com.emc.storageos.vnxe.VNXeExceptions;
 import com.emc.storageos.volumecontroller.impl.smis.SmisExceptions;
@@ -48,6 +49,9 @@ public interface DeviceControllerExceptions {
 
     /** Holds the methods used to create SMIS related exceptions */
     public static final SmisExceptions smis = ExceptionMessagesProxy.create(SmisExceptions.class);
+
+    /** Holds the methods used to create VMAX related exceptions */
+    public static final VMAXExceptions vmax = ExceptionMessagesProxy.create(VMAXExceptions.class);
 
     /** Holds the methods used to create NetApp related exceptions */
     public static final NetAppExceptions netapp = ExceptionMessagesProxy.create(NetAppExceptions.class);
@@ -319,6 +323,9 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException operationNotSupported();
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
+    public DeviceControllerException operationDeprecated(final String deprecatedOperationName, final String controllerType, final String recommendationDetails);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException createSmbShareFailed(final String name, final String description);

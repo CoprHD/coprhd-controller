@@ -212,4 +212,6 @@ public class PathConstants {
     public static final String STORAGE_DRIVER_INSTALL_URL = "/storagedriver";
     public static final String STORAGE_DRIVER_UNINSTALL_URL = "/storagedriver/{driverName}";
     public static final String STORAGE_DRIVER_UPGRADE_URL = "/storagedriver/{driverName}";
+    public static final String STORAGE_PORT_GROUP_URL = STORAGE_SYSTEM_URL
+            + "/{storageSystemId}/storage-port-groups";
 }

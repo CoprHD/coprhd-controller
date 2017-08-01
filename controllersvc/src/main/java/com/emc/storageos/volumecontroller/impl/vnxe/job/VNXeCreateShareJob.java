@@ -126,7 +126,7 @@ public class VNXeCreateShareJob extends VNXeJob {
             _logger.error("Could not find the smbShare : {} in vnxe", smbShare.getName());
             setErrorStatus(String.format("Could not find the smbShare: %s in the VNXe array", smbShare.getName()));
         }
-        dbClient.persistObject(fsObj);
+        dbClient.updateObject(fsObj);
     }
 
     private Snapshot updateSnapshot(VNXeApiClient apiClient, DbClient dbClient) {
@@ -150,7 +150,7 @@ public class VNXeCreateShareJob extends VNXeJob {
             _logger.error("Could not find the smbShare : {} in vnxe", smbShare.getName());
             setErrorStatus(String.format("Could not find the smbShare: %s in the VNXe array", smbShare.getName()));
         }
-        dbClient.persistObject(snapObj);
+        dbClient.updateObject(snapObj);
         return snapObj;
     }
 

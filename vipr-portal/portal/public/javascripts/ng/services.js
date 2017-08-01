@@ -38,7 +38,7 @@ angular.module("services", []).directive({
                     });
                 }
                 item.value = $scope.defaultValues[item.name] ? $scope.defaultValues[item.name] : item.initialValue;
-                item.showField = !item.hideIfEmpty;
+                item.showField = item.hideIfEmpty;
                 
                 var getAssetOptionsIfWeHaveAllDependencies = function() {
                     // this checks if we're updating modal fields or normal fields
@@ -94,7 +94,7 @@ angular.module("services", []).directive({
 	                            	$scope.$root.errorCount -= 1;
 	                            }
 	                            
-	                            if (item.hideIfEmpty && item.options != null && item.options.length != null && item.options.length == 0) {
+	                            if (item.hideIfEmpty && item.options != null && item.options.length == 0) {
 	                                item.showField = false;
 	                            } else {
 	                            	item.showField = true;

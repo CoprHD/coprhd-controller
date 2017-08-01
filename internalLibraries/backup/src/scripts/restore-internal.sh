@@ -116,6 +116,9 @@ restore_node() {
     local viprNode=${1}
     cd ${RESTORE_DIR}
     local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
+    if [ `echo $?` == 0 ] && [ "${backupTag}" != "" ] ; then
+        BACKUP_NAME="${backupTag}"
+    fi
     local command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag'"
     if [ "$RESTORE_GEO_FROM_SCRATCH" == "true" ]; then
         command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag' -f"
@@ -124,10 +127,34 @@ restore_node() {
         command="/opt/storageos/bin/bkutils -r $RESTORE_DIR '$backupTag' osi"
     fi
     ssh_execute "$viprNode" "$command" "${ROOT_PASSWORD}"
+
+
 }
 
 sigterm_handler() {
    echo "SIGTERM is received"
+}
+
+# It's a workaround for restore error handling.
+# Currently, if restore script failed after stopping services, the "RESTORING" state will still remain in ZK and cause a stuck status in UI.
+# So we manually reset the ZK node in script as a workaround for now.
+set_restore_failed() {
+    local zkutils="/opt/storageos/bin/zkutils"
+    local siteid=$(sudo /etc/systool --getvdcprops | awk -F '=' '/\<site_my_uuid\>/ {print $2}')
+    local backupDir=$1
+    local region="local"
+    if [[ "$(is_local_backup $backupDir)" == "false" ]]; then
+        region="remote"
+    fi
+
+    # set status "RESTORING"  to "RESTORE_FAILED"
+    local path="/sites/$siteid/config/pull-restore-status/$region/$BACKUP_NAME"
+    local restoreInfo=`$zkutils path -withdata "$path"`
+    if [ `echo "${restoreInfo}" | grep "RESTORING" ` != "" ]; then
+        restoreInfo=${restoreInfo##*)}
+        restoreInfo=`echo "${restoreInfo}" | sed 's/details=.*/details=Please check bkutils\.log for the details\./g' | sed 's/RESTORING/RESTORE_FAILED/g'`
+        echo "$restoreInfo" | $zkutils set "$path"
+    fi
 }
 
 trap sigterm_handler SIGTERM
@@ -172,4 +199,11 @@ if [[ "${RESTORE_RESULT}" == "failed" ]]; then
    exit_code=1
 fi
 start_service
+
+wait
+
+if [[ "${RESTORE_RESULT}" == "failed" ]]; then
+    set_restore_failed ${RESTORE_ORIGIN}
+fi
+
 exit ${exit_code}

@@ -13,13 +13,9 @@
 #{form @saveExportPathPolicy(), id:'exportPathPolicy', class:'form form-horizontal', autocomplete:"off"}
 
     #{field 'exportPathPolicy.id'}
-      <input type="hidden" name="exportPathPolicyId" value="${field.value}">
+      <input type="hidden" name="id" value="${field.value}">
     #{/field}  
  
-  #{field 'storageSystemId'}
-      <input type="hidden" name="storageSystemId" id="sysId" value="${storageSystemId}">
-   #{/field}
-    
     #{field 'exportPathPolicy.name'}
       %{
         field.cssClass = 'initialFocus';
@@ -67,6 +63,10 @@
        #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.maxInitiatorsPerPort /}
     #{/field}
 
+%{
+  formFields = ['exportPathPolicyId': exportPathPolicy?.id]
+}%
+
 #{DataTable.header titleKey:'exportPathPolicy.storagePorts.title'/}
 #{DataTable.table id:'storagePorts', 
                   dataTable:portDataTable,
@@ -78,12 +78,9 @@
 
   #{/DataTable.buttonBar}
 #{/DataTable.table}
+<br />
 #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}
-
-%{
-  formFields = ['exportPathPolicyId': exportPathPolicy?.id]
-}%
 
 #{DataTable.formAction @removeStoragePortsFromPolicy(), id:'removePortsForm', table:'storagePorts', fields:formFields/}
 

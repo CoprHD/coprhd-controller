@@ -116,8 +116,11 @@ public class ExportPathPolicies extends ViprResourceController {
         }
         List<StoragePortRestRep> storagePortReps = StoragePortUtils.getStoragePorts(policy.getStoragePorts());
         List<String> storagePorts = new ArrayList<String>();
+        CachedResources<StorageSystemRestRep> storageSystems = StorageSystemUtils.createCache();
+
         for (StoragePortRestRep port : storagePortReps) {
-            storagePorts.add(port.getPortGroup() + " / " + port.getPortName() + " | " + port.getPortNetworkId());
+            StoragePortInfo info = new StoragePortInfo(port, storageSystems.get(port.getStorageDevice()));
+            storagePorts.add(info.storageSystem + ": " + info.portGroup + " / " + info.name + " | " + port.getPortNetworkId());
         }
         render(storagePorts);
     }
@@ -161,7 +164,7 @@ public class ExportPathPolicies extends ViprResourceController {
     }
 
     // @FlashException("exportPathPolicies")
-    public static void deleteExportPathPolicy(@As(",") String[] ids, String storageSystemId) {
+    public static void deleteExportPathPolicy(@As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
                 getViprClient().exportPathPolicies().delete(uri(id));
@@ -172,8 +175,10 @@ public class ExportPathPolicies extends ViprResourceController {
     }
 
     @FlashException(keep = true, referrer = { "edit" })
-    public static void saveExportPathPolicy(ExportPathPolicyForm exportPathPolicyForm, String storageSystemId) {
-        if (exportPathPolicyForm == null) {
+    public static void saveExportPathPolicy(ExportPathPolicyForm exportPathPolicy) {
+        System.out.println("!!!!!!!!!! exportPathPolicy: " + exportPathPolicy);
+
+        if (exportPathPolicy == null) {
             Logger.error("No export path policy provided");
             badRequest("No export path policy provided");
             return;
@@ -184,17 +189,17 @@ public class ExportPathPolicies extends ViprResourceController {
          * Common.handleError();
          * }
          */
-        exportPathPolicyForm.id = params.get("id");
-        if (exportPathPolicyForm.isNew()) {
+        exportPathPolicy.id = params.get("id");
+        if (exportPathPolicy.isNew()) {
 
-            ExportPathPolicy input = createExportPathPolicy(exportPathPolicyForm);
+            ExportPathPolicy input = createExportPathPolicy(exportPathPolicy);
             getViprClient().exportPathPolicies().create(input); // FIXME: had "true" second arg
         } else {
-            ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicyForm.id));
-            ExportPathPolicyUpdate input = updateExportPathPolicy(exportPathPolicyForm);
+            ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicy.id));
+            ExportPathPolicyUpdate input = updateExportPathPolicy(exportPathPolicy);
             getViprClient().exportPathPolicies().update(exportPathPolicyRestRep.getId(), input);
         }
-        flash.success(MessagesUtils.get("exportPathPolicy.saved", exportPathPolicyForm.name));
+        flash.success(MessagesUtils.get("exportPathPolicy.saved", exportPathPolicy.name));
         exportPathPolices();
     }
 
@@ -303,7 +308,7 @@ public class ExportPathPolicies extends ViprResourceController {
             List<StoragePortRestRep> portsNotForSelection = StoragePortUtils.getStoragePorts(storagePortUris);
             storagePorts.removeAll(portsNotForSelection);
         }
-        
+
         CachedResources<StorageSystemRestRep> storageSystems = StorageSystemUtils.createCache();
 
         for (StoragePortRestRep storagePort : storagePorts) {

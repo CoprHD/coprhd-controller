@@ -67,6 +67,7 @@
                 <value>externaldevice</value>
                 <value>workflow</value>
                 <value>compute-system-orchestration</value>
+                <value>migration</value>
                 <value>host</value>
             </set>
         </property>

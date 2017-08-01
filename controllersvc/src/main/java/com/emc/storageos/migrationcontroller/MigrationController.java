@@ -15,7 +15,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
  */
 public interface MigrationController extends Controller {
 
-    public final static String MIGRATION = "migration"; // TODO tag needed?
+    public final static String MIGRATION = "migration";
 
     /**
      * Create migration environment between source system and target system
@@ -28,17 +28,19 @@ public interface MigrationController extends Controller {
     public void migrationCreateEnvironment(URI sourceSystemURI, URI targetSystemURI, String taskId) throws ControllerException;
 
     /**
-     * Create/Initiate the migration process
+     * Create/Initiate the migration process.
      *
      * @param sourceSystemURI the source system uri
      * @param cgURI the cg uri
      * @param migrationURI the migration uri
      * @param targetSystemURI the target system uri
+     * @param srp the srp
+     * @param enableCompression enable compression
      * @param taskId the task id
      * @throws ControllerException the controller exception
      */
-    public void migrationCreate(URI sourceSystemURI, URI cgURI, URI migrationURI, URI targetSystemURI, String taskId)
-            throws ControllerException;
+    public void migrationCreate(URI sourceSystemURI, URI cgURI, URI migrationURI, URI targetSystemURI,
+            URI srp, Boolean enableCompression, String taskId) throws ControllerException;
 
     /**
      * Cutover the migration process

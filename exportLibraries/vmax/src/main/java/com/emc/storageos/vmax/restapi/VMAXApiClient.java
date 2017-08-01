@@ -25,9 +25,9 @@ import com.emc.storageos.vmax.restapi.model.Symmetrix;
 import com.emc.storageos.vmax.restapi.model.VMAXAuthInfo;
 import com.emc.storageos.vmax.restapi.model.request.migration.CreateMigrationEnvironmentRequest;
 import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
-import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationEnvironmentResponse;
-import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationStorageGroupListResponse;
-import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationStorageGroupResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentListResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupListResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.GetSymmetrixResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.ListSymmetrixResponse;
@@ -255,13 +255,13 @@ public class VMAXApiClient extends StandardRestClient {
      * Returns list of available migration environments for the given array
      * 
      * @param sourceArraySerialNumber
-     * @return {@link GetMigrationEnvironmentResponse}.getArrayList() will returns the other arrays serial number
+     * @return {@link MigrationEnvironmentListResponse}.getArrayList() will returns the other arrays serial number
      * @throws Exception
      */
-    public GetMigrationEnvironmentResponse getMigrationEnvironmentList(String sourceArraySerialNumber) throws Exception {
+    public MigrationEnvironmentListResponse getMigrationEnvironmentList(String sourceArraySerialNumber) throws Exception {
         ClientResponse clientResponse = get(
                 VMAXConstants.getMigrationEnvironmentURI(sourceArraySerialNumber));
-        GetMigrationEnvironmentResponse environmentResponse = getResponseObject(GetMigrationEnvironmentResponse.class, clientResponse);
+        MigrationEnvironmentListResponse environmentResponse = getResponseObject(MigrationEnvironmentListResponse.class, clientResponse);
         log.info("Response -> :{}", environmentResponse);
         return environmentResponse;
     }
@@ -296,7 +296,7 @@ public class VMAXApiClient extends StandardRestClient {
                 getJsonForEntity(createMigrationEnvironmentRequest));
         CreateMigrationEnvironmentResponse response = getResponseObject(CreateMigrationEnvironmentResponse.class, clientResponse);
         log.info("Response -> :{}", response);
-        log.info("Successfullt created migration environment between {} and {}", sourceArraySerialNumber, targetArraySerialNumber);
+        log.info("Successfully created migration environment between {} and {}", sourceArraySerialNumber, targetArraySerialNumber);
         return response;
     }
 
@@ -304,16 +304,16 @@ public class VMAXApiClient extends StandardRestClient {
      * Get all migration storage group names for the given array
      * 
      * @param sourceArraySerialNumber
-     * @return {@link GetMigrationStorageGroupListResponse}
+     * @return {@link MigrationStorageGroupListResponse}
      * @throws Exception
      */
-    public GetMigrationStorageGroupListResponse getMigrationStorageGroups(String sourceArraySerialNumber) throws Exception {
+    public MigrationStorageGroupListResponse getMigrationStorageGroups(String sourceArraySerialNumber) throws Exception {
         log.info("Get all migration storage groups available for the array {}", sourceArraySerialNumber);
         ClientResponse clientResponse = get(VMAXConstants.getMigrationStorageGroupsURI(sourceArraySerialNumber));
-        GetMigrationStorageGroupListResponse getMigrationStorageGroupListResponse = getResponseObject(
-                GetMigrationStorageGroupListResponse.class, clientResponse);
-        log.info("Response -> :{}", getMigrationStorageGroupListResponse);
-        return getMigrationStorageGroupListResponse;
+        MigrationStorageGroupListResponse migrationStorageGroupListResponse = getResponseObject(
+                MigrationStorageGroupListResponse.class, clientResponse);
+        log.info("Response -> :{}", migrationStorageGroupListResponse);
+        return migrationStorageGroupListResponse;
     }
 
     /**
@@ -321,17 +321,17 @@ public class VMAXApiClient extends StandardRestClient {
      * 
      * @param sourceArraySerialNumber
      * @param storageGroupName
-     * @return {@link GetMigrationStorageGroupResponse}
+     * @return {@link MigrationStorageGroupResponse}
      * @throws Exception
      */
-    public GetMigrationStorageGroupResponse getMigrationStorageGroup(String sourceArraySerialNumber, String storageGroupName)
+    public MigrationStorageGroupResponse getMigrationStorageGroup(String sourceArraySerialNumber, String storageGroupName)
             throws Exception {
         log.info("Get migration storage group {} from array {}", storageGroupName, sourceArraySerialNumber);
         ClientResponse clientResponse = get(VMAXConstants.getMigrationStorageGroupURI(sourceArraySerialNumber, storageGroupName));
-        GetMigrationStorageGroupResponse getMigrationStorageGroupResponse = getResponseObject(GetMigrationStorageGroupResponse.class,
+        MigrationStorageGroupResponse migrationStorageGroupResponse = getResponseObject(MigrationStorageGroupResponse.class,
                 clientResponse);
-        log.info("Response -> :{}", getMigrationStorageGroupResponse);
-        return getMigrationStorageGroupResponse;
+        log.info("Response -> :{}", migrationStorageGroupResponse);
+        return migrationStorageGroupResponse;
     }
 
 }

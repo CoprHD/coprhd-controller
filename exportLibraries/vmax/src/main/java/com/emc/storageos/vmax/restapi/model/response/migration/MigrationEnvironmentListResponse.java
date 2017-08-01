@@ -11,7 +11,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-public class GetMigrationEnvironmentResponse {
+public class MigrationEnvironmentListResponse {
     @SerializedName("arrayId")
     @JsonProperty(value = "arrayId")
     private List<String> arrayIdList;

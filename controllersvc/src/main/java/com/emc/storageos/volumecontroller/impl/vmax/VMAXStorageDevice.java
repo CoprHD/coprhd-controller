@@ -43,43 +43,59 @@ public class VMAXStorageDevice extends DefaultBlockStorageDevice {
         logger.info(VMAXConstants.REMOVE_MIGRATION_ENV + " finished");
     }
 
-    public void doCreateMigration(StorageSystem sourceSystem, URI cgURI, URI targetSystemURI, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        logger.info("doCreateMigration started");
+    public void doCreateMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI,
+            URI targetSystemURI, URI srp, Boolean enableCompression, TaskCompleter taskCompleter) throws DeviceControllerException {
+        logger.info(VMAXConstants.CREATE_MIGRATION + " started");
+        migrationOperations.createMigration(sourceSystem, cgURI, migrationURI, targetSystemURI, srp, enableCompression, taskCompleter);
+        logger.info(VMAXConstants.CREATE_MIGRATION + " finished");
     }
 
-    public void doCutoverMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
+    public void doCutoverMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        logger.info("doCutoverMigration started");
+        logger.info(VMAXConstants.CUTOVER_MIGRATION + " started");
+        migrationOperations.cutoverMigration(sourceSystem, cgURI, migrationURI, taskCompleter);
+        logger.info(VMAXConstants.CUTOVER_MIGRATION + " finished");
     }
 
-    public void doCommitMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
+    public void doCommitMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        logger.info("doCommitMigration started");
+        logger.info(VMAXConstants.COMMIT_MIGRATION + " started");
+        migrationOperations.commitMigration(sourceSystem, cgURI, migrationURI, taskCompleter);
+        logger.info(VMAXConstants.COMMIT_MIGRATION + " finished");
     }
 
-    public void doCancelMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
+    public void doCancelMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        logger.info("doCancelMigration started");
+        logger.info(VMAXConstants.CANCEL_MIGRATION + " started");
+        migrationOperations.cancelMigration(sourceSystem, cgURI, migrationURI, taskCompleter);
+        logger.info(VMAXConstants.CANCEL_MIGRATION + " finished");
     }
 
-    public void doRefreshMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
+    public void doRefreshMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        logger.info("doRefreshMigration started");
+        logger.info(VMAXConstants.REFRESH_MIGRATION + " started");
+        migrationOperations.refreshMigration(sourceSystem, cgURI, migrationURI, taskCompleter);
+        logger.info(VMAXConstants.REFRESH_MIGRATION + " finished");
     }
 
-    public void doRecoverMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
+    public void doRecoverMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        logger.info("doRecoverMigration started");
+        logger.info(VMAXConstants.RECOVER_MIGRATION + " started");
+        migrationOperations.recoverMigration(sourceSystem, cgURI, migrationURI, taskCompleter);
+        logger.info(VMAXConstants.RECOVER_MIGRATION + " finished");
     }
 
-    public void doSyncStopMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
+    public void doSyncStopMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        logger.info("doSyncStopMigration started");
+        logger.info(VMAXConstants.SYNCSTOP_MIGRATION + " started");
+        migrationOperations.syncStopMigration(sourceSystem, cgURI, migrationURI, taskCompleter);
+        logger.info(VMAXConstants.SYNCSTOP_MIGRATION + " finished");
     }
 
-    public void doSyncStartMigration(StorageSystem sourceSystem, URI cgURI, TaskCompleter taskCompleter)
+    public void doSyncStartMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        logger.info("doSyncStartMigration started");
+        logger.info(VMAXConstants.SYNCSTART_MIGRATION + " started");
+        migrationOperations.syncStartMigration(sourceSystem, cgURI, migrationURI, taskCompleter);
+        logger.info(VMAXConstants.SYNCSTART_MIGRATION + " finished");
     }
 }

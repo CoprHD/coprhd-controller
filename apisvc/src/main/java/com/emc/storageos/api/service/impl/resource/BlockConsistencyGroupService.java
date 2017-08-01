@@ -78,6 +78,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
@@ -2750,6 +2751,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // validate input
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
         ArgValidator.checkFieldUriType(param.getTargetStorageSystem(), StorageSystem.class, "target_storage_system");
+        if (param.getSrp() != null) {
+            ArgValidator.checkFieldUriType(param.getSrp(), StoragePool.class, "srp");
+        }
 
         BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
         validateBlockConsistencyGroupForMigration(cg);

@@ -110,15 +110,11 @@ public class CustomServicesService extends ViPRService {
     private int getLoopCount() throws Exception {
 
         if (isLoop()) {
-            ImmutableMap<String, Step> steps = getStepHash();
+            final ImmutableMap<String, Step> steps = getStepHash();
             for (Map.Entry<String, Step> stepEntry : steps.entrySet()) {
-
-                logger.info("step key:{}", stepEntry.getKey());
                 final Step step = stepEntry.getValue();
-                logger.info("stepid:{}", step.getId());
 
                 if (step.getInputGroups() == null) {
-                    logger.info("it is start or end so continue");
                     continue;
                 }
                 for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
@@ -127,7 +123,7 @@ public class CustomServicesService extends ViPRService {
                             continue;
                         }
 
-                        String friendlyName = value.getFriendlyName().replaceAll(CustomServicesConstants.SPACES_REGEX, StringUtils.EMPTY);
+                        final String friendlyName = value.getFriendlyName().replaceAll(CustomServicesConstants.SPACES_REGEX, StringUtils.EMPTY);
 
                         final String paramVal;
                         if (!StringUtils.isEmpty(value.getInputFieldType()) &&
@@ -144,15 +140,13 @@ public class CustomServicesService extends ViPRService {
                             case ASSET_OPTION_SINGLE:
 
                                 if (!StringUtils.isEmpty(value.getTableName())) {
-                                    String[] size = paramVal.replace("\"", "").split(",");
-                                    logger.debug("size is:{}", size.length);
+                                    final String[] size = paramVal.replace("\"", "").split(",");
                                     return size.length;
                                 }
                                 break;
                             case ASSET_OPTION_MULTI:
                                 if (!StringUtils.isEmpty(value.getTableName())) {
-                                    String[] size = paramVal.split("\",\"");
-                                    logger.debug("size is:{}", size.length);
+                                    final String[] size = paramVal.split("\",\"");
                                     return size.length;
                                 }
                                 break;
@@ -188,8 +182,8 @@ public class CustomServicesService extends ViPRService {
     public void wfExecutor(final int loopCount) throws Exception {
 
 
-        Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
-        Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
+        final Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
+        final Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
 
         logger.info("CS: Parsing Workflow Definition");
 
@@ -548,7 +542,7 @@ public class CustomServicesService extends ViPRService {
      * @param res
      */
 
-    private final Map<String, List<String>>  updateOutputPerStep(final Step step, final CustomServicesTaskResult res) {
+    private Map<String, List<String>>  updateOutputPerStep(final Step step, final CustomServicesTaskResult res) {
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
         //set the default result.

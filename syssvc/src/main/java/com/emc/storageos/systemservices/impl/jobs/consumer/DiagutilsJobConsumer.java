@@ -221,36 +221,40 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 String uri = uploadParam.getUploadFtpParam().getFtp();
                 String user = uploadParam.getUploadFtpParam().getUser();
                 String passwd = uploadParam.getUploadFtpParam().getPassword();
-/*                switch (uploadParam.getUploadType()) {
+                switch (uploadParam.getUploadType()) {
                     case ftp:
                         uploadClient = new FtpClient(uri, user, passwd);
                         break;
                     case sftp:
                         uploadClient = new FtpClient(uri, user, passwd);
-                }*/
-                try ( OutputStream os = uploadClient.upload(subOutputDir + ".zip", 0);
-                      FileInputStream fis = new FileInputStream(dataFiledir + ".zip");) {
-                    int n = 0;
-                    byte [] buffer = new byte[102400];
-                    while ((n = fis.read(buffer)) != -1) {
-                        os.write(buffer, 0, n);
+                }
+                String uploadFileName = subOutputDir + ".zip";
+                for(int i=0; i < 3; i++) {
+                    long existingLen = uploadClient.getFileSize(uploadFileName);
+                    log.info("The existing upload file size is {}",existingLen);
+                    try (OutputStream os = uploadClient.upload(subOutputDir + ".zip", existingLen);
+                         FileInputStream fis = new FileInputStream(dataFiledir + ".zip")) {
+                        int n = 0;
+                        byte[] buffer = new byte[102400];
+                        while ((n = fis.read(buffer)) != -1) {
+                            os.write(buffer, 0, n);
+                        }
+                        jobStatus.setStatus(DiagutilStatus.COMPLETE);
+                        jobStatus.setDescription(DiagutilStatusDesc.UPLOAD_COMPLETE);
+                        if (!updateJobInfoIfNotCancel(jobStatus)) {
+                            //cancelled
+                            return;
+                        }
+
+                    } catch (Exception e) {
+                        log.warn(String.format("%s upload attempt failed",i), e);
                     }
-                } catch (Exception e ) {
-                    log.error("Upload got exception {}", e);
-                    jobStatus.setStatus(DiagutilStatus.UPLOADING_ERROR);
-                    jobStatus.setDescription(DiagutilStatusDesc.UPLOAD_FAILURE);
-                    updateJobInfoIfNotCancel(jobStatus);
-                    return ;
+                    Thread.sleep(5000);
                 }
-
-                jobStatus.setStatus(DiagutilStatus.COMPLETE);
-                jobStatus.setDescription(DiagutilStatusDesc.UPLOAD_COMPLETE);
-                if (!updateJobInfoIfNotCancel(jobStatus)) {
-                    //cancelled
-                    return;
-                }
+                jobStatus.setStatus(DiagutilStatus.UPLOADING_ERROR);
+                jobStatus.setDescription(DiagutilStatusDesc.UPLOAD_FAILURE);
+                updateJobInfoIfNotCancel(jobStatus);
             }
-
         } catch(Exception e ) {
             log.error("DiagutilsJobConsumer got unexpected exception: {}",e);
             DiagutilJobStatus jobStatus1 = queryJobInfo();

@@ -12,7 +12,7 @@ from bourne import Bourne
 import __builtin__
 
 #----------------------------------------------------------------------
-# performance parameter functions
+# performance policy functions
 #----------------------------------------------------------------------
 
 def pp_create(args):
@@ -73,13 +73,13 @@ def pp_tag(args):
     if (args.id == None):
         args.id = bourne.pp_query(args.name)
 
-    print 'Tagging performance parameters ', args.id
+    print 'Tagging performance policy ', args.id
     bourne.tag(args.resource_type, args.id, args.tags)
 
 def pp_search(args):
     bourne.connect(args.ip)
     array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
-    print 'Searching performance parameters with ' + args.prefix
+    print 'Searching performance policy with ' + args.prefix
     if (len(array) == 0):
         raise Exception('Failed to search with prefix ' + args.prefix)
     else:
@@ -95,7 +95,7 @@ def pp_verify_volume(args):
         else:
             atp_uri = bourne.pp_atp_query(value)
             bourne.volume_verify(voluri, args.attribute, atp_uri)
-    elif (args.attribute == "performance_params"):
+    elif (args.attribute == "performance_policy"):
         pp_uri = bourne.pp_query(value)
         bourne.volume_verify(voluri, args.attribute, pp_uri)
 
@@ -107,7 +107,7 @@ def pp_verify_mirror(args):
     if (args.attribute == "auto_tier_policy"):
         atp_uri = bourne.pp_atp_query(value)
         bourne.block_mirror_verify(volumeuri, mirroruri, args.attribute, atp_uri)
-    elif (args.attribute == "performance_params"):
+    elif (args.attribute == "performance_policy"):
         pp_uri = bourne.pp_query(value)
         bourne.block_mirror_verify(volumeuri, mirroruri, args.attribute, pp_uri)
 
@@ -135,14 +135,14 @@ except:
     bourne_ip = 'localhost'
 
 # pp <cmd> <cmd_args>  [--ip ipaddr]
-parser = argparse.ArgumentParser(description = 'Bourne Performance Parameters cli usage.')
+parser = argparse.ArgumentParser(description = 'Bourne Performance Policy cli usage.')
 parser.add_argument('cmd', help = 'cmd = (create | update delete | show | query | list | allow | tag | search)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # pp create name
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-create.add_argument('name',	help = 'The name of the performance parameters instance to be created')
-create.add_argument('--description', help = 'Description for the performance parameters instance')
+create.add_argument('name',	help = 'The name of the performance policy instance to be created')
+create.add_argument('--description', help = 'Description for the performance policy instance')
 create.add_argument('--auto_tiering_policy_name', help = 'The auto tiering policy name', nargs='*') 
 create.add_argument('--host_io_limit_bandwidth', help = 'The VMAX host IO bandwidth limit in Mb/second')
 create.add_argument('--host_io_limit_iops', help = 'The VMAX host IO IOPs limit')
@@ -153,9 +153,9 @@ create.add_argument('--deduplication_enabled', help='The deduplication setting')
 
 # pp update name
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-update.add_argument('name',	help = 'The name of the performance parameters instance to be updated')
-update.add_argument('--new_name', help = 'The new name for the performance parameters instance')
-update.add_argument('--description', help = 'Description for the performance parameters instance')
+update.add_argument('name',	help = 'The name of the performance policy instance to be updated')
+update.add_argument('--new_name', help = 'The new name for the performance policy instance')
+update.add_argument('--description', help = 'Description for the performance policy instance')
 update.add_argument('--auto_tiering_policy_name', help = 'The auto tiering policy name', nargs='*') 
 update.add_argument('--host_io_limit_bandwidth', help = 'The VMAX host IO bandwidth limit in Mb/second')
 update.add_argument('--host_io_limit_iops', help = 'The VMAX host IO IOPs limit')
@@ -166,28 +166,28 @@ update.add_argument('--deduplication_enabled', help='The deduplication setting')
 
 # pp delete name
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-delete.add_argument('name',	help = 'The name of the performance parameters instance to be deleted')
+delete.add_argument('name',	help = 'The name of the performance policy instance to be deleted')
 
 # pp show name
 show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-show.add_argument('name', help = 'The name of the performance parameters instance to be shown')
+show.add_argument('name', help = 'The name of the performance policy instance to be shown')
 
 # pp query name
 query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-query.add_argument('name', help = 'The name of the performance parameters instance to be queried')
+query.add_argument('name', help = 'The name of the performance policy instance to be queried')
 
 # pp list
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 
 # pp allow name tenant
 allow = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-allow.add_argument('name', help = 'The name of the performance parameters instance')
-allow.add_argument('tenant', help = 'The name of the tenant to allow access to the performance parameter instance')
+allow.add_argument('name', help = 'The name of the performance policy instance')
+allow.add_argument('tenant', help = 'The name of the tenant to allow access to the performance policy instance')
 
 # pp tag
-resource_type="block_performance_params"
+resource_type="block_performance_policy"
 tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-tag.add_argument('name', metavar = 'name', help = 'The name of the performance parameters instance')
+tag.add_argument('name', metavar = 'name', help = 'The name of the performance policy instance')
 tag.add_argument('tags', metavar = 'tags', help = 'The tags to be applied to the instance', nargs='+', default=None)
 tag.add_argument('--resource_type', metavar = 'resource_type', help = 'The resource type', default=resource_type)
 tag.add_argument('--id', metavar = 'id', help = 'The resource id', default=None)

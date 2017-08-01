@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio [quick|hlu|quick hlu] | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity | performanceparams [vmaxblock|vplex]'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity | performancepolicy [vmaxblock|vplex|rp]'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -115,7 +115,7 @@ elif [ ${SS} = "recoverpoint" ]; then
     RP_QUICK_PARAM=${4:-'quick'}
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
-elif [ ${SS} = "performanceparams" ]; then
+elif [ ${SS} = "performancepolicy" ]; then
     PP_TEST=${4:-'vmaxblock'}
     PP_QUICK=${5:-'normal'}
     if [ ${PP_QUICK} = 'quick' ]; then
@@ -238,7 +238,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity|performanceparams)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity|performancepolicy)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -14683,10 +14683,10 @@ arrayaffinity_tests()
     secho "Completed array affinity tests"
 }
 
-#Performance parameter setup and tests
-performanceparams_setup()
+#Performance policy setup and tests
+performancepolicy_setup()
 {
-    secho "Start performance parameter setup"
+    secho "Start performance policy setup"
     if [ ${PP_TEST} == "vmaxblock" ]; then
        # Note that this calls vmaxblock_setup.
        if [ ${QUICK} -eq 1 ]; then
@@ -14697,7 +14697,7 @@ performanceparams_setup()
        vplex_setup
 
        # Do some additional setup for VPLEX to allow for HA side mirrors.
-       performanceparams_vplex_setup
+       performancepolicy_vplex_setup
     elif [ ${PP_TEST} == "rp" ]; then
        RP_RUN_SETUP=1
        recoverpoint_setup
@@ -14705,10 +14705,10 @@ performanceparams_setup()
     else
        secho "Not supported"
     fi
-    secho "Performance parameter setup complete"
+    secho "Performance policy setup complete"
 }
 
-performanceparams_vplex_setup()
+performancepolicy_vplex_setup()
 {
     PP_NH2_VMAX2_NATIVEGUID=${VMAX_NATIVEGUID}
     if [ ${QUICK} -eq 1 ]; then
@@ -14755,21 +14755,21 @@ performanceparams_vplex_setup()
     run cos update block pp_cosvplexdist --storage ${VPLEX_VNX1_NATIVEGUID}
 }
 
-performanceparams_tests()
+performancepolicy_tests()
 {
     if [ ${PP_TEST} == "vmaxblock" ]; then
-       performanceparams_vmaxblock_tests
+       performancepolicy_vmaxblock_tests
     elif [ ${PP_TEST} == "vplex" ]; then
-       performanceparams_vplex_tests
+       performancepolicy_vplex_tests
     elif [ ${PP_TEST} == "rp" ]; then
-       performanceparams_rp_tests
+       performancepolicy_rp_tests
     else
        secho "Not supported"
     fi
-    secho "Performance parameter tests complete"
+    secho "Performance policy tests complete"
 }
 
-performanceparams_vmaxblock_tests()
+performancepolicy_vmaxblock_tests()
 {
     # Define auto tiering policies.
     atp_name="Gold SLO (5.0ms)"
@@ -14787,42 +14787,42 @@ performanceparams_vmaxblock_tests()
         pp1_update_atp_guid=${VMAX_NATIVEGUID}+FASTPOLICY+${pp1_update_atp_name}
     fi
 
-    # Create a performance parameters instance.
-    pp1=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${pp1}."
-    run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp_name}" \
+    # Create a performance policy instance.
+    pp1=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${pp1}."
+    run performancepolicy create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp_name}" \
          --host_io_limit_bandwidth 10000 --host_io_limit_iops 20000 --thin_vol_prealloc_percentage 25 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
-    performanceparams show ${pp1}
+    performancepolicy show ${pp1}
 
     # Create a volume and override vpool settings with those of the created
-    # performance parameters instance.
+    # performance policy instance.
     vol1=Vol1-${RANDOM}
-    secho "Creating volume ${vol1} with performance parameters ${pp1}."
-    volPerfParams='PRIMARY:'${pp1}
-    run volume create ${vol1} ${PROJECT} ${NH} ${COS_MIRROR} ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
+    secho "Creating volume ${vol1} with performance policy ${pp1}."
+    volPerfPolicy='PRIMARY:'${pp1}
+    run volume create ${vol1} ${PROJECT} ${NH} ${COS_MIRROR} ${BLK_SIZE} --sourcePerfPolicy ${volPerfPolicy}
     volume show ${PROJECT}/${vol1}
-    run performanceparams verify_volume ${PROJECT}/${vol1} auto_tier_policy ${atp_guid}
-    run performanceparams verify_volume ${PROJECT}/${vol1} performance_params ${pp1}
+    run performancepolicy verify_volume ${PROJECT}/${vol1} auto_tier_policy ${atp_guid}
+    run performancepolicy verify_volume ${PROJECT}/${vol1} performance_policy ${pp1}
 
-    # Create another performance parameters instance to be used for a local mirror
+    # Create another performance policy instance to be used for a local mirror
     # that will be attached to the volume.
-    pp2=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${pp2}."
-    run performanceparams create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2_name}" \
+    pp2=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${pp2}."
+    run performancepolicy create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
-    performanceparams show ${pp2}
+    performancepolicy show ${pp2}
 
     # Create a mirror and override mirror vpool settings with those of the
-    # mirror performance parameters.
+    # mirror performance policy.
     vol1Mirror=${vol1}-Mirror
-    mirrorPerfParams='PRIMARY_MIRROR:'${pp2}    
-    secho "Attaching mirror ${vol1Mirror} to volume ${vol1} with performance parameters ${pp2}."
-    run blockmirror attach ${PROJECT}/${vol1} ${vol1Mirror} 1 --mirrorPerfParams ${mirrorPerfParams}
+    mirrorPerfPolicy='PRIMARY_MIRROR:'${pp2}    
+    secho "Attaching mirror ${vol1Mirror} to volume ${vol1} with performance policy ${pp2}."
+    run blockmirror attach ${PROJECT}/${vol1} ${vol1Mirror} 1 --mirrorPerfPolicy ${mirrorPerfPolicy}
     blockmirror show ${PROJECT}/${vol1} ${vol1Mirror}
-    run performanceparams verify_mirror ${PROJECT}/${vol1} ${vol1Mirror} auto_tier_policy ${atp2_guid}
-    run performanceparams verify_mirror ${PROJECT}/${vol1} ${vol1Mirror} performance_params ${pp2}
+    run performancepolicy verify_mirror ${PROJECT}/${vol1} ${vol1Mirror} auto_tier_policy ${atp2_guid}
+    run performancepolicy verify_mirror ${PROJECT}/${vol1} ${vol1Mirror} performance_policy ${pp2}
 
     # Pause the mirror.
     secho "Pause mirror ${vol1Mirror}."
@@ -14836,34 +14836,35 @@ performanceparams_vmaxblock_tests()
     secho "Deleting volume ${vol1}."
     run volume delete ${PROJECT}/${vol1} --wait
 
-    # Update the performance parameters instance.
+    # Update the performance policy instance.
     pp1_update_name=${pp1}-Updated
-    secho "Updating performance parameters ${pp1} with new name ${pp1_update_name} and auto tiering policy ${pp1_update_atp}."
-    run performanceparams update ${pp1} --new_name ${pp1_update_name} --description "${pp1}-NewDescription" --auto_tiering_policy_name "${pp1_update_atp_name}"\
+    secho "Updating performance policy ${pp1} with new name ${pp1_update_name} and auto tiering policy ${pp1_update_atp}."
+    run performancepolicy update ${pp1} --new_name ${pp1_update_name} --description "${pp1}-NewDescription" --auto_tiering_policy_name "${pp1_update_atp_name}"\
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 10 \
          --compression_enabled true --fast_expansion_enabled true --deduplication_enabled true
-    performanceparams show ${pp1_update_name}
+    performancepolicy show ${pp1_update_name}
 
     # Create a volume and override vpool settings with those of the updated
-    # performance parameters instance.
+    # performance policy instance.
     vol2=Vol2-${RANDOM}
-    secho "Creating volume ${vol2} with performance parameters ${pp1_update_name}."
-    volPerfParams='PRIMARY:'${pp1_update_name}
-    run volume create ${vol2} ${PROJECT} ${NH} ${COS_VMAXBLOCK} ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
+    secho "Creating volume ${vol2} with performance policy ${pp1_update_name}."
+    volPerfPolicy='PRIMARY:'${pp1_update_name}
+    run volume create ${vol2} ${PROJECT} ${NH} ${COS_VMAXBLOCK} ${BLK_SIZE} --sourcePerfPolicy ${volPerfPolicy}
     volume show ${PROJECT}/${vol2}
-    run performanceparams verify_volume ${PROJECT}/${vol2} auto_tier_policy ${pp1_update_atp_guid}
-    run performanceparams verify_volume ${PROJECT}/${vol2} performance_params ${pp1_update_name}
+    run performancepolicy verify_volume ${PROJECT}/${vol2} auto_tier_policy ${pp1_update_atp_guid}
+    run performancepolicy verify_volume ${PROJECT}/${vol2} performance_policy ${pp1_update_name}
 
     # Delete the volume.
     secho "Deleting volume ${vol2}."
     run volume delete ${PROJECT}/${vol2} --wait
 
-    # Delete the performance parameter instances.
-    secho "Cleaning up performance parameter instances."
-    run performanceparams delete ${pp1_update_name}
+    # Delete the performance policy instances.
+    secho "Cleaning up performance policy instances."
+    run performancepolicy delete ${pp1_update_name}
+    run performancepolicy delete ${pp2}
 }
 
-performanceparams_vplex_tests()
+performancepolicy_vplex_tests()
 {
     # The project for backend volume is the VPLEX guid. This value is set
     # to the correct value based on whether the test on real hardware or
@@ -14892,74 +14893,74 @@ performanceparams_vplex_tests()
         atp4_guid=${PP_NH2_VMAX2_NATIVEGUID}+FASTPOLICY+${atp4_name}
     fi
 
-    # Create a performance parameters instance for the primary side of a VPLEX
+    # Create a performance policy instance for the primary side of a VPLEX
     # distributed volume.
-    pp1=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${pp1}."
-    run performanceparams create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp1_name}" \
+    pp1=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${pp1}."
+    run performancepolicy create ${pp1} --description "${pp1}-Description" --auto_tiering_policy_name "${atp1_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 5 \
          --compression_enabled false --fast_expansion_enabled true --deduplication_enabled true
-    performanceparams show ${pp1}
+    performancepolicy show ${pp1}
 
-    # Create a performance parameters instance for the HA side of a VPLEX
+    # Create a performance policy instance for the HA side of a VPLEX
     # distributed volume.
-    pp2=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${pp2}."
-    run performanceparams create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2_name}" \
+    pp2=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${pp2}."
+    run performancepolicy create ${pp2} --description "${pp2}-Description" --auto_tiering_policy_name "${atp2_name}" \
          --host_io_limit_bandwidth 10000 --host_io_limit_iops 10000 --thin_vol_prealloc_percentage 5 \
          --compression_enabled true --fast_expansion_enabled true --deduplication_enabled true
-    performanceparams show ${pp2}
+    performancepolicy show ${pp2}
 
-    # Create a performance parameters instance for the primary side mirror of a VPLEX
+    # Create a performance policy instance for the primary side mirror of a VPLEX
     # distributed volume.
-    pp3=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${pp3}."
-    run performanceparams create ${pp3} --description "${pp3}-Description" --auto_tiering_policy_name "${atp3_name}" \
+    pp3=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${pp3}."
+    run performancepolicy create ${pp3} --description "${pp3}-Description" --auto_tiering_policy_name "${atp3_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
-    performanceparams show ${pp3}
+    performancepolicy show ${pp3}
 
-    # Create a performance parameters instance for the HA side mirror of a VPLEX
+    # Create a performance policy instance for the HA side mirror of a VPLEX
     # distributed volume.
-    pp4=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${pp4}."
-    run performanceparams create ${pp4} --description "${pp4}-Description" --auto_tiering_policy_name "${atp4_name}" \
+    pp4=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${pp4}."
+    run performancepolicy create ${pp4} --description "${pp4}-Description" --auto_tiering_policy_name "${atp4_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
-    performanceparams show ${pp4}
+    performancepolicy show ${pp4}
 
-    # List the performance parameters.
-    performanceparams list
+    # List the performance policies.
+    performancepolicy list
 
-    # Create a VPLEX distributed volume using the two previously created performance parameter 
+    # Create a VPLEX distributed volume using the two previously created performance policies 
     # instances for the primary and HA side backend volumes of the VPLEX volume.
     vol1=VPlexDistVol1-${RANDOM}
-    volPerfParams='PRIMARY:'${pp1}',HA:'${pp2}
-    secho "Creating VPLEX distributed volume ${vol1} with PRIMARY performance params ${pp1} and HA performance params ${pp2}."
-    run volume create ${vol1} ${PROJECT} ${NH} pp_cosvplexdist ${BLK_SIZE} --sourcePerfParams ${volPerfParams}
+    volPerfPolicy='PRIMARY:'${pp1}',HA:'${pp2}
+    secho "Creating VPLEX distributed volume ${vol1} with PRIMARY performance policy ${pp1} and HA performance policy ${pp2}."
+    run volume create ${vol1} ${PROJECT} ${NH} pp_cosvplexdist ${BLK_SIZE} --sourcePerfPolicy ${volPerfPolicy}
     volume show ${PROJECT}/${vol1}
-    run performanceparams verify_volume ${PROJECT}/${vol1} performance_params ${pp1}
-    run performanceparams verify_volume ${BE_PROJECT}/${vol1}-0 auto_tier_policy ${atp1_guid}
-    run performanceparams verify_volume ${BE_PROJECT}/${vol1}-0 performance_params ${pp1}
-    run performanceparams verify_volume ${BE_PROJECT}/${vol1}-1 auto_tier_policy ${atp2_guid}
-    run performanceparams verify_volume ${BE_PROJECT}/${vol1}-1 performance_params ${pp2}
+    run performancepolicy verify_volume ${PROJECT}/${vol1} performance_policy ${pp1}
+    run performancepolicy verify_volume ${BE_PROJECT}/${vol1}-0 auto_tier_policy ${atp1_guid}
+    run performancepolicy verify_volume ${BE_PROJECT}/${vol1}-0 performance_policy ${pp1}
+    run performancepolicy verify_volume ${BE_PROJECT}/${vol1}-1 auto_tier_policy ${atp2_guid}
+    run performancepolicy verify_volume ${BE_PROJECT}/${vol1}-1 performance_policy ${pp2}
 
     # Create a local mirror on both sides of the VPLEX distributed volume and override
-    # mirror vpool settings with those of the mirror performance parameters.
+    # mirror vpool settings with those of the mirror performance policies.
     vol1Mirror=${vol1}-Mirror
-    mirrorPerfParams='PRIMARY_MIRROR:'${pp3}',HA_MIRROR:'${pp4}  
-    secho "Attaching mirror ${vol1Mirror} to volume ${vol1} with primary performance parameters ${pp3} and HA parameters ${pp4}."
-    run blockmirror attach ${PROJECT}/${vol1} ${vol1Mirror} 1 --mirrorPerfParams ${mirrorPerfParams}
+    mirrorPerfPolicy='PRIMARY_MIRROR:'${pp3}',HA_MIRROR:'${pp4}  
+    secho "Attaching mirror ${vol1Mirror} to volume ${vol1} with primary performance policy ${pp3} and HA policy ${pp4}."
+    run blockmirror attach ${PROJECT}/${vol1} ${vol1Mirror} 1 --mirrorPerfPolicy ${mirrorPerfPolicy}
     blockmirror show ${PROJECT}/${vol1} ${vol1Mirror}-0
     blockmirror show ${PROJECT}/${vol1} ${vol1Mirror}-1
 
     # Since a VplexMirror is not a BlockMirror, and is therefore not a Volume, we cannot
-    # verify the performance parameters on the mirror, but instead verify on the associated
+    # verify the performance policies on the mirror, but instead verify on the associated
     # volume for the vplex mirror.
-    run performanceparams verify_volume ${BE_PROJECT}/${vol1Mirror}-0 auto_tier_policy ${atp3_guid}
-    run performanceparams verify_volume ${BE_PROJECT}/${vol1Mirror}-0 performance_params ${pp3}
-    run performanceparams verify_volume ${BE_PROJECT}/${vol1Mirror}-1 auto_tier_policy ${atp4_guid}
-    run performanceparams verify_volume ${BE_PROJECT}/${vol1Mirror}-1 performance_params ${pp4}
+    run performancepolicy verify_volume ${BE_PROJECT}/${vol1Mirror}-0 auto_tier_policy ${atp3_guid}
+    run performancepolicy verify_volume ${BE_PROJECT}/${vol1Mirror}-0 performance_policy ${pp3}
+    run performancepolicy verify_volume ${BE_PROJECT}/${vol1Mirror}-1 auto_tier_policy ${atp4_guid}
+    run performancepolicy verify_volume ${BE_PROJECT}/${vol1Mirror}-1 performance_policy ${pp4}
 
     # Delete the mirror
     secho "Deleting mirror ${vol1Mirror}." 
@@ -14970,17 +14971,17 @@ performanceparams_vplex_tests()
     secho "Deleting volume ${vol1}."
     run volume delete ${PROJECT}/${vol1} --wait
 
-    # Delete the performance parameter instances.
-    secho "Cleaning up performance parameter instances."
-    run performanceparams delete ${pp1}
-    run performanceparams delete ${pp2}
-    run performanceparams delete ${pp3}
-    run performanceparams delete ${pp4}
+    # Delete the performance policy instances.
+    secho "Cleaning up performance policy instances."
+    run performancepolicy delete ${pp1}
+    run performancepolicy delete ${pp2}
+    run performancepolicy delete ${pp3}
+    run performancepolicy delete ${pp4}
 }
 
-performanceparams_rp_tests()
+performancepolicy_rp_tests()
 {
-    secho "Running RP performance parameter tests for RP CLR."
+    secho "Running RP performance policy tests for RP CLR."
 
     # Define auto tiering policies
     src_atp_name="Platinum SLO (3.0ms)"
@@ -15007,78 +15008,78 @@ performanceparams_rp_tests()
     lcpy_jrnl_atp_guid=${RECOVERPOINT_STORAGE_ARRAY_A_GUID}+SLO_POLICY+${lcpy_jrnl_atp_name}
 
 
-    # Create a performance parameters instance for the RP source volume
-    src_pp=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${src_pp} for the RP source."
-    run performanceparams create ${src_pp} --description "${src_pp}-Description" --auto_tiering_policy_name "${src_atp_name}" \
+    # Create a performance policy instance for the RP source volume
+    src_pp=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${src_pp} for the RP source."
+    run performancepolicy create ${src_pp} --description "${src_pp}-Description" --auto_tiering_policy_name "${src_atp_name}" \
          --host_io_limit_bandwidth 10000 --host_io_limit_iops 10000 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
-    performanceparams show ${src_pp}
+    performancepolicy show ${src_pp}
 
-    # Create a performance parameters instance for the RP source journal volume
-    src_jrnl_pp=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${src_jrnl_pp} for the RP source journal."
-    run performanceparams create ${src_jrnl_pp} --description "${src_jrnl_pp}-Description" --auto_tiering_policy_name "${src_jrnl_atp_name}" \
+    # Create a performance policy instance for the RP source journal volume
+    src_jrnl_pp=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${src_jrnl_pp} for the RP source journal."
+    run performancepolicy create ${src_jrnl_pp} --description "${src_jrnl_pp}-Description" --auto_tiering_policy_name "${src_jrnl_atp_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
-    performanceparams show ${src_jrnl_pp}
+    performancepolicy show ${src_jrnl_pp}
 
-    # Create a performance parameters instance for the local RP copy.
-    lcpy_pp=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${lcpy_pp} for the RP local copy."
-    run performanceparams create ${lcpy_pp} --description "${lcpy_pp}-Description" --auto_tiering_policy_name "${lcpy_atp_name}" \
+    # Create a performance policy instance for the local RP copy.
+    lcpy_pp=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${lcpy_pp} for the RP local copy."
+    run performancepolicy create ${lcpy_pp} --description "${lcpy_pp}-Description" --auto_tiering_policy_name "${lcpy_atp_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
-    performanceparams show ${lcpy_pp}
+    performancepolicy show ${lcpy_pp}
 
-    # Create a performance parameters instance for the local RP copy journal.
-    lcpy_jrnl_pp=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${lcpy_jrnl_pp} for the local RP copy journal."
-    run performanceparams create ${lcpy_jrnl_pp} --description "${lcpy_jrnl_pp}-Description" --auto_tiering_policy_name "${lcpy_jrnl_atp_name}" \
+    # Create a performance policy instance for the local RP copy journal.
+    lcpy_jrnl_pp=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${lcpy_jrnl_pp} for the local RP copy journal."
+    run performancepolicy create ${lcpy_jrnl_pp} --description "${lcpy_jrnl_pp}-Description" --auto_tiering_policy_name "${lcpy_jrnl_atp_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
-    performanceparams show ${lcpy_jrnl_pp}
+    performancepolicy show ${lcpy_jrnl_pp}
 
-    # Create a performance parameters instance for the remote RP copy.
-    rcpy_pp=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${rcpy_pp} for the RP remote copy."
-    run performanceparams create ${rcpy_pp} --description "${rcpy_pp}-Description" --auto_tiering_policy_name "${rcpy_atp_name}" \
+    # Create a performance policy instance for the remote RP copy.
+    rcpy_pp=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${rcpy_pp} for the RP remote copy."
+    run performancepolicy create ${rcpy_pp} --description "${rcpy_pp}-Description" --auto_tiering_policy_name "${rcpy_atp_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
-    performanceparams show ${rcpy_pp}
+    performancepolicy show ${rcpy_pp}
 
-    # Create a performance parameters instance for the remote RP copy journal.
-    rcpy_jrnl_pp=PerfParams-${RANDOM}
-    secho "Creating performance parameters with name ${rcpy_jrnl_pp} for the remote RP copy journal."
-    run performanceparams create ${rcpy_jrnl_pp} --description "${rcpy_jrnl_pp}-Description" --auto_tiering_policy_name "${rcpy_jrnl_atp_name}" \
+    # Create a performance policy instance for the remote RP copy journal.
+    rcpy_jrnl_pp=PerfPolicy-${RANDOM}
+    secho "Creating performance policy with name ${rcpy_jrnl_pp} for the remote RP copy journal."
+    run performancepolicy create ${rcpy_jrnl_pp} --description "${rcpy_jrnl_pp}-Description" --auto_tiering_policy_name "${rcpy_jrnl_atp_name}" \
          --host_io_limit_bandwidth 0 --host_io_limit_iops 0 --thin_vol_prealloc_percentage 0 \
          --compression_enabled false --fast_expansion_enabled false --deduplication_enabled false
-    performanceparams show ${rcpy_jrnl_pp}
+    performancepolicy show ${rcpy_jrnl_pp}
 
-    # List the performance parameters.
-    performanceparams list
+    # List the performance policies.
+    performancepolicy list
 
-    # Create an RP CLR volume using the 3 previously created performance parameter 
+    # Create an RP CLR volume using the previously created performance policy 
     # instances for the RP source and copies.
     vol1=RPCLR_Vol1-${RANDOM}
-    srcPerfParams='PRIMARY:'${src_pp}',JOURNAL:'${src_jrnl_pp}
-    cpyPerfParams=${RECOVERPOINT_VARRAY1}'|PRIMARY:'${lcpy_pp}'|JOURNAL:'${lcpy_jrnl_pp}','${RECOVERPOINT_VARRAY3}'|PRIMARY:'${rcpy_pp}'|JOURNAL:'${rcpy_jrnl_pp}
+    srcPerfPolicy='PRIMARY:'${src_pp}',JOURNAL:'${src_jrnl_pp}
+    cpyPerfPolicy=${RECOVERPOINT_VARRAY1}'|PRIMARY:'${lcpy_pp}'|JOURNAL:'${lcpy_jrnl_pp}','${RECOVERPOINT_VARRAY3}'|PRIMARY:'${rcpy_pp}'|JOURNAL:'${rcpy_jrnl_pp}
     secho "Creating RP CLR volume ${vol1}." 
     run volume create ${vol1} ${PROJECT} ${RECOVERPOINT_VARRAY1} rp_clr ${RP_VOLUME_SIZE} --consistencyGroup ${RP_CONSISTENCY_GROUP} \
-        --sourcePerfParams ${srcPerfParams} --copyPerfParams ${cpyPerfParams}
+        --sourcePerfPolicy ${srcPerfPolicy} --copyPerfPolicy ${cpyPerfPolicy}
     volume show ${PROJECT}/${vol1}
-    run performanceparams verify_volume ${PROJECT}/${vol1} auto_tier_policy ${src_atp_guid}
-    run performanceparams verify_volume ${PROJECT}/${vol1} performance_params ${src_pp}
-    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-1 auto_tier_policy ${src_jrnl_atp_guid}
-    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-1 performance_params ${src_jrnl_pp}
-    run performanceparams verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY1} auto_tier_policy ${lcpy_atp_guid}
-    run performanceparams verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY1} performance_params ${lcpy_pp}
-    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-2 auto_tier_policy ${lcpy_jrnl_atp_guid}
-    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-2 performance_params ${lcpy_jrnl_pp}
-    run performanceparams verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY3} auto_tier_policy ${rcpy_atp_guid}
-    run performanceparams verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY3} performance_params ${rcpy_pp}
-    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY3}-journal-1 auto_tier_policy ${rcpy_jrnl_atp_guid}
-    run performanceparams verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY3}-journal-1 performance_params ${rcpy_jrnl_pp}
+    run performancepolicy verify_volume ${PROJECT}/${vol1} auto_tier_policy ${src_atp_guid}
+    run performancepolicy verify_volume ${PROJECT}/${vol1} performance_policy ${src_pp}
+    run performancepolicy verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-1 auto_tier_policy ${src_jrnl_atp_guid}
+    run performancepolicy verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-1 performance_policy ${src_jrnl_pp}
+    run performancepolicy verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY1} auto_tier_policy ${lcpy_atp_guid}
+    run performancepolicy verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY1} performance_policy ${lcpy_pp}
+    run performancepolicy verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-2 auto_tier_policy ${lcpy_jrnl_atp_guid}
+    run performancepolicy verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY1}-journal-2 performance_policy ${lcpy_jrnl_pp}
+    run performancepolicy verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY3} auto_tier_policy ${rcpy_atp_guid}
+    run performancepolicy verify_volume ${PROJECT}/${vol1}-target-${RECOVERPOINT_VARRAY3} performance_policy ${rcpy_pp}
+    run performancepolicy verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY3}-journal-1 auto_tier_policy ${rcpy_jrnl_atp_guid}
+    run performancepolicy verify_volume ${PROJECT}/${RP_CONSISTENCY_GROUP}-${RECOVERPOINT_VARRAY3}-journal-1 performance_policy ${rcpy_jrnl_pp}
 
     # Delete the volume.
     secho "Deleting volume ${vol1}."
@@ -15088,14 +15089,14 @@ performanceparams_rp_tests()
     secho "Deleting RP CGs."
     recoverpoint_cleanup_cgs
 
-    # Delete the performance parameter instances.
-    secho "Cleaning up performance parameter instances."
-    run performanceparams delete ${src_pp}
-    run performanceparams delete ${src_jrnl_pp}
-    run performanceparams delete ${lcpy_pp}
-    run performanceparams delete ${lcpy_jrnl_pp}
-    run performanceparams delete ${rcpy_pp}
-    run performanceparams delete ${rcpy_jrnl_pp}
+    # Delete the performance policy instances.
+    secho "Cleaning up performance policy instances."
+    run performancepolicy delete ${src_pp}
+    run performancepolicy delete ${src_jrnl_pp}
+    run performancepolicy delete ${lcpy_pp}
+    run performancepolicy delete ${lcpy_jrnl_pp}
+    run performancepolicy delete ${rcpy_pp}
+    run performancepolicy delete ${rcpy_jrnl_pp}
 }
 
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run

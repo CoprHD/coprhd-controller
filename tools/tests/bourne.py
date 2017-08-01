@@ -549,10 +549,10 @@ URI_COMPUTE_VIRTUAL_POOLS       = URI_SERVICES_BASE + '/compute/vpools'
 URI_COMPUTE_VIRTUAL_POOL        = URI_COMPUTE_VIRTUAL_POOLS + '/{0}'
 URI_COMPUTE_VIRTUAL_POOL_ASSIGN = URI_COMPUTE_VIRTUAL_POOL + '/assign-matched-elements'
 
-URI_PERF_PARAMS                 = URI_SERVICES_BASE + '/block/performance-params'
-URI_PERF_PARAMS_INSTANCE        = URI_PERF_PARAMS + '/{0}'
-URI_PERF_PARAMS_DEACTIVATE      = URI_PERF_PARAMS_INSTANCE + '/deactivate'
-URI_PERF_PARAMS_ACLS            = URI_PERF_PARAMS_INSTANCE + '/acl'
+URI_PERF_POLICIES               = URI_SERVICES_BASE + '/block/performance-policies'
+URI_PERF_POLICIES_INSTANCE      = URI_PERF_POLICIES + '/{0}'
+URI_PERF_POLICIES_DEACTIVATE    = URI_PERF_POLICIES_INSTANCE + '/deactivate'
+URI_PERF_POLICIES_ACLS          = URI_PERF_POLICIES_INSTANCE + '/acl'
 
 OBJCTRL_INSECURE_PORT           = '9010'
 OBJCTRL_PORT                    = '4443'
@@ -3755,7 +3755,7 @@ class Bourne:
     def volume_exports(self, uri):
         return self.api('GET', URI_VOLUMES_EXPORTS.format(uri))
 
-    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource, sourcePerfParams, copyPerfParams):
+    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource, sourcePerfPolicy, copyPerfPolicy):
         parms = {
             'name'              : label,
             'varray'      : neighborhood,
@@ -3777,10 +3777,10 @@ class Bourne:
         # Initialize the performance parameters
         pp = dict()
 
-        # Source params first. Should be in form: role:uri,role:uri,...
-        if (sourcePerfParams):
+        # Source policies first. Should be in form: role:uri,role:uri,...
+        if (sourcePerfPolicy):
             spp_roles = []
-            spp_entries = sourcePerfParams.split(',')
+            spp_entries = sourcePerfPolicy.split(',')
             for spp_entry in spp_entries:
                 spp_role_details = spp_entry.split(":")
                 spp_role = dict()
@@ -3789,11 +3789,11 @@ class Bourne:
                 spp_roles.append(spp_role)
             spp_varray = dict()
             spp_varray['varray'] = neighborhood
-            spp_varray['param'] = spp_roles
-            pp['source_params'] = spp_varray
+            spp_varray['policies'] = spp_roles
+            pp['source_policies'] = spp_varray
 
-        # Now copy params. Should be in the form: varray|role:uri|role:uri|...,varray|role:uri|role:uri...,...
-        if (copyPerfParams):
+        # Now copy policies. Should be in the form: varray|role:uri|role:uri|...,varray|role:uri|role:uri...,...
+        if (copyPerfPolicy):
             cpp_varrays = []
             cpp_entries = copyPerfParams.split(',')
             for cpp_entry in cpp_entries:
@@ -3811,12 +3811,12 @@ class Bourne:
                         cpp_role['role'] = cpp_role_details[0]
                         cpp_role['id'] = self.pp_query(cpp_role_details[1])
                         cpp_roles.append(cpp_role)
-                cpp_varray['param'] = cpp_roles
+                cpp_varray['policies'] = cpp_roles
                 cpp_varrays.append(cpp_varray)
-            pp['copy_params'] = cpp_varrays
+            pp['copy_policies'] = cpp_varrays
 
         # Finally, set the performance params
-        parms['performance_params'] = pp
+        parms['performance_policies'] = pp
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
@@ -4277,7 +4277,7 @@ class Bourne:
           result.append(s)
        return result
 
-    def block_mirror_attach(self, volume, label, count, mirrorPerfParams):
+    def block_mirror_attach(self, volume, label, count, mirrorPerfPolicy):
 
        copies_param = dict()
        copy = dict()
@@ -4288,7 +4288,7 @@ class Bourne:
        copy['type'] = "native"
 
        # Initialize the mirror performance parameters. Should be in form: role:uri,role:uri,...
-       if (mirrorPerfParams):
+       if (mirrorPerfPolicy):
            pp_roles = []
            pp_entries = mirrorPerfParams.split(',')
            for pp_entry in pp_entries:
@@ -4300,8 +4300,8 @@ class Bourne:
            pp_varray = dict()
            # The varray is not used for mirrors
            pp_varray['varray'] = "dummyvarray"
-           pp_varray['param'] = pp_roles
-           copy['performance_params'] = pp_varray
+           pp_varray['policies'] = pp_roles
+           copy['performance_policies'] = pp_varray
 
        copy_entries.append(copy)
        copies_param['copy'] = copy_entries
@@ -5711,8 +5711,8 @@ class Bourne:
             uri = URI_IPINTERFACES
         elif resource_type == "initiator":
             uri = URI_INITIATORS
-        elif resource_type == "block_performance_params":
-            uri = URI_PERF_PARAMS
+        elif resource_type == "block_performance_policy":
+            uri = URI_PERF_POLICIES
         else:
             raise Exception('Unknown resource type ' + resource_type)
         searchuri =  uri + '/search'
@@ -5780,7 +5780,7 @@ class Bourne:
         elif resource_type == "initiator":
             uri = URI_INITIATOR.format(id)
         elif resource_type == "block_performance_params":
-            uri = URI_PERF_PARAMS_INSTANCE.format(id)
+            uri = URI_PERF_POLICIES_INSTANCE.format(id)
         else:
             raise Exception('Unknown resource type ' + resource_type)
         return uri + '/tags'
@@ -9870,7 +9870,7 @@ class Bourne:
         return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy), parms)
 
 
-    # Create performance parameters
+    # Create performance policy
     def pp_create(self, name, description, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
                   thin_vol_prealloc_percentage, compression_enabled, fast_expansion_enabled, deduplication_enabled):
         parms = dict()
@@ -9891,7 +9891,7 @@ class Bourne:
             parms['fast_expansion'] = fast_expansion_enabled
         if (deduplication_enabled):
             parms['dedup_capable'] = deduplication_enabled
-        return self.api('POST', URI_PERF_PARAMS, parms)
+        return self.api('POST', URI_PERF_POLICIES, parms)
 
     def pp_update(self, uri, newname, description, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
                   thin_vol_prealloc_percentage, compression_enabled, fast_expansion_enabled, deduplication_enabled):
@@ -9914,13 +9914,13 @@ class Bourne:
             parms['fast_expansion'] = fast_expansion_enabled
         if (deduplication_enabled):
             parms['dedup_capable'] = deduplication_enabled
-        return self.api('PUT', URI_PERF_PARAMS_INSTANCE.format(uri), parms)
+        return self.api('PUT', URI_PERF_POLICIES_INSTANCE.format(uri), parms)
 
     def pp_delete(self, uri):
-        return self.api('POST', URI_PERF_PARAMS_DEACTIVATE.format(uri))
+        return self.api('POST', URI_PERF_POLICIES_DEACTIVATE.format(uri))
 
     def pp_show(self, uri):
-        return self.api('GET', URI_PERF_PARAMS_INSTANCE.format(uri))
+        return self.api('GET', URI_PERF_POLICIES_INSTANCE.format(uri))
 
     def pp_query(self, name):
         if (self.__is_uri(name)):
@@ -9933,7 +9933,7 @@ class Bourne:
                     return pp['id']
             except:
                 continue
-        raise Exception('Could not find performance params with name ' + name)
+        raise Exception('Could not find performance policy with name ' + name)
 
     def pp_query(self, name):
         if (self.__is_uri(name)):
@@ -9946,13 +9946,13 @@ class Bourne:
                     return pp['id']
             except:
                 continue
-        raise Exception('Could not find performance params with name ' + name)
+        raise Exception('Could not find performance policy with name ' + name)
 
     def pp_list(self):
-            pplist = self.api('GET', URI_PERF_PARAMS)
+            pplist = self.api('GET', URI_PERF_POLICIES)
             if (not pplist):
                 return {};
-            return pplist['performance_params']
+            return pplist['performance_policies']
 
     def pp_add_acl(self, uri, tenant):
         tenant_uri = self.__tenant_id_from_label(tenant)
@@ -9965,7 +9965,7 @@ class Bourne:
                 'tenant': tenant_uri,
                 }]
         }
-        response = self.__api('PUT', URI_PERF_PARAMS_ACLS.format(uri), parms)
+        response = self.__api('PUT', URI_PERF_POLICIES_ACLS.format(uri), parms)
         if (response.status_code != 200):
             print "pp_add_acl failed with code: ", response.status_code
             raise Exception('pp_add_acl: failed')

@@ -22,8 +22,10 @@ import com.emc.storageos.vmax.VMAXConstants;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 import com.emc.storageos.vmax.restapi.model.ErrorResponse;
 import com.emc.storageos.vmax.restapi.model.Symmetrix;
+import com.emc.storageos.vmax.restapi.model.SyncModel;
 import com.emc.storageos.vmax.restapi.model.VMAXAuthInfo;
 import com.emc.storageos.vmax.restapi.model.request.migration.CreateMigrationEnvironmentRequest;
+import com.emc.storageos.vmax.restapi.model.request.migration.MigrationRequest;
 import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentListResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupListResponse;
@@ -327,11 +329,141 @@ public class VMAXApiClient extends StandardRestClient {
     public MigrationStorageGroupResponse getMigrationStorageGroup(String sourceArraySerialNumber, String storageGroupName)
             throws Exception {
         log.info("Get migration storage group {} from array {}", storageGroupName, sourceArraySerialNumber);
-        ClientResponse clientResponse = get(VMAXConstants.getMigrationStorageGroupURI(sourceArraySerialNumber, storageGroupName));
+        ClientResponse clientResponse = get(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName));
         MigrationStorageGroupResponse migrationStorageGroupResponse = getResponseObject(MigrationStorageGroupResponse.class,
                 clientResponse);
         log.info("Response -> :{}", migrationStorageGroupResponse);
         return migrationStorageGroupResponse;
+    }
+
+    /**
+     * Create migration for the given SG from array sourceArraySerialNumber to targetArraySerialNumber
+     * 
+     * @param sourceArraySerialNumber
+     * @param targetArraySerialNumber
+     * @param storageGroupName
+     * @param noCompression
+     * @param srpId
+     * @throws Exception
+     */
+    public void createMigration(String sourceArraySerialNumber, String targetArraySerialNumber, String storageGroupName,
+            boolean noCompression, String srpId) throws Exception {
+        log.info("Create migration for the storage group {} on source array {} to target array{}", storageGroupName,
+                sourceArraySerialNumber, targetArraySerialNumber);
+        MigrationRequest request = new MigrationRequest();
+        request.setOtherArrayId(targetArraySerialNumber);
+        request.setNoCompression(noCompression);
+        request.setSrpId(srpId);
+        log.info("Request ->{}", request);
+        postIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        log.info("Successfully initiated create migration");
+    }
+
+    /**
+     * Recover Migration for the given SG
+     * 
+     * @param sourceArraySerialNumber Source Array Serial Number
+     * @param storageGroupName Storage Group Name
+     * @throws Exception
+     */
+    public void recoverMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+        log.info("Recover migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
+        MigrationRequest request = new MigrationRequest();
+        request.setAction(VMAXConstants.MigrationActionTypes.Recover.name());
+        putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        log.info("Successfully initiated receover migration");
+    }
+
+    /**
+     * Cutover Migration for the given SG
+     * 
+     * @param sourceArraySerialNumber Source Array Serial Number
+     * @param storageGroupName Storage Group Name
+     * @throws Exception
+     */
+    public void cutoverMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+        log.info("Cutover migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
+        MigrationRequest request = new MigrationRequest();
+        request.setAction(VMAXConstants.MigrationActionTypes.Cutover.name());
+        putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        log.info("Successfully initiated cutover migration");
+    }
+
+    /**
+     * Cancel Migration for the given SG
+     * 
+     * @param sourceArraySerialNumber Source Array Serial Number
+     * @param storageGroupName Storage Group Name
+     * @throws Exception
+     */
+    public void cancelMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+        log.info("Cancel migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
+        delete(VMAXConstants.cancelMigrationURI(sourceArraySerialNumber, storageGroupName));
+        log.info("Successfully initiated cancel migration");
+    }
+
+    /**
+     * Commit Migration for the given SG
+     * 
+     * @param sourceArraySerialNumber Source Array Serial Number
+     * @param storageGroupName Storage Group Name
+     * @throws Exception
+     */
+    public void commitMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+        log.info("Commit migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
+        MigrationRequest request = new MigrationRequest();
+        request.setAction(VMAXConstants.MigrationActionTypes.Commit.name());
+        putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        log.info("Successfully initiated commit migration");
+    }
+
+    /**
+     * Delete Migration for the given SG
+     * 
+     * @param sourceArraySerialNumber Source Array Serial Number
+     * @param storageGroupName Storage Group Name
+     * @throws Exception
+     */
+    public void deleteMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+        log.info("Delete migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
+        delete(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName));
+        log.info("Successfully initiated delete migration");
+    }
+
+    /**
+     * Start migration sync for the given SG
+     * 
+     * @param sourceArraySerialNumber Source Array Serial Number
+     * @param storageGroupName Storage Group Name
+     * @throws Exception
+     */
+    public void startMigrationSync(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+        log.info("Start migration sync for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
+        SyncModel syncModel = new SyncModel();
+        syncModel.setStart(true);
+        MigrationRequest request = new MigrationRequest();
+        request.setAction(VMAXConstants.MigrationActionTypes.Sync.name());
+        request.setSync(syncModel);
+        putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        log.info("Successfully initiated start sync operation");
+    }
+
+    /**
+     * Stop migration sync for the given SG
+     * 
+     * @param sourceArraySerialNumber Source Array Serial Number
+     * @param storageGroupName Storage Group Name
+     * @throws Exception
+     */
+    public void stopMigrationSync(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+        log.info("Stop migration sync for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
+        SyncModel syncModel = new SyncModel();
+        syncModel.setStop(true);
+        MigrationRequest request = new MigrationRequest();
+        request.setAction(VMAXConstants.MigrationActionTypes.Sync.name());
+        request.setSync(syncModel);
+        putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        log.info("Successfully initiated stop sync operation");
     }
 
 }

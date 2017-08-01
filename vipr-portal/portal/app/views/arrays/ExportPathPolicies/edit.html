@@ -66,10 +66,6 @@
        }%
        #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.maxInitiatorsPerPort /}
     #{/field}
-    
-%{
-  formFields = ['exportPathPolicyId': exportPathPolicy?.id]
-}%
 
 #{DataTable.header titleKey:'exportPathPolicy.storagePorts.title'/}
 #{DataTable.table id:'storagePorts', 
@@ -78,41 +74,52 @@
                   selectable:true}
   #{DataTable.buttonBar}
     #{Form.button name:'button.add', class:'success', icon:'plus', action:'showAddStoragePortsDialog()'/}
-     #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removePortsForm', data:['enabled':'selected']/}
+    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removePortsForm', data:['enabled':'selected']/}
 
   #{/DataTable.buttonBar}
 #{/DataTable.table}
-
+<br />
 #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}
 
 
 #{DataTable.formAction @removeStoragePortsFromPolicy(), id:'removePortsForm', table:'storagePorts', fields:formFields/}
-<!-- #{DataTable.formAction @addStoragePortsToPolicy(), id:'addArrayPortsForm', table:'arrayPorts', fields:formFields/} -->
 
  #{form @addStoragePortsToPolicy(), id:'addArrayPortsForm', class:'form form-horizontal', autocomplete:"off"}
-   <input type="hidden" name="exportPathPolicyId" value="${exportPathPolicyId}">
-   <input type="hidden" name="storageSystemId"  value="${storageSystemId}">
-    <input type="hidden" name="pgName" id="pgName">
-  <input type="hidden" name="pgDesc" id="pgDesc">
-  <input type="hidden" name="portIds" id="portIds">
-#{Modal.dialog id:'addStoragePortsDialog'}
-  #{Modal.body}
+
     
-    #{DataTable.header titleKey:'Network.addArrayPorts.title', hideAlerts:true/}
-    #{DataTable.table id: 'arrayPorts',
-                      dataTable: portSelectionDataTable,
-                      source: @availablePortsJson(exportPathPolicy?.id),
-                      selectable: true,
-                      delayCreate: true,
-                      options: ['iDisplayLength': '8'] /}
-  #{/Modal.body}
-  #{Modal.footer}
-    #{Form.button name:'button.add', class:'primary', icon:'plus', action:'submitPorts()', 
-                  data:['enabled':'selected', 'table':'arrayPorts']/}
-    #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
-  #{/Modal.footer}
-#{/Modal.dialog}
+ 
+  #{field 'exportPathPolicyId'}
+      <input type="hidden" name="exportPathPolicyId" id="exportPathPolicyId" value="${exportPathPolicyId}">
+   #{/field}
+  #{field 'storagePortIds'}
+      <input type="hidden" name="storagePortIds" id="storagePortIds" value="none">
+   #{/field}
+
+    <input type="hidden" name="pgName" id="pgName">
+    <input type="hidden" name="pgDesc" id="pgDesc">
+    #{Modal.dialog id:'addStoragePortsDialog'}
+      #{Modal.body}
+        
+        #{DataTable.header titleKey:'Network.addArrayPorts.title', hideAlerts:true/}
+        #{DataTable.table id: 'arrayPorts',
+                          dataTable: portSelectionDataTable,
+                          source: @availablePortsJson(exportPathPolicy?.id),
+                          selectable: true,
+                          delayCreate: true,
+                          options: ['iDisplayLength': '8'] /}
+      #{/Modal.body}
+      #{Modal.footer}
+        #{Form.button name:'button.add', class:'primary', icon:'plus', action:'submitPorts()', 
+                      data:['enabled':'selected', 'table':'arrayPorts']/}
+        #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+      #{/Modal.footer}
+    #{/Modal.dialog}
+    
+%{
+  formFields = ['exportPathPolicyId': exportPathPolicy?.id, 'storagePortIds': storagePortIds]
+}%
+
 #{/form}
 
 </div>
@@ -127,10 +134,7 @@ function showAddStoragePortsDialog() {
 
 function submitPorts(){
 	var name =	document.getElementById("exportPathPolicy_name").value;
-	
 	var desc = document.getElementById("exportPathPolicy_description").value;
-	//var sysId = document.getElementById("sysId").value;
-	//alert(document.getElementById("exportPathPolicyN").value);
 	document.getElementById("pgName").value = name;
 	document.getElementById("pgDesc").value = desc;
 		
@@ -143,7 +147,7 @@ function submitPorts(){
        	      portIds = portIds + ",";
       }
     }
-    document.getElementById("portIds").value = portIds;
+    document.getElementById("storagePortIds").value = portIds;
 	document.getElementById("addArrayPortsForm").submit();
 }
 

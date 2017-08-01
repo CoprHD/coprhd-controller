@@ -45,8 +45,8 @@ public class ExportPathPoliciesDataTable extends DataTable {
         }
     }
 
-    public class StoragePortsDataTable extends StoragePortDataTable {
-        public StoragePortsDataTable() {
+    public class StoragePortDisplayDataTable extends StoragePortDataTable {
+        public StoragePortDisplayDataTable() {
             addColumn("storageSystem").hidden();
             addColumn("networkIdentifier").hidden();// .setRenderFunction("render.networkIdentifier");
             addColumn("iqn").hidden();
@@ -59,9 +59,9 @@ public class ExportPathPoliciesDataTable extends DataTable {
 
     }
 
-    public class PortSelectionDataTable extends DataTable {
+    public class StoragePortSelectionDataTable extends DataTable {
 
-        public PortSelectionDataTable() {
+        public StoragePortSelectionDataTable() {
             addColumn("name");
             addColumn("identifier");
             addColumn("portGroup");

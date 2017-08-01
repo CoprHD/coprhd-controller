@@ -1,0 +1,9 @@
+<dl class="dl-horizontal">
+  <dt>&{'exportPathPolicy.details.storagePorts'}</dt>
+  <dd>
+    #{list storagePorts, as:'storagePort'}
+      ${storagePort.portName} | ${storagePort.portGroup} | ${storagePort.portNetworkId}
+    #{/list}
+    #{else}&nbsp;&{'exportPathPolicy.details.storagePorts.none'}#{/else}
+  </dd>
+</dl>

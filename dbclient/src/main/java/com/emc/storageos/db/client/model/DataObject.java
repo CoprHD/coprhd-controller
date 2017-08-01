@@ -222,7 +222,7 @@ public abstract class DataObject implements Serializable {
      * @param tags
      */
     public void setTag(ScopedLabelSet tags) {
-        _tags = tags;
+        _tags = new ScopedLabelSet(tags);
     }
 
     @Name("creationTime")

@@ -5207,6 +5207,6 @@ arrayPorts.portGroup=Group
 arrayPorts.alias=Alias
 arrayPorts.ipAddress=IP Address
 arrayPorts.registrationStatus=Status
-exportPathPolicies.title=Export Path Polices
+exportPathPolicies.title=Export Path Policies
 exportPathPolicy.details.title=Export Path Policy Settings
 ExportPathPolicies.unknown=Unknown Export Path Policy with id %s

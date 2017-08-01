@@ -135,7 +135,7 @@ public class BlockMapper {
         }
         to.setVirtualPool(toRelatedResource(ResourceTypeEnum.BLOCK_VPOOL, from.getVirtualPool()));
         if (from.getPerformancePolicy() != null) {
-            to.setPerformancePolicy(toRelatedResource(ResourceTypeEnum.BLOCK_PERFORMANCE_PARAMS, from.getPerformancePolicy()));
+            to.setPerformancePolicy(toRelatedResource(ResourceTypeEnum.BLOCK_PERFORMANCE_POLICY, from.getPerformancePolicy()));
         }
         to.setIsComposite(from.getIsComposite());
         to.setAutoTierPolicyUri(toRelatedResource(ResourceTypeEnum.AUTO_TIERING_POLICY, from.getAutoTieringPolicyUri(), from.getId()));

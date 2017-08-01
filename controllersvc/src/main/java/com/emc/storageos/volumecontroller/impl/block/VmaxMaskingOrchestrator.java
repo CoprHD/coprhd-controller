@@ -46,6 +46,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -66,6 +67,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportChangePortGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskChangePortGroupAddMaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
@@ -2310,12 +2312,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     
     @Override
     public void changePortGroup(URI storageURI, URI exportGroupURI, URI portGroupURI, boolean waitForApproval, String token) {
-        ExportOrchestrationTask taskCompleter = null;
+        ExportChangePortGroupCompleter taskCompleter = null;
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
-            taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
+            taskCompleter = new ExportChangePortGroupCompleter(storageURI, exportGroupURI, token, portGroupURI);
             logExportGroup(exportGroup, storageURI);
 
             String workflowKey = "changePortGroup";
@@ -2331,6 +2333,25 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             for (ExportMask oldMask : exportMasks) {
                 // create a new masking view using the new port group
                 SmisStorageDevice device = (SmisStorageDevice) getDevice();
+                oldMask = device.refreshExportMask(storage, oldMask);
+                StringSet existingInits = oldMask.getExistingInitiators();
+                StringMap existingVols = oldMask.getExistingVolumes();
+                if (existingInits != null && !existingInits.isEmpty()) {
+                    String error = String.format("The export mask %s has unmanaged initiators %s", oldMask.getMaskName(),
+                            Joiner.on(',').join(existingInits));
+                    _log.error(error);
+                    ServiceError serviceError = DeviceControllerException.errors.changePortGroupValidationError(error);
+                    taskCompleter.error(_dbClient, serviceError);
+                    return;
+                }
+                if (existingVols != null && !existingVols.isEmpty()) {
+                    String error = String.format("The export mask %s has unmanaged volumes %s", oldMask.getMaskName(),
+                            Joiner.on(',').join(existingVols.keySet()));
+                    _log.error(error);
+                    ServiceError serviceError = DeviceControllerException.errors.changePortGroupValidationError(error);
+                    taskCompleter.error(_dbClient, serviceError);
+                    return;
+                }
                 InitiatorHelper initiatorHelper = new InitiatorHelper(StringSetUtil.stringSetToUriList(oldMask.getInitiators())).process(exportGroup);
                 List<String> initiatorNames = initiatorHelper.getPortNames();
                 if (oldMask.getExistingInitiators() != null && !oldMask.getExistingInitiators().isEmpty()) {
@@ -2476,6 +2497,15 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The change port group workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
+             // update ExportChangePortGroupCompleter with affected export groups
+                Set<URI> affectedExportGroups = new HashSet<URI> ();
+                for (ExportMask mask : exportMasks) {
+                    List<ExportGroup> assocExportGroups = ExportMaskUtils.getExportGroups(_dbClient, mask);
+                    for (ExportGroup eg : assocExportGroups) {
+                        affectedExportGroups.add(eg.getId());
+                    }
+                }
+                taskCompleter.setAffectedExportGroups(affectedExportGroups);
                 workflow.executePlan(taskCompleter, "Change port group successfully.");
                 _workflowService.markWorkflowBeenCreated(token, workflowKey);
             } else {
@@ -2576,7 +2606,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Workflow.Method rescan = new Workflow.Method("rescanHostStorage", hostURI);
             Workflow.Method nullMethod = null;
             if (rollBack) {
-                nullMethod = new Workflow.Method("nullWorkflowStepMethod");
+                nullMethod = new Workflow.Method("nullWorkflowStep");
             }
             workflow.createStep(stepGroup,
                     String.format("Rescan Host Storage: %s", host.getHostName()),

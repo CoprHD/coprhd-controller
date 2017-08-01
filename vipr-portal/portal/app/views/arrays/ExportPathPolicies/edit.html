@@ -82,6 +82,10 @@
 #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}
 
+%{
+  formFields = ['exportPathPolicyId': exportPathPolicy?.id, 'storagePortIds': storagePortIds]
+}%
+
 
 #{DataTable.formAction @removeStoragePortsFromPolicy(), id:'removePortsForm', table:'storagePorts', fields:formFields/}
 
@@ -115,10 +119,6 @@
         #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
       #{/Modal.footer}
     #{/Modal.dialog}
-    
-%{
-  formFields = ['exportPathPolicyId': exportPathPolicy?.id, 'storagePortIds': storagePortIds]
-}%
 
 #{/form}
 

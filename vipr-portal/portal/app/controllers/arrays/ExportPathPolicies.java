@@ -4,6 +4,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -111,7 +112,11 @@ public class ExportPathPolicies extends ViprResourceController {
         if (policy == null) {
             error(MessagesUtils.get(UNKNOWN, id));
         }
-        List<StoragePortRestRep> storagePorts = StoragePortUtils.getStoragePorts(policy.getStoragePorts());
+        List<StoragePortRestRep> storagePortReps = StoragePortUtils.getStoragePorts(policy.getStoragePorts());
+        List<String> storagePorts = new ArrayList<String>();
+        for (StoragePortRestRep port : storagePortReps) {
+            storagePorts.add(port.getPortGroup() + " / " + port.getPortName() + " | " + port.getPortNetworkId());
+        }
         render(storagePorts);
     }
 
@@ -216,12 +221,6 @@ public class ExportPathPolicies extends ViprResourceController {
 
     @FlashException(referrer = { "edit" })
     public static void addStoragePortsToPolicy(String exportPathPolicyId, String storagePortIds, String pgName, String pgDesc) {
-
-        System.out.println("exportPathPolicyId: " + exportPathPolicyId);
-        System.out.println("storagePortIds: " + storagePortIds);
-        System.out.println("pgName: " + pgName);
-        System.out.println("pgDesc: " + pgDesc);
-        
         if (exportPathPolicyId == null || "".equals(exportPathPolicyId)) {
             ExportPathPolicy input = new ExportPathPolicy();
             input.setName(pgName);
@@ -254,7 +253,6 @@ public class ExportPathPolicies extends ViprResourceController {
 
     @FlashException(referrer = { "edit" })
     public static void removeStoragePortsFromPolicy(String exportPathPolicyId, @As(",") String[] ids) {
-
         ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicyId));
         List<URI> exportPathPoliciesStoragePortsInDb = exportPathPolicyRestRep.getStoragePorts();
         List<URI> storagePortsToRemove = Lists.newArrayList();

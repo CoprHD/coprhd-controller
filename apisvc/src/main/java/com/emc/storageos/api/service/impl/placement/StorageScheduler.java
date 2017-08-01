@@ -2027,14 +2027,22 @@ public class StorageScheduler implements Scheduler {
                     // found in the storage pools.
                     if (!CollectionUtils.isEmpty(existingExportMasks)) {
                         for (ExportMask existingExportMask : existingExportMasks.values()) {
-                            if (vmaxStorageSystems.contains(existingExportMask.getStorageDevice())) {
-                                // An existing Export Mask was found for this VMAX to the Host/Cluster, 
-                                // it's OK to proceed using this VMAX and it's storage pools without a PG.
-                                _log.info(String.format("Storage system [%s] is VMAX, but has existing export mask [%s](%s) to host/cluster [%s], "
-                                        + "no port group required. All available storage pools from this storage system are valid.", 
-                                        existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
-                                        existingExportMask.getLabel(), computeResourceURI));
-                                noPortGroupRequiredStorageSystemSet.add(existingExportMask.getStorageDevice().toString());
+                            // Make sure there is at least 1 volume in the EM, if not, it can not be used.                            
+                            if (!existingExportMask.emptyVolumes()) {
+                                if (vmaxStorageSystems.contains(existingExportMask.getStorageDevice())) {
+                                    // An existing Export Mask was found for this VMAX to the Host/Cluster, 
+                                    // it's OK to proceed using this VMAX and it's storage pools without a PG.
+                                    _log.info(String.format("Storage system [%s] is VMAX, but has existing export mask [%s](%s) to host/cluster [%s], "
+                                            + "no port group required. All available storage pools from this storage system are valid.", 
+                                            existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
+                                            existingExportMask.getLabel(), computeResourceURI));
+                                    noPortGroupRequiredStorageSystemSet.add(existingExportMask.getStorageDevice().toString());
+                                } else {
+                                    _log.warn(String.format("Storage system [%s] is VMAX, and has existing export mask [%s](%s) to host/cluster [%s], "
+                                            + "but there were no volumes found in the Export Mask. Storage pools from this VMAX will not be considered.", 
+                                            existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
+                                            existingExportMask.getLabel(), computeResourceURI));
+                                }
                             }
                         }
                     } 

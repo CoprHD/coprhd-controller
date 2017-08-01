@@ -30,9 +30,14 @@ public class DecommissionedDbIndex extends DbIndex<IndexColumnName> {
         ColumnListMutation<IndexColumnName> indexColList =
                 mutator.getIndexColumnList(indexCF, className);
 
-        IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, column.getTimeUUID());
+        UUID uuid = column.getTimeUUID();
+
+        IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, uuid);
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
+
+        _log.info("db consistency check: added to index Decommissioned, column1 = " + className +
+                ", column2 = " + recordKey + ", uuid = " + uuid);
 
         return true;
     }
@@ -47,6 +52,9 @@ public class DecommissionedDbIndex extends DbIndex<IndexColumnName> {
         Boolean val = column.getBooleanValue();
 
         indexColList.deleteColumn(new IndexColumnName(val.toString(), recordKey, uuid));
+
+        _log.info("db consistency check: deleting from index Decommissioned, column1 = " + className +
+                ", column2 = " + recordKey + ", uuid = " + uuid);
 
         return true;
     }

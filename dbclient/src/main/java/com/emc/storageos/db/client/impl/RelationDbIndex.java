@@ -32,9 +32,14 @@ public class RelationDbIndex extends DbIndex<IndexColumnName> {
 
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
-        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, column.getTimeUUID());
+        UUID uuid = column.getTimeUUID();
+
+        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, uuid);
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
+
+        _log.info("db consistency check: added to RelationIndex, column1 = " + className +
+                ", column2 = " + recordKey + ", uuid = " + uuid);
 
         return true;
     }
@@ -51,6 +56,9 @@ public class RelationDbIndex extends DbIndex<IndexColumnName> {
         UUID uuid = column.getName().getTimeUUID();
 
         indexColList.deleteColumn(new IndexColumnName(className, recordKey, uuid));
+
+        _log.info("db consistency check: deleting from RelationIndex, column1 = " + className +
+                ", column2 = " + recordKey + ", uuid = " + uuid);
 
         return true;
     }

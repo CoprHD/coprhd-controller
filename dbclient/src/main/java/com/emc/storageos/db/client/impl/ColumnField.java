@@ -345,6 +345,9 @@ public class ColumnField <T extends CompositeIndexColumnName> {
         // remove record
         mutator.getRecordColumnList(_parentType.getCF(), recordKey).deleteColumn(columnName);
 
+        _log.info("db consistency check: removed column of data object from table " + _parentType.getCF() + ", key = "
+                + recordKey + ", column1 = " + columnName.getOne() + ", column2 = " + columnName.getTwo() + ", uuid = " + columnName.getTimeUUID());
+
         if (_index == null || column instanceof ColumnWrapper || isDeletionMark(column)) {
             return false;
         }
@@ -401,6 +404,9 @@ public class ColumnField <T extends CompositeIndexColumnName> {
         ColumnListMutation<CompositeColumnName> recordColList =
                 mutator.getRecordColumnList(_parentType.getCF(), recordKey);
         ColumnValue.setColumn(recordColList, column, val, _ttl);
+
+        _log.info("db consistency check: added column of data object to table " + _parentType.getCF() + ", key = " + recordKey +
+                ", column1 = " + column.getOne() + ", column2 = " + column.getTwo() + ", uuid = " + column.getTimeUUID() );
 
         if (_index == null || val == null) {
             return false;

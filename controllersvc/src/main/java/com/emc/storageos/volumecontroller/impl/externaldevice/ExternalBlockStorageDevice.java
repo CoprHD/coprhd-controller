@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -44,6 +45,7 @@ import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGrou
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -80,6 +82,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttr
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
 import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition;
+import com.emc.storageos.storagedriver.util.DriverMetadataUtil;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
@@ -115,6 +118,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     private DbClient dbClient;
     private ControllerLockingService locker;
     private ExportMaskOperations exportMaskOperationsHelper;
+    // Indicate if driver info has been fetched from db and merged into drivers member
+    private boolean initialized;
 
     // Initialized drivers map
     private static Map<String, BlockStorageDriver> blockDrivers  = new HashMap<>();
@@ -128,12 +133,40 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         this.locker = locker;
     }
 
-    public Map<String, AbstractStorageDriver> getDrivers() {
-        return drivers;
-    }
-
     public void setExportMaskOperationsHelper(ExportMaskOperations exportMaskOperationsHelper) {
         this.exportMaskOperationsHelper = exportMaskOperationsHelper;
+    }
+
+    private void initDrivers() {
+        if (initialized) {
+            return;
+        }
+        Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<String, AbstractStorageDriver>();
+        for (StorageSystemType type : StorageDriverManager.listDriverManagedTypes(dbClient)) {
+            String typeName = type.getStorageTypeName();
+            String metaType = type.getMetaType();
+            if (!StringUtils.equalsIgnoreCase(metaType, StorageSystemType.META_TYPE.BLOCK.toString())) {
+                // For now we only support block type drivers
+                _log.info("Skip load info of {}, for its type is {} which is not supported for now", typeName, metaType);
+                continue;
+            }
+            String className = type.getDriverClassName();
+            // provider and managed system should use the same driver instance
+            if (cachedDriverInstances.containsKey(className)) {
+                drivers.put(typeName, cachedDriverInstances.get(className));
+                _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
+                continue;
+            }
+            String mainClassName = type.getDriverClassName();
+            try {
+                AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
+                drivers.put(typeName, driverInstance);
+                cachedDriverInstances.put(className, driverInstance);
+                _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
+            } catch (Exception e) {
+                _log.error("Error happened when instantiating class {}", mainClassName, e);
+            }
+        }
     }
 
     /**
@@ -157,8 +190,12 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             // init driver
             AbstractStorageDriver driver = drivers.get(driverType);
             if (driver == null) {
-                _log.error("No driver entry defined for device type: {} . ", driverType);
-                throw ExternalDeviceException.exceptions.noDriverDefinedForDevice(driverType);
+                initDrivers();
+                driver = drivers.get(driverType);
+                if (driver == null) {
+                    _log.error("No driver entry defined for device type: {} . ", driverType);
+                    throw ExternalDeviceException.exceptions.noDriverDefinedForDevice(driverType);
+                }
             }
             init(driver);
             blockDrivers.put(driverType, (BlockStorageDriver)driver);

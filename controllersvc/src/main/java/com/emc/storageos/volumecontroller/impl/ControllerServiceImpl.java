@@ -496,11 +496,8 @@ public class ControllerServiceImpl implements ControllerService {
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
 
-        // This must be put before invoking initDriverInfo method, where we instantiate driver
-        // instances and load driver info., which depend on metadata inserted by this method
         initIntreesDriverMetadata();
 
-        initDriverInfo();
         _drQueueCleanupHandler.run();
         
         _dispatcher.start();
@@ -676,53 +673,6 @@ public class ControllerServiceImpl implements ControllerService {
         String[] dirs = metadataFilePath.split("/");
         String driverName = dirs[dirs.length - 2];
         return driverName.substring(0, driverName.length() - 1);
-    }
-
-    /**
-     * Fetch driver information from db and wire it into StorageDriverManager
-     * instance and ExternalBlockStorageDevice instance
-     */
-    private void initDriverInfo() {
-        List<StorageSystemType> types = StorageDriverManager.listDriverManagedTypes(_dbClient);
-        if (types.isEmpty()) {
-            _log.info("No out-of-tree driver is installed, keep driver info remained as loaded from Spring context");
-            return;
-        }
-        initExternalBlockStorageDevice(types);
-    }
-
-    private void initExternalBlockStorageDevice(List<StorageSystemType> types) {
-        ExternalBlockStorageDevice blockDevice = (ExternalBlockStorageDevice) getBean(StorageDriverManager.EXTERNAL_STORAGE_DEVICE);
-        // key: storage system type name, value: driver instance
-        Map<String, AbstractStorageDriver> blockDeviceDrivers = blockDevice.getDrivers();
-        // key: main class name, value: driver instance
-        Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<String, AbstractStorageDriver>();
-        for (StorageSystemType type : types) {
-            String typeName = type.getStorageTypeName();
-            String metaType = type.getMetaType();
-            if (!StringUtils.equalsIgnoreCase(metaType, StorageSystemType.META_TYPE.BLOCK.toString())) {
-                // TODO for now it seems that we only support block type driver
-                // In future, to support file/object or other type, we need add more codes here
-                _log.info("Skip load info of {}, for its type is {} which is not supported for now", typeName, metaType);
-                continue;
-            }
-            String className = type.getDriverClassName();
-            // provider and managed system should use the same driver instance
-            if (cachedDriverInstances.containsKey(className)) {
-                blockDeviceDrivers.put(typeName, cachedDriverInstances.get(className));
-                _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
-                continue;
-            }
-            String mainClassName = type.getDriverClassName();
-            try {
-                AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
-                blockDeviceDrivers.put(typeName, driverInstance);
-                cachedDriverInstances.put(className, driverInstance);
-                _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
-            } catch (Exception e) {
-                _log.error("Error happened when instantiating class {}", mainClassName, e);
-            }
-        }
     }
 
     private void startCapacityService() {

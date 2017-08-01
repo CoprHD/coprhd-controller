@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -130,8 +131,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             if (cosCapabilities.createMirrorExistingFileSystem()) {
                 fileType = FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE;
             }
-            if (filesystem.getPersonality() != null &&
-                    filesystem.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {
+            if (FileShare.PersonalityTypes.TARGET.toString().equals(filesystem.getPersonality())) {
                 fileType = FileDescriptor.Type.FILE_MIRROR_TARGET;
             }
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper(cosCapabilities);
@@ -397,7 +397,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                     PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
             // Avoid duplicate file system on same storage system
-            if (fileShareList != null && !fileShareList.isEmpty()) {
+            if (!CollectionUtils.isEmpty(fileShareList)) {
                 for (FileShare fs : fileShareList) {
                     if (fs.getStorageDevice() != null && fs.getStorageDevice().equals(system.getId())) {
                         _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
@@ -538,7 +538,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             fileShare.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
             fileShare.setAccessState(FileAccessState.READWRITE.name());
             // set the storage ports
-            if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
+            if (!CollectionUtils.isEmpty(placement.getStoragePorts())) {
                 fileShare.setStoragePort(placement.getStoragePorts().get(0));
             }
 
@@ -557,7 +557,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                     fileShare.setAccessState(FileAccessState.READABLE.name());
 
                     // set the target ports
-                    if (target.getTargetStoragePortUris() != null && !target.getTargetStoragePortUris().isEmpty()) {
+                    if (!CollectionUtils.isEmpty(target.getTargetStoragePortUris())) {
                         fileShare.setStoragePort(target.getTargetStoragePortUris().get(0));
                     }
 
@@ -589,6 +589,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         for (TaskResourceRep fileShareTask : taskList.getTaskList()) {
             fileShareTask.setState(Operation.Status.error.name());
             fileShareTask.setMessage(errorMessage);
+            // TODO use other method Operation and updateTaskOpStatus as it got deprecated.
             Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMessage);
             _dbClient.updateTaskOpStatus(FileShare.class, fileShareTask.getResource()
                     .getId(), task, statusUpdate);

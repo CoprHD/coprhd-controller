@@ -449,6 +449,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         } catch (Exception ex) {
             s_logger.error(String.format("Creating CIFS share for file system : %s, share name: %s failed.", uri,
                     smbShare.getName()), ex);
+            //TODO: null check for - fileObj before invoking toString
             ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -485,6 +486,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error(String.format("Creating NFS export for file system/snapshot : %s failed", uri), ex);
+          //TODO: null check for - fileObj before invoking toString
             ServiceError serviceError = DeviceControllerException.errors.exportFileShareFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -539,6 +541,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
         } catch (Exception ex) {
             s_logger.error(String.format("Updating file system : %s export rules: %s failed.", uri, param.toString()), ex);
+            //TODO: null check for - fileObj before invoking toString
             ServiceError serviceError = DeviceControllerException.errors.updateFileShareExportRulesFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -581,6 +584,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error(String.format("Updating file system : %s share : %s  ACLs: %s failed.", uri, shareName, param.toString()), ex);
+          //TODO: null check for - fileObj before invoking toString
             ServiceError serviceError = DeviceControllerException.errors.updateFileShareCIFSACLsFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
@@ -641,6 +645,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error(String.format("Deleting file system snapshot: %s CIFS share: %s failed.", uri, fileSMBShare.getName()), ex);
+          //TODO: null check for - fileObj before invoking toString
             ServiceError serviceError = DeviceControllerException.errors.deleteCIFSShareFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
@@ -693,6 +698,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error(String.format("Deleting export rules for file system snapshot : %s failed. ", uri), ex);
+          //TODO: null check for - fileObj before invoking toString
             ServiceError serviceError = DeviceControllerException.errors.deleteExportRuleFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
@@ -726,6 +732,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId)
             throws ControllerException {
         Snapshot snap = s_dbClient.queryObject(Snapshot.class, uri);
+      //TODO: null check for - snap and corresponding else either log or take appropriate action
         FileSnapshotWorkflowCompleter completer = new FileSnapshotWorkflowCompleter(uri, opId);
         Workflow workflow = null;
         try {
@@ -787,6 +794,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         Workflow workflow = null;
         String stepDescription = null;
         try {
+            //TODO: null check for objects being queried from DB, since this is the entry point from the API to controller 
+            // makes sense to have null checks in such places atleast first method invocation in controller after API.
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
             List<String> targetfileUris = new ArrayList<String>();
             targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
@@ -815,7 +824,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String replicateDirQuotaSettingsStep = workflow.createStepId();
             workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
                     systemSource.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
-
+            //TODO: else part with logger for better traceability.
             if (replicateConfiguration) {
 
                 Map<String, List<NfsACE>> sourceNFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
@@ -835,7 +844,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 // Replicate NFS export and rules to Target Cluster.
                 FSExportMap targetnfsExportMap = targetFileShare.getFsExports();
                 FSExportMap sourcenfsExportMap = sourceFileShare.getFsExports();
-
+              //TODO: else part with logger for better traceability.
                 if (!(targetnfsExportMap == null && sourcenfsExportMap == null)) {
                     // Both source and target export map shouldn't be null
                     stepDescription = String.format("Replicating NFS exports from target file system : %s to source file system : %s",
@@ -860,7 +869,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                 SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
                 SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
-
+              //TODO: else part with logger for better traceability.
                 if (!(targetSMBShareMap == null && sourceSMBShareMap == null)) {
                     // Both source and target share map shouldn't be null
                     stepDescription = String.format("Replicating CIFS shares from target file system : %s to file source system : %s",
@@ -903,7 +912,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String stepDescription = null;
         MirrorFileFailoverTaskCompleter failoverCompleter = null;
         try {
-
+          //TODO: null check for objects being queried from DB, since this is the entry point from the API to controller 
+            // makes sense to have null checks in such places atleast first method invocation in controller after API.
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
             List<String> targetfileUris = new ArrayList<String>();
             targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
@@ -933,12 +943,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String replicateDirQuotaSettingsStep = workflow.createStepId();
             workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
                     systemTarget.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
-
+          //TODO: else part with logger for better traceability.
             if (replicateConfiguration) {
 
                 Map<String, List<NfsACE>> sourceNFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
                 Map<String, List<NfsACE>> targetNFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
-
+              //TODO: else part with logger for better traceability.
                 if (!sourceNFSACL.isEmpty() || !targetNFSACL.isEmpty()) {
 
                     stepDescription = String.format("Replicating NFS ACL from source file system : %s to file target system : %s",
@@ -952,7 +962,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                 SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
                 SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
-
+              //TODO: else part with logger for better traceability.
                 if (sourceSMBShareMap != null || targetSMBShareMap != null) {
                     // Both source and target share map shouldn't be null
                     stepDescription = String.format("Replicating CIFS shares from source file system : %s to target file system : %s",
@@ -975,7 +985,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 // Replicate NFS export and rules to Target Cluster.
                 FSExportMap sourceNFSExportMap = sourceFileShare.getFsExports();
                 FSExportMap targetNFSExportMap = targetFileShare.getFsExports();
-
+              //TODO: else part with logger for better traceability.
                 if (sourceNFSExportMap != null || targetNFSExportMap != null) {
                     // Both source and target export map shouldn't be null
                     stepDescription = String.format("Replicating NFS exports from source file system : %s to target file system : %s",
@@ -1098,7 +1108,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileShare targetFileShare = null;
         Workflow workflow = null;
         try {
-
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
             if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
                 List<String> targetfileUris = new ArrayList<String>();
@@ -1110,7 +1119,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARE_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
             SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
-
+            //TODO: else part for traceability
             if (sourceSMBShareMap != null) {
                 List<SMBFileShare> sourceSMBShares = new ArrayList<SMBFileShare>(sourceSMBShareMap.values());
 
@@ -1813,6 +1822,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     @Override
     public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException {
+      //TODO: null check for objects being queried from DB, since this is the entry point from the API to controller 
+        // makes sense to have null checks in such places atleast first method invocation in controller after API.
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
         FilePolicyUnAssignWorkflowCompleter completer = new FilePolicyUnAssignWorkflowCompleter(policy, unassignFrom, taskId);
         try {
@@ -1824,6 +1835,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             if (policyResources != null && !policyResources.isEmpty()) {
                 for (URI uri : unassignFrom) {
                     for (String policyResource : policyResources) {
+                      //TODO: null check for objects being queried from DB, since this is the entry point from the API to controller 
+                        // makes sense to have null checks in such places atleast first method invocation in controller after API.
                         PolicyStorageResource policyStorage = s_dbClient.queryObject(PolicyStorageResource.class,
                                 URI.create(policyResource));
                         if (policyStorage.getAppliedAt().toString().equals(uri.toString())) {
@@ -1863,6 +1876,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void assignFileSnapshotPolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
             throws InternalException {
+      //TODO: null check for objects being queried from DB, since this is the entry point from the API to controller 
+        // makes sense to have null checks in such places atleast first method invocation in controller after API.
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
         FilePolicyAssignWorkflowCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign,
                 vpoolToStorageSystemMap.keySet(), null, taskId);
@@ -1901,7 +1916,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                         storageSystemURI, args);
                             }
                         }
-
+                      //TODO: null check for objects being queried from DB, since this is the entry point from the API to controller 
+                        // makes sense to have null checks in such places atleast first method invocation in controller after API.
                         StorageSystem storagesystem = s_dbClient.queryObject(StorageSystem.class, storageSystemURI);
                         if (storagesystem.getSystemType().equals(Type.isilon.toString())) {
 
@@ -1945,6 +1961,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void assignFileSnapshotPolicyToProjects(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId) {
+      //TODO: null check for objects being queried from DB, since this is the entry point from the API to controller 
+        // makes sense to have null checks in such places atleast first method invocation in controller after API.
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
         String opName = ResourceOperationTypeEnum.ASSIGN_FILE_POLICY.getName();
         URI projectVpool = null;
@@ -2046,7 +2064,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     @Override
     public void updateFileProtectionPolicy(URI policy, FilePolicyUpdateParam param, String taskId) {
+      //TODO: null check for objects being queried from DB, since this is the entry point from the API to controller 
+        // makes sense to have null checks in such places atleast first method invocation in controller after API.
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
+        //TODO: unused str var remove or check its intended use.
         String opName = ResourceOperationTypeEnum.UPDATE_FILE_PROTECTION_POLICY.getName();
         FileProtectionPolicyUpdateCompleter completer = new FileProtectionPolicyUpdateCompleter(policy, taskId);
 
@@ -2158,7 +2179,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
             List<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
-
+      //TODO: null check for objects being queried from DB, since this is the entry point from the API to controller 
+        // makes sense to have null checks in such places atleast first method invocation in controller after API.
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
         FilePolicyAssignWorkflowCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, vpoolURIs, null, taskId);
 
@@ -2249,6 +2271,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign,
             String taskId) {
+      //TODO: null check for objects being queried from DB, since this is the entry point from the API to controller 
+        // makes sense to have null checks in such places atleast first method invocation in controller after API.
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
         FilePolicyAssignWorkflowCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, projectURIs, vpoolURI,
                 taskId);
@@ -2386,6 +2410,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
 
             // 2. Apply the file protection policy
+            //TODO validate for null before sourceFS usage
             String stepDescription = String.format("applying file policy : %s  for file system : %s",
                     filePolicy.getId(), sourceFS.getId());
             String applyFilePolicyStep = workflow.createStepId();

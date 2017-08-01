@@ -156,7 +156,9 @@ public class DataCollectionService {
 
 
         try {
-            return SysClientFactory.getSysClient(_coordinator.getNodeEndpoint(nodeId)).get(URI.create(INTERNAL_NODE_GET_DIAGUTIL_DATA + "?file_name=" + fileName), Response.class, null);
+            InputStream is = SysClientFactory.getSysClient(_coordinator.getNodeEndpoint(nodeId)).get(URI.create(INTERNAL_NODE_GET_DIAGUTIL_DATA + "?file_name=" + fileName), InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
+            return Response.ok(is).build();
+            //return SysClientFactory.getSysClient(_coordinator.getNodeEndpoint(nodeId)).get(URI.create(INTERNAL_NODE_GET_DIAGUTIL_DATA + "?file_name=" + fileName), Response.class, MediaType.APPLICATION_OCTET_STREAM);
         } catch (SysClientException e) {
             throw APIException.internalServerErrors.sysClientError("get diagutil data");
         }
@@ -177,8 +179,8 @@ public class DataCollectionService {
             log.error("Can't open file {}", filePath);
             throw APIException.badRequests.parameterIsNotValid("file_name");
         }
-        StreamingOutput so = getStreamOutput(fi);
-        return Response.ok(so).build();
+       // StreamingOutput so = getStreamOutput(fi);
+        return Response.ok(fi).build();
     }
 
     private StreamingOutput getStreamOutput(final FileInputStream fi) {
@@ -193,7 +195,7 @@ public class DataCollectionService {
                     while ((n = fi.read(buffer)) != -1) {
                         bo.write(buffer, 0, n);
                     }
-                    bo.flush();
+                   // bo.flush();
                 } catch (IOException e) {
                     log.error("read file error {}", e);
                 } finally {

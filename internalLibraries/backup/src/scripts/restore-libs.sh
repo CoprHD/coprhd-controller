@@ -64,7 +64,6 @@ finish_message() {
         echo "(If there is any vdc with version 2.1 in this geo federation, then you need to remove blacklist manually from other vdcs,"
         echo "by using this command: \"/opt/storageos/bin/dbutils geoblacklist reset <vdc short id>\")"
     fi
-
 }
 
 # local backup includes:

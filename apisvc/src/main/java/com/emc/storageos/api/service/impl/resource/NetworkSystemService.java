@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
@@ -923,26 +924,34 @@ public class NetworkSystemService extends TaskResourceService {
         ArgValidator.checkUri(computeURI);
         ArgValidator.checkFieldUriType(storageSystemId, StorageSystem.class, "storageId");
         
-        
+        DataObject computeObj = null;
         List<URI> hostInitiatorList = new ArrayList<URI>();
         if (URIUtil.isType(computeURI, Cluster.class)) {
             hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(computeURI, _dbClient));
+           computeObj =  _dbClient.queryObject(Cluster.class,computeURI);
         } else {
             hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(computeURI, _dbClient));
+            computeObj =  _dbClient.queryObject(Host.class,computeURI);
         }
         
         String task = UUID.randomUUID().toString();
         
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemId);
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList, true);
-        Host host = _dbClient.queryObject(Host.class,computeURI);
         
         ExportPathParams pathParam = new ExportPathParams(param);
         
         // TODO the below code considers only storage ports for picking virtual
         // Array, it assumes all the given storage ports are connected to all
         // the initiators.
-        List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, param.getStoragePorts());
+        List<StoragePort> storagePorts = new ArrayList<StoragePort>();
+        
+        if(null != param.getStoragePorts()) {
+            storagePorts = _dbClient.queryObject(StoragePort.class, param.getStoragePorts());
+        } else {
+            storagePorts.addAll(ConnectivityUtil.getTargetStoragePortsConnectedtoInitiator(initiators, system, _dbClient));
+        }
+        
         URI varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
         _log.info("Selected Virtual Array {}", varray);
         
@@ -951,8 +960,8 @@ public class NetworkSystemService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, computeURI, task,
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
-        controller.createSanZones(hostInitiatorList, generatedIniToStoragePort, task);
-        return toTask(host, task, op);
+        controller.createSanZones(hostInitiatorList, computeURI, generatedIniToStoragePort, task);
+        return toTask(computeObj, task, op);
         
     }
     

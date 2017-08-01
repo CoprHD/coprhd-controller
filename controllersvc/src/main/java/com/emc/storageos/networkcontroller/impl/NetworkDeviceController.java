@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -353,23 +354,19 @@ public class NetworkDeviceController implements NetworkController {
      * @throws ControllerException
      */
     @Override
-    public void createSanZones(List<URI> initiatorUris, Map<URI, List<URI>> generatedIniToStoragePort, String taskId)
+    public void createSanZones(List<URI> initiatorUris, URI computeURI , Map<URI, List<URI>> generatedIniToStoragePort, String taskId)
             throws ControllerException {
         
-        URI hostURI = null;
+        Class clazz = URIUtil.isType(computeURI, Cluster.class)?Cluster.class:Host.class;;
         try {
-            // Storage System URI I have to pass because the Dispatcher expects
-            // a top level system URI. More over this system URI is used
             // Find existing zones.
             Map<String, Initiator> iniToObjectMapping = new HashMap<String, Initiator>();
             // Ease of use generate a map of URis to initiator objects.
             List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorUris);
             for (Initiator initiator : initiators) {
                 iniToObjectMapping.put(initiator.getId().toString(), initiator);
-               if (null == hostURI)
-                    hostURI = initiator.getHost();
             }
-            _log.info("Host Found : {}", hostURI);
+            
             // Get all existing zones for the given initiators.
             Map<String, List<Zone>> initiatorToExistingZones = getInitiatorsZones(initiators);
             List<NetworkFCZoneInfo> networkFCZoneInfoList = new ArrayList<NetworkFCZoneInfo>();
@@ -436,7 +433,7 @@ public class NetworkDeviceController implements NetworkController {
             
             if (networkFCZoneInfoList.isEmpty()) {
                 _log.info("Required Zones are already available. New zones will not be created.");
-                setStatus(Host.class, hostURI, taskId, true, null);
+                setStatus(clazz, computeURI, taskId, true, null);
                 return;
             }
             // Invoke add and remove zones which creates the required zones.
@@ -449,11 +446,11 @@ public class NetworkDeviceController implements NetworkController {
             // Invoke Add zones for each fabric.
             BiosCommandResult result = invokeAddZonesForEachfabric(netSystemId2FabricInfos, netSystemId2System, taskId);
             
-            setStatus(Host.class, hostURI, taskId, result.isCommandSuccess(), result.getServiceCoded());
+            setStatus(clazz, computeURI, taskId, result.isCommandSuccess(), result.getServiceCoded());
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors
-                    .addSanZonesFailedExc(hostURI.toString(), ex);
-            _dbClient.error(Host.class, hostURI, taskId, serviceError);
+                    .addSanZonesFailedExc(computeURI.toString(), ex);
+            _dbClient.error(clazz, computeURI, taskId, serviceError);
         }
         _log.info("Zone Operations Completed..");
     }

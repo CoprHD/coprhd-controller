@@ -1026,6 +1026,37 @@ public class ConnectivityUtil {
     }
     
     /**
+     * Get all connected target storage ports 
+     * @param initiator
+     * @param storageSystem
+     * @param dbClient
+     * @return
+     */
+    public static List<StoragePort> getTargetStoragePortsConnectedtoInitiator(List<Initiator> initiatorList, StorageSystem storageSystem,  DbClient dbClient) {
+        List<StoragePort> ports =new ArrayList<StoragePort>();
+        
+        for(Initiator initiator : initiatorList) {
+            _log.info(String.format("isInitiatorConnectedToStorageSystem(%s, %s) -- Entered",
+                    initiator.getInitiatorPort(), storageSystem.getNativeGuid()));
+            NetworkLite networkLite = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
+            if (networkLite == null) {
+                _log.info(String.format("isInitiatorConnectedToStorageSystem(%s, %s) -- Initiator is not associated with any network",
+                        initiator.getInitiatorPort(), storageSystem.getNativeGuid()));
+                continue;
+            }
+            URI networkUri = networkLite.getId();
+            List<StoragePort> connectedPorts = NetworkAssociationHelper.
+                    getNetworkConnectedStoragePorts(networkUri.toString(), dbClient);
+            _log.info(String.format("isInitiatorConnectedToStorageSystem(%s, %s) -- Checking for port connections on %s network",
+                    initiator.getInitiatorPort(), storageSystem.getNativeGuid(), networkLite.getLabel()));
+            if(null != connectedPorts) ports.addAll(connectedPorts);
+        }
+       
+        _log.info("Connected Ports {} considered", Joiner.on(",").join(ports));
+        return ports;
+    }
+    
+    /**
      * Get initiator Network
      * @param initiator
      * @param dbClient

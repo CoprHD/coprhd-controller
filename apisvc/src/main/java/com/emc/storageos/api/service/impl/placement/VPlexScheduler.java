@@ -24,7 +24,7 @@ import org.springframework.util.CollectionUtils;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.BlockService;
-import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
+import com.emc.storageos.api.service.impl.resource.utils.PerformancePolicyUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
@@ -686,7 +686,7 @@ public class VPlexScheduler implements Scheduler {
     
     /**
      * Override the passed source capabilities to take into account the values in
-     * the HA virtual pool and the performance parameters for the HA side of the
+     * the HA virtual pool and the performance policy for the HA side of the
      * volume.
      *  
      * @param haVpool The HA virtual pool.
@@ -699,11 +699,11 @@ public class VPlexScheduler implements Scheduler {
             VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper srcCapabilities,
             VolumeTopology volumeTopology) {
         
-        // Get the performance parameters for the source volume.
-        Map<VolumeTopologyRole, URI> sourceParams = volumeTopology.getSourcePerformanceParams();
+        // Get the performance policies for the source volume.
+        Map<VolumeTopologyRole, URI> sourcePerformancePolicies = volumeTopology.getSourcePerformancePolicies();
         
-        VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                haVpool, sourceParams, VolumeTopologyRole.HA, srcCapabilities, _dbClient);
+        VirtualPoolCapabilityValuesWrapper haCapabilities = PerformancePolicyUtils.overrideCapabilitiesForVolumePlacement(
+                haVpool, sourcePerformancePolicies, VolumeTopologyRole.HA, srcCapabilities, _dbClient);
         
         // Don't look for SRDF in the HA side.
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, null);

@@ -5894,8 +5894,8 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
-     * Creates a new storage group policy limits. Uses the performance parameters values when
-     * assigned for the volume, else the values are taken form the virtual pool.
+     * Creates a new storage group policy limits. Uses the performance policy values when
+     * assigned for the volume, else the values are taken from the virtual pool.
      *  
      * @param policyName The policy name.
      * @param storageSystem A reference to the storage system.

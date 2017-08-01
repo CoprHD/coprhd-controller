@@ -154,7 +154,7 @@ public class StorageScheduler implements Scheduler {
      * @param neighborhood
      * @param project The project
      * @param cos
-     * @param performanceParams The performance parameters map.
+     * @param volumeTopology A reference to a volume topology instance.
      * @param capabilities
      * @return list of VolumeRecommendation instances
      */
@@ -1374,7 +1374,7 @@ public class StorageScheduler implements Scheduler {
      * @param project -- Project object
      * @param neighborhood -- Virtual array
      * @param vPool -- Virtual pool
-     * @param performanceParamsURI - The URI of a performance params instance or null.
+     * @param performancePolicyURI - The URI of a performance policy instance or null.
      * @param volumeCount -- number of like volumes to be created
      * @param recommendations -- List of Recommendation objects describing pools to use for volumes
      * @param consistencyGroup -- The BlockConsistencyGroup object to be used for the volumes
@@ -1385,7 +1385,7 @@ public class StorageScheduler implements Scheduler {
      * @param createInactive-- used to set the Volume syncActive flag (to the inverted sense of createInactive)
      */
     public void prepareRecommendedVolumes(Long size, String task, TaskList taskList,
-            Project project, VirtualArray neighborhood, VirtualPool vPool, URI performanceParamsURI, Integer volumeCount,
+            Project project, VirtualArray neighborhood, VirtualPool vPool, URI performancePolicyURI, Integer volumeCount,
             List<Recommendation> recommendations, BlockConsistencyGroup consistencyGroup, int volumeCounter,
             String volumeLabel, List<Volume> preparedVolumes, VirtualPoolCapabilityValuesWrapper cosCapabilities,
             Boolean createInactive) {
@@ -1406,7 +1406,7 @@ public class StorageScheduler implements Scheduler {
                 if (volume != null) {
                     volumePrecreated = true;
                 }
-                volume = prepareVolume(_dbClient, volume, size, project, neighborhood, vPool, performanceParamsURI,
+                volume = prepareVolume(_dbClient, volume, size, project, neighborhood, vPool, performancePolicyURI,
                         recommendation, newVolumeLabel, consistencyGroup, cosCapabilities, createInactive);
                 // set volume id in recommendation
                 recommendation.setId(volume.getId());
@@ -1440,7 +1440,7 @@ public class StorageScheduler implements Scheduler {
                     mirrorLabel = ControllerUtils.getMirrorLabel(mirrorLabel, volumeCounter++);
                 }
                 // Prepare a single mirror based on source volume and storage pool recommendation
-                BlockMirror mirror = initializeMirror(volume, vPool, performanceParamsURI, cosCapabilities, 
+                BlockMirror mirror = initializeMirror(volume, vPool, performancePolicyURI, cosCapabilities, 
                         recommendation.getCandidatePools().get(0), mirrorLabel, _dbClient);
 
                 // set mirror id in recommendation
@@ -1523,7 +1523,7 @@ public class StorageScheduler implements Scheduler {
 
         String label = name + (volumeCounter > 0 ? ("-" + volumeCounter) : "");
         Volume volume = prepareVolume(dbClient, null, size, project, vArray, vPool,
-                sourceVolume.getPerformanceParams(), recommendation, label, null, capabilities, createInactive);
+                sourceVolume.getPerformancePolicy(), recommendation, label, null, capabilities, createInactive);
 
         // Since this is a full copy, update it with URI of the source volume
         volume.setAssociatedSourceVolume(sourceVolume.getId());
@@ -1569,10 +1569,10 @@ public class StorageScheduler implements Scheduler {
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vPoolUri);
 
         String label = name + (volumeCounter > 0 ? ("-" + volumeCounter) : "");
-        // Pass the performance params of parent. The FC reflects the vpool of
-        // the parent, so should probably also reflect the performance params.
+        // Pass the performance policy of parent. The FC reflects the vpool of
+        // the parent, so should probably also reflect the performance policy.
         Volume volume = prepareVolume(dbClient, null, size, project, vArray, vPool,
-                parentVolume.getPerformanceParams(), recommendation, label, null, capabilities, createInactive);
+                parentVolume.getPerformancePolicy(), recommendation, label, null, capabilities, createInactive);
 
         // Since this is a full copy, update it with URI of the source snapshot
         volume.setAssociatedSourceVolume(sourceSnapshot.getId());
@@ -1587,11 +1587,11 @@ public class StorageScheduler implements Scheduler {
 
     public static Volume prepareVolume(DbClient dbClient, Volume volume, long size, 
             long thinVolumePreAllocationSize, Project project, VirtualArray neighborhood,
-            VirtualPool vpool, URI performanceParamsURI, VolumeRecommendation placement,
+            VirtualPool vpool, URI performancePolicyURI, VolumeRecommendation placement,
             String label, BlockConsistencyGroup consistencyGroup,
             VirtualPoolCapabilityValuesWrapper capabilities) {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, thinVolumePreAllocationSize);
-        return prepareVolume(dbClient, volume, size, project, neighborhood, vpool, performanceParamsURI,
+        return prepareVolume(dbClient, volume, size, project, neighborhood, vpool, performancePolicyURI,
                 placement, label, consistencyGroup, capabilities, false);
     }
 
@@ -1650,7 +1650,7 @@ public class StorageScheduler implements Scheduler {
      * @param project project requested
      * @param neighborhood varray requested
      * @param vpool vpool requested
-     * @param performanceParamsURI The URI of a PerformanceParams instance.
+     * @param performancePolicyURI The URI of a PerformancePolicy instance.
      * @param placement recommendation for placement
      * @param label volume label
      * @param consistencyGroup cg ID
@@ -1661,7 +1661,7 @@ public class StorageScheduler implements Scheduler {
      * @return a persisted volume
      */
     public static Volume prepareVolume(DbClient dbClient, Volume volume, long size, Project project,
-            VirtualArray neighborhood, VirtualPool vpool, URI performanceParamsURI,
+            VirtualArray neighborhood, VirtualPool vpool, URI performancePolicyURI,
             VolumeRecommendation placement, String label, BlockConsistencyGroup consistencyGroup,
             VirtualPoolCapabilityValuesWrapper capabilities, Boolean createInactive) {
 
@@ -1695,7 +1695,7 @@ public class StorageScheduler implements Scheduler {
         }
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType()));
         volume.setVirtualPool(vpool.getId());
-        volume.setPerformanceParams(performanceParamsURI);
+        volume.setPerformancePolicy(performancePolicyURI);
         volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(neighborhood.getId());
@@ -1795,14 +1795,14 @@ public class StorageScheduler implements Scheduler {
      *
      * @param volume Volume
      * @param vPool
-     * @param performanceParamsURI
+     * @param performancePolicyURI
      * @param capabilities
      * @param recommendedPoolURI Pool that should be used to create the mirror
      * @param volumeLabel
      * @param dbClient
      * @return BlockMirror (persisted)
      */
-    public static BlockMirror initializeMirror(Volume volume, VirtualPool vPool, URI performanceParamsURI,
+    public static BlockMirror initializeMirror(Volume volume, VirtualPool vPool, URI performancePolicyURI,
             VirtualPoolCapabilityValuesWrapper capabilities, URI recommendedPoolURI,
             String volumeLabel, DbClient dbClient) {
         BlockMirror createdMirror = new BlockMirror();
@@ -1831,7 +1831,7 @@ public class StorageScheduler implements Scheduler {
         createdMirror.setPool(recommendedPoolURI);
         // This is the source virtual pool.
         createdMirror.setVirtualPool(vPool.getId());
-        createdMirror.setPerformanceParams(performanceParamsURI);
+        createdMirror.setPerformancePolicy(performancePolicyURI);
         createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());
         createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
         createdMirror.setThinlyProvisioned(capabilities.getThinProvisioning());

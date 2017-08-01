@@ -104,7 +104,7 @@ public enum ResourceTypeEnum {
     WF_DIRECTORY("wf_directory", "/customservices/workflows/directory"),
     CUSTOM_SERVICES_PRIMITIVES("custom_services_primitives", "/customservices/primitives"),
     CUSTOM_SERVICES_PRIMITIVE_RESOURCES("custom_services_primitive_resources", "/customservices/primitives/resource"),
-    BLOCK_PERFORMANCE_PARAMS("block_performance_params", "/block/performance-params");
+    BLOCK_PERFORMANCE_POLICY("block_performance_policy", "/block/performance-policies");
     
 
     private static final Map<String, ResourceTypeEnum> resourceMap = new HashMap<String, ResourceTypeEnum>();

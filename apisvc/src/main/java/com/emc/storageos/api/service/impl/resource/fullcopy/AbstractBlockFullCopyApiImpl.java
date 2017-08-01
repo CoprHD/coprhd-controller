@@ -28,7 +28,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
-import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
+import com.emc.storageos.api.service.impl.resource.utils.PerformancePolicyUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
@@ -586,7 +586,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         }
         
         // Make sure same auto tiering policy is used. The value set in the volume is
-        // the value reflected by the performance parameters for the volume, if any, 
+        // the value reflected by the performance policy for the volume, if any, 
         // else the vpool for the volume.
         URI autoTieringPolicyURI = null;
         Boolean isDedupCapable = Boolean.FALSE;
@@ -608,7 +608,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         
         // Also set the deduplication setting into the capabilities so that it
         // is properly reflect in the full copy. Again, the value in the volume
-        // already account for performance parameter and vpool settings.
+        // already account for performance policy and vpool settings.
         capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, isDedupCapable);
 
         return capabilities;

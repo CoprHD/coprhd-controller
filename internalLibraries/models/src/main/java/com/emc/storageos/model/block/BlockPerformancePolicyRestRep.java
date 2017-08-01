@@ -7,18 +7,13 @@ package com.emc.storageos.model.block;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
-
-import com.emc.storageos.model.valid.Length;
+import com.emc.storageos.model.DataObjectRestRep;
 
 /**
- * Parameters to update and existing block PerformanceParams instance.
+ * The API response representing a block PerformancePolicy instance.
  */
-@XmlRootElement(name = "block_performance_params_update")
-public class BlockPerformanceParamsUpdate {
-
-    // A unique user supplied name.
-    private String name;
+@XmlRootElement(name = "block_performance_policy")
+public class BlockPerformancePolicyRestRep extends DataObjectRestRep {
 
     // A user supplied description.
     private String description;
@@ -47,28 +42,15 @@ public class BlockPerformanceParamsUpdate {
     /**
      * Default constructor
      */
-    public BlockPerformanceParamsUpdate()
+    public BlockPerformancePolicyRestRep()
     {}
 
     /*
-     * Required Setters and Getters
+     * Required getters and setters.
      */
 
     /**
-     * The unique name for the performance parameters instance.
-     */
-    @XmlElement
-    @Length(min = 2, max = 30)
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    /**
-     * The description for the performance parameters instance.
+     * The description for the performance policy instance.
      */
     @XmlElement
     public String getDescription() {
@@ -80,7 +62,7 @@ public class BlockPerformanceParamsUpdate {
     }
 
     /**
-     * The FAST policy name for the performance parameters instance.
+     * The FAST policy name for the performance policy instance.
      */
     @XmlElement(name = "auto_tiering_policy_name")
     public String getAutoTieringPolicyName() {
@@ -92,7 +74,7 @@ public class BlockPerformanceParamsUpdate {
     }
 
     /**
-     * The compression setting for the performance parameters instance.
+     * The compression setting for the performance policy instance.
      */
     @XmlElement(name = "compression_enabled")
     public Boolean getCompressionEnabled() {
@@ -104,7 +86,7 @@ public class BlockPerformanceParamsUpdate {
     }
 
     /**
-     * The host I/O bandwidth limit for the performance parameters instance.
+     * The host I/O bandwidth limit for the performance policy instance.
      */
     @XmlElement(name = "host_io_limit_bandwidth")
     public Integer getHostIOLimitBandwidth() {
@@ -116,7 +98,7 @@ public class BlockPerformanceParamsUpdate {
     }
 
     /**
-     * The host I/O IOPS limit for the performance parameters instance.
+     * The host I/O IOPS limit for the performance policy instance.
      */
     @XmlElement(name = "host_io_limit_iops")
     public Integer getHostIOLimitIOPs() {
@@ -128,20 +110,19 @@ public class BlockPerformanceParamsUpdate {
     }
 
     /**
-     * The thin volume pre-allocation percentage for the performance parameters instance.
+     * The thin volume pre-allocation percentage for the performance policy instance.
      */
     @XmlElement(name = "thin_volume_preallocation_percentage")
     public Integer getThinVolumePreAllocationPercentage() {
         return thinVolumePreAllocationPercentage;
     }
 
-    public void setThinVolumePreAllocationPercentage(
-            Integer thinVolumePreAllocationPercentage) {
+    public void setThinVolumePreAllocationPercentage(Integer thinVolumePreAllocationPercentage) {
         this.thinVolumePreAllocationPercentage = thinVolumePreAllocationPercentage;
     }
 
     /**
-     * The deduplication setting for the performance parameters instance.
+     * The deduplication setting for the performance policy instance.
      */
     @XmlElement(name = "dedup_capable")
     public Boolean getDedupCapable() {
@@ -153,7 +134,7 @@ public class BlockPerformanceParamsUpdate {
     }
 
     /**
-     * The fast expansion setting for the performance parameters instance.
+     * The fast expansion setting for the performance policy instance.
      */
     @XmlElement(name = "fast_expansion")
     public Boolean getFastExpansion() {
@@ -162,19 +143,5 @@ public class BlockPerformanceParamsUpdate {
 
     public void setFastExpansion(Boolean fastExpansion) {
         this.fastExpansion = fastExpansion;
-    }
-
-    /*
-     * Utility Methods
-     */
-
-    @JsonIgnore
-    public boolean isHostIOLimitBandwidthSet() {
-        return hostIOLimitBandwidth != null && hostIOLimitBandwidth > 0;
-    }
-
-    @JsonIgnore
-    public boolean isHostIOLimitIOPsSet() {
-        return hostIOLimitIOPs != null && hostIOLimitIOPs > 0;
     }
 }

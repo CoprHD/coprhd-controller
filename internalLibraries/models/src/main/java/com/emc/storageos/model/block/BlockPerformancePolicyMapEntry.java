@@ -9,44 +9,44 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 
 /**
- * Class captures the performance parameter settings when posting a request
+ * Class captures the performance policy settings when posting a request
  * to provision a new volume. An instance of this class specifies the URI 
- * of the PerformanceParams instance to be used for the given role in the 
+ * of the PerformancePolicy instance to be used for the given role in the 
  * volume topology.
  */
-public class BlockPerformanceParamsMapEntry {
+public class BlockPerformancePolicyMapEntry {
     
     // The role of the volume in the volume topology to which the performance
-    // params are to be applied. For example, if the role is something like RP 
-    // source journal, the performance params are to be applied to the RP source
+    // policy is to be applied. For example, if the role is something like RP 
+    // source journal, the performance policy is to be applied to the RP source
     // journal volume.
     private String volumeTopologyRole;
     
-    // The URI of the performance params instance to be applied to the volume 
+    // The URI of the performance policy instance to be applied to the volume 
     // playing the given role in the volume topology.
-    private URI performanceParamsURI;
+    private URI performancePolicyURI;
 
     /**
      * Default constructor
      */
-    public BlockPerformanceParamsMapEntry() {
+    public BlockPerformancePolicyMapEntry() {
     }
 
     /**
      * Constructor
      * 
      * @param volumeTopologyRole The role of the volume in the overall volume's topology to which 
-     *                           the performance parameters are to be applied.
-     * @param performanceParamsURI The URI of a PerformanceParams instance.
+     *                           the performance policy is to be applied.
+     * @param performancePolicyURI The URI of a PerformancePolicy instance.
      */
-    public BlockPerformanceParamsMapEntry(String volumeTopologyRole, URI performanceParamsURI) {
+    public BlockPerformancePolicyMapEntry(String volumeTopologyRole, URI performancePolicyURI) {
         this.volumeTopologyRole = volumeTopologyRole;
-        this.performanceParamsURI = performanceParamsURI;
+        this.performancePolicyURI = performancePolicyURI;
     }
 
     /**
      * Getter for the role of the volume in the overall volume's topology to which the
-     * performance parameters are to be applied.
+     * performance policy is to be applied.
      * 
      * Valid values:
      * PRIMARY = The primary volume at the topology site.
@@ -68,16 +68,16 @@ public class BlockPerformanceParamsMapEntry {
     }
 
     /**
-     * The URI of the PerformanceParams instance.
+     * The URI of the PerformancePolicy instance.
      * 
-     * @return The URI of the PerformanceParams instance.
+     * @return The URI of the PerformancePolicy instance.
      */
     @XmlElement(name = "id", required = true)
     public URI getId() {
-        return performanceParamsURI;
+        return performancePolicyURI;
     }
 
-    public void setId(URI performanceParamsURI) {
-        this.performanceParamsURI = performanceParamsURI;
+    public void setId(URI performancePolicyURI) {
+        this.performancePolicyURI = performancePolicyURI;
     }
 }

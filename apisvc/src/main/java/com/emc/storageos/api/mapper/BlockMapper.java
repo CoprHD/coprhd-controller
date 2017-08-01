@@ -36,7 +36,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.PerformanceParams;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
@@ -59,7 +59,7 @@ import com.emc.storageos.model.adapters.StringSetMapAdapter;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.BlockPerformanceParamsRestRep;
+import com.emc.storageos.model.block.BlockPerformancePolicyRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.MigrationRestRep;
@@ -134,8 +134,8 @@ public class BlockMapper {
             to.setPreAllocationSize(CapacityUtils.convertBytesToGBInStr(from.getThinVolumePreAllocationSize()));
         }
         to.setVirtualPool(toRelatedResource(ResourceTypeEnum.BLOCK_VPOOL, from.getVirtualPool()));
-        if (from.getPerformanceParams() != null) {
-            to.setPerformanceParams(toRelatedResource(ResourceTypeEnum.BLOCK_PERFORMANCE_PARAMS, from.getPerformanceParams()));
+        if (from.getPerformancePolicy() != null) {
+            to.setPerformancePolicy(toRelatedResource(ResourceTypeEnum.BLOCK_PERFORMANCE_PARAMS, from.getPerformancePolicy()));
         }
         to.setIsComposite(from.getIsComposite());
         to.setAutoTierPolicyUri(toRelatedResource(ResourceTypeEnum.AUTO_TIERING_POLICY, from.getAutoTieringPolicyUri(), from.getId()));
@@ -829,23 +829,23 @@ public class BlockMapper {
     }
     
     /**
-     * Maps a PerformanceParams DB instance to an instance of the corresponding client model class.
+     * Maps a PerformancePolicy DB instance to an instance of the corresponding client model class.
      * 
-     * @param performanceParams A reference to the PerformanceParams DB instance to be mapped.
+     * @param performancePolicy A reference to the PerformancePolicy DB instance to be mapped.
      * 
-     * @return The corresponding BlockPerformanceParamsRestRep instance
+     * @return The corresponding BlockPerformancePolicyRestRep instance
      */
-    public static BlockPerformanceParamsRestRep map(PerformanceParams performanceParams) {
-        BlockPerformanceParamsRestRep response = new BlockPerformanceParamsRestRep();
-        mapDataObjectFields(performanceParams, response);
-        response.setDescription(performanceParams.getDescription());
-        response.setAutoTieringPolicyName(performanceParams.getAutoTierPolicyName());
-        response.setCompressionEnabled(performanceParams.getCompressionEnabled());
-        response.setHostIOLimitBandwidth(performanceParams.getHostIOLimitBandwidth());
-        response.setHostIOLimitIOPs(performanceParams.getHostIOLimitIOPs());
-        response.setThinVolumePreAllocationPercentage(performanceParams.getThinVolumePreAllocationPercentage());
-        response.setDedupCapable(performanceParams.getDedupCapable());
-        response.setFastExpansion(performanceParams.getFastExpansion());
+    public static BlockPerformancePolicyRestRep map(PerformancePolicy performancePolicy) {
+        BlockPerformancePolicyRestRep response = new BlockPerformancePolicyRestRep();
+        mapDataObjectFields(performancePolicy, response);
+        response.setDescription(performancePolicy.getDescription());
+        response.setAutoTieringPolicyName(performancePolicy.getAutoTierPolicyName());
+        response.setCompressionEnabled(performancePolicy.getCompressionEnabled());
+        response.setHostIOLimitBandwidth(performancePolicy.getHostIOLimitBandwidth());
+        response.setHostIOLimitIOPs(performancePolicy.getHostIOLimitIOPs());
+        response.setThinVolumePreAllocationPercentage(performancePolicy.getThinVolumePreAllocationPercentage());
+        response.setDedupCapable(performancePolicy.getDedupCapable());
+        response.setFastExpansion(performancePolicy.getFastExpansion());
         return response;
     }
 }

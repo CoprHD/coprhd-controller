@@ -27,7 +27,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
-import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
+import com.emc.storageos.api.service.impl.resource.utils.PerformancePolicyUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
@@ -38,7 +38,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.PerformanceParams;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -55,9 +55,9 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
-import com.emc.storageos.model.block.BlockPerformanceParamsMap;
+import com.emc.storageos.model.block.BlockPerformancePolicyMap;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
+import com.emc.storageos.model.block.VolumeCreatePerformancePolicies;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -104,16 +104,16 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         Long size = SizeUtil.translateSize(param.getSize());
         List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
         
-        // Get the performance parameters for the source volume.
-        URI performanceParamsURI = null;
-        PerformanceParams performanaceParams = volumeTopology.getPerformanceParamsForSourceRole(VolumeTopologyRole.PRIMARY, _dbClient);
-        if (performanaceParams != null) {
-            performanceParamsURI = performanaceParams.getId();
+        // Get the performance policy for the source volume.
+        URI performancePolicyURI = null;
+        PerformancePolicy performancePolicy = volumeTopology.getPerformancePolicyForSourceRole(VolumeTopologyRole.PRIMARY, _dbClient);
+        if (performancePolicy != null) {
+            performancePolicyURI = performancePolicy.getId();
         }
 
         List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(
                 existingDescriptors, param.getName(), size, project, neighborhood, cos, 
-                performanceParamsURI, volumeTopology.getCopyPerformanceParams(),
+                performancePolicyURI, volumeTopology.getCopyPerformancePolicies(),
                 recommendationMap.get(VpoolUse.ROOT), taskList, task, cosCapabilities);
         List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
         
@@ -164,8 +164,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel,
-            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, 
-            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performancePolicyURI, 
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformancePolicies, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Prepare the Bourne Volumes to be created and associated
         // with the actual storage system volumes created. Also create
@@ -179,7 +179,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         // Prepare the volumes
         _scheduler.prepareRecommendedVolumes(size, task, taskList, project,
-                varray, vpool, performanceParamsURI, vpoolCapabilities.getResourceCount(), recommendations,
+                varray, vpool, performancePolicyURI, vpoolCapabilities.getResourceCount(), recommendations,
                 consistencyGroup, volumeCounter, volumeLabel, preparedVolumes, vpoolCapabilities, false);
 
         // Prepare the volume descriptors based on the recommendations
@@ -748,20 +748,20 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForVolumeCreate(VirtualPool vpool, VolumeCreatePerformanceParams requestParams) {
-        // Just return if the passed performance params are null.
-        if (requestParams == null) {
+    public void validatePerformancePoliciesForVolumeCreate(VirtualPool vpool, VolumeCreatePerformancePolicies performancePolicies) {
+        // Just return if the passed performance policies are null.
+        if (performancePolicies == null) {
             return;
         }
         
-        // We need to verify that the passed performance parameters are appropriate for
-        // a simple block volume. Note that for now, any performance parameters passed
+        // We need to verify that the passed performance policies are appropriate for
+        // a simple block volume. Note that for now, any performance policies passed
         // that are associated with RP, SRDF, VPLEX, or Mirrors are just ignored and
-        // an exception will not be thrown. We will also simply return if no parameters
+        // an exception will not be thrown. We will also simply return if no policies
         // are passed for the source, which is the only one that applies for a simple
         // block volume with no mirrors.
-        BlockPerformanceParamsMap sourceParams = requestParams.getSourceParams();
-        PerformanceParamsUtils.validatePerformanceParamsForRoles(
-                sourceParams, Arrays.asList(VolumeTopologyRole.PRIMARY), _dbClient);
+        BlockPerformancePolicyMap sourcePerformancePolicies = performancePolicies.getSourcePolicies();
+        PerformancePolicyUtils.validatePerformancePoliciesForRoles(
+                sourcePerformancePolicies, Arrays.asList(VolumeTopologyRole.PRIMARY), _dbClient);
     }
 }

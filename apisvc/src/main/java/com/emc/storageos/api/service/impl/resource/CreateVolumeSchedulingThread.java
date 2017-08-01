@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
-import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
+import com.emc.storageos.api.service.impl.resource.utils.PerformancePolicyUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
@@ -144,7 +144,7 @@ class CreateVolumeSchedulingThread implements Runnable {
             BlockServiceApi blockServiceImpl) {
 
         CreateVolumeSchedulingThread schedulingThread = new CreateVolumeSchedulingThread(blockService, varray,
-                project, vpool, PerformanceParamsUtils.transformPerformanceParams(param.getPerformanceParams()),
+                project, vpool, PerformancePolicyUtils.transformPerformancePolicies(param.getPerformancePolicies()),
                 capabilities, taskList, task, consistencyGroup, requestedTypes, param, blockServiceImpl);
         try {
             executorService.execute(schedulingThread);

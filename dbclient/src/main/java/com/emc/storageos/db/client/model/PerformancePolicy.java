@@ -9,12 +9,12 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 /**
  * This column family captures array performance parameters that are deprecated from
  * the VirtualPool column family as part of the virtual pool simplification project.
- * Like VirtualPools, PerformanceParam instances can be specified for volumes when they
+ * Like VirtualPools, PerformancePolicy instances can be specified for volumes when they
  * are provisioned.
  */
-@Cf("PerformanceParams")
+@Cf("PerformancePolicy")
 @SuppressWarnings("serial")
-public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleResource {
+public class PerformancePolicy extends DataObjectWithACLs implements GeoVisibleResource {
     
     // Default values
     public static final String PP_DFLT_AUTOTIERING_POLICY_NAME = "NONE";
@@ -70,7 +70,7 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
 
     public void setAutoTierPolicyName(final String autoTierPolicyName) {
         if (NullColumnValueGetter.isNullValue(autoTierPolicyName)) {
-            this.autoTierPolicyName = PerformanceParams.PP_DFLT_AUTOTIERING_POLICY_NAME;
+            this.autoTierPolicyName = PerformancePolicy.PP_DFLT_AUTOTIERING_POLICY_NAME;
         } else {
             this.autoTierPolicyName = autoTierPolicyName;
         }
@@ -79,12 +79,12 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
 
     @Name("compressionEnabled")
     public Boolean getCompressionEnabled() {
-        return compressionEnabled == null ? PerformanceParams.PP_DFLT_COMPRESSION_ENABLED : compressionEnabled;
+        return compressionEnabled == null ? PerformancePolicy.PP_DFLT_COMPRESSION_ENABLED : compressionEnabled;
     }
 
     public void setCompressionEnabled(final Boolean compressionEnabled) {
         if (compressionEnabled == null) {
-            this.compressionEnabled = PerformanceParams.PP_DFLT_COMPRESSION_ENABLED;
+            this.compressionEnabled = PerformancePolicy.PP_DFLT_COMPRESSION_ENABLED;
         } else {
             this.compressionEnabled = compressionEnabled;
         }
@@ -98,7 +98,7 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
 
     public void setHostIOLimitBandwidth(final Integer hostIOLimitBandwidth) {
         if (hostIOLimitBandwidth == null) {
-            this.hostIOLimitBandwidth = PerformanceParams.PP_DFLT_HOST_IO_LIMIT_BANDWIDTH;
+            this.hostIOLimitBandwidth = PerformancePolicy.PP_DFLT_HOST_IO_LIMIT_BANDWIDTH;
         } else {
             this.hostIOLimitBandwidth = hostIOLimitBandwidth;
         }
@@ -112,7 +112,7 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
 
     public void setHostIOLimitIOPs(final Integer hostIOLimitIOPs) {
         if (hostIOLimitIOPs == null) {
-            this.hostIOLimitIOPs = PerformanceParams.PP_DFLT_HOST_IO_LIMIT_IOPS;
+            this.hostIOLimitIOPs = PerformancePolicy.PP_DFLT_HOST_IO_LIMIT_IOPS;
         } else {
             this.hostIOLimitIOPs = hostIOLimitIOPs;
         }
@@ -126,7 +126,7 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
 
     public void setThinVolumePreAllocationPercentage(final Integer thinVolumePreAllocationPercentage) {
         if (thinVolumePreAllocationPercentage == null) {
-            this.thinVolumePreAllocationPercentage = PerformanceParams.PP_DFLT_THIN_VOLUME_PRE_ALLOC_PERCENTAGE;
+            this.thinVolumePreAllocationPercentage = PerformancePolicy.PP_DFLT_THIN_VOLUME_PRE_ALLOC_PERCENTAGE;
         } else {
             this.thinVolumePreAllocationPercentage = thinVolumePreAllocationPercentage;
         }
@@ -140,7 +140,7 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
 
     public void setDedupCapable(final Boolean dedupCapable) {
         if (dedupCapable == null) {
-            this.dedupCapable = PerformanceParams.PP_DFLT_DEDUP_CAPABLE;
+            this.dedupCapable = PerformancePolicy.PP_DFLT_DEDUP_CAPABLE;
         } else {
             this.dedupCapable = dedupCapable;
         }
@@ -154,7 +154,7 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
 
     public void setFastExpansion(final Boolean fastExpansion) {
         if (fastExpansion == null) {
-            this.fastExpansion = PerformanceParams.PP_DFLT_FAST_EXPANSION;
+            this.fastExpansion = PerformancePolicy.PP_DFLT_FAST_EXPANSION;
         } else {
             this.fastExpansion = fastExpansion;
         }

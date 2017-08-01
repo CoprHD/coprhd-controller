@@ -78,11 +78,11 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
-import com.emc.storageos.model.block.BlockPerformanceParamsMap;
+import com.emc.storageos.model.block.BlockPerformancePolicyMap;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
+import com.emc.storageos.model.block.VolumeCreatePerformancePolicies;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.varray.VirtualArrayConnectivityRestRep;
@@ -1909,8 +1909,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name,
-            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, 
-            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performancePolicyURI, 
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformancePolicies, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         BlockServiceApi api = null;
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
@@ -1927,7 +1927,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 throw WorkflowException.exceptions.workflowConstructionError(message);
             }
             volumeDescriptors.addAll(api.createVolumesAndDescriptors(
-                    descriptors, name, size, project, varray, vpool, performanceParamsURI, copyPerformanceParams,
+                    descriptors, name, size, project, varray, vpool, performancePolicyURI, copyPerformancePolicies,
                     recommendations, taskList, task, vpoolCapabilities));
         }
         return volumeDescriptors;
@@ -2122,13 +2122,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForVolumeCreate(VirtualPool vpool, VolumeCreatePerformanceParams requestParams) {
+    public void validatePerformancePoliciesForVolumeCreate(VirtualPool vpool, VolumeCreatePerformancePolicies performancePolicies) {
     }    
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformanceParamsMap performanceParams) {
+    public void validatePerformancePoliciesForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformancePolicyMap performancePoliciesMap) {
     }
 }

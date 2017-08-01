@@ -3348,7 +3348,7 @@ public interface BadRequestExceptions {
     public BadRequestException storageSystemClientException(final String storageSystemType, final String errorMsg);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantUpdatePerformanceParamsInUse(final String label);
+    public BadRequestException cantUpdatePerformancePolicyInUse(final String label);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException negativeHostIOLimitBadwidth();

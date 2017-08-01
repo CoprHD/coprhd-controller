@@ -27,11 +27,11 @@ import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
-import com.emc.storageos.model.block.BlockPerformanceParamsMap;
+import com.emc.storageos.model.block.BlockPerformancePolicyMap;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
+import com.emc.storageos.model.block.VolumeCreatePerformancePolicies;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -92,8 +92,8 @@ public interface BlockServiceApi {
      * @param project -- Project object
      * @param varray -- VirtualArray object
      * @param vpool -- VirtualPool object
-     * @param performanceParamsURI The URI of a PerformanceParams to associate with the primary source volume, or null.
-     * @param copyPerformanceParams The performance parameters for any copies, or null.
+     * @param performancePolicyURI The URI of a PerformancePolicy to associate with the primary source volume, or null.
+     * @param copyPerformancePolicies The performance policies for any copies, or null.
      * @param recommendations -- List of Recommendations describing StoragePools to be used
      * @param taskList -- A TaskList to which tasks can be added
      * @param task-- The String task identifier for the overall operation
@@ -101,8 +101,8 @@ public interface BlockServiceApi {
      * @return List of VolumeDescriptors including the Volumes that were generated
      */
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name,
-            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI,
-            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performancePolicyURI,
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformancePolicies, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities);
 
     /**
@@ -673,20 +673,20 @@ public interface BlockServiceApi {
             List<URI> volumeURIs, String deletionType);
     
     /**
-     * For a volume create request validates that the performance parameters passed are valid 
+     * For a volume create request validates that the performance policies passed are valid 
      * and are appropriate.
      * 
      * @param vpool The virtual pool.
-     * @param requestParams A reference to the performance parameters passed in the request.
+     * @param performancePolicies A reference to the performance policies passed in the request.
      */
-    public void validatePerformanceParametersForVolumeCreate(VirtualPool vpool, VolumeCreatePerformanceParams requestParams);
+    public void validatePerformancePoliciesForVolumeCreate(VirtualPool vpool, VolumeCreatePerformancePolicies performancePolicies);
     
     /**
-     * For a mirror create request validates that the performance parameters passed are valid 
+     * For a mirror create request validates that the performance policies passed are valid 
      * and are appropriate.
      * 
      * @param sourceVolumeVpool The source volume virtual pool.
-     * @param requestParams A reference to the performance parameters passed in the request.
+     * @param performancePoliciesMap A reference to the performance policies passed in the request.
      */
-    public void validatePerformanceParametersForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformanceParamsMap performanceParams);    
+    public void validatePerformancePoliciesForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformancePolicyMap performancePoliciesMap);    
 }

@@ -4564,7 +4564,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             newPolicyName = _helper.getVMAX3FastSettingForVolume(volumeURIs.get(0), newPolicyName);
         }
         
-        // TBD HEG : This will actually no longer be done through vpool change, so this
+        // This will actually no longer be done through vpool change, so this
         // will be affected, but still updated to look in Volume first. 
         StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits = _helper.getStorageGroupPolicyLimitsParam(
                 newPolicyName, storage, volumeURIs.get(0), newVirtualPool);

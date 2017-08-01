@@ -802,7 +802,7 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.StorageSystemDataCollectionService">
                     <property name="scaleIORestClientFactory" ref="scaleIORestClientFactory"/>
                 </bean>
-                <bean class="com.emc.storageos.api.service.impl.resource.BlockPerformanceParamsService">
+                <bean class="com.emc.storageos.api.service.impl.resource.BlockPerformancePolicyService">
                   <property name="dbClient" ref="dbclient"/>
                   <property name="coordinator" ref="coordinator"/>
                 </bean>

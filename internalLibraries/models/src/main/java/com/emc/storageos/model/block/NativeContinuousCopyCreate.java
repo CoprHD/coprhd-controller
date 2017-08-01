@@ -20,15 +20,15 @@ public class NativeContinuousCopyCreate {
 
     private String name;
     private Integer count;
-    private BlockPerformanceParamsMap performanceParams;    
+    private BlockPerformancePolicyMap performancePolicies;    
 
     public NativeContinuousCopyCreate() {
     }
 
-    public NativeContinuousCopyCreate(String name, Integer count, BlockPerformanceParamsMap performanceParams) {
+    public NativeContinuousCopyCreate(String name, Integer count, BlockPerformancePolicyMap performancePolicies) {
         this.name = name;
         this.count = count;
-        this.performanceParams = performanceParams;
+        this.performancePolicies = performancePolicies;
     }
 
     /**
@@ -58,17 +58,17 @@ public class NativeContinuousCopyCreate {
     }
     
     /**
-     * The performance parameters to use when the newly created mirror is 
+     * The performance policies to use when the newly created mirror is 
      * provisioned.
      * 
-     * @return The performance parameters.
+     * @return The performance policies.
      */
-    @XmlElement(name = "performance_params")
-    public BlockPerformanceParamsMap getPerformanceParams() {
-        return performanceParams;
+    @XmlElement(name = "performance_policies")
+    public BlockPerformancePolicyMap getPerformancePolicies() {
+        return performancePolicies;
     }
 
-    public void setPerformanceParams(BlockPerformanceParamsMap performanceParams) {
-        this.performanceParams = performanceParams;
+    public void setPerformancePolicies(BlockPerformancePolicyMap performancePolicies) {
+        this.performancePolicies = performancePolicies;
     }    
 }

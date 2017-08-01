@@ -5,7 +5,7 @@ BlockSnapshotService
 ExportGroupService
 BlockFullCopyService
 BlockSnapshotSessionService
-BlockPerformanceParamsService
+BlockPerformancePolicyService
 
 =File Services
 FileService

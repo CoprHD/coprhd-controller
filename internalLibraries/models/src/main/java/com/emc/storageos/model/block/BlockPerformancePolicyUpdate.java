@@ -12,10 +12,10 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 import com.emc.storageos.model.valid.Length;
 
 /**
- * Parameters to create a block PerformanceParams instance.
+ * Parameters to update an existing block PerformancePolicy instance.
  */
-@XmlRootElement(name = "block_performance_params_create")
-public class BlockPerformanceParamsCreate {
+@XmlRootElement(name = "block_performance_policy_update")
+public class BlockPerformancePolicyUpdate {
 
     // A unique user supplied name.
     private String name;
@@ -47,7 +47,7 @@ public class BlockPerformanceParamsCreate {
     /**
      * Default constructor
      */
-    public BlockPerformanceParamsCreate()
+    public BlockPerformancePolicyUpdate()
     {}
 
     /*
@@ -55,9 +55,9 @@ public class BlockPerformanceParamsCreate {
      */
 
     /**
-     * The unique name for the performance parameters instance.
+     * The unique name for the performance policy instance.
      */
-    @XmlElement(required = true)
+    @XmlElement
     @Length(min = 2, max = 30)
     public String getName() {
         return name;
@@ -68,7 +68,7 @@ public class BlockPerformanceParamsCreate {
     }
 
     /**
-     * The description for the performance parameters instance.
+     * The description for the performance policy instance.
      */
     @XmlElement
     public String getDescription() {
@@ -80,7 +80,7 @@ public class BlockPerformanceParamsCreate {
     }
 
     /**
-     * The FAST policy name for the performance parameters instance.
+     * The FAST policy name for the performance policy instance.
      */
     @XmlElement(name = "auto_tiering_policy_name")
     public String getAutoTieringPolicyName() {
@@ -92,7 +92,7 @@ public class BlockPerformanceParamsCreate {
     }
 
     /**
-     * The compression setting for the performance parameters instance.
+     * The compression setting for the performance policy instance.
      */
     @XmlElement(name = "compression_enabled")
     public Boolean getCompressionEnabled() {
@@ -104,7 +104,7 @@ public class BlockPerformanceParamsCreate {
     }
 
     /**
-     * The host I/O bandwidth limit for the performance parameters instance.
+     * The host I/O bandwidth limit for the performance policy instance.
      */
     @XmlElement(name = "host_io_limit_bandwidth")
     public Integer getHostIOLimitBandwidth() {
@@ -116,7 +116,7 @@ public class BlockPerformanceParamsCreate {
     }
 
     /**
-     * The host I/O IOPS limit for the performance parameters instance.
+     * The host I/O IOPS limit for the performance policy instance.
      */
     @XmlElement(name = "host_io_limit_iops")
     public Integer getHostIOLimitIOPs() {
@@ -128,7 +128,7 @@ public class BlockPerformanceParamsCreate {
     }
 
     /**
-     * The thin volume pre-allocation percentage for the performance parameters instance.
+     * The thin volume pre-allocation percentage for the performance policy instance.
      */
     @XmlElement(name = "thin_volume_preallocation_percentage")
     public Integer getThinVolumePreAllocationPercentage() {
@@ -141,7 +141,7 @@ public class BlockPerformanceParamsCreate {
     }
 
     /**
-     * The deduplication setting for the performance parameters instance.
+     * The deduplication setting for the performance policy instance.
      */
     @XmlElement(name = "dedup_capable")
     public Boolean getDedupCapable() {
@@ -153,7 +153,7 @@ public class BlockPerformanceParamsCreate {
     }
 
     /**
-     * The fast expansion setting for the performance parameters instance.
+     * The fast expansion setting for the performance policy instance.
      */
     @XmlElement(name = "fast_expansion")
     public Boolean getFastExpansion() {

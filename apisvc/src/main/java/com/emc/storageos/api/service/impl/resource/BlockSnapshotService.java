@@ -1030,8 +1030,8 @@ public class BlockSnapshotService extends TaskResourceService {
         // use the source volume virtual pool for the VPLEX volume.
         volume.setVirtualPool(sourceVolume.getVirtualPool());
         
-        // Set performance parameters
-        volume.setPerformanceParams(sourceVolume.getPerformanceParams());
+        // Set performance policy
+        volume.setPerformancePolicy(sourceVolume.getPerformancePolicy());
 
         // Set auto tier policy from the source volume. This comes
         // into play in vmax3 export operations.

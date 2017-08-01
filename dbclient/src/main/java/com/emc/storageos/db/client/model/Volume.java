@@ -100,8 +100,8 @@ public class Volume extends BlockObject implements ProjectResource {
     // that this Volume's backing Volumes belong to.
     private String _backingReplicationGroupInstance;
     
-    // The URI of the performance parameters for the volume
-    private URI performanceParams;
+    // The URI of the performance policy for the volume
+    private URI performancePolicy;
 
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.
     public static enum VolumeAccessState {
@@ -1167,21 +1167,21 @@ public class Volume extends BlockObject implements ProjectResource {
         return TagUtils.getBlockVolumeBootVolume(this);
     }
 
-    @Name("performanceParams")
-    @RelationIndex(cf = "performanceParamsVolumeIndex", type = Volume.class)
-    public URI getPerformanceParams() {
-        return performanceParams;
+    @Name("performancePolicy")
+    @RelationIndex(cf = "performancePolicyVolumeIndex", type = Volume.class)
+    public URI getPerformancePolicy() {
+        return performancePolicy;
     }
 
-    public void setPerformanceParams(URI performanceParams) {
-        this.performanceParams = performanceParams;
-        setChanged("performanceParams");
+    public void setPerformancePolicy(URI performancePolicy) {
+        this.performancePolicy = performancePolicy;
+        setChanged("performancePolicy");
     }
     
     /**
      * Helper method determine the fast expansion setting for a volume. If
-     * the volume references an active PerformanceParams instance then use the
-     * the value specified in the instance. Otherwise, take the value for the 
+     * the volume references an active PerformancePolicy instance then use the
+     * the value specified in the instance. Otherwise, take the value from the 
      * volume's virtual pool.
      * 
      * @param volume A reference to a volume.
@@ -1190,11 +1190,11 @@ public class Volume extends BlockObject implements ProjectResource {
      * @return true for fast expansion enabled, false otherwise.
      */
     public static Boolean determineFastExpansionForVolume(Volume volume, DbClient dbClient) {
-        URI performanceParamsURI = volume.getPerformanceParams();
-        if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
-            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
-            if (performanceParams != null && !performanceParams.getInactive()) {
-                return performanceParams.getFastExpansion();
+        URI performancePolicyURI = volume.getPerformancePolicy();
+        if (!NullColumnValueGetter.isNullURI(performancePolicyURI)) {
+            PerformancePolicy performancePolicy = dbClient.queryObject(PerformancePolicy.class, performancePolicyURI);
+            if (performancePolicy != null && !performancePolicy.getInactive()) {
+                return performancePolicy.getFastExpansion();
             }
         }
 
@@ -1204,7 +1204,7 @@ public class Volume extends BlockObject implements ProjectResource {
     
     /**
      * Helper method determine the host IO bandwidth limit for a volume. If
-     * the volume references an active PerformanceParams instance then use the
+     * the volume references an active PerformancePolicy instance then use the
      * the value specified in the instance. Otherwise, take the value for the 
      * volume's virtual pool.
      * 
@@ -1214,11 +1214,11 @@ public class Volume extends BlockObject implements ProjectResource {
      * @return The host IO bandwidth limit.
      */
     public static Integer determineHostIOLimitBandwidthForVolume(Volume volume, DbClient dbClient) {
-        URI performanceParamsURI = volume.getPerformanceParams();
-        if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
-            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
-            if (performanceParams != null && !performanceParams.getInactive()) {
-                return performanceParams.getHostIOLimitBandwidth();
+        URI performancePolicyURI = volume.getPerformancePolicy();
+        if (!NullColumnValueGetter.isNullURI(performancePolicyURI)) {
+            PerformancePolicy performancePolicy = dbClient.queryObject(PerformancePolicy.class, performancePolicyURI);
+            if (performancePolicy != null && !performancePolicy.getInactive()) {
+                return performancePolicy.getHostIOLimitBandwidth();
             }
         }
 
@@ -1228,7 +1228,7 @@ public class Volume extends BlockObject implements ProjectResource {
     
     /**
      * Helper method determine the host IO IOPs limit for a volume. If
-     * the volume references an active PerformanceParams instance then use the
+     * the volume references an active PerformancePolicy instance then use the
      * the value specified in the instance. Otherwise, take the value for the 
      * volume's virtual pool.
      * 
@@ -1238,11 +1238,11 @@ public class Volume extends BlockObject implements ProjectResource {
      * @return The host IO IOPs limit.
      */
     public static Integer determineHostIOLimitIOPsForVolume(Volume volume, DbClient dbClient) {
-        URI performanceParamsURI = volume.getPerformanceParams();
-        if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
-            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
-            if (performanceParams != null && !performanceParams.getInactive()) {
-                return performanceParams.getHostIOLimitIOPs();
+        URI performancePolicyURI = volume.getPerformancePolicy();
+        if (!NullColumnValueGetter.isNullURI(performancePolicyURI)) {
+            PerformancePolicy performancePolicy = dbClient.queryObject(PerformancePolicy.class, performancePolicyURI);
+            if (performancePolicy != null && !performancePolicy.getInactive()) {
+                return performancePolicy.getHostIOLimitIOPs();
             }
         }
 
@@ -1252,7 +1252,7 @@ public class Volume extends BlockObject implements ProjectResource {
     
     /**
      * Helper method determine if compression is enabled for the volume. If
-     * the volume references an active PerformanceParams instance then use the
+     * the volume references an active PerformancePolicy instance then use the
      * the value specified in the instance. Otherwise, take the value for the 
      * volume's virtual pool.
      * 
@@ -1262,11 +1262,11 @@ public class Volume extends BlockObject implements ProjectResource {
      * @return Boolean.TRUE if compression enabled, else Boolean.FALSE.
      */
     public static Boolean determineCompressionEnabledForVolume(Volume volume, DbClient dbClient) {
-        URI performanceParamsURI = volume.getPerformanceParams();
-        if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
-            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
-            if (performanceParams != null && !performanceParams.getInactive()) {
-                return performanceParams.getCompressionEnabled();
+        URI performancePolicyURI = volume.getPerformancePolicy();
+        if (!NullColumnValueGetter.isNullURI(performancePolicyURI)) {
+            PerformancePolicy performancePolicy = dbClient.queryObject(PerformancePolicy.class, performancePolicyURI);
+            if (performancePolicy != null && !performancePolicy.getInactive()) {
+                return performancePolicy.getCompressionEnabled();
             }
         }
 

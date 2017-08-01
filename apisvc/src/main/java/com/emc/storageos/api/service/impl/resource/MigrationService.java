@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.BlockMigrationMapper;
 import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
-import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
+import com.emc.storageos.api.service.impl.resource.utils.PerformancePolicyUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -180,18 +180,18 @@ public class MigrationService extends TaskResourceService {
         vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, migrationSrc.getCapacity());
         vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         
-        // Make sure the capabilities reflect the new vpool and performance parameters of the
+        // Make sure the capabilities reflect the new vpool and performance policy of the
         // source volume of the Migration. We are migrating to a new vpool, but not a new
-        // performance parameters and the capabilities must reflect these when placing and 
+        // performance policy and the capabilities must reflect these when placing and 
         // preparing the volume.
         boolean isHA = !vplexVolume.getVirtualArray().equals(migrationTargetVarray.getId());
-        URI performanceParamsURI = migrationSrc.getPerformanceParams();
-        Map<VolumeTopologyRole, URI> sourceParams = new HashMap<>();
+        URI performancePolicyURI = migrationSrc.getPerformancePolicy();
+        Map<VolumeTopologyRole, URI> sourcePerformancePolicies = new HashMap<>();
         VolumeTopologyRole role = isHA ? VolumeTopologyRole.HA : VolumeTopologyRole.PRIMARY;
-        sourceParams.put(role, performanceParamsURI);
-        VolumeTopology volumeTopology = new VolumeTopology(sourceParams, null);
-        vpoolCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                migrationTgtVpool, sourceParams, role, vpoolCapabilities, _dbClient);        
+        sourcePerformancePolicies.put(role, performancePolicyURI);
+        VolumeTopology volumeTopology = new VolumeTopology(sourcePerformancePolicies, null);
+        vpoolCapabilities = PerformancePolicyUtils.overrideCapabilitiesForVolumePlacement(
+                migrationTgtVpool, sourcePerformancePolicies, role, vpoolCapabilities, _dbClient);        
         
         List<Recommendation> recommendations = vplexScheduler.scheduleStorage(migrationTargetVarray, 
                 requestedVPlexSystems, migrateParam.getTgtStorageSystem(), migrationTgtVpool,
@@ -217,7 +217,7 @@ public class MigrationService extends TaskResourceService {
         Long size = _vplexBlockServiceApi.getVolumeCapacity(migrationSrc);
         Volume migrationTgt = VPlexBlockServiceApiImpl.prepareVolumeForRequest(
                 size, migrationTgtProject, migrationTargetVarray, migrationTgtVpool, 
-                performanceParamsURI, vpoolCapabilities, recommendedSystem, recommendedPool,
+                performancePolicyURI, vpoolCapabilities, recommendedSystem, recommendedPool,
                 migrationSrc.getLabel(), ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
                 taskId, _dbClient);
         URI migrationTgtURI = migrationTgt.getId();

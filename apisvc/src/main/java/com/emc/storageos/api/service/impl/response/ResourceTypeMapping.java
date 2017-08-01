@@ -21,7 +21,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.AUTHN_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTO_TIERING_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_MIRROR;
-import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_PERFORMANCE_PARAMS;
+import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_PERFORMANCE_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT_SESSION;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_VPOOL;
@@ -123,7 +123,7 @@ import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.OSTenant;
-import com.emc.storageos.db.client.model.PerformanceParams;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -248,7 +248,7 @@ public class ResourceTypeMapping {
         classMapping.put(CUSTOM_SERVICES_PRIMITIVES, CustomServicesPrimitiveModel.class);
         classMapping.put(CUSTOM_SERVICES_PRIMITIVE_RESOURCES, CustomServicesPrimitiveResourceModel.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
-        classMapping.put(BLOCK_PERFORMANCE_PARAMS, PerformanceParams.class);
+        classMapping.put(BLOCK_PERFORMANCE_POLICY, PerformancePolicy.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping
                 .entrySet()) {

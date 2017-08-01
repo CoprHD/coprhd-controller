@@ -16,7 +16,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
  * place holder for future phases of the virtual pool simplification project. For now
  * it defines an enumeration of the various roles a volume can play in a volume topology
  * and an enumeration of the sites that comprise a topology. It also captures the 
- * source and copy performance parameters passed in a volume or mirror creation request
+ * source and copy performance policies passed in a volume or mirror creation request
  * that override the corresponding vpool properties. Later it can be enhanced to become
  * a column family and hold volume topologies with specific performance and other settings 
  * that can be applied to a volume when it is provisioned as described in the vpool
@@ -24,11 +24,11 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
  */
 public class VolumeTopology {
     
-    // Performance parameters for the source volume.
-    private Map<VolumeTopologyRole, URI> sourcePerformanceParams;
+    // Performance policies for the source volume.
+    private Map<VolumeTopologyRole, URI> sourcePerformancePolicies;
     
-    // Performance parameters for the copy volumes, keyed by the copy virtual array.
-    private Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams;
+    // Performance policies for the copy volumes, keyed by the copy virtual array.
+    private Map<URI, Map<VolumeTopologyRole, URI>> copyPerformancePolicies;
     
     // Enumeration of volume topology sites.
     public static enum VolumeTopologySite {
@@ -50,82 +50,82 @@ public class VolumeTopology {
      * Default Constructor
      */
     public VolumeTopology() {
-        sourcePerformanceParams = new HashMap<>();
-        copyPerformanceParams = new HashMap<>();
+        sourcePerformancePolicies = new HashMap<>();
+        copyPerformancePolicies = new HashMap<>();
     }
 
     /**
      * Constructor
      * 
-     * @param sourcePerformanceParams The performance parameters for the source volume in the topology.
-     * @param copyPerformanceParams The performance parameters for the copy volumes in the topology.
+     * @param sourcePerformancePolicies The performance policies for the source volume in the topology.
+     * @param copyPerformancePolicies The performance policies for the copy volumes in the topology.
      */
-    public VolumeTopology(Map<VolumeTopologyRole, URI> sourcePerformanceParams, Map<URI,
-            Map<VolumeTopologyRole, URI>> copyPerformanceParams) {
-        if (sourcePerformanceParams != null) {
-            this.sourcePerformanceParams = sourcePerformanceParams;
+    public VolumeTopology(Map<VolumeTopologyRole, URI> sourcePerformancePolicies, Map<URI,
+            Map<VolumeTopologyRole, URI>> copyPerformancePolicies) {
+        if (sourcePerformancePolicies != null) {
+            this.sourcePerformancePolicies = sourcePerformancePolicies;
         } else {
-            this.sourcePerformanceParams = new HashMap<>();
+            this.sourcePerformancePolicies = new HashMap<>();
         }
         
-        if (copyPerformanceParams != null) {
-            this.copyPerformanceParams = copyPerformanceParams;
+        if (copyPerformancePolicies != null) {
+            this.copyPerformancePolicies = copyPerformancePolicies;
         } else {
-            this.copyPerformanceParams = new HashMap<>();            
+            this.copyPerformancePolicies = new HashMap<>();            
         }
     }
     
     /**
-     * Getter for the source performance parameters.
+     * Getter for the source performance policies.
      * 
-     * @return The source performance parameters.
+     * @return The source performance policies.
      */
-    public Map<VolumeTopologyRole, URI> getSourcePerformanceParams() {
-        return sourcePerformanceParams;
+    public Map<VolumeTopologyRole, URI> getSourcePerformancePolicies() {
+        return sourcePerformancePolicies;
     }
 
     /**
-     * Getter for the copy performance parameters.
+     * Getter for the copy performance policies.
      * 
-     * @return The copy performance parameters.
+     * @return The copy performance policies.
      */
-    public Map<URI, Map<VolumeTopologyRole, URI>> getCopyPerformanceParams() {
-        return copyPerformanceParams;
+    public Map<URI, Map<VolumeTopologyRole, URI>> getCopyPerformancePolicies() {
+        return copyPerformancePolicies;
     }
 
     /**
-     * Gets the performance parameters for the component volume playing the 
+     * Gets the performance policy for the component volume playing the 
      * passed role in the source volume topology.
      * 
      * @param role The volume topology role.
      * @param dbClient A reference to a database client.
      * 
-     * @return A reference to a performance parameters instance or null if there are none for the passed role.
+     * @return A reference to a performance policy instance or null if there are none for the passed role.
      */
-    public PerformanceParams getPerformanceParamsForSourceRole(VolumeTopologyRole role, DbClient dbClient) {
-        PerformanceParams performanceParams = null;
-        if (!sourcePerformanceParams.isEmpty()) {
-            URI performanceParamsURI = sourcePerformanceParams.get(role);
-            if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
-                performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+    public PerformancePolicy getPerformancePolicyForSourceRole(VolumeTopologyRole role, DbClient dbClient) {
+        PerformancePolicy performancePolicy = null;
+        if (!sourcePerformancePolicies.isEmpty()) {
+            URI performancePolicyURI = sourcePerformancePolicies.get(role);
+            if (!NullColumnValueGetter.isNullURI(performancePolicyURI)) {
+                performancePolicy = dbClient.queryObject(PerformancePolicy.class, performancePolicyURI);
             }
         }
-        return performanceParams;
+        return performancePolicy;
     }
     
     /**
-     * Gets the performance parameters for the copy at the passed virtual array.
+     * Gets the performance policies for the copy at the passed virtual array.
      * 
      * @param varrayURI The URI of the varray for the copy.
      * 
-     * @return The performance parameters for the copy at the passed virtual array or null.
+     * @return The performance policies for the copy at the passed virtual array or null.
      */
-    public Map<VolumeTopologyRole, URI> getPerformanceParamsForCopy(URI varrayURI) {
-        return copyPerformanceParams.get(varrayURI);
+    public Map<VolumeTopologyRole, URI> getPerformancePoliciesForCopy(URI varrayURI) {
+        return copyPerformancePolicies.get(varrayURI);
     }
     
     /**
-     * Gets the performance parameters for the component volume playing the 
+     * Gets the performance policy for the component volume playing the 
      * passed role in the copy volume topology for the copy in the passed 
      * virtual array.
      * 
@@ -133,19 +133,19 @@ public class VolumeTopology {
      * @param role The volume topology role.
      * @param dbClient A reference to a database client.
      * 
-     * @return A reference to a performance parameters instance or null if there are none for the passed role.
+     * @return A reference to a performance policy instance or null if there are none for the passed role.
      */
-    public PerformanceParams getPerformanceParamsForCopyRole(URI varrayURI, VolumeTopologyRole role, DbClient dbClient) {
-        PerformanceParams performanceParams = null;
-        if (!copyPerformanceParams.isEmpty()) {
-            Map<VolumeTopologyRole, URI> copyParamsMap = getPerformanceParamsForCopy(varrayURI);
-            if (copyParamsMap != null && !copyParamsMap.isEmpty()) {
-                URI performanceParamsURI = copyParamsMap.get(role);
-                if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
-                    performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+    public PerformancePolicy getPerformancePolicyForCopyRole(URI varrayURI, VolumeTopologyRole role, DbClient dbClient) {
+        PerformancePolicy performancePolicy = null;
+        if (!copyPerformancePolicies.isEmpty()) {
+            Map<VolumeTopologyRole, URI> copyPoliciesMap = getPerformancePoliciesForCopy(varrayURI);
+            if (copyPoliciesMap != null && !copyPoliciesMap.isEmpty()) {
+                URI performancePolicyURI = copyPoliciesMap.get(role);
+                if (!NullColumnValueGetter.isNullURI(performancePolicyURI)) {
+                    performancePolicy = dbClient.queryObject(PerformancePolicy.class, performancePolicyURI);
                 }
             }
         }
-        return performanceParams;
+        return performancePolicy;
     }
 }

@@ -1112,7 +1112,7 @@ public class VolumeService extends TaskResourceService {
 
         _log.debug("Block Service API call for : Create New Volume ");
         TaskList passedTaskist = createTaskList(requestedSize, project, varray, vpool, capabilities, name, task, volumeCount);
-        // Performance parameter overrides not supported through Cinder for now.
+        // Performance policy overrides not supported through Cinder for now.
         return api.createVolumes(volumeCreate, project, varray, vpool, 
                 new VolumeTopology(), recommendationsMap, passedTaskist, task, capabilities);
     }

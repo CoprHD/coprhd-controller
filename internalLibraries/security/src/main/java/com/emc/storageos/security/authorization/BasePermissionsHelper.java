@@ -49,7 +49,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.PerformanceParams;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StringSet;
@@ -1037,16 +1037,16 @@ public class BasePermissionsHelper {
     }
 
     /**
-     * Returns true if any tenant in the list has a usage ACL on the passed performance parameters.
+     * Returns true if any tenant in the list has a usage ACL on the passed performance policy.
      *
      * @param tenantUris The URIs of the tenants.
-     * @param performanceParams A reference to a performance parameters instance.
+     * @param performancePolicy A reference to a performance policy instance.
      * 
      * @return true if any tenant has access, false otherwise.
      */
-    public boolean tenantHasUsageACL(List<URI> tenantUris, PerformanceParams performanceParams) {
+    public boolean tenantHasUsageACL(List<URI> tenantUris, PerformancePolicy performancePolicy) {
         for (URI tenantUri : tenantUris) {
-            if (tenantHasUsageACL(tenantUri, performanceParams)) {
+            if (tenantHasUsageACL(tenantUri, performancePolicy)) {
                 return true;
             }
         }
@@ -1055,24 +1055,24 @@ public class BasePermissionsHelper {
     }
 
     /**
-     * Returns true if the user's tenant has a usage ACL on the passed performance parameters.
+     * Returns true if the user's tenant has a usage ACL on the passed performance policy.
      * 
      * @param tenantUri The URI of the tenant.
-     * @param performanceParams A reference to a performance parameters instance.
+     * @param performancePolicy A reference to a performance policy instance.
      * 
      * @return true if the tenant has access, false otherwise.
      */
-    public boolean tenantHasUsageACL(URI tenantUri, PerformanceParams performanceParams) {
+    public boolean tenantHasUsageACL(URI tenantUri, PerformancePolicy performancePolicy) {
         if (_disabler != null) {
             return true;
         }
 
-        if (CollectionUtils.isEmpty(performanceParams.getAcls())) {
+        if (CollectionUtils.isEmpty(performancePolicy.getAcls())) {
             return true;
         }
         
         PermissionsKey pKey = new PermissionsKey(PermissionsKey.Type.TENANT, tenantUri.toString());
-        Set<String> acls = performanceParams.getAclSet(pKey.toString());
+        Set<String> acls = performancePolicy.getAclSet(pKey.toString());
         if (acls != null && acls.contains(ACL.USE.toString())) {
             return true;
         }

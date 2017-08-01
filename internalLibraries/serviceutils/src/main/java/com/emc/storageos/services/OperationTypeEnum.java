@@ -531,10 +531,10 @@ public enum OperationTypeEnum {
     INSTALL_STORAGE_DRIVER("INSTALL STORAGE DRIVER", "", "Storage driver is installed."),
     UNINSTALL_STORAGE_DRIVER("UNINSTALL STORAGE DRIVER", "", "Storage driver is uninstalled."),
     UPGRADE_STORAGE_DRIVER("UPGRADE STORAGE DRIVER", "", "Storage driver is upgraded."),
-    CREATE_PERFORMANCE_PARAMS("PerformanceParamsCreated", "", "Performance parameters are created."),
-    UPDATE_PERFORMANCE_PARAMS("PerformanceParamsUpdated", "", "Performance parameters are updated."),
-    DELETE_PERFORMANCE_PARAMS("PerformanceParamsDeleted", "", "Performance parameters are deleted."),
-    MODIFY_PERFORMANCE_PARAMS_ACL("PerformanceParamsAclsUpdated", "", "Performance parameter ACLs are modified.");
+    CREATE_PERFORMANCE_POLICY("PerformancePolicyCreated", "", "Performance policy is created."),
+    UPDATE_PERFORMANCE_POLICY("PerformancePolicyUpdated", "", "Performance policy is updated."),
+    DELETE_PERFORMANCE_POLICY("PerformancePolicyDeleted", "", "Performance policy is deleted."),
+    MODIFY_PERFORMANCE_POLICY_ACL("PerformancePolicyAclsUpdated", "", "Performance policy ACLs are modified.");
 
     private final String _evType;
     private final String _fail_evType;

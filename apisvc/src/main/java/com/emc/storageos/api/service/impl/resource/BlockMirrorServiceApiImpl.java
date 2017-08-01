@@ -32,7 +32,7 @@ import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
-import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
+import com.emc.storageos.api.service.impl.resource.utils.PerformancePolicyUtils;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -58,7 +58,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.BlockPerformanceParamsMap;
+import com.emc.storageos.model.block.BlockPerformancePolicyMap;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -133,9 +133,9 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             validateNotAConsistencyGroupVolume(sourceVolume, sourceVirtualPool);
         }
         
-        // Get the performance parameters for the mirror.
-        URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(
-                param.getPerformanceParams(), VolumeTopologyRole.PRIMARY_MIRROR, _dbClient);
+        // Get the performance policies for the mirror.
+        URI performancePolicyURI = PerformancePolicyUtils.getPerformancePolicyIdForRole(
+                param.getPerformancePolicies(), VolumeTopologyRole.PRIMARY_MIRROR, _dbClient);
 
         TaskList taskList = new TaskList();
         // Currently, this will create a single mirror and add it to the source volume
@@ -172,13 +172,13 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                     }
                 }
                 populateVolumeRecommendations(capabilities, cgVolumeVPool, cgVolumeMirrorVpool,
-                        performanceParamsURI, cgSourceVolume, taskId, taskList, volumeCount, 
+                        performancePolicyURI, cgSourceVolume, taskId, taskList, volumeCount, 
                         volumeCounter, volumeLabel, preparedVolumes, volumeRecommendations);
             }
         } else {
             // Source Volume without CG
             populateVolumeRecommendations(capabilities, sourceVirtualPool, mirrorVpool,
-                    performanceParamsURI, sourceVolume, taskId, taskList, volumeCount,
+                    performancePolicyURI, sourceVolume, taskId, taskList, volumeCount,
                     volumeCounter, volumeLabel, preparedVolumes, volumeRecommendations);
         }
 
@@ -818,7 +818,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      * @param capabilities
      * @param sourceVolumeVPool
      * @param mirrorVPool
-     * @param performanceParamsURI
+     * @param performancePolicyURI
      * @param sourceVolume
      * @param taskId
      * @param taskList
@@ -829,7 +829,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      * @param volumeRecommendations
      */
     private void populateVolumeRecommendations(VirtualPoolCapabilityValuesWrapper capabilities,
-            VirtualPool sourceVolumeVPool, VirtualPool mirrorVPool, URI performanceParamsURI, 
+            VirtualPool sourceVolumeVPool, VirtualPool mirrorVPool, URI performancePolicyURI, 
             Volume sourceVolume, String taskId, TaskList taskList, Integer volumeCount, int volumeCounter,
             String volumeLabel, List<Volume> preparedVolumes, List<Recommendation> volumeRecommendations) {
         List<Recommendation> currentRecommendation = new ArrayList<Recommendation>();
@@ -848,7 +848,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         
         // only mirror will be prepared (the source already exist)
         _scheduler.prepareRecommendedVolumes(null, taskId, taskList, null, null, mirrorVPool,
-                performanceParamsURI, volumeCount, currentRecommendation, null, volumeCounter, volumeLabel, 
+                performancePolicyURI, volumeCount, currentRecommendation, null, volumeCounter, volumeLabel, 
                 preparedVolumes, capabilities, false);
         volumeRecommendations.addAll(currentRecommendation);
     }
@@ -921,8 +921,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name,
-            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, 
-            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performancePolicyURI, 
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformancePolicies, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Not currently called from AbstractBlockServiceApiImpl.createVolumesAndDescriptors
         throw DeviceControllerException.exceptions.operationNotSupported();
@@ -941,10 +941,10 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformanceParamsMap performanceParams) {
-        // We need to verify that the passed performance parameters are appropriate for
+    public void validatePerformancePoliciesForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformancePolicyMap performancePoliciesMap) {
+        // We need to verify that the passed performance policies are appropriate for
         // a simple block volume.
-        PerformanceParamsUtils.validatePerformanceParamsForRoles(
-                performanceParams, Arrays.asList(VolumeTopologyRole.PRIMARY_MIRROR), _dbClient);
+        PerformancePolicyUtils.validatePerformancePoliciesForRoles(
+                performancePoliciesMap, Arrays.asList(VolumeTopologyRole.PRIMARY_MIRROR), _dbClient);
     }
 }

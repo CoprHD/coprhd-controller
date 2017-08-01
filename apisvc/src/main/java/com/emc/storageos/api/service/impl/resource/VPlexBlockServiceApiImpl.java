@@ -41,7 +41,7 @@ import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
-import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
+import com.emc.storageos.api.service.impl.resource.utils.PerformancePolicyUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
@@ -69,7 +69,7 @@ import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.PerformanceParams;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -101,11 +101,11 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
-import com.emc.storageos.model.block.BlockPerformanceParamsMap;
+import com.emc.storageos.model.block.BlockPerformancePolicyMap;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
+import com.emc.storageos.model.block.VolumeCreatePerformancePolicies;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
@@ -314,24 +314,24 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             vPoolCapabilities, null, taskList, allVolumes, true);
                     param.setName(name);
                 } else {
-                    // Get the performance parameters for the copy.
-                    URI performanceParamsURI = null;
-                    PerformanceParams performanceParams = volumeTopology.getPerformanceParamsForCopyRole(
+                    // Get the performance policy for the copy.
+                    URI performancePolicyURI = null;
+                    PerformancePolicy performancePolicy = volumeTopology.getPerformancePolicyForCopyRole(
                             srdfCopyRecommendation.getVirtualArray(), VolumeTopologyRole.PRIMARY, _dbClient);
-                    if (performanceParams != null) {
-                        performanceParamsURI = performanceParams.getId();
+                    if (performancePolicy != null) {
+                        performancePolicyURI = performancePolicy.getId();
                     }
                    
-                    // Override the source capabilities with the copy vpool and performance parameters
+                    // Override the source capabilities with the copy vpool and performance policy
                     // so that the capabilities reflect the same values used to place the copy volume.
-                    // In this way the descriptor and prepared volume reflect what was place.
-                    VirtualPoolCapabilityValuesWrapper copyCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                            srdfCopyRecommendation.getVirtualPool(), volumeTopology.getPerformanceParamsForCopy(
+                    // In this way the descriptor and prepared volume reflect what was placed.
+                    VirtualPoolCapabilityValuesWrapper copyCapabilities = PerformancePolicyUtils.overrideCapabilitiesForVolumePlacement(
+                            srdfCopyRecommendation.getVirtualPool(), volumeTopology.getPerformancePoliciesForCopy(
                                     srdfCopyRecommendation.getVirtualArray()), VolumeTopologyRole.PRIMARY, vPoolCapabilities, _dbClient);
                     
                     srdfCopyDescriptors = super.createVolumesAndDescriptors(srdfCopyDescriptors,
                             param.getName() + "_srdf_copy", vPoolCapabilities.getSize(), project,
-                            vArray, vPool, performanceParamsURI, volumeTopology.getCopyPerformanceParams(), copyRecommendations,
+                            vArray, vPool, performancePolicyURI, volumeTopology.getCopyPerformancePolicies(), copyRecommendations,
                             taskList, task, copyCapabilities);
                 }
                 for (VolumeDescriptor desc : srdfCopyDescriptors) {
@@ -369,8 +369,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name,
-            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI,
-            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, List<Recommendation> recommendations,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performancePolicyURI,
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformancePolicies, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Not currently called from AbstractBlockServiceApiImpl.createVolumesAndDescriptors
         throw DeviceControllerException.exceptions.operationNotSupported();
@@ -472,13 +472,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             backendCG = consistencyGroup;
         }
         
-        // Get the performance parameters for these volumes.
-        Map<VolumeTopologyRole, URI> performanceParams = null;
+        // Get the performance policies for these volumes.
+        Map<VolumeTopologyRole, URI> performancePolicies = null;
         if (topologySite == VolumeTopologySite.SOURCE) {
-            performanceParams = volumeTopology.getSourcePerformanceParams();
+            performancePolicies = volumeTopology.getSourcePerformancePolicies();
         } else {
-            // The performance parameters for the copy are those with the same varray as the target.
-            performanceParams = volumeTopology.getPerformanceParamsForCopy(vArray.getId());
+            // The performance policies for the copy are those with the same varray as the target.
+            performancePolicies = volumeTopology.getPerformancePoliciesForCopy(vArray.getId());
         }
 
         // Prepare Bourne volumes to represent the backend volumes for the
@@ -497,7 +497,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // the VPLEX volume is a local volume and we do not need to consider
             // whether the recommendation is for the primary or HA side of a distributed
             // source volume. Whether the recommendation is for the primary or HA side
-            // determines the role we use to extract the performance parameters.
+            // determines the role we use to extract the performance policy.
             VolumeTopologyRole role = null;
             if (topologySite == VolumeTopologySite.COPY || topologyRole == VolumeTopologyRole.JOURNAL
                     || topologyRole == VolumeTopologyRole.STANDBY_JOURNAL) {
@@ -520,20 +520,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 }
             }
             
-            // Now get the performance parameters for that role.
-            URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(performanceParams, role, _dbClient);
+            // Now get the performance policy for that role.
+            URI performancePolicyURI = PerformancePolicyUtils.getPerformancePolicyIdForRole(performancePolicies, role, _dbClient);
             
             // The capabilities are initialized for the primary source site volume using the
-            // primary source volume vpool and performance parameters in the BlockService.
+            // primary source volume vpool and performance policy in the BlockService.
             // These are the capabilities that are passed around when placing the volume
             // and preparing the ViPR volumes and descriptors. We need to override these
-            // capabilities to reflect the vpool and performance parameters of the
+            // capabilities to reflect the vpool and performance policy of the
             // volume at the passed site, playing the specified role. This was done
             // when the volume was placed in the schedulers and must be done here
             // when preparing the ViPR volume so that it reflects the same values
             // that were used when the volume was placed. Note again, we need to account
             // for whether or not RP swapped the roles. If the roles are swapped, the
-            // passed capabilities reflect the HA vpool and performance parameters, and we
+            // passed capabilities reflect the HA vpool and performance policy, and we
             // would need to update them when preparing the primary volume. If they are 
             // not swapped, then the passed capabilities reflect the primary and we need
             // to update them when preparing the HA volume.
@@ -543,13 +543,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 // For a copy or a journal, update the capabilities. Note that these are 
                 // always local VPLEX volumes, so they need to be updated but no need to 
                 // account for an HA side.
-                backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                        vPool, performanceParams, role, vPoolCapabilities, _dbClient);
+                backendCapabilities = PerformancePolicyUtils.overrideCapabilitiesForVolumePlacement(
+                        vPool, performancePolicies, role, vPoolCapabilities, _dbClient);
             } else if (VirtualPool.isRPVPlexProtectHASide(vPool) ? role != VolumeTopologyRole.HA : role != VolumeTopologyRole.PRIMARY) {
                 // Make sure to get the HA vpool, not the passed vpool.
                 VirtualPool beVpool = vplexRecommendations.get(0).getVirtualPool();
-                backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                        beVpool, performanceParams, role, vPoolCapabilities, _dbClient);
+                backendCapabilities = PerformancePolicyUtils.overrideCapabilitiesForVolumePlacement(
+                        beVpool, performancePolicies, role, vPoolCapabilities, _dbClient);
             }
             
             s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
@@ -560,8 +560,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 backendVarrayIndex = 1;
             }
             List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(
-                    vplexRecommendations, project, vplexProject, vPool, performanceParamsURI,
-                    volumeTopology.getCopyPerformanceParams(), volumeLabel, backendVarrayIndex,
+                    vplexRecommendations, project, vplexProject, vPool, performancePolicyURI,
+                    volumeTopology.getCopyPerformancePolicies(), volumeLabel, backendVarrayIndex,
                     size, backendCG, backendCapabilities, createTask, task);
             descriptors.addAll(varrayDescriptors);
             List<URI> varrayURIs = VolumeDescriptor.getVolumeURIs(varrayDescriptors);
@@ -579,11 +579,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         List<URI> virtualVolumeURIs = new ArrayList<URI>();
         URI nullPoolURI = NullColumnValueGetter.getNullURI();
         
-        // Associate the same performance parameters for the VPLEX volume as the
+        // Associate the same performance policy for the VPLEX volume as the
         // primary backend volume similar to how the same vpool is associated with
         // the VPLEX volume and primary backend volume.
-        URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(
-                performanceParams, topologyRole, _dbClient);
+        URI performancePolicyURI = PerformancePolicyUtils.getPerformancePolicyIdForRole(
+                performancePolicies, topologyRole, _dbClient);
         
         // Auto tiering policy not set on VPLEX volume.
         VirtualPoolCapabilityValuesWrapper vplexCapabilities = new VirtualPoolCapabilityValuesWrapper(vPoolCapabilities);
@@ -592,8 +592,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // If not the source, we need to override the capabilities.
         if (topologySite == VolumeTopologySite.COPY || topologyRole == VolumeTopologyRole.JOURNAL
                 || topologyRole == VolumeTopologyRole.STANDBY_JOURNAL) {
-            vplexCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                    vPool, performanceParams, topologyRole, vPoolCapabilities, _dbClient);
+            vplexCapabilities = PerformancePolicyUtils.overrideCapabilitiesForVolumePlacement(
+                    vPool, performancePolicies, topologyRole, vPoolCapabilities, _dbClient);
         }
         
         for (int i = 0; i < vplexCapabilities.getResourceCount(); i++) {
@@ -623,7 +623,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             long thinVolumePreAllocationSize = vplexCapabilities.getThinVolumePreAllocateSize();
             volume = prepareVolume(VolumeType.VPLEX_VIRTUAL_VOLUME, volume,
                     size, thinVolumePreAllocationSize, project, vArray,
-                    vPool, performanceParamsURI, vplexStorageSystemURI, nullPoolURI,
+                    vPool, performancePolicyURI, vplexStorageSystemURI, nullPoolURI,
                     volumeLabelBuilt, consistencyGroup, vplexCapabilities);
 
             StringSet associatedVolumes = new StringSet();
@@ -867,7 +867,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param project A reference to the project.
      * @param vArray A reference to the virtual array
      * @param vPool The requested virtual pool.
-     * @param performanceParamsURI The URI of the PerformanceParams instance.
+     * @param performancePolicyURI The URI of the PerformancePolicy instance.
      * @param storageSystemURI The URI of the storage system.
      * @param storagePoolURI The URI of the storage pool.
      * @param label The label for the new volume.
@@ -878,7 +878,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     private Volume prepareVolume(VolumeType volType, Volume volume,
             long size, long thinVolumePreAllocationSize, Project project,
-            VirtualArray vArray, VirtualPool vPool, URI performanceParamsURI,
+            VirtualArray vArray, VirtualPool vPool, URI performancePolicyURI,
             URI storageSystemURI, URI storagePoolURI, String label,
             BlockConsistencyGroup consistencyGroup, VirtualPoolCapabilityValuesWrapper capabilities) {
 
@@ -889,7 +889,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         volRecomendation.addStorageSystem(storageSystemURI);
         volRecomendation.addStoragePool(storagePoolURI);
         volume = StorageScheduler.prepareVolume(_dbClient, volume, size, thinVolumePreAllocationSize,
-                project, vArray, vPool, performanceParamsURI, volRecomendation, label, consistencyGroup,
+                project, vArray, vPool, performancePolicyURI, volRecomendation, label, consistencyGroup,
                 capabilities);
 
         // For VPLEX volumes, the protocol will not be set when the
@@ -959,7 +959,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     private static Volume prepareVolume(VplexMirror mirror, Volume backendVolume, VirtualPool vPool,
             VirtualArray varray, URI storageSystemURI, URI recommendedPoolURI, String mirrorLabel,
-            VirtualPoolCapabilityValuesWrapper capabilities, URI performanceParamsURI, DbClient dbClient) {
+            VirtualPoolCapabilityValuesWrapper capabilities, URI performancePolicyURI, DbClient dbClient) {
 
         // Encapsulate the storage system and storage pool in a volume recommendation and use the default implementation.
         VolumeRecommendation volRecomendation = new VolumeRecommendation(VolumeType.BLOCK_VOLUME, backendVolume.getProvisionedCapacity(),
@@ -970,7 +970,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Create volume object
         Volume volume = StorageScheduler.prepareVolume(dbClient, null, backendVolume.getProvisionedCapacity(),
-                capabilities.getThinVolumePreAllocateSize(), project, varray, vPool, performanceParamsURI,
+                capabilities.getThinVolumePreAllocateSize(), project, varray, vPool, performancePolicyURI,
                 volRecomendation, mirrorLabel, null, capabilities);
 
         // Add INTERNAL_OBJECT flag to the volume created
@@ -1111,11 +1111,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
 
             // Set capabilities for volume placement and preparation. Note that there are no 
-            // performance parameters to account for when placing a new HA volume.
+            // performance policies to account for when placing a new HA volume.
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper();
             vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, getVolumeCapacity(importVolume));
             vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-            vpoolCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+            vpoolCapabilities = PerformancePolicyUtils.overrideCapabilitiesForVolumePlacement(
                     requestedHaVirtualPool, null, null, vpoolCapabilities, _dbClient);
 
             // Get the recommendations and pick one.
@@ -1153,7 +1153,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         
         // Set capabilities so that the prepared volume is initialized in the same manner
-        // as a created VPLEX volume and pass the performance parameters of the import
+        // as a created VPLEX volume and pass the performance policy of the import
         // volume as the VPLEX volume should have the same value. Note that the auto
         // tiering policy is not reflected in the VPLEX volume.
         VirtualPoolCapabilityValuesWrapper vplexVpoolCapabilities = new VirtualPoolCapabilityValuesWrapper();
@@ -1163,7 +1163,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Prepare the VPLEX Virtual volume.
         Volume vplexVolume = prepareVolumeForRequest(getVolumeCapacity(importVolume), project,
-                neighborhood, vpool, importVolume.getPerformanceParams(),
+                neighborhood, vpool, importVolume.getPerformancePolicy(),
                 vplexVpoolCapabilities, vplexURI, nullPoolURI, importVolume.getLabel(),
                 ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
         vplexVolume.setAssociatedVolumes(new StringSet());
@@ -1893,7 +1893,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI sourceVolumeURI = null;
         Project targetProject = null;
         String targetLabel = null;
-        URI performanceParamsURI = null;
+        URI performancePolicyURI = null;
         boolean isHA = !virtualVolume.getVirtualArray().equals(varray.getId());
         if (sourceVolume != null) {
             // Since we know the source volume, this is not an ingested
@@ -1926,8 +1926,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 targetLabel = targetLabel.substring(0, targetLabel.length() - 1);
             }
             
-            // Set the URI of the performance parameters for the migration source.
-            performanceParamsURI = sourceVolume.getPerformanceParams();            
+            // Set the URI of the performance policy for the migration source.
+            performancePolicyURI = sourceVolume.getPerformancePolicy();            
         } else {
             // The VPLEX volume must be ingested and now the backend
             // volume(s) are being migrated. We have no idea what the
@@ -1952,7 +1952,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Set<URI> requestedVPlexSystems = new HashSet<URI>();
         requestedVPlexSystems.add(vplexSystem.getId());
 
-        // Make sure the capabilities reflect the new vpool and performance parameters of the
+        // Make sure the capabilities reflect the new vpool and performance policy of the
         // source volume of the Migration.
         VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper();
         vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, capacity);
@@ -1961,13 +1961,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             vpoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, cgURI);
         }
         
-        
-        Map<VolumeTopologyRole, URI> sourceParams = new HashMap<>();
+        Map<VolumeTopologyRole, URI> sourcePerformancePolicies = new HashMap<>();
         VolumeTopologyRole role = isHA ? VolumeTopologyRole.HA : VolumeTopologyRole.PRIMARY;
-        sourceParams.put(role, performanceParamsURI);
-        vpoolCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                vpool, sourceParams, role, vpoolCapabilities, _dbClient);
-        VolumeTopology volumeTopology = new VolumeTopology(sourceParams, null);
+        sourcePerformancePolicies.put(role, performancePolicyURI);
+        vpoolCapabilities = PerformancePolicyUtils.overrideCapabilitiesForVolumePlacement(
+                vpool, sourcePerformancePolicies, role, vpoolCapabilities, _dbClient);
+        VolumeTopology volumeTopology = new VolumeTopology(sourcePerformancePolicies, null);
         
         List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(varray, requestedVPlexSystems,
                 null, vpool, volumeTopology, false, null, null, vpoolCapabilities, targetProject,
@@ -1982,7 +1981,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI targetStorageSystem = recommendations.get(0).getSourceStorageSystem();
         URI targetStoragePool = recommendations.get(0).getSourceStoragePool();
         Volume targetVolume = prepareVolumeForRequest(capacity, targetProject, varray, vpool, 
-                performanceParamsURI, vpoolCapabilities, targetStorageSystem, targetStoragePool,
+                performancePolicyURI, vpoolCapabilities, targetStorageSystem, targetStoragePool,
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
         if (cgURI != null) {
             targetVolume.setConsistencyGroup(cgURI);
@@ -2037,7 +2036,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI sourceVolumeURI = null;
         Project targetProject = null;
         String targetLabel = null;
-        URI performanceParamsURI = null;
+        URI performancePolicyURI = null;
         if (sourceVolume != null) {
             // Since we know the source volume, this is not an ingested
             // VPLEX volume that is being migrated. Ideally we would just
@@ -2069,8 +2068,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 targetLabel = targetLabel.substring(0, targetLabel.length() - 1);
             }
             
-            // Set the URI of the performance parameters for the migration source.
-            performanceParamsURI = sourceVolume.getPerformanceParams();
+            // Set the URI of the performance policy for the migration source.
+            performancePolicyURI = sourceVolume.getPerformancePolicy();
         } else {
             targetProject = getVplexProject(vplexSystem, _dbClient, _tenantsService);
             targetLabel = virtualVolume.getLabel();
@@ -2089,16 +2088,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, capacity);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         
-        // Make sure the capabilities reflect the new vpool and performance parameters of the
+        // Make sure the capabilities reflect the new vpool and performance policy of the
         // source volume of the Migration. We are migrating to a new vpool, but not a new
-        // performance parameters and the capabilities must reflect these when placing and 
+        // performance policy and the capabilities must reflect these when placing and 
         // preparing the volume.
-        Map<VolumeTopologyRole, URI> sourceParams = new HashMap<>();
+        Map<VolumeTopologyRole, URI> sourcePerformancePolicies = new HashMap<>();
         VolumeTopologyRole role = isHA ? VolumeTopologyRole.HA : VolumeTopologyRole.PRIMARY;
-        sourceParams.put(role, performanceParamsURI);
-        VolumeTopology volumeTopology = new VolumeTopology(sourceParams, null);
-        capabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                vpool, sourceParams, role, capabilities, _dbClient);
+        sourcePerformancePolicies.put(role, performancePolicyURI);
+        VolumeTopology volumeTopology = new VolumeTopology(sourcePerformancePolicies, null);
+        capabilities = PerformancePolicyUtils.overrideCapabilitiesForVolumePlacement(
+                vpool, sourcePerformancePolicies, role, capabilities, _dbClient);
 
         boolean premadeRecs = false;
         if (recommendations == null || recommendations.isEmpty()) {
@@ -2122,7 +2121,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI targetStorageSystem = recommendations.get(recIndex).getSourceStorageSystem();
         URI targetStoragePool = recommendations.get(recIndex).getSourceStoragePool();
         Volume targetVolume = prepareVolumeForRequest(capacity, targetProject, varray, vpool, 
-                performanceParamsURI, capabilities,targetStorageSystem, targetStoragePool,
+                performancePolicyURI, capabilities,targetStorageSystem, targetStoragePool,
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
                 taskId, _dbClient);
 
@@ -2183,7 +2182,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param project A reference to the volume's Project.
      * @param neighborhood A reference to the volume's varray.
      * @param vpool A reference to the volume's VirtualPool.
-     * @param performanceParamsURI The URI of a performance params instance.
+     * @param performancePolicyURI The URI of a performance policy instance.
      * @param capabilities vpool capabilities.
      * @param storageSystemURI The URI of the volume's storage system.
      * @param storagePoolURI The URI of the volume's storage pool.
@@ -2195,7 +2194,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @return A reference to the new volume.
      */
     public static Volume prepareVolumeForRequest(Long size, Project project,
-            VirtualArray neighborhood, VirtualPool vpool, URI performanceParamsURI,
+            VirtualArray neighborhood, VirtualPool vpool, URI performancePolicyURI,
             VirtualPoolCapabilityValuesWrapper capabilities, URI storageSystemURI,
             URI storagePoolURI, String label, ResourceOperationTypeEnum opType,
             String token, DbClient dbClient) {
@@ -2209,7 +2208,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             volume.setThinVolumePreAllocationSize(capabilities.getThinVolumePreAllocateSize());
         }
         volume.setVirtualPool(vpool.getId());
-        volume.setPerformanceParams(performanceParamsURI);
+        volume.setPerformancePolicy(performancePolicyURI);
         volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(neighborhood.getId());
@@ -2936,28 +2935,28 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Map<Volume, List<Recommendation>> backendvolumeToMirrorRecommendationMap = new HashMap<Volume, List<Recommendation>>();
         Map<Volume, VirtualArray> backendvolumeToMirrorVarrayMap = new HashMap<Volume, VirtualArray>();
         Map<Volume, VirtualPoolCapabilityValuesWrapper> backendvolumeToCapabilitiesMap = new HashMap<>();
-        Map<Volume, URI> backendVolumeToPerformanceParamsMap = new HashMap<>();
+        Map<Volume, URI> backendVolumeToPerformancePolicyMap = new HashMap<>();
 
         for (Volume backendVolume : backendVolumeToMirrorVpoolMap.keySet()) {
             VirtualPool beMirrorVpool = backendVolumeToMirrorVpoolMap.get(backendVolume);
             VirtualPool backendVolumeVpool = _dbClient.queryObject(VirtualPool.class, backendVolume.getVirtualPool());
             URI backendVolumeVarrayURI = backendVolume.getVirtualArray();
             VirtualPoolCapabilityValuesWrapper beCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
-            BlockPerformanceParamsMap performanceParamsMap = param.getPerformanceParams();
+            BlockPerformancePolicyMap performancePoliciesMap = param.getPerformancePolicies();
             if (backendVolumeVarrayURI.equals(vplexVolume.getVirtualArray())) {
-                backendVolumeToPerformanceParamsMap.put(backendVolume, PerformanceParamsUtils.getPerformanceParamsIdForRole(
-                        performanceParamsMap, VolumeTopologyRole.PRIMARY_MIRROR, _dbClient));
+                backendVolumeToPerformancePolicyMap.put(backendVolume, PerformancePolicyUtils.getPerformancePolicyIdForRole(
+                        performancePoliciesMap, VolumeTopologyRole.PRIMARY_MIRROR, _dbClient));
                 backendvolumeToCapabilitiesMap.put(backendVolume, beCapabilities);               
             } else {
                 // The passed capabilities are already setup for a source side mirror in the
                 // BlockService, however if the mirror is on the HA side, which is the backend
                 // volume not in the same varray as the VPLEX volume, we need to set them so 
-                // the HA mirror vpool and performance parameters are properly reflected in
+                // the HA mirror vpool and performance policy are properly reflected in
                 // the capabilities passed for volume placement.
-                backendVolumeToPerformanceParamsMap.put(backendVolume, PerformanceParamsUtils.getPerformanceParamsIdForRole(
-                        performanceParamsMap, VolumeTopologyRole.HA_MIRROR, _dbClient));
-                beCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
-                        beMirrorVpool, PerformanceParamsUtils.transformPerformanceParams(performanceParamsMap),
+                backendVolumeToPerformancePolicyMap.put(backendVolume, PerformancePolicyUtils.getPerformancePolicyIdForRole(
+                        performancePoliciesMap, VolumeTopologyRole.HA_MIRROR, _dbClient));
+                beCapabilities = PerformancePolicyUtils.overrideCapabilitiesForVolumePlacement(
+                        beMirrorVpool, PerformancePolicyUtils.transformPerformancePolicies(performancePoliciesMap),
                                 VolumeTopologyRole.HA_MIRROR, capabilities, _dbClient);
                 backendvolumeToCapabilitiesMap.put(backendVolume, beCapabilities);
             }
@@ -3060,7 +3059,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         for (Volume backendVolume : backendvolumeToMirrorRecommendationMap.keySet()) {
             List<Recommendation> volumeRecommendations = backendvolumeToMirrorRecommendationMap.get(backendVolume);
             VirtualPoolCapabilityValuesWrapper beCapabilities = backendvolumeToCapabilitiesMap.get(backendVolume);
-            URI performanceParamsURI = backendVolumeToPerformanceParamsMap.get(backendVolume);
+            URI performancePolicyURI = backendVolumeToPerformancePolicyMap.get(backendVolume);
             VirtualArray varray = backendvolumeToMirrorVarrayMap.get(backendVolume);
             VirtualPool beMirrorVpool = backendVolumeToMirrorVpoolMap.get(backendVolume);
             for (Recommendation volumeRecommendation : volumeRecommendations) {
@@ -3094,7 +3093,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 // Create backend volume object and add it to the VplexMirror created above.
                 Volume volume = prepareVolume(createdMirror, backendVolume, beMirrorVpool, varray,
                         vplexRecommendation.getSourceStorageSystem(), vplexRecommendation.getSourceStoragePool(),
-                        mirrorLabelBuilder.toString(), beCapabilities, performanceParamsURI, _dbClient);
+                        mirrorLabelBuilder.toString(), beCapabilities, performancePolicyURI, _dbClient);
                 op = new Operation();
                 op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
                 _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
@@ -4075,8 +4074,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param project - Project containing the Vplex volumes
      * @param vplexProject -- private project of the Vplex
      * @param rootVpool -- top level Virtual Pool (VpoolUse.ROOT)
-     * @param performanceParamsURI The URI of a PerformanceParams instance.
-     * @param copyPerformanceParams The copy performance parameters.
+     * @param performancePolicyURI The URI of a PerformancePolicy instance.
+     * @param copyPerformancePolicies The copy performance policies.
      * @param varrayCount -- instance count of the varray being provisioned
      * @param size -- size of each volume
      * @param backendCG -- the CG to be used on the backend Storage Systems
@@ -4086,8 +4085,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @return -- list of VolumeDescriptors to be provisioned
      */
     private List<VolumeDescriptor> makeBackendVolumeDescriptors(List<VPlexRecommendation> recommendations,
-            Project project, Project vplexProject, VirtualPool rootVpool, URI performanceParamsURI, 
-            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformanceParams, String volumeLabel, int varrayCount,
+            Project project, Project vplexProject, VirtualPool rootVpool, URI performancePolicyURI, 
+            Map<URI, Map<VolumeTopologyRole, URI>> copyPerformancePolicies, String volumeLabel, int varrayCount,
             long size, BlockConsistencyGroup backendCG, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
             boolean createTask, String task) {
         VPlexRecommendation firstRecommendation = recommendations.get(0);
@@ -4126,7 +4125,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             TaskList taskList = new TaskList();
             descriptors =
                     super.createVolumesAndDescriptors(descriptors, newVolumeLabel, size, project,
-                            varray, vpool, performanceParamsURI, copyPerformanceParams, childRecommendations,
+                            varray, vpool, performancePolicyURI, copyPerformancePolicies, childRecommendations,
                             taskList, task, vPoolCapabilities);
             VolumeDescriptor.Type[] types;
             if (srdfTarget) {
@@ -4178,7 +4177,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 long thinVolumePreAllocationSize = vPoolCapabilities.getThinVolumePreAllocateSize();
                 Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, null,
                         size, thinVolumePreAllocationSize, vplexProject,
-                        varray, vpool, performanceParamsURI, storageDeviceURI,
+                        varray, vpool, performancePolicyURI, storageDeviceURI,
                         storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
                 configureCGAndReplicationGroup(rootVpool, vPoolCapabilities, backendCG, volume);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
@@ -4595,43 +4594,43 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForVolumeCreate(VirtualPool vpool, VolumeCreatePerformanceParams requestParams) {
-        // Just return if the passed performance params are null.
-        if (requestParams == null) {
+    public void validatePerformancePoliciesForVolumeCreate(VirtualPool vpool, VolumeCreatePerformancePolicies performancePolicies) {
+        // Just return if the passed performance policies are null.
+        if (performancePolicies == null) {
             return;
         }
         
-        // We need to verify that the passed performance parameters are appropriate for
-        // a VPLEX volume. For now we verify that performance parameters passed for 
+        // We need to verify that the passed performance policies are appropriate for
+        // a VPLEX volume. For now we verify that performance policies passed for 
         // the SOURCE and SOURCE_HA roles are exist and are active.
         List<VolumeTopologyRole> roles = new ArrayList<>();
         roles.add(VolumeTopologyRole.PRIMARY);
         if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
             roles.add(VolumeTopologyRole.HA);
         }
-        PerformanceParamsUtils.validatePerformanceParamsForRoles(
-                requestParams.getSourceParams(), roles, _dbClient);        
+        PerformancePolicyUtils.validatePerformancePoliciesForRoles(
+                performancePolicies.getSourcePolicies(), roles, _dbClient);        
     }
     
     /**
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformanceParamsMap performanceParams) {
-        // Just return if the passed performance params are null.
-        if (performanceParams == null) {
+    public void validatePerformancePoliciesForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformancePolicyMap performancePolicesMap) {
+        // Just return if the passed performance policies are null.
+        if (performancePolicesMap == null) {
             return;
         }
 
-        // We need to verify that the passed performance parameters are appropriate for
-        // a VPLEX block volume. Validate that if performance parameters are passed for
+        // We need to verify that the passed performance policies are appropriate for
+        // a VPLEX block volume. Validate that if performance policies are passed for
         // the primary side mirror that they exist and are active.
         List<VolumeTopologyRole> roles = new ArrayList<>();
         roles.add(VolumeTopologyRole.PRIMARY_MIRROR);
         if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(sourceVolumeVpool)) {
             roles.add(VolumeTopologyRole.HA_MIRROR);
         }
-        PerformanceParamsUtils.validatePerformanceParamsForRoles(
-                performanceParams, roles, _dbClient);
+        PerformancePolicyUtils.validatePerformancePoliciesForRoles(
+                performancePolicesMap, roles, _dbClient);
     }    
 }

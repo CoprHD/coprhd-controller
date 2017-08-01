@@ -48,7 +48,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
@@ -868,10 +867,10 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(scheduledEventId, Order.class, field);
         }
 
-        public static ContainmentConstraint getVolumePerformanceParamsConstraint(URI performanceParamsId) {
+        public static ContainmentConstraint getVolumePerformancePolicyConstraint(URI performancePolicyId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
-            ColumnField field = doType.getColumnField("performanceParams");
-            return new ContainmentConstraintImpl(performanceParamsId, Volume.class, field);
+            ColumnField field = doType.getColumnField("performancePolicy");
+            return new ContainmentConstraintImpl(performancePolicyId, Volume.class, field);
         }
     }
 }

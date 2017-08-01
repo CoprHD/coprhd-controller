@@ -568,7 +568,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
         
         // Make sure same auto tiering policy is used. The value set in the volume is
-        // the value reflected by the performance parameters for the volume, if any, 
+        // the value reflected by the performance policy for the volume, if any, 
         // else the vpool for the volume.
         URI autoTieringPolicyURI = srcHAVolume.getAutoTieringPolicyUri();
         if (autoTieringPolicyURI != null) {
@@ -578,7 +578,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         
         // Also set the deduplication setting into the capabilities so that it
         // is properly reflect in the full copy. Again, the value in the volume
-        // already account for performance parameter and vpool settings.
+        // already account for performance policy and vpool settings.
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, srcHAVolume.getIsDeduplicated());
 
         List<Recommendation> recommendations = ((VPlexScheduler) _scheduler)
@@ -610,7 +610,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
                 // Prepare the volume.
                 Volume volume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
-                        vplexSystemProject, haVarray, haVpool, srcHAVolume.getPerformanceParams(), haCapabilities,
+                        vplexSystemProject, haVarray, haVpool, srcHAVolume.getPerformancePolicy(), haCapabilities,
                         haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
                         nameBuilder.toString(), null, taskId, _dbClient);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
@@ -668,26 +668,26 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // for the primary and HA sides using the current allocated capacity of the volume, the
         // pre-allocation size is set to that of its source, so that the prepared copy volume 
         // reflects the same value as its source. We do the same for the VPLEX copy.
-        URI performanceParamsURI = null;
+        URI performancePolicyURI = null;
         if (fcSourceObject instanceof Volume) {
             Long preAllocSize = ((Volume)fcSourceObject).getThinVolumePreAllocationSize();
             if (null != preAllocSize) {
                 vplexCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, preAllocSize);
             }
             
-            // Also, set performance params of VPLEX source volume.
-            performanceParamsURI = ((Volume)fcSourceObject).getPerformanceParams();
+            // Also, set performance policy of VPLEX source volume.
+            performancePolicyURI = ((Volume)fcSourceObject).getPerformancePolicy();
         } else {
-            // Set performance params URI to that of snapshot parent, which will be the
+            // Set performance policy URI to that of snapshot parent, which will be the
             // same as that of the snapshot source VPLEX volume.
             URI parentURI = ((BlockSnapshot)fcSourceObject).getParent().getURI();
             Volume parentVolume = _dbClient.queryObject(Volume.class, parentURI);
-            performanceParamsURI = parentVolume.getPerformanceParams();
+            performancePolicyURI = parentVolume.getPerformancePolicy();
         }
 
         // Prepare the VPLEX volume copy.
         Volume vplexCopyVolume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size, srcProject, srcVarray, 
-                srcVpool, performanceParamsURI, vplexCapabilities, srcSystemURI, NullColumnValueGetter.getNullURI(),
+                srcVpool, performancePolicyURI, vplexCapabilities, srcSystemURI, NullColumnValueGetter.getNullURI(),
                 nameBuilder.toString(), ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY, taskId, _dbClient);
 
         // Create a volume descriptor and add it to the passed list.

@@ -19,13 +19,10 @@ package com.emc.sa.service.vipr.customservices;
 
 import java.io.File;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.codec.binary.Base64;
@@ -119,27 +116,49 @@ public class CustomServicesService extends ViPRService {
                 logger.info("step key:{}", stepEntry.getKey());
                 final Step step = stepEntry.getValue();
                 logger.info("stepid:{}", step.getId());
+
                 if (step.getInputGroups() == null) {
-                    logger.info("it is null");
-                }
-                if ( step.getInputGroups() == null) {
                     logger.info("it is start or end so continue");
                     continue;
                 }
                 for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
                     for (final Input value : inputGroup.getInputGroup()) {
+                        if (StringUtils.isEmpty(value.getFriendlyName())) {
+                            continue;
+                        }
+
+                        String friendlyName = value.getFriendlyName().replaceAll(CustomServicesConstants.SPACES_REGEX, StringUtils.EMPTY);
+
+                        final String paramVal;
+                        if (!StringUtils.isEmpty(value.getInputFieldType()) &&
+                                value.getInputFieldType().toUpperCase()
+                                        .equals(CustomServicesConstants.InputFieldType.PASSWORD.toString())) {
+                            paramVal = decrypt(params.get(friendlyName).toString());
+                        } else {
+                            paramVal = params.get(friendlyName).toString();
+                        }
 
                         switch (InputType.fromString(value.getType())) {
                             case FROM_USER:
                             case FROM_USER_MULTI:
-                            case ASSET_OPTION_SINGLE://todo assetoption multi
-                                final String name = params.get(value.getFriendlyName()).toString(); //todo handle pw
+                            case ASSET_OPTION_SINGLE:
+
                                 if (!StringUtils.isEmpty(value.getTableName())) {
                                     logger.info("There is a WF loop");
-                                    String[] size = name.replace("\"", "").split(",");
+                                    String[] size = paramVal.replace("\"", "").split(",");
                                     logger.info("size is:{}", size.length);
                                     return size.length;
                                 }
+                                break;
+                            case ASSET_OPTION_MULTI:
+                                //final String paramVal = params.get(value.getFriendlyName()).toString();
+                                if (!StringUtils.isEmpty(value.getTableName())) {
+                                    logger.info("There is a WF loop");
+                                    String[] size = paramVal.split("\",\"");
+                                    logger.info("size is:{}", size.length);
+                                    return size.length;
+                                }
+                                break;
                         }
                     }
                 }
@@ -148,13 +167,14 @@ public class CustomServicesService extends ViPRService {
         return 1;
     }
 
+
     private boolean isLoop() throws Exception {
         final CustomServicesWorkflowDocument obj = getwfDocument();
         final Map<String, String> attributes = obj.getAttributes();
         if (attributes == null) {
             return false;
         }
-        final String isLoop = attributes.get("RunAsLoop");
+        final String isLoop = attributes.get("run_as_loop");
         if (StringUtils.isEmpty(isLoop)) {
             return false;
         }
@@ -452,30 +472,20 @@ public class CustomServicesService extends ViPRService {
                     case ASSET_OPTION_MULTI:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
                             final String assetVal = params.get(friendlyName).toString();
-                            final String[] rowsVal = assetVal.split("\",\"");
-                            if (isLoop()) {
-                                inputs.put(name, Arrays.asList(rowsVal[loopCount]));
-                            }
-
-                           // final List<String> arrayInput;
-
-                            logger.info("multi assetoption:{}", params.get(friendlyName));
-                            if (!StringUtils.isEmpty(value.getTableName())) {
-                                if (isLoop()) {
-                                    final String[] arr = params.get(friendlyName).toString().replace("\"", "").split(",");
-                                    inputs.put(name, Arrays.asList(arr[loopCount]));
-                                } else {
-                                    inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "").split(",")));
-                                }
+                            logger.info("multi assetoption:{}", assetVal);
+                            if (StringUtils.isEmpty(value.getTableName())) {
+                                inputs.put(name, Arrays.asList(assetVal.replace("\"", "")));
                             } else {
-                                inputs.put(name, Arrays.asList(params.get(friendlyName).toString()));
+                                final String[] rowsVal = assetVal.split("\",\"");
+                                if (isLoop()) {
+                                    inputs.put(name, Arrays.asList(rowsVal[loopCount].replace("\"", "")));
+                                } else {
+                                    for (int i = 0; i < rowsVal.length; i++) {
+                                        rowsVal[i] = rowsVal[i].replaceAll("\"", "");
+                                    }
+                                    inputs.put(name, Arrays.asList(rowsVal));
+                                }
                             }
-
-                           /* int index = 0;
-                            for (String eachVal : arrayInput) {
-                                arrayInput.set(index++, eachVal.replace("\"", ""));
-                            }
-                            inputs.put(name, arrayInput);*/
                         } else {
                             if (value.getDefaultValue() != null) {
                                 // The default value is copied only for the first index

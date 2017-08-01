@@ -39,17 +39,19 @@
       #{Form.inputTextControlGroup field:field /}
     #{/field}
 
+      #{field 'exportPathPolicy.minPaths'}
+       %{
+        field.fieldKey = 'exportPathPolicy.minPaths'
+       }%
+       #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.minPaths /}
+
       #{field 'exportPathPolicy.maxPaths'}
        %{
         field.fieldKey = 'exportPathPolicy.maxPaths'
        }%
        #{Form.selectOneControlGroup field:field, options:numPathsOptions, cssClass:'span4' /}
       #{/field}
-      #{field 'exportPathPolicy.minPaths'}
-       %{
-        field.fieldKey = 'exportPathPolicy.minPaths'
-       }%
-       #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.minPaths /}
+
       #{/field}
       #{field 'exportPathPolicy.pathsPerInitiator'}
        %{

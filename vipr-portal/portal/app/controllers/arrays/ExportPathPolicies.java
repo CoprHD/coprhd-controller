@@ -137,6 +137,7 @@ public class ExportPathPolicies extends ViprResourceController {
         PortSelectionDataTable portSelectionDataTable = dataTable.new PortSelectionDataTable();
 
         if (exportPathPolicyRestRep != null) {
+            renderArgs.put("exportPathPolicy", exportPathPolicyRestRep);
             ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm().form(exportPathPolicyRestRep);
             render(exportPathPolicyForm, dataTable, portDataTable, portSelectionDataTable);
         } else {

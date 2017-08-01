@@ -375,7 +375,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
     }
     
     @Test
-    public void testCheckCFIndexing_OnlyCheckLatestColumns() throws Exception {
+    public void testCheckCFIndexingOnlyCheckLatestColumns() throws Exception {
     	ColumnFamily<String, CompositeColumnName> fileshareCF = new ColumnFamily<String, CompositeColumnName>("FileShare",
                 StringSerializer.get(),
                 CompositeColumnNameSerializer.get());

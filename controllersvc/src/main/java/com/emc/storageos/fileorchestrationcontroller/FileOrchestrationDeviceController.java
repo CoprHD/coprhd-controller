@@ -710,6 +710,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         } else {
             // Update the task as failed!!
             updateOperationFailed(completer, uri, opName, null);
+            return;
         }
     }
 
@@ -825,6 +826,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         } else {
             // Update the task as failed!!
             updateOperationFailed(completer, uri, opName, null);
+            return;
         }
     }
 
@@ -888,6 +890,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 }
                 errMsg.append(String.format("No valid target storage system found in DB for uri %s ", strSysObj));
                 updateOperationFailed(completer, fsURI, opName, errMsg.toString());
+                return;
             }
 
             workflow = this._workflowService.getNewWorkflow(this, FAILBACK_FILESYSTEMS_WF_NAME, false, taskId, completer);
@@ -1029,6 +1032,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 }
                 errMsg.append(String.format("No valid target storage system found in DB for uri %s ", strSysObj));
                 updateOperationFailed(completer, targetFileShare.getStorageDevice(), opName, errMsg.toString());
+                return;
             }
 
             workflow = this._workflowService.getNewWorkflow(this, FAILOVER_FILESYSTEMS_WF_NAME, false, taskId, completer);

@@ -1622,7 +1622,6 @@ public class DbClientImpl implements DbClient {
      * 
      * @param context dbClientContext
      * @param ids row keys.
-     * @param cf column family
      * @param column column field for the column to query
      * @return matching rows
      * @throws DatabaseException

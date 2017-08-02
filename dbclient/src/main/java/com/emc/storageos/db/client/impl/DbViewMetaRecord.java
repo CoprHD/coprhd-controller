@@ -62,8 +62,9 @@ public class DbViewMetaRecord {
         DbViewMetaRecord viewMetaRecord = new DbViewMetaRecord(view.getViewDef());
         viewMetaRecord.tableName = view.getViewDef().getMetaViewName();
 
-        viewMetaRecord.keyValue = (String) view.getClusterColumns().get(-1).getValue();
-        viewMetaRecord.keyName = view.getClusterColumns().get(-1).getName();
+        ViewColumn lastCol = view.getClusterColumns().get(view.getClusterColumns().size()-1);
+        viewMetaRecord.keyValue = (String) lastCol.getValue();
+        viewMetaRecord.keyName = lastCol.getName();
 
         // take key of view as first column in meta
         viewMetaRecord.addColumn(new ViewColumn(view.getKeyName(), view.getKeyValue(), view.getKeyValue().getClass()));

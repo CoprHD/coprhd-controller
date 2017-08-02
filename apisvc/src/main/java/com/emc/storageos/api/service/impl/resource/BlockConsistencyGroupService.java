@@ -2772,7 +2772,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CREATE_MIGRATION);
 
-        TaskResourceRep task = toTask(cg, taskId, op);
+        TaskResourceRep task = toTask(migration, taskId, op);
         return task;
     }
 
@@ -2811,7 +2811,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CUTOVER);
 
-        TaskResourceRep task = toTask(cg, taskId, op);
+        TaskResourceRep task = toTask(migration, taskId, op);
         return task;
     }
 
@@ -2851,7 +2851,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_COMMIT);
 
-        TaskResourceRep task = toTask(cg, taskId, op);
+        TaskResourceRep task = toTask(migration, taskId, op);
         return task;
     }
 
@@ -2890,7 +2890,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CANCEL);
 
-        TaskResourceRep task = toTask(cg, taskId, op);
+        TaskResourceRep task = toTask(migration, taskId, op);
         return task;
     }
 
@@ -2924,7 +2924,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_REFRESH);
 
-        TaskResourceRep task = toTask(cg, taskId, op);
+        TaskResourceRep task = toTask(migration, taskId, op);
         return task;
     }
 
@@ -2958,7 +2958,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_RECOVER);
 
-        TaskResourceRep task = toTask(cg, taskId, op);
+        TaskResourceRep task = toTask(migration, taskId, op);
         return task;
     }
 
@@ -2995,7 +2995,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_SYNCSTOP);
 
-        TaskResourceRep task = toTask(cg, taskId, op);
+        TaskResourceRep task = toTask(migration, taskId, op);
         return task;
     }
 
@@ -3032,7 +3032,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_SYNCSTART);
 
-        TaskResourceRep task = toTask(cg, taskId, op);
+        TaskResourceRep task = toTask(migration, taskId, op);
         return task;
     }
 

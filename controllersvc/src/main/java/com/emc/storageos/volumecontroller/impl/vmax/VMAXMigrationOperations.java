@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vmax.restapi.VMAXApiClient;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupResponse;
@@ -85,7 +86,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
         try {
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetSystemURI);
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            String sgName = cg.getLabel();
+            String sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
@@ -98,9 +99,11 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
 
             VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
             // TODO check if SG exists
-            MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
+            // MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
             apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName, noCompression, srpName);
+
+            // TODO update start time in migration
 
             taskCompleter.ready(dbClient);
             logger.info(VMAXConstants.CREATE_MIGRATION + " finished");
@@ -119,7 +122,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             Migration migration = dbClient.queryObject(Migration.class, migrationURI);
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, migration.getTarget());
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            String sgName = cg.getLabel();
+            String sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
@@ -146,7 +149,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             Migration migration = dbClient.queryObject(Migration.class, migrationURI);
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, migration.getTarget());
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            String sgName = cg.getLabel();
+            String sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
@@ -155,6 +158,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
             apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);
+
+            // TODO update end time in migration
 
             taskCompleter.ready(dbClient);
             logger.info(VMAXConstants.COMMIT_MIGRATION + " finished");
@@ -173,7 +178,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             Migration migration = dbClient.queryObject(Migration.class, migrationURI);
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, migration.getTarget());
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            String sgName = cg.getLabel();
+            String sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
@@ -200,7 +205,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             Migration migration = dbClient.queryObject(Migration.class, migrationURI);
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, migration.getTarget());
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            String sgName = cg.getLabel();
+            String sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
@@ -230,7 +235,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             Migration migration = dbClient.queryObject(Migration.class, migrationURI);
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, migration.getTarget());
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            String sgName = cg.getLabel();
+            String sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
@@ -257,7 +262,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             Migration migration = dbClient.queryObject(Migration.class, migrationURI);
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, migration.getTarget());
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            String sgName = cg.getLabel();
+            String sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
@@ -284,7 +289,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             Migration migration = dbClient.queryObject(Migration.class, migrationURI);
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, migration.getTarget());
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            String sgName = cg.getLabel();
+            String sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 

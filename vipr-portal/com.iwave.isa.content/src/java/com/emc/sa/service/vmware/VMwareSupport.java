@@ -1009,7 +1009,7 @@ public class VMwareSupport {
         HostNasVolume hostNas = ((NasDatastoreInfo) datastore.getInfo()).getNas();
         if (hostNas == null) {
             logWarn("Host mount information is null for Datastore: ", datastore.getName());
-            return false;
+            throw new IllegalStateException("Unable to delete Datastore: Datastore Host Nas cannot be found");
         }
         String remotepath = hostNas.getRemotePath();
         if (!remotepath.equals(filesystem.getMountPath())) {

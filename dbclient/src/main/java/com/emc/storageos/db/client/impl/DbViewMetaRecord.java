@@ -95,15 +95,12 @@ public class DbViewMetaRecord {
         StringBuilder cql = new StringBuilder();
         cql.append("UPDATE " + this.tableName + " SET ");
 
-        cql.append("timeuuid = ?,");
-
         for (ViewColumn col: columns) {
             cql.append(col.getName() + " = ?,");
         }
         cql.deleteCharAt(cql.length()-1);
 
-        cql.append(" WHERE " + keyName + " = ?");
-
+        cql.append(" WHERE " + keyName + " = ? and timeuuid = ?");
         return cql.toString();
     }
 

@@ -1564,7 +1564,7 @@ public class DbClientImpl implements DbClient {
      * @return matching row.
      * @throws DatabaseException
      */
-    private Row<String, CompositeColumnName> queryRowWithAllColumns(Keyspace ks, URI id,
+    protected Row<String, CompositeColumnName> queryRowWithAllColumns(Keyspace ks, URI id,
             ColumnFamily<String, CompositeColumnName> cf) {
         Rows<String, CompositeColumnName> result = queryRowsWithAllColumns(ks, Arrays.asList(id), cf);
         Row<String, CompositeColumnName> row = result.iterator().next();

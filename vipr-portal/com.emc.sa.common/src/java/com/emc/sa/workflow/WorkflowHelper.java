@@ -42,10 +42,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -72,6 +74,7 @@ import com.emc.sa.workflow.CustomServicesWorkflowPackage.WorkflowVersion;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
@@ -81,6 +84,7 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
@@ -89,6 +93,8 @@ import com.emc.storageos.security.keystore.impl.KeyCertificateAlgorithmValuesHol
 import com.emc.storageos.security.keystore.impl.KeystoreEngine;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Helper class to perform CRUD operations on a workflow
@@ -103,10 +109,16 @@ public final class WorkflowHelper {
     private static final String RESOURCES_FOLDER = "resources";
     private static final String ROOT = "";
     private static final String METADATA_FILE = "workflow.md";
-    private static final WorkflowVersion CURRENT_VERSION = new WorkflowVersion(1, 0, 0, 0);
+    private static final WorkflowVersion CURRENT_VERSION = new WorkflowVersion(2, 0, 0, 0);
     private static final ImmutableList<String> SUPPORTED_VERSIONS = ImmutableList.<String> builder()
-            .add(CURRENT_VERSION.toString()).build();
+            .add(CURRENT_VERSION.toString())
+            .add(new WorkflowVersion(1, 0, 0, 0).toString())
+            .build();
     private static final int MAX_IMPORT_NAME_INDEX = 100;
+    private static final Set<String> ATTRIBUTES = ImmutableSet.<String> builder()
+            .add(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)
+            .add(CustomServicesConstants.WORKFLOW_LOOP)
+            .build();
 
     private WorkflowHelper() {
     }
@@ -131,6 +143,7 @@ public final class WorkflowHelper {
         workflow.setDescription(document.getDescription());
         workflow.setSteps(toStepsJson(document.getSteps()));
         workflow.setPrimitives(getPrimitives(document));
+        workflow.setAttributes(getAttributes(document));
         return workflow;
     }
 
@@ -156,6 +169,7 @@ public final class WorkflowHelper {
             oeWorkflow.setSteps(toStepsJson(document.getSteps()));
             oeWorkflow.removePrimitives(StringSetUtil.stringSetToUriList(oeWorkflow.getPrimitives()));
             oeWorkflow.addPrimitives(StringSetUtil.stringSetToUriList(getPrimitives(document)));
+            oeWorkflow.setAttributes(getAttributes(document));
         }
     }
 
@@ -170,6 +184,13 @@ public final class WorkflowHelper {
         document.setName(workflow.getLabel());
         document.setDescription(workflow.getDescription());
         document.setSteps(toDocumentSteps(workflow.getSteps()));
+        if (!MapUtils.isEmpty(workflow.getAttributes())) {
+            ImmutableMap.Builder<String, String> attributeMap = ImmutableMap.<String, String> builder();
+            for (final Entry<String, String> attribute : workflow.getAttributes().entrySet()) {
+                attributeMap.put(attribute.getKey(), attribute.getValue());
+            }
+            document.setAttributes(attributeMap.build());
+        }
 
         return document;
     }
@@ -217,6 +238,20 @@ public final class WorkflowHelper {
             }
         }
         return primitives;
+    }
+
+    public static StringMap getAttributes(final CustomServicesWorkflowDocument document) {
+        final StringMap map = new StringMap();
+        final Map<String, String> attributes = document.getAttributes();
+        if (attributes != null) {
+            for (final Entry<String, String> attribute : attributes.entrySet()) {
+                if (!ATTRIBUTES.contains(attribute.getKey())) {
+                    throw new IllegalStateException("Unknown attribute key: " + attribute.getKey());
+                }
+                map.put(attribute.getKey(), attribute.getValue());
+            }
+        }
+        return map;
     }
 
     public static CustomServicesWorkflow importWorkflow(final InputStream stream,
@@ -385,7 +420,7 @@ public final class WorkflowHelper {
     /**
      * @param client
      * @param wfDirectory
-     * @param value
+     * @param workflow
      * @throws IOException
      * @throws JsonMappingException
      * @throws JsonGenerationException
@@ -400,6 +435,8 @@ public final class WorkflowHelper {
         dbWorkflow.setDescription(workflow.getDocument().getDescription());
         dbWorkflow.setSteps(toStepsJson(workflow.getDocument().getSteps()));
         dbWorkflow.setPrimitives(getPrimitives(workflow.getDocument()));
+        dbWorkflow.setAttributes(getAttributes(workflow.getDocument()));
+
         client.save(dbWorkflow);
         if (null != wfDirectory.getId()) {
             wfDirectory.addWorkflows(Collections.singleton(workflow.getId()));

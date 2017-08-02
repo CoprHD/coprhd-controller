@@ -49,6 +49,10 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public final static String WARNING = "Entire Set/Group will be affected";
 
     /**
+     * Return menu options for replication modes supported by the remote replication
+     * set(s) matching the given VirtualPool and VirtualArray.  If no set is found,
+     * an error is returned.
+     * 
      * Return menu options matching the given VirtualPool and VirtualArray.
      *
      * @param virtualArrayId ID of Virtual Array

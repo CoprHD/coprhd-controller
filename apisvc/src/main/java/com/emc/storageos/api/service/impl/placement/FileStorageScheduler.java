@@ -375,7 +375,7 @@ public class FileStorageScheduler implements Scheduler {
                     fs.getStorageDevice(), fs.getVirtualArray());
 
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-
+            List<StoragePort> portsSupportProtocol = new ArrayList<StoragePort>();
             if (Type.isilon.name().equals(storageSystem.getSystemType())) {
                 if (ports != null && !ports.isEmpty()) {
                     // Check if these ports are associated with vNAS
@@ -392,12 +392,17 @@ public class FileStorageScheduler implements Scheduler {
                             iterator.remove();
                         }
                     }
-                }
-            }
+                    // As Isilon supports both NFS and CIFS, add all remaining ports to supported list
+                    if (protocol != null && !protocol.isEmpty()) {
+                        portsSupportProtocol.addAll(ports);
+                    }
 
-            // Filter ports based on protocol (for example, if CIFS or NFS is
-            // required)
-            List<StoragePort> portsSupportProtocol = getPortsWithFileSharingProtocol(protocol, ports);
+                }
+            } else {
+                // Filter ports based on protocol (for example, if CIFS or NFS is
+                // required)
+                portsSupportProtocol = getPortsWithFileSharingProtocol(protocol, ports);
+            }
 
             if (portsSupportProtocol == null || portsSupportProtocol.isEmpty()) {
                 _log.error(MessageFormat

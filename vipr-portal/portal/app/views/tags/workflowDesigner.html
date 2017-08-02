@@ -31,14 +31,14 @@
         <div class="wf-property-container">
         	<div class="wf-property-item">
 	        	<div class="field-container">
-	        		<boolean-checkbox class="field-container-item"  v-field="workflowData.document.attributes.loop_workflow" ng-model="workflowData.document.attribute.runAsLoop" ng-change="setWorkflowModified('true')"></boolean-checkbox>
+	        		<boolean-checkbox class="field-container-item"  v-field="workflowData.document.attributes.loop_workflow" ng-model="workflowData.document.attributes.loop_workflow" ng-change="setWorkflowModified('true')"></boolean-checkbox>
 		            <label class="field-container-item">&{'wfBuilder.workflow.runAsLoop'}</label>
 	        	</div>
         	</div>
         	<div class="wf-property-item">
 	        	<div class="field-container">	
-	       			<label class="field-container-item">&{'wfBuilder.step.timeout'}</label>
-					<input-text class="field-container-item" v-field="workflowData.document.attributes.timeout" ng-change="setWorkflowModified('true')" style="width:100px"></input-text>
+	       			<label class="field-container-item">&{'wfBuilder.step.timeout'}:</label>
+					<input-text class="field-container-item" v-field="workflowData.document.attributes.timeout" ng-change="setWorkflowModified('true')" number-filter style="width:100px"></input-text>
 					<span>&{'wfBuilder.property.timeoutInSec'}</span>
 	       		</div>	
        		</div>

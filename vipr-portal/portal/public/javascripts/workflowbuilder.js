@@ -9,6 +9,28 @@ var remoteAnsibleNodeType = "remote_ansible"
 var ASSET_TYPE_OPTIONS;
 
 angular.module("portalApp")
+
+.directive('numberFilter' , function() {
+	return {
+	    restrict: 'A', 
+	    require: '?ngModel', 
+	    link: function(scope, element, attrs, ngModel) {
+	    	ngModel.$parsers.push(function(value) {
+	    		var numbers = value ;
+	    		if (value) {
+	    			numbers =  value.replace(/[^0-9]/g, "") ;
+	    			if (numbers != value) {
+	    				ngModel.$setViewValue(numbers);
+	    		        ngModel.$render();
+	    			}
+	    		}
+	    		
+	    		return numbers ;
+	    	}) ;
+	    }
+	}
+})
+
 .factory("workflow" , ['$window' , function($win){//NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 	return (function(){
 		
@@ -701,6 +723,7 @@ angular.module("portalApp")
                 $scope.workflowData = resp.data;
                 workflowInfo.relatedData = $scope ;
                 initWorkflowAttribute($scope.workflowData.document) ;
+                initWorkflowStepDict($scope.workflowData) ;
                 activateTab(elementid , true);
                 
             }
@@ -713,10 +736,21 @@ angular.module("portalApp")
     				loop_workflow: false ,
     				timeout: 3600
     		}
-    	}else if (doc.attributes['loop_workflow'] === undefined) {
-    		doc.attributes['loop_workflow'] = false ;
     	}else if (doc.attributes['timeout'] === undefined) {
     		doc.attributes['timeout'] = 3600 ;
+    	}else if (doc.attributes['loop_workflow'] === undefined) {
+    		doc.attributes['loop_workflow'] = false ;
+    	}else{
+    		doc.attributes['loop_workflow'] = (doc.attributes['loop_workflow'] === 'true') ;
+    	}
+    }
+    
+    function initWorkflowStepDict(workflowData) {
+    	workflowData.stepDict = {} ;
+    	var stepList =  workflowData.document.steps ;
+    	for (var i = 0 ; i < stepList.length ; i++) { 
+    		var step = stepList[i] ;
+    		workflowData.stepDict[step.id] = step ;
     	}
     }
 
@@ -920,14 +954,7 @@ angular.module("portalApp")
             stepData.output = [];
         }
         
-        
-      //TODO: resolve fake data injection
-        stepData.polling = true ;
-        stepData.interval = 3600 ;
-        stepData.timeout = $scope.workflowData.document.attribute.timeout ;
-        stepData.successCondition = [] ;
-        stepData.failCondition = [] ;
-
+        $scope.workflowData.stepDict[stepData.id] = stepData ;
         $scope.modified = true;
         loadStep(stepData);
 
@@ -947,14 +974,14 @@ angular.module("portalApp")
     }
     
     $scope.addStepCondition = function(data , field) {
-    	data[field].push({
+    	data.attributes[field].push({
     		output_name: "" , 
     		check_Value: ""
     	})
     }
     
     $scope.deleteStepCondition = function(data , field , idx) {
-    	data[field].splice(idx , 1) ;
+    	data.attributes[field].splice(idx , 1) ;
     }
     
     $scope.getInputOptions=function(id){
@@ -1295,6 +1322,14 @@ angular.module("portalApp")
         });
     }
 
+    $scope.getStepPollingState = function(stepId) {
+    	if (!diagramContainer.find("#" + stepId+"-wrapper")['oeData']) {
+    		return false ;
+    	}
+    	
+    	return diagramContainer.find("#" + stepId+"-wrapper").oeData.attributes.polling ;
+    }
+    
     $scope.removeStep = function(stepId) {
         if($scope.selectedId===stepId){
             $scope.selectedId='';
@@ -1309,15 +1344,6 @@ angular.module("portalApp")
         $scope.AssetOptionTypes=translateList(ASSET_TYPE_OPTIONS,'input');
         var data = diagramContainer.find('#'+stepId).data("oeData");
         $scope.stepData = data;
-        
-        //TODO: resolve fake data injection
-        $scope.stepData.polling = true ;
-        $scope.stepData.interval = 3600 ;
-        if (!$scope.stepData.timeout) {
-        	$scope.stepData.timeout = $scope.workflowData.document.attribute.timeout ;
-        }
-        $scope.stepData.successCondition = [] ;
-        $scope.stepData.failCondition = [] ;
         
         $scope.menuOpen = true;
         $scope.openPage(0);
@@ -1456,7 +1482,7 @@ angular.module("portalApp")
                 "<div class='arrow'></div><div ng-repeat='message in alert.error.errorSteps."+stepId+".errorMessages' class='custom-popover-content'>{{message}}</div>"+
             "</div>"+
             "<span id='"+stepId+"-error'  class='glyphicon item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
-            "<span id='"+stepId+"-polling' class='glyphicon item-card-polling-icon polling-icon' ng-if='stepData.polling'></span>" + 
+            "<span id='"+stepId+"-polling' class='glyphicon item-card-polling-icon polling-icon' ng-show='workflowData.stepDict[\""+stepId+"\"].attributes.polling'></span>" + 
             "<div  class='button-container'>"+
                 "<a ng-click='removeStep(\"" + stepId + "\")'><div class='builder-removeStep-icon'></div></a>"+
                 "<a class='button-edit-step' ng-click='select(\"" + stepId + "\")'><div class='builder-editStep-icon'></div></a>"+
@@ -1489,6 +1515,7 @@ angular.module("portalApp")
 
         //add data
         if(!step.operation) {step.operation = step.name}
+        initStepAttribute(step) ;
         theNewItem.data("oeData",step);
 
         //set position of element
@@ -1511,6 +1538,36 @@ angular.module("portalApp")
 
         //updates angular handlers for the new element
         $compile(theNewItemWrapper)($scope);
+    }
+    
+    function initStepAttribute(step) {
+    	var defaultAttr =  {
+    			timeout: 600000 ,
+    			wait_for_task: true ,
+    			polling: false ,
+    			interval: 5 ,
+    			success_condition: [] ,
+    			failure_condition: []
+    		};
+    	if (!step.attributes) {
+    		step.attributes = defaultAttr ;
+    	}
+    	
+    	var defaultKeys = Object.keys(defaultAttr)
+    	for (var idx = 0 ; idx < defaultKeys.length ; idx++ ) {
+    		var k = defaultKeys[idx] ;
+    		if (step.attributes[k] === undefined) {
+    			if (k === 'success_condition' || k === ' failure_condition') {
+    				step.attributes[k] = [] ;
+    			}else{
+    				step.attributes[k] = defaultAttr[k] ;
+    			}
+    		}
+    		
+    		if (step.attributes[k] === 'true' || step.attributes[k] === 'false') {
+    			step.attributes[k] = (step.attributes[k] === 'true') ;
+    		}
+    	}
     }
 
     function loadConnections(step) {

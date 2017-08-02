@@ -220,8 +220,4 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
         return String.format("RR Pair id: %s, Source volume id: %s, target volume id: %s, tenant: %s, project: %s", _id,
                 sourceElement, targetElement, tenant.getName(), project.getName());
     }
-
-    public void setLabel(String srcVol, String tgtVol) {
-        setLabel(srcVol + " -> " + tgtVol);
-    }
 }

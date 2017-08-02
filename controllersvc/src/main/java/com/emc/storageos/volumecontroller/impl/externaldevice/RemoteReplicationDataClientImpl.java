@@ -224,7 +224,7 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             rrPair.setReplicationDirection(driverReplicationPair.getReplicationDirection());
             rrPair.setSourceElement(new NamedURI(sourceVolumeURI, sourceVolume.getLabel()));
             rrPair.setTargetElement(new NamedURI(targetVolumeURI, targetVolume.getLabel()));
-            rrPair.setLabel(sourceVolume.getLabel(),targetVolume.getLabel());
+            rrPair.setLabel(sourceVolume.getLabel());
             
             // tenant and project NamedURIs are set wrong on the volume; they have tenant or project uri plus the volume label; they should have project or tenant label
             // not volume label; fixing it there is a big change. This code puts the right tenant and project NamedURI on the remote replication pair object
@@ -292,7 +292,7 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             rrPair.setReplicationState(driverReplicationPair.getReplicationState());
             rrPair.setReplicationMode(driverReplicationPair.getReplicationMode());
             rrPair.setReplicationDirection(driverReplicationPair.getReplicationDirection());
-            rrPair.setLabel(sourceVolume.getLabel(),targetVolume.getLabel());
+            rrPair.setLabel(sourceVolume.getLabel());
             String project = _dbClient.queryObjectField(Project.class, "label", Arrays.asList(sourceVolume.getProject().getURI())).get(0).getLabel();
             rrPair.setProject(new NamedURI(sourceVolume.getProject().getURI(), project));
             _dbClient.updateObject(rrPair);

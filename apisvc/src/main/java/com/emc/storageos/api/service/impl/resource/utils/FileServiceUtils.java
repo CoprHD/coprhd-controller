@@ -74,7 +74,7 @@ public class FileServiceUtils {
             try {
                 address = InetAddress.getByName(targetStorage);
             } catch (UnknownHostException e) {
-                _log.error("getTargetHostSystem Failed with the exception", e);
+                _log.error("getTargetHostSystem Failed with the exception: {}", e);
                 return null;
             }
             if (address == null) {

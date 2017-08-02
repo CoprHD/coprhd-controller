@@ -2994,8 +2994,7 @@ public class FileService extends TaskResourceService {
      *             Start continuous copies.
      * 
      * @prereq none
-     * @param id
-     *            the URN of a ViPR Source file share
+     * @param id the URN of a ViPR Source file share
      * @brief Start the replication session between source and target file system.
      * @return TaskList
      * @throws ControllerException
@@ -3030,8 +3029,7 @@ public class FileService extends TaskResourceService {
      * Refresh continuous copies.
      * 
      * @prereq none
-     * @param id
-     *            the URN of a ViPR Source file share
+     * @param id the URN of a ViPR Source file share
      * @brief Refresh the replication session between source and target file system.
      * @return TaskList
      * @throws ControllerException
@@ -4124,8 +4122,7 @@ public class FileService extends TaskResourceService {
         }
 
         // Create task to check if any replication policy is existing in backend if yes, then to check if the target fs
-        // already
-        // in database.
+        // already in database.
         FileShare targetFs = null;
         StorageSystem targetSystem = null;
         String checkingTask = UUID.randomUUID().toString();

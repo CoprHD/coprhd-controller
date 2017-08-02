@@ -4939,10 +4939,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Fail over Work flow Method
      * 
-     * @param storage
-     *            target storage system
-     * @param fileshareURI
-     *            target file system URI
+     * @param storage target storage system
+     * @param fileshareURI target file system URI
      * @param completer
      * @param opId
      */
@@ -5054,17 +5052,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     return;
                 }
                 if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    _log.error("getExistingPolicyAndTargetInfo Failed. Reason: {}", result.getMessage());
                     throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
                             fp.getApplyAt(), result.getMessage());
                 }
             } else {
+                _log.error(
+                        "getExistingPolicyAndTargetInfo Failed. Reason: Could not retrieve required entities- filesystem / filepolicy / storage system");
                 throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
                         fp.getApplyAt(), "Could not retrieve required entities- filesystem / filepolicy / storage system");
             }
         } catch (Exception e) {
-            StringBuffer errormsg = new StringBuffer();
-            errormsg = errormsg.append(String.format("Unable to get existing sync policy : storage %s, FS URI %s,: Error %s",
-                    storageObj.getLabel(), fs.getLabel(), e.getMessage()));
+            String errormsg = String.format("Unable to get existing sync policy : storage %s, FS URI %s,: Error %s",
+                    storageObj.getLabel(), fs.getLabel(), e.getMessage());
             _log.error("Unable to get existing sync policy : storage {}, FS URI {},: Error {}", errormsg);
             updateTaskStatus(opId, fs, e);
             ServiceError error = DeviceControllerException.errors.jobFailed(e);

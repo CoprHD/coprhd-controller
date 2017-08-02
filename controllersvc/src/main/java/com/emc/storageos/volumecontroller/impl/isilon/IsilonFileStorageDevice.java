@@ -4413,9 +4413,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // target cluster smart connect zone is matching???
             for (com.emc.storageos.db.client.model.StoragePort port : FileOrchestrationUtils
                     .getStorageSystemPorts(_dbClient, system)) {
-                if (existingPolicyTargetHost.equalsIgnoreCase(port.getPortName())) {
-                    return true;
-                } else if (existingPolicyTargetHost.equalsIgnoreCase(port.getPortNetworkId())) {
+                if (existingPolicyTargetHost.equalsIgnoreCase(port.getPortName()) || existingPolicyTargetHost.equalsIgnoreCase(port.getPortNetworkId())) {
                     return true;
                 }
             }
@@ -4618,6 +4616,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         BiosCommandResult result = null;
         FileShare srcFs = args.getFs();
         if (srcFs == null) {
+            _log.error("Failed to retrieve source filesystem");
             throw DeviceControllerException.exceptions.assignFilePolicyFailed(args.getFileProtectionPolicy().getFilePolicyName(),
                     args.getFileProtectionPolicy().getApplyAt(), "Failed to retrieve source filesystem");
         }
@@ -4642,6 +4641,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _dbClient.updateObject(task);
             result = BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
+            _log.error("IsilonFileStorageDevice checkForExistingSyncPolicyAndTarget for FS {} failed with exception {}", args.getFsName(), e);
             task.error(e);
             task.setProgress(100);
             _dbClient.updateObject(task);
@@ -4656,6 +4656,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             sourceFileShare.getExtensions().put("ReplicationInfo", targetInfo);
             _dbClient.updateObject(sourceFileShare);
         } else {
+            _log.error("Failed to set the replication attribute to source FS");
             throw DeviceControllerException.exceptions
                     .replicationInfoSettingFailed("Failed to set the replication attribute to source FS ");
         }

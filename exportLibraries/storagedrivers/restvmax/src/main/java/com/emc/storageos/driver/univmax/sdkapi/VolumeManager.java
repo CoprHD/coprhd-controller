@@ -29,7 +29,7 @@ import java.util.UUID;
 
 public class VolumeManager {
 
-    private static final Logger _log = LoggerFactory.getLogger(VolumeManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VolumeManager.class);
 
     private RestClient client;
 
@@ -47,10 +47,10 @@ public class VolumeManager {
         }
         task.setStatus(DriverTask.TaskStatus.READY);
 
-        client = driverDataUtil.getRestClientByStorageSystemId(volumes.get(0).getStorageSystemId());
         try {
             for (StorageVolume volume : volumes) {
                 // RESTful API POST
+                client = driverDataUtil.getRestClientByStorageSystemId(volume.getStorageSystemId());
                 postCreateVolume(volume);
                 // RESTful API GET: get volume ID
                 String getResponse = doGetVolumeId(volume);
@@ -85,13 +85,13 @@ public class VolumeManager {
         groupParamType.setSloBasedStorageGroupParam(sloType);
         String restParam = JsonUtil.toJsonString(groupParamType);
 
-        return client.postJsonString(
+        return client.getJsonString(RestClient.METHOD.POST,
                 String.format(EndPoint.SLOPROVISIONING_SYMMETRIX__STORAGEGROUP, volume.getStorageSystemId()),
                 restParam);
     }
 
     private String doGetVolumeId(StorageVolume volume) {
-        return client.getJsonString(
+        return client.getJsonString(RestClient.METHOD.GET,
                 String.format(EndPoint.SLOPROVISIONING_SYMMETRIX__VOLUME_QUERY,
                         volume.getStorageSystemId(), "storageGroupId", volume.getStorageGroupId()));
     }
@@ -105,7 +105,7 @@ public class VolumeManager {
         String getVolumePath = String.format(EndPoint.SLOPROVISIONING_SYMMETRIX__VOLUME_ID,
                 volume.getStorageSystemId(), volumeId);
 
-        return client.getJsonString(getVolumePath);
+        return client.getJsonString(RestClient.METHOD.GET, getVolumePath);
     }
 
     private void fileValueIntoVolume(String details, StorageVolume volume) {

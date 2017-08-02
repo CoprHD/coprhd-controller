@@ -41,17 +41,17 @@ public class DiscoverStorageProvider  {
                     storageProvider.getPortNumber(), storageProvider.getUsername(), storageProvider.getPassword());
 
             // storage provider info
-            String resp = restClient.getJsonString(EndPoint.SYSTEM_VERSION);
+            String resp = restClient.getJsonString(RestClient.METHOD.GET, EndPoint.SYSTEM_VERSION);
             GetVersionResultType getVersionResultTypeType = JsonUtil.fromJson(resp, GetVersionResultType.class);
             storageProvider.setProviderVersion(getVersionResultTypeType.getVersion());
             storageProvider.setIsSupportedVersion(true);
 
             // storage system info
-            resp = restClient.getJsonString(EndPoint.SYSTEM_SYMMETRIX);
+            resp = restClient.getJsonString(RestClient.METHOD.GET, EndPoint.SYSTEM_SYMMETRIX);
             ListSymmetrixResultType listSymmetrixResultType = JsonUtil.fromJson(resp, ListSymmetrixResultType.class);
             List<SymmetrixType> supportedSymmetrix = new ArrayList<>();
             for (String symmetrix : listSymmetrixResultType.getSymmetrixId()) {
-                resp = restClient.getJsonString(EndPoint.SYSTEM_SYMMETRIX + "/" + symmetrix);
+                resp = restClient.getJsonString(RestClient.METHOD.GET, EndPoint.SYSTEM_SYMMETRIX + "/" + symmetrix);
                 GetSymmetrixResultType getSymmetrixResultType = JsonUtil.fromJson(resp, GetSymmetrixResultType.class);
                 if (getSymmetrixResultType.getSymmetrix().length > 1) {
                     throw new InternalError("VMAX RESTful API bug: more than 1 symmetrix for id " + symmetrix);

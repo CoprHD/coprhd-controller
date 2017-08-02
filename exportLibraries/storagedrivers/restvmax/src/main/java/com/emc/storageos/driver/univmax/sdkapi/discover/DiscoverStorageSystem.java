@@ -33,7 +33,7 @@ public class DiscoverStorageSystem {
         try {
             RestClient client = driverDataUtil.getRestClientByStorageSystemId(storageSystem.getNativeId());
 
-            String resp = client.getJsonString(
+            String resp = client.getJsonString(RestClient.METHOD.GET,
                     String.format(EndPoint.SLOPROVISIONING84_SYMMETRIX_ID, storageSystem.getNativeId()));
 
             SymmetrixType symmetrixType = JsonUtil.fromJson(resp, SymmetrixType.class);

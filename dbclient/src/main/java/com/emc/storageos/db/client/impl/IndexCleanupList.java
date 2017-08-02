@@ -32,6 +32,8 @@ public class IndexCleanupList implements IndexColumnList {
     // but it easier to operate.
     private Map<String, Map<String, List<CompositeColumnName>>> _allColMap;
     private Map<String, DataObject> _cleanedObjects;
+    private List<DbViewMetaRecord> dbViewMetaRecords;
+    private List<DbViewRecord> dbViewRecords;
 
     public IndexCleanupList() {
         _cleanupList = new HashMap<>();
@@ -140,5 +142,21 @@ public class IndexCleanupList implements IndexColumnList {
 
     public DataObject getObject(String key) {
         return _cleanedObjects.get(key);
+    }
+
+    public List<DbViewMetaRecord> getDbViewMetaRecords() {
+        return dbViewMetaRecords;
+    }
+
+    public List<DbViewRecord> getDbViewRecords() {
+        return dbViewRecords;
+    }
+
+    public void setDbViewRecords(List<DbViewRecord> dbViewRecords) {
+        this.dbViewRecords = dbViewRecords;
+    }
+
+    public void setDbViewMetaRecords(List<DbViewMetaRecord> dbViewMetaRecords) {
+        this.dbViewMetaRecords = dbViewMetaRecords;
     }
 }

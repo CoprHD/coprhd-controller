@@ -44,6 +44,11 @@ public class DataObjectType {
     private Class<? extends DataObject> _clazz;
     private ColumnField _idField;
     private List<DbViewDefinition> _viewDefs = new ArrayList<>();
+
+    public Map<String, DbViewDefinition> getViewDefMap() {
+        return _viewDefMap;
+    }
+
     private Map<String, DbViewDefinition> _viewDefMap = new HashMap<>();
     private Map<String, ColumnField> _columnFieldMap = new HashMap<String, ColumnField>();
     private EncryptionProvider _encryptionProvider;
@@ -311,6 +316,9 @@ public class DataObjectType {
                 _log.info("==== view = {}, key = [{}:{}], clusters = [{}], cols = [{}]",
                         view.getDef().getViewName(), view.getKeyName(), view.getKeyValue(), view.getClusterColumns(), view.getColumns());
                 mutator.upsertViewRow(view);
+                DbViewMetaRecord viewMetaRecord = DbViewMetaRecord.build(view);
+                _log.info("========== build a view meta record: {}", viewMetaRecord);
+                mutator.upsertViewMetaRow(viewMetaRecord);
             }
 
             setLazyLoaders(val, lazyLoader);

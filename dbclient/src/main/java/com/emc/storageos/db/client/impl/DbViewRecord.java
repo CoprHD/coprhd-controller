@@ -22,6 +22,10 @@ public class DbViewRecord {
     private List<ViewColumn> clusters = new ArrayList<>();
     private List<ViewColumn> columns = new ArrayList<>();
 
+    public DbViewDefinition getViewDef() {
+        return viewDef;
+    }
+
     public DbViewRecord(DbViewDefinition viewDef) {
         this.viewDef = viewDef;
     }
@@ -48,31 +52,6 @@ public class DbViewRecord {
 
     public void addColumn(String name, Object val) {
         columns.add(new ViewColumn(name, val, val.getClass()));
-    }
-
-    public String getInsertCql() {
-        StringBuilder cql = new StringBuilder();
-        cql.append("INSERT INTO " + viewDef.getViewName() + " (" + getKeyName() + "," );
-
-        for (ViewColumn cluster: clusters) {
-            cql.append(cluster.getName());
-            cql.append(",");
-        }
-        for (ViewColumn col: columns) {
-            cql.append(col.getName());
-            cql.append(",");
-        }
-        cql.deleteCharAt(cql.length()-1);
-
-        cql.append(") VALUES(");
-        int valCount = 1 + clusters.size() + columns.size();
-        for (int i = 0; i < valCount; i++) {
-            cql.append("?,");
-        }
-        cql.deleteCharAt(cql.length()-1);
-        cql.append(")");
-
-        return cql.toString();
     }
 
     public String getUpsertCql() {
@@ -103,5 +82,22 @@ public class DbViewRecord {
 
     public DbViewDefinition getDef() {
         return this.viewDef;
+    }
+
+    public String getDeleteCql() {
+        StringBuilder cql = new StringBuilder();
+        cql.append("DELETE FROM " + viewDef.getViewName() + " " );
+
+        cql.append(" WHERE " + viewDef.getKeyName() + " = ? and ");
+
+        for (int i = 0; i < clusters.size(); i++) {
+            ViewColumn cluster = clusters.get(i);
+            cql.append(cluster.getName() + " = ? ");
+            if (i < clusters.size()-1) {
+                cql.append(" and ");
+            }
+        }
+
+        return cql.toString();
     }
 }

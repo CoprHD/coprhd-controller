@@ -1166,11 +1166,44 @@ public class DbClientImpl implements DbClient {
 
         DbClientContext context = getDbClientContext(clazz);
 
-        List<URI> objectsToCleanup = insertNewColumns(context, dataobjects);
+        List<URI> objectsToCleanup = insertNewColumns(context, dataobjects); // now the list has objects whose indexed column get changed.
         if (updateIndex && !objectsToCleanup.isEmpty()) {
             Map<String, List<CompositeColumnName>> rows = fetchNewest(clazz, getDbClientContext(clazz), objectsToCleanup);
-            cleanupOldColumns(clazz, rows);
+            Map<String, List<DbViewMetaRecord>> viewMetadatas = fetchAllRelatedViews(clazz, getDbClientContext(clazz), objectsToCleanup);
+            cleanupOldColumns(clazz, rows, viewMetadatas);
         }
+    }
+
+    private <T extends DataObject> Map<String, List<DbViewMetaRecord>> fetchAllRelatedViews(Class<T> clazz, DbClientContext dbCtx, List<URI> objectsToCleanup) {
+        String viewName;
+
+        DataObjectType dataType = TypeMap.getDoType(clazz);
+        DbViewDefinition volViewDef = dataType.getViewDefMap().get("vol_view");
+
+        Map<String, List<DbViewMetaRecord>> viewMetadataMap = new HashMap<>();
+
+        String cql = "select * from vol_view_meta where id in ?";
+
+        PreparedStatement queryAllColumnsPreparedStatement = dbCtx.getPreparedStatement(cql);
+        ResultSet rs = dbCtx.getSession()
+                .execute(queryAllColumnsPreparedStatement.bind(uriList2StringList(objectsToCleanup)));
+
+        // Todo: should get columns by view definition
+        for (Row row : rs) {
+            DbViewMetaRecord viewMeta = new DbViewMetaRecord(volViewDef);
+            String id = row.get(0, String.class);
+            viewMeta.setKeyValue(id);
+            viewMeta.setTimeUUID(row.getUUID(1));
+            viewMeta.addColumn(new ViewColumn("project", row.get(2, String.class), String.class));
+            viewMeta.addColumn(new ViewColumn("type", row.get(2, Integer.class), Integer.class));
+
+            List<DbViewMetaRecord> viewMetaRecords = viewMetadataMap.putIfAbsent(id, new ArrayList());
+            if (viewMetaRecords == null) viewMetaRecords = viewMetadataMap.get(id);
+            viewMetaRecords.add(viewMeta);
+        }
+
+        _log.info("========== viewMetadataMap size is {}, keys: {}", viewMetadataMap.size(), viewMetadataMap.keySet());
+        return viewMetadataMap;
     }
 
     protected <T extends DataObject> List<URI> insertNewColumns(DbClientContext context, Collection<T> dataobjects) {
@@ -1213,7 +1246,7 @@ public class DbClientImpl implements DbClient {
         return queryRowsWithAllColumns(context, objectsToCleanup, doType.getCF().getName());
     }
 
-    protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Map<String, List<CompositeColumnName>> rows) {
+    protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Map<String, List<CompositeColumnName>> rows, Map<String, List<DbViewMetaRecord>> viewMetadatas) {
         // cleanup old entries for indexed columns
         // CHECK - persist is called only with same object types for now
         // not sure, if this is an assumption we can make
@@ -1226,12 +1259,49 @@ public class DbClientImpl implements DbClient {
             }
             doType.deserialize(clazz, rowKey, columns, cleanList, new LazyLoader(this));
         }
+
+        addViewToCleanList(viewMetadatas, cleanList);
+
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             RowMutator cleanupMutator = new RowMutator(getDbClientContext(clazz), retryFailedWriteWithLocalQuorum);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndex(cleanupMutator, doType, indexCleanUpRef);
         }
+    }
+
+    private void addViewToCleanList(Map<String, List<DbViewMetaRecord>> viewMetadatas, IndexCleanupList cleanList) {
+        List<DbViewRecord> viewRecords = new ArrayList<>();
+        List<DbViewMetaRecord> viewMetaRecords = new ArrayList<>();
+
+        for (List<DbViewMetaRecord> viewsPerObj : viewMetadatas.values()) {
+            _log.info("======= addViewToCleanList: checking view meta perobject = {}", viewsPerObj);
+            if (viewsPerObj.size() <= 1) { // only one means no need to clean
+                _log.info("======= addViewToCleanList: nothing to clean for {}", viewsPerObj);
+                continue;
+            }
+            viewsPerObj.remove(-1);
+            viewMetaRecords.addAll(viewsPerObj);
+            _log.info("======= addViewToCleanList: view meta to clean: {}", viewsPerObj);
+
+            // generate db view records from view metadata.
+            for (DbViewMetaRecord meta: viewsPerObj) {
+                DbViewRecord viewRecord = new DbViewRecord(meta.getViewDef());
+                viewRecord.setKeyValue((String) meta.getColumns().get(0).getValue());
+                for (int i = 1; i < meta.getColumns().size(); i++) {
+                    ViewColumn col = meta.getColumns().get(i);
+                    viewRecord.addClusteringColumn(col.getName(), col.getValue());
+                }
+                viewRecord.addClusteringColumn(meta.getKeyName(), meta.getKeyValue());
+
+                viewRecords.add(viewRecord);
+            }
+        }
+
+        _log.info("======= addViewToCleanList: viewRecords = {}", viewRecords);
+        _log.info("======= addViewToCleanList: viewMetaRecords = {}", viewMetaRecords);
+        cleanList.setDbViewRecords(viewRecords);
+        cleanList.setDbViewMetaRecords(viewMetaRecords);
     }
 
     private <T extends DataObject> void preprocessTypeIndexes(DbClientContext context, DataObjectType doType, T object) {

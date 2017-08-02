@@ -263,4 +263,58 @@ public class RowMutator {
     public void setWriteCL(ConsistencyLevel writeCL) {
         this.writeCL = writeCL;
     }
+
+    public void upsertViewMetaRow(DbViewMetaRecord viewMetaRecord) {
+        String cql = viewMetaRecord.getUpsertCql();
+        log.info("==== upsert view cql is {}", cql);
+
+        PreparedStatement insertPrepared = context.getPreparedStatement(cql);
+        BoundStatement insert = insertPrepared.bind();
+
+        // partition key
+        insert.setString(viewMetaRecord.getKeyName(), viewMetaRecord.getKeyValue());
+        insert.setUUID("timeuuid", viewMetaRecord.getTimeUUID());
+        log.info("======= key name = {}, key value = {}, timeuuid = {}", viewMetaRecord.getKeyName(), viewMetaRecord.getKeyValue(), viewMetaRecord.getTimeUUID());
+
+        // Columns
+        for (ViewColumn col: viewMetaRecord.getColumns()) {
+            insert.set(col.getName(), col.getValue(), col.getClassType());
+            log.info("======= columns: {}", col);
+        }
+        atomicBatch.add(insert);
+    }
+
+    public void removeDbViewMetaRow(DbViewMetaRecord viewMetaRecord) {
+        String cql = viewMetaRecord.getDeleteCql();
+        log.info("==== delete meta view cql is: {}", cql);
+        log.info("======= key name = {}, key value = {}, timeuuid = {}", viewMetaRecord.getKeyName(), viewMetaRecord.getKeyValue(), viewMetaRecord.getTimeUUID());
+
+        PreparedStatement insertPrepared = context.getPreparedStatement(cql);
+        BoundStatement bindStmt = insertPrepared.bind();
+        // partition key
+        bindStmt.setString(viewMetaRecord.getKeyName(), viewMetaRecord.getKeyValue());
+        bindStmt.setUUID("timeuuid", viewMetaRecord.getTimeUUID());
+
+        atomicBatch.add(bindStmt);
+    }
+
+    public void removeDbViewRow(DbViewRecord viewRecord) {
+        String cql = viewRecord.getDeleteCql();
+        log.info("==== delete view cql is: {}", cql);
+
+        PreparedStatement insertPrepared = context.getPreparedStatement(cql);
+        BoundStatement bindStmt = insertPrepared.bind();
+
+        // partition key
+        bindStmt.setString(viewRecord.getKeyName(), viewRecord.getKeyValue());
+        log.info("======= key name = {}, key value = {}", viewRecord.getKeyName(), viewRecord.getKeyValue());
+
+        // Clustering keys
+        for (ViewColumn cluster: viewRecord.getClusterColumns()) {
+            bindStmt.set(cluster.getName(), cluster.getValue(), cluster.getClassType());
+            log.info("=======CLustering key: {}", cluster);
+        }
+
+        atomicBatch.add(bindStmt);
+    }
 }

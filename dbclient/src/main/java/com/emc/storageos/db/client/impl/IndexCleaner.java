@@ -77,7 +77,22 @@ public class IndexCleaner {
         // We need to check if .inactive is changed to true, if so, we need to hide (remove) related index entries from index CFs
         removeIndexOfInactiveObjects(mutator, doType, listToClean, true);
 
+        removeDbView(mutator, listToClean.getDbViewRecords());
+        removeDbViewMetaRecord(mutator, listToClean.getDbViewMetaRecords());
+
         mutator.execute();
+    }
+
+    private void removeDbViewMetaRecord(RowMutator mutator, List<DbViewMetaRecord> dbViewMetaRecords) {
+        for (DbViewMetaRecord viewMetaRecord: dbViewMetaRecords) {
+            mutator.removeDbViewMetaRow(viewMetaRecord);
+        }
+    }
+
+    private void removeDbView(RowMutator mutator, List<DbViewRecord> dbViewRecords) {
+        for (DbViewRecord viewRecord: dbViewRecords) {
+            mutator.removeDbViewRow(viewRecord);
+        }
     }
 
     public void removeColumnAndIndex(RowMutator mutator, DataObjectType doType, RemovedColumnsList listToClean) {

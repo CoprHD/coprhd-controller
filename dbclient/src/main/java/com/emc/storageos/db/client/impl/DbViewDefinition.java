@@ -17,12 +17,14 @@ public class DbViewDefinition {
     private String keyName;
     private List<String> clusters;
     private List<String> columns;
+    private String metaViewName;
 
     public DbViewDefinition(String viewName, String keyName, List<String> clusters, List<String> columns) {
         this.viewName = viewName;
         this.keyName = keyName;
         this.clusters = clusters;
         this.columns = columns;
+        this.metaViewName = this.viewName + "_meta";
     }
 
     public String getKeyName() {
@@ -61,5 +63,9 @@ public class DbViewDefinition {
                 ", clusters=" + clusters +
                 ", columns=" + columns +
                 '}';
+    }
+
+    public String getMetaViewName() {
+        return metaViewName;
     }
 }

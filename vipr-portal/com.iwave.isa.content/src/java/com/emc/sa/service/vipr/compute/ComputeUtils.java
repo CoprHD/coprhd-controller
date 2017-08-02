@@ -383,7 +383,7 @@ public class ComputeUtils {
             }
             try {
                 tasks.add(BlockStorageUtils.createVolumesByName(project, virtualArray,
-                        virtualPool, size, nullConsistencyGroup, volumeName, portGroup));  // does not wait for task
+                        virtualPool, size, nullConsistencyGroup, volumeName, portGroup, host.getId()));  // does not wait for task
                 volumeNameToHostMap.put(volumeName, host);
             } catch (ExecutionException e) {
                 String errorMessage = e.getMessage() == null ? "" : e.getMessage();

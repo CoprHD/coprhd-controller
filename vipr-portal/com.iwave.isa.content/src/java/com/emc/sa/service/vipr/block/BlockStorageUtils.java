@@ -477,10 +477,10 @@ public class BlockStorageUtils {
     }
 
     public static Task<VolumeRestRep> createVolumesByName(URI projectId, URI virtualArrayId, URI virtualPoolId,
-            double sizeInGb, URI consistencyGroupId, String volumeName, URI portGroup) {
+            double sizeInGb, URI consistencyGroupId, String volumeName, URI portGroup, URI computeResource) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         return execute(new CreateBlockVolumeByName(projectId, virtualArrayId,
-                virtualPoolId, volumeSize, consistencyGroupId, volumeName, portGroup));
+                virtualPoolId, volumeSize, consistencyGroupId, volumeName, portGroup, computeResource));
     }
 
     public static void expandVolumes(Collection<URI> volumeIds, double newSizeInGB) {

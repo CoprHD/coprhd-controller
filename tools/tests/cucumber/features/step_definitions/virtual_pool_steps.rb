@@ -22,4 +22,6 @@ Given(/^the customer has a virtual pool without SRDF$/) do
 
   target_vpools = response['virtualpool'].select { |p| p['name'] =~ /TARGET/ }
   expect(target_vpools.size).to be >= 1
+
+  @vpool_subject = target_vpools.first
 end

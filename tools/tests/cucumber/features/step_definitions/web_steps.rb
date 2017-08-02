@@ -2,6 +2,10 @@ Given(/^I am logged in as the root user$/) do
   login 'root'
 end
 
+Given(/^they are logged in as the root user$/) do
+  login 'root'
+end
+
 When(/^I complete the Initial Setup form$/) do
   setup
 end

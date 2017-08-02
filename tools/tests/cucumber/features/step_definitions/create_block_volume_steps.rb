@@ -26,11 +26,11 @@ When(/^I request a single volume with name (.*)$/) do |name|
   sleep 5
 end
 
-When(/^(?:I )?click Order$/) do
-  find('span', text: 'Order').click
+When(/^(?:I |they )?click Order$/) do
+  find('button[type=submit] span', text: 'Order').click
 end
 
-Then(/^I(?: should)? see the order succeed$/) do
+Then(/^(?:I|they)(?: should)? see the order succeed$/) do
   expect(page).to have_content('Order Successfully Fulfilled', wait: 60)
 end
 
@@ -38,21 +38,21 @@ Then(/^I(?: should)? see the order fail$/) do
   expect(page).to have_content('Error Occurred Processing Order', wait: 120)
 end
 
-Given(/^I visit the Service Catalog$/) do
+Given(/^(?:I|they) visit the Service Catalog$/) do
   visit '/Catalog#ServiceCatalog'
   expect(page).to have_current_path('/Catalog')
 end
 
-Given(/^I select the emcworld tenant$/) do
+Given(/^(?:I|they) select the emcworld tenant$/) do
   find('#tenantId_chosen').click
-  find('li', text: 'emcworld').click
+  find('ul.chosen-results > li', text: 'emcworld').click
 end
 
-Given(/^I choose Block Storage Services$/) do
+Given(/^(?:I|they) choose Block Storage Services$/) do
   find('.catalog-item[data-name=BlockStorageServices]').click
 end
 
-Given(/^I choose Create Block Volume$/) do
+Given(/^(?:I|they) choose Create Block Volume$/) do
   find('.catalog-item[data-name=CreateBlockVolume]').click
 end
 

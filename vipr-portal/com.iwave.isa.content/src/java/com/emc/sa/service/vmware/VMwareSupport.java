@@ -1015,7 +1015,7 @@ public class VMwareSupport {
             throw new IllegalStateException("Unable to delete Datastore: Datastore Host Nas cannot be found");
         }
         String remotepath = hostNas.getRemotePath();
-        if (!remotepath.equals(filesystem.getMountPath())) {
+        if (remotepath != null && !remotepath.equals(filesystem.getMountPath())) {
             logWarn("vmware.support.delete.mount.mismatch", remotepath, hostNas.getRemotePath());
             throw new IllegalStateException("Unable to delete Datastore: Datastore remote path is not in sync with Filesystem mount path");
         }

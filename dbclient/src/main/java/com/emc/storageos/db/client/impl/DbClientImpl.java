@@ -1195,7 +1195,7 @@ public class DbClientImpl implements DbClient {
             viewMeta.setKeyValue(id);
             viewMeta.setTimeUUID(row.getUUID(1));
             viewMeta.addColumn(new ViewColumn("project", row.get(2, String.class), String.class));
-            viewMeta.addColumn(new ViewColumn("type", row.get(2, Integer.class), Integer.class));
+            viewMeta.addColumn(new ViewColumn("type", row.get(3, Integer.class), Integer.class));
 
             List<DbViewMetaRecord> viewMetaRecords = viewMetadataMap.putIfAbsent(id, new ArrayList());
             if (viewMetaRecords == null) viewMetaRecords = viewMetadataMap.get(id);

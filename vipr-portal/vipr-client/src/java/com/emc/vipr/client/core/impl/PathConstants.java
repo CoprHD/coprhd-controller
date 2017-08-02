@@ -27,6 +27,7 @@ public class PathConstants {
 
     public static final String BLOCK_VOLUMES_URL = "/block/volumes";
     public static final String BLOCK_FULL_COPIES_URL = "/block/full-copies";
+    public static final String BLOCK_CONTINUOUS_COPIES_URL = "/block/continuous-copies";
     public static final String PROTECTION_SET_BY_VOLUME_URL = BLOCK_VOLUMES_URL
             + "/{volumeId}/protection/protection-sets";
     public static final String BLOCK_MIRROR_BY_VOLUME_URL = BLOCK_VOLUMES_URL

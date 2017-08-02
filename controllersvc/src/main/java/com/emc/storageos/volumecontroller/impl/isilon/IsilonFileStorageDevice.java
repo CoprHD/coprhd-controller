@@ -4644,7 +4644,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             "Share is empty");
                 } else if (share == null) {
                     _log.error(
-                            "IsilonFileStorageDevice validateResource for {} wih id {} - failed. Reason : Unable to retrieve share from isilon, Share might be deleted.",
+                            "IsilonFileStorageDevice validateResource for {} wih id {} - failed. Reason : Unable to retrieve share from isilon, Share might be deleted or renamed.",
                             objId, args.getShareName());
                     throw DeviceControllerException.exceptions.validateResourceConsistencyFailed(objId, args.getShareName(),
                             "Unable to retrieve share from isilon, Share might be deleted.");

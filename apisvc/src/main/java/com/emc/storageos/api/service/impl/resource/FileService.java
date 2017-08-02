@@ -1574,8 +1574,11 @@ public class FileService extends TaskResourceService {
             } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()));
 
             if (taskObject == null || taskObject.isError()) {
-                _log.error("Task to validate the consistency of resource failed.");
-                throw APIException.badRequests.unableToProcessRequest("Error occured while getting replication policy ");
+                String error = taskObject.isError()
+                        ? String.format("Error occurred while validating resource consistency. Reason : {}", taskObject.getMessage())
+                        : "Error occurred while validating resource consistency.";
+                _log.error(error);
+                throw APIException.badRequests.unableToProcessRequest(error);
             }
         } catch (BadRequestException e) {
             _dbClient.error(FileShare.class, fs.getId(), checkingTask, e);

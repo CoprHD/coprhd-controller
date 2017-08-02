@@ -20,33 +20,33 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.UriBuilder;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.impl.RestClient;
-import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
 
 /**
@@ -54,7 +54,8 @@ import com.sun.jersey.api.client.ClientResponse;
  */
 public class CustomServicesViprExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesViprExecution.class);
-
+    private static final ObjectMapper MAPPER = new ObjectMapper().setAnnotationIntrospector(new JaxbAnnotationIntrospector());
+    
     private final Map<String, List<String>> input;
     private final RestClient client;
     private final CustomServicesViPRPrimitive primitive;
@@ -111,39 +112,6 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         return result;
     }
 
-    private Map<URI, String> waitForTask(final String result) throws Exception {
-        final List<URI> uris = new ArrayList<URI>();
-
-        final String classname = primitive.response();
-
-        if (classname.contains(RESTHelper.TASKLIST)) {
-            final ObjectMapper mapper = new ObjectMapper();
-            mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
-            final Class<?> clazz = Class.forName(classname);
-
-            final Object taskList = mapper.readValue(result, clazz.newInstance().getClass());
-            List<TaskResourceRep> resources = ((TaskList) taskList).getTaskList();
-
-            for (TaskResourceRep res : resources) {
-                uris.add(res.getId());
-            }
-
-        } else if(classname.contains(RESTHelper.TASK)) {
-            final ObjectMapper mapper = new ObjectMapper();
-            mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
-            final Class<?> clazz = Class.forName(classname);
-
-            final Object task = mapper.readValue(result, clazz.newInstance().getClass());
-            uris.add(((TaskResourceRep)task).getId());
-        }
-        
-        if (!uris.isEmpty()) {
-            return CustomServicesUtils.waitForTasks(uris, getClient());
-        }
-
-        return null;
-    }
-
     private CustomServicesTaskResult makeRestCall(final URI uri, final Object requestBody, final String method)
             throws InternalServerErrorException {
 
@@ -181,20 +149,22 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             logger.info("Status of ViPR REST Operation:{} is :{}", primitive.name(), response.getStatus());
 
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
-
-            final Map<URI, String> taskState = waitForTask(responseString);
-            //update state
-            final String classname = primitive.response();
-            if (classname.contains(RESTHelper.TASKLIST)) {
-                responseString = updateState(responseString, taskState);
-            }
-            final boolean isSuccess = isSuccess(taskState, response.getStatus());
-            if (!isSuccess) {
+            if( response.getStatus() >= 300 ) {
                 throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("Failed to Execute ViPR request");
+                customServiceExecutionFailed("Failed to Execute ViPR request");
+            }
+            
+            final Class<?> responseEntityType = Class.forName(primitive.response());
+            final Map<String, List<String>> output;
+            if( responseEntityType.isAssignableFrom(TaskResourceRep.class)) {
+                output = getTaskResults(MAPPER.readValue(responseString, TaskResourceRep.class));
+            } else if (responseEntityType.isAssignableFrom(TaskList.class)){
+                output = getTaskResults(MAPPER.readValue(responseString, TaskList.class));
+            } else {
+                output = parseViprOutput(MAPPER.readValue(responseString, responseEntityType), step);
             }
 
-            return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), taskState);
+            return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), output);
 
         } catch (final InternalServerErrorException e) {
 
@@ -214,53 +184,57 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         }
     }
 
-    private boolean isSuccess(final Map<URI, String> states, final int returnCode) {
+    
+    private Map<String, List<String>> getTaskResults(final TaskResourceRep taskResourceRep) throws Exception {
+        final Task<ClientResponse> task = new Task<ClientResponse>(client, taskResourceRep, ClientResponse.class);
+        tagTask(task);
+        task.waitFor();
+        
+        return parseViprOutput(task.getTaskResource(), step);
+    }
+    
+    private Map<String, List<String>> getTaskResults(final TaskList taskList) throws Exception {
+        final Tasks<ClientResponse> tasks = new Tasks<ClientResponse>(client, taskList.getTaskList(), ClientResponse.class);
+        for (final Task<ClientResponse> task : tasks.getTasks()) {
+            tagTask(task);
+        }
+        
+        tasks.waitFor();
+        
+        final TaskList finishedTasks = new TaskList(new ArrayList<TaskResourceRep>());
+        for (final Task<ClientResponse> task : tasks.getTasks()) {
+            finishedTasks.addTask(task.getTaskResource());
+        }
+        
+        return parseViprOutput(finishedTasks, step);
+    }
+    
+    private void tagTask(final Task<ClientResponse> task ) {
+        addOrderIdTag(task.getTaskResource().getId());
+        info("Waiting for task to complete: %s on resource: %s", task.getOpId(), task.getResourceId());
+    }
+    
+    private Map<String, List<String>> parseViprOutput(final Object responseEntity, final Step step) throws Exception {
+        final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
 
-        if (states != null) {
-            for (Map.Entry<URI, String> e : states.entrySet()) {
-                if (!StringUtils.isEmpty(e.getValue())) {
-                    if (e.getValue().equals(Task.Status.error.toString())) {
-                        ExecutionUtils.currentContext().logError("customServicesService.logStatus",
-                                "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
-                                        + " Task Failed TaskId: " + e.getKey() + " State:" + e.getValue());
-                        return false;
-                    }
-                }
+        final Map<String, List<String>> output = new HashMap<String, List<String>>();
+        for (final CustomServicesWorkflowDocument.Output out : stepOut) {
+            final String outName = out.getName();
+            logger.debug("output to parse:{}", outName);
+
+            final String[] bits = outName.split("\\.");
+
+            // Start parsing at i=1 because the name of the root
+            // element is not included in the JSON
+            final List<String> list = RESTHelper.parserOutput(bits, 1, responseEntity);
+            if (list != null) {
+                output.put(out.getName(), list);
             }
         }
-        if (!(returnCode >= 200 && returnCode < 300)) {
-            ExecutionUtils.currentContext().logError("customServicesService.logStatus",
-                    "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
-                            + " Operation Failed ReturnCode: " + returnCode);
 
-            return false;
-        }
-
-        return true;
-
+        return output;
     }
-
-    private String updateState(final String response, final Map<URI, String> uristates) {
-        logger.info("response is:{}", response);
-        final Gson gson = new Gson();
-        final ViprOperation obj = gson.fromJson(response, ViprOperation.class);
-
-        final List<ViprOperation.ViprTask> tasks = obj.getTask();
-        for (final Map.Entry<URI, String> e : uristates.entrySet()) {
-            logger.debug("uri:{} value:{}", e.getKey(), e.getValue());
-            final URI uri = e.getKey();
-            for (final ViprOperation.ViprTask t : tasks) {
-                if(!StringUtils.isEmpty(t.getId()) && t.getId().equals(uri.toString())) {
-                    logger.debug("Update the state");
-                    t.setState(e.getValue());
-                }
-            }
-        }
-
-        final String finalResponse = gson.toJson(obj);
-        logger.info("New result" + finalResponse);
-
-        return finalResponse;
-    }
+    
+    
 }
 

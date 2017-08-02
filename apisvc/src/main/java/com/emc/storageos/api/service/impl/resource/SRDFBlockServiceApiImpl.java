@@ -491,6 +491,12 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
             volume.setSrdfParent(new NamedURI(srcVolume.getId(), srcVolume.getLabel()));
             computeCapacityforSRDFV3ToV2(volume, vpool);
+            
+            // COP-32023: Set volume tags of the target to be the same as the source, since this is a live copy of the source.
+            // This wholesale copy of the volume tags may not be desired by all users, and may actually hinder logic that relies
+            // on the source volume having a different tag than the target, so post-processing may need to take place to remove
+            // undesired tagging this will cause.
+            transferMountedContentTags(srcVolume, volume);
         }
 
         if (newVolume) {

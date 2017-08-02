@@ -187,9 +187,9 @@
 .item-start-end {
     height:40px;
     width:70px;
-    border: 2px solid #0286c3;
+    border: 2px solid #2c95dd;
     border-radius:50%;
-    background-color: #0286c3;
+    background-color: #2c95dd;
 }
 
 .sidebar {
@@ -282,9 +282,19 @@
      border-color: #4cae4c;
  }
 
+ .passEndpoint:hover{
+ 	opacity: 1;
+ 	cursor: pointer ;
+ }
+
 .failEndpoint svg circle {
     fill: #d9534f;
     border-color: #d43f3a;
+}
+
+.failEndpoint:hover{
+	opacity: 1;
+	cursor: pointer ;
 }
 
 .jsplumb-endpoint.jsplumb-endpoint-connected {
@@ -364,7 +374,7 @@
 }
 
 .highlighted .item {
-	background-color: #0286c3;
+	background-color: #2c95dd;
 }
 
 .highlighted .item .itemText{
@@ -762,8 +772,32 @@ table, th , td {
     box-shadow: 0 0 19px #3fac49;
 }
 
+.glow-pass-hover {
+	box-shadow: none !important ;
+	border: 2px solid #3fac49 ;
+}
+
 .glow-fail {
     box-shadow: 0 0 19px #ee3825;
+}
+
+.glow-fail-hover {
+	box-shadow: none !important ;
+	border: 2px solid #ee3825 ;
+}
+
+.glow-common {
+	box-shadow: 0 0 12px #0286c3;
+}
+
+.glow-common-hover {
+	box-shadow: none !important ;
+	border: 2px solid #0286c3 ;
+}
+
+.commonEndpoint {
+	opacity: 0 !important;
+	cursor: pointer;
 }
 
 .field-container{

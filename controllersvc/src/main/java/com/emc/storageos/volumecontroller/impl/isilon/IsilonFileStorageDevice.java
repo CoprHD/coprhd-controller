@@ -4617,6 +4617,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         BiosCommandResult result = null;
         FileShare fs = args.getFs();
         if (fs == null) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for {} wih id {} - could not start. Reason : Unable to retieve FileSystem object",
+                    objId, args.getShareName());
             throw DeviceControllerException.exceptions.validateResourceConsistencyFailed(objId, args.getShareName(), "Unable to retieve FileSystem object");
         }
         Task task = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), args.getOpId());
@@ -4624,6 +4627,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             IsilonApi isi = getIsilonDevice(storageObj);
             _log.info("IsilonFileStorageDevice validateResource for {} wih id {} - start", objId, args.getShareName());
             if (objId.equalsIgnoreCase("share")) {
+                // get the share from isilon
                 String zoneName = getZoneName(args.getvNAS());
                 IsilonSMBShare share = null;
                 if (zoneName != null) {
@@ -4631,10 +4635,26 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 } else {
                     share = isi.getShare(args.getShareName());
                 }
+                // get the share in db
                 SMBFileShare smbShare = fs.getSMBFileShares().get(args.getShareName());
-                if (smbShare.getName().equalsIgnoreCase(share.getName()) && smbShare.getPath().equalsIgnoreCase(share.getPath())) {
+                if (smbShare == null) {
+                    _log.error("IsilonFileStorageDevice validateResource for {} wih id {} - failed. Reason : Share is empty",
+                            objId, args.getShareName());
+                    throw DeviceControllerException.exceptions.validateResourceConsistencyFailed(objId, args.getShareName(),
+                            "Share is empty");
+                } else if (share == null) {
+                    _log.error(
+                            "IsilonFileStorageDevice validateResource for {} wih id {} - failed. Reason : Unable to retrieve share from isilon, Share might be deleted.",
+                            objId, args.getShareName());
+                    throw DeviceControllerException.exceptions.validateResourceConsistencyFailed(objId, args.getShareName(),
+                            "Unable to retrieve share from isilon, Share might be deleted.");
+                }
+                // compare and validate if its consistent
+                if (validateCifsShareConsistency(smbShare, share)) {
                     result = BiosCommandResult.createSuccessfulResult();
                 } else {
+                    _log.error("IsilonFileStorageDevice validateResource for {} wih id {} - failed the validation. It is inconsistent.",
+                            objId, args.getShareName());
                     throw DeviceControllerException.exceptions.validateResourceConsistencyFailed(objId, args.getShareName(),
                             "Failed the validation");
                 }
@@ -4644,6 +4664,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             task.setProgress(100);
             _dbClient.updateObject(task);
         } catch (IsilonException e) {
+            _log.error("IsilonFileStorageDevice validateResource for {} wih id {} - failed with exception: {}",
+                    objId, args.getShareName(), e);
             task.error(e);
             task.setProgress(100);
             _dbClient.updateObject(task);
@@ -4651,6 +4673,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
         return result;
+    }
+
+    private boolean validateCifsShareConsistency(SMBFileShare smbShare, IsilonSMBShare share) {
+        if (!smbShare.getName().equalsIgnoreCase(share.getName())) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for share wih id {} - failed the validation with inconsistent share name.",
+                    smbShare.getName());
+            return false;
+        }
+        if (!smbShare.getPath().equalsIgnoreCase(share.getPath())) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for share wih id {} - failed the validation with inconsistent share path.",
+                    smbShare.getPath());
+            return false;
+        }
+        return true;
     }
 
 }

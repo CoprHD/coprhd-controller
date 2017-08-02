@@ -2865,4 +2865,9 @@ implements FileStorageDevice, BlockStorageDevice {
     public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
+    @Override
+    public BiosCommandResult validateResource(StorageSystem storageObj, FileDeviceInputOutput args, String objId) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

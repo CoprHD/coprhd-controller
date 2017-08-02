@@ -31,6 +31,8 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -41,7 +43,6 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.AccessEnum;
 import com.emc.storageos.vnxe.models.VNXeBase;
-import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
@@ -1808,13 +1809,13 @@ implements FileStorageDevice {
 
     @Override
     public BiosCommandResult validateResource(StorageSystem storageObj, FileDeviceInputOutput args, String objId) {
-        if (objId.equalsIgnoreCase("share")) {
-            _logger.info("Validating the consistency of  smbShare: " + args.getShareName());
-            VNXeApiClient apiClient = getVnxUnityClient(storageObj);
-            VNXeCifsShare vnxeShare = apiClient.findCifsShareByName(args.getShareName());
+        _logger.info("Passing the validation of resource consistency");
+        Task task = TaskUtils.findTaskForRequestId(dbClient, args.getFs().getId(), args.getOpId());
+        task.ready();
+        task.setProgress(100);
+        dbClient.updateObject(task);
+        return BiosCommandResult.createSuccessfulResult();
 
-        }
-
-        return null;
     }
+
 }

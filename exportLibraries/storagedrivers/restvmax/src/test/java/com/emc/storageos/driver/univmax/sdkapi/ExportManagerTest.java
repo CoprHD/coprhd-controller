@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.driver.univmax.AuthenticationInfo;
 import com.emc.storageos.driver.univmax.rest.RestClient;
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultType;
+import com.emc.storageos.driver.univmax.rest.type.common.SymmetrixPortKeyType;
+import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreatePortGroupParamType;
 
 /**
  * @author fengs5
@@ -63,20 +65,20 @@ public class ExportManagerTest {
     // log.info("Fetched IG as {}", getHostResultType);
     // }
 
-    // @Test
-    // public void testCreatePortGroup() {
-    // String pgName = "stone_test_PG_0801";
-    // String directorId = "FA-1D";
-    // String portId = "4";
-    // CreatePortGroupParamType param = new CreatePortGroupParamType(pgName);
-    // SymmetrixPortKeyType port = new SymmetrixPortKeyType(directorId, portId);
-    // param.addSymmetrixPortKey(port);
-    // GenericResultType result = exportManager.createPortGroup(param);
-    // log.info("" + result.isSuccessfulStatus());
-    // Assert.assertTrue(result.isSuccessfulStatus());
-    // log.info("Created PG as {}", result);
-    //
-    // }
+    @Test
+    public void testCreatePortGroup() {
+        String pgName = "stone_test_PG_08011";
+        String directorId = "FA-1D";
+        String portId = "4";
+        CreatePortGroupParamType param = new CreatePortGroupParamType(pgName);
+        SymmetrixPortKeyType port = new SymmetrixPortKeyType(directorId, portId);
+        param.addSymmetrixPortKey(port);
+        GenericResultType result = exportManager.createPortGroup(param);
+        log.info("" + result.isSuccessfulStatus());
+        Assert.assertTrue(result.isSuccessfulStatus());
+        log.info("Created PG as {}", result);
+
+    }
 
     // @Test
     // public void testFetchPortGroup() {
@@ -87,17 +89,17 @@ public class ExportManagerTest {
     // log.info("Fetched PG as {}", result);
     // }
 
-    @Test
-    public void testCreateMaskingview() {
-        String mvName = "stone_test_MV_0801";
-        String hostId = "stone_test_IG_08011";
-        String pgName = "stone_test_PG_0801";
-        String sgName = "stone_test_sg_auto_015";
-        GenericResultType result = exportManager.createMaskingviewForHost(mvName, hostId, pgName, sgName);
-        log.info("" + result.isSuccessfulStatus());
-        Assert.assertTrue(result.isSuccessfulStatus());
-        log.info("Created MV as {}", result);
-    }
+    // @Test
+    // public void testCreateMaskingview() {
+    // String mvName = "stone_test_MV_0801";
+    // String hostId = "stone_test_IG_08011";
+    // String pgName = "stone_test_PG_0801";
+    // String sgName = "stone_test_sg_auto_015";
+    // GenericResultType result = exportManager.createMaskingviewForHost(mvName, hostId, pgName, sgName);
+    // log.info("" + result.isSuccessfulStatus());
+    // Assert.assertTrue(result.isSuccessfulStatus());
+    // log.info("Created MV as {}", result);
+    // }
 
     // @Test
     // public void testFetchMaskingview() {

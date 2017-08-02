@@ -11,4 +11,31 @@ public class ParamType {
     public String toJsonString() {
         return JsonUtil.toJsonString(this);
     }
+
+    private ExecutionOption executionOption;
+
+    /**
+     * @return the executionOption
+     */
+    public ExecutionOption getExecutionOption() {
+        return executionOption;
+    }
+
+    /**
+     * @param executionOption the executionOption to set
+     */
+    public void setExecutionOption(ExecutionOption executionOption) {
+        this.executionOption = executionOption;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "ParamType [executionOption=" + executionOption + "]";
+    }
+
 }

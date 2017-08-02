@@ -111,7 +111,7 @@ public class VolumeCreate {
     }
 
     /**
-     * Size of the volume (in Byte) to be created.
+     * Size of the volume (in B, KB, MB, GB, TB. If only integer it is in Bytes) to be created.
      * 
      */
     @XmlElement(required = true)

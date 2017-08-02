@@ -1,4 +1,6 @@
 require 'yaml'
+require 'json'
+require 'rest-client'
 require 'rspec/expectations'
 require 'selenium-webdriver'
 require 'capybara/cucumber'
@@ -16,6 +18,7 @@ World do
 end
 
 APP_HOST = ENV['CUCUMBER_APP_HOST']
+APP_ROOT = 'root'
 APP_PASSWORD = ENV['CUCUMBER_APP_PASSWORD']
 REMOTE_HOST = ENV['CUCUMBER_REMOTE_HOST']
 

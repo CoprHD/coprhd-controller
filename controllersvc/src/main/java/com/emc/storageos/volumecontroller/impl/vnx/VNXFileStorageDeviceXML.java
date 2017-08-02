@@ -281,7 +281,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public boolean doCheckFSExists(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
-        _log.info("Checking file system existence on array: ", args.getFsName());
+        _log.info("Checking file system existence on array: {}", args.getFsName());
         boolean isFSExists = true;
         ApplicationContext context = null;
         try {
@@ -301,7 +301,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
             throws ControllerException {
-        _log.info(String.format("updateExportRules: update export rules for fsid {%s} - start", args.getFsId()));
+        _log.info("updateExportRules: update export rules for fsid {} - start", args.getFsId());
 
         XMLApiResult result = null;
         ApplicationContext context = null;
@@ -540,7 +540,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage, FileDeviceInputOutput args, List<FileExport> exportList)
             throws ControllerException {
-        _log.info(String.format("doExport: create VNX file export and its fsid { %s} - start", args.getFsId()));
+        _log.info("doExport: create VNX file export and its fsid {} - start", args.getFsId());
 
         boolean firstExport = false;
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -908,7 +908,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         args.setSnaphotCheckPointBaseline(args.getSnapshotName() + "_baseline");
         args.setSnapshotMountPath("/" + args.getSnapshotName());
         _log.info("FileShare, Snapshot {} {}", args.getFsUUID(), args.getSnapshotId());
-        _log.info("FSName: %s and SnapShotName: %s", args.getFsName(), args.getSnapshotName());
+        _log.info("FSName: {}, SnapShotName: {}", args.getFsName(), args.getSnapshotName());
         XMLApiResult result = null;
         ApplicationContext context = null;
         try {
@@ -1072,8 +1072,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         _log.info("FileShare, Snapshot {} {}", args.getFsUUID(), args.getSnapshotId());
         _log.info("FSName: {}", args.getFsName());
 
-        _log.info(String.format("SnapShotName: {%s} and SnapShotBaseline: {%s}", args.getSnapshotName(),
-                args.getSnapshotCheckPointBaseline()));
+        _log.info("SnapShotName: {} and SnapShotBaseline: {}", args.getSnapshotName(),
+                args.getSnapshotCheckPointBaseline());
 
         XMLApiResult result = null;
         ApplicationContext context = null;
@@ -1229,7 +1229,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory quotaDir) throws ControllerException {
-        _log.info("doCreateQuotaDirectory: delete quota {}- start", args.getQuotaDirectoryName());
+        _log.info("doCreateQuotaDirectory: create quota {}- start", args.getQuotaDirectoryName());
 
         BiosCommandResult result = new BiosCommandResult();
         ApplicationContext context = null;

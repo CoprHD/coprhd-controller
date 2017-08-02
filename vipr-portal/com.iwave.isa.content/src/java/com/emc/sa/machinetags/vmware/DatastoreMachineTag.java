@@ -19,7 +19,7 @@ public class DatastoreMachineTag extends MultiValueMachineTag {
     public static final String END_POINTS = "endPoints";
     public static final String DATASTORE = "datastore";
 
-    public static final List<String> relatedTags = Lists.newArrayList(DATASTORE, MOUNT_POINT, VCENTER, DATACENTER);
+    public static final List<String> relatedTags = Lists.newArrayList(DATASTORE, MOUNT_POINT, VCENTER, DATACENTER, END_POINTS);
 
     public DatastoreMachineTag(Integer index, String vcenter, String datacenter, String datastore, String mountpoint,
             List<String> endpoints) {
@@ -30,8 +30,9 @@ public class DatastoreMachineTag extends MultiValueMachineTag {
                 new MachineTag(NAMESPACE, END_POINTS, index, endpoints.toString()));
     }
 
-    public DatastoreMachineTag(MachineTag datastore, MachineTag vcenter, MachineTag datacenter, MachineTag mountpoint) {
-        super(datastore, vcenter, datacenter, mountpoint);
+    public DatastoreMachineTag(MachineTag datastore, MachineTag vcenter, MachineTag datacenter, MachineTag mountpoint,
+            MachineTag endpoints) {
+        super(datastore, vcenter, datacenter, mountpoint, endpoints);
     }
 
     @Override
@@ -58,6 +59,10 @@ public class DatastoreMachineTag extends MultiValueMachineTag {
 
     public String getMountPoint() {
         return getTagValue(MOUNT_POINT);
+    }
+
+    public String getEndPoints() {
+        return getTagValue(END_POINTS);
     }
 
     private String getTagValue(String name) {

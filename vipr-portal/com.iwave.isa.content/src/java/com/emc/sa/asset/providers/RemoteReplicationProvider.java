@@ -53,8 +53,6 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * set(s) matching the given VirtualPool and VirtualArray.  If no set is found,
      * an error is returned.
      * 
-     * Return menu options matching the given VirtualPool and VirtualArray.
-     *
      * @param virtualArrayId ID of Virtual Array
      * @param virtualPoolId  ID of VirtualPool
      * @return  list of asset options for catalog service order form

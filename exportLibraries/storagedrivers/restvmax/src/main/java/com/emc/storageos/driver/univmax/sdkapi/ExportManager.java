@@ -211,6 +211,15 @@ public class ExportManager extends DefaultManager {
         return responseBean;
     }
 
+    /**
+     * Create maskingview for host.
+     * 
+     * @param mvName
+     * @param hostId
+     * @param pgId
+     * @param sgId
+     * @return
+     */
     public GenericResultType createMaskingviewForHost(String mvName, String hostId, String pgId, String sgId) {
         CreateMaskingViewParamType param = new CreateMaskingViewParamType(mvName);
         param.setHostOrHostGroupSelection(genHostOrHostGroupSelectionTypeUseExistingHost(hostId));
@@ -219,6 +228,15 @@ public class ExportManager extends DefaultManager {
         return createMaskingview(param);
     }
 
+    /**
+     * Create maskingview for cluster(hostGroup).
+     * 
+     * @param mvName
+     * @param hostGroupId
+     * @param pgId
+     * @param sgId
+     * @return
+     */
     public GenericResultType createMaskingviewForHostGroup(String mvName, String hostGroupId, String pgId, String sgId) {
         CreateMaskingViewParamType param = new CreateMaskingViewParamType(mvName);
         param.setHostOrHostGroupSelection(genHostOrHostGroupSelectionTypeUseExistingHostGroup(hostGroupId));
@@ -255,6 +273,12 @@ public class ExportManager extends DefaultManager {
         return storageGroupSelection;
     }
 
+    /**
+     * Create maskingview.
+     * 
+     * @param param
+     * @return
+     */
     public GenericResultType createMaskingview(CreateMaskingViewParamType param) {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.MASKINGVIEW, genUrlFillersWithSn());
         Type responseClazzType = new TypeToken<GenericResultType>() {
@@ -274,6 +298,12 @@ public class ExportManager extends DefaultManager {
         return responseBean;
     }
 
+    /**
+     * Fetch maskingview with id.
+     * 
+     * @param mvId
+     * @return
+     */
     public GetMaskingViewResultType fetchMaskingview(String mvId) {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.MASKINGVIEW_ID, genUrlFillersWithSn(mvId));
         Type responseClazzType = new TypeToken<GetMaskingViewResultType>() {

@@ -19,7 +19,7 @@ import com.emc.storageos.storagedriver.Registry;
  *
  */
 public class RegistryHandler {
-    private static final Logger LOG = LoggerFactory.getLogger(RegistryHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(RegistryHandler.class);
 
     private static final String REGISTRY_ATTRIBUTE_NAME_PROTOCOL = "protocol";
     private static final String REGISTRY_ATTRIBUTE_NAME_HOST = "host";

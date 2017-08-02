@@ -12,3 +12,14 @@ dependencies {
     testCompile library(easymock)
 }
 
+//create a single Jar with all dependencies
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Gradle Jar File Example',
+            'Implementation-Version': 1.0,
+            'Main-Class': 'com.emc.storageos.driver.univmax.UnivmaxStorageDriver'
+    }
+    baseName = project.name + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}

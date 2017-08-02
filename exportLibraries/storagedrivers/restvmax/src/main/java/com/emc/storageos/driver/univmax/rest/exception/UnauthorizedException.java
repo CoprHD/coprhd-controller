@@ -13,6 +13,11 @@ public class UnauthorizedException extends Exception {
     /**
      * 
      */
+    private static final long serialVersionUID = -1373718107897523302L;
+
+    /**
+     * 
+     */
     public UnauthorizedException() {
         super();
         // TODO Auto-generated constructor stub

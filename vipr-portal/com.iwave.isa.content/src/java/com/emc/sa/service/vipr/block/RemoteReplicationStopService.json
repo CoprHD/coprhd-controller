@@ -36,6 +36,14 @@
       select:"one",
       initialValue: "Entire Set/Group will be affected",
       hideIfEmpty: true
+    },
+    WARNING: {
+      type: "choice",
+      initialValue: "Permanantly breaks pair(s)",
+      select: "one",
+      options: {
+        "warning": "Permanantly breaks pair(s)"
+      }
     }
   }
 }

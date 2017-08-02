@@ -4142,8 +4142,11 @@ public class FileService extends TaskResourceService {
             } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()));
 
             if (taskObject == null || taskObject.isError()) {
-                _log.error("Task to get the existing policy and target information failed.");
-                throw APIException.badRequests.unableToProcessRequest("Error occured while getting replication policy ");
+                String error = taskObject.isError()
+                        ? String.format("Error occurred while getting replication policy. Reason : %s", taskObject.getMessage())
+                        : "Error occurred while getting replication policy.";
+                _log.error(error);
+                throw APIException.badRequests.existingFilePolicyCheckError(error);
             } else if (taskObject.isReady()) {
                 fs = _dbClient.queryObject(FileShare.class, fs.getId());
                 if (fs.getExtensions().containsKey("ReplicationInfo")) {

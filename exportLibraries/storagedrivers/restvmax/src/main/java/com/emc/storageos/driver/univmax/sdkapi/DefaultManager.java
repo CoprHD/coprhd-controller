@@ -189,9 +189,9 @@ public class DefaultManager {
      * Process put request.
      * 
      * @param url
-     * @param IParameter params, request content
-     * @param Class<T> clazz, response bean
-     * @return ResponseWrapper<T>
+     * @param params
+     * @param responseClazzType
+     * @return
      */
     <T extends GenericResultImplType> ResponseWrapper<T> put(String url, ParamType params, Type responseClazzType) {
         ClientResponse response = null;
@@ -217,8 +217,8 @@ public class DefaultManager {
      * Process delete request.
      * 
      * @param url
-     * @param Class<T> clazz, response bean
-     * @return ResponseWrapper<T>
+     * @param responseClazzType
+     * @return
      */
     <T extends GenericResultImplType> ResponseWrapper<T> delete(String url, Type responseClazzType) {
         ClientResponse response = null;

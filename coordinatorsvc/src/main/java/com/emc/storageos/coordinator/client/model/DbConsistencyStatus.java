@@ -29,6 +29,8 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     private int inconsistencyCount;
     private int checkedCount;
     private String checkType;
+    private String workingNodeID;
+    private String workingNodeName;
 
     public Status getStatus() {
         return status;
@@ -101,7 +103,23 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
         this.checkType = checkType;
     }
 
-    @Override
+    public String getWorkingNodeID() {
+		return workingNodeID;
+	}
+
+	public void setWorkingNodeID(String workingNodeID) {
+		this.workingNodeID = workingNodeID;
+	}
+
+	public String getWorkingNodeName() {
+		return workingNodeName;
+	}
+
+	public void setWorkingNodeName(String workingNodeName) {
+		this.workingNodeName = workingNodeName;
+	}
+
+	@Override
     @JsonIgnore
     public String encodeAsString() {
         return toString();
@@ -158,6 +176,8 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
         this.previous.setInconsistencyCount(this.getInconsistencyCount());
         this.previous.setCheckedCount(this.getCheckedCount());
         this.previous.setCheckType(this.getCheckType());
+        this.previous.setWorkingNodeID(this.workingNodeID);
+        this.previous.setWorkingNodeName(this.getWorkingNodeName());
         init();
     }
 

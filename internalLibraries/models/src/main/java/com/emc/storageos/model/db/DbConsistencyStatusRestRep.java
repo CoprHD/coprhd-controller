@@ -22,6 +22,8 @@ public class DbConsistencyStatusRestRep{
     private int progress;
     private String workingPoint;
     private int inconsistencyCount;
+    private String workingNodeID;
+    private String workingNodeName;
 
     /**
      * The start time of db consistency check
@@ -96,7 +98,25 @@ public class DbConsistencyStatusRestRep{
         this.inconsistencyCount = inconsistencyCount;
     }
     
-    @Override
+    @XmlElement(name = "working_node_id")
+    public String getWorkingNodeID() {
+		return workingNodeID;
+	}
+
+	public void setWorkingNodeID(String workingNodeID) {
+		this.workingNodeID = workingNodeID;
+	}
+
+	@XmlElement(name = "working_node_name")
+	public String getWorkingNodeName() {
+		return workingNodeName;
+	}
+
+	public void setWorkingNodeName(String workingNodeName) {
+		this.workingNodeName = workingNodeName;
+	}
+
+	@Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("status=").append(this.status)
